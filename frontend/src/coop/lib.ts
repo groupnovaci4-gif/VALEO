@@ -93,7 +93,7 @@ export type Member = {
   momo: Momo | null;
   photo?: string | null;
 };
-export type Staff = { id: string; nom: string; role: string; tel?: string; photo?: string | null };
+export type Staff = { id: string; nom: string; role: string; tel?: string; photo?: string | null; prenoms?: string; email?: string; fonction?: string; idNumber?: string };
 export type Retenue = { label: string; amount: number };
 export type Collection = {
   id: string;
@@ -128,13 +128,39 @@ export type Mandat = { id: string; pisteurId: string; amount: number; date: stri
 export type Depense = { id: string; pisteurId: string; category: string; amount: number; date: string; note: string };
 export type CoopMomo = { id: string; operator: string; number: string; label?: string };
 export type PriceHistory = { date: string; prixKg: number };
+export type Coop = {
+  nom: string;
+  sigle?: string;
+  agrement?: string;
+  type?: string;
+  dateCreation?: string;
+  filieres?: string[];
+  photo?: string | null;
+  description?: string;
+  region?: string;
+  district?: string;
+  departement?: string;
+  commune?: string;
+  localite?: string;
+  adresse?: string;
+  tel?: string;
+  email?: string;
+  momo: CoopMomo[];
+};
+export const COOP_TYPES = [
+  "Société coopérative simplifiée (SCOOPS)",
+  "Coopérative avec conseil d'administration (COOP-CA)",
+  "Union de coopératives",
+  "Fédération / Confédération",
+  "Autre",
+];
 export type Data = {
   saison: string;
   prixKg: number;
   seq: number;
   memberSeq: number;
   commissionRate: number;
-  coop: { nom: string; momo: CoopMomo[] };
+  coop: Coop;
   staff: Staff[];
   members: Member[];
   collections: Collection[];
@@ -169,7 +195,7 @@ export function seed(): Data {
     seq: 1,
     memberSeq: 1,
     commissionRate: 25,
-    coop: { nom: "Coopérative", momo: [] },
+    coop: { nom: "Coopérative", momo: [], filieres: [] },
     staff: [],
     members: [],
     collections: [],
@@ -193,6 +219,7 @@ export function migrate(d: any): Data {
   if (!out.saison) out.saison = "Campagne 2025-2026";
   if (!out.coop) out.coop = { nom: "Coopérative", momo: [] };
   if (!Array.isArray(out.coop.momo)) out.coop.momo = [];
+  if (!Array.isArray(out.coop.filieres)) out.coop.filieres = [];
   if (!Array.isArray(out.priceHistory)) out.priceHistory = [{ date: new Date().toISOString(), prixKg: out.prixKg }];
   let seqBase = typeof out.memberSeq === "number" ? out.memberSeq : 1;
   out.members = out.members.map((m: any) => {

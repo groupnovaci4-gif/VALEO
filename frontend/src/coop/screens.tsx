@@ -555,11 +555,54 @@ export function PatronPrets({ data, onDecide, onBack }: any) {
 }
 
 export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onReset, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
+  const co = data.coop || {};
+  const patron = (data.staff || []).find((s: Staff) => s.role === "patron");
+  const filieresTxt = (co.filieres || []).map((id: string) => crop(id).nom).join(", ");
+  const info: [string, string | undefined][] = [
+    ["Type", co.type],
+    ["Agrément", co.agrement],
+    ["Date de création", co.dateCreation],
+    ["Filières", filieresTxt],
+    ["Région", co.region],
+    ["District", co.district],
+    ["Département", co.departement],
+    ["Commune", co.commune],
+    ["Localité", co.localite],
+    ["Adresse", co.adresse],
+    ["Téléphone", co.tel],
+    ["Email", co.email],
+  ];
+  const shown = info.filter(([, v]) => v && String(v).trim());
   return (
     <View>
-      <Card style={{ padding: 16, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <View style={{ width: 46, height: 46, borderRadius: 13, backgroundColor: "#EAF3EF", alignItems: "center", justifyContent: "center" }}><Icon name="landmark" size={22} color={C.teal} /></View>
-        <View style={{ flexShrink: 1 }}><Text style={{ fontWeight: "800", fontSize: 16 }}>{data.coop.nom}</Text><Text style={{ fontSize: 12.5, color: C.muted }}>{data.saison} · prix {fF(data.prixKg)}/kg · commission {fF(data.commissionRate)}/kg</Text></View>
+      <Card style={{ padding: 16, marginBottom: 16 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <PhotoAvatar photo={co.photo} size={52} fallbackIcon="building" fallbackColor={C.teal} />
+          <View style={{ flexShrink: 1 }}>
+            <Text style={{ fontWeight: "800", fontSize: 16 }}>{co.nom}</Text>
+            <Text style={{ fontSize: 12.5, color: C.muted }}>{co.sigle ? `${co.sigle} · ` : ""}{data.saison}</Text>
+            <Text style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>Prix {fF(data.prixKg)}/kg · commission {fF(data.commissionRate)}/kg</Text>
+          </View>
+        </View>
+        {co.description ? <Text style={{ fontSize: 13, color: C.ink, marginTop: 12, lineHeight: 19 }}>{co.description}</Text> : null}
+        {shown.length > 0 ? (
+          <View style={{ backgroundColor: "#FAF6EF", borderRadius: 12, padding: 12, marginTop: 12, flexDirection: "row", flexWrap: "wrap" }}>
+            {shown.map(([l, v], i) => (
+              <View key={i} style={{ width: "50%", marginBottom: i < shown.length - (shown.length % 2 === 0 ? 2 : 1) ? 10 : 0 }}>
+                <InfoLine label={l} value={v} />
+              </View>
+            ))}
+          </View>
+        ) : null}
+        {patron ? (
+          <View style={{ marginTop: 12, borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", paddingTop: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <PhotoAvatar photo={patron.photo} size={38} fallbackIcon="user" fallbackColor={C.green} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "700", fontSize: 13.5 }}>{patron.nom}</Text>
+              <Text style={{ fontSize: 12, color: C.muted }}>{patron.fonction || "Responsable"}{patron.tel ? ` · ${patron.tel}` : ""}</Text>
+            </View>
+          </View>
+        ) : null}
       </Card>
 
       <SectionTitle>Administration</SectionTitle>

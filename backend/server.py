@@ -43,7 +43,7 @@ def empty_state() -> dict:
         "seq": 1,
         "memberSeq": 1,
         "commissionRate": 25,
-        "coop": {"nom": "Coopérative", "momo": []},
+        "coop": {"nom": "Coopérative", "momo": [], "filieres": []},
         "staff": [],
         "members": [],
         "collections": [],
@@ -267,8 +267,9 @@ const SCHEMAS = {
   members:{title:"Planteurs",arr:"members",cols:["code","nom","village","tel","cropId"],fields:[
     {k:"nom",l:"Nom & prénoms"},{k:"code",l:"Code"},{k:"village",l:"Localité"},{k:"idNumber",l:"Pièce d'identité"},
     {k:"superficie",l:"Superficie (ha)",t:"number"},{k:"cropId",l:"Culture",opt:["cacao","cafe","anacarde","hevea"]},{k:"tel",l:"Téléphone"}]},
-  staff:{title:"Équipe",arr:"staff",cols:["nom","role","tel"],fields:[
-    {k:"nom",l:"Nom"},{k:"role",l:"Rôle",opt:["patron","commis","pisteur"]},{k:"tel",l:"Téléphone"}]},
+  staff:{title:"Équipe",arr:"staff",cols:["nom","role","fonction","tel"],fields:[
+    {k:"nom",l:"Nom (affiché)"},{k:"prenoms",l:"Prénoms"},{k:"role",l:"Rôle",opt:["patron","commis","pisteur"]},
+    {k:"fonction",l:"Fonction"},{k:"tel",l:"Téléphone"},{k:"email",l:"Email"},{k:"idNumber",l:"Pièce d'identité"}]},
   collections:{title:"Collectes",arr:"collections",cols:["seq","_member","kg","net","paye","reste","method"],fields:[
     {k:"memberId",l:"Planteur",ref:"members"},{k:"byStaffId",l:"Agent",ref:"staff"},{k:"kg",l:"Poids (kg)",t:"number"},
     {k:"prixKg",l:"Prix/kg",t:"number"},{k:"net",l:"Net",t:"number"},{k:"paye",l:"Payé",t:"number"},{k:"reste",l:"Reste",t:"number"},
@@ -294,25 +295,65 @@ function render(){
 }
 function go(k){ current=k; render(); }
 
+const COOP_TYPES=["Société coopérative simplifiée (SCOOPS)","Coopérative avec conseil d'administration (COOP-CA)","Union de coopératives","Fédération / Confédération","Autre"];
+const FILIERES=[["cacao","Cacao"],["cafe","Café"],["anacarde","Anacarde"],["hevea","Hévéa"]];
+const esc=s=>(""+(s==null?"":s)).replace(/"/g,'&quot;');
+
 function settingsPanel(){
-  return `<div class="card"><h3>Réglages</h3>
+  const co=state.coop||{}; const fil=co.filieres||[];
+  const typeOpts=COOP_TYPES.map(t=>`<option ${t===co.type?'selected':''}>${t}</option>`).join("");
+  const filBoxes=FILIERES.map(([id,l])=>`<label style="display:inline-flex;align-items:center;gap:6px;margin-right:14px;font-size:14px;color:var(--ink)"><input type="checkbox" data-fil="${id}" ${fil.includes(id)?'checked':''} style="width:auto"/> ${l}</label>`).join("");
+  return `<div class="card"><h3>Identité de la coopérative</h3>
     <div class="row">
-      <div><label>Nom de la coopérative</label><input id="s_nom" value="${(state.coop.nom||'').replace(/"/g,'&quot;')}"/></div>
-      <div><label>Campagne</label><input id="s_saison" value="${(state.saison||'').replace(/"/g,'&quot;')}"/></div>
+      <div><label>Nom officiel</label><input id="s_nom" value="${esc(co.nom)}"/></div>
+      <div><label>Sigle / nom commercial</label><input id="s_sigle" value="${esc(co.sigle)}"/></div>
     </div>
     <div class="row">
+      <div><label>N° d'enregistrement / agrément</label><input id="s_agr" value="${esc(co.agrement)}"/></div>
+      <div><label>Date de création</label><input id="s_date" value="${esc(co.dateCreation)}" placeholder="JJ/MM/AAAA"/></div>
+    </div>
+    <label>Type de coopérative</label><select id="s_type">${typeOpts}</select>
+    <label>Filières exploitées</label><div style="padding:6px 0">${filBoxes}</div>
+    <label>Description / présentation</label><textarea id="s_desc" rows="3">${esc(co.description)}</textarea>
+    <h3 style="margin-top:18px">Coordonnées</h3>
+    <div class="row">
+      <div><label>Région</label><input id="s_region" value="${esc(co.region)}"/></div>
+      <div><label>District</label><input id="s_district" value="${esc(co.district)}"/></div>
+    </div>
+    <div class="row">
+      <div><label>Département</label><input id="s_dept" value="${esc(co.departement)}"/></div>
+      <div><label>Commune</label><input id="s_commune" value="${esc(co.commune)}"/></div>
+    </div>
+    <div class="row">
+      <div><label>Localité / village</label><input id="s_loc" value="${esc(co.localite)}"/></div>
+      <div><label>Adresse</label><input id="s_adr" value="${esc(co.adresse)}"/></div>
+    </div>
+    <div class="row">
+      <div><label>Téléphone</label><input id="s_tel" value="${esc(co.tel)}"/></div>
+      <div><label>Email</label><input id="s_email" value="${esc(co.email)}"/></div>
+    </div>
+    <button class="green" style="margin-top:16px" onclick="saveSettings()">Enregistrer l'identité</button>
+  </div>
+  <div class="card"><h3>Campagne & tarifs</h3>
+    <div class="row">
+      <div><label>Campagne</label><input id="s_saison" value="${esc(state.saison)}"/></div>
       <div><label>Prix bord champ (F/kg)</label><input id="s_prix" type="number" value="${state.prixKg||0}"/></div>
       <div><label>Commission pisteur (F/kg)</label><input id="s_com" type="number" value="${state.commissionRate||0}"/></div>
     </div>
-    <button class="green" style="margin-top:14px" onclick="saveSettings()">Enregistrer les réglages</button>
+    <button class="green" style="margin-top:14px" onclick="saveSettings()">Enregistrer</button>
   </div>
   <div class="card"><h3>Zone dangereuse</h3><p class="muted">Vide toute la base (planteurs, collectes, prêts…). Irréversible.</p>
     <button class="danger" onclick="wipeAll()">Tout réinitialiser</button></div>`;
 }
 async function saveSettings(){
+  const co=state.coop; const g=id=>{const e=$(id);return e?e.value:undefined;};
   const newPrix = +$("s_prix").value||0;
   if(newPrix!==state.prixKg){ state.priceHistory=[...(state.priceHistory||[]),{date:new Date().toISOString(),prixKg:newPrix}]; }
-  state.coop.nom=$("s_nom").value; state.saison=$("s_saison").value; state.prixKg=newPrix; state.commissionRate=+$("s_com").value||0;
+  co.nom=g("s_nom"); co.sigle=g("s_sigle"); co.agrement=g("s_agr"); co.dateCreation=g("s_date"); co.type=g("s_type");
+  co.description=g("s_desc"); co.region=g("s_region"); co.district=g("s_district"); co.departement=g("s_dept");
+  co.commune=g("s_commune"); co.localite=g("s_loc"); co.adresse=g("s_adr"); co.tel=g("s_tel"); co.email=g("s_email");
+  co.filieres=[...document.querySelectorAll("[data-fil]:checked")].map(e=>e.dataset.fil);
+  state.saison=g("s_saison"); state.prixKg=newPrix; state.commissionRate=+$("s_com").value||0;
   await persist();
 }
 async function wipeAll(){

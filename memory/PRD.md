@@ -37,6 +37,7 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
   - Signature tactile du planteur sur le bordereau (src/coop/Signature.tsx, PanResponder + react-native-svg), incluse dans le PDF et persistée (store.setCollectionSignature).
 
 ## Backlog / Next
+- **v5** : Création de coopérative enrichie — identité complète (nom officiel, sigle, agrément, type OHABA/SCOOPS, date, filières multi, description, photo), coordonnées (région/district/département/commune/localité/adresse/tél/email) et responsable détaillé (nom, prénoms, photo, tél, email, fonction, pièce d'identité). Affichée dans l'espace Coop + éditable dans l'admin (Coop type/staff étendus).
 - **v3 (Next action items exécutés)** :
   - Reçu WhatsApp : bouton dans le bordereau envoyant un récap au numéro du planteur (wa.me, indicatif 225 auto) — src/coop/sheets.tsx, waNumber() dans lib.
   - Bilan par village : bouton "Bilan PDF de <village>" dans Planteurs quand un village est filtré (reports.campaignHtml accepte {village}).

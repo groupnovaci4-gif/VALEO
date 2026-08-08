@@ -3,10 +3,10 @@ import { Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, CROPS, Data, OPERATORS, ROLES, Session } from "./lib";
+import { C, COOP_TYPES, CROPS, Data, OPERATORS, ROLES, Session } from "./lib";
 import { Icon } from "./Icon";
 import { ValeoMark, ValeoWordmark } from "./Logo";
-import { Card, Chip, Field, PhotoAvatar, SaveBtn, Select, TInput, Toggle } from "./ui";
+import { Card, Chip, Field, PhotoAvatar, SaveBtn, Select, TInput } from "./ui";
 
 /* ------------------------------- Top bar --------------------------------- */
 export function TopBar({
@@ -228,31 +228,132 @@ function CreatePlanteur({ onBack, onSubmit }: { onBack: () => void; onSubmit: (m
 
 function CreateCoop({ onBack, onSubmit }: { onBack: () => void; onSubmit: (p: any) => void }) {
   const insets = useSafeAreaInsets();
+  // Identité
   const [photo, setPhoto] = useState<string | null>(null);
-  const [coopNom, setCoopNom] = useState("");
   const [nom, setNom] = useState("");
+  const [sigle, setSigle] = useState("");
+  const [agrement, setAgrement] = useState("");
+  const [type, setType] = useState(COOP_TYPES[0]);
+  const [dateCreation, setDateCreation] = useState("");
+  const [filieres, setFilieres] = useState<string[]>([]);
+  const [description, setDescription] = useState("");
+  // Coordonnées
+  const [region, setRegion] = useState("");
+  const [district, setDistrict] = useState("");
+  const [departement, setDepartement] = useState("");
+  const [commune, setCommune] = useState("");
+  const [localite, setLocalite] = useState("");
+  const [adresse, setAdresse] = useState("");
   const [tel, setTel] = useState("");
-  const valid = coopNom.trim() && nom.trim();
+  const [email, setEmail] = useState("");
+  // Responsable
+  const [rphoto, setRphoto] = useState<string | null>(null);
+  const [rnom, setRnom] = useState("");
+  const [rprenoms, setRprenoms] = useState("");
+  const [rfonction, setRfonction] = useState("");
+  const [rtel, setRtel] = useState("");
+  const [remail, setRemail] = useState("");
+  const [rid, setRid] = useState("");
+
+  const toggleFiliere = (id: string) => setFilieres((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
+  const valid = nom.trim() && rnom.trim() && rprenoms.trim();
+
+  const submit = () => {
+    onSubmit({
+      coop: {
+        nom: nom.trim(), sigle: sigle.trim(), agrement: agrement.trim(), type, dateCreation: dateCreation.trim(),
+        filieres, photo, description: description.trim(),
+        region: region.trim(), district: district.trim(), departement: departement.trim(), commune: commune.trim(),
+        localite: localite.trim(), adresse: adresse.trim(), tel: tel.trim(), email: email.trim(),
+      },
+      responsable: {
+        nom: rnom.trim(), prenoms: rprenoms.trim(), fonction: rfonction.trim(), tel: rtel.trim(),
+        email: remail.trim(), idNumber: rid.trim(), photo: rphoto,
+      },
+    });
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <AuthHeader title="Créer une coopérative" sub="Enregistrez votre structure et votre compte responsable" onBack={onBack} theme={C.teal} />
+      <AuthHeader title="Créer une coopérative" sub="Renseignez l'identité, les coordonnées et le responsable" onBack={onBack} theme={C.teal} />
       <KeyboardAwareScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 30 }} keyboardShouldPersistTaps="handled">
-        <Field label="Nom de la coopérative"><TInput value={coopNom} onChangeText={setCoopNom} placeholder="Ex. Coopérative COOPAGRI" /></Field>
-        <Divider label="RESPONSABLE (PATRON)" />
+
+        <SectionLabel icon="building" text="Identité de la coopérative" color={C.teal} />
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 }}>
-          <PhotoAvatar photo={photo} size={72} editable onChange={setPhoto} fallbackColor={C.teal} />
+          <PhotoAvatar photo={photo} size={72} editable onChange={setPhoto} fallbackIcon="building" fallbackColor={C.teal} />
           <View style={{ flexShrink: 1 }}>
-            <Text style={{ fontWeight: "700", fontSize: 13.5 }}>Photo du responsable</Text>
-            <Text style={{ fontSize: 12, color: C.muted }}>Facultatif — prendre ou importer</Text>
+            <Text style={{ fontWeight: "700", fontSize: 13.5 }}>Logo / photo de la coopérative</Text>
+            <Text style={{ fontSize: 12, color: C.muted }}>Facultatif</Text>
           </View>
         </View>
-        <Field label="Nom & prénoms du responsable"><TInput value={nom} onChangeText={setNom} placeholder="Ex. M. Diomandé" /></Field>
-        <Field label="Téléphone (facultatif)"><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
-        <View style={{ backgroundColor: "#EAF3EF", borderWidth: 1, borderColor: "#CFE6E0", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-          <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Vous serez connecté comme <Text style={{ fontWeight: "700" }}>Patron / Acheteur</Text> et pourrez ensuite créer vos collaborateurs et enregistrer vos planteurs.</Text>
+        <Field label="Nom officiel *"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Société Coopérative COOPAGRI" /></Field>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Field label="Sigle / nom commercial" flex><TInput value={sigle} onChangeText={setSigle} placeholder="Ex. COOPAGRI" /></Field>
+          <Field label="Date de création" flex><TInput value={dateCreation} onChangeText={setDateCreation} placeholder="JJ/MM/AAAA" /></Field>
         </View>
-        <SaveBtn disabled={!valid} color={C.teal} onPress={() => onSubmit({ coopNom: coopNom.trim(), nom: nom.trim(), tel: tel.trim(), photo })}>Créer & accéder au tableau de bord</SaveBtn>
+        <Field label="N° d'enregistrement / agrément"><TInput value={agrement} onChangeText={setAgrement} placeholder="Ex. CI-COOP-2020-01234" /></Field>
+        <Field label="Type de coopérative">
+          <Select value={type} onChange={setType} options={COOP_TYPES.map((t) => ({ value: t, label: t }))} />
+        </Field>
+        <Field label="Filières exploitées">
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
+            {CROPS.map((c) => <Chip key={c.id} label={c.nom} emoji={c.emoji} active={filieres.includes(c.id)} onPress={() => toggleFiliere(c.id)} />)}
+          </View>
+        </Field>
+        <Field label="Description / présentation">
+          <TInput value={description} onChangeText={setDescription} placeholder="Quelques mots sur la coopérative" multiline numberOfLines={3} style={{ minHeight: 76, textAlignVertical: "top" }} />
+        </Field>
+
+        <SectionLabel icon="map-pin" text="Coordonnées" color={C.gold} />
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Field label="Région" flex><TInput value={region} onChangeText={setRegion} placeholder="Ex. Agnéby-Tiassa" /></Field>
+          <Field label="District" flex><TInput value={district} onChangeText={setDistrict} placeholder="Ex. Lagunes" /></Field>
+        </View>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Field label="Département" flex><TInput value={departement} onChangeText={setDepartement} placeholder="Ex. Sikensi" /></Field>
+          <Field label="Commune" flex><TInput value={commune} onChangeText={setCommune} placeholder="Ex. Sikensi" /></Field>
+        </View>
+        <Field label="Localité / village"><TInput value={localite} onChangeText={setLocalite} placeholder="Ex. Gomon" /></Field>
+        <Field label="Adresse"><TInput value={adresse} onChangeText={setAdresse} placeholder="Ex. Quartier, rue…" /></Field>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Field label="Téléphone" flex><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
+          <Field label="Email" flex><TInput value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="coop@email.com" /></Field>
+        </View>
+
+        <SectionLabel icon="user" text="Responsable (Patron)" color={C.green} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 }}>
+          <PhotoAvatar photo={rphoto} size={72} editable onChange={setRphoto} fallbackIcon="user" fallbackColor={C.green} />
+          <View style={{ flexShrink: 1 }}>
+            <Text style={{ fontWeight: "700", fontSize: 13.5 }}>Photo du responsable</Text>
+            <Text style={{ fontSize: 12, color: C.muted }}>Facultatif</Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Field label="Nom *" flex><TInput value={rnom} onChangeText={setRnom} placeholder="Ex. Diomandé" /></Field>
+          <Field label="Prénoms *" flex><TInput value={rprenoms} onChangeText={setRprenoms} placeholder="Ex. Mamadou" /></Field>
+        </View>
+        <Field label="Fonction"><TInput value={rfonction} onChangeText={setRfonction} placeholder="Ex. Président / Gérant" /></Field>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Field label="Téléphone" flex><TInput value={rtel} onChangeText={setRtel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
+          <Field label="Email" flex><TInput value={remail} onChangeText={setRemail} keyboardType="email-address" autoCapitalize="none" placeholder="nom@email.com" /></Field>
+        </View>
+        <Field label="Pièce d'identité"><TInput value={rid} onChangeText={setRid} placeholder="Ex. CNI CI 003 451 2" /></Field>
+
+        <View style={{ backgroundColor: "#EAF3EF", borderWidth: 1, borderColor: "#CFE6E0", borderRadius: 10, padding: 12, marginTop: 4, marginBottom: 14 }}>
+          <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Vous serez connecté comme <Text style={{ fontWeight: "700" }}>Patron / Acheteur</Text>. Les champs marqués <Text style={{ fontWeight: "700" }}>*</Text> sont obligatoires.</Text>
+        </View>
+        <SaveBtn disabled={!valid} color={C.teal} onPress={submit}>Créer & accéder au tableau de bord</SaveBtn>
       </KeyboardAwareScrollView>
     </View>
   );
 }
+
+const SectionLabel = ({ icon, text, color }: { icon: string; text: string; color: string }) => (
+  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 12 }}>
+    <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: color + "22", alignItems: "center", justifyContent: "center" }}>
+      <Icon name={icon} size={16} color={color} />
+    </View>
+    <Text style={{ fontSize: 14.5, fontWeight: "800", color: C.ink }}>{text}</Text>
+    <View style={{ flex: 1, height: 1, backgroundColor: C.line, marginLeft: 4 }} />
+  </View>
+);
