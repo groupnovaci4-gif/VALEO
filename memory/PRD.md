@@ -35,5 +35,9 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
   - Signature tactile du planteur sur le bordereau (src/coop/Signature.tsx, PanResponder + react-native-svg), incluse dans le PDF et persistée (store.setCollectionSignature).
 
 ## Backlog / Next
-- P1 : export récap campagne (PDF global), filtres par village/culture.
-- P2 : sauvegarde/restauration des données (fichier), multi-campagnes.
+- **v3 (Next action items exécutés)** :
+  - Reçu WhatsApp : bouton dans le bordereau envoyant un récap au numéro du planteur (wa.me, indicatif 225 auto) — src/coop/sheets.tsx, waNumber() dans lib.
+  - Bilan par village : bouton "Bilan PDF de <village>" dans Planteurs quand un village est filtré (reports.campaignHtml accepte {village}).
+  - Historique des prix : data.priceHistory, alimenté à chaque changement de prix, affiché dans Réglages.
+  - Rappels de paiement : section sur le tableau de bord Patron listant les planteurs avec reste dû, triés décroissant (impaye-<id>).
+- P2 restant : multi-campagnes, rappels planteurs automatiques, comparaison hebdo des prix.

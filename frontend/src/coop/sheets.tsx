@@ -495,7 +495,7 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
               <SaveBtn color={C.green} onPress={share} disabled={busy} icon={<Icon name="share" size={16} color="#fff" />} style={{ flex: 1 }}>Partager PDF</SaveBtn>
               <SaveBtn color={C.cocoa} onPress={print} disabled={busy} icon={<Icon name="printer" size={16} color="#fff" />} style={{ flex: 1 }}>Imprimer</SaveBtn>
             </View>
-            {member?.tel ? (
+            {member?.tel?.trim() ? (
               <SaveBtn color="#25D366" onPress={whatsapp} icon={<Icon name="smartphone" size={16} color="#fff" />} style={{ marginTop: 10 }}>Envoyer par WhatsApp</SaveBtn>
             ) : null}
           </KeyboardAwareScrollView>
