@@ -23,6 +23,7 @@ import {
   ticketNo,
 } from "./lib";
 import { Icon } from "./Icon";
+import { Sig, SignaturePad, SigPreview, sigToSvg } from "./Signature";
 import {
   Card,
   Chip,
@@ -304,7 +305,7 @@ export function SettingsSheet({ data, onClose, onSave, onReset }: any) {
 }
 
 /* ------------------------------ Bordereau -------------------------------- */
-function receiptHtml(c: Collection, member: Member | undefined, saison: string): string {
+function receiptHtml(c: Collection, member: Member | undefined, saison: string, sig?: Sig | null): string {
   const rows: string[] = [
     ["N° bordereau", ticketNo(c.seq)],
     ["Date", fDate(c.date)],
@@ -346,6 +347,7 @@ function receiptHtml(c: Collection, member: Member | undefined, saison: string):
         ${c.reste > 0 ? `<tr><td class="due">Reste à payer</td><td class="r due">${fF(c.reste)}</td></tr>` : ""}
       </table>
       <div class="dash"></div>
+      ${sig && sig.paths.length ? `<div style="margin-top:6px"><div style="font-size:11px;color:#7A6E62;font-family:sans-serif;margin-bottom:4px">Signature du planteur</div><div style="border:1px solid #EAE2D5;border-radius:8px;padding:6px;display:inline-block">${sigToSvg(sig, 70)}</div></div>` : ""}
       <div class="foot">Merci pour votre livraison. Conservez ce reçu.</div>
     </div>
   </body></html>`;
@@ -359,15 +361,24 @@ const TRow = ({ k, v, bold, big, muted, due }: { k: string; v: string; bold?: bo
 );
 const Dashed = () => <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 8 }} />;
 
-export function Bordereau({ collection, member, saison, onClose }: { collection: Collection; member?: Member; saison: string; onClose: () => void }) {
+export function Bordereau({ collection, member, saison, onClose, onSign }: { collection: Collection; member?: Member; saison: string; onClose: () => void; onSign?: (sig: Sig | null) => void }) {
   const insets = useSafeAreaInsets();
   const c = collection;
   const [busy, setBusy] = useState(false);
+  const [sig, setSig] = useState<Sig | null>((c as any).signature || null);
+  const [signing, setSigning] = useState(false);
+  const [draft, setDraft] = useState<Sig | null>((c as any).signature || null);
+
+  const saveSig = () => {
+    setSig(draft);
+    onSign && onSign(draft);
+    setSigning(false);
+  };
 
   const share = async () => {
     setBusy(true);
     try {
-      const { uri } = await Print.printToFileAsync({ html: receiptHtml(c, member, saison) });
+      const { uri } = await Print.printToFileAsync({ html: receiptHtml(c, member, saison, sig) });
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Bordereau ${ticketNo(c.seq)}` });
       }
@@ -378,7 +389,7 @@ export function Bordereau({ collection, member, saison, onClose }: { collection:
   const print = async () => {
     setBusy(true);
     try {
-      await Print.printAsync({ html: receiptHtml(c, member, saison) });
+      await Print.printAsync({ html: receiptHtml(c, member, saison, sig) });
     } catch {} finally {
       setBusy(false);
     }
@@ -418,6 +429,32 @@ export function Bordereau({ collection, member, saison, onClose }: { collection:
                 <Dashed />
                 <Text style={{ textAlign: "center", fontSize: 11, color: C.muted, marginTop: 6 }}>Merci pour votre livraison. Conservez ce reçu.</Text>
               </View>
+            </View>
+            <View style={{ marginTop: 14 }}>
+              <Text style={{ fontSize: 12.5, fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>Signature du planteur</Text>
+              {sig && !signing ? (
+                <View style={{ backgroundColor: "#fff", borderRadius: 12, borderWidth: 1, borderColor: C.line, padding: 8 }}>
+                  <View style={{ height: 120, alignItems: "center", justifyContent: "center" }}>
+                    <SigPreview sig={sig} />
+                  </View>
+                  <Pressable onPress={() => { setDraft(sig); setSigning(true); }} style={{ alignSelf: "flex-end", marginTop: 4 }} testID="sig-redo">
+                    <Text style={{ color: C.teal, fontSize: 13, fontWeight: "600" }}>Refaire la signature</Text>
+                  </Pressable>
+                </View>
+              ) : signing ? (
+                <View>
+                  <SignaturePad value={draft} onChange={setDraft} />
+                  <View style={{ flexDirection: "row", gap: 10, marginTop: 6 }}>
+                    <SaveBtn color={C.muted} onPress={() => setSigning(false)} style={{ flex: 1 }}>Annuler</SaveBtn>
+                    <SaveBtn color={C.green} onPress={saveSig} style={{ flex: 1 }}>Enregistrer</SaveBtn>
+                  </View>
+                </View>
+              ) : (
+                <Pressable onPress={() => { setDraft(null); setSigning(true); }} style={{ backgroundColor: "#fff", borderRadius: 12, borderWidth: 1, borderColor: C.line, borderStyle: "dashed", padding: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }} testID="sig-add">
+                  <Icon name="check" size={16} color={C.green} />
+                  <Text style={{ color: C.green, fontWeight: "700", fontSize: 14 }}>Ajouter la signature du planteur</Text>
+                </Pressable>
+              )}
             </View>
             <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
               <SaveBtn color={C.green} onPress={share} disabled={busy} icon={<Icon name="share" size={16} color="#fff" />} style={{ flex: 1 }}>Partager PDF</SaveBtn>

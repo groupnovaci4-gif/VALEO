@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import {
   C,
   Collection,
+  CROPS,
   Data,
   Member,
   Staff,
@@ -61,6 +62,16 @@ const CollectionRow = ({ title, sub, onOpen, onReceipt }: { title: string; sub: 
     </Pressable>
     {onReceipt ? <Pressable onPress={onReceipt} hitSlop={8} testID="row-receipt"><Icon name="receipt" size={17} color={C.cocoaSoft} /></Pressable> : null}
   </Card>
+);
+
+const FilterChip = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
+  <Pressable
+    onPress={onPress}
+    style={{ height: 36, flexShrink: 0, justifyContent: "center", paddingHorizontal: 14, borderRadius: 18, borderWidth: 1, borderColor: active ? C.teal : C.line, backgroundColor: active ? C.teal : "#fff" }}
+    testID={`filter-${label}`}
+  >
+    <Text style={{ fontSize: 12.5, fontWeight: "700", color: active ? "#fff" : C.muted }}>{label}</Text>
+  </Pressable>
 );
 
 /* ============================ COOP SCREENS =============================== */
@@ -350,9 +361,14 @@ export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhot
 
 export function Members({ data, onOpen, onAdd }: any) {
   const [q, setQ] = useState("");
+  const [selVillage, setSelVillage] = useState("all");
+  const [selCrop, setSelCrop] = useState("all");
   const query = q.trim().toLowerCase();
+  const villages = Array.from(new Set(data.members.map((m: Member) => m.village).filter(Boolean))).sort() as string[];
   const sorted = [...data.members]
     .filter((m: Member) => !query || m.nom.toLowerCase().includes(query) || m.village.toLowerCase().includes(query) || (m.code || "").toLowerCase().includes(query))
+    .filter((m: Member) => selVillage === "all" || m.village === selVillage)
+    .filter((m: Member) => selCrop === "all" || m.cropId === selCrop)
     .sort((a: Member, b: Member) => a.nom.localeCompare(b.nom));
   return (
     <View>
@@ -360,10 +376,18 @@ export function Members({ data, onOpen, onAdd }: any) {
         <SectionTitle noMargin>Planteurs ({data.members.length})</SectionTitle>
         <GhostBtn onPress={onAdd} testID="add-member">+ Ajouter</GhostBtn>
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingHorizontal: 12, marginBottom: 12 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingHorizontal: 12, marginBottom: 10 }}>
         <Icon name="search" size={17} color={C.muted} />
         <TInput value={q} onChangeText={setQ} placeholder="Rechercher nom, village, code…" style={{ flex: 1, borderWidth: 0, paddingHorizontal: 0, backgroundColor: "transparent" }} />
       </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }} contentContainerStyle={{ gap: 7, paddingRight: 8 }}>
+        <FilterChip label="Tous villages" active={selVillage === "all"} onPress={() => setSelVillage("all")} />
+        {villages.map((v) => <FilterChip key={v} label={v} active={selVillage === v} onPress={() => setSelVillage(v)} />)}
+      </ScrollView>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }} contentContainerStyle={{ gap: 7, paddingRight: 8 }}>
+        <FilterChip label="Toutes cultures" active={selCrop === "all"} onPress={() => setSelCrop("all")} />
+        {CROPS.map((c) => <FilterChip key={c.id} label={`${c.emoji} ${c.nom}`} active={selCrop === c.id} onPress={() => setSelCrop(c.id)} />)}
+      </ScrollView>
       {sorted.length === 0 ? <Empty text="Aucun planteur trouvé." /> : (
         <View style={{ gap: 9 }}>
           {sorted.map((m: Member) => {
@@ -498,7 +522,7 @@ export function PatronPrets({ data, onDecide, onBack }: any) {
   );
 }
 
-export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onReset, onOpenPrets, pendingLoans }: any) {
+export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onReset, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
   return (
     <View>
       <Card style={{ padding: 16, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -520,6 +544,31 @@ export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onReset, o
           <Card style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 11 }}>
             <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#F3ECE2", alignItems: "center", justifyContent: "center" }}><Icon name="settings" size={19} color={C.cocoa} /></View>
             <Text style={{ flex: 1, fontWeight: "600", fontSize: 14 }}>Réglages (prix, commission, campagne)</Text>
+            <Icon name="chevron-right" size={17} color={C.muted} />
+          </Card>
+        </Pressable>
+      </View>
+
+      <SectionTitle>Données & rapports</SectionTitle>
+      <View style={{ gap: 9, marginBottom: 20 }}>
+        <Pressable onPress={onRecap} testID="coop-recap">
+          <Card style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 11 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#EAF3EF", alignItems: "center", justifyContent: "center" }}><Icon name="receipt" size={19} color={C.teal} /></View>
+            <View style={{ flex: 1 }}><Text style={{ fontWeight: "600", fontSize: 14 }}>Récapitulatif de campagne</Text><Text style={{ fontSize: 12, color: C.muted }}>Bilan complet en PDF, prêt à partager</Text></View>
+            <Icon name="share" size={17} color={C.muted} />
+          </Card>
+        </Pressable>
+        <Pressable onPress={onExport} testID="coop-export">
+          <Card style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 11 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#EDF5F0", alignItems: "center", justifyContent: "center" }}><Icon name="package" size={19} color={C.green} /></View>
+            <View style={{ flex: 1 }}><Text style={{ fontWeight: "600", fontSize: 14 }}>Sauvegarder les données</Text><Text style={{ fontSize: 12, color: C.muted }}>Exporter un fichier de sauvegarde</Text></View>
+            <Icon name="chevron-right" size={17} color={C.muted} />
+          </Card>
+        </Pressable>
+        <Pressable onPress={onRestore} testID="coop-restore">
+          <Card style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 11 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#FBF7EC", alignItems: "center", justifyContent: "center" }}><Icon name="link" size={19} color={C.gold} /></View>
+            <View style={{ flex: 1 }}><Text style={{ fontWeight: "600", fontSize: 14 }}>Restaurer une sauvegarde</Text><Text style={{ fontSize: 12, color: C.muted }}>Importer sur ce téléphone</Text></View>
             <Icon name="chevron-right" size={17} color={C.muted} />
           </Card>
         </Pressable>

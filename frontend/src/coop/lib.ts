@@ -110,6 +110,7 @@ export type Collection = {
   reste: number;
   method: string;
   note: string;
+  signature?: { paths: string[]; w: number; h: number } | null;
   _repay?: { loanId: string; amount: number } | null;
 };
 export type Loan = {

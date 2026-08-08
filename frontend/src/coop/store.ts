@@ -60,7 +60,7 @@ export function useCoopData() {
     let created: Collection | null = null;
     setData((d) => {
       if (!d) return d;
-      const rec: Collection = { id: uid(), seq: d.seq, ...c };
+      const rec: Collection = { ...c, id: c.id || uid(), seq: c.seq ?? d.seq };
       let loans = d.loans;
       if (c._repay && c._repay.amount > 0) {
         loans = loans.map((l) =>
@@ -116,6 +116,12 @@ export function useCoopData() {
 
   const reset = useCallback(() => setData(seed()), []);
 
+  const replaceData = useCallback((d: Data) => setData(d), []);
+
+  const setCollectionSignature = useCallback((id: string, signature: any) => {
+    setData((d) => (d ? { ...d, collections: d.collections.map((c) => (c.id === id ? { ...c, signature } as any : c)) } : d));
+  }, []);
+
   const createLoginPlanteur = useCallback((m: Partial<Member>): string => {
     const id = uid();
     setData((d) => {
@@ -153,6 +159,8 @@ export function useCoopData() {
     delCoopMomo,
     setPrix,
     reset,
+    replaceData,
+    setCollectionSignature,
     createLoginPlanteur,
     createLoginCoop,
   };

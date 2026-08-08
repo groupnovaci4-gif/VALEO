@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { C, Session, uid } from "@/src/coop/lib";
@@ -34,6 +34,8 @@ import {
   SubTabs,
 } from "@/src/coop/screens";
 import { useCoopData } from "@/src/coop/store";
+import { shareCampaign } from "@/src/coop/reports";
+import { exportData, importData } from "@/src/coop/backup";
 
 type NavItem = { id: string; icon: string; label: string; badge?: number };
 
@@ -90,6 +92,7 @@ export default function App() {
   const [openCollab, setOpenCollab] = useState<string | null>(null);
   const [sheet, setSheet] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<any>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
 
   if (!ready || !data) {
@@ -122,11 +125,25 @@ export default function App() {
   const theme = session.side === "planteur" ? C.green : role === "patron" ? C.lime : C.teal;
 
   const savePesee = (c: any) => {
-    const rec = { ...c, seq: data.seq, id: uid() };
+    const id = uid();
+    const rec = { ...c, seq: data.seq, id };
     delete rec._repay;
-    store.addCollection(c);
+    store.addCollection({ ...c, id });
     setSheet(null);
     setReceipt(rec);
+  };
+
+  const doRecap = async () => {
+    try { await shareCampaign(data); } catch { setNotice("Impossible de générer le récapitulatif."); }
+  };
+  const doExport = async () => {
+    const ok = await exportData(data);
+    setNotice(ok ? "Sauvegarde créée. Choisissez où l'enregistrer ou l'envoyer." : "Échec de la sauvegarde.");
+  };
+  const doRestore = async () => {
+    const restored = await importData();
+    if (restored) { store.replaceData(restored); setOpenMember(null); setOpenCollab(null); setNotice("Données restaurées avec succès."); }
+    else setNotice("Aucune donnée restaurée (fichier invalide ou annulé).");
   };
 
   const openMemberObj = openMember ? data.members.find((m) => m.id === openMember) : null;
@@ -188,7 +205,7 @@ export default function App() {
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} />;
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} onAdd={() => setSheet("collab")} />;
     else if (tab === "prets") body = <PatronPrets data={data} onDecide={(id: string, st: string) => store.decideLoan(id, st, "st_patron")} onBack={() => setTab("bilan")} />;
-    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onReset={store.reset} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} />;
+    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onReset={store.reset} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
   } else if (isCoop) {
     const isPisteur = role === "pisteur";
     nav = (
@@ -237,7 +254,18 @@ export default function App() {
       {sheet === "depense" ? <DepenseSheet onClose={() => setSheet(null)} onSave={(x: any) => { store.addDepense({ pisteurId: staffId, ...x }); setSheet(null); }} /> : null}
       {sheet === "mandat" ? <MandatSheet data={data} pisteurId={openCollab} onClose={() => setSheet(null)} onSave={(x: any) => { store.addMandat(x); setSheet(null); }} /> : null}
       {sheet === "collab" ? <CollaborateurSheet onClose={() => setSheet(null)} onSave={(s: any) => { store.addStaff(s); setSheet(null); setTab("collaborateurs"); }} /> : null}
-      {receipt ? <Bordereau collection={receipt} member={data.members.find((m) => m.id === receipt.memberId)} saison={data.saison} onClose={() => setReceipt(null)} /> : null}
+      {receipt ? <Bordereau collection={receipt} member={data.members.find((m) => m.id === receipt.memberId)} saison={data.saison} onClose={() => setReceipt(null)} onSign={(sig) => store.setCollectionSignature(receipt.id, sig)} /> : null}
+
+      <Modal visible={!!notice} transparent animationType="fade" onRequestClose={() => setNotice(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: "rgba(30,20,12,0.5)", justifyContent: "center", padding: 28 }} onPress={() => setNotice(null)}>
+          <Pressable style={{ backgroundColor: "#fff", borderRadius: 18, padding: 20 }} onPress={(e) => e.stopPropagation()}>
+            <Text style={{ fontSize: 14.5, color: C.ink, lineHeight: 21, marginBottom: 16 }}>{notice}</Text>
+            <Pressable onPress={() => setNotice(null)} style={{ backgroundColor: C.cocoa, borderRadius: 12, paddingVertical: 12, alignItems: "center" }} testID="notice-ok">
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>D'accord</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
