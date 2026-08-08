@@ -73,7 +73,7 @@ function NavBar({
   return (
     <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: "#fff", borderTopWidth: 1, borderColor: C.line, flexDirection: "row", alignItems: "center", paddingHorizontal: 18, paddingTop: 9, paddingBottom: insets.bottom + 8 }}>
       {left.map((i) => <Btn key={i.id} item={i} />)}
-      <Pressable onPress={onFab} style={{ width: 52, height: 52, borderRadius: 17, backgroundColor: fabColor, alignItems: "center", justifyContent: "center", marginHorizontal: 6, marginTop: -24, shadowColor: fabColor, shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 6 }, elevation: 6 }} testID="fab">
+      <Pressable onPress={onFab} style={{ width: 52, height: 52, borderRadius: 17, backgroundColor: fabColor, alignItems: "center", justifyContent: "center", marginHorizontal: 6, marginTop: -24, boxShadow: "0px 6px 16px rgba(30,122,77,0.4)", elevation: 6 }} testID="fab">
         <Icon name={fabIcon} size={22} color="#fff" />
       </Pressable>
       {right.map((i) => <Btn key={i.id} item={i} />)}
