@@ -1,59 +1,151 @@
-from fastapi import FastAPI, APIRouter
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
 import logging
+import os
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from pydantic import BaseModel, Field
-from typing import List
-import uuid
-from datetime import datetime
+from typing import Optional
 
+import jwt
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.responses import HTMLResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel
+from starlette.middleware.cors import CORSMiddleware
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(ROOT_DIR / ".env")
 
 # MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ["DB_NAME"]]
 
-# Create the main app without a prefix
+# Admin auth config
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+JWT_SECRET = os.environ.get("JWT_SECRET", "valeo-dev-secret-change-me-please-32bytes")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "720"))
+
+STATE_ID = "main"
+
 app = FastAPI()
+bearer = HTTPBearer(auto_error=False)
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 
-# Define Models
-class StatusCheck(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+def empty_state() -> dict:
+    return {
+        "saison": "Campagne 2025-2026",
+        "prixKg": 1800,
+        "seq": 1,
+        "memberSeq": 1,
+        "commissionRate": 25,
+        "coop": {"nom": "Coopérative", "momo": []},
+        "staff": [],
+        "members": [],
+        "collections": [],
+        "loans": [],
+        "mandats": [],
+        "depenses": [],
+        "priceHistory": [],
+    }
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
 
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
+async def load_state() -> dict:
+    doc = await db.appstate.find_one({"_id": STATE_ID})
+    if doc and isinstance(doc.get("data"), dict):
+        return doc["data"]
+    return empty_state()
+
+
+async def save_state(data: dict) -> None:
+    await db.appstate.update_one(
+        {"_id": STATE_ID},
+        {"$set": {"data": data, "updatedAt": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+
+
+def issue_token() -> str:
+    now = datetime.now(timezone.utc)
+    return jwt.encode(
+        {"sub": "owner", "iat": now, "exp": now + timedelta(minutes=JWT_EXPIRE_MINUTES)},
+        JWT_SECRET,
+        algorithm=JWT_ALGORITHM,
+    )
+
+
+def require_admin(credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer)) -> dict:
+    if not credentials or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Non authentifié")
+    try:
+        payload = jwt.decode(
+            credentials.credentials,
+            JWT_SECRET,
+            algorithms=[JWT_ALGORITHM],
+            options={"require": ["exp", "sub"]},
+        )
+        if payload.get("sub") != "owner":
+            raise jwt.InvalidTokenError("wrong subject")
+        return payload
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expirée")
+
+
+class LoginRequest(BaseModel):
+    password: str
+
+
+class StateBody(BaseModel):
+    data: dict
+
+
+# ------------------------------- Public API ------------------------------- #
+@app.get("/api/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "VALEO API"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.dict()
-    status_obj = StatusCheck(**status_dict)
-    _ = await db.status_checks.insert_one(status_obj.dict())
-    return status_obj
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    status_checks = await db.status_checks.find().to_list(1000)
-    return [StatusCheck(**status_check) for status_check in status_checks]
+@app.get("/api/state")
+async def get_state():
+    return await load_state()
 
-# Include the router in the main app
-app.include_router(api_router)
+
+@app.put("/api/state")
+async def put_state(body: StateBody):
+    # Used by the mobile app to persist its full data document (offline-first sync).
+    await save_state(body.data)
+    return {"ok": True}
+
+
+# ------------------------------- Admin API -------------------------------- #
+@app.post("/api/admin/login")
+async def admin_login(data: LoginRequest):
+    import secrets
+
+    if not secrets.compare_digest(data.password or "", ADMIN_PASSWORD):
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    return {"access_token": issue_token(), "token_type": "bearer", "expires_in": JWT_EXPIRE_MINUTES * 60}
+
+
+@app.get("/api/admin/state")
+async def admin_get_state(_: dict = Depends(require_admin)):
+    return await load_state()
+
+
+@app.put("/api/admin/state")
+async def admin_put_state(body: StateBody, _: dict = Depends(require_admin)):
+    await save_state(body.data)
+    return {"ok": True}
+
+
+@app.get("/api/admin", response_class=HTMLResponse)
+async def admin_dashboard():
+    return HTMLResponse(ADMIN_HTML)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -63,13 +155,219 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+ADMIN_HTML = r"""<!DOCTYPE html>
+<html lang="fr"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>VALEO — Administration</title>
+<style>
+  :root{--teal:#0E8E80;--green:#1E7A4D;--ink:#241C15;--muted:#7A6E62;--bg:#F7F3EC;--line:#EAE2D5;--due:#B8791E;--loss:#B23B2E}
+  *{box-sizing:border-box}body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--teal);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+  header .n{font-weight:900;font-size:22px;letter-spacing:1px}
+  header small{opacity:.85}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+  button{cursor:pointer;border:none;border-radius:10px;padding:9px 14px;font-weight:700;font-size:14px}
+  .primary{background:var(--teal);color:#fff}.green{background:var(--green);color:#fff}.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}.danger{background:#fff;border:1px solid #EAD7D2;color:var(--loss)}
+  input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit}
+  label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);text-transform:uppercase;font-size:11px;padding:8px 6px;border-bottom:2px solid var(--line)}
+  td{padding:8px 6px;border-bottom:1px solid #F0EBE2}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .tab{background:#fff;border:1px solid var(--line);color:var(--muted)}
+  .tab.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .kpis{display:flex;gap:12px;flex-wrap:wrap}.kpi{flex:1;min-width:150px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .kpi .l{font-size:12px;color:var(--muted)}.kpi .v{font-size:20px;font-weight:800}
+  .row{display:flex;gap:12px;flex-wrap:wrap}.row>div{flex:1;min-width:180px}
+  .center{display:grid;place-items:center;min-height:70vh;padding:20px}
+  .login{width:100%;max-width:360px}
+  .hide{display:none}
+  dialog{border:none;border-radius:16px;padding:0;max-width:520px;width:92%}
+  dialog .body{padding:18px}dialog h3{margin:0 0 8px}
+  .muted{color:var(--muted);font-size:13px}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+</style></head>
+<body>
+<div id="loginView" class="center">
+  <div class="card login">
+    <div style="text-align:center"><div style="color:var(--teal);font-weight:900;font-size:30px;letter-spacing:1px">VALEO</div>
+    <div class="muted" style="margin-bottom:14px">Espace administration propriétaire</div></div>
+    <label>Mot de passe</label>
+    <input id="pwd" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div id="loginErr" class="muted" style="color:var(--loss);margin-top:8px"></div>
+    <button class="primary" style="width:100%;margin-top:14px" onclick="doLogin()">Se connecter</button>
+  </div>
+</div>
+
+<div id="app" class="hide">
+  <header>
+    <div><div class="n">VALEO — Admin</div><small id="sub"></small></div>
+    <div><button class="ghost" onclick="load()">↻ Actualiser</button> <button class="danger" onclick="logout()">Déconnexion</button></div>
+  </header>
+  <div class="wrap">
+    <div class="kpis" id="kpis"></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="panel"></div>
+  </div>
+</div>
+
+<dialog id="editor"><div class="body">
+  <h3 id="edTitle">Modifier</h3>
+  <div id="edFields"></div>
+  <div style="display:flex;gap:10px;margin-top:16px">
+    <button class="ghost" style="flex:1" onclick="document.getElementById('editor').close()">Annuler</button>
+    <button class="green" style="flex:1" onclick="saveEditor()">Enregistrer</button>
+  </div>
+</div></dialog>
+
+<script>
+let token = sessionStorage.getItem("valeo_admin_token") || null;
+let state = null;
+let current = "settings";
+
+const fF = n => (Math.round(n||0)+"").replace(/\B(?=(\d{3})+(?!\d))/g," ")+" F";
+const $ = id => document.getElementById(id);
+
+async function doLogin(){
+  const password = $("pwd").value;
+  try{
+    const r = await fetch("/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password})});
+    if(!r.ok){ $("loginErr").textContent="Mot de passe incorrect"; return; }
+    token = (await r.json()).access_token; sessionStorage.setItem("valeo_admin_token", token);
+    await load();
+  }catch(e){ $("loginErr").textContent="Erreur de connexion"; }
+}
+function logout(){ token=null; sessionStorage.removeItem("valeo_admin_token"); $("app").classList.add("hide"); $("loginView").classList.remove("hide"); }
+
+async function api(path, opts={}){
+  const r = await fetch(path,{...opts,headers:{"Content-Type":"application/json","Authorization":"Bearer "+token,...(opts.headers||{})}});
+  if(r.status===401){ logout(); throw new Error("401"); }
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
+async function load(){
+  try{
+    state = await api("/api/admin/state");
+    $("loginView").classList.add("hide"); $("app").classList.remove("hide");
+    render();
+  }catch(e){ if((""+e).includes("401")) return; }
+}
+async function persist(){ await api("/api/admin/state",{method:"PUT",body:JSON.stringify({data:state})}); render(); }
+
+const name = id => (state.members.find(m=>m.id===id)||{}).nom || (state.staff.find(s=>s.id===id)||{}).nom || "—";
+
+const SCHEMAS = {
+  members:{title:"Planteurs",arr:"members",cols:["code","nom","village","tel","cropId"],fields:[
+    {k:"nom",l:"Nom & prénoms"},{k:"code",l:"Code"},{k:"village",l:"Localité"},{k:"idNumber",l:"Pièce d'identité"},
+    {k:"superficie",l:"Superficie (ha)",t:"number"},{k:"cropId",l:"Culture",opt:["cacao","cafe","anacarde","hevea"]},{k:"tel",l:"Téléphone"}]},
+  staff:{title:"Équipe",arr:"staff",cols:["nom","role","tel"],fields:[
+    {k:"nom",l:"Nom"},{k:"role",l:"Rôle",opt:["patron","commis","pisteur"]},{k:"tel",l:"Téléphone"}]},
+  collections:{title:"Collectes",arr:"collections",cols:["seq","_member","kg","net","paye","reste","method"],fields:[
+    {k:"memberId",l:"Planteur",ref:"members"},{k:"byStaffId",l:"Agent",ref:"staff"},{k:"kg",l:"Poids (kg)",t:"number"},
+    {k:"prixKg",l:"Prix/kg",t:"number"},{k:"net",l:"Net",t:"number"},{k:"paye",l:"Payé",t:"number"},{k:"reste",l:"Reste",t:"number"},
+    {k:"method",l:"Paiement",opt:["espece","momo"]}]},
+  loans:{title:"Prêts",arr:"loans",cols:["_member","type","amount","status","soldeRestant"],fields:[
+    {k:"memberId",l:"Planteur",ref:"members"},{k:"type",l:"Type",opt:["intrant","argent"]},{k:"amount",l:"Montant",t:"number"},
+    {k:"motif",l:"Motif"},{k:"status",l:"Statut",opt:["en_attente","approuve","refuse","rembourse"]},{k:"soldeRestant",l:"Solde restant",t:"number"}]},
+  mandats:{title:"Mandats",arr:"mandats",cols:["_pisteur","amount","note"],fields:[
+    {k:"pisteurId",l:"Pisteur",ref:"staff"},{k:"amount",l:"Montant",t:"number"},{k:"note",l:"Note"}]},
+  depenses:{title:"Dépenses",arr:"depenses",cols:["_pisteur","category","amount","note"],fields:[
+    {k:"pisteurId",l:"Pisteur",ref:"staff"},{k:"category",l:"Catégorie"},{k:"amount",l:"Montant",t:"number"},{k:"note",l:"Note"}]},
+};
+
+function render(){
+  $("sub").textContent = (state.coop&&state.coop.nom||"")+" · "+state.saison;
+  const cols = state.collections||[];
+  const kg = cols.reduce((s,c)=>s+(+c.kg||0),0), net=cols.reduce((s,c)=>s+(+c.net||0),0), reste=cols.reduce((s,c)=>s+(+c.reste||0),0);
+  $("kpis").innerHTML = [["Planteurs",state.members.length],["Collectes",cols.length],["Poids total",kg+" kg"],["Valeur nette",fF(net)],["Reste à payer",fF(reste)]]
+    .map(([l,v])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("");
+  const tabs = [["settings","Réglages"],...Object.entries(SCHEMAS).map(([k,s])=>[k,s.title])];
+  $("tabs").innerHTML = tabs.map(([k,l])=>`<button class="tab ${current===k?'on':''}" onclick="go('${k}')">${l}</button>`).join("");
+  $("panel").innerHTML = current==="settings"? settingsPanel() : entityPanel(current);
+}
+function go(k){ current=k; render(); }
+
+function settingsPanel(){
+  return `<div class="card"><h3>Réglages</h3>
+    <div class="row">
+      <div><label>Nom de la coopérative</label><input id="s_nom" value="${(state.coop.nom||'').replace(/"/g,'&quot;')}"/></div>
+      <div><label>Campagne</label><input id="s_saison" value="${(state.saison||'').replace(/"/g,'&quot;')}"/></div>
+    </div>
+    <div class="row">
+      <div><label>Prix bord champ (F/kg)</label><input id="s_prix" type="number" value="${state.prixKg||0}"/></div>
+      <div><label>Commission pisteur (F/kg)</label><input id="s_com" type="number" value="${state.commissionRate||0}"/></div>
+    </div>
+    <button class="green" style="margin-top:14px" onclick="saveSettings()">Enregistrer les réglages</button>
+  </div>
+  <div class="card"><h3>Zone dangereuse</h3><p class="muted">Vide toute la base (planteurs, collectes, prêts…). Irréversible.</p>
+    <button class="danger" onclick="wipeAll()">Tout réinitialiser</button></div>`;
+}
+async function saveSettings(){
+  const newPrix = +$("s_prix").value||0;
+  if(newPrix!==state.prixKg){ state.priceHistory=[...(state.priceHistory||[]),{date:new Date().toISOString(),prixKg:newPrix}]; }
+  state.coop.nom=$("s_nom").value; state.saison=$("s_saison").value; state.prixKg=newPrix; state.commissionRate=+$("s_com").value||0;
+  await persist();
+}
+async function wipeAll(){
+  if(!confirm("Confirmer : vider toute la base de données ?")) return;
+  state={saison:state.saison,prixKg:state.prixKg,seq:1,memberSeq:1,commissionRate:state.commissionRate,coop:{nom:state.coop.nom,momo:[]},staff:[],members:[],collections:[],loans:[],mandats:[],depenses:[],priceHistory:[]};
+  await persist();
+}
+
+function cellVal(row,key){
+  if(key==="_member") return name(row.memberId);
+  if(key==="_pisteur") return name(row.pisteurId);
+  if(typeof row[key]==="number") return (key==='kg')? row[key]+" kg" : (['net','paye','reste','amount','soldeRestant','prixKg'].includes(key)? fF(row[key]) : row[key]);
+  return row[key]==null? "—" : row[key];
+}
+function entityPanel(k){
+  const sc=SCHEMAS[k]; const arr=state[sc.arr]||[];
+  const head = sc.cols.map(c=>`<th>${c.replace('_member','Planteur').replace('_pisteur','Pisteur')}</th>`).join("")+"<th></th>";
+  const rows = arr.map((r,i)=>`<tr>${sc.cols.map(c=>`<td>${cellVal(r,c)}</td>`).join("")}
+    <td style="text-align:right;white-space:nowrap"><button class="ghost" onclick="openEdit('${k}',${i})">Modifier</button>
+    <button class="danger" onclick="del('${k}',${i})">Suppr.</button></td></tr>`).join("");
+  return `<div class="card"><div class="toolbar"><h3 style="margin:0">${sc.title} (${arr.length})</h3>
+    <button class="primary" onclick="openEdit('${k}',-1)">+ Ajouter</button></div>
+    <div style="overflow:auto"><table><tr>${head}</tr>${rows||`<tr><td colspan="9" class="muted" style="padding:16px;text-align:center">Aucune donnée</td></tr>`}</table></div></div>`;
+}
+
+let edCtx=null;
+function openEdit(k,i){
+  const sc=SCHEMAS[k]; const isNew=i<0; const row=isNew?{}:JSON.parse(JSON.stringify(state[sc.arr][i]));
+  edCtx={k,i,row};
+  $("edTitle").textContent=(isNew?"Ajouter — ":"Modifier — ")+sc.title;
+  $("edFields").innerHTML = sc.fields.map(f=>{
+    const val = row[f.k]==null?"":row[f.k];
+    if(f.ref){ const opts=state[f.ref].map(o=>`<option value="${o.id}" ${o.id===val?'selected':''}>${o.nom}</option>`).join(""); return `<label>${f.l}</label><select data-k="${f.k}"><option value="">—</option>${opts}</select>`; }
+    if(f.opt){ const opts=f.opt.map(o=>`<option ${o===val?'selected':''}>${o}</option>`).join(""); return `<label>${f.l}</label><select data-k="${f.k}">${opts}</select>`; }
+    return `<label>${f.l}</label><input data-k="${f.k}" type="${f.t||'text'}" value="${(""+val).replace(/"/g,'&quot;')}"/>`;
+  }).join("");
+  $("editor").showModal();
+}
+async function saveEditor(){
+  const {k,i,row}=edCtx; const sc=SCHEMAS[k];
+  $("edFields").querySelectorAll("[data-k]").forEach(el=>{
+    const f=sc.fields.find(x=>x.k===el.dataset.k); let v=el.value;
+    if(f.t==="number") v=+v||0; row[f.k]=v;
+  });
+  if(i<0){ row.id = "a"+Math.random().toString(36).slice(2,9); if(!row.date) row.date=new Date().toISOString();
+    if(k==="collections"){ row.seq=state.seq; state.seq=(state.seq||1)+1; row.retenues=row.retenues||[]; row.brut=(+row.kg||0)*(+row.prixKg||0); }
+    if(k==="loans"){ row.status=row.status||"en_attente"; }
+    state[sc.arr].push(row);
+  } else { state[sc.arr][i]=row; }
+  document.getElementById("editor").close();
+  await persist();
+}
+async function del(k,i){ const sc=SCHEMAS[k]; if(!confirm("Supprimer cet élément ?")) return; state[sc.arr].splice(i,1); await persist(); }
+
+if(token){ load(); }
+</script>
+</body></html>
+"""

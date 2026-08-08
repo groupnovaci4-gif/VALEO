@@ -160,70 +160,23 @@ export const waNumber = (tel?: string): string | null => {
 };
 
 /* --------------------------------- Seed ---------------------------------- */
+// Base vierge — aucune donnée de démonstration. La coop et les planteurs
+// sont créés par l'utilisateur ; la vraie source de vérité est le backend.
 export function seed(): Data {
-  const ids: Record<string, string> = {};
-  const names = ["Kouassi Yao", "Aya Brou", "Konan Kouadio", "Amoin Adjoua", "Gnamien Koffi"];
-  names.forEach((n) => (ids[n] = uid()));
-  const vil: Record<string, string> = { "Kouassi Yao": "Sikensi", "Aya Brou": "Sikensi", "Konan Kouadio": "Gomon", "Amoin Adjoua": "Gomon", "Gnamien Koffi": "Bécédi" };
-  const momo: Record<string, Momo> = { "Kouassi Yao": { operator: "orange", number: "07 08 11 22 33" }, "Aya Brou": { operator: "wave", number: "05 44 55 66 77" } };
-  const idcard: Record<string, string> = { "Kouassi Yao": "CI 003 451 2", "Aya Brou": "CI 008 823 1", "Konan Kouadio": "CI 010 293 4", "Amoin Adjoua": "CI 011 904 5", "Gnamien Koffi": "CI 012 778 8" };
-  const superf: Record<string, number> = { "Kouassi Yao": 3, "Aya Brou": 1.5, "Konan Kouadio": 2, "Amoin Adjoua": 2.5, "Gnamien Koffi": 4 };
-  const tels: Record<string, string> = { "Kouassi Yao": "07 08 11 22 33", "Aya Brou": "05 44 55 66 77", "Konan Kouadio": "01 23 45 67 89", "Amoin Adjoua": "07 77 88 99 00", "Gnamien Koffi": "05 11 22 33 44" };
-  const members: Member[] = names.map((n, i) => ({ id: ids[n], code: `PL-2026-${String(i + 1).padStart(4, "0")}`, nom: n, village: vil[n], idNumber: idcard[n], superficie: superf[n], cropId: "cacao", tel: tels[n], momo: momo[n] || null, photo: null }));
-
-  const staff: Staff[] = [
-    { id: "st_patron", nom: "M. Diomandé", role: "patron", photo: null },
-    { id: "st_commis", nom: "Awa Touré", role: "commis", photo: null },
-    { id: "st_pisteur", nom: "Bakary Coulibaly", role: "pisteur", photo: null },
-  ];
-
-  const now = new Date();
-  const dOff = (days: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() - days, 9).toISOString();
-  const mk = (seq: number, nom: string, days: number, kg: number, ret: Retenue[], paye: number, staffId: string, method: string): Collection => {
-    const prixKg = 1800,
-      brut = kg * prixKg,
-      retTot = ret.reduce((s, r) => s + r.amount, 0),
-      net = brut - retTot;
-    return { id: uid(), seq, memberId: ids[nom], byStaffId: staffId, date: dOff(days), kg, prixKg, brut, retenues: ret, net, paye, reste: net - paye, method, note: "" };
-  };
-  const collections: Collection[] = [
-    mk(1, "Kouassi Yao", 6, 320, [{ label: "Remboursement prêt", amount: 20000 }], 556000, "st_commis", "espece"),
-    mk(2, "Konan Kouadio", 6, 180, [], 324000, "st_commis", "momo"),
-    mk(3, "Aya Brou", 4, 95, [{ label: "Cotisation", amount: 4000 }], 167000, "st_pisteur", "momo"),
-    mk(4, "Gnamien Koffi", 2, 240, [], 300000, "st_commis", "espece"),
-    mk(5, "Kouassi Yao", 0, 150, [], 270000, "st_commis", "espece"),
-    mk(6, "Amoin Adjoua", 0, 210, [{ label: "Sacs", amount: 3000 }], 375000, "st_pisteur", "espece"),
-  ];
-
-  const loans: Loan[] = [
-    { id: uid(), memberId: ids["Kouassi Yao"], type: "intrant", amount: 60000, motif: "Engrais NPK", date: dOff(20), status: "approuve", soldeRestant: 40000, decidedBy: "st_patron" },
-    { id: uid(), memberId: ids["Gnamien Koffi"], type: "argent", amount: 150000, motif: "Scolarité enfants", date: dOff(1), status: "en_attente", soldeRestant: 0, decidedBy: null },
-    { id: uid(), memberId: ids["Aya Brou"], type: "intrant", amount: 40000, motif: "Produits phyto", date: dOff(0), status: "en_attente", soldeRestant: 0, decidedBy: null },
-  ];
-
-  const mandats: Mandat[] = [
-    { id: uid(), pisteurId: "st_pisteur", amount: 1000000, date: dOff(7), note: "Mandat campagne — zone Gomon" },
-  ];
-  const depenses: Depense[] = [
-    { id: uid(), pisteurId: "st_pisteur", category: "transport", amount: 15000, date: dOff(4), note: "Location tricycle" },
-    { id: uid(), pisteurId: "st_pisteur", category: "sacs", amount: 10000, date: dOff(4), note: "" },
-    { id: uid(), pisteurId: "st_pisteur", category: "restauration", amount: 8000, date: dOff(0), note: "" },
-  ];
-
   return {
     saison: "Campagne 2025-2026",
     prixKg: 1800,
-    seq: 7,
-    memberSeq: 6,
+    seq: 1,
+    memberSeq: 1,
     commissionRate: 25,
-    coop: { nom: "Coopérative COOPAGRI", momo: [{ id: uid(), operator: "wave", number: "01 02 03 04 05", label: "Compte principal" }] },
-    staff,
-    members,
-    collections,
-    loans,
-    mandats,
-    depenses,
-    priceHistory: [{ date: dOff(30), prixKg: 1700 }, { date: dOff(10), prixKg: 1800 }],
+    coop: { nom: "Coopérative", momo: [] },
+    staff: [],
+    members: [],
+    collections: [],
+    loans: [],
+    mandats: [],
+    depenses: [],
+    priceHistory: [],
   };
 }
 

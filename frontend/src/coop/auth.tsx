@@ -74,15 +74,12 @@ export function Login({
 
   return (
     <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: insets.bottom + 30 }} keyboardShouldPersistTaps="handled">
-      <View style={{ paddingTop: insets.top + 24, paddingHorizontal: 22, paddingBottom: 12, alignItems: "center" }}>
-        <ValeoMark size={74} />
-        <View style={{ marginTop: 10 }}><ValeoWordmark size={42} /></View>
-        <View style={{ marginTop: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ width: 22, height: 2, backgroundColor: "#3B9B3F", borderRadius: 2 }} />
-          <Text style={{ color: "#2E8B3D", fontWeight: "800", fontSize: 12, letterSpacing: 1.5 }}>TRACER. GÉRER. VALORISER.</Text>
-          <View style={{ width: 22, height: 2, backgroundColor: "#3B9B3F", borderRadius: 2 }} />
+      <View style={{ paddingTop: insets.top + 14, paddingHorizontal: 22, paddingBottom: 8, alignItems: "center" }}>
+        <View style={{ width: 68, height: 68, borderRadius: 16, backgroundColor: "#fff", borderWidth: 1.5, borderColor: C.line, alignItems: "center", justifyContent: "center", boxShadow: "0px 3px 10px rgba(30,20,12,0.08)" }}>
+          <ValeoMark size={46} />
         </View>
-        <Text style={{ marginTop: 5, color: "#8A6D3B", fontSize: 12.5, fontStyle: "italic" }}>La valeur commence à la source.</Text>
+        <View style={{ marginTop: 8 }}><ValeoWordmark size={30} /></View>
+        <Text style={{ marginTop: 6, color: "#2E8B3D", fontWeight: "800", fontSize: 10.5, letterSpacing: 1.2 }}>TRACER · GÉRER · VALORISER</Text>
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingTop: 8, gap: 16 }}>

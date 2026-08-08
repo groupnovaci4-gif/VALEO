@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { AppState, Modal, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { C, Session, uid } from "@/src/coop/lib";
@@ -93,7 +93,22 @@ export default function App() {
   const [sheet, setSheet] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<any>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") store.refresh();
+    });
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await store.refresh();
+    setRefreshing(false);
+  };
 
   if (!ready || !data) {
     return (
@@ -243,7 +258,7 @@ export default function App() {
         onSettings={isCoop && role === "patron" ? () => setSheet("settings") : null}
         onSetPhoto={(url) => (session.side === "planteur" ? store.setMemberPhoto(session.memberId, url) : store.setStaffPhoto(session.staffId, url))}
       />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 96 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 96 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme} colors={[theme]} />}>
         {body}
       </ScrollView>
       {nav}

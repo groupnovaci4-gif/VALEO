@@ -17,28 +17,75 @@ import {
 } from "./lib";
 
 const KEY = "coop:data:v3";
+const BACKEND = process.env.EXPO_PUBLIC_BACKEND_URL;
+
+async function fetchRemote(): Promise<Data | null> {
+  if (!BACKEND) return null;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(`${BACKEND}/api/state`, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (!r.ok) return null;
+    return migrate(await r.json());
+  } catch {
+    return null;
+  }
+}
+
+async function pushRemote(d: Data): Promise<void> {
+  if (!BACKEND) return;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    await fetch(`${BACKEND}/api/state`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: d }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+  } catch {}
+}
 
 export function useCoopData() {
   const [data, setData] = useState<Data | null>(null);
   const [ready, setReady] = useState(false);
-  const first = useRef(true);
+  const remoteApply = useRef(false);
+  const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     (async () => {
-      const saved = await storage.getItem<any>(KEY, null);
-      setData(saved ? migrate(saved) : seed());
+      const remote = await fetchRemote();
+      remoteApply.current = true;
+      if (remote) setData(remote);
+      else {
+        const saved = await storage.getItem<any>(KEY, null);
+        setData(saved ? migrate(saved) : seed());
+      }
       setReady(true);
     })();
   }, []);
 
   useEffect(() => {
-    if (ready && data) {
-      if (first.current) {
-        first.current = false;
-      }
-      storage.setItem(KEY, data as any);
+    if (!ready || !data) return;
+    storage.setItem(KEY, data as any); // cache hors-ligne
+    if (remoteApply.current) {
+      remoteApply.current = false; // vient du backend/cache : ne pas renvoyer
+      return;
     }
+    if (pushTimer.current) clearTimeout(pushTimer.current);
+    pushTimer.current = setTimeout(() => pushRemote(data), 700);
   }, [data, ready]);
+
+  // Recharge la dernière version du backend (admin, autre appareil).
+  const refresh = useCallback(async () => {
+    const remote = await fetchRemote();
+    if (remote) {
+      remoteApply.current = true;
+      setData(remote);
+    }
+  }, []);
 
   const addMember = useCallback((m: Partial<Member>) => {
     setData((d) => {
@@ -168,5 +215,6 @@ export function useCoopData() {
     setCollectionSignature,
     createLoginPlanteur,
     createLoginCoop,
+    refresh,
   };
 }
