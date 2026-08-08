@@ -4,9 +4,11 @@
 L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, lucide-react, inline styles, window.storage) et demande de l'améliorer et de la rendre prête à l'emploi, téléchargeable en APK.
 
 ## Décision d'architecture
-- Reconstruction en **app mobile native Expo React Native** (téléchargeable en APK via Publish).
-- **100% hors-ligne** : toutes les données stockées localement via `@/src/utils/storage` (AsyncStorage), clé `coop:data:v3`. Aucun backend.
-- Identité VALEO conservée à l'identique (vert/teal, logo SVG, tagline).
+- App mobile **Expo React Native** (téléchargeable en APK via Publish).
+- **CONNECTÉE (v4)** : backend **FastAPI + MongoDB** source de vérité. L'app charge `GET /api/state` au démarrage, `PUT /api/state` (debounce ~700ms) à chaque changement, refresh au premier plan + pull-to-refresh. Cache local `@/src/utils/storage` pour le hors-ligne.
+- **Espace admin propriétaire** : page web servie à `{BASE}/api/admin`, protégée par mot de passe (`ADMIN_PASSWORD`, défaut `admin123`) + JWT bearer. CRUD complet (réglages, planteurs, équipe, collectes, prêts, mandats, dépenses) ; les modifications se répercutent dans l'app.
+- **Données de démonstration supprimées** : l'app démarre vide (l'utilisateur crée coop & planteurs).
+- Identité VALEO conservée ; logo compact encadré blanc sur l'écran de connexion.
 
 ## Personas
 - **Patron / Acheteur** : gère la coop, l'équipe, approuve les prêts, règle prix/commission.
