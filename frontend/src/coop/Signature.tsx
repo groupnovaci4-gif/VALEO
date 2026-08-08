@@ -66,7 +66,7 @@ export function SignaturePad({ value, onChange, height = 170 }: { value?: Sig | 
           </Svg>
         ) : null}
         {paths.length === 0 && !cur ? (
-          <View pointerEvents="none" style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center" }}>
+          <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" }}>
             <Text style={{ color: C.muted, fontSize: 13 }}>Signez ici avec le doigt</Text>
           </View>
         ) : null}

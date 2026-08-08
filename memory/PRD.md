@@ -27,7 +27,12 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
 - Stockage hors-ligne + seed + migration.
 - Toutes les icônes lucide mappées vers @expo/vector-icons ; logo VALEO en react-native-svg.
 - Clavier géré via react-native-keyboard-controller (KeyboardAwareScrollView).
-- **Améliorations** : partage/impression du bordereau en PDF (expo-print + expo-sharing) ; recherche de planteurs ; photos via expo-image-picker (caméra/galerie, permissions gérées).
+- **Améliorations v1** : partage/impression du bordereau en PDF (expo-print + expo-sharing) ; recherche de planteurs ; photos via expo-image-picker (caméra/galerie, permissions gérées).
+- **Améliorations v2 (Next action items exécutés)** :
+  - Récapitulatif de campagne en PDF (src/coop/reports.ts) — bilan global + détail par planteur + prêts + pisteurs, partageable.
+  - Filtres Planteurs par village et par culture (chips horizontaux) en plus de la recherche.
+  - Sauvegarde/Restauration des données via fichier JSON (src/coop/backup.ts : expo-file-system/legacy + expo-document-picker + expo-sharing ; store.replaceData).
+  - Signature tactile du planteur sur le bordereau (src/coop/Signature.tsx, PanResponder + react-native-svg), incluse dans le PDF et persistée (store.setCollectionSignature).
 
 ## Backlog / Next
 - P1 : export récap campagne (PDF global), filtres par village/culture.
