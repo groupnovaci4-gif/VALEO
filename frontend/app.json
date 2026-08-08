@@ -1,24 +1,29 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": "VALEO",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "frontend",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.appdeploy.tyyn4z"
+      "bundleIdentifier": "com.emergent.appdeploy.tyyn4z",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Prendre la photo d'un planteur ou membre",
+        "NSPhotoLibraryUsageDescription": "Choisir une photo depuis votre galerie"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#000000"
+        "backgroundColor": "#0E8E80"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.emergent.appdeploy.tyyn4z"
+      "package": "com.emergent.appdeploy.tyyn4z",
+      "permissions": ["android.permission.CAMERA"]
     },
     "web": {
       "bundler": "metro",
