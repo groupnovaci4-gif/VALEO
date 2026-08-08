@@ -106,6 +106,32 @@ export function Dashboard({ data, onReceipt, onOpen, theme, onOpenPrets }: any) 
           <CollectionRow key={c.id} title={nameOf(data, c.memberId)} sub={`${fKg(c.kg)} · ${fDate(c.date)} · ${c.method === "momo" ? "Mobile Money" : "espèces"}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
         ))}
       </View>
+      {(() => {
+        const impayes = data.members
+          .map((m: Member) => ({ m, reste: memberStats(m.id, cols).reste }))
+          .filter((x: any) => x.reste > 0)
+          .sort((a: any, b: any) => b.reste - a.reste);
+        if (impayes.length === 0) return null;
+        return (
+          <View style={{ marginTop: 18 }}>
+            <SectionTitle>Rappels de paiement ({impayes.length})</SectionTitle>
+            <View style={{ gap: 8 }}>
+              {impayes.map(({ m, reste }: any) => (
+                <Pressable key={m.id} onPress={() => onOpen(m.id)} testID={`impaye-${m.id}`}>
+                  <Card style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
+                    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#FDF7EC", alignItems: "center", justifyContent: "center" }}><Icon name="wallet" size={17} color={C.due} /></View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: "700", fontSize: 14 }}>{m.nom}</Text>
+                      <Text style={{ fontSize: 11.5, color: C.muted }}>{m.code} · {m.village}</Text>
+                    </View>
+                    <Text style={{ fontWeight: "800", fontSize: 14.5, color: C.due }}>{fF(reste)}</Text>
+                  </Card>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        );
+      })()}
       <View style={{ height: 20 }} />
     </View>
   );
@@ -359,7 +385,7 @@ export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhot
   );
 }
 
-export function Members({ data, onOpen, onAdd }: any) {
+export function Members({ data, onOpen, onAdd, onVillageRecap }: any) {
   const [q, setQ] = useState("");
   const [selVillage, setSelVillage] = useState("all");
   const [selCrop, setSelCrop] = useState("all");
@@ -388,6 +414,12 @@ export function Members({ data, onOpen, onAdd }: any) {
         <FilterChip label="Toutes cultures" active={selCrop === "all"} onPress={() => setSelCrop("all")} />
         {CROPS.map((c) => <FilterChip key={c.id} label={`${c.emoji} ${c.nom}`} active={selCrop === c.id} onPress={() => setSelCrop(c.id)} />)}
       </ScrollView>
+      {selVillage !== "all" && onVillageRecap ? (
+        <Pressable onPress={() => onVillageRecap(selVillage)} testID="village-recap" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#EAF3EF", borderRadius: 12, paddingVertical: 11, marginBottom: 12 }}>
+          <Icon name="share" size={16} color={C.teal} />
+          <Text style={{ color: C.teal, fontWeight: "700", fontSize: 13.5 }}>Bilan PDF de {selVillage}</Text>
+        </Pressable>
+      ) : null}
       {sorted.length === 0 ? <Empty text="Aucun planteur trouvé." /> : (
         <View style={{ gap: 9 }}>
           {sorted.map((m: Member) => {

@@ -136,6 +136,9 @@ export default function App() {
   const doRecap = async () => {
     try { await shareCampaign(data); } catch { setNotice("Impossible de générer le récapitulatif."); }
   };
+  const doVillageRecap = async (village: string) => {
+    try { await shareCampaign(data, { village }); } catch { setNotice("Impossible de générer le bilan du village."); }
+  };
   const doExport = async () => {
     const ok = await exportData(data);
     setNotice(ok ? "Sauvegarde créée. Choisissez où l'enregistrer ou l'envoyer." : "Échec de la sauvegarde.");
@@ -202,7 +205,7 @@ export default function App() {
         ? <PisteurRecon pisteur={collab} data={data} onBack={() => setOpenCollab(null)} onNewMandat={() => setSheet("mandat")} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} />
         : <CommisDetail staff={collab} data={data} onBack={() => setOpenCollab(null)} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} />;
     else if (tab === "bilan") body = <Dashboard theme={theme} data={data} onReceipt={setReceipt} onOpen={setOpenMember} onOpenPrets={() => setTab("prets")} />;
-    else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} />;
+    else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} onAdd={() => setSheet("collab")} />;
     else if (tab === "prets") body = <PatronPrets data={data} onDecide={(id: string, st: string) => store.decideLoan(id, st, "st_patron")} onBack={() => setTab("bilan")} />;
     else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onReset={store.reset} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
@@ -221,7 +224,7 @@ export default function App() {
       />
     );
     if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} />;
-    else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} />;
+    else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
     else if (isPisteur) body = <PisteurHome theme={theme} data={data} staffId={session.staffId} onNewCollecte={() => setSheet("pesee")} onNewDepense={() => setSheet("depense")} onReceipt={setReceipt} onOpen={setOpenMember} />;
     else body = <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} />;
   }
@@ -254,7 +257,7 @@ export default function App() {
       {sheet === "depense" ? <DepenseSheet onClose={() => setSheet(null)} onSave={(x: any) => { store.addDepense({ pisteurId: staffId, ...x }); setSheet(null); }} /> : null}
       {sheet === "mandat" ? <MandatSheet data={data} pisteurId={openCollab} onClose={() => setSheet(null)} onSave={(x: any) => { store.addMandat(x); setSheet(null); }} /> : null}
       {sheet === "collab" ? <CollaborateurSheet onClose={() => setSheet(null)} onSave={(s: any) => { store.addStaff(s); setSheet(null); setTab("collaborateurs"); }} /> : null}
-      {receipt ? <Bordereau collection={receipt} member={data.members.find((m) => m.id === receipt.memberId)} saison={data.saison} onClose={() => setReceipt(null)} onSign={(sig) => store.setCollectionSignature(receipt.id, sig)} /> : null}
+      {receipt ? <Bordereau collection={receipt} member={data.members.find((m) => m.id === receipt.memberId)} saison={data.saison} onClose={() => setReceipt(null)} onSign={(sig) => store.setCollectionSignature(receipt.id, sig)} onNotice={setNotice} /> : null}
 
       <Modal visible={!!notice} transparent animationType="fade" onRequestClose={() => setNotice(null)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(30,20,12,0.5)", justifyContent: "center", padding: 28 }} onPress={() => setNotice(null)}>

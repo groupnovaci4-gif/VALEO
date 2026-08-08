@@ -1,7 +1,7 @@
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import React, { useEffect, useState } from "react";
-import { Modal, Pressable, Text, View } from "react-native";
+import { Linking, Modal, Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -21,6 +21,7 @@ import {
   fKg,
   group,
   ticketNo,
+  waNumber,
 } from "./lib";
 import { Icon } from "./Icon";
 import { Sig, SignaturePad, SigPreview, sigToSvg } from "./Signature";
@@ -296,6 +297,19 @@ export function SettingsSheet({ data, onClose, onSave, onReset }: any) {
         <Text style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>Barème appliqué au poids collecté par chaque pisteur pour calculer sa commission.</Text>
       </Field>
       <Field label="Nom de la campagne"><TInput value={saison} onChangeText={setSaison} /></Field>
+      {(data.priceHistory || []).length > 0 ? (
+        <View style={{ marginBottom: 14 }}>
+          <SectionTitle>Historique des prix</SectionTitle>
+          <Card style={{ padding: 12 }}>
+            {[...(data.priceHistory || [])].reverse().map((h: any, i: number) => (
+              <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 6, borderTopWidth: i === 0 ? 0 : 1, borderColor: C.line, borderStyle: "dashed" }}>
+                <Text style={{ fontSize: 13, color: C.muted }}>{fDate(h.date)}</Text>
+                <Text style={{ fontSize: 14, fontWeight: "700", color: C.ink }}>{fF(h.prixKg)}/kg</Text>
+              </View>
+            ))}
+          </Card>
+        </View>
+      ) : null}
       <SaveBtn disabled={!(Number(prixKg) > 0 && saison.trim())} color={C.cocoa} onPress={() => onSave({ prixKg: Number(prixKg), saison: saison.trim(), commissionRate: Number(commissionRate) || 0 })}>Enregistrer</SaveBtn>
       <Pressable onPress={onReset} style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, alignItems: "center", marginTop: 12 }}>
         <Text style={{ color: C.muted, fontSize: 12.5, fontWeight: "600" }}>Réinitialiser les données de démonstration</Text>
@@ -361,7 +375,7 @@ const TRow = ({ k, v, bold, big, muted, due }: { k: string; v: string; bold?: bo
 );
 const Dashed = () => <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 8 }} />;
 
-export function Bordereau({ collection, member, saison, onClose, onSign }: { collection: Collection; member?: Member; saison: string; onClose: () => void; onSign?: (sig: Sig | null) => void }) {
+export function Bordereau({ collection, member, saison, onClose, onSign, onNotice }: { collection: Collection; member?: Member; saison: string; onClose: () => void; onSign?: (sig: Sig | null) => void; onNotice?: (msg: string) => void }) {
   const insets = useSafeAreaInsets();
   const c = collection;
   const [busy, setBusy] = useState(false);
@@ -392,6 +406,27 @@ export function Bordereau({ collection, member, saison, onClose, onSign }: { col
       await Print.printAsync({ html: receiptHtml(c, member, saison, sig) });
     } catch {} finally {
       setBusy(false);
+    }
+  };
+  const whatsapp = async () => {
+    const wa = waNumber(member?.tel);
+    if (!wa) { onNotice && onNotice("Ce planteur n'a pas de numéro de téléphone enregistré."); return; }
+    const msg =
+      `*VALEO — Bordereau ${ticketNo(c.seq)}*\n` +
+      `${saison}\n` +
+      `Planteur : ${member?.nom || "—"}\n` +
+      `Poids : ${fKg(c.kg)} × ${fF(c.prixKg)}\n` +
+      `Net à payer : ${fFull(c.net)}\n` +
+      `Payé (${c.method === "momo" ? "Mobile Money" : "espèces"}) : ${fF(c.paye)}\n` +
+      (c.reste > 0 ? `Reste à payer : ${fF(c.reste)}\n` : "") +
+      `\nMerci pour votre livraison.`;
+    const url = `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
+    try {
+      const ok = await Linking.canOpenURL(url);
+      if (ok) await Linking.openURL(url);
+      else onNotice && onNotice("WhatsApp n'est pas disponible sur cet appareil.");
+    } catch {
+      onNotice && onNotice("Impossible d'ouvrir WhatsApp.");
     }
   };
 
@@ -460,6 +495,9 @@ export function Bordereau({ collection, member, saison, onClose, onSign }: { col
               <SaveBtn color={C.green} onPress={share} disabled={busy} icon={<Icon name="share" size={16} color="#fff" />} style={{ flex: 1 }}>Partager PDF</SaveBtn>
               <SaveBtn color={C.cocoa} onPress={print} disabled={busy} icon={<Icon name="printer" size={16} color="#fff" />} style={{ flex: 1 }}>Imprimer</SaveBtn>
             </View>
+            {member?.tel ? (
+              <SaveBtn color="#25D366" onPress={whatsapp} icon={<Icon name="smartphone" size={16} color="#fff" />} style={{ marginTop: 10 }}>Envoyer par WhatsApp</SaveBtn>
+            ) : null}
           </KeyboardAwareScrollView>
         </View>
       </View>

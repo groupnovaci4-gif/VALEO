@@ -127,6 +127,7 @@ export type Loan = {
 export type Mandat = { id: string; pisteurId: string; amount: number; date: string; note: string };
 export type Depense = { id: string; pisteurId: string; category: string; amount: number; date: string; note: string };
 export type CoopMomo = { id: string; operator: string; number: string; label?: string };
+export type PriceHistory = { date: string; prixKg: number };
 export type Data = {
   saison: string;
   prixKg: number;
@@ -140,12 +141,23 @@ export type Data = {
   loans: Loan[];
   mandats: Mandat[];
   depenses: Depense[];
+  priceHistory: PriceHistory[];
 };
 export type Session =
   | { side: "planteur"; memberId: string }
   | { side: "coop"; role: string; staffId: string };
 
 export const uid = () => Math.random().toString(36).slice(2, 9);
+
+// Formate un numéro CI en international pour wa.me (indicatif 225).
+export const waNumber = (tel?: string): string | null => {
+  if (!tel) return null;
+  let d = tel.replace(/\D/g, "");
+  if (!d) return null;
+  if (d.startsWith("225")) return d;
+  if (d.startsWith("00225")) return d.slice(2);
+  return `225${d}`;
+};
 
 /* --------------------------------- Seed ---------------------------------- */
 export function seed(): Data {
@@ -211,6 +223,7 @@ export function seed(): Data {
     loans,
     mandats,
     depenses,
+    priceHistory: [{ date: dOff(30), prixKg: 1700 }, { date: dOff(10), prixKg: 1800 }],
   };
 }
 
@@ -227,6 +240,7 @@ export function migrate(d: any): Data {
   if (!out.saison) out.saison = "Campagne 2025-2026";
   if (!out.coop) out.coop = { nom: "Coopérative", momo: [] };
   if (!Array.isArray(out.coop.momo)) out.coop.momo = [];
+  if (!Array.isArray(out.priceHistory)) out.priceHistory = [{ date: new Date().toISOString(), prixKg: out.prixKg }];
   let seqBase = typeof out.memberSeq === "number" ? out.memberSeq : 1;
   out.members = out.members.map((m: any) => {
     let code = m.code;

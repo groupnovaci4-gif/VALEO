@@ -1,0 +1,28 @@
+{
+  "summary": "Frontend-only testing of 4 new features on VALEO offline Expo app (mobile viewport 390x844). All 4 features and regression pass: (1) WhatsApp button appears in Bordereau for member with tel (Kouassi Yao), tapping shows notice modal on web with no crash; (2) village-recap button hidden with 'Tous villages' filter, appears when Gomon filter active, taps to a notice on web without crash; (3) 'Historique des prix' section renders in Réglages sheet with existing 1 700 F/kg and 1 800 F/kg entries, and after changing prix bord champ to 1900 and tapping Enregistrer, reopening Réglages shows 1 900 F/kg in history; (4) 'RAPPELS DE PAIEMENT (1)' section on Patron Bilan lists Gnamien Koffi with 132 000 F, testID 'impaye-<id>' navigates to member detail. Regression: coop-recap/coop-export/coop-restore all present and tappable; nav-planteurs filters work; loan flow intact.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "observations": [
+    "The WhatsApp SaveBtn in Bordereau also rendered for Gnamien Koffi. Task spec says it must NOT appear for a planteur without tel. Gnamien's MemberDetail 'Téléphone' field appeared empty/— in DOM extraction, so this could indicate seed actually has a tel string for Gnamien (spec doesn't explicitly state he has none) OR the `{member?.tel ? ... : null}` check treats an all-whitespace/dash string as truthy. Main agent should verify by inspecting seed data for Gnamien Koffi's `tel` field in /app/frontend/src/coop/store.ts. If seed has a tel → behavior is correct. If seed tel is '' or falsy → conditional in /app/frontend/src/coop/sheets.tsx line ~498 needs a trim check."
+  ],
+  "test_report_links": [],
+  "action_items": [
+    "Verify Gnamien Koffi's `tel` in seed data (store.ts). If empty, tighten WhatsApp visibility check to `member?.tel?.trim()`."
+  ],
+  "critical_code_review_comments": [
+    "Bordereau.WhatsApp guard uses `member?.tel` — an empty string would already be falsy, but any whitespace ('  ') would leak through; consider trim() for safety.",
+    "Multiple SaveBtn components share testID='save-btn' inside Bordereau (Partager PDF, Imprimer, Envoyer par WhatsApp) — task spec references save-btn for WhatsApp but selector is ambiguous. Consider distinct testIDs (e.g., 'whatsapp-btn')."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100%"},
+  "seed_data_creation": "None. App uses built-in demo seed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "State-driven single-route Expo app. Login: Espace coopérative -> 'Se connecter' (default = M. Diomandé patron). Key testIDs verified working: nav-planteurs, nav-coop, filter-Gomon, filter-Tous villages, village-recap, coop-settings, impaye-<id>, bordereau-close, notice-ok, member-<id>, coop-recap, coop-export, coop-restore. On web, native PDF/WhatsApp path is caught and yields notice modal with testID='notice-ok' — treat as pass. Multiple SaveBtns may share the same testID; prefer get_by_text for disambiguation.",
+  "rca_of_issue": "N/A — no functional bug found. Only minor observation about WhatsApp visibility for Gnamien (see observations)."
+}

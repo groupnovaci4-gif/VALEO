@@ -3,14 +3,17 @@ import * as Sharing from "expo-sharing";
 
 import { Data, fDate, fF, fFull, fKg, memberStats, pisteurStats } from "./lib";
 
-export function campaignHtml(data: Data): string {
-  const cols = data.collections;
+export function campaignHtml(data: Data, opts?: { village?: string }): string {
+  const village = opts?.village;
+  const scopedMembers = village ? data.members.filter((m) => m.village === village) : data.members;
+  const memberIds = new Set(scopedMembers.map((m) => m.id));
+  const cols = village ? data.collections.filter((c) => memberIds.has(c.memberId)) : data.collections;
   const totKg = cols.reduce((s, c) => s + c.kg, 0);
   const totNet = cols.reduce((s, c) => s + c.net, 0);
   const totPaye = cols.reduce((s, c) => s + c.paye, 0);
   const totReste = cols.reduce((s, c) => s + c.reste, 0);
 
-  const members = [...data.members].sort((a, b) => a.nom.localeCompare(b.nom));
+  const members = [...scopedMembers].sort((a, b) => a.nom.localeCompare(b.nom));
   const memberRows = members
     .map((m) => {
       const s = memberStats(m.id, cols);
@@ -20,10 +23,10 @@ export function campaignHtml(data: Data): string {
     .filter(Boolean)
     .join("");
 
-  const totalPrete = data.loans.filter((l) => l.status === "approuve" || l.status === "rembourse").reduce((s, l) => s + l.amount, 0);
-  const aRecouvrer = data.loans.reduce((s, l) => s + (l.status === "approuve" ? l.soldeRestant : 0), 0);
+  const totalPrete = data.loans.filter((l) => (!village || memberIds.has(l.memberId)) && (l.status === "approuve" || l.status === "rembourse")).reduce((s, l) => s + l.amount, 0);
+  const aRecouvrer = data.loans.filter((l) => !village || memberIds.has(l.memberId)).reduce((s, l) => s + (l.status === "approuve" ? l.soldeRestant : 0), 0);
 
-  const pisteurs = data.staff.filter((s) => s.role === "pisteur");
+  const pisteurs = village ? [] : data.staff.filter((s) => s.role === "pisteur");
   const pisteurRows = pisteurs
     .map((p) => {
       const st = pisteurStats(p.id, data);
@@ -53,7 +56,7 @@ export function campaignHtml(data: Data): string {
     .tot td{font-weight:800;border-top:2px solid #EAE2D5;background:#FAF6EF}
     .foot{text-align:center;font-size:11px;color:#7A6E62;margin-top:24px}
   </style></head><body>
-    <div class="h"><div class="n">VALEO</div><div class="t">La valeur commence à la source.</div><div class="s">${data.coop.nom} · ${data.saison}</div></div>
+    <div class="h"><div class="n">VALEO</div><div class="t">La valeur commence à la source.</div><div class="s">${data.coop.nom} · ${data.saison}${village ? ` · Village : ${village}` : ""}</div></div>
     <div style="text-align:right;font-size:11px;color:#7A6E62;margin-top:8px">Édité le ${today} · Prix ${fF(data.prixKg)}/kg</div>
 
     <div class="kpis">
@@ -88,11 +91,11 @@ export function campaignHtml(data: Data): string {
   </body></html>`;
 }
 
-export async function shareCampaign(data: Data): Promise<void> {
-  const { uri } = await Print.printToFileAsync({ html: campaignHtml(data) });
+export async function shareCampaign(data: Data, opts?: { village?: string }): Promise<void> {
+  const { uri } = await Print.printToFileAsync({ html: campaignHtml(data, opts) });
   if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Récapitulatif ${data.saison}` });
+    await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Récapitulatif ${opts?.village || data.saison}` });
   } else {
-    await Print.printAsync({ html: campaignHtml(data) });
+    await Print.printAsync({ html: campaignHtml(data, opts) });
   }
 }

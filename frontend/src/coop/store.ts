@@ -111,7 +111,12 @@ export function useCoopData() {
   }, []);
 
   const setPrix = useCallback((p: { prixKg: number; saison: string; commissionRate?: number }) => {
-    setData((d) => (d ? { ...d, prixKg: p.prixKg, saison: p.saison, commissionRate: p.commissionRate ?? d.commissionRate } : d));
+    setData((d) => {
+      if (!d) return d;
+      const changed = p.prixKg !== d.prixKg;
+      const priceHistory = changed ? [...(d.priceHistory || []), { date: new Date().toISOString(), prixKg: p.prixKg }] : d.priceHistory || [];
+      return { ...d, prixKg: p.prixKg, saison: p.saison, commissionRate: p.commissionRate ?? d.commissionRate, priceHistory };
+    });
   }, []);
 
   const reset = useCallback(() => setData(seed()), []);
