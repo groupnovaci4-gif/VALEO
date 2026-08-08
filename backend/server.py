@@ -21,9 +21,13 @@ mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
-# Admin auth config
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
-JWT_SECRET = os.environ.get("JWT_SECRET", "valeo-dev-secret-change-me-please-32bytes")
+# Admin auth config (secrets must be provided via environment / deployment secrets)
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+JWT_SECRET = os.environ.get("JWT_SECRET")
+if not ADMIN_PASSWORD:
+    raise RuntimeError("ADMIN_PASSWORD environment variable is required")
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET environment variable is required")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "720"))
 
@@ -104,6 +108,16 @@ class StateBody(BaseModel):
 
 
 # ------------------------------- Public API ------------------------------- #
+@app.get("/")
+async def health_root():
+    return {"status": "ok", "service": "VALEO"}
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.get("/api/")
 async def root():
     return {"message": "VALEO API"}
