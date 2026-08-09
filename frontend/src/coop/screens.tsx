@@ -547,7 +547,7 @@ export function Members({ data, onOpen, onAdd, onVillageRecap, restrictTo }: any
   );
 }
 
-export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete, onResetPin }: any) {
+export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete, onResetPin, onSettle }: any) {
   const s = memberStats(member.id, data.collections);
   const list = data.collections.filter((c: Collection) => c.memberId === member.id).sort(byDateDesc);
   const loans = data.loans.filter((l: any) => l.memberId === member.id);
@@ -576,6 +576,11 @@ export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete
           <StatCell label="Reste dû" value={fF(s.reste)} color={s.reste > 0 ? C.due : C.muted} strong />
         </View>
       </Card>
+      {onSettle && s.reste > 0 ? (
+        <Pressable onPress={() => onSettle(member, s.reste)} testID="member-settle" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: C.green, borderRadius: 12, paddingVertical: 12, marginBottom: 14 }}>
+          <Icon name="banknote" size={17} color="#fff" /><Text style={{ color: "#fff", fontWeight: "800", fontSize: 14 }}>Solder le reste dû ({fF(s.reste)})</Text>
+        </Pressable>
+      ) : null}
       {onEdit ? (
         <View style={{ flexDirection: "row", gap: 9, marginBottom: 16 }}>
           <Pressable onPress={() => onEdit(member)} testID="member-edit" style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingVertical: 11 }}>

@@ -117,10 +117,29 @@ export function useCoopData() {
         );
       }
       delete (rec as any)._repay;
+      // Solde des restes dus antérieurs, appliqué aux plus anciennes collectes d'abord (FIFO).
+      let settle = Number(c._settle) || 0;
+      let cols = d.collections;
+      if (settle > 0) {
+        cols = cols.map((x) => {
+          if (x.memberId !== rec.memberId || x.reste <= 0 || settle <= 0) return x;
+          const applied = Math.min(settle, x.reste);
+          settle -= applied;
+          return { ...x, paye: x.paye + applied, reste: x.reste - applied };
+        });
+      }
+      delete (rec as any)._settle;
       created = rec;
-      return { ...d, seq: d.seq + 1, collections: [...d.collections, rec], loans };
+      return { ...d, seq: d.seq + 1, collections: [...cols, rec], loans };
     });
     return created;
+  }, []);
+
+  // Solde immédiat de tout le reste dû d'un planteur (paiement hors livraison).
+  const settleMemberDue = useCallback((memberId: string) => {
+    setData((d) =>
+      d ? { ...d, collections: d.collections.map((c) => (c.memberId === memberId && c.reste > 0 ? { ...c, paye: c.paye + c.reste, reste: 0 } : c)) } : d,
+    );
   }, []);
 
   const addLoan = useCallback((l: Partial<Loan>) => {
@@ -236,6 +255,7 @@ export function useCoopData() {
     addMandat,
     addDepense,
     addCollection,
+    settleMemberDue,
     addLoan,
     decideLoan,
     approveLoan,

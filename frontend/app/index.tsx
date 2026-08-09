@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { AppState, Modal, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, Session, uid } from "@/src/coop/lib";
+import { C, Session, fF, uid } from "@/src/coop/lib";
 import { Icon } from "@/src/coop/Icon";
 import { Login, TopBar } from "@/src/coop/auth";
 import {
@@ -100,7 +100,7 @@ export default function App() {
   const [editMember, setEditMember] = useState<any>(null);
   const [editCollab, setEditCollab] = useState<any>(null);
   const [resetTarget, setResetTarget] = useState<{ kind: "member" | "staff"; id: string; name: string } | null>(null);
-  const [confirm, setConfirm] = useState<{ msg: string; onYes: () => void } | null>(null);
+  const [confirm, setConfirm] = useState<{ msg: string; onYes: () => void; yesLabel?: string; yesColor?: string } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -174,6 +174,13 @@ export default function App() {
 
   const openMemberObj = openMember ? data.members.find((m) => m.id === openMember) : null;
   const pendingLoans = data.loans.filter((l) => l.status === "en_attente").length;
+  const settleMemberFn = (m: any, reste: number) =>
+    setConfirm({
+      msg: `Solder le reste dû de ${m.nom} (${fF(reste)}) ? Ce montant sera marqué comme payé au planteur.`,
+      yesLabel: "Solder",
+      yesColor: C.green,
+      onYes: () => { store.settleMemberDue(m.id); setConfirm(null); setNotice("Reste dû soldé. Le planteur a été payé intégralement."); },
+    });
 
   let body: React.ReactNode = null;
   let nav: React.ReactNode = null;
@@ -228,7 +235,7 @@ export default function App() {
     const deleteCollabFn = (s: any) => setConfirm({ msg: `Supprimer le collaborateur ${s.nom} ?`, onYes: () => { store.deleteStaff(s.id); setOpenCollab(null); setConfirm(null); } });
     const resetMemberFn = (m: any) => setResetTarget({ kind: "member", id: m.id, name: m.nom });
     const resetCollabFn = (s: any) => setResetTarget({ kind: "staff", id: s.id, name: s.nom });
-    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onEdit={editMemberFn} onDelete={deleteMemberFn} onResetPin={resetMemberFn} />;
+    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onEdit={editMemberFn} onDelete={deleteMemberFn} onResetPin={resetMemberFn} onSettle={settleMemberFn} />;
     else if (tab === "collaborateurs" && collab)
       body = collab.role === "pisteur"
         ? <PisteurRecon pisteur={collab} data={data} onBack={() => setOpenCollab(null)} onNewMandat={() => setSheet("mandat")} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} onResetPin={resetCollabFn} />
@@ -253,7 +260,7 @@ export default function App() {
         onFab={() => setSheet("pesee")}
       />
     );
-    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} />;
+    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onSettle={settleMemberFn} />;
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
     else if (isPisteur) body = <PisteurHome theme={theme} data={data} staffId={session.staffId} onNewCollecte={() => setSheet("pesee")} onNewDepense={() => setSheet("depense")} onReceipt={setReceipt} onOpen={setOpenMember} />;
     else body = <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} />;
@@ -311,8 +318,8 @@ export default function App() {
               <Pressable onPress={() => setConfirm(null)} style={{ flex: 1, backgroundColor: "#F2EEE7", borderRadius: 12, paddingVertical: 12, alignItems: "center" }} testID="confirm-cancel">
                 <Text style={{ color: C.ink, fontWeight: "700", fontSize: 15 }}>Annuler</Text>
               </Pressable>
-              <Pressable onPress={() => confirm?.onYes()} style={{ flex: 1, backgroundColor: C.loss, borderRadius: 12, paddingVertical: 12, alignItems: "center" }} testID="confirm-yes">
-                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Supprimer</Text>
+              <Pressable onPress={() => confirm?.onYes()} style={{ flex: 1, backgroundColor: confirm?.yesColor || C.loss, borderRadius: 12, paddingVertical: 12, alignItems: "center" }} testID="confirm-yes">
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>{confirm?.yesLabel || "Supprimer"}</Text>
               </Pressable>
             </View>
           </Pressable>

@@ -22,6 +22,7 @@ import {
   fKg,
   group,
   memberCultures,
+  memberStats,
   ticketNo,
   totalSuperficie,
   waNumber,
@@ -112,8 +113,13 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
   const rembN = loan ? Math.min(Number(remb) || 0, loan.soldeRestant) : 0;
   const retTot = (Number(credit) || 0) + (Number(cotisation) || 0) + (Number(sacs) || 0) + rembN;
   const net = Math.max(0, brut - retTot);
-  const paye = payTout ? net : Math.min(net, Number(payePartiel) || 0);
-  const reste = net - paye;
+  const oldReste = memberStats(memberId, data.collections).reste;
+  const totalDu = net + oldReste;
+  const payeNow = payTout ? totalDu : Math.min(totalDu, Number(payePartiel) || 0);
+  const settleOld = Math.min(payeNow, oldReste);
+  const payeCurrent = Math.min(net, payeNow - settleOld);
+  const resteCurrent = net - payeCurrent;
+  const resteApres = totalDu - payeNow;
   const momoDisabled = !member?.momo;
   const valid = memberId && Number(kg) > 0 && Number(prixKg) > 0;
 
@@ -125,8 +131,9 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
     if (rembN > 0) retenues.push({ label: "Remboursement prêt", amount: rembN });
     onSave({
       memberId, byStaffId: staffId, date: new Date().toISOString(), kg: Number(kg), prixKg: Number(prixKg), cropId,
-      brut, retenues, net, paye, reste, method: momoDisabled ? "espece" : method, note: "",
+      brut, retenues, net, paye: payeCurrent, reste: resteCurrent, method: momoDisabled ? "espece" : method, note: "",
       _repay: loan && rembN > 0 ? { loanId: loan.id, amount: rembN } : null,
+      _settle: settleOld > 0 ? settleOld : null,
     });
   };
 
@@ -166,7 +173,22 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
         ) : null}
       </View>
 
-      <View style={{ backgroundColor: "#F0F6F2", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 12, padding: 12, marginBottom: 14 }}><Row label="Net à payer" value={fFull(net)} strong color={C.green} /></View>
+      <View style={{ backgroundColor: "#F0F6F2", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 12, padding: 12, marginBottom: 14 }}>
+        <Row label="Net de cette pesée" value={fF(net)} color={C.ink} />
+        {oldReste > 0 ? (
+          <>
+            <Row label="+ Reste dû (précédent)" value={fF(oldReste)} color={C.due} />
+            <View style={{ height: 1, backgroundColor: "#D8E8DE", marginVertical: 8 }} />
+            <Row label="Total à payer" value={fFull(totalDu)} strong color={C.green} />
+          </>
+        ) : null}
+      </View>
+      {oldReste > 0 ? (
+        <View style={{ backgroundColor: "#FDF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 10, padding: 11, marginBottom: 14, flexDirection: "row", gap: 8, alignItems: "center" }}>
+          <Icon name="wallet" size={16} color={C.due} />
+          <Text style={{ flex: 1, fontSize: 12, color: C.due, lineHeight: 17 }}>Ce planteur a un reste dû de <Text style={{ fontWeight: "800" }}>{fF(oldReste)}</Text> sur ses livraisons précédentes. Il s'ajoute au montant à payer.</Text>
+        </View>
+      ) : null}
 
       <Field label="Mode de paiement">
         <View style={{ flexDirection: "row", gap: 8 }}>
@@ -184,8 +206,8 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
       </Field>
       {!payTout ? (
         <Field label="Montant payé maintenant (F)">
-          <TInput value={payePartiel} onChangeText={(t) => setPayePartiel(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={`Max ${group(net)}`} />
-          <Text style={{ fontSize: 12, color: C.due, marginTop: 6 }}>Reste à payer : <Text style={{ fontWeight: "700" }}>{fF(reste)}</Text></Text>
+          <TInput value={payePartiel} onChangeText={(t) => setPayePartiel(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={`Max ${group(totalDu)}`} />
+          <Text style={{ fontSize: 12, color: C.due, marginTop: 6 }}>Reste à payer : <Text style={{ fontWeight: "700" }}>{fF(resteApres)}</Text></Text>
         </Field>
       ) : null}
 
