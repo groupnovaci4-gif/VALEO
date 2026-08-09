@@ -287,7 +287,7 @@ export default function App() {
 
       {sheet === "member" ? <MemberSheet initial={editMember} onClose={() => { setSheet(null); setEditMember(null); }} onSave={(m: any) => { if (editMember) store.updateMember(editMember.id, m); else { store.addMember(m); setTab("planteurs"); } setSheet(null); setEditMember(null); }} /> : null}
       {sheet === "pesee" ? <PeseeSheet data={data} role={role} staffId={staffId} onClose={() => setSheet(null)} onSave={savePesee} /> : null}
-      {sheet === "loan" && session.side === "planteur" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ memberId: session.memberId, date: new Date().toISOString(), ...l }); setSheet(null); setTab("prets"); }} /> : null}
+      {sheet === "loan" && session.side === "planteur" ? <LoanSheet data={data} fixedMember={me} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ ...l, memberId: session.memberId, date: new Date().toISOString() }); setSheet(null); setTab("prets"); }} /> : null}
       {sheet === "loan" && session.side === "coop" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ date: new Date().toISOString(), ...l }); setSheet(null); }} /> : null}
       {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setPrix(p); setSheet(null); }} onReset={() => { store.reset(); setSheet(null); }} /> : null}
       {sheet === "linkMomo" && session.side === "planteur" ? <LinkMomoSheet title="Lier mon Mobile Money" onClose={() => setSheet(null)} onSave={(mm: any) => { store.linkMemberMomo(session.memberId, mm); setSheet(null); }} /> : null}

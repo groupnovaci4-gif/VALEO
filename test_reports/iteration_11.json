@@ -1,0 +1,31 @@
+{
+  "summary": "Frontend-only test of VALEO planteur-loan isolation bug fix. Verified via Playwright on mobile viewport (390x844). PLANTEUR flow: LoanSheet now displays a read-only card with the connected planteur (nom, village, code PL-...) instead of a Select dropdown; the loan request is correctly saved and appears in 'Mes prêts' attributed to the connected planteur. ISOLATION: planteur nav only exposes 'Mes poids' + FAB + 'Mobile Money' — no 'Planteurs' tab, no listing of other members. PATRON non-regression: LoanSheet still shows a Select for 'Planteur bénéficiaire' (chevron + 'Nom — Village' pattern) and options include both existing planteurs (Kouassi Yao Test and Alice Test Planteur). No red screen, no console errors.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/tmp/03_planteur_home.png",
+    "/tmp/04_loan_sheet.png",
+    "/tmp/05_loan_filled.png",
+    "/tmp/06_after_save.png",
+    "/tmp/pp2b_prets_screen.png",
+    "/tmp/pp3b_patron_loansheet.png",
+    "/tmp/pp4b_select_opened.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "index.tsx L290 correctly renders <LoanSheet fixedMember={me}/> only for session.side==='planteur' and enforces memberId=session.memberId on save, so a spread cannot overwrite it. L291 renders LoanSheet without fixedMember for coop/patron — Select is preserved. sheets.tsx L219-266 handles the fixedMember prop cleanly: read-only card is rendered inside a Field, no Select is mounted, and onSave forces memberId=fixedMember?.id||memberId.",
+    "PlanteurPrets, PlanteurPoids and PlanteurMomo already filter by member.id, and the planteur NavBar exposes no 'Planteurs' route — isolation is enforced both at data and navigation levels."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (skipped)", "frontend": "100%" },
+  "seed_data_creation": "Created a test planteur 'Alice Test Planteur' (PL-2026-0002, Sikensi, PIN 1111) via the Créer un compte planteur flow, then created a 25 000 F Intrant loan request (motif: Engrais NPK). Patron 'Diomande Mamadou' (COOPTEST, 0700000001, PIN 1234) already existed in the preview store along with 'Kouassi Yao Test' (PL-2026-0001) and prior collections.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "App is Expo web served at EXPO_PUBLIC_BACKEND_URL. State is persisted via AsyncStorage (localStorage). Use mobile viewport 390x844. To reach LoanSheet as planteur: login/create planteur -> tap FAB (data-testid='fab'). Verify no 'Nom — Village' Select label appears (that's the Select rendering pattern) and that a read-only card with '<village> · PL-YYYY-XXXX' is present. To reach LoanSheet as patron: login as patron -> nav-coop -> 'Demandes de prêt' -> 'Nouveau prêt / créance'.",
+  "rca_of_issue": "Root cause (already fixed by main agent): planteur session was rendering the same LoanSheet as patron, which included a Select over data.members allowing the planteur to pick a different beneficiary; addLoan then persisted whatever memberId the sheet had. Fix: introduced a `fixedMember` prop that (1) replaces the Select with a read-only member card and (2) forces memberId=fixedMember.id on save; index.tsx only renders that variant for session.side==='planteur', and additionally overrides memberId=session.memberId in the save handler so the spread order cannot leak another id. Verified end-to-end via UI."
+}

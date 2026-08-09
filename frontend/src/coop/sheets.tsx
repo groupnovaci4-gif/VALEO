@@ -216,23 +216,33 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
   );
 }
 
-export function LoanSheet({ onClose, onSave, data }: any) {
-  const [memberId, setMemberId] = useState(data?.members[0]?.id || "");
+export function LoanSheet({ onClose, onSave, data, fixedMember }: any) {
+  const [memberId, setMemberId] = useState(fixedMember?.id || data?.members[0]?.id || "");
   const [type, setType] = useState("intrant");
   const [amount, setAmount] = useState("");
   const [motif, setMotif] = useState("");
   const presets = type === "intrant" ? ["Engrais NPK", "Produits phyto", "Semences", "Petit matériel"] : ["Scolarité", "Santé", "Dépense familiale"];
-  const valid = memberId && Number(amount) > 0 && motif.trim();
-  if (!data || data.members.length === 0)
+  const valid = (fixedMember?.id || memberId) && Number(amount) > 0 && motif.trim();
+  if (!fixedMember && (!data || data.members.length === 0))
     return (
       <Sheet title="Nouveau prêt" onClose={onClose}>
         <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Aucun planteur enregistré. Ajoutez-en un d'abord.</Text></Card>
       </Sheet>
     );
   return (
-    <Sheet title="Nouveau prêt / créance" onClose={onClose}>
+    <Sheet title={fixedMember ? "Demander un prêt / une avance" : "Nouveau prêt / créance"} onClose={onClose}>
       <Field label="Planteur bénéficiaire">
-        <Select value={memberId} onChange={setMemberId} options={data.members.map((m: Member) => ({ value: m.id, label: `${m.nom} — ${m.village}` }))} />
+        {fixedMember ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 12, padding: 12 }}>
+            <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#DCEBE1", alignItems: "center", justifyContent: "center" }}><Icon name="user" size={17} color={C.green} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "800", fontSize: 14 }}>{fixedMember.nom}</Text>
+              <Text style={{ fontSize: 12, color: C.muted }}>{fixedMember.village}{fixedMember.code ? ` · ${fixedMember.code}` : ""}</Text>
+            </View>
+          </View>
+        ) : (
+          <Select value={memberId} onChange={setMemberId} options={data.members.map((m: Member) => ({ value: m.id, label: `${m.nom} — ${m.village}` }))} />
+        )}
       </Field>
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 16, backgroundColor: "#F1EDE3", padding: 4, borderRadius: 12 }}>
         <Toggle active={type === "intrant"} onPress={() => { setType("intrant"); setMotif(""); }} color={C.green}>Intrant</Toggle>
@@ -250,7 +260,7 @@ export function LoanSheet({ onClose, onSave, data }: any) {
       <View style={{ backgroundColor: "#FDF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
         <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Enregistré comme demande <Text style={{ fontWeight: "700" }}>en attente</Text>. Approuvez-la ensuite pour fixer le montant accordé et le mode de versement.</Text>
       </View>
-      <SaveBtn disabled={!valid} color={C.cocoa} onPress={() => onSave({ memberId, type, amount: Number(amount), motif: motif.trim() })}>Enregistrer la demande</SaveBtn>
+      <SaveBtn disabled={!valid} color={C.cocoa} onPress={() => onSave({ memberId: fixedMember?.id || memberId, type, amount: Number(amount), motif: motif.trim() })}>Enregistrer la demande</SaveBtn>
     </Sheet>
   );
 }
