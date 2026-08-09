@@ -83,7 +83,7 @@ export function campaignHtml(data: Data, opts?: { village?: string }): string {
 
     ${pisteurs.length > 0 ? `<h2>Pisteurs — justification de caisse</h2>
     <table>
-      <tr><th>Pisteur</th><th class="r">Mandat</th><th class="r">Poids</th><th class="r">Achats</th><th class="r">Dépenses</th><th class="r">Solde</th></tr>
+      <tr><th>Pisteur / Délégué</th><th class="r">Mandat</th><th class="r">Poids</th><th class="r">Achats</th><th class="r">Dépenses</th><th class="r">Solde</th></tr>
       ${pisteurRows}
     </table>` : ""}
 

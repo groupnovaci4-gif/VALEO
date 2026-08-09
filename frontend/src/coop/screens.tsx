@@ -258,7 +258,7 @@ export function PisteurHome({ theme, data, staffId, onNewDepense, onReceipt, onO
   );
 }
 
-export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, onOpen, onSetPhoto }: any) {
+export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, onOpen, onSetPhoto, onEdit, onDelete }: any) {
   const st = pisteurStats(pisteur.id, data);
   const mandats = (data.mandats || []).filter((m: any) => m.pisteurId === pisteur.id).sort(byDateDesc);
   const deps = (data.depenses || []).filter((x: any) => x.pisteurId === pisteur.id).sort(byDateDesc);
@@ -269,7 +269,7 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
       <Card style={{ padding: 16, marginBottom: 14 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 }}>
           <PhotoAvatar photo={pisteur.photo} size={48} editable onChange={onSetPhoto} fallbackIcon="truck" fallbackColor={C.teal} />
-          <View style={{ flexShrink: 1 }}><Text style={{ fontWeight: "800", fontSize: 17 }}>{pisteur.nom}</Text><Text style={{ fontSize: 12.5, color: C.muted }}>Pisteur · suivi de collecte{pisteur.tel ? ` · ${pisteur.tel}` : ""}</Text></View>
+          <View style={{ flexShrink: 1 }}><Text style={{ fontWeight: "800", fontSize: 17 }}>{pisteur.nom}</Text><Text style={{ fontSize: 12.5, color: C.muted }}>Pisteur / Délégué · suivi de collecte{pisteur.tel ? ` · ${pisteur.tel}` : ""}</Text></View>
         </View>
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
           <StatCell label="Mandat donné" value={fF(st.mandat)} color={C.gold} />
@@ -282,6 +282,16 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
           <StatCell label="À justifier" value={fF(st.solde)} color={st.solde >= 0 ? C.green : C.loss} strong />
         </View>
       </Card>
+      {onEdit ? (
+        <View style={{ flexDirection: "row", gap: 9, marginBottom: 14 }}>
+          <Pressable onPress={() => onEdit(pisteur)} testID="staff-edit" style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingVertical: 11 }}>
+            <Icon name="settings" size={16} color={C.cocoa} /><Text style={{ color: C.cocoa, fontWeight: "700", fontSize: 13.5 }}>Modifier</Text>
+          </Pressable>
+          <Pressable onPress={() => onDelete(pisteur)} testID="staff-delete" style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fff", borderWidth: 1, borderColor: "#EAD7D2", borderRadius: 12, paddingVertical: 11 }}>
+            <Icon name="trash" size={16} color={C.loss} /><Text style={{ color: C.loss, fontWeight: "700", fontSize: 13.5 }}>Supprimer</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <SaveBtn color={C.lime} icon={<Icon name="wallet" size={17} color="#fff" />} onPress={onNewMandat} style={{ marginBottom: 18 }}>Donner un mandat</SaveBtn>
 
       <SectionTitle>Mandats donnés</SectionTitle>
@@ -330,8 +340,8 @@ export function Collaborateurs({ data, onOpen, onAdd }: any) {
         <SectionTitle noMargin>Mes collaborateurs</SectionTitle>
         <GhostBtn onPress={onAdd} testID="add-collab">+ Ajouter</GhostBtn>
       </View>
-      <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>Créez et gérez vos pisteurs et commis péseurs. Touchez un pisteur pour lui confier un mandat.</Text>
-      {collabs.length === 0 ? <Empty text="Aucun collaborateur. Touchez « Ajouter » pour créer un pisteur ou un commis péseur." /> : (
+      <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>Créez et gérez vos pisteurs/délégués et magasiniers. Touchez un Pisteur / Délégué pour lui confier un mandat.</Text>
+      {collabs.length === 0 ? <Empty text="Aucun collaborateur. Touchez « Ajouter » pour créer un Pisteur / Délégué ou un Magasinier." /> : (
         <View style={{ gap: 9 }}>
           {collabs.map((s) => {
             const isP = s.role === "pisteur";
@@ -342,7 +352,7 @@ export function Collaborateurs({ data, onOpen, onAdd }: any) {
                   <PhotoAvatar photo={s.photo} size={44} fallbackIcon={isP ? "truck" : "scale"} fallbackColor={C.teal} />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontWeight: "700", fontSize: 15 }}>{s.nom}</Text>
-                    <Text style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{isP ? "Pisteur" : "Commis péseur"} · {fKg(st.poids)}{isP ? ` · solde ${fF(st.solde)}` : " pesés"}</Text>
+                    <Text style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{isP ? "Pisteur / Délégué" : "Magasinier"} · {fKg(st.poids)}{isP ? ` · solde ${fF(st.solde)}` : " pesés"}</Text>
                   </View>
                   <Icon name="chevron-right" size={18} color={C.muted} />
                 </Card>
@@ -356,7 +366,7 @@ export function Collaborateurs({ data, onOpen, onAdd }: any) {
   );
 }
 
-export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhoto }: any) {
+export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhoto, onEdit, onDelete }: any) {
   const cols = (data.collections || []).filter((c: Collection) => c.byStaffId === staff.id).sort(byDateDesc);
   const poids = cols.reduce((s: number, c: Collection) => s + c.kg, 0);
   const valeur = cols.reduce((s: number, c: Collection) => s + c.net, 0);
@@ -366,7 +376,7 @@ export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhot
       <Card style={{ padding: 16, marginBottom: 14 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 }}>
           <PhotoAvatar photo={staff.photo} size={48} editable onChange={onSetPhoto} fallbackIcon="scale" fallbackColor={C.teal} />
-          <View style={{ flexShrink: 1 }}><Text style={{ fontWeight: "800", fontSize: 17 }}>{staff.nom}</Text><Text style={{ fontSize: 12.5, color: C.muted }}>Commis péseur{staff.tel ? ` · ${staff.tel}` : ""}</Text></View>
+          <View style={{ flexShrink: 1 }}><Text style={{ fontWeight: "800", fontSize: 17 }}>{staff.nom}</Text><Text style={{ fontSize: 12.5, color: C.muted }}>Magasinier{staff.tel ? ` · ${staff.tel}` : ""}</Text></View>
         </View>
         <View style={{ flexDirection: "row", gap: 9 }}>
           <StatCell label="Poids pesé" value={fKg(poids)} color={C.teal} />
@@ -374,8 +384,18 @@ export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhot
           <StatCell label="Valeur" value={fF(valeur)} color={C.gold} strong />
         </View>
       </Card>
+      {onEdit ? (
+        <View style={{ flexDirection: "row", gap: 9, marginBottom: 14 }}>
+          <Pressable onPress={() => onEdit(staff)} testID="staff-edit" style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingVertical: 11 }}>
+            <Icon name="settings" size={16} color={C.cocoa} /><Text style={{ color: C.cocoa, fontWeight: "700", fontSize: 13.5 }}>Modifier</Text>
+          </Pressable>
+          <Pressable onPress={() => onDelete(staff)} testID="staff-delete" style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fff", borderWidth: 1, borderColor: "#EAD7D2", borderRadius: 12, paddingVertical: 11 }}>
+            <Icon name="trash" size={16} color={C.loss} /><Text style={{ color: C.loss, fontWeight: "700", fontSize: 13.5 }}>Supprimer</Text>
+          </Pressable>
+        </View>
+      ) : null}
       <SectionTitle>Pesées</SectionTitle>
-      {cols.length === 0 ? <Empty text="Ce commis n'a pas encore enregistré de pesée." /> : (
+      {cols.length === 0 ? <Empty text="Ce magasinier n'a pas encore enregistré de pesée." /> : (
         <View style={{ gap: 8 }}>
           {cols.map((c: Collection) => (
             <CollectionRow key={c.id} title={nameOf(data, c.memberId)} sub={`${fKg(c.kg)} · ${fDate(c.date)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />

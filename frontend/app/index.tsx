@@ -10,6 +10,7 @@ import {
   CollaborateurSheet,
   DepenseSheet,
   LinkMomoSheet,
+  LoanApproveSheet,
   LoanSheet,
   MandatSheet,
   MemberSheet,
@@ -93,6 +94,10 @@ export default function App() {
   const [sheet, setSheet] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<any>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [approveLoanObj, setApproveLoanObj] = useState<any>(null);
+  const [editMember, setEditMember] = useState<any>(null);
+  const [editCollab, setEditCollab] = useState<any>(null);
+  const [confirm, setConfirm] = useState<{ msg: string; onYes: () => void } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -118,7 +123,7 @@ export default function App() {
     );
   }
 
-  const logout = () => { setSession(null); setOpenMember(null); setOpenCollab(null); setSheet(null); setTab(""); };
+  const logout = () => { setSession(null); setOpenMember(null); setOpenCollab(null); setSheet(null); setTab(""); setEditMember(null); setEditCollab(null); setApproveLoanObj(null); setConfirm(null); };
 
   if (!session) {
     return (
@@ -214,15 +219,19 @@ export default function App() {
       />
     );
     const collab = openCollab ? data.staff.find((s) => s.id === openCollab) : null;
-    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} />;
+    const editMemberFn = (m: any) => { setEditMember(m); setSheet("member"); };
+    const deleteMemberFn = (m: any) => setConfirm({ msg: `Supprimer le planteur ${m.nom} ? Ses collectes et prêts seront aussi supprimés.`, onYes: () => { store.deleteMember(m.id); setOpenMember(null); setConfirm(null); } });
+    const editCollabFn = (s: any) => { setEditCollab(s); setSheet("collab"); };
+    const deleteCollabFn = (s: any) => setConfirm({ msg: `Supprimer le collaborateur ${s.nom} ?`, onYes: () => { store.deleteStaff(s.id); setOpenCollab(null); setConfirm(null); } });
+    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onEdit={editMemberFn} onDelete={deleteMemberFn} />;
     else if (tab === "collaborateurs" && collab)
       body = collab.role === "pisteur"
-        ? <PisteurRecon pisteur={collab} data={data} onBack={() => setOpenCollab(null)} onNewMandat={() => setSheet("mandat")} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} />
-        : <CommisDetail staff={collab} data={data} onBack={() => setOpenCollab(null)} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} />;
+        ? <PisteurRecon pisteur={collab} data={data} onBack={() => setOpenCollab(null)} onNewMandat={() => setSheet("mandat")} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} />
+        : <CommisDetail staff={collab} data={data} onBack={() => setOpenCollab(null)} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} />;
     else if (tab === "bilan") body = <Dashboard theme={theme} data={data} onReceipt={setReceipt} onOpen={setOpenMember} onOpenPrets={() => setTab("prets")} />;
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} onAdd={() => setSheet("collab")} />;
-    else if (tab === "prets") body = <PatronPrets data={data} onDecide={(id: string, st: string) => store.decideLoan(id, st, "st_patron")} onBack={() => setTab("bilan")} />;
+    else if (tab === "prets") body = <PatronPrets data={data} onApprove={(l: any) => setApproveLoanObj(l)} onRefuse={(id: string) => store.refuseLoan(id, session.staffId)} onNew={() => setSheet("loan")} onBack={() => setTab("bilan")} />;
     else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onReset={store.reset} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
   } else if (isCoop) {
     const isPisteur = role === "pisteur";
@@ -263,15 +272,17 @@ export default function App() {
       </ScrollView>
       {nav}
 
-      {sheet === "member" ? <MemberSheet onClose={() => setSheet(null)} onSave={(m: any) => { store.addMember(m); setSheet(null); setTab("planteurs"); }} /> : null}
+      {sheet === "member" ? <MemberSheet initial={editMember} onClose={() => { setSheet(null); setEditMember(null); }} onSave={(m: any) => { if (editMember) store.updateMember(editMember.id, m); else { store.addMember(m); setTab("planteurs"); } setSheet(null); setEditMember(null); }} /> : null}
       {sheet === "pesee" ? <PeseeSheet data={data} role={role} staffId={staffId} onClose={() => setSheet(null)} onSave={savePesee} /> : null}
-      {sheet === "loan" && session.side === "planteur" ? <LoanSheet onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ memberId: session.memberId, date: new Date().toISOString(), ...l }); setSheet(null); setTab("prets"); }} /> : null}
+      {sheet === "loan" && session.side === "planteur" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ memberId: session.memberId, date: new Date().toISOString(), ...l }); setSheet(null); setTab("prets"); }} /> : null}
+      {sheet === "loan" && session.side === "coop" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ date: new Date().toISOString(), ...l }); setSheet(null); }} /> : null}
       {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setPrix(p); setSheet(null); }} onReset={() => { store.reset(); setSheet(null); }} /> : null}
       {sheet === "linkMomo" && session.side === "planteur" ? <LinkMomoSheet title="Lier mon Mobile Money" onClose={() => setSheet(null)} onSave={(mm: any) => { store.linkMemberMomo(session.memberId, mm); setSheet(null); }} /> : null}
       {sheet === "coopMomo" ? <LinkMomoSheet title="Ajouter un compte coop" withLabel onClose={() => setSheet(null)} onSave={(mm: any) => { store.addCoopMomo(mm); setSheet(null); }} /> : null}
       {sheet === "depense" ? <DepenseSheet onClose={() => setSheet(null)} onSave={(x: any) => { store.addDepense({ pisteurId: staffId, ...x }); setSheet(null); }} /> : null}
       {sheet === "mandat" ? <MandatSheet data={data} pisteurId={openCollab} onClose={() => setSheet(null)} onSave={(x: any) => { store.addMandat(x); setSheet(null); }} /> : null}
-      {sheet === "collab" ? <CollaborateurSheet onClose={() => setSheet(null)} onSave={(s: any) => { store.addStaff(s); setSheet(null); setTab("collaborateurs"); }} /> : null}
+      {sheet === "collab" ? <CollaborateurSheet initial={editCollab} onClose={() => { setSheet(null); setEditCollab(null); }} onSave={(s: any) => { if (editCollab) store.updateStaff(editCollab.id, s); else { store.addStaff(s); setTab("collaborateurs"); } setSheet(null); setEditCollab(null); }} /> : null}
+      {approveLoanObj ? <LoanApproveSheet loan={approveLoanObj} memberName={data.members.find((m) => m.id === approveLoanObj.memberId)?.nom || "—"} onClose={() => setApproveLoanObj(null)} onApprove={(granted: number, mode: string) => { store.approveLoan(approveLoanObj.id, granted, mode, staffId); setApproveLoanObj(null); }} /> : null}
       {receipt ? <Bordereau collection={receipt} member={data.members.find((m) => m.id === receipt.memberId)} saison={data.saison} onClose={() => setReceipt(null)} onSign={(sig) => store.setCollectionSignature(receipt.id, sig)} onNotice={setNotice} /> : null}
 
       <Modal visible={!!notice} transparent animationType="fade" onRequestClose={() => setNotice(null)}>
@@ -281,6 +292,22 @@ export default function App() {
             <Pressable onPress={() => setNotice(null)} style={{ backgroundColor: C.cocoa, borderRadius: 12, paddingVertical: 12, alignItems: "center" }} testID="notice-ok">
               <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>D'accord</Text>
             </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={!!confirm} transparent animationType="fade" onRequestClose={() => setConfirm(null)}>
+        <Pressable style={{ flex: 1, backgroundColor: "rgba(30,20,12,0.5)", justifyContent: "center", padding: 28 }} onPress={() => setConfirm(null)}>
+          <Pressable style={{ backgroundColor: "#fff", borderRadius: 18, padding: 20 }} onPress={(e) => e.stopPropagation()}>
+            <Text style={{ fontSize: 14.5, color: C.ink, lineHeight: 21, marginBottom: 16 }}>{confirm?.msg}</Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Pressable onPress={() => setConfirm(null)} style={{ flex: 1, backgroundColor: "#F2EEE7", borderRadius: 12, paddingVertical: 12, alignItems: "center" }} testID="confirm-cancel">
+                <Text style={{ color: C.ink, fontWeight: "700", fontSize: 15 }}>Annuler</Text>
+              </Pressable>
+              <Pressable onPress={() => confirm?.onYes()} style={{ flex: 1, backgroundColor: C.loss, borderRadius: 12, paddingVertical: 12, alignItems: "center" }} testID="confirm-yes">
+                <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>Supprimer</Text>
+              </Pressable>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
