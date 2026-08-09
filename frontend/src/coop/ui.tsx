@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Linking,
   Modal,
   Platform,
@@ -80,22 +81,38 @@ export const SaveBtn = ({
   style,
 }: {
   disabled?: boolean;
-  onPress: () => void;
+  onPress: () => void | Promise<void>;
   children: React.ReactNode;
   color?: string;
   icon?: React.ReactNode;
   style?: ViewStyle;
-}) => (
-  <Pressable
-    disabled={disabled}
-    onPress={onPress}
-    style={[styles.saveBtn, { backgroundColor: disabled ? "#D5CEC3" : color }, style]}
-    testID="save-btn"
-  >
-    {icon}
-    <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>{children}</Text>
-  </Pressable>
-);
+}) => {
+  const [busy, setBusy] = useState(false);
+  const mounted = React.useRef(true);
+  React.useEffect(() => () => { mounted.current = false; }, []);
+  const handle = async () => {
+    if (busy || disabled) return;
+    setBusy(true);
+    try {
+      await Promise.resolve(onPress());
+    } catch (e) {
+      console.log("SaveBtn onPress error", e);
+    } finally {
+      if (mounted.current) setBusy(false);
+    }
+  };
+  return (
+    <Pressable
+      disabled={disabled || busy}
+      onPress={handle}
+      style={[styles.saveBtn, { backgroundColor: disabled ? "#D5CEC3" : color, opacity: busy ? 0.85 : 1 }, style]}
+      testID="save-btn"
+    >
+      {busy ? <ActivityIndicator color="#fff" size="small" /> : icon}
+      <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>{busy ? "Veuillez patienter…" : children}</Text>
+    </Pressable>
+  );
+};
 
 export const GhostBtn = ({ onPress, children, color = C.cocoa, style, testID }: { onPress: () => void; children: React.ReactNode; color?: string; style?: ViewStyle; testID?: string }) => (
   <Pressable onPress={onPress} style={[styles.ghostBtn, style]} testID={testID}>

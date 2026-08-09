@@ -4,7 +4,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { C, COOP_TYPES, CROPS, Culture, Data, OPERATORS, ROLES, Session, totalSuperficie } from "./lib";
-import { createPinRecord, isValidPin, normalizePhone, normalizeText, verifyPin } from "./pin";
+import { createPinRecord, isValidPin, normalizePhone, normalizeText, verifyPinAsync } from "./pin";
 import { Icon } from "./Icon";
 import { Card, Chip, CulturesPicker, Field, PhotoAvatar, SaveBtn, Select, TInput } from "./ui";
 
@@ -78,7 +78,7 @@ export function Login({
   if (screen === "create") return <CreatePlanteur onBack={() => setScreen("home")} onSubmit={onCreatePlanteur} />;
   if (screen === "createCoop") return <CreateCoop onBack={() => setScreen("home")} onSubmit={onCreateCoop} />;
 
-  const doCoopLogin = () => {
+  const doCoopLogin = async () => {
     const nomQ = normalizeText(coopNom);
     const dig = normalizePhone(coopTel);
     if (!nomQ || dig.length < 6) { setCoopErr("Saisissez le nom et le téléphone."); return; }
@@ -87,17 +87,17 @@ export function Login({
       (st) => normalizePhone(st.tel) === dig && (normalizeText(st.nom) === nomQ || normalizeText(st.nom).includes(nomQ) || nomQ.includes(normalizeText(st.nom))),
     );
     if (!s) { setCoopErr("Aucun compte trouvé. Vérifiez le nom et le téléphone."); return; }
-    if (s.pin && !verifyPin(coopPin, s.pin)) { setCoopErr("Code secret incorrect."); return; }
+    if (s.pin && !(await verifyPinAsync(coopPin, s.pin))) { setCoopErr("Code secret incorrect."); return; }
     onPick({ side: "coop", role: s.role, staffId: s.id });
   };
-  const doPlanteurLogin = () => {
+  const doPlanteurLogin = async () => {
     const q = normalizeText(planteurLogin);
     const dig = normalizePhone(planteurLogin);
     if (!q) { setPlanteurErr("Saisissez le code planteur ou le téléphone."); return; }
     if (!isValidPin(planteurPin)) { setPlanteurErr("Le code doit contenir 4 chiffres."); return; }
     const m = data.members.find((mm) => normalizeText(mm.code) === q || (dig.length >= 6 && normalizePhone(mm.tel) === dig));
     if (!m) { setPlanteurErr("Aucun planteur trouvé. Vérifiez le code ou le téléphone."); return; }
-    if (m.pin && !verifyPin(planteurPin, m.pin)) { setPlanteurErr("Code secret incorrect."); return; }
+    if (m.pin && !(await verifyPinAsync(planteurPin, m.pin))) { setPlanteurErr("Code secret incorrect."); return; }
     onPick({ side: "planteur", memberId: m.id });
   };
 
