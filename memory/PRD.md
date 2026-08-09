@@ -82,3 +82,8 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
 ## Branding v10 (2026-06)
 - Logo officiel VALEO (image fournie) intégré : assets/images/valeo-logo.png affiché sur l'écran de connexion (carte blanche). Ancien logo SVG (Logo.tsx) remplacé.
 - Icônes régénérées depuis le logo : icon.png & adaptive-icon.png (emblème recadré, fond blanc), splash-image.png (lockup complet), favicon.png. app.json : splash + adaptiveIcon en fond blanc. Les icônes ne s'appliquent qu'après un nouveau build (Publish).
+
+## Correctif v11 (2026-06) — Boutons « figés » RÉSOLU (iteration_10, 7/7 PASS)
+- Cause : le calcul du code secret (PBKDF2 100 000 itérations) bloquait le fil UI → boutons Se connecter/Enregistrer/etc. sans retour, perçus comme figés (surtout sur téléphones d'entrée de gamme).
+- Fix : pin.ts itérations 100k→15k + yieldToUI() avant PBKDF2 + randomSalt avec repli ; verifyPinAsync (non bloquant). SaveBtn (ui.tsx) enveloppe onPress async → état busy interne, ActivityIndicator + « Veuillez patienter… », disabled anti double-clic, catch d'erreurs. Handlers de connexion async (verifyPinAsync).
+- verifyPin lit record.iterations → les anciens comptes (100k) restent vérifiables.
