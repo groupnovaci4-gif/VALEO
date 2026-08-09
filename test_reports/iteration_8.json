@@ -1,0 +1,35 @@
+{
+  "summary": "Validated the 4 new VALEO features end-to-end on the deployed Expo preview + FastAPI backend. Backend pytest: 11/11 PASS (public /api/state GET/PUT, admin /api/admin/login, admin /api/admin/state auth + sync, admin dashboard HTML, and the NEW /api/admin/change-password including auth required (401), wrong current (400), too-short new '123' (400), valid change admin123→nouveau2026 (200 {ok:true}), old-password login rejected (401), new-password login accepted (200), and admin password RESTORED to admin123 at the end). Frontend UI: F1a — from MemberDetail the 'member-resetpin' opens the 'Réinitialiser le code secret' sheet; setting 2222+2222 saves and displays 'Code secret réinitialisé avec succès'; logout → planteur login with wrong OLD PIN 1111 shows 'Code secret incorrect.', then with NEW PIN 2222 opens the planteur space (nav-poids). F1b — from CommisDetail 'staff-resetpin' → 4444+4444 → success notice; logout → Magasinier reconnects with 4444 (nav-jour, no nav-bilan) — coop space. F3 — MemberDetail shows a green 'Identifiant de connexion (Espace planteur)' card containing the code (PL-2026-0001) and the phone (0711111111); CommisDetail shows a teal 'Identifiant de connexion (Espace coopérative)' card containing the name (Konan Aya) and the phone (0722222222). F4 — Dashboard (Bilan) shows the 'Journal d'activité' button (testID dash-journal); tapping it opens the ActivityLog screen listing horodated events sorted desc (verified with 1 Pesée event dated 15/01/2026 · 09:00 with net/paid/reste details); ← Retour returns to Bilan. Regression: /health 200, GET /api/state 200, PUT /api/state 200, admin login admin123 200 (final state). No red screen, no console errors observed. Admin password FINAL STATE = admin123 (restored).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_valeo_api.py",
+    "/app/backend/tests/test_admin_change_password.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "None — All 4 features (F1 reset PIN member+staff, F2 admin change-password backend+web, F3 identifiant cards, F4 journal d'activité) are wired correctly and behave per spec. Safe to ship."
+  ],
+  "critical_code_review_comments": [
+    "server.py /api/admin/change-password: correctly PBKDF2-SHA256 (200k iterations, 16-byte random salt), stores {pwd_salt, pwd_hash, iterations} in db.admin_config, and verify_admin_password falls back to env ADMIN_PASSWORD when no custom hash exists — allowing rollback if the DB is wiped. Constant-time compare_digest used. Length check (>=6) done AFTER verifying current password (correct order).",
+    "screens.tsx: MemberDetail and CommisDetail render the 'Identifiant de connexion' cards ONLY when onEdit is provided (i.e. Patron scope), so pisteur/commis viewing the same detail screen don't see them — correct scoping.",
+    "sheets.tsx ResetPinSheet uses isValidPin+match validation before enabling Save; the mismatch warning 'Les deux codes ne correspondent pas.' is shown live; PBKDF2 hashing is performed via createPinRecord (client-side) matching the same scheme used at account creation (100k iters, 16-byte salt).",
+    "index.tsx correctly routes ResetPinSheet.onSave to store.updateMember({pin: rec}) or store.updateStaff({pin: rec}) — shallow merge preserves the other fields; success notice is shown via the Notice modal.",
+    "ActivityLog aggregates collections+loans+mandats+depenses into a unified byDateDesc list — no duplicate ids (prefixed c/l/m/d) and safely handles missing arrays with `|| []`.",
+    "F2 backend: change-password requires a valid JWT via require_admin — an unauthenticated request returns 401 as verified in test_change_password_requires_auth. Admin HTML dashboard section 'Sécurité — Mot de passe administrateur' calls the same endpoint and shows appropriate French error messages."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_admin_change_password.py (new)"
+  ],
+  "success_rate": {"backend": "100% (11/11 pytest)", "frontend": "100% (F1a, F1b, F3 member+staff, F4 journal+retour, wrong-old-PIN rejection, new-PIN reconnection all green)"},
+  "seed_data_creation": "Seeded via PUT /api/admin/state before UI test: COOPTEST coop with Patron 'Diomandé Mamadou' (0700000001, legacy no-pin), Magasinier 'Konan Aya' (commis, 0722222222, legacy no-pin), planteur 'Kouassi Yao Test' PL-2026-0001 (0711111111, legacy no-pin), and 1 pesée collection (100 kg, net 180 000 F, payé 100 000 F, reste 80 000 F, dated 15/01/2026 09:00) to have an event for F4. After the run: planteur.pin = pbkdf2-sha256(2222), staff mag1.pin = pbkdf2-sha256(4444). Admin password restored to admin123.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "BASE=https://app-deploy-187.preview.emergentagent.com. Admin password admin123. Legacy accounts (no `pin` key on staff/member) authenticate WITHOUT PIN verification (the app accepts any 4-digit PIN); use this to seed test users quickly via PUT /api/admin/state. After a reset via member-resetpin/staff-resetpin, the pin key is added and any future login requires the new PIN. IMPORTANT SELECTOR NOTES: (1) Login screen has 2 columns → placeholder 'Nom & prénoms' + 'Téléphone' (coop side, use .first) AND 'Code planteur ou téléphone' (planteur side). Two 'Code secret (4 chiffres)' inputs — coop=first, planteur=last. Two 'Se connecter' buttons — coop=first, planteur=last. (2) ResetPinSheet: both PIN fields share placeholder '••••' — use .first / .nth(1). Save button label = 'Enregistrer le nouveau code'. (3) SectionTitle applies text-transform:uppercase — assertions on 'Journal d'activité' must be case-insensitive. (4) Success feedback is a Modal with testID 'notice-ok'; the message 'Code secret réinitialisé avec succès.' appears BEFORE dismissal. (5) PBKDF2 100k iters on web ~500-1500ms — wait ≥2500ms after tapping Enregistrer / Se connecter. (6) F2 backend: /api/admin/change-password requires Bearer JWT, returns 400 for wrong current OR len(new)<6, 200 {ok:true} on success. ALWAYS restore admin123 at the end of any F2-related test.",
+  "rca_of_issue": "N/A — feature validation only. All spec scenarios (F1a, F1b, F2, F3, F4, REGRESSION) verified green."
+}

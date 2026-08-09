@@ -77,6 +77,10 @@ export const fDate = (iso: string) => {
   const d = new Date(iso);
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 };
+export const fDateTime = (iso: string) => {
+  const d = new Date(iso);
+  return `${fDate(iso)} · ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
 export const ticketNo = (seq: number) => `P-2026-${String(seq).padStart(4, "0")}`;
 export const byDateDesc = (a: any, b: any) => +new Date(b.date) - +new Date(a.date);
 

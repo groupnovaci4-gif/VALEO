@@ -13,6 +13,7 @@ import {
   culturesLabel,
   depcat,
   fDate,
+  fDateTime,
   fF,
   fFull,
   fKg,
@@ -76,8 +77,21 @@ const FilterChip = ({ label, active, onPress }: { label: string; active: boolean
   </Pressable>
 );
 
+const ResetPinButton = ({ onPress }: { onPress: () => void }) => (
+  <Pressable onPress={onPress} testID="staff-resetpin" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: "#FBF3E3", borderRadius: 12, paddingVertical: 11, marginBottom: 14 }}>
+    <Icon name="key" size={16} color={C.gold} /><Text style={{ color: C.gold, fontWeight: "700", fontSize: 13.5 }}>Réinitialiser le code secret</Text>
+  </Pressable>
+);
+
+const StaffLoginCard = ({ staff }: { staff: Staff }) => (
+  <Card style={{ padding: 13, marginBottom: 16, backgroundColor: "#EAF3EF", borderColor: "#CFE6E0" }}>
+    <Text style={{ fontWeight: "800", fontSize: 13, marginBottom: 4 }}>Identifiant de connexion (Espace coopérative)</Text>
+    <Text style={{ fontSize: 12.5, color: C.muted, lineHeight: 18 }}>Nom <Text style={{ fontWeight: "700", color: C.ink }}>{staff.nom}</Text> + téléphone <Text style={{ fontWeight: "700", color: C.ink }}>{staff.tel || "—"}</Text> + son code secret à 4 chiffres.</Text>
+  </Card>
+);
+
 /* ============================ COOP SCREENS =============================== */
-export function Dashboard({ data, onReceipt, onOpen, theme, onOpenPrets }: any) {
+export function Dashboard({ data, onReceipt, onOpen, theme, onOpenPrets, onOpenJournal }: any) {
   const cols: Collection[] = data.collections;
   const t = {
     kg: cols.reduce((s, c) => s + c.kg, 0),
@@ -100,6 +114,13 @@ export function Dashboard({ data, onReceipt, onOpen, theme, onOpenPrets }: any) 
           <Icon name="clock" size={18} color={C.due} />
           <Text style={{ flex: 1, fontSize: 13.5, fontWeight: "600" }}>{pending} demande{pending > 1 ? "s" : ""} de prêt en attente</Text>
           <Text style={{ fontSize: 12, color: C.due, fontWeight: "700" }}>Voir →</Text>
+        </Pressable>
+      ) : null}
+      {onOpenJournal ? (
+        <Pressable onPress={onOpenJournal} testID="dash-journal" style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 16, padding: 13, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#EAF3EF", alignItems: "center", justifyContent: "center" }}><Icon name="activity" size={17} color={C.teal} /></View>
+          <Text style={{ flex: 1, fontSize: 13.5, fontWeight: "700" }}>Journal d'activité</Text>
+          <Text style={{ fontSize: 12, color: C.teal, fontWeight: "700" }}>Voir →</Text>
         </Pressable>
       ) : null}
       <SectionTitle>Dernières collectes</SectionTitle>
@@ -134,6 +155,54 @@ export function Dashboard({ data, onReceipt, onOpen, theme, onOpenPrets }: any) 
           </View>
         );
       })()}
+      <View style={{ height: 20 }} />
+    </View>
+  );
+}
+
+const staffNameOf = (data: Data, id: string) => data.staff.find((s) => s.id === id)?.nom || "—";
+type Ev = { id: string; date: string; icon: string; tint: string; title: string; sub: string };
+function buildActivity(data: Data): Ev[] {
+  const evs: Ev[] = [];
+  (data.collections || []).forEach((c: any) =>
+    evs.push({ id: "c" + c.id, date: c.date, icon: "scale", tint: C.teal, title: `Pesée — ${nameOf(data, c.memberId)}`, sub: `${fKg(c.kg)} · net ${fF(c.net)} · payé ${fF(c.paye)}${c.reste > 0 ? ` · reste ${fF(c.reste)}` : ""}` }),
+  );
+  const loanMap: Record<string, [string, string, string]> = {
+    en_attente: ["Demande de prêt", C.due, "clock"],
+    approuve: ["Prêt approuvé", C.green, "check-circle"],
+    refuse: ["Prêt refusé", C.loss, "x-circle"],
+    rembourse: ["Prêt remboursé", C.muted, "check"],
+  };
+  (data.loans || []).forEach((l: any) => {
+    const [t, tint, icon] = loanMap[l.status] || loanMap.en_attente;
+    evs.push({ id: "l" + l.id, date: l.date, icon, tint, title: `${t} — ${nameOf(data, l.memberId)}`, sub: `${l.type === "intrant" ? "Intrant" : "Argent"} · ${fF(l.amount)}${l.motif ? ` · ${l.motif}` : ""}` });
+  });
+  (data.mandats || []).forEach((m: any) => evs.push({ id: "m" + m.id, date: m.date, icon: "wallet", tint: C.gold, title: `Mandat confié — ${staffNameOf(data, m.pisteurId)}`, sub: `${fF(m.amount)}${m.note ? ` · ${m.note}` : ""}` }));
+  (data.depenses || []).forEach((x: any) => evs.push({ id: "d" + x.id, date: x.date, icon: "receipt", tint: C.rust, title: `Dépense — ${staffNameOf(data, x.pisteurId)}`, sub: `${depcat(x.category).nom} · ${fF(x.amount)}${x.note ? ` · ${x.note}` : ""}` }));
+  return evs.sort(byDateDesc);
+}
+
+export function ActivityLog({ data, onBack }: any) {
+  const events = buildActivity(data);
+  return (
+    <View>
+      <GhostBtn onPress={onBack} style={{ marginBottom: 12 }}>← Retour</GhostBtn>
+      <SectionTitle>Journal d'activité ({events.length})</SectionTitle>
+      <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>Historique horodaté des pesées, prêts, mandats et dépenses.</Text>
+      {events.length === 0 ? <Empty text="Aucune activité pour le moment." /> : (
+        <View style={{ gap: 8 }}>
+          {events.map((e) => (
+            <Card key={e.id} style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: e.tint + "22", alignItems: "center", justifyContent: "center" }}><Icon name={e.icon} size={16} color={e.tint} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: "700", fontSize: 13.5 }}>{e.title}</Text>
+                <Text style={{ fontSize: 11.5, color: C.muted }}>{e.sub}</Text>
+              </View>
+              <Text style={{ fontSize: 10.5, color: C.muted, marginLeft: 6 }}>{fDateTime(e.date)}</Text>
+            </Card>
+          ))}
+        </View>
+      )}
       <View style={{ height: 20 }} />
     </View>
   );
@@ -258,7 +327,7 @@ export function PisteurHome({ theme, data, staffId, onNewDepense, onReceipt, onO
   );
 }
 
-export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, onOpen, onSetPhoto, onEdit, onDelete }: any) {
+export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, onOpen, onSetPhoto, onEdit, onDelete, onResetPin }: any) {
   const st = pisteurStats(pisteur.id, data);
   const mandats = (data.mandats || []).filter((m: any) => m.pisteurId === pisteur.id).sort(byDateDesc);
   const deps = (data.depenses || []).filter((x: any) => x.pisteurId === pisteur.id).sort(byDateDesc);
@@ -292,6 +361,8 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
           </Pressable>
         </View>
       ) : null}
+      {onResetPin ? <ResetPinButton onPress={() => onResetPin(pisteur)} /> : null}
+      {onEdit ? <StaffLoginCard staff={pisteur} /> : null}
       <SaveBtn color={C.lime} icon={<Icon name="wallet" size={17} color="#fff" />} onPress={onNewMandat} style={{ marginBottom: 18 }}>Donner un mandat</SaveBtn>
 
       <SectionTitle>Mandats donnés</SectionTitle>
@@ -366,7 +437,7 @@ export function Collaborateurs({ data, onOpen, onAdd }: any) {
   );
 }
 
-export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhoto, onEdit, onDelete }: any) {
+export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhoto, onEdit, onDelete, onResetPin }: any) {
   const cols = (data.collections || []).filter((c: Collection) => c.byStaffId === staff.id).sort(byDateDesc);
   const poids = cols.reduce((s: number, c: Collection) => s + c.kg, 0);
   const valeur = cols.reduce((s: number, c: Collection) => s + c.net, 0);
@@ -394,6 +465,8 @@ export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhot
           </Pressable>
         </View>
       ) : null}
+      {onResetPin ? <ResetPinButton onPress={() => onResetPin(staff)} /> : null}
+      {onEdit ? <StaffLoginCard staff={staff} /> : null}
       <SectionTitle>Pesées</SectionTitle>
       {cols.length === 0 ? <Empty text="Ce magasinier n'a pas encore enregistré de pesée." /> : (
         <View style={{ gap: 8 }}>
@@ -474,7 +547,7 @@ export function Members({ data, onOpen, onAdd, onVillageRecap, restrictTo }: any
   );
 }
 
-export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete }: any) {
+export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete, onResetPin }: any) {
   const s = memberStats(member.id, data.collections);
   const list = data.collections.filter((c: Collection) => c.memberId === member.id).sort(byDateDesc);
   const loans = data.loans.filter((l: any) => l.memberId === member.id);
@@ -512,6 +585,17 @@ export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete
             <Icon name="trash" size={16} color={C.loss} /><Text style={{ color: C.loss, fontWeight: "700", fontSize: 13.5 }}>Supprimer</Text>
           </Pressable>
         </View>
+      ) : null}
+      {onResetPin ? (
+        <Pressable onPress={() => onResetPin(member)} testID="member-resetpin" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: "#FBF3E3", borderRadius: 12, paddingVertical: 11, marginBottom: 14 }}>
+          <Icon name="key" size={16} color={C.gold} /><Text style={{ color: C.gold, fontWeight: "700", fontSize: 13.5 }}>Réinitialiser le code secret</Text>
+        </Pressable>
+      ) : null}
+      {onEdit ? (
+        <Card style={{ padding: 13, marginBottom: 16, backgroundColor: "#F3FAF5", borderColor: "#D8E8DE" }}>
+          <Text style={{ fontWeight: "800", fontSize: 13, marginBottom: 4 }}>Identifiant de connexion (Espace planteur)</Text>
+          <Text style={{ fontSize: 12.5, color: C.muted, lineHeight: 18 }}>Code <Text style={{ fontWeight: "700", color: C.ink }}>{member.code}</Text>{member.tel ? <Text> ou téléphone <Text style={{ fontWeight: "700", color: C.ink }}>{member.tel}</Text></Text> : null} + son code secret à 4 chiffres.</Text>
+        </Card>
       ) : null}
       {loans.length > 0 ? (
         <>

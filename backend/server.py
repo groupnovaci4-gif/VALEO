@@ -73,6 +73,26 @@ async def save_state(data: dict) -> None:
     )
 
 
+import hashlib
+import secrets as _secrets
+
+
+def _hash_password(pw: str, salt: Optional[bytes] = None, iterations: int = 200_000):
+    if salt is None:
+        salt = _secrets.token_bytes(16)
+    dk = hashlib.pbkdf2_hmac("sha256", (pw or "").encode("utf-8"), salt, iterations)
+    return salt.hex(), dk.hex(), iterations
+
+
+async def verify_admin_password(pw: str) -> bool:
+    cfg = await db.admin_config.find_one({"_id": "admin"})
+    if cfg and cfg.get("pwd_hash") and cfg.get("pwd_salt"):
+        _, dk_hex, _ = _hash_password(pw, bytes.fromhex(cfg["pwd_salt"]), cfg.get("iterations", 200_000))
+        return _secrets.compare_digest(dk_hex, cfg["pwd_hash"])
+    # Aucun mot de passe personnalisé enregistré : on retombe sur celui de l'environnement.
+    return _secrets.compare_digest(pw or "", ADMIN_PASSWORD)
+
+
 def issue_token() -> str:
     now = datetime.now(timezone.utc)
     return jwt.encode(
@@ -107,6 +127,11 @@ class StateBody(BaseModel):
     data: dict
 
 
+class ChangePwdRequest(BaseModel):
+    current: str
+    new: str
+
+
 # ------------------------------- Public API ------------------------------- #
 @app.get("/")
 async def health_root():
@@ -138,11 +163,24 @@ async def put_state(body: StateBody):
 # ------------------------------- Admin API -------------------------------- #
 @app.post("/api/admin/login")
 async def admin_login(data: LoginRequest):
-    import secrets
-
-    if not secrets.compare_digest(data.password or "", ADMIN_PASSWORD):
+    if not await verify_admin_password(data.password or ""):
         raise HTTPException(status_code=401, detail="Mot de passe incorrect")
     return {"access_token": issue_token(), "token_type": "bearer", "expires_in": JWT_EXPIRE_MINUTES * 60}
+
+
+@app.post("/api/admin/change-password")
+async def admin_change_password(body: ChangePwdRequest, _: dict = Depends(require_admin)):
+    if not await verify_admin_password(body.current or ""):
+        raise HTTPException(status_code=400, detail="Mot de passe actuel incorrect")
+    if len(body.new or "") < 6:
+        raise HTTPException(status_code=400, detail="Le nouveau mot de passe doit contenir au moins 6 caractères")
+    salt_hex, hash_hex, iters = _hash_password(body.new)
+    await db.admin_config.update_one(
+        {"_id": "admin"},
+        {"$set": {"pwd_salt": salt_hex, "pwd_hash": hash_hex, "iterations": iters, "updatedAt": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+    return {"ok": True}
 
 
 @app.get("/api/admin/state")
@@ -356,8 +394,29 @@ function settingsPanel(){
     </div>
     <button class="green" style="margin-top:14px" onclick="saveSettings()">Enregistrer</button>
   </div>
+  <div class="card"><h3>Sécurité — Mot de passe administrateur</h3>
+    <p class="muted">Modifiez le mot de passe d'accès à cet espace d'administration.</p>
+    <div class="row">
+      <div><label>Mot de passe actuel</label><input id="p_cur" type="password" autocomplete="current-password"/></div>
+      <div><label>Nouveau mot de passe</label><input id="p_new" type="password" autocomplete="new-password"/></div>
+      <div><label>Confirmer</label><input id="p_conf" type="password" autocomplete="new-password"/></div>
+    </div>
+    <div id="p_msg" class="muted" style="margin-top:8px"></div>
+    <button class="green" style="margin-top:12px" onclick="changePassword()">Changer le mot de passe</button>
+  </div>
   <div class="card"><h3>Zone dangereuse</h3><p class="muted">Vide toute la base (planteurs, collectes, prêts…). Irréversible.</p>
     <button class="danger" onclick="wipeAll()">Tout réinitialiser</button></div>`;
+}
+async function changePassword(){
+  const cur=$("p_cur").value, nw=$("p_new").value, cf=$("p_conf").value;
+  const msg=$("p_msg"); msg.style.color="var(--loss)";
+  if((nw||"").length<6){ msg.textContent="Le nouveau mot de passe doit contenir au moins 6 caractères."; return; }
+  if(nw!==cf){ msg.textContent="Les deux mots de passe ne correspondent pas."; return; }
+  try{
+    await api("/api/admin/change-password",{method:"POST",body:JSON.stringify({current:cur,new:nw})});
+    msg.style.color="var(--green)"; msg.textContent="Mot de passe modifié avec succès.";
+    $("p_cur").value=""; $("p_new").value=""; $("p_conf").value="";
+  }catch(e){ msg.textContent=(""+e).includes("400")?"Mot de passe actuel incorrect.":"Erreur lors du changement du mot de passe."; }
 }
 async function saveSettings(){
   const co=state.coop; const g=id=>{const e=$(id);return e?e.value:undefined;};

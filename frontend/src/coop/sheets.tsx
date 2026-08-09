@@ -316,6 +316,24 @@ export function CollaborateurSheet({ onClose, onSave, initial }: any) {
   );
 }
 
+export function ResetPinSheet({ name, onClose, onSave }: any) {
+  const [pin, setPin] = useState("");
+  const [pin2, setPin2] = useState("");
+  const ok = isValidPin(pin) && pin === pin2;
+  const save = async () => { onSave(await createPinRecord(pin)); };
+  return (
+    <Sheet title="Réinitialiser le code secret" onClose={onClose}>
+      <Text style={{ fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 19 }}>Définissez un nouveau code secret à 4 chiffres pour <Text style={{ fontWeight: "800", color: C.ink }}>{name}</Text>. Communiquez-le à la personne concernée.</Text>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Field label="Nouveau code" flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
+        <Field label="Confirmer" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
+      </View>
+      {pin && pin2 && pin !== pin2 ? <Text style={{ color: C.loss, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux codes ne correspondent pas.</Text> : null}
+      <SaveBtn disabled={!ok} color={C.gold} onPress={save}>Enregistrer le nouveau code</SaveBtn>
+    </Sheet>
+  );
+}
+
 export function MandatSheet({ data, pisteurId, onClose, onSave }: { data: Data; pisteurId?: string | null; onClose: () => void; onSave: (x: any) => void }) {
   const pisteurs = data.staff.filter((s) => s.role === "pisteur");
   const [pid, setPid] = useState(pisteurId || pisteurs[0]?.id || "");

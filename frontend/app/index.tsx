@@ -15,10 +15,12 @@ import {
   MandatSheet,
   MemberSheet,
   PeseeSheet,
+  ResetPinSheet,
   SettingsSheet,
   Bordereau,
 } from "@/src/coop/sheets";
 import {
+  ActivityLog,
   CoopAccount,
   Collaborateurs,
   CollectorHome,
@@ -97,6 +99,7 @@ export default function App() {
   const [approveLoanObj, setApproveLoanObj] = useState<any>(null);
   const [editMember, setEditMember] = useState<any>(null);
   const [editCollab, setEditCollab] = useState<any>(null);
+  const [resetTarget, setResetTarget] = useState<{ kind: "member" | "staff"; id: string; name: string } | null>(null);
   const [confirm, setConfirm] = useState<{ msg: string; onYes: () => void } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
@@ -123,7 +126,7 @@ export default function App() {
     );
   }
 
-  const logout = () => { setSession(null); setOpenMember(null); setOpenCollab(null); setSheet(null); setTab(""); setEditMember(null); setEditCollab(null); setApproveLoanObj(null); setConfirm(null); };
+  const logout = () => { setSession(null); setOpenMember(null); setOpenCollab(null); setSheet(null); setTab(""); setEditMember(null); setEditCollab(null); setApproveLoanObj(null); setResetTarget(null); setConfirm(null); };
 
   if (!session) {
     return (
@@ -223,12 +226,15 @@ export default function App() {
     const deleteMemberFn = (m: any) => setConfirm({ msg: `Supprimer le planteur ${m.nom} ? Ses collectes et prêts seront aussi supprimés.`, onYes: () => { store.deleteMember(m.id); setOpenMember(null); setConfirm(null); } });
     const editCollabFn = (s: any) => { setEditCollab(s); setSheet("collab"); };
     const deleteCollabFn = (s: any) => setConfirm({ msg: `Supprimer le collaborateur ${s.nom} ?`, onYes: () => { store.deleteStaff(s.id); setOpenCollab(null); setConfirm(null); } });
-    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onEdit={editMemberFn} onDelete={deleteMemberFn} />;
+    const resetMemberFn = (m: any) => setResetTarget({ kind: "member", id: m.id, name: m.nom });
+    const resetCollabFn = (s: any) => setResetTarget({ kind: "staff", id: s.id, name: s.nom });
+    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onEdit={editMemberFn} onDelete={deleteMemberFn} onResetPin={resetMemberFn} />;
     else if (tab === "collaborateurs" && collab)
       body = collab.role === "pisteur"
-        ? <PisteurRecon pisteur={collab} data={data} onBack={() => setOpenCollab(null)} onNewMandat={() => setSheet("mandat")} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} />
-        : <CommisDetail staff={collab} data={data} onBack={() => setOpenCollab(null)} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} />;
-    else if (tab === "bilan") body = <Dashboard theme={theme} data={data} onReceipt={setReceipt} onOpen={setOpenMember} onOpenPrets={() => setTab("prets")} />;
+        ? <PisteurRecon pisteur={collab} data={data} onBack={() => setOpenCollab(null)} onNewMandat={() => setSheet("mandat")} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} onResetPin={resetCollabFn} />
+        : <CommisDetail staff={collab} data={data} onBack={() => setOpenCollab(null)} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} onResetPin={resetCollabFn} />;
+    else if (tab === "bilan") body = <Dashboard theme={theme} data={data} onReceipt={setReceipt} onOpen={setOpenMember} onOpenPrets={() => setTab("prets")} onOpenJournal={() => setTab("journal")} />;
+    else if (tab === "journal") body = <ActivityLog data={data} onBack={() => setTab("bilan")} />;
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} onAdd={() => setSheet("collab")} />;
     else if (tab === "prets") body = <PatronPrets data={data} onApprove={(l: any) => setApproveLoanObj(l)} onRefuse={(id: string) => store.refuseLoan(id, session.staffId)} onNew={() => setSheet("loan")} onBack={() => setTab("bilan")} />;
@@ -283,6 +289,7 @@ export default function App() {
       {sheet === "mandat" ? <MandatSheet data={data} pisteurId={openCollab} onClose={() => setSheet(null)} onSave={(x: any) => { store.addMandat(x); setSheet(null); }} /> : null}
       {sheet === "collab" ? <CollaborateurSheet initial={editCollab} onClose={() => { setSheet(null); setEditCollab(null); }} onSave={(s: any) => { if (editCollab) store.updateStaff(editCollab.id, s); else { store.addStaff(s); setTab("collaborateurs"); } setSheet(null); setEditCollab(null); }} /> : null}
       {approveLoanObj ? <LoanApproveSheet loan={approveLoanObj} memberName={data.members.find((m) => m.id === approveLoanObj.memberId)?.nom || "—"} onClose={() => setApproveLoanObj(null)} onApprove={(granted: number, mode: string) => { store.approveLoan(approveLoanObj.id, granted, mode, staffId); setApproveLoanObj(null); }} /> : null}
+      {resetTarget ? <ResetPinSheet name={resetTarget.name} onClose={() => setResetTarget(null)} onSave={(rec: any) => { if (resetTarget.kind === "member") store.updateMember(resetTarget.id, { pin: rec }); else store.updateStaff(resetTarget.id, { pin: rec }); setResetTarget(null); setNotice("Code secret réinitialisé avec succès."); }} /> : null}
       {receipt ? <Bordereau collection={receipt} member={data.members.find((m) => m.id === receipt.memberId)} saison={data.saison} onClose={() => setReceipt(null)} onSign={(sig) => store.setCollectionSignature(receipt.id, sig)} onNotice={setNotice} /> : null}
 
       <Modal visible={!!notice} transparent animationType="fade" onRequestClose={() => setNotice(null)}>
