@@ -210,7 +210,7 @@ export function useCoopData() {
     return id;
   }, []);
 
-  const createLoginCoop = useCallback((p: { coop: Partial<any>; responsable: { nom: string; prenoms?: string; tel?: string; email?: string; fonction?: string; idNumber?: string; photo?: string | null } }): string => {
+  const createLoginCoop = useCallback((p: { coop: Partial<any>; responsable: { nom: string; prenoms?: string; tel?: string; email?: string; fonction?: string; idNumber?: string; photo?: string | null; pin?: any } }): string => {
     const id = uid();
     const r = p.responsable;
     const fullName = `${r.nom || ""} ${r.prenoms || ""}`.trim() || r.nom;
@@ -221,7 +221,7 @@ export function useCoopData() {
             coop: { ...d.coop, ...p.coop, momo: d.coop.momo, filieres: p.coop.filieres || d.coop.filieres || [] },
             staff: [
               ...d.staff,
-              { id, role: "patron", nom: fullName, prenoms: r.prenoms, tel: r.tel, email: r.email, fonction: r.fonction || "Responsable", idNumber: r.idNumber, photo: r.photo || null },
+              { id, role: "patron", nom: fullName, prenoms: r.prenoms, tel: r.tel, email: r.email, fonction: r.fonction || "Responsable", idNumber: r.idNumber, photo: r.photo || null, pin: r.pin || null },
             ],
           }
         : d,

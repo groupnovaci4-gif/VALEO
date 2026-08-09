@@ -1,4 +1,5 @@
 // VALEO — logique métier & données (100% hors-ligne)
+import type { PinRecord } from "./pin";
 
 export const C = {
   teal: "#0E8E80",
@@ -95,8 +96,9 @@ export type Member = {
   tel: string;
   momo: Momo | null;
   photo?: string | null;
+  pin?: PinRecord | null;
 };
-export type Staff = { id: string; nom: string; role: string; tel?: string; photo?: string | null; prenoms?: string; email?: string; fonction?: string; idNumber?: string };
+export type Staff = { id: string; nom: string; role: string; tel?: string; photo?: string | null; prenoms?: string; email?: string; fonction?: string; idNumber?: string; pin?: PinRecord | null };
 export type Retenue = { label: string; amount: number };
 export type Collection = {
   id: string;

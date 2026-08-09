@@ -27,6 +27,7 @@ import {
   waNumber,
 } from "./lib";
 import { Icon } from "./Icon";
+import { createPinRecord, isValidPin } from "./pin";
 import { Sig, SignaturePad, SigPreview, sigToSvg } from "./Signature";
 import {
   Card,
@@ -49,9 +50,16 @@ export function MemberSheet({ onClose, onSave, initial }: any) {
   const [idNumber, setIdNumber] = useState(initial?.idNumber || "");
   const [cultures, setCultures] = useState<Culture[]>(initial ? memberCultures(initial) : []);
   const [tel, setTel] = useState(initial?.tel || "");
-  const valid = nom.trim() && village.trim();
-  const save = () =>
-    onSave({ nom: nom.trim(), village: village.trim(), idNumber: idNumber.trim(), cultures, cropId: cultures[0]?.cropId || "cacao", superficie: totalSuperficie({ cultures }), tel: tel.trim() });
+  const [pin, setPin] = useState("");
+  const [pin2, setPin2] = useState("");
+  const pinTouched = pin.length > 0 || pin2.length > 0;
+  const pinOk = initial ? (!pinTouched || (isValidPin(pin) && pin === pin2)) : (isValidPin(pin) && pin === pin2);
+  const valid = nom.trim() && village.trim() && pinOk;
+  const save = async () => {
+    const base: any = { nom: nom.trim(), village: village.trim(), idNumber: idNumber.trim(), cultures, cropId: cultures[0]?.cropId || "cacao", superficie: totalSuperficie({ cultures }), tel: tel.trim() };
+    if (isValidPin(pin) && pin === pin2) base.pin = await createPinRecord(pin);
+    onSave(base);
+  };
   return (
     <Sheet title={initial ? "Modifier le planteur" : "Nouveau planteur"} onClose={onClose}>
       <Field label="Nom & prénoms"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Kouassi Yao" /></Field>
@@ -61,9 +69,15 @@ export function MemberSheet({ onClose, onSave, initial }: any) {
         <CulturesPicker value={cultures} onChange={setCultures} />
       </Field>
       <Field label="Téléphone"><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Field label={initial ? "Nouveau code (4 chiffres)" : "Code secret (4 chiffres)"} flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
+        <Field label="Confirmer le code" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
+      </View>
+      {pin && pin2 && pin !== pin2 ? <Text style={{ color: C.loss, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux codes ne correspondent pas.</Text> : null}
+      {initial ? <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>Laissez vide pour conserver le code actuel.</Text> : null}
       {!initial ? (
         <View style={{ backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-          <Text style={{ fontSize: 12, color: C.muted }}>Un <Text style={{ fontWeight: "700" }}>code planteur</Text> sera généré automatiquement (format PL-2026-000X).</Text>
+          <Text style={{ fontSize: 12, color: C.muted }}>Un <Text style={{ fontWeight: "700" }}>code planteur</Text> sera généré automatiquement (format PL-2026-000X). Le planteur se connecte avec ce code (ou son téléphone) et son <Text style={{ fontWeight: "700" }}>code secret</Text>.</Text>
         </View>
       ) : null}
       <SaveBtn disabled={!valid} color={C.green} onPress={save}>Enregistrer</SaveBtn>
@@ -268,7 +282,16 @@ export function CollaborateurSheet({ onClose, onSave, initial }: any) {
   const [role, setRole] = useState(initial?.role || "pisteur");
   const [nom, setNom] = useState(initial?.nom || "");
   const [tel, setTel] = useState(initial?.tel || "");
-  const valid = nom.trim();
+  const [pin, setPin] = useState("");
+  const [pin2, setPin2] = useState("");
+  const pinTouched = pin.length > 0 || pin2.length > 0;
+  const pinOk = initial ? (!pinTouched || (isValidPin(pin) && pin === pin2)) : (isValidPin(pin) && pin === pin2);
+  const valid = nom.trim() && tel.trim() && pinOk;
+  const save = async () => {
+    const base: any = { role, nom: nom.trim(), tel: tel.trim() };
+    if (isValidPin(pin) && pin === pin2) base.pin = await createPinRecord(pin);
+    onSave(base);
+  };
   return (
     <Sheet title={initial ? "Modifier le collaborateur" : "Nouveau collaborateur"} onClose={onClose}>
       <Field label="Rôle">
@@ -278,11 +301,17 @@ export function CollaborateurSheet({ onClose, onSave, initial }: any) {
         </View>
       </Field>
       <Field label="Nom & prénoms"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Bakary Coulibaly" /></Field>
-      <Field label="Téléphone (facultatif)"><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
-      <View style={{ backgroundColor: "#EAF3EF", borderWidth: 1, borderColor: "#CFE6E0", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Le collaborateur se connecte depuis l'espace coopérative avec son <Text style={{ fontWeight: "700" }}>nom ou son téléphone</Text>. Un Pisteur / Délégué reçoit un mandat ; un Magasinier pèse et voit tous les planteurs.</Text>
+      <Field label="Téléphone"><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Field label={initial ? "Nouveau code (4 chiffres)" : "Code secret (4 chiffres)"} flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
+        <Field label="Confirmer le code" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
       </View>
-      <SaveBtn disabled={!valid} color={C.teal} onPress={() => onSave({ role, nom: nom.trim(), tel: tel.trim() })}>{initial ? "Enregistrer" : "Créer le collaborateur"}</SaveBtn>
+      {pin && pin2 && pin !== pin2 ? <Text style={{ color: C.loss, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux codes ne correspondent pas.</Text> : null}
+      {initial ? <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>Laissez vide pour conserver le code actuel.</Text> : null}
+      <View style={{ backgroundColor: "#EAF3EF", borderWidth: 1, borderColor: "#CFE6E0", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Le collaborateur se connecte depuis l'espace coopérative avec son <Text style={{ fontWeight: "700" }}>nom, son téléphone</Text> et son <Text style={{ fontWeight: "700" }}>code secret</Text>. Un Pisteur / Délégué reçoit un mandat ; un Magasinier pèse et voit tous les planteurs.</Text>
+      </View>
+      <SaveBtn disabled={!valid} color={C.teal} onPress={save}>{initial ? "Enregistrer" : "Créer le collaborateur"}</SaveBtn>
     </Sheet>
   );
 }
