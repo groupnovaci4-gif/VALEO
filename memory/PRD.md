@@ -74,3 +74,7 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
 3. **Identifiant de connexion** : cartes info dans les fiches (StaffLoginCard = Nom+Téléphone+code secret ; planteur = code PL + téléphone + code secret).
 4. **Journal d'activité** (Patron) : bouton dash-journal sur le Bilan → ActivityLog (screens.tsx) fusionne pesées/prêts/mandats/dépenses horodatés, triés du plus récent (fDateTime helper).
 - Dépendances ajoutées : @noble/hashes, expo-crypto. Tests backend : /app/backend/tests/ (11/11).
+
+## Fonctions v9 (2026-06) — TERMINÉES & TESTÉES E2E (iteration_9, full pass)
+- **Solder le reste dû** : bouton vert « Solder le reste dû (X F) » dans la fiche planteur (MemberDetail, testID member-settle), visible pour tout rôle coop (Patron, Magasinier, Pisteur/Délégué) quand reste>0 → confirmation (bouton « Solder ») → store.settleMemberDue(memberId) marque les collectes avec reste comme payées (paye+=reste, reste=0). Paiement hors livraison.
+- **Report du reste à la pesée** : PeseeSheet calcule oldReste = memberStats(memberId).reste ; totalDu = net + oldReste. Bande orange + lignes « + Reste dû (précédent) » / « Total à payer » affichées si oldReste>0. « Payer tout » règle le total et solde l'ancien ; en partiel, paiement appliqué d'abord aux anciens restes (FIFO) via champ _settle traité par store.addCollection.
