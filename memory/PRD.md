@@ -58,3 +58,12 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
 - Changement du mot de passe admin depuis l'espace web.
 - Comptes de connexion individuels par collaborateur (code perso).
 - Journal d'activité horodaté dans l'admin ; sauvegarde quotidienne automatique.
+
+## Auth PIN v7 (2026-06) — TERMINÉE & TESTÉE (iteration_7, full pass)
+- Code secret à 4 chiffres obligatoire à la connexion :
+  - Planteur : (code planteur OU téléphone) + code 4 chiffres.
+  - Patron / Pisteur-Délégué / Magasinier : Nom + Téléphone + code 4 chiffres.
+- src/coop/pin.ts : vérificateur PBKDF2-HMAC-SHA-256 (100k itérations, sel aléatoire 16o) via @noble/hashes + expo-crypto. `createPinRecord` (async), `verifyPin` (sync, temps constant). Le PIN n'est JAMAIS stocké en clair (PinRecord = {scheme, iterations, saltHex, verifierHex, version}). Vérification 100% hors-ligne.
+- Types Member.pin / Staff.pin (PinRecord | null).
+- Formulaires : CreatePlanteur, CreateCoop (patron), MemberSheet et CollaborateurSheet capturent code + confirmation. Code obligatoire à la création, optionnel en édition (vide = conserver). Téléphone désormais requis pour les collaborateurs (nécessaire au login).
+- Comptes legacy sans PIN : connexion par identifiant seul (fallback, pas de blocage).
