@@ -87,3 +87,8 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
 - Cause : le calcul du code secret (PBKDF2 100 000 itérations) bloquait le fil UI → boutons Se connecter/Enregistrer/etc. sans retour, perçus comme figés (surtout sur téléphones d'entrée de gamme).
 - Fix : pin.ts itérations 100k→15k + yieldToUI() avant PBKDF2 + randomSalt avec repli ; verifyPinAsync (non bloquant). SaveBtn (ui.tsx) enveloppe onPress async → état busy interne, ActivityIndicator + « Veuillez patienter… », disabled anti double-clic, catch d'erreurs. Handlers de connexion async (verifyPinAsync).
 - verifyPin lit record.iterations → les anciens comptes (100k) restent vérifiables.
+
+## Correctif v12 (2026-06) — Isolation compte planteur RÉSOLU (iteration_11, PASS)
+- Bug : le formulaire de prêt affichait un sélecteur de planteur même côté planteur → un planteur pouvait faire une demande au nom d'un autre (le memberId du Select écrasait session.memberId via le spread).
+- Fix : LoanSheet accepte `fixedMember` → côté planteur, sélecteur remplacé par une carte lecture seule (planteur connecté) et onSave force memberId = fixedMember.id ; index.tsx addLoan force memberId=session.memberId (spread avant). Côté patron, sélecteur conservé.
+- Écrans planteur (PlanteurPoids/Prets/Momo) filtrent déjà strictement par member.id ; aucune liste d'autres planteurs accessible au planteur.
