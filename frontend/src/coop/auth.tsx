@@ -8,7 +8,7 @@ import { createPinRecord, isValidPin, normalizePhone, normalizeText, verifyPin }
 import { Icon } from "./Icon";
 import { Card, Chip, CulturesPicker, Field, PhotoAvatar, SaveBtn, Select, TInput } from "./ui";
 
-const VALEO_LOGO = require("../../assets/images/valeo-logo.png");
+const VALEO_EMBLEM = require("../../assets/images/adaptive-icon.png");
 
 /* ------------------------------- Top bar --------------------------------- */
 export function TopBar({
@@ -51,6 +51,7 @@ export function TopBar({
   );
 }
 const topIcon = { backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10, padding: 8, alignItems: "center" as const, justifyContent: "center" as const };
+const hdrChip = { width: 40, height: 40, borderRadius: 12, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, alignItems: "center" as const, justifyContent: "center" as const };
 
 /* ------------------------------- Login ----------------------------------- */
 export function Login({
@@ -102,9 +103,19 @@ export function Login({
 
   return (
     <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: insets.bottom + 30 }} keyboardShouldPersistTaps="handled">
-      <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 22, paddingBottom: 6, alignItems: "center" }}>
-        <View style={{ backgroundColor: "#fff", borderRadius: 22, paddingHorizontal: 16, paddingVertical: 12, boxShadow: "0px 4px 14px rgba(30,20,12,0.1)" }}>
-          <Image source={VALEO_LOGO} style={{ width: 250, height: 250 }} resizeMode="contain" />
+      <View style={{ paddingTop: insets.top + 10, paddingHorizontal: 16, paddingBottom: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center", overflow: "hidden", boxShadow: "0px 2px 8px rgba(30,20,12,0.08)" }}>
+            <Image source={VALEO_EMBLEM} style={{ width: 46, height: 46 }} resizeMode="contain" />
+          </View>
+          <View>
+            <Text style={{ fontWeight: "900", fontSize: 20, color: C.green, letterSpacing: 0.5 }}>VALEO</Text>
+            <Text style={{ color: "#2E8B3D", fontWeight: "700", fontSize: 8.5, letterSpacing: 1 }}>TRACER · GÉRER · VALORISER</Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <View style={hdrChip}><Icon name="bell" size={18} color={C.cocoa} /></View>
+          <View style={hdrChip}><Icon name="user" size={18} color={C.cocoa} /></View>
         </View>
       </View>
 

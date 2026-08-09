@@ -40,6 +40,7 @@ const MAP: Record<string, [Fam, string]> = {
   "chevron-right": ["feather", "chevron-right"],
   "shield-check": ["mci", "shield-check"],
   key: ["feather", "key"],
+  bell: ["feather", "bell"],
   activity: ["feather", "activity"],
   edit: ["feather", "edit-2"],
   search: ["feather", "search"],
