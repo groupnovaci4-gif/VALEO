@@ -44,3 +44,17 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
   - Historique des prix : data.priceHistory, alimenté à chaque changement de prix, affiché dans Réglages.
   - Rappels de paiement : section sur le tableau de bord Patron listant les planteurs avec reste dû, triés décroissant (impaye-<id>).
 - P2 restant : multi-campagnes, rappels planteurs automatiques, comparaison hebdo des prix.
+
+## Refonte métier v6 (2026-06) — TERMINÉE & TESTÉE (iteration_6, full pass)
+- Rôles renommés : « Pisteur / Délégué » (ex-Pisteur) et « Magasinier » (ex-Commis péseur) partout (UI + PDF).
+- Écran de connexion : aucune donnée affichée (connexion par nom/tél pour la coop, code/tél pour le planteur).
+- Planteurs multi-cultures : `Member.cultures: Culture[]` ({cropId, superficie}) via CulturesPicker ; migration auto depuis cropId/superficie.
+- Patron : peut modifier/supprimer un planteur (MemberDetail, testIDs member-edit/member-delete + confirmation), et modifier/supprimer un Pisteur/Délégué et un Magasinier (PisteurRecon/CommisDetail, staff-edit/staff-delete).
+- Patron : bouton « Nouveau prêt / créance » (LoanSheet avec sélecteur de planteur). Approbation via LoanApproveSheet (montant accordé ≤ demande + mode Espèces/Mobile Money) → store.approveLoan ; refus via store.refuseLoan.
+- Visibilité : prêts/créances réservés au Patron ; Magasinier voit tous les planteurs mais seulement ses propres pesées ; Pisteur/Délégué voit seulement ses propres collectes (commission inchangée) ; sélection du produit à la pesée limitée aux cultures du planteur.
+- Câblage finalisé dans app/index.tsx (états approveLoanObj/editMember/editCollab/confirm + modale de confirmation).
+
+## Backlog restant
+- Changement du mot de passe admin depuis l'espace web.
+- Comptes de connexion individuels par collaborateur (code perso).
+- Journal d'activité horodaté dans l'admin ; sauvegarde quotidienne automatique.
