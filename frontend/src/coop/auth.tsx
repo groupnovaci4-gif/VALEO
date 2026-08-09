@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { C, COOP_TYPES, CROPS, Culture, Data, OPERATORS, ROLES, Session, totalSuperficie } from "./lib";
 import { createPinRecord, isValidPin, normalizePhone, normalizeText, verifyPin } from "./pin";
 import { Icon } from "./Icon";
-import { ValeoMark, ValeoWordmark } from "./Logo";
 import { Card, Chip, CulturesPicker, Field, PhotoAvatar, SaveBtn, Select, TInput } from "./ui";
+
+const VALEO_LOGO = require("../../assets/images/valeo-logo.png");
 
 /* ------------------------------- Top bar --------------------------------- */
 export function TopBar({
@@ -101,12 +102,10 @@ export function Login({
 
   return (
     <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: insets.bottom + 30 }} keyboardShouldPersistTaps="handled">
-      <View style={{ paddingTop: insets.top + 14, paddingHorizontal: 22, paddingBottom: 8, alignItems: "center" }}>
-        <View style={{ width: 68, height: 68, borderRadius: 16, backgroundColor: "#fff", borderWidth: 1.5, borderColor: C.line, alignItems: "center", justifyContent: "center", boxShadow: "0px 3px 10px rgba(30,20,12,0.08)" }}>
-          <ValeoMark size={46} />
+      <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 22, paddingBottom: 6, alignItems: "center" }}>
+        <View style={{ backgroundColor: "#fff", borderRadius: 22, paddingHorizontal: 16, paddingVertical: 12, boxShadow: "0px 4px 14px rgba(30,20,12,0.1)" }}>
+          <Image source={VALEO_LOGO} style={{ width: 250, height: 250 }} resizeMode="contain" />
         </View>
-        <View style={{ marginTop: 8 }}><ValeoWordmark size={30} /></View>
-        <Text style={{ marginTop: 6, color: "#2E8B3D", fontWeight: "800", fontSize: 10.5, letterSpacing: 1.2 }}>TRACER · GÉRER · VALORISER</Text>
       </View>
 
       <View style={{ paddingHorizontal: 16, paddingTop: 8, gap: 16 }}>
@@ -116,7 +115,7 @@ export function Login({
             <View style={iconBox("#EAF3EF")}><Icon name="building" size={21} color={C.teal} /></View>
             <View style={{ flexShrink: 1 }}>
               <Text style={{ fontWeight: "800", fontSize: 16 }}>Espace coopérative</Text>
-              <Text style={{ fontSize: 12.5, color: C.muted }}>Gérez la collecte, l'équipe et les paiements</Text>
+              <Text style={{ fontSize: 12.5, color: C.muted }}>Gérez la collecte, l’équipe et les paiements</Text>
             </View>
           </View>
           <SaveBtn color={C.teal} icon={<Icon name="building" size={18} color="#fff" />} onPress={() => setScreen("createCoop")}>Créer une coopérative</SaveBtn>

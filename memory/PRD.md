@@ -78,3 +78,7 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
 ## Fonctions v9 (2026-06) — TERMINÉES & TESTÉES E2E (iteration_9, full pass)
 - **Solder le reste dû** : bouton vert « Solder le reste dû (X F) » dans la fiche planteur (MemberDetail, testID member-settle), visible pour tout rôle coop (Patron, Magasinier, Pisteur/Délégué) quand reste>0 → confirmation (bouton « Solder ») → store.settleMemberDue(memberId) marque les collectes avec reste comme payées (paye+=reste, reste=0). Paiement hors livraison.
 - **Report du reste à la pesée** : PeseeSheet calcule oldReste = memberStats(memberId).reste ; totalDu = net + oldReste. Bande orange + lignes « + Reste dû (précédent) » / « Total à payer » affichées si oldReste>0. « Payer tout » règle le total et solde l'ancien ; en partiel, paiement appliqué d'abord aux anciens restes (FIFO) via champ _settle traité par store.addCollection.
+
+## Branding v10 (2026-06)
+- Logo officiel VALEO (image fournie) intégré : assets/images/valeo-logo.png affiché sur l'écran de connexion (carte blanche). Ancien logo SVG (Logo.tsx) remplacé.
+- Icônes régénérées depuis le logo : icon.png & adaptive-icon.png (emblème recadré, fond blanc), splash-image.png (lockup complet), favicon.png. app.json : splash + adaptiveIcon en fond blanc. Les icônes ne s'appliquent qu'après un nouveau build (Publish).
