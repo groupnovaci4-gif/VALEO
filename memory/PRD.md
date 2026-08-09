@@ -67,3 +67,10 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
 - Types Member.pin / Staff.pin (PinRecord | null).
 - Formulaires : CreatePlanteur, CreateCoop (patron), MemberSheet et CollaborateurSheet capturent code + confirmation. Code obligatoire à la création, optionnel en édition (vide = conserver). Téléphone désormais requis pour les collaborateurs (nécessaire au login).
 - Comptes legacy sans PIN : connexion par identifiant seul (fallback, pas de blocage).
+
+## Fonctions v8 (2026-06) — TERMINÉES & TESTÉES (iteration_8, full pass)
+1. **Réinitialiser le code secret** (Patron) : bouton dans la fiche planteur (testID member-resetpin) et collaborateur (staff-resetpin) → ResetPinSheet (sheets.tsx) → nouveau code 4 chiffres + confirmation → store.updateMember/updateStaff {pin}.
+2. **Mot de passe admin** (web) : POST /api/admin/change-password (JWT requis), verify_admin_password avec hash PBKDF2 stocké dans Mongo (collection admin_config), fallback env ADMIN_PASSWORD. Carte « Sécurité » ajoutée dans le dashboard admin (settingsPanel). Défaut : admin123.
+3. **Identifiant de connexion** : cartes info dans les fiches (StaffLoginCard = Nom+Téléphone+code secret ; planteur = code PL + téléphone + code secret).
+4. **Journal d'activité** (Patron) : bouton dash-journal sur le Bilan → ActivityLog (screens.tsx) fusionne pesées/prêts/mandats/dépenses horodatés, triés du plus récent (fDateTime helper).
+- Dépendances ajoutées : @noble/hashes, expo-crypto. Tests backend : /app/backend/tests/ (11/11).
