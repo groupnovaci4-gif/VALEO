@@ -3,10 +3,10 @@ import { Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, COOP_TYPES, CROPS, Data, OPERATORS, ROLES, Session } from "./lib";
+import { C, COOP_TYPES, CROPS, Culture, Data, OPERATORS, ROLES, Session, totalSuperficie } from "./lib";
 import { Icon } from "./Icon";
 import { ValeoMark, ValeoWordmark } from "./Logo";
-import { Card, Chip, Field, PhotoAvatar, SaveBtn, Select, TInput } from "./ui";
+import { Card, Chip, CulturesPicker, Field, PhotoAvatar, SaveBtn, Select, TInput } from "./ui";
 
 /* ------------------------------- Top bar --------------------------------- */
 export function TopBar({
@@ -63,14 +63,31 @@ export function Login({
   onCreateCoop: (p: any) => void;
 }) {
   const [screen, setScreen] = useState<"home" | "create" | "createCoop">("home");
-  const [staffId, setStaffId] = useState(data.staff[0]?.id || "");
-  const [existingId, setExistingId] = useState("");
+  const [coopLogin, setCoopLogin] = useState("");
+  const [coopErr, setCoopErr] = useState("");
+  const [planteurLogin, setPlanteurLogin] = useState("");
+  const [planteurErr, setPlanteurErr] = useState("");
   const insets = useSafeAreaInsets();
 
   if (screen === "create") return <CreatePlanteur onBack={() => setScreen("home")} onSubmit={onCreatePlanteur} />;
   if (screen === "createCoop") return <CreateCoop onBack={() => setScreen("home")} onSubmit={onCreateCoop} />;
 
-  const chosen = data.staff.find((s) => s.id === staffId);
+  const doCoopLogin = () => {
+    const q = coopLogin.trim().toLowerCase();
+    const dig = coopLogin.replace(/\D/g, "");
+    const s = data.staff.find(
+      (st) => (dig.length >= 6 && (st.tel || "").replace(/\D/g, "") === dig) || (st.nom || "").toLowerCase() === q || (q.length >= 3 && (st.nom || "").toLowerCase().includes(q)),
+    );
+    if (s) onPick({ side: "coop", role: s.role, staffId: s.id });
+    else setCoopErr("Aucun compte trouvé. Vérifiez le nom ou le téléphone.");
+  };
+  const doPlanteurLogin = () => {
+    const q = planteurLogin.trim().toLowerCase();
+    const dig = planteurLogin.replace(/\D/g, "");
+    const m = data.members.find((mm) => (mm.code || "").toLowerCase() === q || (dig.length >= 6 && (mm.tel || "").replace(/\D/g, "") === dig));
+    if (m) onPick({ side: "planteur", memberId: m.id });
+    else setPlanteurErr("Aucun planteur trouvé. Vérifiez le code ou le téléphone.");
+  };
 
   return (
     <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: insets.bottom + 30 }} keyboardShouldPersistTaps="handled">
@@ -93,15 +110,10 @@ export function Login({
             </View>
           </View>
           <SaveBtn color={C.teal} icon={<Icon name="building" size={18} color="#fff" />} onPress={() => setScreen("createCoop")}>Créer une coopérative</SaveBtn>
-          {data.staff.length > 0 ? (
-            <>
-              <Divider label="DÉJÀ INSCRIT ?" />
-              <View style={{ marginBottom: 10 }}>
-                <Select value={staffId} onChange={setStaffId} options={data.staff.map((s) => ({ value: s.id, label: `${ROLES[s.role].label} — ${s.nom}` }))} />
-              </View>
-              <SaveBtn color={C.cocoa} onPress={() => chosen && onPick({ side: "coop", role: chosen.role, staffId: chosen.id })}>Se connecter</SaveBtn>
-            </>
-          ) : null}
+          <Divider label="DÉJÀ INSCRIT ?" />
+          <TInput value={coopLogin} onChangeText={(t) => { setCoopLogin(t); setCoopErr(""); }} placeholder="Téléphone ou nom" autoCapitalize="none" onSubmitEditing={doCoopLogin} returnKeyType="go" />
+          {coopErr ? <Text style={{ color: C.rust, fontSize: 12, marginTop: 6 }}>{coopErr}</Text> : null}
+          <SaveBtn color={C.cocoa} style={{ marginTop: 10 }} onPress={doCoopLogin}>Se connecter</SaveBtn>
         </Card>
 
         {/* Planteur */}
@@ -114,15 +126,10 @@ export function Login({
             </View>
           </View>
           <SaveBtn color={C.green} icon={<Icon name="user-plus" size={18} color="#fff" />} onPress={() => setScreen("create")}>Créer un compte planteur</SaveBtn>
-          {data.members.length > 0 ? (
-            <>
-              <Divider label="DÉJÀ INSCRIT ?" />
-              <View style={{ marginBottom: 10 }}>
-                <Select value={existingId} onChange={setExistingId} placeholder="Choisir mon nom…" options={data.members.map((m) => ({ value: m.id, label: `${m.nom} — ${m.village}` }))} />
-              </View>
-              <SaveBtn disabled={!existingId} color={C.green} onPress={() => existingId && onPick({ side: "planteur", memberId: existingId })}>Se connecter</SaveBtn>
-            </>
-          ) : null}
+          <Divider label="DÉJÀ INSCRIT ?" />
+          <TInput value={planteurLogin} onChangeText={(t) => { setPlanteurLogin(t); setPlanteurErr(""); }} placeholder="Code planteur ou téléphone" autoCapitalize="characters" onSubmitEditing={doPlanteurLogin} returnKeyType="go" />
+          {planteurErr ? <Text style={{ color: C.rust, fontSize: 12, marginTop: 6 }}>{planteurErr}</Text> : null}
+          <SaveBtn color={C.green} style={{ marginTop: 10 }} onPress={doPlanteurLogin}>Se connecter</SaveBtn>
         </Card>
       </View>
     </KeyboardAwareScrollView>
@@ -155,8 +162,7 @@ function CreatePlanteur({ onBack, onSubmit }: { onBack: () => void; onSubmit: (m
   const [nom, setNom] = useState("");
   const [village, setVillage] = useState("");
   const [idNumber, setIdNumber] = useState("");
-  const [superficie, setSuperficie] = useState("");
-  const [cropId, setCropId] = useState("cacao");
+  const [cultures, setCultures] = useState<Culture[]>([]);
   const [tel, setTel] = useState("");
   const [withMomo, setWithMomo] = useState(false);
   const [operator, setOperator] = useState("orange");
@@ -164,7 +170,7 @@ function CreatePlanteur({ onBack, onSubmit }: { onBack: () => void; onSubmit: (m
   const valid = nom.trim() && village.trim() && idNumber.trim();
   const submit = () => {
     const momo = withMomo && number.trim().length >= 8 ? { operator, number: number.trim() } : null;
-    onSubmit({ nom: nom.trim(), village: village.trim(), idNumber: idNumber.trim(), superficie: Number(superficie) || 0, cropId, tel: tel.trim() || (momo ? momo.number : ""), momo, photo });
+    onSubmit({ nom: nom.trim(), village: village.trim(), idNumber: idNumber.trim(), cultures, cropId: cultures[0]?.cropId || "cacao", superficie: totalSuperficie({ cultures }), tel: tel.trim() || (momo ? momo.number : ""), momo, photo });
   };
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -179,14 +185,9 @@ function CreatePlanteur({ onBack, onSubmit }: { onBack: () => void; onSubmit: (m
         </View>
         <Field label="Nom & prénoms"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Kouassi Yao" /></Field>
         <Field label="Numéro de pièce d'identité"><TInput value={idNumber} onChangeText={setIdNumber} placeholder="Ex. CI 003 451 2" /></Field>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <Field label="Localité" flex><TInput value={village} onChangeText={setVillage} placeholder="Ex. Sikensi" /></Field>
-          <Field label="Superficie (ha)" flex><TInput value={superficie} onChangeText={(t) => setSuperficie(t.replace(",", "."))} keyboardType="decimal-pad" placeholder="Ex. 2.5" /></Field>
-        </View>
-        <Field label="Culture principale">
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
-            {CROPS.map((c) => <Chip key={c.id} label={c.nom} emoji={c.emoji} active={cropId === c.id} onPress={() => setCropId(c.id)} />)}
-          </View>
+        <Field label="Localité / village"><TInput value={village} onChangeText={setVillage} placeholder="Ex. Sikensi" /></Field>
+        <Field label="Cultures & superficies (plusieurs possibles)">
+          <CulturesPicker value={cultures} onChange={setCultures} />
         </Field>
         <Field label="Téléphone"><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
 

@@ -38,8 +38,8 @@ export const op = (id: string): Operator => OPERATORS.find((o) => o.id === id) |
 
 export const ROLES: Record<string, { label: string; sub: string; icon: string }> = {
   patron: { label: "Patron / Acheteur", sub: "Gère la coopérative, approuve les prêts", icon: "shield-check" },
-  commis: { label: "Commis péseur", sub: "Pèse et délivre les bordereaux", icon: "scale" },
-  pisteur: { label: "Pisteur", sub: "Collecte en tournée dans les villages", icon: "truck" },
+  commis: { label: "Magasinier", sub: "Pèse, stocke et délivre les bordereaux", icon: "package" },
+  pisteur: { label: "Pisteur / Délégué", sub: "Collecte en tournée dans les villages", icon: "truck" },
 };
 
 export const DEPCATS = [
@@ -81,6 +81,7 @@ export const byDateDesc = (a: any, b: any) => +new Date(b.date) - +new Date(a.da
 
 /* --------------------------------- Types --------------------------------- */
 export type Momo = { operator: string; number: string; label?: string };
+export type Culture = { cropId: string; superficie: number };
 export type Member = {
   id: string;
   code: string;
@@ -89,6 +90,8 @@ export type Member = {
   idNumber: string;
   superficie: number;
   cropId: string;
+  cultures: Culture[];
+  createdBy?: string | null;
   tel: string;
   momo: Momo | null;
   photo?: string | null;
@@ -103,6 +106,7 @@ export type Collection = {
   date: string;
   kg: number;
   prixKg: number;
+  cropId?: string;
   brut: number;
   retenues: Retenue[];
   net: number;
@@ -122,6 +126,7 @@ export type Loan = {
   date: string;
   status: string;
   soldeRestant: number;
+  paymentMode?: string;
   decidedBy: string | null;
 };
 export type Mandat = { id: string; pisteurId: string; amount: number; date: string; note: string };
@@ -228,7 +233,14 @@ export function migrate(d: any): Data {
       code = `PL-2026-${String(seqBase).padStart(4, "0")}`;
       seqBase += 1;
     }
-    return { ...m, code, momo: m.momo != null ? m.momo : null, photo: m.photo != null ? m.photo : null };
+    return {
+      ...m,
+      code,
+      momo: m.momo != null ? m.momo : null,
+      photo: m.photo != null ? m.photo : null,
+      cultures: Array.isArray(m.cultures) && m.cultures.length ? m.cultures : [{ cropId: m.cropId || "cacao", superficie: Number(m.superficie) || 0 }],
+      createdBy: m.createdBy != null ? m.createdBy : null,
+    };
   });
   out.memberSeq = seqBase;
   return out as Data;
@@ -247,6 +259,11 @@ export function memberStats(mId: string, cols: Collection[]) {
 }
 export const activeLoan = (mId: string, loans: Loan[]) =>
   loans.find((l) => l.memberId === mId && l.status === "approuve" && l.soldeRestant > 0);
+
+export const memberCultures = (m: any): Culture[] =>
+  Array.isArray(m?.cultures) && m.cultures.length ? m.cultures : m?.cropId ? [{ cropId: m.cropId, superficie: Number(m.superficie) || 0 }] : [];
+export const culturesLabel = (m: any): string => memberCultures(m).map((c) => crop(c.cropId).nom).join(", ") || "—";
+export const totalSuperficie = (m: any): number => memberCultures(m).reduce((s, c) => s + (Number(c.superficie) || 0), 0);
 
 export function pisteurStats(pid: string, data: Data) {
   const cols = (data.collections || []).filter((c) => c.byStaffId === pid);

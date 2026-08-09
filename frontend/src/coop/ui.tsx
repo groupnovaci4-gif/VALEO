@@ -15,7 +15,7 @@ import {
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, Loan, STATUS, fDate, fF, op } from "./lib";
+import { C, CROPS, Culture, Loan, STATUS, crop, fDate, fF, op } from "./lib";
 import { Icon } from "./Icon";
 
 /* ------------------------------ Card / text ------------------------------ */
@@ -145,6 +145,33 @@ export const Chip = ({ label, active, onPress, emoji }: { label: string; active:
     <Text style={{ fontSize: 12.5, fontWeight: "600", color: active ? C.cocoa : C.ink }}>{emoji ? `${emoji} ` : ""}{label}</Text>
   </Pressable>
 );
+
+export function CulturesPicker({ value, onChange }: { value: Culture[]; onChange: (v: Culture[]) => void }) {
+  const has = (id: string) => value.find((c) => c.cropId === id);
+  const toggle = (id: string) => (has(id) ? onChange(value.filter((c) => c.cropId !== id)) : onChange([...value, { cropId: id, superficie: 0 }]));
+  const setSup = (id: string, s: string) => onChange(value.map((c) => (c.cropId === id ? { ...c, superficie: Number(s) || 0 } : c)));
+  return (
+    <View>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
+        {CROPS.map((cr) => <Chip key={cr.id} label={cr.nom} emoji={cr.emoji} active={!!has(cr.id)} onPress={() => toggle(cr.id)} />)}
+      </View>
+      {value.map((c) => (
+        <View key={c.cropId} style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10, backgroundColor: "#FAF6EF", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 11 }}>
+          <Text style={{ flex: 1, fontSize: 13, fontWeight: "600" }}>{crop(c.cropId).emoji} {crop(c.cropId).nom}</Text>
+          <Text style={{ fontSize: 12, color: C.muted }}>Superficie</Text>
+          <TextInput
+            value={c.superficie ? String(c.superficie) : ""}
+            onChangeText={(t) => setSup(c.cropId, t.replace(",", "."))}
+            keyboardType="decimal-pad"
+            placeholder="ha"
+            placeholderTextColor={C.muted}
+            style={[styles.input, { width: 90, textAlign: "right", paddingVertical: 8, paddingHorizontal: 10 }]}
+          />
+        </View>
+      ))}
+    </View>
+  );
+}
 
 /* ------------------------------ Loan bits -------------------------------- */
 export const LoanTypeChip = ({ type }: { type: string }) => (

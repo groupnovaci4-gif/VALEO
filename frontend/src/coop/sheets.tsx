@@ -9,6 +9,7 @@ import {
   C,
   CROPS,
   Collection,
+  Culture,
   DEPCATS,
   Data,
   Member,
@@ -20,7 +21,9 @@ import {
   fFull,
   fKg,
   group,
+  memberCultures,
   ticketNo,
+  totalSuperficie,
   waNumber,
 } from "./lib";
 import { Icon } from "./Icon";
@@ -28,6 +31,7 @@ import { Sig, SignaturePad, SigPreview, sigToSvg } from "./Signature";
 import {
   Card,
   Chip,
+  CulturesPicker,
   DeductRow,
   Field,
   Row,
@@ -39,32 +43,30 @@ import {
   Toggle,
 } from "./ui";
 
-export function MemberSheet({ onClose, onSave }: any) {
-  const [nom, setNom] = useState("");
-  const [village, setVillage] = useState("");
-  const [idNumber, setIdNumber] = useState("");
-  const [superficie, setSuperficie] = useState("");
-  const [cropId, setCropId] = useState("cacao");
-  const [tel, setTel] = useState("");
+export function MemberSheet({ onClose, onSave, initial }: any) {
+  const [nom, setNom] = useState(initial?.nom || "");
+  const [village, setVillage] = useState(initial?.village || "");
+  const [idNumber, setIdNumber] = useState(initial?.idNumber || "");
+  const [cultures, setCultures] = useState<Culture[]>(initial ? memberCultures(initial) : []);
+  const [tel, setTel] = useState(initial?.tel || "");
   const valid = nom.trim() && village.trim();
+  const save = () =>
+    onSave({ nom: nom.trim(), village: village.trim(), idNumber: idNumber.trim(), cultures, cropId: cultures[0]?.cropId || "cacao", superficie: totalSuperficie({ cultures }), tel: tel.trim() });
   return (
-    <Sheet title="Nouveau planteur" onClose={onClose}>
+    <Sheet title={initial ? "Modifier le planteur" : "Nouveau planteur"} onClose={onClose}>
       <Field label="Nom & prénoms"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Kouassi Yao" /></Field>
       <Field label="Numéro de pièce d'identité"><TInput value={idNumber} onChangeText={setIdNumber} placeholder="Ex. CI 003 451 2" /></Field>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Field label="Localité" flex><TInput value={village} onChangeText={setVillage} placeholder="Ex. Sikensi" /></Field>
-        <Field label="Superficie (ha)" flex><TInput value={superficie} onChangeText={(t) => setSuperficie(t.replace(",", "."))} keyboardType="decimal-pad" placeholder="Ex. 2.5" /></Field>
-      </View>
-      <Field label="Culture">
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
-          {CROPS.map((c) => <Chip key={c.id} label={c.nom} emoji={c.emoji} active={cropId === c.id} onPress={() => setCropId(c.id)} />)}
-        </View>
+      <Field label="Localité / village"><TInput value={village} onChangeText={setVillage} placeholder="Ex. Sikensi" /></Field>
+      <Field label="Cultures & superficies (plusieurs possibles)">
+        <CulturesPicker value={cultures} onChange={setCultures} />
       </Field>
       <Field label="Téléphone"><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
-      <View style={{ backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-        <Text style={{ fontSize: 12, color: C.muted }}>Un <Text style={{ fontWeight: "700" }}>code planteur</Text> sera généré automatiquement (format PL-2026-000X).</Text>
-      </View>
-      <SaveBtn disabled={!valid} color={C.green} onPress={() => onSave({ nom: nom.trim(), village: village.trim(), idNumber: idNumber.trim(), superficie: Number(superficie) || 0, cropId, tel: tel.trim() })}>Enregistrer</SaveBtn>
+      {!initial ? (
+        <View style={{ backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+          <Text style={{ fontSize: 12, color: C.muted }}>Un <Text style={{ fontWeight: "700" }}>code planteur</Text> sera généré automatiquement (format PL-2026-000X).</Text>
+        </View>
+      ) : null}
+      <SaveBtn disabled={!valid} color={C.green} onPress={save}>Enregistrer</SaveBtn>
     </Sheet>
   );
 }
@@ -83,7 +85,14 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
 
   const member = data.members.find((m) => m.id === memberId);
   const loan = activeLoan(memberId, data.loans);
-  useEffect(() => { setRemb(""); }, [memberId]);
+  const memCrops = memberCultures(member).map((c) => c.cropId);
+  const cropChoices = memCrops.length ? memCrops : CROPS.map((c) => c.id);
+  const [cropId, setCropId] = useState(cropChoices[0] || "cacao");
+  useEffect(() => {
+    setRemb("");
+    const cc = memberCultures(data.members.find((m) => m.id === memberId));
+    setCropId(cc[0]?.cropId || "cacao");
+  }, [memberId, data.members]);
 
   const brut = (Number(kg) || 0) * (Number(prixKg) || 0);
   const rembN = loan ? Math.min(Number(remb) || 0, loan.soldeRestant) : 0;
@@ -101,7 +110,7 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
     if (Number(sacs) > 0) retenues.push({ label: "Sacs", amount: Number(sacs) });
     if (rembN > 0) retenues.push({ label: "Remboursement prêt", amount: rembN });
     onSave({
-      memberId, byStaffId: staffId, date: new Date().toISOString(), kg: Number(kg), prixKg: Number(prixKg),
+      memberId, byStaffId: staffId, date: new Date().toISOString(), kg: Number(kg), prixKg: Number(prixKg), cropId,
       brut, retenues, net, paye, reste, method: momoDisabled ? "espece" : method, note: "",
       _repay: loan && rembN > 0 ? { loanId: loan.id, amount: rembN } : null,
     });
@@ -118,6 +127,11 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
     <Sheet title={role === "pisteur" ? "Nouvelle collecte" : "Nouvelle pesée"} onClose={onClose}>
       <Field label="Planteur">
         <Select value={memberId} onChange={setMemberId} options={data.members.map((m) => ({ value: m.id, label: `${m.nom} — ${m.village}` }))} />
+      </Field>
+      <Field label="Produit pesé">
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
+          {cropChoices.map((id: string) => <Chip key={id} label={crop(id).nom} emoji={crop(id).emoji} active={cropId === id} onPress={() => setCropId(id)} />)}
+        </View>
       </Field>
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Field label="Poids (kg)" flex><TInput value={kg} onChangeText={(t) => setKg(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ex. 320" /></Field>
@@ -166,19 +180,29 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
   );
 }
 
-export function LoanSheet({ onClose, onSave }: any) {
+export function LoanSheet({ onClose, onSave, data }: any) {
+  const [memberId, setMemberId] = useState(data?.members[0]?.id || "");
   const [type, setType] = useState("intrant");
   const [amount, setAmount] = useState("");
   const [motif, setMotif] = useState("");
   const presets = type === "intrant" ? ["Engrais NPK", "Produits phyto", "Semences", "Petit matériel"] : ["Scolarité", "Santé", "Dépense familiale"];
-  const valid = Number(amount) > 0 && motif.trim();
+  const valid = memberId && Number(amount) > 0 && motif.trim();
+  if (!data || data.members.length === 0)
+    return (
+      <Sheet title="Nouveau prêt" onClose={onClose}>
+        <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Aucun planteur enregistré. Ajoutez-en un d'abord.</Text></Card>
+      </Sheet>
+    );
   return (
-    <Sheet title="Demander un prêt" onClose={onClose}>
+    <Sheet title="Nouveau prêt / créance" onClose={onClose}>
+      <Field label="Planteur bénéficiaire">
+        <Select value={memberId} onChange={setMemberId} options={data.members.map((m: Member) => ({ value: m.id, label: `${m.nom} — ${m.village}` }))} />
+      </Field>
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 16, backgroundColor: "#F1EDE3", padding: 4, borderRadius: 12 }}>
         <Toggle active={type === "intrant"} onPress={() => { setType("intrant"); setMotif(""); }} color={C.green}>Intrant</Toggle>
         <Toggle active={type === "argent"} onPress={() => { setType("argent"); setMotif(""); }} color={C.gold}>Argent</Toggle>
       </View>
-      <Field label={type === "intrant" ? "Valeur des intrants (F)" : "Montant souhaité (F)"}>
+      <Field label={type === "intrant" ? "Valeur des intrants (F)" : "Montant demandé (F)"}>
         <TInput value={amount} onChangeText={(t) => setAmount(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ex. 50000" />
       </Field>
       <Field label="Motif">
@@ -187,10 +211,36 @@ export function LoanSheet({ onClose, onSave }: any) {
         </View>
         <TInput value={motif} onChangeText={setMotif} placeholder="Préciser le motif" />
       </Field>
-      <View style={{ backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>La demande est envoyée au patron. Une fois approuvée, le remboursement est prélevé sur vos livraisons.</Text>
+      <View style={{ backgroundColor: "#FDF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Enregistré comme demande <Text style={{ fontWeight: "700" }}>en attente</Text>. Approuvez-la ensuite pour fixer le montant accordé et le mode de versement.</Text>
       </View>
-      <SaveBtn disabled={!valid} color={C.green} onPress={() => onSave({ type, amount: Number(amount), motif: motif.trim() })}>Envoyer la demande</SaveBtn>
+      <SaveBtn disabled={!valid} color={C.cocoa} onPress={() => onSave({ memberId, type, amount: Number(amount), motif: motif.trim() })}>Enregistrer la demande</SaveBtn>
+    </Sheet>
+  );
+}
+
+export function LoanApproveSheet({ loan, memberName, onClose, onApprove }: any) {
+  const [mode, setMode] = useState("espece");
+  const [amount, setAmount] = useState(String(loan.amount));
+  const val = Number(amount) > 0 && Number(amount) <= loan.amount;
+  return (
+    <Sheet title="Approuver le prêt" onClose={onClose}>
+      <View style={{ backgroundColor: "#F0F6F2", borderRadius: 12, padding: 14, marginBottom: 16 }}>
+        <Text style={{ fontSize: 13, color: C.muted }}>Demande de <Text style={{ fontWeight: "800", color: C.ink }}>{memberName}</Text></Text>
+        <Text style={{ fontSize: 16, fontWeight: "800", marginTop: 2 }}>{loan.type === "intrant" ? "Intrant" : "Argent"} · {fF(loan.amount)}</Text>
+        <Text style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>{loan.motif}</Text>
+      </View>
+      <Field label="Montant accordé (≤ demande)">
+        <TInput value={amount} onChangeText={(t) => setAmount(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={`Max ${group(loan.amount)}`} />
+        {Number(amount) > loan.amount ? <Text style={{ fontSize: 12, color: C.loss, marginTop: 6 }}>Le montant ne peut pas dépasser la demande ({fF(loan.amount)}).</Text> : null}
+      </Field>
+      <Field label="Mode de versement">
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Toggle active={mode === "espece"} onPress={() => setMode("espece")} color={C.cocoa}>Espèces</Toggle>
+          <Toggle active={mode === "momo"} onPress={() => setMode("momo")} color={C.green}>Mobile Money</Toggle>
+        </View>
+      </Field>
+      <SaveBtn disabled={!val} color={C.green} onPress={() => onApprove(Number(amount), mode)}>Approuver & verser</SaveBtn>
     </Sheet>
   );
 }
@@ -214,25 +264,25 @@ export function DepenseSheet({ onClose, onSave }: any) {
   );
 }
 
-export function CollaborateurSheet({ onClose, onSave }: any) {
-  const [role, setRole] = useState("pisteur");
-  const [nom, setNom] = useState("");
-  const [tel, setTel] = useState("");
+export function CollaborateurSheet({ onClose, onSave, initial }: any) {
+  const [role, setRole] = useState(initial?.role || "pisteur");
+  const [nom, setNom] = useState(initial?.nom || "");
+  const [tel, setTel] = useState(initial?.tel || "");
   const valid = nom.trim();
   return (
-    <Sheet title="Nouveau collaborateur" onClose={onClose}>
+    <Sheet title={initial ? "Modifier le collaborateur" : "Nouveau collaborateur"} onClose={onClose}>
       <Field label="Rôle">
         <View style={{ flexDirection: "row", gap: 8 }}>
-          <Toggle active={role === "pisteur"} onPress={() => setRole("pisteur")} color={C.teal}>Pisteur</Toggle>
-          <Toggle active={role === "commis"} onPress={() => setRole("commis")} color={C.teal}>Commis péseur</Toggle>
+          <Toggle active={role === "pisteur"} onPress={() => setRole("pisteur")} color={C.teal}>Pisteur / Délégué</Toggle>
+          <Toggle active={role === "commis"} onPress={() => setRole("commis")} color={C.teal}>Magasinier</Toggle>
         </View>
       </Field>
       <Field label="Nom & prénoms"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Bakary Coulibaly" /></Field>
       <Field label="Téléphone (facultatif)"><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
       <View style={{ backgroundColor: "#EAF3EF", borderWidth: 1, borderColor: "#CFE6E0", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Le collaborateur pourra se connecter depuis l'espace coopérative avec son rôle. Vous pourrez ensuite lui confier un mandat (pisteur) et suivre son activité.</Text>
+        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Le collaborateur se connecte depuis l'espace coopérative avec son <Text style={{ fontWeight: "700" }}>nom ou son téléphone</Text>. Un Pisteur / Délégué reçoit un mandat ; un Magasinier pèse et voit tous les planteurs.</Text>
       </View>
-      <SaveBtn disabled={!valid} color={C.teal} onPress={() => onSave({ role, nom: nom.trim(), tel: tel.trim() })}>Créer le collaborateur</SaveBtn>
+      <SaveBtn disabled={!valid} color={C.teal} onPress={() => onSave({ role, nom: nom.trim(), tel: tel.trim() })}>{initial ? "Enregistrer" : "Créer le collaborateur"}</SaveBtn>
     </Sheet>
   );
 }

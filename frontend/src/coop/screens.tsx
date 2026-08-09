@@ -10,12 +10,14 @@ import {
   Staff,
   byDateDesc,
   crop,
+  culturesLabel,
   depcat,
   fDate,
   fF,
   fFull,
   fKg,
   isToday,
+  memberCultures,
   memberStats,
   op,
   pisteurStats,
@@ -385,21 +387,22 @@ export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhot
   );
 }
 
-export function Members({ data, onOpen, onAdd, onVillageRecap }: any) {
+export function Members({ data, onOpen, onAdd, onVillageRecap, restrictTo }: any) {
   const [q, setQ] = useState("");
   const [selVillage, setSelVillage] = useState("all");
   const [selCrop, setSelCrop] = useState("all");
   const query = q.trim().toLowerCase();
-  const villages = Array.from(new Set(data.members.map((m: Member) => m.village).filter(Boolean))).sort() as string[];
-  const sorted = [...data.members]
+  const base = restrictTo ? data.members.filter((m: Member) => (m as any).createdBy === restrictTo) : data.members;
+  const villages = Array.from(new Set(base.map((m: Member) => m.village).filter(Boolean))).sort() as string[];
+  const sorted = [...base]
     .filter((m: Member) => !query || m.nom.toLowerCase().includes(query) || m.village.toLowerCase().includes(query) || (m.code || "").toLowerCase().includes(query))
     .filter((m: Member) => selVillage === "all" || m.village === selVillage)
-    .filter((m: Member) => selCrop === "all" || m.cropId === selCrop)
+    .filter((m: Member) => selCrop === "all" || memberCultures(m).some((c) => c.cropId === selCrop))
     .sort((a: Member, b: Member) => a.nom.localeCompare(b.nom));
   return (
     <View>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <SectionTitle noMargin>Planteurs ({data.members.length})</SectionTitle>
+        <SectionTitle noMargin>{restrictTo ? "Mes planteurs" : "Planteurs"} ({base.length})</SectionTitle>
         <GhostBtn onPress={onAdd} testID="add-member">+ Ajouter</GhostBtn>
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingHorizontal: 12, marginBottom: 10 }}>
@@ -451,7 +454,7 @@ export function Members({ data, onOpen, onAdd, onVillageRecap }: any) {
   );
 }
 
-export function MemberDetail({ member, data, onBack, onReceipt }: any) {
+export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete }: any) {
   const s = memberStats(member.id, data.collections);
   const list = data.collections.filter((c: Collection) => c.memberId === member.id).sort(byDateDesc);
   const loans = data.loans.filter((l: any) => l.memberId === member.id);
@@ -469,7 +472,8 @@ export function MemberDetail({ member, data, onBack, onReceipt }: any) {
         </View>
         <View style={{ backgroundColor: "#FAF6EF", borderRadius: 12, padding: 12, marginBottom: 14, flexDirection: "row", flexWrap: "wrap" }}>
           <View style={{ width: "50%", marginBottom: 10 }}><InfoLine label="Pièce d'identité" value={member.idNumber} /></View>
-          <View style={{ width: "50%", marginBottom: 10 }}><InfoLine label="Superficie" value={member.superficie ? `${member.superficie} ha` : "—"} /></View>
+          <View style={{ width: "50%", marginBottom: 10 }}><InfoLine label="Superficie totale" value={memberCultures(member).reduce((s: number, c: any) => s + (Number(c.superficie) || 0), 0) ? `${memberCultures(member).reduce((s: number, c: any) => s + (Number(c.superficie) || 0), 0)} ha` : "—"} /></View>
+          <View style={{ width: "100%", marginBottom: 10 }}><InfoLine label="Cultures" value={culturesLabel(member)} /></View>
           <View style={{ width: "50%" }}><InfoLine label="Localité" value={member.village} /></View>
           <View style={{ width: "50%" }}><InfoLine label="Téléphone" value={member.tel} /></View>
         </View>
@@ -479,6 +483,16 @@ export function MemberDetail({ member, data, onBack, onReceipt }: any) {
           <StatCell label="Reste dû" value={fF(s.reste)} color={s.reste > 0 ? C.due : C.muted} strong />
         </View>
       </Card>
+      {onEdit ? (
+        <View style={{ flexDirection: "row", gap: 9, marginBottom: 16 }}>
+          <Pressable onPress={() => onEdit(member)} testID="member-edit" style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingVertical: 11 }}>
+            <Icon name="settings" size={16} color={C.cocoa} /><Text style={{ color: C.cocoa, fontWeight: "700", fontSize: 13.5 }}>Modifier</Text>
+          </Pressable>
+          <Pressable onPress={() => onDelete(member)} testID="member-delete" style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fff", borderWidth: 1, borderColor: "#EAD7D2", borderRadius: 12, paddingVertical: 11 }}>
+            <Icon name="trash" size={16} color={C.loss} /><Text style={{ color: C.loss, fontWeight: "700", fontSize: 13.5 }}>Supprimer</Text>
+          </Pressable>
+        </View>
+      ) : null}
       {loans.length > 0 ? (
         <>
           <SectionTitle>Prêts</SectionTitle>
@@ -510,7 +524,7 @@ export function MemberDetail({ member, data, onBack, onReceipt }: any) {
   );
 }
 
-export function PatronPrets({ data, onDecide, onBack }: any) {
+export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack }: any) {
   const pending = data.loans.filter((l: any) => l.status === "en_attente");
   const others = data.loans.filter((l: any) => l.status !== "en_attente");
   const totalPrete = data.loans.filter((l: any) => l.status === "approuve" || l.status === "rembourse").reduce((s: number, l: any) => s + l.amount, 0);
@@ -518,10 +532,11 @@ export function PatronPrets({ data, onDecide, onBack }: any) {
   return (
     <View>
       {onBack ? <GhostBtn onPress={onBack} style={{ marginBottom: 12 }}>← Retour</GhostBtn> : null}
-      <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+      <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
         <MiniKpi icon={<Icon name="coins" size={16} color={C.gold} />} label="Total prêté" value={fF(totalPrete)} tint={C.gold} />
         <MiniKpi icon={<Icon name="wallet" size={16} color={C.due} />} label="À recouvrer" value={fF(totalDu)} tint={C.due} />
       </View>
+      <SaveBtn color={C.cocoa} icon={<Icon name="plus" size={17} color="#fff" />} onPress={onNew} style={{ marginBottom: 18 }}>Nouveau prêt / créance</SaveBtn>
       <SectionTitle>Demandes en attente ({pending.length})</SectionTitle>
       {pending.length === 0 ? <Empty text="Aucune demande en attente." /> : (
         <View style={{ gap: 10, marginBottom: 18 }}>
@@ -534,10 +549,10 @@ export function PatronPrets({ data, onDecide, onBack }: any) {
               <Text style={{ fontWeight: "700", fontSize: 14.5 }}>{nameOf(data, l.memberId)}</Text>
               <Text style={{ fontSize: 12.5, color: C.muted, marginTop: 1 }}>{l.motif} · {fDate(l.date)}</Text>
               <View style={{ flexDirection: "row", gap: 9, marginTop: 12 }}>
-                <Pressable onPress={() => onDecide(l.id, "refuse")} style={{ flex: 1, paddingVertical: 11, borderRadius: 11, borderWidth: 1, borderColor: C.line, backgroundColor: "#fff", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }} testID={`loan-refuse-${l.id}`}>
+                <Pressable onPress={() => onRefuse(l.id)} style={{ flex: 1, paddingVertical: 11, borderRadius: 11, borderWidth: 1, borderColor: C.line, backgroundColor: "#fff", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }} testID={`loan-refuse-${l.id}`}>
                   <Icon name="x-circle" size={16} color={C.loss} /><Text style={{ color: C.loss, fontWeight: "700", fontSize: 13.5 }}>Refuser</Text>
                 </Pressable>
-                <Pressable onPress={() => onDecide(l.id, "approuve")} style={{ flex: 1, paddingVertical: 11, borderRadius: 11, backgroundColor: C.green, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }} testID={`loan-approve-${l.id}`}>
+                <Pressable onPress={() => onApprove(l)} style={{ flex: 1, paddingVertical: 11, borderRadius: 11, backgroundColor: C.green, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }} testID={`loan-approve-${l.id}`}>
                   <Icon name="check-circle" size={16} color="#fff" /><Text style={{ color: "#fff", fontWeight: "700", fontSize: 13.5 }}>Approuver</Text>
                 </Pressable>
               </View>

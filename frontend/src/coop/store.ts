@@ -133,6 +133,32 @@ export function useCoopData() {
     );
   }, []);
 
+  const approveLoan = useCallback((id: string, granted: number, paymentMode: string, by: string) => {
+    setData((d) =>
+      d
+        ? { ...d, loans: d.loans.map((l) => (l.id === id ? { ...l, status: "approuve", amount: granted, soldeRestant: granted, paymentMode, decidedBy: by } : l)) }
+        : d,
+    );
+  }, []);
+  const refuseLoan = useCallback((id: string, by: string) => {
+    setData((d) => (d ? { ...d, loans: d.loans.map((l) => (l.id === id ? { ...l, status: "refuse", soldeRestant: 0, decidedBy: by } : l)) } : d));
+  }, []);
+
+  const updateMember = useCallback((id: string, patch: Partial<Member>) => {
+    setData((d) => (d ? { ...d, members: d.members.map((m) => (m.id === id ? { ...m, ...patch } : m)) } : d));
+  }, []);
+  const deleteMember = useCallback((id: string) => {
+    setData((d) =>
+      d ? { ...d, members: d.members.filter((m) => m.id !== id), collections: d.collections.filter((c) => c.memberId !== id), loans: d.loans.filter((l) => l.memberId !== id) } : d,
+    );
+  }, []);
+  const updateStaff = useCallback((id: string, patch: Partial<Staff>) => {
+    setData((d) => (d ? { ...d, staff: d.staff.map((s) => (s.id === id ? { ...s, ...patch } : s)) } : d));
+  }, []);
+  const deleteStaff = useCallback((id: string) => {
+    setData((d) => (d ? { ...d, staff: d.staff.filter((s) => s.id !== id) } : d));
+  }, []);
+
   const linkMemberMomo = useCallback((mId: string, momo: Momo | null) => {
     setData((d) => (d ? { ...d, members: d.members.map((m) => (m.id === mId ? { ...m, momo } : m)) } : d));
   }, []);
@@ -212,6 +238,12 @@ export function useCoopData() {
     addCollection,
     addLoan,
     decideLoan,
+    approveLoan,
+    refuseLoan,
+    updateMember,
+    deleteMember,
+    updateStaff,
+    deleteStaff,
     linkMemberMomo,
     setMemberPhoto,
     addStaff,
