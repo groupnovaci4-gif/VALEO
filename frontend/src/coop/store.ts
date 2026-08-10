@@ -10,6 +10,7 @@ import {
   Mandat,
   Member,
   Momo,
+  Settlement,
   Staff,
   migrate,
   seed,
@@ -118,8 +119,10 @@ export function useCoopData() {
       }
       delete (rec as any)._repay;
       // Solde des restes dus antérieurs, appliqué aux plus anciennes collectes d'abord (FIFO).
-      let settle = Number(c._settle) || 0;
+      const settleReq = Number(c._settle) || 0;
+      let settle = settleReq;
       let cols = d.collections;
+      let settlements = d.settlements || [];
       if (settle > 0) {
         cols = cols.map((x) => {
           if (x.memberId !== rec.memberId || x.reste <= 0 || settle <= 0) return x;
@@ -127,19 +130,38 @@ export function useCoopData() {
           settle -= applied;
           return { ...x, paye: x.paye + applied, reste: x.reste - applied };
         });
+        const appliedTotal = settleReq - settle;
+        if (appliedTotal > 0) {
+          settlements = [
+            ...settlements,
+            { id: uid(), memberId: rec.memberId, byStaffId: rec.byStaffId, amount: appliedTotal, method: rec.method, date: rec.date, viaPesee: true },
+          ];
+          (rec as any).oldRegle = appliedTotal;
+        }
       }
       delete (rec as any)._settle;
       created = rec;
-      return { ...d, seq: d.seq + 1, collections: [...cols, rec], loans };
+      return { ...d, seq: d.seq + 1, collections: [...cols, rec], loans, settlements };
     });
     return created;
   }, []);
 
-  // Solde immédiat de tout le reste dû d'un planteur (paiement hors livraison).
-  const settleMemberDue = useCallback((memberId: string) => {
-    setData((d) =>
-      d ? { ...d, collections: d.collections.map((c) => (c.memberId === memberId && c.reste > 0 ? { ...c, paye: c.paye + c.reste, reste: 0 } : c)) } : d,
-    );
+  // Solde immédiat de tout le reste dû d'un planteur (paiement hors livraison). Retourne le reçu.
+  const settleMemberDue = useCallback((memberId: string, byStaffId: string, method: string): Settlement | null => {
+    let receipt: Settlement | null = null;
+    setData((d) => {
+      if (!d) return d;
+      const total = d.collections.filter((c) => c.memberId === memberId).reduce((s, c) => s + (c.reste > 0 ? c.reste : 0), 0);
+      if (total <= 0) return d;
+      const rec: Settlement = { id: uid(), memberId, byStaffId, amount: total, method, date: new Date().toISOString(), viaPesee: false };
+      receipt = rec;
+      return {
+        ...d,
+        collections: d.collections.map((c) => (c.memberId === memberId && c.reste > 0 ? { ...c, paye: c.paye + c.reste, reste: 0 } : c)),
+        settlements: [...(d.settlements || []), rec],
+      };
+    });
+    return receipt;
   }, []);
 
   const addLoan = useCallback((l: Partial<Loan>) => {
@@ -155,12 +177,12 @@ export function useCoopData() {
   const approveLoan = useCallback((id: string, granted: number, paymentMode: string, by: string) => {
     setData((d) =>
       d
-        ? { ...d, loans: d.loans.map((l) => (l.id === id ? { ...l, status: "approuve", amount: granted, soldeRestant: granted, paymentMode, decidedBy: by } : l)) }
+        ? { ...d, loans: d.loans.map((l) => (l.id === id ? { ...l, status: "approuve", amount: granted, soldeRestant: granted, paymentMode, decidedBy: by, decidedAt: new Date().toISOString() } : l)) }
         : d,
     );
   }, []);
   const refuseLoan = useCallback((id: string, by: string) => {
-    setData((d) => (d ? { ...d, loans: d.loans.map((l) => (l.id === id ? { ...l, status: "refuse", soldeRestant: 0, decidedBy: by } : l)) } : d));
+    setData((d) => (d ? { ...d, loans: d.loans.map((l) => (l.id === id ? { ...l, status: "refuse", soldeRestant: 0, decidedBy: by, decidedAt: new Date().toISOString() } : l)) } : d));
   }, []);
 
   const updateMember = useCallback((id: string, patch: Partial<Member>) => {

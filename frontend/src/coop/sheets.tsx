@@ -17,6 +17,7 @@ import {
   activeLoan,
   crop,
   fDate,
+  fDateTime,
   fF,
   fFull,
   fKg,
@@ -547,6 +548,7 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
       `Poids : ${fKg(c.kg)} × ${fF(c.prixKg)}\n` +
       `Net à payer : ${fFull(c.net)}\n` +
       `Payé (${c.method === "momo" ? "Mobile Money" : "espèces"}) : ${fF(c.paye)}\n` +
+      (c.oldRegle && c.oldRegle > 0 ? `Ancien reste soldé : ${fF(c.oldRegle)}\n` : "") +
       (c.reste > 0 ? `Reste à payer : ${fF(c.reste)}\n` : "") +
       `\nMerci pour votre livraison.`;
     const url = `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
@@ -589,6 +591,12 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
                 <Dashed />
                 <TRow k="NET À PAYER" v={fF(c.net)} bold big />
                 <TRow k={`Payé (${c.method === "momo" ? "Mobile Money" : "espèces"})`} v={fF(c.paye)} />
+                {c.oldRegle && c.oldRegle > 0 ? (
+                  <View style={{ backgroundColor: "#EAF6EE", borderWidth: 1, borderColor: "#CFE6D8", borderRadius: 8, padding: 9, marginVertical: 6, flexDirection: "row", alignItems: "center", gap: 7 }}>
+                    <Icon name="check-circle" size={15} color={C.green} />
+                    <Text style={{ flex: 1, fontSize: 12, color: C.green, fontWeight: "700" }}>Ancien reste soldé : {fF(c.oldRegle)}</Text>
+                  </View>
+                ) : null}
                 {c.reste > 0 ? <TRow k="Reste à payer" v={fF(c.reste)} due /> : null}
                 <Dashed />
                 <Text style={{ textAlign: "center", fontSize: 11, color: C.muted, marginTop: 6 }}>Merci pour votre livraison. Conservez ce reçu.</Text>
@@ -627,6 +635,101 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
             {member?.tel?.trim() ? (
               <SaveBtn color="#25D366" onPress={whatsapp} icon={<Icon name="smartphone" size={16} color="#fff" />} style={{ marginTop: 10 }}>Envoyer par WhatsApp</SaveBtn>
             ) : null}
+          </KeyboardAwareScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+
+function settlementHtml(s: any, member: Member | undefined, saison: string, agent: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body{font-family:-apple-system,Roboto,'Helvetica Neue',sans-serif;color:#241C15;padding:24px;background:#fff}
+    .h{background:#2E8B3D;color:#fff;text-align:center;padding:20px;border-radius:14px 14px 0 0}
+    .h .n{font-size:26px;font-weight:900;letter-spacing:1px}
+    .h .t{font-size:12px;opacity:.9;font-style:italic;margin-top:4px}
+    .h .s{font-size:12px;opacity:.85;margin-top:6px}
+    .b{border:1px solid #EAE2D5;border-top:none;border-radius:0 0 14px 14px;padding:18px;font-family:'Courier New',monospace;font-size:14px}
+    table{width:100%;border-collapse:collapse} td{padding:4px 0} .r{text-align:right}
+    .dash{border-top:1px dashed #EAE2D5;margin:10px 0} .big{font-size:19px;font-weight:900;color:#2E8B3D}
+    .foot{text-align:center;font-size:11px;color:#7A6E62;margin-top:12px;font-family:sans-serif}
+  </style></head><body>
+    <div class="h"><div class="n">VALEO</div><div class="t">La valeur commence à la source.</div><div class="s">${saison} · Reçu de solde</div></div>
+    <div class="b">
+      <table>
+        <tr><td>Date</td><td class="r">${fDateTime(s.date)}</td></tr>
+        <tr><td>Planteur</td><td class="r">${member?.nom || "—"}</td></tr>
+        <tr><td>Village</td><td class="r">${member?.village || "—"}</td></tr>
+        <tr><td>Réglé par</td><td class="r">${agent || "—"}</td></tr>
+      </table>
+      <div class="dash"></div>
+      <table>
+        <tr><td class="big">RESTE SOLDÉ</td><td class="r big">${fFull(s.amount)}</td></tr>
+        <tr><td>Mode</td><td class="r">${s.method === "momo" ? "Mobile Money" : "Espèces"}</td></tr>
+        <tr><td>Nature</td><td class="r">${s.viaPesee ? "Soldé lors d'une pesée" : "Paiement direct (hors livraison)"}</td></tr>
+      </table>
+      <div class="foot">Solde du reste dû au planteur. Conservez ce reçu.</div>
+    </div>
+  </body></html>`;
+}
+
+export function SettlementReceipt({ settlement, member, saison, agent, onClose, onNotice }: any) {
+  const insets = useSafeAreaInsets();
+  const s = settlement;
+  const [busy, setBusy] = useState(false);
+  const share = async () => {
+    setBusy(true);
+    try {
+      const { uri } = await Print.printToFileAsync({ html: settlementHtml(s, member, saison, agent) });
+      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Reçu de solde" });
+    } catch {} finally { setBusy(false); }
+  };
+  const print = async () => {
+    setBusy(true);
+    try { await Print.printAsync({ html: settlementHtml(s, member, saison, agent) }); } catch {} finally { setBusy(false); }
+  };
+  const whatsapp = async () => {
+    const wa = waNumber(member?.tel);
+    if (!wa) { onNotice && onNotice("Ce planteur n'a pas de numéro de téléphone enregistré."); return; }
+    const msg = `*VALEO — Reçu de solde*\n${saison}\nPlanteur : ${member?.nom || "—"}\nDate : ${fDateTime(s.date)}\nReste soldé : ${fFull(s.amount)}\nMode : ${s.method === "momo" ? "Mobile Money" : "Espèces"}\n\nVotre reste dû a été soldé. Merci.`;
+    const url = `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
+    try { if (await Linking.canOpenURL(url)) await Linking.openURL(url); else onNotice && onNotice("WhatsApp n'est pas disponible."); } catch { onNotice && onNotice("Impossible d'ouvrir WhatsApp."); }
+  };
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: "rgba(30,20,12,0.5)", justifyContent: "flex-end" }}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} />
+        <View style={{ backgroundColor: C.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "92%" }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 18, paddingBottom: 12 }}>
+            <Text style={{ fontWeight: "800", fontSize: 17 }}>Reçu de solde</Text>
+            <Pressable onPress={onClose} hitSlop={10} testID="settlement-close"><Icon name="x" size={22} color={C.muted} /></Pressable>
+          </View>
+          <KeyboardAwareScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
+            <View style={{ backgroundColor: "#fff", borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: C.line }}>
+              <View style={{ backgroundColor: C.green, paddingVertical: 14, alignItems: "center" }}>
+                <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", letterSpacing: 1 }}>VALEO</Text>
+                <Text style={{ fontSize: 11.5, color: "rgba(255,255,255,0.8)", marginTop: 4 }}>{saison} · Reçu de solde</Text>
+              </View>
+              <View style={{ padding: 16 }}>
+                <TRow k="Date & heure" v={fDateTime(s.date)} />
+                <TRow k="Planteur" v={member?.nom || "—"} />
+                <TRow k="Village" v={member?.village || "—"} />
+                <TRow k="Réglé par" v={agent || "—"} />
+                <Dashed />
+                <TRow k="RESTE SOLDÉ" v={fFull(s.amount)} bold big />
+                <TRow k="Mode" v={s.method === "momo" ? "Mobile Money" : "Espèces"} />
+                <TRow k="Nature" v={s.viaPesee ? "Soldé lors d'une pesée" : "Paiement direct"} />
+                <Dashed />
+                <Text style={{ textAlign: "center", fontSize: 11, color: C.muted, marginTop: 6 }}>Reste dû soldé au planteur. Conservez ce reçu.</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
+              <SaveBtn color={C.green} onPress={share} disabled={busy} icon={<Icon name="share" size={16} color="#fff" />} style={{ flex: 1 }}>Partager PDF</SaveBtn>
+              <SaveBtn color={C.cocoa} onPress={print} disabled={busy} icon={<Icon name="printer" size={16} color="#fff" />} style={{ flex: 1 }}>Imprimer</SaveBtn>
+            </View>
+            {member?.tel?.trim() ? <SaveBtn color="#25D366" onPress={whatsapp} icon={<Icon name="smartphone" size={16} color="#fff" />} style={{ marginTop: 10 }}>Envoyer par WhatsApp</SaveBtn> : null}
           </KeyboardAwareScrollView>
         </View>
       </View>

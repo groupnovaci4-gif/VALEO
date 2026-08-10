@@ -19,6 +19,8 @@ export function TopBar({
   onLogout,
   onSettings,
   onSetPhoto,
+  onBell,
+  bellCount = 0,
 }: {
   theme: string;
   me: any;
@@ -27,6 +29,8 @@ export function TopBar({
   onLogout: () => void;
   onSettings?: (() => void) | null;
   onSetPhoto: (url: string | null) => void;
+  onBell?: (() => void) | null;
+  bellCount?: number;
 }) {
   const insets = useSafeAreaInsets();
   const label = isCoop ? ROLES[role || "patron"].label : "Espace planteur";
@@ -41,6 +45,16 @@ export function TopBar({
           </View>
         </View>
         <View style={{ flexDirection: "row", gap: 8 }}>
+          {onBell ? (
+            <Pressable onPress={onBell} style={topIcon} testID="topbar-bell">
+              <Icon name="bell" size={17} color="#fff" />
+              {bellCount > 0 ? (
+                <View style={{ position: "absolute", top: -3, right: -3, minWidth: 17, height: 17, paddingHorizontal: 3, borderRadius: 9, backgroundColor: "#E4572E", borderWidth: 1.5, borderColor: theme, alignItems: "center", justifyContent: "center" }}>
+                  <Text style={{ color: "#fff", fontSize: 9.5, fontWeight: "800" }}>{bellCount > 9 ? "9+" : bellCount}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+          ) : null}
           {onSettings ? (
             <Pressable onPress={onSettings} style={topIcon} testID="topbar-settings"><Icon name="settings" size={17} color="#fff" /></Pressable>
           ) : null}

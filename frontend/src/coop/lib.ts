@@ -120,8 +120,10 @@ export type Collection = {
   reste: number;
   method: string;
   note: string;
+  oldRegle?: number;
   signature?: { paths: string[]; w: number; h: number } | null;
   _repay?: { loanId: string; amount: number } | null;
+  _settle?: number | null;
 };
 export type Loan = {
   id: string;
@@ -134,7 +136,9 @@ export type Loan = {
   soldeRestant: number;
   paymentMode?: string;
   decidedBy: string | null;
+  decidedAt?: string | null;
 };
+export type Settlement = { id: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean };
 export type Mandat = { id: string; pisteurId: string; amount: number; date: string; note: string };
 export type Depense = { id: string; pisteurId: string; category: string; amount: number; date: string; note: string };
 export type CoopMomo = { id: string; operator: string; number: string; label?: string };
@@ -178,6 +182,7 @@ export type Data = {
   loans: Loan[];
   mandats: Mandat[];
   depenses: Depense[];
+  settlements: Settlement[];
   priceHistory: PriceHistory[];
 };
 export type Session =
@@ -213,6 +218,7 @@ export function seed(): Data {
     loans: [],
     mandats: [],
     depenses: [],
+    settlements: [],
     priceHistory: [],
   };
 }
@@ -221,6 +227,7 @@ export function migrate(d: any): Data {
   const out = { ...d };
   if (!Array.isArray(out.mandats)) out.mandats = [];
   if (!Array.isArray(out.depenses)) out.depenses = [];
+  if (!Array.isArray(out.settlements)) out.settlements = [];
   if (!Array.isArray(out.loans)) out.loans = [];
   if (!Array.isArray(out.collections)) out.collections = [];
   if (!Array.isArray(out.staff)) out.staff = [];

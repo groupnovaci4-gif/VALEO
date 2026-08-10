@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   C,
@@ -179,6 +180,7 @@ function buildActivity(data: Data): Ev[] {
   });
   (data.mandats || []).forEach((m: any) => evs.push({ id: "m" + m.id, date: m.date, icon: "wallet", tint: C.gold, title: `Mandat confié — ${staffNameOf(data, m.pisteurId)}`, sub: `${fF(m.amount)}${m.note ? ` · ${m.note}` : ""}` }));
   (data.depenses || []).forEach((x: any) => evs.push({ id: "d" + x.id, date: x.date, icon: "receipt", tint: C.rust, title: `Dépense — ${staffNameOf(data, x.pisteurId)}`, sub: `${depcat(x.category).nom} · ${fF(x.amount)}${x.note ? ` · ${x.note}` : ""}` }));
+  (data.settlements || []).forEach((s: any) => evs.push({ id: "s" + s.id, date: s.date, icon: "banknote", tint: C.green, title: `Reste soldé${s.viaPesee ? " (à la pesée)" : ""} — ${nameOf(data, s.memberId)}`, sub: `${fF(s.amount)} · ${s.method === "momo" ? "Mobile Money" : "espèces"}` }));
   return evs.sort(byDateDesc);
 }
 
@@ -798,6 +800,86 @@ export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onReset, o
     </View>
   );
 }
+
+/* ========================== NOTIFICATIONS =============================== */
+export type Notif = { id: string; kind: "action" | "info"; date: string; icon: string; tint: string; title: string; sub: string };
+export function buildNotifications(data: Data, session: any): { items: Notif[]; count: number } {
+  const items: Notif[] = [];
+  const isCoop = session.side === "coop";
+  const isPatron = isCoop && session.role === "patron";
+  if (isPatron) {
+    data.loans.filter((l) => l.status === "en_attente").forEach((l) => items.push({ id: "lp" + l.id, kind: "action", date: l.date, icon: "clock", tint: C.due, title: "Demande de prêt en attente", sub: `${nameOf(data, l.memberId)} · ${fF(l.amount)}` }));
+    data.loans.filter((l) => l.status === "approuve" || l.status === "refuse").forEach((l) => items.push({ id: "ld" + l.id, kind: "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : "x-circle", tint: l.status === "approuve" ? C.green : C.loss, title: l.status === "approuve" ? "Crédit accordé" : "Prêt refusé", sub: `${nameOf(data, l.memberId)} · ${fF(l.amount)}` }));
+  }
+  if (isCoop) {
+    data.members.forEach((m) => {
+      const st = memberStats(m.id, data.collections);
+      if (st.reste > 0) {
+        const lastC = data.collections.filter((c) => c.memberId === m.id && c.reste > 0).sort(byDateDesc)[0];
+        items.push({ id: "rd" + m.id, kind: "action", date: lastC ? lastC.date : new Date().toISOString(), icon: "wallet", tint: C.due, title: "Reste à payer au planteur", sub: `${m.nom} · ${fF(st.reste)}` });
+      }
+    });
+    (data.settlements || []).forEach((s: any) => items.push({ id: "st" + s.id, kind: "info", date: s.date, icon: "banknote", tint: C.green, title: s.viaPesee ? "Reste soldé (à la pesée)" : "Reste soldé", sub: `${nameOf(data, s.memberId)} · ${fF(s.amount)}` }));
+    data.collections.filter((c) => c.paye > 0).forEach((c) => items.push({ id: "pp" + c.id, kind: "info", date: c.date, icon: "scale", tint: C.teal, title: "Pesée payée", sub: `${nameOf(data, c.memberId)} · ${fF(c.paye)}` }));
+  }
+  if (session.side === "planteur") {
+    const m = data.members.find((x) => x.id === session.memberId);
+    if (m) {
+      const st = memberStats(m.id, data.collections);
+      if (st.reste > 0) items.push({ id: "myr", kind: "action", date: new Date().toISOString(), icon: "wallet", tint: C.due, title: "Reste à percevoir", sub: `La coopérative vous doit ${fF(st.reste)}` });
+      data.loans.filter((l) => l.memberId === m.id).forEach((l) => items.push({ id: "ml" + l.id, kind: l.status === "en_attente" ? "action" : "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : l.status === "refuse" ? "x-circle" : "clock", tint: l.status === "approuve" ? C.green : l.status === "refuse" ? C.loss : C.due, title: l.status === "approuve" ? "Prêt accordé" : l.status === "refuse" ? "Prêt refusé" : "Demande en attente", sub: `${fF(l.amount)}${l.motif ? " · " + l.motif : ""}` }));
+      data.collections.filter((c) => c.memberId === m.id && c.paye > 0).forEach((c) => items.push({ id: "mp" + c.id, kind: "info", date: c.date, icon: "scale", tint: C.teal, title: "Pesée payée", sub: `${fKg(c.kg)} · ${fF(c.paye)}` }));
+    }
+  }
+  items.sort(byDateDesc);
+  return { items, count: items.filter((i) => i.kind === "action").length };
+}
+
+const NotifRow = ({ n }: { n: Notif }) => (
+  <Card style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
+    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: n.tint + "22", alignItems: "center", justifyContent: "center" }}><Icon name={n.icon} size={16} color={n.tint} /></View>
+    <View style={{ flex: 1 }}>
+      <Text style={{ fontWeight: "700", fontSize: 13.5 }}>{n.title}</Text>
+      <Text style={{ fontSize: 11.5, color: C.muted }}>{n.sub}</Text>
+    </View>
+    <Text style={{ fontSize: 10.5, color: C.muted, marginLeft: 6 }}>{fDateTime(n.date)}</Text>
+  </Card>
+);
+
+export function NotificationsSheet({ items, onClose }: { items: Notif[]; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  const actions = items.filter((i) => i.kind === "action");
+  const recent = items.filter((i) => i.kind !== "action").slice(0, 30);
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: "rgba(30,20,12,0.5)", justifyContent: "flex-end" }}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} />
+        <View style={{ backgroundColor: C.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "88%" }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 18, paddingBottom: 12 }}>
+            <Text style={{ fontWeight: "800", fontSize: 17 }}>Notifications</Text>
+            <Pressable onPress={onClose} hitSlop={10} testID="notif-close"><Icon name="x" size={22} color={C.muted} /></Pressable>
+          </View>
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
+            {items.length === 0 ? <Empty text="Aucune notification pour le moment." /> : (
+              <>
+                {actions.length > 0 ? (
+                  <>
+                    <SectionTitle>À traiter ({actions.length})</SectionTitle>
+                    <View style={{ gap: 8, marginBottom: 16 }}>{actions.map((n) => <NotifRow key={n.id} n={n} />)}</View>
+                  </>
+                ) : null}
+                <SectionTitle>Activité récente</SectionTitle>
+                <View style={{ gap: 8 }}>{recent.map((n) => <NotifRow key={n.id} n={n} />)}</View>
+              </>
+            )}
+            <View style={{ height: 14 }} />
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 
 /* ========================== PLANTEUR SCREENS ============================= */
 export function SubTabs({ member, loans, onGoPrets }: any) {

@@ -17,10 +17,12 @@ import {
   PeseeSheet,
   ResetPinSheet,
   SettingsSheet,
+  SettlementReceipt,
   Bordereau,
 } from "@/src/coop/sheets";
 import {
   ActivityLog,
+  buildNotifications,
   CoopAccount,
   Collaborateurs,
   CollectorHome,
@@ -28,6 +30,7 @@ import {
   Dashboard,
   Members,
   MemberDetail,
+  NotificationsSheet,
   PatronPrets,
   PisteurHome,
   PisteurRecon,
@@ -100,6 +103,8 @@ export default function App() {
   const [editMember, setEditMember] = useState<any>(null);
   const [editCollab, setEditCollab] = useState<any>(null);
   const [resetTarget, setResetTarget] = useState<{ kind: "member" | "staff"; id: string; name: string } | null>(null);
+  const [showNotif, setShowNotif] = useState(false);
+  const [settlementReceipt, setSettlementReceipt] = useState<any>(null);
   const [confirm, setConfirm] = useState<{ msg: string; onYes: () => void; yesLabel?: string; yesColor?: string } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const insets = useSafeAreaInsets();
@@ -126,7 +131,7 @@ export default function App() {
     );
   }
 
-  const logout = () => { setSession(null); setOpenMember(null); setOpenCollab(null); setSheet(null); setTab(""); setEditMember(null); setEditCollab(null); setApproveLoanObj(null); setResetTarget(null); setConfirm(null); };
+  const logout = () => { setSession(null); setOpenMember(null); setOpenCollab(null); setSheet(null); setTab(""); setEditMember(null); setEditCollab(null); setApproveLoanObj(null); setResetTarget(null); setConfirm(null); setShowNotif(false); setSettlementReceipt(null); };
 
   if (!session) {
     return (
@@ -149,8 +154,11 @@ export default function App() {
 
   const savePesee = (c: any) => {
     const id = uid();
-    const rec = { ...c, seq: data.seq, id };
+    const settleReq = Number(c._settle) || 0;
+    const rec: any = { ...c, seq: data.seq, id };
+    if (settleReq > 0) rec.oldRegle = settleReq;
     delete rec._repay;
+    delete rec._settle;
     store.addCollection({ ...c, id });
     setSheet(null);
     setReceipt(rec);
@@ -174,13 +182,20 @@ export default function App() {
 
   const openMemberObj = openMember ? data.members.find((m) => m.id === openMember) : null;
   const pendingLoans = data.loans.filter((l) => l.status === "en_attente").length;
+  const staffIdNow = session.side === "coop" ? session.staffId : "";
   const settleMemberFn = (m: any, reste: number) =>
     setConfirm({
-      msg: `Solder le reste dû de ${m.nom} (${fF(reste)}) ? Ce montant sera marqué comme payé au planteur.`,
+      msg: `Solder le reste dû de ${m.nom} (${fF(reste)}) ? Un reçu sera généré et le planteur sera marqué comme payé.`,
       yesLabel: "Solder",
       yesColor: C.green,
-      onYes: () => { store.settleMemberDue(m.id); setConfirm(null); setNotice("Reste dû soldé. Le planteur a été payé intégralement."); },
+      onYes: () => {
+        const receiptS = store.settleMemberDue(m.id, staffIdNow, "espece");
+        setConfirm(null);
+        if (receiptS) setSettlementReceipt(receiptS);
+        setNotice("Reste dû soldé. Reçu généré.");
+      },
     });
+  const notif = buildNotifications(data, session);
 
   let body: React.ReactNode = null;
   let nav: React.ReactNode = null;
@@ -278,6 +293,8 @@ export default function App() {
         role={role}
         onLogout={logout}
         onSettings={isCoop && role === "patron" ? () => setSheet("settings") : null}
+        onBell={() => setShowNotif(true)}
+        bellCount={notif.count}
         onSetPhoto={(url) => (session.side === "planteur" ? store.setMemberPhoto(session.memberId, url) : store.setStaffPhoto(session.staffId, url))}
       />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 96 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme} colors={[theme]} />}>
@@ -298,6 +315,8 @@ export default function App() {
       {approveLoanObj ? <LoanApproveSheet loan={approveLoanObj} memberName={data.members.find((m) => m.id === approveLoanObj.memberId)?.nom || "—"} onClose={() => setApproveLoanObj(null)} onApprove={(granted: number, mode: string) => { store.approveLoan(approveLoanObj.id, granted, mode, staffId); setApproveLoanObj(null); }} /> : null}
       {resetTarget ? <ResetPinSheet name={resetTarget.name} onClose={() => setResetTarget(null)} onSave={(rec: any) => { if (resetTarget.kind === "member") store.updateMember(resetTarget.id, { pin: rec }); else store.updateStaff(resetTarget.id, { pin: rec }); setResetTarget(null); setNotice("Code secret réinitialisé avec succès."); }} /> : null}
       {receipt ? <Bordereau collection={receipt} member={data.members.find((m) => m.id === receipt.memberId)} saison={data.saison} onClose={() => setReceipt(null)} onSign={(sig) => store.setCollectionSignature(receipt.id, sig)} onNotice={setNotice} /> : null}
+      {settlementReceipt ? <SettlementReceipt settlement={settlementReceipt} member={data.members.find((m) => m.id === settlementReceipt.memberId)} saison={data.saison} agent={data.staff.find((s) => s.id === settlementReceipt.byStaffId)?.nom || "—"} onClose={() => setSettlementReceipt(null)} onNotice={setNotice} /> : null}
+      {showNotif ? <NotificationsSheet items={notif.items} onClose={() => setShowNotif(false)} /> : null}
 
       <Modal visible={!!notice} transparent animationType="fade" onRequestClose={() => setNotice(null)}>
         <Pressable style={{ flex: 1, backgroundColor: "rgba(30,20,12,0.5)", justifyContent: "center", padding: 28 }} onPress={() => setNotice(null)}>

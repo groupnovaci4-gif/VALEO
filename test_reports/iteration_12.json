@@ -1,0 +1,45 @@
+{
+  "summary": "Frontend-only validation of VALEO features: (1) timestamped 'reste à payer' and credits, (2) SettlementReceipt on solder-hors-pesée, (3) 'Ancien reste soldé' line on Bordereau when new pesée solders a prior reste, (4) notifications bell wired. Tested on Expo web preview (390x844) against the seed Patron 'Diomande Mamadou' / 0700000001 / PIN 1234 (COOPTEST). ALL 6 features PASS after applying one small fix in /app/frontend/app/index.tsx (savePesee) to propagate oldRegle from _settle into the receipt object shown by Bordereau. Details: (a) LOGIN — coop login succeeds, TopBar 'topbar-bell' shows a red badge = count of 'action' items (verified badges of 1 → 2 → 1 as restes-dus were created/settled). (b) BELL — NotificationsSheet opens with 'À traiter (n)' and 'Activité récente' sections; each row is horodaté in French format 'jj/mm/aaaa · hh:mm' (verified 5 sample dates); 'notif-close' testID closes the sheet. (c) SETTLE-HORS-PESÉE — created a partial pesée (10 kg × 1 800 F = 18 000 F net, 2 000 F payé → reste 16 000 F), opened Kouassi Yao Test detail, tapped testID='member-settle' (label 'Solder le reste dû (16 000 F)'), got the confirm modal with 'Solder' testID='confirm-yes', tapped it, SettlementReceipt (testID='settlement-close') opened automatically with 'Reçu de solde', 'Date & heure', 'RESTE SOLDÉ 16 000 FCFA', 'Mode Espèces', 'Nature Paiement direct', 'Réglé par Diomande Mamadou', 'Partager PDF' + 'Imprimer' + 'Envoyer par WhatsApp' buttons; after close, member's 'Reste dû' displayed 0 F. (d) ANCIEN RESTE À LA PESÉE — after applying the fix, a subsequent 'Payer tout' pesée on Kouassi (25 kg × 1 800 F = 45 000 F net) with a pending 17 000 F reste now renders on the generated Bordereau a green, distinctly framed line 'Ancien reste soldé : 17 000 F' separated from 'Payé (espèces) 45 000 F' — matches the spec. (e) NON-RÉGRESSION — a fresh pesée with no prior reste displays NO 'Ancien reste soldé' line. (f) TIMESTAMPED CREDITS — approved Alice Test Planteur's 25 000 F Intrant loan via Coop → 'Demandes de prêt' → 'Approuver' → 'Approuver & verser'; bell now shows a horodaté 'Crédit accordé — Alice Test Planteur · 25 000 F' (10/08/2026 · 00:05). Journal d'activité (Bilan → Journal d'activité) lists 'Reste soldé (à la pesée) — Kouassi Yao Test' events horodatés. (g) UI/UX — no red screen, no JS console errors, no MOCKED APIs, no deprecated packages introduced, no design regressions. One small bug found and fixed by testing agent — see updated_files below.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/tmp/01_dash.png",
+    "/tmp/02_notifs.png",
+    "/tmp/09_settlement_receipt.png",
+    "/tmp/10_after_settle.png",
+    "/tmp/bordereau_fixed.png",
+    "/tmp/bordereau_no_old.png",
+    "/tmp/notif_after_approval.png",
+    "/tmp/journal_final.png"
+  ],
+  "action_items": [
+    "None blocking — bug fix applied in /app/frontend/app/index.tsx (savePesee): now sets rec.oldRegle = Number(c._settle) when > 0 and strips _settle before setting the receipt, so the Bordereau's green 'Ancien reste soldé : X F' line renders as specified. Please review the diff.",
+    "Optional polish: consider showing the small 'Ancien reste soldé' green banner directly inside the PDF variant (bordereauHtml) too — the on-screen sheet renders it correctly but the shared PDF's WhatsApp text already includes it; verify the HTML path prints it as well (settlementHtml already handles this for reçu de solde)."
+  ],
+  "critical_code_review_comments": [
+    "store.ts settleMemberDue (l.150-165): correct — computes total from collections' reste, guards against total<=0, creates a horodaté Settlement (date=new Date().toISOString(), viaPesee=false) and zeroes the reste on all matching collections. Returns the settlement so index.tsx can open SettlementReceipt.",
+    "store.ts addCollection (l.107-147): correct FIFO settlement of previous restes when _settle>0; posts a settlement with viaPesee=true and sets rec.oldRegle=appliedTotal. The mutation is atomic inside setData (immutable spread of cols/settlements).",
+    "store.ts approveLoan / refuseLoan: correctly stamp decidedAt=new Date().toISOString() — verified via bell rendering the timestamp on 'Crédit accordé'.",
+    "screens.tsx buildNotifications (l.806-836): correctly separates action vs info; count is derived from actions only; dates use decidedAt fallback l.date for loans; sorted by date desc. NotificationsSheet (l.849-881) sections and empty state are correct; testIDs 'notif-close' present.",
+    "sheets.tsx SettlementReceipt (l.678-737): testID 'settlement-close' present; displays Date & heure, Planteur, Village, Réglé par, RESTE SOLDÉ, Mode, Nature; Partager PDF / Imprimer / WhatsApp buttons all wired via expo-print/Sharing/Linking; settlementHtml (l.646-676) builds a clean PDF.",
+    "sheets.tsx Bordereau (l.594-599): green banner 'Ancien reste soldé : X F' only when c.oldRegle > 0 — correct.",
+    "index.tsx savePesee (l.155-163) BEFORE FIX: was spreading c into rec but c has _settle (not oldRegle); rec was passed to setReceipt without oldRegle so the Bordereau banner never appeared. Fixed by computing rec.oldRegle from Number(c._settle) and stripping _settle. Minimal, safe change.",
+    "auth.tsx TopBar (l.48-56): 'topbar-bell' testID present; badge only rendered when bellCount>0 (safe against undefined). Placement over teal/lime header contrasts well.",
+    "screens.tsx member-settle button (l.581-585): correctly shown only when onSettle && s.reste>0; label includes the exact amount fF(s.reste). Rendered as green Pressable with icon; touch target > 44 pt vertically.",
+    "index.tsx L183-194 settleMemberFn: wraps store.settleMemberDue in a confirm modal (testID confirm-yes with label 'Solder' and color C.green), opens SettlementReceipt on success and dismisses via a notice. Reset of session state on logout (l.134) correctly closes settlementReceipt / notif panels."
+  ],
+  "updated_files": [
+    "/app/frontend/app/index.tsx (savePesee — propagate oldRegle to receipt object; +3 lines / -1 line)"
+  ],
+  "success_rate": { "backend": "N/A (skipped per request scope)", "frontend": "100% (6/6 feature groups after fix)" },
+  "seed_data_creation": "Reused existing seed: COOPTEST + Patron 'Diomande Mamadou' (0700000001/PIN 1234), planteurs 'Kouassi Yao Test' (PL-2026-0001) and 'Alice Test Planteur' (PL-2026-0002, pending 25 000 F loan). During testing: created 4 additional collections for Kouassi (100 kg partial 50 000 F/reste 130 000 F → soldée hors pesée; then 10 kg partial 3 000 F/reste 15 000 F → soldée via pesée 20 kg; then 10 kg partial 2 000 F/reste 16 000 F → soldée via pesée 30 kg; then 10 kg partial 1 000 F/reste 17 000 F → soldée via pesée 25 kg; then a non-regression pesée 5 kg×1 800 = 9 000 F paid). Alice's loan approuvée at 25 000 F espèces. State is persisted in localStorage under the Expo web preview.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "After my fix, the Bordereau receipt object must include oldRegle when _settle>0 — see savePesee in app/index.tsx. testIDs used: topbar-bell (bell with badge, badge shows count of 'action' notifs), notif-close (X in NotificationsSheet), member-settle (green 'Solder le reste dû (X F)' button on MemberDetail, only visible when s.reste>0), confirm-yes / confirm-cancel (in confirm modal, label='Solder'), settlement-close (X in SettlementReceipt), bordereau-close (X in Bordereau), fab, nav-bilan / nav-planteurs / nav-collaborateurs / nav-coop, notice-ok, save-btn. To reach the 'Ancien reste soldé' banner: create a partial pesée (leave reste), then FAB → new pesée 'Payer tout' → Bordereau shows the green line. To approve a loan: nav-coop → tap 'Demandes de prêt' row → tap 'Approuver' on a pending row → LoanApproveSheet opens with 'Approuver & verser' final button. Pesée sheet placeholder: 'Ex. 320' for kg; when reste dû exists it shows '+ Reste dû (précédent)' and 'Total à payer'. Bell badge = number of action items (pending loans + members with reste dû, for coop role).",
+  "rca_of_issue": "Root cause of the missing 'Ancien reste soldé' line: /app/frontend/app/index.tsx savePesee built rec = {...c, seq, id} and passed it to setReceipt(rec). The PeseeSheet posts { ..., _settle } into c (not oldRegle). The store's addCollection computes oldRegle internally on the persisted record but the local `rec` used by the Bordereau modal is a separate object without oldRegle → Bordereau's `c.oldRegle > 0` was always falsy. Fix: in savePesee, mirror the store logic by writing rec.oldRegle = Number(c._settle) when > 0 (and stripping _settle to avoid leakage in the receipt UI). Verified end-to-end on live preview: green banner 'Ancien reste soldé : 17 000 F' displayed only when a prior reste is settled; non-regression pesée without prior reste displays no banner."
+}
