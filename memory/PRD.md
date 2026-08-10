@@ -92,3 +92,11 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
 - Bug : le formulaire de prêt affichait un sélecteur de planteur même côté planteur → un planteur pouvait faire une demande au nom d'un autre (le memberId du Select écrasait session.memberId via le spread).
 - Fix : LoanSheet accepte `fixedMember` → côté planteur, sélecteur remplacé par une carte lecture seule (planteur connecté) et onSave force memberId = fixedMember.id ; index.tsx addLoan force memberId=session.memberId (spread avant). Côté patron, sélecteur conservé.
 - Écrans planteur (PlanteurPoids/Prets/Momo) filtrent déjà strictement par member.id ; aucune liste d'autres planteurs accessible au planteur.
+
+## Fonctions v13 (2026-06) — Reçus de solde, horodatage & cloche (iteration_12, 6/6 PASS)
+- Modèle : type Settlement + data.settlements ; Collection.oldRegle ; Loan.decidedAt. Migration : settlements=[] par défaut.
+- store : settleMemberDue(memberId, staffId, method) enregistre un Settlement horodaté et RETOURNE le reçu ; addCollection enregistre un Settlement viaPesee + pose collection.oldRegle ; approveLoan/refuseLoan posent decidedAt.
+- Reçu de solde : SettlementReceipt (sheets.tsx) — modal reçu (Date & heure, planteur, montant, mode, agent) avec Partager PDF / Imprimer / WhatsApp (settlementHtml). Ouvert auto après un solde.
+- Bordereau : ligne verte distincte « Ancien reste soldé : X » quand oldRegle>0 (démarque l'ancien reste vs la pesée courante). savePesee (index.tsx) propage oldRegle au reçu affiché.
+- Cloche : TopBar bell (testID topbar-bell) + badge = nb « À traiter ». buildNotifications(data, session) + NotificationsSheet (screens.tsx) : sections « À traiter » (prêts en attente, restes dus) et « Activité récente » (pesées payées, restes soldés, crédits accordés/refusés), horodatées. Portée par rôle (patron voit prêts ; planteur voit ses propres infos).
+- ActivityLog inclut désormais les settlements.
