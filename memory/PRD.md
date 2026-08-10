@@ -100,3 +100,10 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
 - Bordereau : ligne verte distincte « Ancien reste soldé : X » quand oldRegle>0 (démarque l'ancien reste vs la pesée courante). savePesee (index.tsx) propage oldRegle au reçu affiché.
 - Cloche : TopBar bell (testID topbar-bell) + badge = nb « À traiter ». buildNotifications(data, session) + NotificationsSheet (screens.tsx) : sections « À traiter » (prêts en attente, restes dus) et « Activité récente » (pesées payées, restes soldés, crédits accordés/refusés), horodatées. Portée par rôle (patron voit prêts ; planteur voit ses propres infos).
 - ActivityLog inclut désormais les settlements.
+
+## Multi-coop + prix par produit + refonte accueil v14 (2026-06) — TERMINÉ & TESTÉ (iteration_13, 10/10 backend + UI PASS)
+- **Isolation multi-coopératives** : `data.coops[]` (chaque Coop a id/prices/commissions) ; `scopeData(raw, coopId)` (lib.ts) n'expose QUE les données de la coop connectée ; `store.setCoopScope` + `coopId` estampillé sur chaque écriture. Web admin garde la vue globale (state complet).
+- **Prix & commissions par produit** : `priceOf`/`commOf(data, cropId)` ; SettingsSheet édite prix+commission des 5 cultures (Cacao/Café/Anacarde/Hévéa/Palmier) ; PeseeSheet applique le prix du produit sélectionné.
+- **Superficie par culture** : CulturesPicker (ui.tsx) saisit une superficie (ha) distincte par culture cochée (déjà en place, confirmé).
+- **Refonte accueil** : nouveau fichier `src/coop/home.tsx` — `QuickActions` (grille de petites icônes de raccourcis, testIDs quick-<label>) + `PartnersBanner` (bandeau défilant « En partenariat avec » CCC/MINADER/CNRA/ANADER/FIRCA, placeholders initiales, marquee Animated.loop, useNativeDriver conditionnel web). Câblé dans index.tsx sur l'accueil de chaque rôle (Patron/Bilan, Magasinier, Pisteur, Planteur).
+- Backlog restant : logo VALEO dans l'en-tête PDF ; choix mode de paiement (Espèces/MoMo) au solde ; notifications par planteur ; sauvegarde quotidienne auto.

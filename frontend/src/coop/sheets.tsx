@@ -24,6 +24,8 @@ import {
   group,
   memberCultures,
   memberStats,
+  commOf,
+  priceOf,
   ticketNo,
   totalSuperficie,
   waNumber,
@@ -90,7 +92,7 @@ export function MemberSheet({ onClose, onSave, initial }: any) {
 export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Data; role?: string; staffId: string; onClose: () => void; onSave: (c: any) => void }) {
   const [memberId, setMemberId] = useState(data.members[0]?.id || "");
   const [kg, setKg] = useState("");
-  const [prixKg, setPrixKg] = useState(String(data.prixKg));
+  const [prixKg, setPrixKg] = useState(String(priceOf(data, memberCultures(data.members[0]).map((c) => c.cropId)[0] || "cacao")));
   const [credit, setCredit] = useState("");
   const [cotisation, setCotisation] = useState("");
   const [sacs, setSacs] = useState("");
@@ -109,6 +111,10 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
     const cc = memberCultures(data.members.find((m) => m.id === memberId));
     setCropId(cc[0]?.cropId || "cacao");
   }, [memberId, data.members]);
+  useEffect(() => {
+    setPrixKg(String(priceOf(data, cropId)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cropId]);
 
   const brut = (Number(kg) || 0) * (Number(prixKg) || 0);
   const rembN = loan ? Math.min(Number(remb) || 0, loan.soldeRestant) : 0;
@@ -413,25 +419,49 @@ export function LinkMomoSheet({ title, withLabel, onClose, onSave }: any) {
 }
 
 export function SettingsSheet({ data, onClose, onSave, onReset }: any) {
-  const [prixKg, setPrixKg] = useState(String(data.prixKg));
   const [saison, setSaison] = useState(data.saison);
-  const [commissionRate, setCommissionRate] = useState(String(data.commissionRate));
+  const crops = (data.coop?.filieres && data.coop.filieres.length ? CROPS.filter((c) => data.coop.filieres.includes(c.id)) : CROPS);
+  const [prices, setPrices] = useState<Record<string, string>>(() => {
+    const o: Record<string, string> = {};
+    crops.forEach((c) => (o[c.id] = String(priceOf(data, c.id))));
+    return o;
+  });
+  const [commissions, setCommissions] = useState<Record<string, string>>(() => {
+    const o: Record<string, string> = {};
+    crops.forEach((c) => (o[c.id] = String(commOf(data, c.id))));
+    return o;
+  });
+  const valid = saison.trim() && crops.every((c) => Number(prices[c.id]) >= 0);
+  const submit = () => {
+    const p: Record<string, number> = {};
+    const cm: Record<string, number> = {};
+    crops.forEach((c) => { p[c.id] = Number(prices[c.id]) || 0; cm[c.id] = Number(commissions[c.id]) || 0; });
+    onSave({ saison: saison.trim(), prices: p, commissions: cm });
+  };
   return (
     <Sheet title="Réglages" onClose={onClose}>
-      <Field label="Prix bord champ par défaut (F/kg)">
-        <TInput value={prixKg} onChangeText={(t) => setPrixKg(t.replace(/\D/g, ""))} keyboardType="number-pad" />
-        <Text style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>Prix officiel de la campagne, appliqué par défaut à chaque pesée. Modifiable au cas par cas.</Text>
-      </Field>
-      <Field label="Commission pisteur (F/kg)">
-        <TInput value={commissionRate} onChangeText={(t) => setCommissionRate(t.replace(/\D/g, ""))} keyboardType="number-pad" />
-        <Text style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>Barème appliqué au poids collecté par chaque pisteur pour calculer sa commission.</Text>
-      </Field>
       <Field label="Nom de la campagne"><TInput value={saison} onChangeText={setSaison} /></Field>
+      <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 10 }}>Fixez pour chaque produit le prix d'achat bord champ (F/kg) et la commission du pisteur / délégué (F/kg).</Text>
+      {crops.map((c) => (
+        <View key={c.id} style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, marginBottom: 12 }}>
+          <Text style={{ fontWeight: "800", fontSize: 14, marginBottom: 10 }}>{c.emoji} {c.nom}</Text>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>Prix d'achat (F/kg)</Text>
+              <TInput value={prices[c.id] || ""} onChangeText={(t) => setPrices((s) => ({ ...s, [c.id]: t.replace(/\D/g, "") }))} keyboardType="number-pad" placeholder="0" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>Commission pisteur (F/kg)</Text>
+              <TInput value={commissions[c.id] || ""} onChangeText={(t) => setCommissions((s) => ({ ...s, [c.id]: t.replace(/\D/g, "") }))} keyboardType="number-pad" placeholder="0" />
+            </View>
+          </View>
+        </View>
+      ))}
       {(data.priceHistory || []).length > 0 ? (
         <View style={{ marginBottom: 14 }}>
-          <SectionTitle>Historique des prix</SectionTitle>
+          <SectionTitle>Historique du prix cacao</SectionTitle>
           <Card style={{ padding: 12 }}>
-            {[...(data.priceHistory || [])].reverse().map((h: any, i: number) => (
+            {[...(data.priceHistory || [])].reverse().slice(0, 8).map((h: any, i: number) => (
               <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 6, borderTopWidth: i === 0 ? 0 : 1, borderColor: C.line, borderStyle: "dashed" }}>
                 <Text style={{ fontSize: 13, color: C.muted }}>{fDate(h.date)}</Text>
                 <Text style={{ fontSize: 14, fontWeight: "700", color: C.ink }}>{fF(h.prixKg)}/kg</Text>
@@ -440,7 +470,7 @@ export function SettingsSheet({ data, onClose, onSave, onReset }: any) {
           </Card>
         </View>
       ) : null}
-      <SaveBtn disabled={!(Number(prixKg) > 0 && saison.trim())} color={C.cocoa} onPress={() => onSave({ prixKg: Number(prixKg), saison: saison.trim(), commissionRate: Number(commissionRate) || 0 })}>Enregistrer</SaveBtn>
+      <SaveBtn disabled={!valid} color={C.cocoa} onPress={submit}>Enregistrer</SaveBtn>
       <Pressable onPress={onReset} style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, alignItems: "center", marginTop: 12 }}>
         <Text style={{ color: C.muted, fontSize: 12.5, fontWeight: "600" }}>Réinitialiser les données de démonstration</Text>
       </Pressable>

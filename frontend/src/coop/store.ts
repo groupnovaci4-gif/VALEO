@@ -3,8 +3,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { storage } from "@/src/utils/storage";
 import {
   Collection,
+  Coop,
   CoopMomo,
+  CROPS,
   Data,
+  DEFAULT_COMM,
+  DEFAULT_PRICES,
   Depense,
   Loan,
   Mandat,
@@ -54,6 +58,9 @@ export function useCoopData() {
   const [ready, setReady] = useState(false);
   const remoteApply = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const coopIdRef = useRef<string>("");
+  const setCoopScope = useCallback((id: string) => { coopIdRef.current = id || ""; }, []);
+  const cid = () => coopIdRef.current || undefined;
 
   useEffect(() => {
     (async () => {
@@ -92,23 +99,23 @@ export function useCoopData() {
     setData((d) => {
       if (!d) return d;
       const code = `PL-2026-${String(d.memberSeq).padStart(4, "0")}`;
-      return { ...d, memberSeq: d.memberSeq + 1, members: [...d.members, { id: uid(), code, momo: null, photo: null, ...m } as Member] };
+      return { ...d, memberSeq: d.memberSeq + 1, members: [...d.members, { id: uid(), coopId: cid(), code, momo: null, photo: null, ...m } as Member] };
     });
   }, []);
 
   const addMandat = useCallback((m: Partial<Mandat>) => {
-    setData((d) => (d ? { ...d, mandats: [...d.mandats, { id: uid(), date: new Date().toISOString(), ...m } as Mandat] } : d));
+    setData((d) => (d ? { ...d, mandats: [...d.mandats, { id: uid(), coopId: cid(), date: new Date().toISOString(), ...m } as Mandat] } : d));
   }, []);
 
   const addDepense = useCallback((x: Partial<Depense>) => {
-    setData((d) => (d ? { ...d, depenses: [...d.depenses, { id: uid(), date: new Date().toISOString(), ...x } as Depense] } : d));
+    setData((d) => (d ? { ...d, depenses: [...d.depenses, { id: uid(), coopId: cid(), date: new Date().toISOString(), ...x } as Depense] } : d));
   }, []);
 
   const addCollection = useCallback((c: any): Collection | null => {
     let created: Collection | null = null;
     setData((d) => {
       if (!d) return d;
-      const rec: Collection = { ...c, id: c.id || uid(), seq: c.seq ?? d.seq };
+      const rec: Collection = { ...c, id: c.id || uid(), seq: c.seq ?? d.seq, coopId: c.coopId || cid() };
       let loans = d.loans;
       if (c._repay && c._repay.amount > 0) {
         loans = loans.map((l) =>
@@ -134,7 +141,7 @@ export function useCoopData() {
         if (appliedTotal > 0) {
           settlements = [
             ...settlements,
-            { id: uid(), memberId: rec.memberId, byStaffId: rec.byStaffId, amount: appliedTotal, method: rec.method, date: rec.date, viaPesee: true },
+            { id: uid(), coopId: rec.coopId, memberId: rec.memberId, byStaffId: rec.byStaffId, amount: appliedTotal, method: rec.method, date: rec.date, viaPesee: true },
           ];
           (rec as any).oldRegle = appliedTotal;
         }
@@ -153,7 +160,7 @@ export function useCoopData() {
       if (!d) return d;
       const total = d.collections.filter((c) => c.memberId === memberId).reduce((s, c) => s + (c.reste > 0 ? c.reste : 0), 0);
       if (total <= 0) return d;
-      const rec: Settlement = { id: uid(), memberId, byStaffId, amount: total, method, date: new Date().toISOString(), viaPesee: false };
+      const rec: Settlement = { id: uid(), coopId: cid(), memberId, byStaffId, amount: total, method, date: new Date().toISOString(), viaPesee: false };
       receipt = rec;
       return {
         ...d,
@@ -165,7 +172,7 @@ export function useCoopData() {
   }, []);
 
   const addLoan = useCallback((l: Partial<Loan>) => {
-    setData((d) => (d ? { ...d, loans: [...d.loans, { id: uid(), status: "en_attente", soldeRestant: 0, decidedBy: null, ...l } as Loan] } : d));
+    setData((d) => (d ? { ...d, loans: [...d.loans, { id: uid(), coopId: cid(), status: "en_attente", soldeRestant: 0, decidedBy: null, ...l } as Loan] } : d));
   }, []);
 
   const decideLoan = useCallback((id: string, status: string, by: string) => {
@@ -209,19 +216,26 @@ export function useCoopData() {
   }, []);
 
   const addStaff = useCallback((s: Partial<Staff>) => {
-    setData((d) => (d ? { ...d, staff: [...d.staff, { id: uid(), photo: null, ...s } as Staff] } : d));
+    setData((d) => (d ? { ...d, staff: [...d.staff, { id: uid(), coopId: cid(), photo: null, ...s } as Staff] } : d));
   }, []);
 
   const setStaffPhoto = useCallback((id: string, photo: string | null) => {
     setData((d) => (d ? { ...d, staff: d.staff.map((s) => (s.id === id ? { ...s, photo } : s)) } : d));
   }, []);
 
+  // Applique une mise à jour à la coopérative actuellement en portée (dans coops[]).
+  const patchCurrentCoop = (d: Data, fn: (c: Coop) => Coop): Data => {
+    const id = coopIdRef.current;
+    const coops = (d.coops || []).map((c) => (c.id === id ? fn(c) : c));
+    return { ...d, coops, coop: coops.find((c) => c.id === id) || d.coop };
+  };
+
   const addCoopMomo = useCallback((acc: Partial<CoopMomo>) => {
-    setData((d) => (d ? { ...d, coop: { ...d.coop, momo: [...d.coop.momo, { id: uid(), ...acc } as CoopMomo] } } : d));
+    setData((d) => (d ? patchCurrentCoop(d, (c) => ({ ...c, momo: [...(c.momo || []), { id: uid(), ...acc } as CoopMomo] })) : d));
   }, []);
 
   const delCoopMomo = useCallback((id: string) => {
-    setData((d) => (d ? { ...d, coop: { ...d.coop, momo: d.coop.momo.filter((a) => a.id !== id) } } : d));
+    setData((d) => (d ? patchCurrentCoop(d, (c) => ({ ...c, momo: (c.momo || []).filter((a) => a.id !== id) })) : d));
   }, []);
 
   const setPrix = useCallback((p: { prixKg: number; saison: string; commissionRate?: number }) => {
@@ -230,6 +244,18 @@ export function useCoopData() {
       const changed = p.prixKg !== d.prixKg;
       const priceHistory = changed ? [...(d.priceHistory || []), { date: new Date().toISOString(), prixKg: p.prixKg }] : d.priceHistory || [];
       return { ...d, prixKg: p.prixKg, saison: p.saison, commissionRate: p.commissionRate ?? d.commissionRate, priceHistory };
+    });
+  }, []);
+
+  // Réglages par produit (prix d'achat + commission) pour la coopérative en portée.
+  const setCoopSettings = useCallback((p: { saison?: string; prices: Record<string, number>; commissions: Record<string, number> }) => {
+    setData((d) => {
+      if (!d) return d;
+      const withSaison = p.saison ? { ...d, saison: p.saison } : d;
+      const prevCacao = (d.coops || []).find((c) => c.id === coopIdRef.current)?.prices?.cacao;
+      const changed = prevCacao != null && p.prices.cacao != null && p.prices.cacao !== prevCacao;
+      const priceHistory = changed ? [...(d.priceHistory || []), { date: new Date().toISOString(), prixKg: p.prices.cacao }] : d.priceHistory || [];
+      return patchCurrentCoop({ ...withSaison, priceHistory }, (c) => ({ ...c, prices: { ...c.prices, ...p.prices }, commissions: { ...c.commissions, ...p.commissions } }));
     });
   }, []);
 
@@ -246,28 +272,36 @@ export function useCoopData() {
     setData((d) => {
       if (!d) return d;
       const code = `PL-2026-${String(d.memberSeq).padStart(4, "0")}`;
-      return { ...d, memberSeq: d.memberSeq + 1, members: [...d.members, { id, code, momo: null, photo: null, ...m } as Member] };
+      return { ...d, memberSeq: d.memberSeq + 1, members: [...d.members, { id, coopId: cid(), code, momo: null, photo: null, ...m } as Member] };
     });
     return id;
   }, []);
 
-  const createLoginCoop = useCallback((p: { coop: Partial<any>; responsable: { nom: string; prenoms?: string; tel?: string; email?: string; fonction?: string; idNumber?: string; photo?: string | null; pin?: any } }): string => {
-    const id = uid();
+  const createLoginCoop = useCallback((p: { coop: Partial<any>; responsable: { nom: string; prenoms?: string; tel?: string; email?: string; fonction?: string; idNumber?: string; photo?: string | null; pin?: any } }): { staffId: string; coopId: string } => {
+    const staffId = uid();
+    const coopId = uid();
+    coopIdRef.current = coopId;
     const r = p.responsable;
     const fullName = `${r.nom || ""} ${r.prenoms || ""}`.trim() || r.nom;
+    const prices: Record<string, number> = {};
+    const commissions: Record<string, number> = {};
+    CROPS.forEach((c) => { prices[c.id] = DEFAULT_PRICES[c.id]; commissions[c.id] = DEFAULT_COMM[c.id]; });
     setData((d) =>
       d
         ? {
             ...d,
-            coop: { ...d.coop, ...p.coop, momo: d.coop.momo, filieres: p.coop.filieres || d.coop.filieres || [] },
+            coops: [
+              ...(d.coops || []),
+              { id: coopId, ...p.coop, momo: [], filieres: p.coop.filieres || [], prices, commissions } as unknown as Coop,
+            ],
             staff: [
               ...d.staff,
-              { id, role: "patron", nom: fullName, prenoms: r.prenoms, tel: r.tel, email: r.email, fonction: r.fonction || "Responsable", idNumber: r.idNumber, photo: r.photo || null, pin: r.pin || null },
+              { id: staffId, coopId, role: "patron", nom: fullName, prenoms: r.prenoms, tel: r.tel, email: r.email, fonction: r.fonction || "Responsable", idNumber: r.idNumber, photo: r.photo || null, pin: r.pin || null },
             ],
           }
         : d,
     );
-    return id;
+    return { staffId, coopId };
   }, []);
 
   return {
@@ -293,6 +327,8 @@ export function useCoopData() {
     addCoopMomo,
     delCoopMomo,
     setPrix,
+    setCoopSettings,
+    setCoopScope,
     reset,
     replaceData,
     setCollectionSignature,

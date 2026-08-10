@@ -102,7 +102,7 @@ export function Login({
     );
     if (!s) { setCoopErr("Aucun compte trouvé. Vérifiez le nom et le téléphone."); return; }
     if (s.pin && !(await verifyPinAsync(coopPin, s.pin))) { setCoopErr("Code secret incorrect."); return; }
-    onPick({ side: "coop", role: s.role, staffId: s.id });
+    onPick({ side: "coop", role: s.role, staffId: s.id, coopId: s.coopId });
   };
   const doPlanteurLogin = async () => {
     const q = normalizeText(planteurLogin);
@@ -112,7 +112,7 @@ export function Login({
     const m = data.members.find((mm) => normalizeText(mm.code) === q || (dig.length >= 6 && normalizePhone(mm.tel) === dig));
     if (!m) { setPlanteurErr("Aucun planteur trouvé. Vérifiez le code ou le téléphone."); return; }
     if (m.pin && !(await verifyPinAsync(planteurPin, m.pin))) { setPlanteurErr("Code secret incorrect."); return; }
-    onPick({ side: "planteur", memberId: m.id });
+    onPick({ side: "planteur", memberId: m.id, coopId: m.coopId });
   };
 
   return (

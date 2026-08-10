@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { AppState, Modal, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, Session, fF, uid } from "@/src/coop/lib";
+import { C, Session, fF, scopeData, uid } from "@/src/coop/lib";
 import { Icon } from "@/src/coop/Icon";
 import { Login, TopBar } from "@/src/coop/auth";
 import {
@@ -39,6 +39,7 @@ import {
   PlanteurPrets,
   SubTabs,
 } from "@/src/coop/screens";
+import { QuickActions, PartnersBanner } from "@/src/coop/home";
 import { useCoopData } from "@/src/coop/store";
 import { shareCampaign } from "@/src/coop/reports";
 import { exportData, importData } from "@/src/coop/backup";
@@ -91,7 +92,7 @@ function NavBar({
 
 export default function App() {
   const store = useCoopData();
-  const { data, ready } = store;
+  const { data: raw, ready } = store;
   const [session, setSession] = useState<Session | null>(null);
   const [tab, setTab] = useState("");
   const [openMember, setOpenMember] = useState<string | null>(null);
@@ -123,7 +124,13 @@ export default function App() {
     setRefreshing(false);
   };
 
-  if (!ready || !data) {
+  useEffect(() => {
+    const coopId = session && (session.side === "coop" || session.side === "planteur") ? session.coopId || "" : "";
+    store.setCoopScope(coopId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
+
+  if (!ready || !raw) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" }}>
         <Text style={{ color: C.muted }}>Chargement…</Text>
@@ -138,17 +145,18 @@ export default function App() {
       <>
         <StatusBar style="dark" />
         <Login
-          data={data}
+          data={raw}
           onCreatePlanteur={(m) => { const id = store.createLoginPlanteur(m); setSession({ side: "planteur", memberId: id }); setTab("poids"); }}
-          onCreateCoop={(p) => { const id = store.createLoginCoop(p); setSession({ side: "coop", role: "patron", staffId: id }); setTab("bilan"); }}
+          onCreateCoop={(p) => { const res = store.createLoginCoop(p); setSession({ side: "coop", role: "patron", staffId: res.staffId, coopId: res.coopId }); setTab("bilan"); }}
           onPick={(s) => { setSession(s); setTab(s.side === "planteur" ? "poids" : s.role === "patron" ? "bilan" : s.role === "commis" ? "jour" : "tournee"); }}
         />
       </>
     );
   }
 
-  const me = session.side === "planteur" ? data.members.find((m) => m.id === session.memberId) : data.staff.find((s) => s.id === session.staffId);
   const isCoop = session.side === "coop";
+  const data = isCoop ? scopeData(raw, session.coopId) : raw;
+  const me = session.side === "planteur" ? data.members.find((m) => m.id === session.memberId) : data.staff.find((s) => s.id === session.staffId);
   const role = session.side === "coop" ? session.role : undefined;
   const theme = session.side === "planteur" ? C.green : role === "patron" ? C.lime : C.teal;
 
@@ -216,8 +224,16 @@ export default function App() {
     if (tab === "poids")
       body = (
         <>
+          <QuickActions
+            actions={[
+              { icon: "piggy-bank", label: "Demander prêt", color: C.gold, onPress: () => setSheet("loan") },
+              { icon: "wallet", label: "Mes prêts", color: C.green, onPress: () => setTab("prets") },
+              { icon: "smartphone", label: "Mobile Money", color: C.teal, onPress: () => setTab("momo") },
+            ]}
+          />
           <SubTabs member={me} loans={data.loans} onGoPrets={() => setTab("prets")} />
           <PlanteurPoids member={me} data={data} onReceipt={setReceipt} onSetPhoto={(url: any) => store.setMemberPhoto(me.id, url)} />
+          <PartnersBanner />
         </>
       );
     else if (tab === "prets")
@@ -255,7 +271,24 @@ export default function App() {
       body = collab.role === "pisteur"
         ? <PisteurRecon pisteur={collab} data={data} onBack={() => setOpenCollab(null)} onNewMandat={() => setSheet("mandat")} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} onResetPin={resetCollabFn} />
         : <CommisDetail staff={collab} data={data} onBack={() => setOpenCollab(null)} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} onResetPin={resetCollabFn} />;
-    else if (tab === "bilan") body = <Dashboard theme={theme} data={data} onReceipt={setReceipt} onOpen={setOpenMember} onOpenPrets={() => setTab("prets")} onOpenJournal={() => setTab("journal")} />;
+    else if (tab === "bilan") body = (
+      <>
+        <QuickActions
+          actions={[
+            { icon: "scale", label: "Peser", color: C.green, onPress: () => setSheet("pesee") },
+            { icon: "users", label: "Planteurs", color: C.cocoaSoft, onPress: () => setTab("planteurs") },
+            { icon: "piggy-bank", label: "Prêts", color: C.gold, onPress: () => setTab("prets"), badge: pendingLoans },
+            { icon: "briefcase", label: "Équipe", color: C.teal, onPress: () => setTab("collaborateurs") },
+            { icon: "settings", label: "Réglages", color: C.cocoa, onPress: () => setSheet("settings") },
+            { icon: "share", label: "Bilan PDF", color: C.rust, onPress: doRecap },
+            { icon: "activity", label: "Journal", color: C.lime, onPress: () => setTab("journal") },
+            { icon: "building", label: "Coop", color: C.due, onPress: () => setTab("coop") },
+          ]}
+        />
+        <Dashboard theme={theme} data={data} onReceipt={setReceipt} onOpen={setOpenMember} onOpenPrets={() => setTab("prets")} onOpenJournal={() => setTab("journal")} />
+        <PartnersBanner />
+      </>
+    );
     else if (tab === "journal") body = <ActivityLog data={data} onBack={() => setTab("bilan")} />;
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} onAdd={() => setSheet("collab")} />;
@@ -277,8 +310,31 @@ export default function App() {
     );
     if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onSettle={settleMemberFn} />;
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
-    else if (isPisteur) body = <PisteurHome theme={theme} data={data} staffId={session.staffId} onNewCollecte={() => setSheet("pesee")} onNewDepense={() => setSheet("depense")} onReceipt={setReceipt} onOpen={setOpenMember} />;
-    else body = <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} />;
+    else if (isPisteur) body = (
+      <>
+        <QuickActions
+          actions={[
+            { icon: "scale", label: "Collecter", color: C.green, onPress: () => setSheet("pesee") },
+            { icon: "users", label: "Planteurs", color: C.cocoaSoft, onPress: () => setTab("planteurs") },
+            { icon: "receipt", label: "Dépense", color: C.rust, onPress: () => setSheet("depense") },
+          ]}
+        />
+        <PisteurHome theme={theme} data={data} staffId={session.staffId} onNewCollecte={() => setSheet("pesee")} onNewDepense={() => setSheet("depense")} onReceipt={setReceipt} onOpen={setOpenMember} />
+        <PartnersBanner />
+      </>
+    );
+    else body = (
+      <>
+        <QuickActions
+          actions={[
+            { icon: "scale", label: "Peser", color: C.green, onPress: () => setSheet("pesee") },
+            { icon: "users", label: "Planteurs", color: C.cocoaSoft, onPress: () => setTab("planteurs") },
+          ]}
+        />
+        <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} />
+        <PartnersBanner />
+      </>
+    );
   }
 
   const staffId = session.side === "coop" ? session.staffId : "";
@@ -306,7 +362,7 @@ export default function App() {
       {sheet === "pesee" ? <PeseeSheet data={data} role={role} staffId={staffId} onClose={() => setSheet(null)} onSave={savePesee} /> : null}
       {sheet === "loan" && session.side === "planteur" ? <LoanSheet data={data} fixedMember={me} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ ...l, memberId: session.memberId, date: new Date().toISOString() }); setSheet(null); setTab("prets"); }} /> : null}
       {sheet === "loan" && session.side === "coop" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ date: new Date().toISOString(), ...l }); setSheet(null); }} /> : null}
-      {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setPrix(p); setSheet(null); }} onReset={() => { store.reset(); setSheet(null); }} /> : null}
+      {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setCoopSettings(p); setSheet(null); }} onReset={() => { store.reset(); setSheet(null); }} /> : null}
       {sheet === "linkMomo" && session.side === "planteur" ? <LinkMomoSheet title="Lier mon Mobile Money" onClose={() => setSheet(null)} onSave={(mm: any) => { store.linkMemberMomo(session.memberId, mm); setSheet(null); }} /> : null}
       {sheet === "coopMomo" ? <LinkMomoSheet title="Ajouter un compte coop" withLabel onClose={() => setSheet(null)} onSave={(mm: any) => { store.addCoopMomo(mm); setSheet(null); }} /> : null}
       {sheet === "depense" ? <DepenseSheet onClose={() => setSheet(null)} onSave={(x: any) => { store.addDepense({ pisteurId: staffId, ...x }); setSheet(null); }} /> : null}

@@ -46,6 +46,8 @@ const MAP: Record<string, [Fam, string]> = {
   search: ["feather", "search"],
   share: ["feather", "share-2"],
   "trash": ["feather", "trash-2"],
+  award: ["feather", "award"],
+  "handshake": ["mci", "handshake-outline"],
 };
 
 export function Icon({ name, size = 20, color = "#000" }: { name: string; size?: number; color?: string }) {

@@ -25,8 +25,13 @@ export const CROPS: Crop[] = [
   { id: "cafe", nom: "Café", emoji: "☕" },
   { id: "anacarde", nom: "Anacarde", emoji: "🌰" },
   { id: "hevea", nom: "Hévéa", emoji: "🪵" },
+  { id: "palmier", nom: "Palmier à huile", emoji: "🌴" },
 ];
 export const crop = (id: string): Crop => CROPS.find((c) => c.id === id) || CROPS[0];
+export const DEFAULT_PRICES: Record<string, number> = { cacao: 1800, cafe: 1500, anacarde: 500, hevea: 400, palmier: 100 };
+export const DEFAULT_COMM: Record<string, number> = { cacao: 25, cafe: 25, anacarde: 20, hevea: 15, palmier: 10 };
+export const priceOf = (data: any, cropId: string): number => (data?.prices && data.prices[cropId] != null ? data.prices[cropId] : DEFAULT_PRICES[cropId] ?? data?.prixKg ?? 0);
+export const commOf = (data: any, cropId: string): number => (data?.commissions && data.commissions[cropId] != null ? data.commissions[cropId] : DEFAULT_COMM[cropId] ?? data?.commissionRate ?? 0);
 
 export type Operator = { id: string; nom: string; color: string; ink: string; short: string };
 export const OPERATORS: Operator[] = [
@@ -89,6 +94,7 @@ export type Momo = { operator: string; number: string; label?: string };
 export type Culture = { cropId: string; superficie: number };
 export type Member = {
   id: string;
+  coopId?: string;
   code: string;
   nom: string;
   village: string;
@@ -102,11 +108,12 @@ export type Member = {
   photo?: string | null;
   pin?: PinRecord | null;
 };
-export type Staff = { id: string; nom: string; role: string; tel?: string; photo?: string | null; prenoms?: string; email?: string; fonction?: string; idNumber?: string; pin?: PinRecord | null };
+export type Staff = { id: string; coopId?: string; nom: string; role: string; tel?: string; photo?: string | null; prenoms?: string; email?: string; fonction?: string; idNumber?: string; pin?: PinRecord | null };
 export type Retenue = { label: string; amount: number };
 export type Collection = {
   id: string;
   seq: number;
+  coopId?: string;
   memberId: string;
   byStaffId: string;
   date: string;
@@ -127,6 +134,7 @@ export type Collection = {
 };
 export type Loan = {
   id: string;
+  coopId?: string;
   memberId: string;
   type: string;
   amount: number;
@@ -138,18 +146,21 @@ export type Loan = {
   decidedBy: string | null;
   decidedAt?: string | null;
 };
-export type Settlement = { id: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean };
-export type Mandat = { id: string; pisteurId: string; amount: number; date: string; note: string };
-export type Depense = { id: string; pisteurId: string; category: string; amount: number; date: string; note: string };
+export type Settlement = { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean };
+export type Mandat = { id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string };
+export type Depense = { id: string; coopId?: string; pisteurId: string; category: string; amount: number; date: string; note: string };
 export type CoopMomo = { id: string; operator: string; number: string; label?: string };
 export type PriceHistory = { date: string; prixKg: number };
 export type Coop = {
+  id?: string;
   nom: string;
   sigle?: string;
   agrement?: string;
   type?: string;
   dateCreation?: string;
   filieres?: string[];
+  prices?: Record<string, number>;
+  commissions?: Record<string, number>;
   photo?: string | null;
   description?: string;
   region?: string;
@@ -176,6 +187,9 @@ export type Data = {
   memberSeq: number;
   commissionRate: number;
   coop: Coop;
+  coops?: Coop[];
+  prices?: Record<string, number>;
+  commissions?: Record<string, number>;
   staff: Staff[];
   members: Member[];
   collections: Collection[];
@@ -186,8 +200,8 @@ export type Data = {
   priceHistory: PriceHistory[];
 };
 export type Session =
-  | { side: "planteur"; memberId: string }
-  | { side: "coop"; role: string; staffId: string };
+  | { side: "planteur"; memberId: string; coopId?: string }
+  | { side: "coop"; role: string; staffId: string; coopId?: string };
 
 export const uid = () => Math.random().toString(36).slice(2, 9);
 
@@ -212,6 +226,7 @@ export function seed(): Data {
     memberSeq: 1,
     commissionRate: 25,
     coop: { nom: "Coopérative", momo: [], filieres: [] },
+    coops: [],
     staff: [],
     members: [],
     collections: [],
@@ -256,7 +271,59 @@ export function migrate(d: any): Data {
     };
   });
   out.memberSeq = seqBase;
+
+  // ---- Migration multi-coopérative : chaque coopérative devient étanche. ----
+  if (!Array.isArray(out.coops)) out.coops = [];
+  if (out.coops.length === 0) {
+    // Regroupe les données existantes dans une coopérative unique héritée.
+    const legacyId = uid();
+    const prices: Record<string, number> = {};
+    const commissions: Record<string, number> = {};
+    CROPS.forEach((c) => {
+      prices[c.id] = DEFAULT_PRICES[c.id] ?? out.prixKg;
+      commissions[c.id] = DEFAULT_COMM[c.id] ?? out.commissionRate;
+    });
+    if (typeof out.prixKg === "number") prices.cacao = out.prixKg;
+    out.coops = [{ id: legacyId, ...out.coop, prices, commissions }];
+    out.staff = out.staff.map((s: any) => ({ ...s, coopId: s.coopId || legacyId }));
+    out.members = out.members.map((m: any) => ({ ...m, coopId: m.coopId || legacyId }));
+    out.collections = out.collections.map((x: any) => ({ ...x, coopId: x.coopId || legacyId }));
+    out.loans = out.loans.map((x: any) => ({ ...x, coopId: x.coopId || legacyId }));
+    out.mandats = out.mandats.map((x: any) => ({ ...x, coopId: x.coopId || legacyId }));
+    out.depenses = out.depenses.map((x: any) => ({ ...x, coopId: x.coopId || legacyId }));
+    out.settlements = out.settlements.map((x: any) => ({ ...x, coopId: x.coopId || legacyId }));
+  }
+  // Chaque coopérative a des prix/commissions complets.
+  out.coops = out.coops.map((c: any) => {
+    const prices = { ...c.prices };
+    const commissions = { ...c.commissions };
+    CROPS.forEach((cr) => {
+      if (prices[cr.id] == null) prices[cr.id] = DEFAULT_PRICES[cr.id] ?? out.prixKg;
+      if (commissions[cr.id] == null) commissions[cr.id] = DEFAULT_COMM[cr.id] ?? out.commissionRate;
+    });
+    return { ...c, prices, commissions, momo: Array.isArray(c.momo) ? c.momo : [], filieres: Array.isArray(c.filieres) ? c.filieres : [] };
+  });
   return out as Data;
+}
+
+// Vue filtrée pour une coopérative : n'expose QUE ses propres données.
+export function scopeData(raw: Data, coopId?: string): Data {
+  const list = raw.coops || [];
+  const c = (coopId && list.find((x) => x.id === coopId)) || list[0] || raw.coop || { nom: "Coopérative", momo: [], filieres: [] };
+  const id = c.id || coopId;
+  return {
+    ...raw,
+    coop: c,
+    prices: c.prices || {},
+    commissions: c.commissions || {},
+    staff: (raw.staff || []).filter((s) => !id || s.coopId === id),
+    members: (raw.members || []).filter((m) => !id || m.coopId === id),
+    collections: (raw.collections || []).filter((x) => !id || x.coopId === id),
+    loans: (raw.loans || []).filter((x) => !id || x.coopId === id),
+    mandats: (raw.mandats || []).filter((x) => !id || x.coopId === id),
+    depenses: (raw.depenses || []).filter((x) => !id || x.coopId === id),
+    settlements: (raw.settlements || []).filter((x) => !id || x.coopId === id),
+  };
 }
 
 /* ------------------------------ Derived calc ----------------------------- */
@@ -284,7 +351,7 @@ export function pisteurStats(pid: string, data: Data) {
   const achats = cols.reduce((s, c) => s + c.paye, 0);
   const mandat = (data.mandats || []).filter((m) => m.pisteurId === pid).reduce((s, m) => s + m.amount, 0);
   const depenses = (data.depenses || []).filter((x) => x.pisteurId === pid).reduce((s, x) => s + x.amount, 0);
-  const commission = Math.round(poids * (data.commissionRate || 0));
+  const commission = cols.reduce((s, c) => s + Math.round(c.kg * commOf(data, c.cropId || "cacao")), 0);
   const solde = mandat - achats - depenses;
   return { poids, achats, mandat, depenses, commission, solde, count: cols.length };
 }
