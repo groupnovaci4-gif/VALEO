@@ -107,3 +107,8 @@ L'utilisateur a fourni une app web React (`coop-collecte.jsx`, single-file, luci
 - **Superficie par culture** : CulturesPicker (ui.tsx) saisit une superficie (ha) distincte par culture cochée (déjà en place, confirmé).
 - **Refonte accueil** : nouveau fichier `src/coop/home.tsx` — `QuickActions` (grille de petites icônes de raccourcis, testIDs quick-<label>) + `PartnersBanner` (bandeau défilant « En partenariat avec » CCC/MINADER/CNRA/ANADER/FIRCA, placeholders initiales, marquee Animated.loop, useNativeDriver conditionnel web). Câblé dans index.tsx sur l'accueil de chaque rôle (Patron/Bilan, Magasinier, Pisteur, Planteur).
 - Backlog restant : logo VALEO dans l'en-tête PDF ; choix mode de paiement (Espèces/MoMo) au solde ; notifications par planteur ; sauvegarde quotidienne auto.
+
+## Ajustements v15 (2026-06) — TERMINÉ
+1. **Réglages : tous les produits** — SettingsSheet liste désormais TOUJOURS les 5 produits (Cacao/Café/Anacarde/Hévéa/Palmier), indépendamment des filières cochées (`crops = CROPS`). Prix + commission par produit, propagés aux autres comptes de la coop via store.setCoopSettings (scopé).
+2. **Type de produit sur chaque pesée** — CollectionRow affiche un `CropTag` (emoji + nom du produit) ; MemberDetail & PlanteurPoids montrent le produit sur chaque livraison ; bordereau écran + PDF (`receiptHtml`) affichent la ligne « Produit » basée sur `c.cropId` (et non plus la 1ʳᵉ culture du planteur). Pesées de tous produits présentes dans l'historique au même titre que le cacao (aucun filtre cacao).
+3. **En-tête profil enrichi** — TopBar affiche sous le nom : 🏢 nom de la coopérative + la fonction (Patron / Magasinier / Pisteur / Délégué / Planteur). Prop `coopNom` calculé dans index.tsx via `raw.coops[session.coopId]`.

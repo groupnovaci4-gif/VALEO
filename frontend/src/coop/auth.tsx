@@ -16,6 +16,7 @@ export function TopBar({
   me,
   isCoop,
   role,
+  coopNom,
   onLogout,
   onSettings,
   onSetPhoto,
@@ -26,6 +27,7 @@ export function TopBar({
   me: any;
   isCoop: boolean;
   role?: string;
+  coopNom?: string;
   onLogout: () => void;
   onSettings?: (() => void) | null;
   onSetPhoto: (url: string | null) => void;
@@ -33,7 +35,7 @@ export function TopBar({
   bellCount?: number;
 }) {
   const insets = useSafeAreaInsets();
-  const label = isCoop ? ROLES[role || "patron"].label : "Espace planteur";
+  const label = isCoop ? ROLES[role || "patron"].label : "Planteur";
   return (
     <View style={{ backgroundColor: theme, paddingTop: insets.top + 12, paddingHorizontal: 16, paddingBottom: 16, borderBottomLeftRadius: 20, borderBottomRightRadius: 20 }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -41,7 +43,13 @@ export function TopBar({
           <PhotoAvatar photo={me && me.photo} size={40} editable onChange={onSetPhoto} fallbackIcon={isCoop ? "scale" : "sprout"} fallbackColor={isCoop ? C.teal : C.green} />
           <View style={{ flexShrink: 1 }}>
             <Text style={{ fontWeight: "800", fontSize: 15.5, color: "#fff" }} numberOfLines={1}>{me && me.nom}</Text>
-            <Text style={{ fontSize: 11.5, color: "rgba(255,255,255,0.82)" }}>{label}</Text>
+            {coopNom ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 1 }}>
+                <Icon name="building" size={11} color="rgba(255,255,255,0.85)" />
+                <Text style={{ fontSize: 11.5, color: "rgba(255,255,255,0.92)", fontWeight: "700", flexShrink: 1 }} numberOfLines={1}>{coopNom}</Text>
+              </View>
+            ) : null}
+            <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.78)", marginTop: 1 }}>{label}</Text>
           </View>
         </View>
         <View style={{ flexDirection: "row", gap: 8 }}>

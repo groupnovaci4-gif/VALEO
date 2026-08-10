@@ -57,12 +57,26 @@ const HeroCard = ({ theme, icon, label, big, sub }: { theme: string; icon: strin
   </Card>
 );
 
-const CollectionRow = ({ title, sub, onOpen, onReceipt }: { title: string; sub: string; onOpen?: () => void; onReceipt?: () => void }) => (
+const CropTag = ({ cropId }: { cropId?: string }) => {
+  if (!cropId) return null;
+  const c = crop(cropId);
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#F0EBE2", borderRadius: 6, paddingVertical: 2, paddingHorizontal: 6 }}>
+      <Text style={{ fontSize: 10.5 }}>{c.emoji}</Text>
+      <Text style={{ fontSize: 10.5, fontWeight: "700", color: C.cocoaSoft }}>{c.nom}</Text>
+    </View>
+  );
+};
+
+const CollectionRow = ({ title, sub, cropId, onOpen, onReceipt }: { title: string; sub: string; cropId?: string; onOpen?: () => void; onReceipt?: () => void }) => (
   <Card style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
     <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#F3ECE2", alignItems: "center", justifyContent: "center" }}><Icon name="user" size={17} color={C.cocoaSoft} /></View>
     <Pressable onPress={onOpen} style={{ flex: 1 }} disabled={!onOpen}>
-      <Text style={{ fontWeight: "700", fontSize: 14 }}>{title}</Text>
-      <Text style={{ fontSize: 11.5, color: C.muted }}>{sub}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+        <Text style={{ fontWeight: "700", fontSize: 14 }}>{title}</Text>
+        <CropTag cropId={cropId} />
+      </View>
+      <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 1 }}>{sub}</Text>
     </Pressable>
     {onReceipt ? <Pressable onPress={onReceipt} hitSlop={8} testID="row-receipt"><Icon name="receipt" size={17} color={C.cocoaSoft} /></Pressable> : null}
   </Card>
@@ -127,7 +141,7 @@ export function Dashboard({ data, onReceipt, onOpen, theme, onOpenPrets, onOpenJ
       <SectionTitle>Dernières collectes</SectionTitle>
       <View style={{ gap: 8 }}>
         {recent.map((c) => (
-          <CollectionRow key={c.id} title={nameOf(data, c.memberId)} sub={`${fKg(c.kg)} · ${fDate(c.date)} · ${c.method === "momo" ? "Mobile Money" : "espèces"}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
+          <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)} · ${c.method === "momo" ? "Mobile Money" : "espèces"}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
         ))}
       </View>
       {(() => {
@@ -224,7 +238,7 @@ export function CollectorHome({ data, staffId, isPisteur, onReceipt, onOpen, onN
       {list.length === 0 ? <Empty text="Aucune collecte enregistrée pour l'instant." /> : (
         <View style={{ gap: 8 }}>
           {list.map((c) => (
-            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} sub={`${fKg(c.kg)} · ${fDate(c.date)}${c.reste > 0 ? ` · reste ${fF(c.reste)}` : ""}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
+            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)}${c.reste > 0 ? ` · reste ${fF(c.reste)}` : ""}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
           ))}
         </View>
       )}
@@ -289,7 +303,7 @@ export function PisteurHome({ theme, data, staffId, onNewDepense, onReceipt, onO
       {seg === "collectes" && (cols.length === 0 ? <Empty text="Aucune collecte. Touchez la balance pour peser un planteur." /> : (
         <View style={{ gap: 8 }}>
           {cols.map((c: Collection) => (
-            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} sub={`${fKg(c.kg)} · ${fDate(c.date)} · payé ${fF(c.paye)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
+            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)} · payé ${fF(c.paye)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
           ))}
         </View>
       ))}
@@ -396,7 +410,7 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
       {cols.length === 0 ? <Empty text="Aucune collecte." /> : (
         <View style={{ gap: 8 }}>
           {cols.map((c: Collection) => (
-            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} sub={`${fKg(c.kg)} · ${fDate(c.date)} · payé ${fF(c.paye)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
+            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)} · payé ${fF(c.paye)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
           ))}
         </View>
       )}
@@ -473,7 +487,7 @@ export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhot
       {cols.length === 0 ? <Empty text="Ce magasinier n'a pas encore enregistré de pesée." /> : (
         <View style={{ gap: 8 }}>
           {cols.map((c: Collection) => (
-            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} sub={`${fKg(c.kg)} · ${fDate(c.date)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
+            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
           ))}
         </View>
       )}
@@ -618,7 +632,7 @@ export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <View>
                   <Text style={{ fontWeight: "700", fontSize: 14 }}>{fKg(c.kg)} <Text style={{ color: C.muted, fontWeight: "400", fontSize: 12 }}>× {fF(c.prixKg)}</Text></Text>
-                  <Text style={{ fontSize: 11.5, color: C.muted }}>{ticketNo(c.seq)} · {fDate(c.date)}</Text>
+                  <Text style={{ fontSize: 11.5, color: C.muted }}>{crop(c.cropId || "cacao").emoji} {crop(c.cropId || "cacao").nom} · {ticketNo(c.seq)} · {fDate(c.date)}</Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={{ fontWeight: "800", fontSize: 14, color: C.gold }}>{fF(c.net)}</Text>
@@ -932,7 +946,7 @@ export function PlanteurPoids({ member, data, onReceipt, onSetPhoto }: any) {
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <View>
                   <Text style={{ fontWeight: "800", fontSize: 16 }}>{fKg(c.kg)}</Text>
-                  <Text style={{ fontSize: 11.5, color: C.muted }}>{ticketNo(c.seq)} · {fDate(c.date)}</Text>
+                  <Text style={{ fontSize: 11.5, color: C.muted }}>{crop(c.cropId || "cacao").emoji} {crop(c.cropId || "cacao").nom} · {ticketNo(c.seq)} · {fDate(c.date)}</Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={{ fontWeight: "700", fontSize: 14, color: C.gold }}>{fF(c.net)}</Text>

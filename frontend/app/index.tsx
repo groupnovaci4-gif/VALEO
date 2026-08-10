@@ -204,6 +204,7 @@ export default function App() {
       },
     });
   const notif = buildNotifications(data, session);
+  const coopNom = (raw.coops || []).find((c) => c.id === session.coopId)?.nom || data.coop?.nom || "";
 
   let body: React.ReactNode = null;
   let nav: React.ReactNode = null;
@@ -347,6 +348,7 @@ export default function App() {
         me={me}
         isCoop={isCoop}
         role={role}
+        coopNom={coopNom}
         onLogout={logout}
         onSettings={isCoop && role === "patron" ? () => setSheet("settings") : null}
         onBell={() => setShowNotif(true)}

@@ -420,7 +420,7 @@ export function LinkMomoSheet({ title, withLabel, onClose, onSave }: any) {
 
 export function SettingsSheet({ data, onClose, onSave, onReset }: any) {
   const [saison, setSaison] = useState(data.saison);
-  const crops = (data.coop?.filieres && data.coop.filieres.length ? CROPS.filter((c) => data.coop.filieres.includes(c.id)) : CROPS);
+  const crops = CROPS; // Tous les produits sont toujours réglables (prix + commission).
   const [prices, setPrices] = useState<Record<string, string>>(() => {
     const o: Record<string, string> = {};
     crops.forEach((c) => (o[c.id] = String(priceOf(data, c.id))));
@@ -485,7 +485,7 @@ function receiptHtml(c: Collection, member: Member | undefined, saison: string, 
     ["Date", fDate(c.date)],
     ["Planteur", member?.nom || "—"],
     ["Village", member?.village || "—"],
-    ["Culture", member ? crop(member.cropId).nom : "—"],
+    ["Produit", crop(c.cropId || member?.cropId || "cacao").nom],
   ].map(([k, v]) => `<tr><td>${k}</td><td class="r">${v}</td></tr>`);
   const wares = c.retenues.map((r) => `<tr><td>- ${r.label}</td><td class="r">− ${fF(r.amount)}</td></tr>`).join("");
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -612,6 +612,7 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
                 <TRow k="Date" v={fDate(c.date)} />
                 <TRow k="Planteur" v={member?.nom || "—"} />
                 <TRow k="Village" v={member?.village || "—"} />
+                <TRow k="Produit" v={crop(c.cropId || member?.cropId || "cacao").nom} />
                 <Dashed />
                 <TRow k="Poids net" v={fKg(c.kg)} />
                 <TRow k="Prix / kg" v={fF(c.prixKg)} />
