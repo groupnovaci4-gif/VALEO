@@ -58,6 +58,8 @@ export function useCoopData() {
   const [ready, setReady] = useState(false);
   const remoteApply = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dataRef = useRef<Data | null>(null);
+  const dirty = useRef(false); // modifications locales non encore synchronisées
   const coopIdRef = useRef<string>("");
   const setCoopScope = useCallback((id: string) => { coopIdRef.current = id || ""; }, []);
   const cid = () => coopIdRef.current || undefined;
@@ -77,17 +79,30 @@ export function useCoopData() {
 
   useEffect(() => {
     if (!ready || !data) return;
+    dataRef.current = data;
     storage.setItem(KEY, data as any); // cache hors-ligne
     if (remoteApply.current) {
       remoteApply.current = false; // vient du backend/cache : ne pas renvoyer
       return;
     }
+    dirty.current = true; // changement local à pousser
     if (pushTimer.current) clearTimeout(pushTimer.current);
-    pushTimer.current = setTimeout(() => pushRemote(data), 700);
+    pushTimer.current = setTimeout(async () => {
+      await pushRemote(data);
+      dirty.current = false;
+    }, 700);
   }, [data, ready]);
 
   // Recharge la dernière version du backend (admin, autre appareil).
   const refresh = useCallback(async () => {
+    // Ne jamais écraser des modifications locales non synchronisées (ex. signature) :
+    // on les pousse d'abord au backend au lieu de tirer une version périmée.
+    if (dirty.current) {
+      if (pushTimer.current) clearTimeout(pushTimer.current);
+      if (dataRef.current) await pushRemote(dataRef.current);
+      dirty.current = false;
+      return;
+    }
     const remote = await fetchRemote();
     if (remote) {
       remoteApply.current = true;

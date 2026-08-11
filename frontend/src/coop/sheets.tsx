@@ -544,8 +544,9 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
   const [draft, setDraft] = useState<Sig | null>((c as any).signature || null);
 
   const saveSig = () => {
-    setSig(draft);
-    onSign && onSign(draft);
+    const valid = draft && draft.paths.some((p) => p && p.indexOf("L") !== -1) ? draft : null;
+    setSig(valid);
+    onSign && onSign(valid);
     setSigning(false);
   };
 
