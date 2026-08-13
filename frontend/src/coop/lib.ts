@@ -33,6 +33,20 @@ export const DEFAULT_COMM: Record<string, number> = { cacao: 25, cafe: 25, anaca
 export const priceOf = (data: any, cropId: string): number => (data?.prices && data.prices[cropId] != null ? data.prices[cropId] : DEFAULT_PRICES[cropId] ?? data?.prixKg ?? 0);
 export const commOf = (data: any, cropId: string): number => (data?.commissions && data.commissions[cropId] != null ? data.commissions[cropId] : DEFAULT_COMM[cropId] ?? data?.commissionRate ?? 0);
 
+// Identifiant planteur : VAL-XXXX-YY (4 chiffres + 2 lettres majuscules), unique.
+export const MEMBER_CODE_RE = /^VAL-\d{4}-[A-Z]{2}$/;
+export function genMemberCode(existing?: any[]): string {
+  const set = new Set((existing || []).map((x: any) => (typeof x === "string" ? x : x?.code)).filter(Boolean));
+  const L = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  for (let i = 0; i < 20000; i++) {
+    const num = String(Math.floor(1000 + Math.random() * 9000));
+    const y = L[Math.floor(Math.random() * 26)] + L[Math.floor(Math.random() * 26)];
+    const code = `VAL-${num}-${y}`;
+    if (!set.has(code)) return code;
+  }
+  return `VAL-${String(Date.now()).slice(-4)}-ZZ`;
+}
+
 export type Operator = { id: string; nom: string; color: string; ink: string; short: string };
 export const OPERATORS: Operator[] = [
   { id: "orange", nom: "Orange Money", color: "#F16E00", ink: "#fff", short: "OM" },
@@ -256,13 +270,14 @@ export function migrate(d: any): Data {
   if (!Array.isArray(out.coop.momo)) out.coop.momo = [];
   if (!Array.isArray(out.coop.filieres)) out.coop.filieres = [];
   if (!Array.isArray(out.priceHistory)) out.priceHistory = [{ date: new Date().toISOString(), prixKg: out.prixKg }];
-  let seqBase = typeof out.memberSeq === "number" ? out.memberSeq : 1;
+  const seqBase = typeof out.memberSeq === "number" ? out.memberSeq : 1;
+  const usedCodes = new Set<string>();
   out.members = out.members.map((m: any) => {
     let code = m.code;
-    if (!code) {
-      code = `PL-2026-${String(seqBase).padStart(4, "0")}`;
-      seqBase += 1;
+    if (!code || !MEMBER_CODE_RE.test(code) || usedCodes.has(code)) {
+      code = genMemberCode(Array.from(usedCodes));
     }
+    usedCodes.add(code);
     return {
       ...m,
       code,

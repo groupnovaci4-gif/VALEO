@@ -79,7 +79,7 @@ export function MemberSheet({ onClose, onSave, initial }: any) {
       {initial ? <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>Laissez vide pour conserver le code actuel.</Text> : null}
       {!initial ? (
         <View style={{ backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-          <Text style={{ fontSize: 12, color: C.muted }}>Un <Text style={{ fontWeight: "700" }}>code planteur</Text> sera généré automatiquement (format PL-2026-000X). Le planteur se connecte avec ce code (ou son téléphone) et son <Text style={{ fontWeight: "700" }}>code secret</Text>.</Text>
+          <Text style={{ fontSize: 12, color: C.muted }}>Un <Text style={{ fontWeight: "700" }}>identifiant planteur</Text> unique sera généré automatiquement (format VAL-XXXX-YY). Le planteur se connecte avec cet identifiant (ou son téléphone) et son <Text style={{ fontWeight: "700" }}>code secret</Text>.</Text>
         </View>
       ) : null}
       <SaveBtn disabled={!valid} color={C.green} onPress={save}>Enregistrer</SaveBtn>

@@ -103,7 +103,7 @@ const ResetPinButton = ({ onPress }: { onPress: () => void }) => (
 const StaffLoginCard = ({ staff }: { staff: Staff }) => (
   <Card style={{ padding: 13, marginBottom: 16, backgroundColor: "#EAF3EF", borderColor: "#CFE6E0" }}>
     <Text style={{ fontWeight: "800", fontSize: 13, marginBottom: 4 }}>Identifiant de connexion (Espace coopérative)</Text>
-    <Text style={{ fontSize: 12.5, color: C.muted, lineHeight: 18 }}>Nom <Text style={{ fontWeight: "700", color: C.ink }}>{staff.nom}</Text> + téléphone <Text style={{ fontWeight: "700", color: C.ink }}>{staff.tel || "—"}</Text> + son code secret à 4 chiffres.</Text>
+    <Text style={{ fontSize: 12.5, color: C.muted, lineHeight: 18 }}>Nom <Text style={{ fontWeight: "700", color: C.ink }}>{staff.nom}</Text> + téléphone <Text style={{ fontWeight: "700", color: C.ink }}>{staff.tel || "—"}</Text> + son code secret à 6 chiffres.</Text>
   </Card>
 );
 
@@ -740,7 +740,7 @@ export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete
       {onEdit ? (
         <Card style={{ padding: 13, marginBottom: 16, backgroundColor: "#F3FAF5", borderColor: "#D8E8DE" }}>
           <Text style={{ fontWeight: "800", fontSize: 13, marginBottom: 4 }}>Identifiant de connexion (Espace planteur)</Text>
-          <Text style={{ fontSize: 12.5, color: C.muted, lineHeight: 18 }}>Code <Text style={{ fontWeight: "700", color: C.ink }}>{member.code}</Text>{member.tel ? <Text> ou téléphone <Text style={{ fontWeight: "700", color: C.ink }}>{member.tel}</Text></Text> : null} + son code secret à 4 chiffres.</Text>
+          <Text style={{ fontSize: 12.5, color: C.muted, lineHeight: 18 }}>Code <Text style={{ fontWeight: "700", color: C.ink }}>{member.code}</Text>{member.tel ? <Text> ou téléphone <Text style={{ fontWeight: "700", color: C.ink }}>{member.tel}</Text></Text> : null} + son code secret à 6 chiffres.</Text>
         </Card>
       ) : null}
       {loans.length > 0 ? (

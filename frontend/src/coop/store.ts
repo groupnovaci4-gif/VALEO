@@ -10,6 +10,7 @@ import {
   DEFAULT_COMM,
   DEFAULT_PRICES,
   Depense,
+  genMemberCode,
   Loan,
   Mandat,
   Member,
@@ -113,7 +114,7 @@ export function useCoopData() {
   const addMember = useCallback((m: Partial<Member>) => {
     setData((d) => {
       if (!d) return d;
-      const code = `PL-2026-${String(d.memberSeq).padStart(4, "0")}`;
+      const code = genMemberCode(d.members);
       return { ...d, memberSeq: d.memberSeq + 1, members: [...d.members, { id: uid(), coopId: cid(), code, momo: null, photo: null, ...m } as Member] };
     });
   }, []);
@@ -286,7 +287,7 @@ export function useCoopData() {
     const id = uid();
     setData((d) => {
       if (!d) return d;
-      const code = `PL-2026-${String(d.memberSeq).padStart(4, "0")}`;
+      const code = genMemberCode(d.members);
       return { ...d, memberSeq: d.memberSeq + 1, members: [...d.members, { id, coopId: cid(), code, momo: null, photo: null, ...m } as Member] };
     });
     return id;

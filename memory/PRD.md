@@ -135,3 +135,9 @@ Remplace l'ancien PeseeSheet (sheets.tsx). 4 étapes : (1) planteur + produit (p
 - **Biométrie** (expo-local-authentication + expo-secure-store) : src/coop/biometric.ts (getBiometricState/promptBiometric/saveSession/readSession/clearSession, guard web). Après login réussi, la session est sauvegardée (SecureStore) ; bouton empreinte reconnecte le dernier compte. ⚠️ natif uniquement (pas web/Expo Go). app.json: plugin expo-local-authentication + NSFaceIDUsageDescription.
 - **« Code oublié ? »** : ouvre WhatsApp (wa.me du numéro saisi) avec un message de demande de réinitialisation. NB: le code étant haché (PBKDF2), il n'est pas renvoyé en clair — c'est une demande d'aide/réinit, pas l'envoi du secret.
 - Vérifié e2e : création coop code 246810 → logout → login par tel 0788000001 + 246810 → dashboard Patron.
+
+## Identifiant planteur VAL-XXXX-YY v20 (2026-06) — TERMINÉ & vérifié
+- Nouveau format **VAL-XXXX-YY** (préfixe VAL + 4 chiffres + 2 lettres maj). Helper `genMemberCode(existing)` + regex `MEMBER_CODE_RE` dans lib.ts : génération auto, unicité vérifiée (régénère en cas de collision), non modifiable après attribution.
+- Utilisé à la création : store.ts addMember + createLoginPlanteur (remplace l'ancien `PL-2026-000X`).
+- Migration : `migrate()` (lib.ts) régénère un identifiant VAL pour tout membre dont le code est absent / ancien format / doublon.
+- Textes UI mis à jour (sheets.tsx CreatePlanteur, screens.tsx MemberDetail). Vérifié e2e : nouveau planteur → code VAL-4718-TV affiché (badge + « Identifiant de connexion »).
