@@ -18,6 +18,7 @@ import {
   ResetPinSheet,
   SettingsSheet,
   SettlementReceipt,
+  StockSheet,
   Bordereau,
 } from "@/src/coop/sheets";
 import {
@@ -273,22 +274,17 @@ export default function App() {
         ? <PisteurRecon pisteur={collab} data={data} onBack={() => setOpenCollab(null)} onNewMandat={() => setSheet("mandat")} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} onResetPin={resetCollabFn} />
         : <CommisDetail staff={collab} data={data} onBack={() => setOpenCollab(null)} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} onResetPin={resetCollabFn} />;
     else if (tab === "bilan") body = (
-      <>
-        <QuickActions
-          actions={[
-            { icon: "scale", label: "Peser", color: C.green, onPress: () => setSheet("pesee") },
-            { icon: "users", label: "Planteurs", color: C.cocoaSoft, onPress: () => setTab("planteurs") },
-            { icon: "piggy-bank", label: "Prêts", color: C.gold, onPress: () => setTab("prets"), badge: pendingLoans },
-            { icon: "briefcase", label: "Équipe", color: C.teal, onPress: () => setTab("collaborateurs") },
-            { icon: "settings", label: "Réglages", color: C.cocoa, onPress: () => setSheet("settings") },
-            { icon: "share", label: "Bilan PDF", color: C.rust, onPress: doRecap },
-            { icon: "activity", label: "Journal", color: C.lime, onPress: () => setTab("journal") },
-            { icon: "building", label: "Coop", color: C.due, onPress: () => setTab("coop") },
-          ]}
-        />
-        <Dashboard theme={theme} data={data} onReceipt={setReceipt} onOpen={setOpenMember} onOpenPrets={() => setTab("prets")} onOpenJournal={() => setTab("journal")} />
-        <PartnersBanner />
-      </>
+      <Dashboard
+        theme={theme}
+        data={data}
+        onReceipt={setReceipt}
+        onOpen={setOpenMember}
+        onPeser={() => setSheet("pesee")}
+        onPlanteurs={() => setTab("planteurs")}
+        onStock={() => setSheet("stock")}
+        onPrets={() => setTab("prets")}
+        onOpenJournal={() => setTab("journal")}
+      />
     );
     else if (tab === "journal") body = <ActivityLog data={data} onBack={() => setTab("bilan")} />;
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
@@ -365,6 +361,7 @@ export default function App() {
       {sheet === "loan" && session.side === "planteur" ? <LoanSheet data={data} fixedMember={me} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ ...l, memberId: session.memberId, date: new Date().toISOString() }); setSheet(null); setTab("prets"); }} /> : null}
       {sheet === "loan" && session.side === "coop" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ date: new Date().toISOString(), ...l }); setSheet(null); }} /> : null}
       {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setCoopSettings(p); setSheet(null); }} onReset={() => { store.reset(); setSheet(null); }} /> : null}
+      {sheet === "stock" ? <StockSheet data={data} staffId={staffId} scope={role === "patron" ? "all" : "mine"} onClose={() => setSheet(null)} /> : null}
       {sheet === "linkMomo" && session.side === "planteur" ? <LinkMomoSheet title="Lier mon Mobile Money" onClose={() => setSheet(null)} onSave={(mm: any) => { store.linkMemberMomo(session.memberId, mm); setSheet(null); }} /> : null}
       {sheet === "coopMomo" ? <LinkMomoSheet title="Ajouter un compte coop" withLabel onClose={() => setSheet(null)} onSave={(mm: any) => { store.addCoopMomo(mm); setSheet(null); }} /> : null}
       {sheet === "depense" ? <DepenseSheet onClose={() => setSheet(null)} onSave={(x: any) => { store.addDepense({ pisteurId: staffId, ...x }); setSheet(null); }} /> : null}

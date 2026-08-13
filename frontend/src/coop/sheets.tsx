@@ -768,3 +768,63 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
     </Modal>
   );
 }
+
+
+/* -------------------------------- Stock ---------------------------------- */
+export function StockSheet({ data, staffId, scope, onClose }: { data: Data; staffId?: string; scope?: "all" | "mine"; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  const cols: Collection[] = (data.collections || []).filter((c) => (scope === "mine" && staffId ? c.byStaffId === staffId : true));
+  const rows = CROPS.map((cr) => {
+    const list = cols.filter((c) => (c.cropId || "cacao") === cr.id);
+    return { cr, kg: list.reduce((s, c) => s + c.kg, 0), count: list.length, valeur: list.reduce((s, c) => s + c.net, 0) };
+  }).filter((r) => r.kg > 0);
+  const totalKg = rows.reduce((s, r) => s + r.kg, 0);
+  const totalVal = rows.reduce((s, r) => s + r.valeur, 0);
+  const totalCount = rows.reduce((s, r) => s + r.count, 0);
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: "rgba(30,20,12,0.5)", justifyContent: "flex-end" }}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} />
+        <View style={{ backgroundColor: C.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "88%" }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 18, paddingBottom: 12 }}>
+            <View>
+              <Text style={{ fontWeight: "800", fontSize: 17 }}>Stock en magasin</Text>
+              <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{scope === "mine" ? "Poids que vous avez pesés" : "Tous poids collectés & livrés"}</Text>
+            </View>
+            <Pressable onPress={onClose} hitSlop={10} testID="stock-close"><Icon name="x" size={22} color={C.muted} /></Pressable>
+          </View>
+          <KeyboardAwareScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
+            <Card style={{ backgroundColor: C.greenDark, borderColor: C.greenDark, padding: 18, marginBottom: 14 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Icon name="package" size={16} color="rgba(255,255,255,0.85)" />
+                <Text style={{ fontSize: 12.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>Stock total</Text>
+              </View>
+              <Text style={{ fontSize: 33, fontWeight: "900", color: "#fff", marginTop: 4 }}>{group(totalKg)} <Text style={{ fontSize: 17 }}>kg</Text></Text>
+              <Text style={{ fontSize: 12.5, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>{totalCount} collectes · valeur {fFull(totalVal)}</Text>
+            </Card>
+            <SectionTitle>Par produit</SectionTitle>
+            {rows.length === 0 ? (
+              <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Aucun poids collecté pour le moment.</Text></Card>
+            ) : (
+              <View style={{ gap: 9 }}>
+                {rows.map((r) => (
+                  <Card key={r.cr.id} style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "#F0EBE2", alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ fontSize: 20 }}>{r.cr.emoji}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: "800", fontSize: 15 }}>{r.cr.nom}</Text>
+                      <Text style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{r.count} collecte{r.count > 1 ? "s" : ""} · {fFull(r.valeur)}</Text>
+                    </View>
+                    <Text style={{ fontWeight: "900", fontSize: 16, color: C.teal }}>{fKg(r.kg)}</Text>
+                  </Card>
+                ))}
+              </View>
+            )}
+            <View style={{ height: 16 }} />
+          </KeyboardAwareScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}

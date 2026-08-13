@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -18,6 +19,7 @@ import {
   fF,
   fFull,
   fKg,
+  group,
   isToday,
   memberCultures,
   memberStats,
@@ -106,7 +108,66 @@ const StaffLoginCard = ({ staff }: { staff: Staff }) => (
 );
 
 /* ============================ COOP SCREENS =============================== */
-export function Dashboard({ data, onReceipt, onOpen, theme, onOpenPrets, onOpenJournal }: any) {
+const ActionCard = ({ icon, title, sub, dark, onPress, badge, testID }: { icon: string; title: string; sub: string; dark?: boolean; onPress: () => void; badge?: number; testID?: string }) => (
+  <Pressable onPress={onPress} testID={testID} style={{ flex: 1, backgroundColor: dark ? C.greenDark : "#fff", borderRadius: 18, borderWidth: 1, borderColor: dark ? C.greenDark : C.line, padding: 15, minHeight: 104, justifyContent: "space-between" }}>
+    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <View style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: dark ? "rgba(255,255,255,0.16)" : "#EDF3EF", alignItems: "center", justifyContent: "center" }}>
+        <Icon name={icon} size={21} color={dark ? "#fff" : C.teal} />
+      </View>
+      {badge && badge > 0 ? (
+        <View style={{ minWidth: 20, height: 20, borderRadius: 10, backgroundColor: C.loss, alignItems: "center", justifyContent: "center", paddingHorizontal: 5 }}>
+          <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>{badge}</Text>
+        </View>
+      ) : null}
+    </View>
+    <View style={{ marginTop: 12 }}>
+      <Text style={{ fontWeight: "800", fontSize: 15.5, color: dark ? "#fff" : C.ink }}>{title}</Text>
+      <Text style={{ fontSize: 11.5, color: dark ? "rgba(255,255,255,0.82)" : C.muted, marginTop: 2 }}>{sub}</Text>
+    </View>
+  </Pressable>
+);
+
+export const CocoaHero = () => (
+  <LinearGradient colors={[C.greenDark, C.teal]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 18, padding: 18, marginTop: 4, overflow: "hidden" }}>
+    <View style={{ position: "absolute", right: -18, top: -18, width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(255,255,255,0.06)" }} />
+    <View style={{ position: "absolute", right: 26, bottom: -24, width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,0.05)" }} />
+    <Icon name="sprout" size={26} color="rgba(255,255,255,0.9)" />
+    <Text style={{ color: "#fff", fontSize: 17, fontWeight: "900", marginTop: 10 }}>La valeur commence à la source.</Text>
+    <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 12.5, marginTop: 4, lineHeight: 18 }}>Tracer · Gérer · Valoriser la production de votre coopérative.</Text>
+  </LinearGradient>
+);
+
+const CropBreakdown = ({ cols }: { cols: Collection[] }) => {
+  const rows = CROPS.map((cr) => ({ cr, kg: cols.filter((c) => (c.cropId || "cacao") === cr.id).reduce((s, c) => s + c.kg, 0) })).filter((r) => r.kg > 0);
+  if (rows.length === 0) return null;
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 12 }}>
+      {rows.map((r) => (
+        <View key={r.cr.id} style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#fff", borderRadius: 9, paddingVertical: 5, paddingHorizontal: 9, borderWidth: 1, borderColor: "#D8E8DE" }}>
+          <Text style={{ fontSize: 12 }}>{r.cr.emoji}</Text>
+          <Text style={{ fontSize: 11.5, fontWeight: "700", color: C.ink }}>{r.cr.nom}</Text>
+          <Text style={{ fontSize: 11.5, fontWeight: "800", color: C.teal }}>{fKg(r.kg)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+};
+
+const PayCard = ({ label, value, icon, tint, actionLabel, onAction, testID }: { label: string; value: string; icon: string; tint: string; actionLabel: string; onAction: () => void; testID?: string }) => (
+  <View style={{ flex: 1, backgroundColor: "#fff", borderRadius: 16, borderWidth: 1, borderColor: C.line, padding: 13 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
+      <Icon name={icon} size={14} color={tint} />
+      <Text style={{ fontSize: 10.5, fontWeight: "800", color: C.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</Text>
+    </View>
+    <Text style={{ fontSize: 18, fontWeight: "900", color: tint }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+    <Pressable onPress={onAction} testID={testID} style={{ marginTop: 8 }}>
+      <Text style={{ fontSize: 12, fontWeight: "700", color: tint }}>{actionLabel} →</Text>
+    </Pressable>
+  </View>
+);
+
+export function Dashboard({ data, onReceipt, onOpen, theme, onPeser, onPlanteurs, onStock, onPrets, onOpenPrets, onOpenJournal }: any) {
+  const openPrets = onPrets || onOpenPrets;
   const cols: Collection[] = data.collections;
   const t = {
     kg: cols.reduce((s, c) => s + c.kg, 0),
@@ -116,60 +177,64 @@ export function Dashboard({ data, onReceipt, onOpen, theme, onOpenPrets, onOpenJ
     active: new Set(cols.map((c) => c.memberId)).size,
   };
   const pending = data.loans.filter((l: any) => l.status === "en_attente").length;
-  const recent = [...cols].sort(byDateDesc).slice(0, 4);
+  const events = buildActivity(data).slice(0, 3);
   return (
     <View>
-      <HeroCard theme={theme} icon="package" label="Collecté cette campagne" big={fKg(t.kg)} sub={`${cols.length} collectes · ${t.active} planteurs · valeur ${fFull(t.net)}`} />
-      <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
-        <MiniKpi icon={<Icon name="banknote" size={16} color={C.green} />} label="Déjà payé" value={fF(t.paye)} tint={C.green} />
-        <MiniKpi icon={<Icon name="wallet" size={16} color={C.due} />} label="Reste à payer" value={fF(t.reste)} tint={C.due} />
+      <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
+        <ActionCard testID="quick-Peser" icon="scale" title="Peser" sub="Nouvelle réception" dark onPress={onPeser} />
+        <ActionCard testID="quick-Planteurs" icon="users" title="Planteurs" sub="Gérer le réseau" onPress={onPlanteurs} />
       </View>
-      {pending > 0 ? (
-        <Pressable onPress={onOpenPrets} style={{ backgroundColor: "#FDF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 16, padding: 13, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 10 }} testID="dash-pending-loans">
-          <Icon name="clock" size={18} color={C.due} />
-          <Text style={{ flex: 1, fontSize: 13.5, fontWeight: "600" }}>{pending} demande{pending > 1 ? "s" : ""} de prêt en attente</Text>
-          <Text style={{ fontSize: 12, color: C.due, fontWeight: "700" }}>Voir →</Text>
-        </Pressable>
-      ) : null}
-      {onOpenJournal ? (
-        <Pressable onPress={onOpenJournal} testID="dash-journal" style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 16, padding: 13, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#EAF3EF", alignItems: "center", justifyContent: "center" }}><Icon name="activity" size={17} color={C.teal} /></View>
-          <Text style={{ flex: 1, fontSize: 13.5, fontWeight: "700" }}>Journal d'activité</Text>
-          <Text style={{ fontSize: 12, color: C.teal, fontWeight: "700" }}>Voir →</Text>
-        </Pressable>
-      ) : null}
-      <SectionTitle>Dernières collectes</SectionTitle>
-      <View style={{ gap: 8 }}>
-        {recent.map((c) => (
-          <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)} · ${c.method === "momo" ? "Mobile Money" : "espèces"}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
-        ))}
+      <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+        <ActionCard testID="quick-Stock" icon="package" title="Stock" sub="Poids en magasin" onPress={onStock} />
+        <ActionCard testID="quick-Prêts" icon="piggy-bank" title="Prêts" sub="Avances & crédits" onPress={openPrets} badge={pending} />
       </View>
-      {(() => {
-        const impayes = data.members
-          .map((m: Member) => ({ m, reste: memberStats(m.id, cols).reste }))
-          .filter((x: any) => x.reste > 0)
-          .sort((a: any, b: any) => b.reste - a.reste);
-        if (impayes.length === 0) return null;
-        return (
-          <View style={{ marginTop: 18 }}>
-            <SectionTitle>Rappels de paiement ({impayes.length})</SectionTitle>
-            <View style={{ gap: 8 }}>
-              {impayes.map(({ m, reste }: any) => (
-                <Pressable key={m.id} onPress={() => onOpen(m.id)} testID={`impaye-${m.id}`}>
-                  <Card style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#FDF7EC", alignItems: "center", justifyContent: "center" }}><Icon name="wallet" size={17} color={C.due} /></View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: "700", fontSize: 14 }}>{m.nom}</Text>
-                      <Text style={{ fontSize: 11.5, color: C.muted }}>{m.code} · {m.village}</Text>
-                    </View>
-                    <Text style={{ fontWeight: "800", fontSize: 14.5, color: C.due }}>{fF(reste)}</Text>
-                  </Card>
-                </Pressable>
-              ))}
-            </View>
+
+      <Card style={{ backgroundColor: "#EAF6EE", borderColor: "#CFE6D8", padding: 16, marginBottom: 12 }}>
+        <Text style={{ fontSize: 11.5, fontWeight: "800", color: C.green, textTransform: "uppercase", letterSpacing: 0.5 }}>Volume collecté</Text>
+        <Text style={{ fontSize: 34, fontWeight: "900", color: C.ink, marginTop: 2 }}>{group(t.kg)} <Text style={{ fontSize: 17, color: C.muted }}>kg</Text></Text>
+        <View style={{ flexDirection: "row", gap: 24, marginTop: 8 }}>
+          <View><Text style={{ fontSize: 11, color: C.muted }}>Collectes</Text><Text style={{ fontSize: 14.5, fontWeight: "800" }}>{cols.length}</Text></View>
+          <View><Text style={{ fontSize: 11, color: C.muted }}>Planteurs</Text><Text style={{ fontSize: 14.5, fontWeight: "800" }}>{t.active}</Text></View>
+        </View>
+        <View style={{ borderTopWidth: 1, borderColor: "#CFE6D8", marginTop: 10, paddingTop: 8 }}>
+          <Text style={{ fontSize: 11, color: C.muted }}>Montant total payé</Text>
+          <Text style={{ fontSize: 16, fontWeight: "800", color: C.green }}>{fFull(t.paye)}</Text>
+        </View>
+        <CropBreakdown cols={cols} />
+      </Card>
+
+      <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+        <PayCard label="Déjà payé" value={fF(t.paye)} icon="banknote" tint={C.green} actionLabel="Voir détails" onAction={onOpenJournal} testID="pay-details" />
+        <PayCard label="Reste à payer" value={fF(t.reste)} icon="wallet" tint={C.due} actionLabel="Initier paiement" onAction={onPlanteurs} testID="pay-initiate" />
+      </View>
+
+      <Card style={{ padding: 15, marginBottom: 16 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+            <Icon name="activity" size={17} color={C.teal} />
+            <Text style={{ fontWeight: "800", fontSize: 15.5 }}>Journal d&apos;activité</Text>
           </View>
-        );
-      })()}
+          <Pressable onPress={onOpenJournal} testID="dash-journal"><Text style={{ fontSize: 12, color: C.teal, fontWeight: "700" }}>Voir →</Text></Pressable>
+        </View>
+        {events.length === 0 ? (
+          <Text style={{ fontSize: 12.5, color: C.muted, paddingVertical: 6 }}>Aucune activité pour le moment.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {events.map((e) => (
+              <View key={e.id} style={{ flexDirection: "row", alignItems: "center", gap: 11 }}>
+                <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: e.tint + "22", alignItems: "center", justifyContent: "center" }}><Icon name={e.icon} size={15} color={e.tint} /></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: "700", fontSize: 13 }} numberOfLines={1}>{e.title}</Text>
+                  <Text style={{ fontSize: 11, color: C.muted }} numberOfLines={1}>{e.sub}</Text>
+                </View>
+                <Text style={{ fontSize: 10.5, color: C.muted }}>{fDateTime(e.date)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </Card>
+
+      <CocoaHero />
       <View style={{ height: 20 }} />
     </View>
   );
@@ -203,7 +268,7 @@ export function ActivityLog({ data, onBack }: any) {
   return (
     <View>
       <GhostBtn onPress={onBack} style={{ marginBottom: 12 }}>← Retour</GhostBtn>
-      <SectionTitle>Journal d'activité ({events.length})</SectionTitle>
+      <SectionTitle>Journal d&apos;activité ({events.length})</SectionTitle>
       <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>Historique horodaté des pesées, prêts, mandats et dépenses.</Text>
       {events.length === 0 ? <Empty text="Aucune activité pour le moment." /> : (
         <View style={{ gap: 8 }}>
