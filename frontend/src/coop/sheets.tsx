@@ -14,7 +14,6 @@ import {
   Data,
   Member,
   OPERATORS,
-  activeLoan,
   crop,
   fDate,
   fDateTime,
@@ -37,7 +36,6 @@ import {
   Card,
   Chip,
   CulturesPicker,
-  DeductRow,
   Field,
   Row,
   SaveBtn,
@@ -89,65 +87,88 @@ export function MemberSheet({ onClose, onSave, initial }: any) {
   );
 }
 
+const NumPad = ({ onKey }: { onKey: (k: string) => void }) => {
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "back", "0"];
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      {keys.map((k) => (
+        <Pressable key={k} onPress={() => onKey(k)} testID={`num-${k}`} style={{ width: "31.3%", height: 52, borderRadius: 12, backgroundColor: k === "back" ? "#F7E9E2" : "#fff", borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" }}>
+          {k === "back" ? <Text style={{ fontSize: 22, color: C.rust, fontWeight: "800" }}>⌫</Text> : <Text style={{ fontSize: 22, fontWeight: "800", color: C.ink }}>{k}</Text>}
+        </Pressable>
+      ))}
+      <View style={{ width: "31.3%" }} />
+    </View>
+  );
+};
+
+type Weigh = { brut: number; sacs: number; net: number };
+
 export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Data; role?: string; staffId: string; onClose: () => void; onSave: (c: any) => void }) {
   const [memberId, setMemberId] = useState(data.members[0]?.id || "");
-  const [kg, setKg] = useState("");
-  const [prixKg, setPrixKg] = useState(String(priceOf(data, memberCultures(data.members[0]).map((c) => c.cropId)[0] || "cacao")));
-  const [credit, setCredit] = useState("");
-  const [cotisation, setCotisation] = useState("");
-  const [sacs, setSacs] = useState("");
-  const [remb, setRemb] = useState("");
+  const member = data.members.find((m) => m.id === memberId);
+  const memCrops = memberCultures(member).map((c) => c.cropId);
+  const cropChoices = memCrops.length ? memCrops : CROPS.map((c) => c.id);
+  const [cropId, setCropId] = useState(cropChoices[0] || "cacao");
+  const [brutStr, setBrutStr] = useState("");
+  const [sacs, setSacs] = useState(0);
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [weighs, setWeighs] = useState<Weigh[]>([]);
+  const [showPay, setShowPay] = useState(false);
   const [method, setMethod] = useState("espece");
   const [payTout, setPayTout] = useState(true);
   const [payePartiel, setPayePartiel] = useState("");
 
-  const member = data.members.find((m) => m.id === memberId);
-  const loan = activeLoan(memberId, data.loans);
-  const memCrops = memberCultures(member).map((c) => c.cropId);
-  const cropChoices = memCrops.length ? memCrops : CROPS.map((c) => c.id);
-  const [cropId, setCropId] = useState(cropChoices[0] || "cacao");
   useEffect(() => {
-    setRemb("");
     const cc = memberCultures(data.members.find((m) => m.id === memberId));
     setCropId(cc[0]?.cropId || "cacao");
+    setWeighs([]); setBrutStr(""); setSacs(0); setEditIdx(null); setShowPay(false);
   }, [memberId, data.members]);
-  useEffect(() => {
-    setPrixKg(String(priceOf(data, cropId)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cropId]);
 
-  const brut = (Number(kg) || 0) * (Number(prixKg) || 0);
-  const rembN = loan ? Math.min(Number(remb) || 0, loan.soldeRestant) : 0;
-  const retTot = (Number(credit) || 0) + (Number(cotisation) || 0) + (Number(sacs) || 0) + rembN;
-  const net = Math.max(0, brut - retTot);
+  const prix = priceOf(data, cropId);
+  const brutNow = Number(brutStr) || 0;
+  const netNow = Math.max(0, brutNow - sacs);
+  const totalBrut = weighs.reduce((s, w) => s + w.brut, 0);
+  const totalSacs = weighs.reduce((s, w) => s + w.sacs, 0);
+  const totalNet = weighs.reduce((s, w) => s + w.net, 0);
+  const montant = totalNet * prix;
   const oldReste = memberStats(memberId, data.collections).reste;
-  const totalDu = net + oldReste;
+  const totalDu = montant + oldReste;
   const payeNow = payTout ? totalDu : Math.min(totalDu, Number(payePartiel) || 0);
   const settleOld = Math.min(payeNow, oldReste);
-  const payeCurrent = Math.min(net, payeNow - settleOld);
-  const resteCurrent = net - payeCurrent;
+  const payeCurrent = Math.min(montant, payeNow - settleOld);
+  const resteCurrent = montant - payeCurrent;
   const resteApres = totalDu - payeNow;
   const momoDisabled = !member?.momo;
-  const valid = memberId && Number(kg) > 0 && Number(prixKg) > 0;
 
-  const submit = () => {
-    const retenues: { label: string; amount: number }[] = [];
-    if (Number(credit) > 0) retenues.push({ label: "Crédit intrants", amount: Number(credit) });
-    if (Number(cotisation) > 0) retenues.push({ label: "Cotisation", amount: Number(cotisation) });
-    if (Number(sacs) > 0) retenues.push({ label: "Sacs", amount: Number(sacs) });
-    if (rembN > 0) retenues.push({ label: "Remboursement prêt", amount: rembN });
+  const onKey = (k: string) => {
+    if (k === "back") setBrutStr((s) => s.slice(0, -1));
+    else setBrutStr((s) => (s.length >= 6 ? s : s === "0" ? k : s + k));
+  };
+  const addWeigh = () => {
+    if (brutNow <= 0) return;
+    const w: Weigh = { brut: brutNow, sacs, net: Math.max(0, brutNow - sacs) };
+    setWeighs((prev) => {
+      if (editIdx != null) { const copy = [...prev]; copy[editIdx] = w; return copy; }
+      return [...prev, w];
+    });
+    setBrutStr(""); setSacs(0); setEditIdx(null);
+  };
+  const editWeigh = (i: number) => { const w = weighs[i]; setBrutStr(String(w.brut)); setSacs(w.sacs); setEditIdx(i); };
+  const delWeigh = (i: number) => { setWeighs((prev) => prev.filter((_, idx) => idx !== i)); if (editIdx === i) { setEditIdx(null); setBrutStr(""); setSacs(0); } };
+
+  const confirm = () => {
     onSave({
-      memberId, byStaffId: staffId, date: new Date().toISOString(), kg: Number(kg), prixKg: Number(prixKg), cropId,
-      brut, retenues, net, paye: payeCurrent, reste: resteCurrent, method: momoDisabled ? "espece" : method, note: "",
-      _repay: loan && rembN > 0 ? { loanId: loan.id, amount: rembN } : null,
-      _settle: settleOld > 0 ? settleOld : null,
+      memberId, byStaffId: staffId, date: new Date().toISOString(), kg: totalNet, prixKg: prix, cropId,
+      brut: montant, retenues: [], net: montant, sacs: totalSacs, weighings: weighs,
+      paye: payeCurrent, reste: resteCurrent, method: momoDisabled ? "espece" : method, note: "",
+      _repay: null, _settle: settleOld > 0 ? settleOld : null,
     });
   };
 
   if (data.members.length === 0)
     return (
-      <Sheet title="Collecte" onClose={onClose}>
-        <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Aucun planteur enregistré. Ajoutez-en un d'abord.</Text></Card>
+      <Sheet title="Pesée" onClose={onClose}>
+        <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Aucun planteur enregistré. Ajoutez-en un d&apos;abord.</Text></Card>
       </Sheet>
     );
 
@@ -156,69 +177,101 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
       <Field label="Planteur">
         <Select value={memberId} onChange={setMemberId} options={data.members.map((m) => ({ value: m.id, label: `${m.nom} — ${m.village}` }))} />
       </Field>
+      {member ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+          <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: "#DCEBE1", alignItems: "center", justifyContent: "center" }}><Icon name="user" size={18} color={C.green} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: "800", fontSize: 15 }}>{member.nom}</Text>
+            <Text style={{ fontSize: 12, color: C.muted }}>{member.code} · {member.village}</Text>
+          </View>
+        </View>
+      ) : null}
       <Field label="Produit pesé">
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
           {cropChoices.map((id: string) => <Chip key={id} label={crop(id).nom} emoji={crop(id).emoji} active={cropId === id} onPress={() => setCropId(id)} />)}
         </View>
+        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Prix en vigueur : <Text style={{ fontWeight: "800", color: C.green }}>{fF(prix)}/kg</Text> · tare 1 kg / sac</Text>
       </Field>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Field label="Poids (kg)" flex><TInput value={kg} onChangeText={(t) => setKg(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ex. 320" /></Field>
-        <Field label="Prix (F/kg)" flex><TInput value={prixKg} onChangeText={(t) => setPrixKg(t.replace(/\D/g, ""))} keyboardType="number-pad" /></Field>
-      </View>
-      <View style={{ backgroundColor: "#FBF7F0", borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, marginBottom: 14 }}><Row label="Montant brut" value={fF(brut)} /></View>
 
-      <SectionTitle>Retenues (facultatif)</SectionTitle>
-      <View style={{ gap: 8, marginBottom: 14 }}>
-        <DeductRow label="Crédit intrants" value={credit} onChange={setCredit} />
-        <DeductRow label="Cotisation / ristourne" value={cotisation} onChange={setCotisation} />
-        <DeductRow label="Sacs / emballage" value={sacs} onChange={setSacs} />
-        {loan ? (
-          <View style={{ backgroundColor: "#FDF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 10, padding: 11 }}>
-            <Text style={{ fontSize: 12, color: C.due, marginBottom: 6 }}>Ce planteur a un prêt en cours — solde {fF(loan.soldeRestant)}</Text>
-            <DeductRow label="Remboursement prêt" value={remb} onChange={(v) => setRemb(String(Math.min(Number(v) || 0, loan.soldeRestant)))} />
+      <SectionTitle>{editIdx != null ? "Modifier la pesée" : "Saisir une pesée"}</SectionTitle>
+      <View style={{ backgroundColor: "#FBF7F0", borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 14, marginBottom: 12 }}>
+        <Text style={{ fontSize: 12, color: C.muted }}>Poids brut relevé (kg)</Text>
+        <Text style={{ fontSize: 40, fontWeight: "900", color: C.ink, marginTop: 2, marginBottom: 10 }}>{brutStr || "0"} <Text style={{ fontSize: 18, color: C.muted }}>kg</Text></Text>
+        <NumPad onKey={onKey} />
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
+          <Text style={{ fontSize: 13.5, fontWeight: "700" }}>Nombre de sacs</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Pressable onPress={() => setSacs((s) => Math.max(0, s - 1))} testID="sacs-minus" style={{ width: 38, height: 38, borderRadius: 10, borderWidth: 1, borderColor: C.line, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 22, fontWeight: "800", color: C.ink }}>−</Text></Pressable>
+            <Text style={{ fontSize: 20, fontWeight: "900", minWidth: 30, textAlign: "center" }}>{sacs}</Text>
+            <Pressable onPress={() => setSacs((s) => s + 1)} testID="sacs-plus" style={{ width: 38, height: 38, borderRadius: 10, borderWidth: 1, borderColor: C.line, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 22, fontWeight: "800", color: C.ink }}>+</Text></Pressable>
           </View>
-        ) : null}
+        </View>
+        <View style={{ height: 1, backgroundColor: C.line, marginVertical: 12 }} />
+        <Row label={`Tare (${sacs} × 1 kg)`} value={`− ${fKg(sacs)}`} />
+        <Row label="Poids net de cette pesée" value={fKg(netNow)} strong color={C.green} />
+        <SaveBtn disabled={brutNow <= 0} color={C.teal} onPress={addWeigh} style={{ marginTop: 10 }}>{editIdx != null ? "Mettre à jour la pesée" : "Ajouter cette pesée"}</SaveBtn>
       </View>
 
-      <View style={{ backgroundColor: "#F0F6F2", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 12, padding: 12, marginBottom: 14 }}>
-        <Row label="Net de cette pesée" value={fF(net)} color={C.ink} />
-        {oldReste > 0 ? (
-          <>
-            <Row label="+ Reste dû (précédent)" value={fF(oldReste)} color={C.due} />
-            <View style={{ height: 1, backgroundColor: "#D8E8DE", marginVertical: 8 }} />
-            <Row label="Total à payer" value={fFull(totalDu)} strong color={C.green} />
-          </>
-        ) : null}
-      </View>
-      {oldReste > 0 ? (
-        <View style={{ backgroundColor: "#FDF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 10, padding: 11, marginBottom: 14, flexDirection: "row", gap: 8, alignItems: "center" }}>
-          <Icon name="wallet" size={16} color={C.due} />
-          <Text style={{ flex: 1, fontSize: 12, color: C.due, lineHeight: 17 }}>Ce planteur a un reste dû de <Text style={{ fontWeight: "800" }}>{fF(oldReste)}</Text> sur ses livraisons précédentes. Il s'ajoute au montant à payer.</Text>
-        </View>
+      {weighs.length > 0 ? (
+        <>
+          <SectionTitle>Pesées saisies ({weighs.length})</SectionTitle>
+          <View style={{ gap: 8, marginBottom: 12 }}>
+            {weighs.map((w, i) => (
+              <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: editIdx === i ? C.teal : C.line, borderRadius: 12, padding: 12 }}>
+                <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: "#F0EBE2", alignItems: "center", justifyContent: "center" }}><Text style={{ fontWeight: "800", color: C.cocoaSoft }}>{i + 1}</Text></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: "800", fontSize: 14 }}>Net {fKg(w.net)}</Text>
+                  <Text style={{ fontSize: 11.5, color: C.muted }}>Brut {fKg(w.brut)} · {w.sacs} sac{w.sacs > 1 ? "s" : ""}</Text>
+                </View>
+                <Pressable onPress={() => editWeigh(i)} hitSlop={8} testID={`edit-weigh-${i}`}><Icon name="edit" size={17} color={C.teal} /></Pressable>
+                <Pressable onPress={() => delWeigh(i)} hitSlop={8} testID={`del-weigh-${i}`}><Icon name="trash" size={17} color={C.loss} /></Pressable>
+              </View>
+            ))}
+          </View>
+        </>
       ) : null}
 
-      <Field label="Mode de paiement">
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <Toggle active={method === "espece"} onPress={() => setMethod("espece")} color={C.cocoa}>Espèces</Toggle>
-          <Toggle active={method === "momo" && !momoDisabled} onPress={() => !momoDisabled && setMethod("momo")} color={C.green}>Mobile Money</Toggle>
-        </View>
-        {momoDisabled ? <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Ce planteur n'a pas encore lié de compte Mobile Money.</Text> : null}
-      </Field>
+      {!showPay ? (
+        <SaveBtn disabled={weighs.length === 0} color={C.green} onPress={() => setShowPay(true)}>Calculer</SaveBtn>
+      ) : (
+        <>
+          <View style={{ backgroundColor: "#EAF6EE", borderWidth: 1, borderColor: "#CFE6D8", borderRadius: 14, padding: 14, marginBottom: 14 }}>
+            <Row label="Poids brut total" value={fKg(totalBrut)} />
+            <Row label={`Tare (${totalSacs} sacs × 1 kg)`} value={`− ${fKg(totalSacs)}`} />
+            <Row label="Poids net total" value={fKg(totalNet)} strong color={C.ink} />
+            <View style={{ height: 1, backgroundColor: "#CFE6D8", marginVertical: 8 }} />
+            <Row label={`Montant (${fKg(totalNet)} × ${fF(prix)})`} value={fFull(montant)} strong color={C.green} />
+          </View>
 
-      <Field label="Paiement">
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <Toggle active={payTout} onPress={() => setPayTout(true)} color={C.green}>Payer tout</Toggle>
-          <Toggle active={!payTout} onPress={() => setPayTout(false)} color={C.due}>Partiel</Toggle>
-        </View>
-      </Field>
-      {!payTout ? (
-        <Field label="Montant payé maintenant (F)">
-          <TInput value={payePartiel} onChangeText={(t) => setPayePartiel(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={`Max ${group(totalDu)}`} />
-          <Text style={{ fontSize: 12, color: C.due, marginTop: 6 }}>Reste à payer : <Text style={{ fontWeight: "700" }}>{fF(resteApres)}</Text></Text>
-        </Field>
-      ) : null}
+          {oldReste > 0 ? (
+            <View style={{ backgroundColor: "#FDF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 10, padding: 11, marginBottom: 14, flexDirection: "row", gap: 8, alignItems: "center" }}>
+              <Icon name="wallet" size={16} color={C.due} />
+              <Text style={{ flex: 1, fontSize: 12, color: C.due, lineHeight: 17 }}>Reste dû précédent <Text style={{ fontWeight: "800" }}>{fF(oldReste)}</Text> ajouté. Total à payer : <Text style={{ fontWeight: "800" }}>{fFull(totalDu)}</Text></Text>
+            </View>
+          ) : null}
 
-      <SaveBtn disabled={!valid} color={C.green} onPress={submit}>Valider & générer le bordereau</SaveBtn>
+          <Field label="Mode de paiement">
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Toggle active={method === "espece"} onPress={() => setMethod("espece")} color={C.cocoa}>Espèces</Toggle>
+              <Toggle active={method === "momo" && !momoDisabled} onPress={() => !momoDisabled && setMethod("momo")} color={C.green}>Mobile Money</Toggle>
+            </View>
+            {momoDisabled ? <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Ce planteur n'a pas encore lié de compte Mobile Money.</Text> : null}
+          </Field>
+          <Field label="Paiement">
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Toggle active={payTout} onPress={() => setPayTout(true)} color={C.green}>Payer tout</Toggle>
+              <Toggle active={!payTout} onPress={() => setPayTout(false)} color={C.due}>Partiel</Toggle>
+            </View>
+          </Field>
+          {!payTout ? (
+            <Field label="Montant payé maintenant (F)">
+              <TInput value={payePartiel} onChangeText={(t) => setPayePartiel(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={`Max ${group(totalDu)}`} />
+              <Text style={{ fontSize: 12, color: C.due, marginTop: 6 }}>Reste à payer : <Text style={{ fontWeight: "700" }}>{fF(resteApres)}</Text></Text>
+            </Field>
+          ) : null}
+          <SaveBtn color={C.green} onPress={confirm}>Confirmer &amp; générer le bordereau</SaveBtn>
+        </>
+      )}
     </Sheet>
   );
 }
@@ -509,6 +562,7 @@ function receiptHtml(c: Collection, member: Member | undefined, saison: string, 
       <table>${rows.join("")}</table>
       <div class="dash"></div>
       <table>
+        ${c.sacs ? `<tr><td>Sacs (tare ${c.sacs} kg)</td><td class="r">${c.sacs}</td></tr>` : ""}
         <tr><td>Poids net</td><td class="r">${fKg(c.kg)}</td></tr>
         <tr><td>Prix / kg</td><td class="r">${fF(c.prixKg)}</td></tr>
         <tr><td><b>Montant brut</b></td><td class="r"><b>${fF(c.brut)}</b></td></tr>
@@ -615,6 +669,7 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
                 <TRow k="Village" v={member?.village || "—"} />
                 <TRow k="Produit" v={crop(c.cropId || member?.cropId || "cacao").nom} />
                 <Dashed />
+                {c.sacs ? <TRow k="Sacs (tare)" v={`${c.sacs} · ${fKg(c.sacs)}`} /> : null}
                 <TRow k="Poids net" v={fKg(c.kg)} />
                 <TRow k="Prix / kg" v={fF(c.prixKg)} />
                 <TRow k="Montant brut" v={fF(c.brut)} bold />

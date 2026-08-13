@@ -123,6 +123,8 @@ export type Collection = {
   brut: number;
   retenues: Retenue[];
   net: number;
+  sacs?: number;
+  weighings?: { brut: number; sacs: number; net: number }[];
   paye: number;
   reste: number;
   method: string;
