@@ -311,6 +311,7 @@ export default function App() {
     );
     if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onSettle={settleMemberFn} />;
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
+    else if (tab === "prets") body = <PatronPrets data={data} canDecide={false} onNew={() => setSheet("loan")} onBack={() => setTab(isPisteur ? "tournee" : "jour")} />;
     else if (isPisteur) body = (
       <>
         <PisteurHome theme={theme} data={data} staffId={session.staffId} onNew={() => setSheet("pesee")} onNewDepense={() => setSheet("depense")} onReceipt={setReceipt} onOpen={setOpenMember} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} />
@@ -320,7 +321,7 @@ export default function App() {
     );
     else body = (
       <>
-        <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} />
+        <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} onDepense={() => setSheet("depense")} onPrets={() => setTab("prets")} />
         <CocoaHero />
         <PartnersBanner />
       </>

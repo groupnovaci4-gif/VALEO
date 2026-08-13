@@ -305,17 +305,19 @@ const CardGrid = ({ cards }: { cards: any[] }) => {
 };
 
 // En-tête « vos propres poids collectés » + grille d'actions (Pisteur/Délégué & Magasinier).
-function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock, onDepense }: any) {
+function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock, onDepense, onPrets }: any) {
   const mine: Collection[] = (data.collections || []).filter((c: Collection) => c.byStaffId === staffId);
   const today = mine.filter((c) => isToday(c.date));
   const kgAll = mine.reduce((s, c) => s + c.kg, 0);
   const net = mine.reduce((s, c) => s + c.net, 0);
-  const cards = [
+  const pending = (data.loans || []).filter((l: any) => l.status === "en_attente").length;
+  const cards: any[] = [
     { testID: "quick-Peser", icon: "scale", title: isPisteur ? "Collecter" : "Peser", sub: "Nouvelle réception", dark: true, onPress: onPeser },
     { testID: "quick-Planteurs", icon: "users", title: "Planteurs", sub: "Gérer le réseau", onPress: onPlanteurs },
     { testID: "quick-Stock", icon: "package", title: "Stock", sub: "Vos poids en magasin", onPress: onStock },
   ];
-  if (isPisteur) cards.push({ testID: "quick-Dépenses", icon: "receipt", title: "Dépenses", sub: "Suivi des frais", onPress: onDepense });
+  if (onDepense) cards.push({ testID: "quick-Dépenses", icon: "receipt", title: "Dépenses", sub: "Suivi des frais", onPress: onDepense });
+  if (onPrets) cards.push({ testID: "quick-Prêts", icon: "piggy-bank", title: "Prêts", sub: "Avances & crédits", onPress: onPrets, badge: pending });
   return (
     <View>
       <Card style={{ backgroundColor: "#EAF6EE", borderColor: "#CFE6D8", padding: 16, marginBottom: 14 }}>
@@ -330,12 +332,14 @@ function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock,
 }
 
 
-export function CollectorHome({ data, staffId, isPisteur, onReceipt, onOpen, onNew, onPlanteurs, onStock, theme }: any) {
+export function CollectorHome({ data, staffId, isPisteur, onReceipt, onOpen, onNew, onPlanteurs, onStock, onDepense, onPrets, theme }: any) {
   const mine: Collection[] = data.collections.filter((c: Collection) => c.byStaffId === staffId);
   const list = [...mine].sort(byDateDesc);
+  const deps = (data.depenses || []).filter((x: any) => x.pisteurId === staffId).sort(byDateDesc);
+  const depTot = deps.reduce((s: number, x: any) => s + x.amount, 0);
   return (
     <View>
-      <CollectorTop data={data} staffId={staffId} isPisteur={isPisteur} onPeser={onNew} onPlanteurs={onPlanteurs} onStock={onStock} />
+      <CollectorTop data={data} staffId={staffId} isPisteur={isPisteur} onPeser={onNew} onPlanteurs={onPlanteurs} onStock={onStock} onDepense={onDepense} onPrets={onPrets} />
       <SectionTitle>Historique</SectionTitle>
       {list.length === 0 ? <Empty text="Aucune collecte enregistrée pour l'instant." /> : (
         <View style={{ gap: 8 }}>
@@ -344,6 +348,25 @@ export function CollectorHome({ data, staffId, isPisteur, onReceipt, onOpen, onN
           ))}
         </View>
       )}
+      {onDepense ? (
+        <View style={{ marginTop: 18 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <SectionTitle noMargin>Mes dépenses ({fF(depTot)})</SectionTitle>
+            <GhostBtn onPress={onDepense} testID="add-depense">+ Dépense</GhostBtn>
+          </View>
+          {deps.length === 0 ? <Empty text="Aucune dépense enregistrée." /> : (
+            <View style={{ gap: 8 }}>
+              {deps.map((x: any) => (
+                <Card key={x.id} style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
+                  <View style={{ width: 34, height: 34, borderRadius: 9, backgroundColor: "#F7EDE7", alignItems: "center", justifyContent: "center" }}><Icon name="receipt" size={15} color={C.rust} /></View>
+                  <View style={{ flex: 1 }}><Text style={{ fontWeight: "700", fontSize: 13.5 }}>{depcat(x.category).nom}</Text><Text style={{ fontSize: 11.5, color: C.muted }}>{fDate(x.date)}{x.note ? ` · ${x.note}` : ""}</Text></View>
+                  <Text style={{ fontWeight: "800", fontSize: 13.5, color: C.rust }}>{fF(x.amount)}</Text>
+                </Card>
+              ))}
+            </View>
+          )}
+        </View>
+      ) : null}
       <View style={{ height: 20 }} />
     </View>
   );
@@ -751,7 +774,7 @@ export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete
   );
 }
 
-export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack }: any) {
+export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecide = true }: any) {
   const pending = data.loans.filter((l: any) => l.status === "en_attente");
   const others = data.loans.filter((l: any) => l.status !== "en_attente");
   const totalPrete = data.loans.filter((l: any) => l.status === "approuve" || l.status === "rembourse").reduce((s: number, l: any) => s + l.amount, 0);
@@ -775,14 +798,20 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack }: any) {
               </View>
               <Text style={{ fontWeight: "700", fontSize: 14.5 }}>{nameOf(data, l.memberId)}</Text>
               <Text style={{ fontSize: 12.5, color: C.muted, marginTop: 1 }}>{l.motif} · {fDate(l.date)}</Text>
-              <View style={{ flexDirection: "row", gap: 9, marginTop: 12 }}>
-                <Pressable onPress={() => onRefuse(l.id)} style={{ flex: 1, paddingVertical: 11, borderRadius: 11, borderWidth: 1, borderColor: C.line, backgroundColor: "#fff", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }} testID={`loan-refuse-${l.id}`}>
-                  <Icon name="x-circle" size={16} color={C.loss} /><Text style={{ color: C.loss, fontWeight: "700", fontSize: 13.5 }}>Refuser</Text>
-                </Pressable>
-                <Pressable onPress={() => onApprove(l)} style={{ flex: 1, paddingVertical: 11, borderRadius: 11, backgroundColor: C.green, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }} testID={`loan-approve-${l.id}`}>
-                  <Icon name="check-circle" size={16} color="#fff" /><Text style={{ color: "#fff", fontWeight: "700", fontSize: 13.5 }}>Approuver</Text>
-                </Pressable>
-              </View>
+              {canDecide ? (
+                <View style={{ flexDirection: "row", gap: 9, marginTop: 12 }}>
+                  <Pressable onPress={() => onRefuse(l.id)} style={{ flex: 1, paddingVertical: 11, borderRadius: 11, borderWidth: 1, borderColor: C.line, backgroundColor: "#fff", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }} testID={`loan-refuse-${l.id}`}>
+                    <Icon name="x-circle" size={16} color={C.loss} /><Text style={{ color: C.loss, fontWeight: "700", fontSize: 13.5 }}>Refuser</Text>
+                  </Pressable>
+                  <Pressable onPress={() => onApprove(l)} style={{ flex: 1, paddingVertical: 11, borderRadius: 11, backgroundColor: C.green, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }} testID={`loan-approve-${l.id}`}>
+                    <Icon name="check-circle" size={16} color="#fff" /><Text style={{ color: "#fff", fontWeight: "700", fontSize: 13.5 }}>Approuver</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, backgroundColor: "#FDF7EC", borderRadius: 9, paddingVertical: 8, paddingHorizontal: 10 }}>
+                  <Icon name="clock" size={14} color={C.due} /><Text style={{ fontSize: 12, color: C.due, fontWeight: "600" }}>En attente de validation du Patron</Text>
+                </View>
+              )}
             </Card>
           ))}
         </View>
