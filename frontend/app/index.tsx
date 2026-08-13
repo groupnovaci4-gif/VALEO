@@ -274,17 +274,20 @@ export default function App() {
         ? <PisteurRecon pisteur={collab} data={data} onBack={() => setOpenCollab(null)} onNewMandat={() => setSheet("mandat")} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} onResetPin={resetCollabFn} />
         : <CommisDetail staff={collab} data={data} onBack={() => setOpenCollab(null)} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} onResetPin={resetCollabFn} />;
     else if (tab === "bilan") body = (
-      <Dashboard
-        theme={theme}
-        data={data}
-        onReceipt={setReceipt}
-        onOpen={setOpenMember}
-        onPeser={() => setSheet("pesee")}
-        onPlanteurs={() => setTab("planteurs")}
-        onStock={() => setSheet("stock")}
-        onPrets={() => setTab("prets")}
-        onOpenJournal={() => setTab("journal")}
-      />
+      <>
+        <Dashboard
+          theme={theme}
+          data={data}
+          onReceipt={setReceipt}
+          onOpen={setOpenMember}
+          onPeser={() => setSheet("pesee")}
+          onPlanteurs={() => setTab("planteurs")}
+          onStock={() => setSheet("stock")}
+          onPrets={() => setTab("prets")}
+          onOpenJournal={() => setTab("journal")}
+        />
+        <PartnersBanner />
+      </>
     );
     else if (tab === "journal") body = <ActivityLog data={data} onBack={() => setTab("bilan")} />;
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
