@@ -48,6 +48,10 @@ const MAP: Record<string, [Fam, string]> = {
   "trash": ["feather", "trash-2"],
   award: ["feather", "award"],
   "handshake": ["mci", "handshake-outline"],
+  phone: ["feather", "phone"],
+  eye: ["feather", "eye"],
+  "eye-off": ["feather", "eye-off"],
+  fingerprint: ["mci", "fingerprint"],
 };
 
 export function Icon({ name, size = 20, color = "#000" }: { name: string; size?: number; color?: string }) {

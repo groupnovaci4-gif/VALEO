@@ -18,7 +18,7 @@ export type PinRecord = {
 const ITERATIONS = 15_000;
 const KEY_LENGTH = 32;
 
-export const isValidPin = (pin: string): boolean => /^\d{4}$/.test(pin);
+export const isValidPin = (pin: string): boolean => /^\d{6}$/.test(pin);
 export const normalizePhone = (phone?: string): string => (phone || "").replace(/\D/g, "");
 export const normalizeText = (value?: string): string => (value || "").trim().normalize("NFKC").toLocaleLowerCase();
 
@@ -36,7 +36,7 @@ async function randomSalt(size: number): Promise<Uint8Array> {
 }
 
 export async function createPinRecord(pin: string): Promise<PinRecord> {
-  if (!isValidPin(pin)) throw new Error("Le code doit contenir exactement 4 chiffres");
+  if (!isValidPin(pin)) throw new Error("Le code doit contenir exactement 6 chiffres");
   await yieldToUI(); // laisse l'UI afficher l'indicateur de chargement avant le calcul
   const salt = await randomSalt(16);
   const verifier = pbkdf2(sha256, utf8ToBytes(pin), salt, { c: ITERATIONS, dkLen: KEY_LENGTH });

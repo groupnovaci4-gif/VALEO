@@ -72,8 +72,8 @@ export function MemberSheet({ onClose, onSave, initial }: any) {
       </Field>
       <Field label="Téléphone"><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <Field label={initial ? "Nouveau code (4 chiffres)" : "Code secret (4 chiffres)"} flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
-        <Field label="Confirmer le code" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
+        <Field label={initial ? "Nouveau code (6 chiffres)" : "Code secret (6 chiffres)"} flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
+        <Field label="Confirmer le code" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
       </View>
       {pin && pin2 && pin !== pin2 ? <Text style={{ color: C.loss, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux codes ne correspondent pas.</Text> : null}
       {initial ? <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>Laissez vide pour conserver le code actuel.</Text> : null}
@@ -395,8 +395,8 @@ export function CollaborateurSheet({ onClose, onSave, initial }: any) {
       <Field label="Nom & prénoms"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Bakary Coulibaly" /></Field>
       <Field label="Téléphone"><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <Field label={initial ? "Nouveau code (4 chiffres)" : "Code secret (4 chiffres)"} flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
-        <Field label="Confirmer le code" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
+        <Field label={initial ? "Nouveau code (6 chiffres)" : "Code secret (6 chiffres)"} flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
+        <Field label="Confirmer le code" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
       </View>
       {pin && pin2 && pin !== pin2 ? <Text style={{ color: C.loss, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux codes ne correspondent pas.</Text> : null}
       {initial ? <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>Laissez vide pour conserver le code actuel.</Text> : null}
@@ -415,10 +415,10 @@ export function ResetPinSheet({ name, onClose, onSave }: any) {
   const save = async () => { onSave(await createPinRecord(pin)); };
   return (
     <Sheet title="Réinitialiser le code secret" onClose={onClose}>
-      <Text style={{ fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 19 }}>Définissez un nouveau code secret à 4 chiffres pour <Text style={{ fontWeight: "800", color: C.ink }}>{name}</Text>. Communiquez-le à la personne concernée.</Text>
+      <Text style={{ fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 19 }}>Définissez un nouveau code secret à 6 chiffres pour <Text style={{ fontWeight: "800", color: C.ink }}>{name}</Text>. Communiquez-le à la personne concernée.</Text>
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <Field label="Nouveau code" flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
-        <Field label="Confirmer" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" secureTextEntry maxLength={4} placeholder="••••" /></Field>
+        <Field label="Nouveau code" flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
+        <Field label="Confirmer" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
       </View>
       {pin && pin2 && pin !== pin2 ? <Text style={{ color: C.loss, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux codes ne correspondent pas.</Text> : null}
       <SaveBtn disabled={!ok} color={C.gold} onPress={save}>Enregistrer le nouveau code</SaveBtn>
