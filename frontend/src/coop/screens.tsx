@@ -1047,9 +1047,11 @@ export function SubTabs({ member, loans, onGoPrets }: any) {
 export function PlanteurPoids({ member, data, onReceipt, onSetPhoto }: any) {
   const s = memberStats(member.id, data.collections);
   const list = data.collections.filter((c: Collection) => c.memberId === member.id).sort(byDateDesc);
+  const mine = data.collections.filter((c: Collection) => c.memberId === member.id);
   return (
     <View>
-      <HeroCard theme={C.green} icon="package" label="Total livré cette campagne" big={fKg(s.kg)} sub={`${s.count} livraisons · valeur ${fFull(s.net)}`} />
+      <HeroCard theme={C.greenDark} icon="package" label="Total livré cette campagne" big={fKg(s.kg)} sub={`${s.count} livraisons · valeur ${fFull(s.net)}`} />
+      <CropBreakdown cols={mine} />
       <View style={{ flexDirection: "row", gap: 10, marginBottom: 18 }}>
         <MiniKpi icon={<Icon name="banknote" size={16} color={C.green} />} label="Reçu" value={fF(s.paye)} tint={C.green} />
         <MiniKpi icon={<Icon name="wallet" size={16} color={C.due} />} label="Reste dû par la coop" value={fF(s.reste)} tint={C.due} />

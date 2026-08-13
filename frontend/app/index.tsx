@@ -236,6 +236,7 @@ export default function App() {
           />
           <SubTabs member={me} loans={data.loans} onGoPrets={() => setTab("prets")} />
           <PlanteurPoids member={me} data={data} onReceipt={setReceipt} onSetPhoto={(url: any) => store.setMemberPhoto(me.id, url)} />
+          <CocoaHero />
           <PartnersBanner />
         </>
       );
