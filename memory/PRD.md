@@ -121,5 +121,5 @@ Symptôme : la signature du planteur ne « restait pas » / apparaissait vide.
 
 ## Refonte dashboards v17 (2026-06) — EN COURS
 - **Tâche 1 — Écran Patron (TERMINÉ)** : `Dashboard` (screens.tsx) refait selon maquette — grille 4 cartes (Peser [vert foncé], Planteurs, Stock, Prêts+badge), carte « Volume collecté » (kg + collectes/planteurs + montant payé + répartition par produit `CropBreakdown`), cartes « Déjà payé / Reste à payer » (Voir détails→Journal, Initier paiement→Planteurs), carte Journal d'activité (3 derniers events), `CocoaHero` (LinearGradient). **Bandeau partenaires CONSERVÉ** (sous le CocoaHero — l'utilisateur a demandé de le garder). Nouvelle `StockSheet` (sheets.tsx) : stock en magasin par produit ; scope "all" (patron) / "mine" (pisteur, magasinier). Câblé index.tsx.
-- Tâche 2 (Pisteur/Délégué + Magasinier, image 2) : À FAIRE.
+- **Tâche 2 — Pisteur/Délégué + Magasinier (TERMINÉ)** : composant partagé `CollectorTop` (screens.tsx) = carte verte « Volume collecté (vos propres poids) » (scope byStaffId) + `CardGrid` adaptatif. Pisteur : 4 cartes [Collecter, Planteurs, Stock, Dépenses] + KPIs/justification de caisse/segments conservés. Magasinier : 3 cartes [Peser, Planteurs, Stock] + historique. CocoaHero + PartnersBanner ajoutés. Stock scope "mine". QuickActions retirés de ces écrans.
 - Tâche 3 (Planteur, image 3) : À FAIRE.

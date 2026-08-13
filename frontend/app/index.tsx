@@ -27,6 +27,7 @@ import {
   CoopAccount,
   Collaborateurs,
   CollectorHome,
+  CocoaHero,
   CommisDetail,
   Dashboard,
   Members,
@@ -312,26 +313,15 @@ export default function App() {
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
     else if (isPisteur) body = (
       <>
-        <QuickActions
-          actions={[
-            { icon: "scale", label: "Collecter", color: C.green, onPress: () => setSheet("pesee") },
-            { icon: "users", label: "Planteurs", color: C.cocoaSoft, onPress: () => setTab("planteurs") },
-            { icon: "receipt", label: "Dépense", color: C.rust, onPress: () => setSheet("depense") },
-          ]}
-        />
-        <PisteurHome theme={theme} data={data} staffId={session.staffId} onNewCollecte={() => setSheet("pesee")} onNewDepense={() => setSheet("depense")} onReceipt={setReceipt} onOpen={setOpenMember} />
+        <PisteurHome theme={theme} data={data} staffId={session.staffId} onNew={() => setSheet("pesee")} onNewDepense={() => setSheet("depense")} onReceipt={setReceipt} onOpen={setOpenMember} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} />
+        <CocoaHero />
         <PartnersBanner />
       </>
     );
     else body = (
       <>
-        <QuickActions
-          actions={[
-            { icon: "scale", label: "Peser", color: C.green, onPress: () => setSheet("pesee") },
-            { icon: "users", label: "Planteurs", color: C.cocoaSoft, onPress: () => setTab("planteurs") },
-          ]}
-        />
-        <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} />
+        <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} />
+        <CocoaHero />
         <PartnersBanner />
       </>
     );

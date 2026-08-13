@@ -289,16 +289,53 @@ export function ActivityLog({ data, onBack }: any) {
   );
 }
 
-export function CollectorHome({ data, staffId, isPisteur, onReceipt, onOpen, onNew, theme }: any) {
-  const mine: Collection[] = data.collections.filter((c: Collection) => c.byStaffId === staffId);
+const CardGrid = ({ cards }: { cards: any[] }) => {
+  const rows: any[][] = [];
+  for (let i = 0; i < cards.length; i += 2) rows.push(cards.slice(i, i + 2));
+  return (
+    <View style={{ gap: 12, marginBottom: 16 }}>
+      {rows.map((r, ri) => (
+        <View key={ri} style={{ flexDirection: "row", gap: 12 }}>
+          {r.map((c, ci) => <ActionCard key={ci} {...c} />)}
+          {r.length === 1 ? <View style={{ flex: 1 }} /> : null}
+        </View>
+      ))}
+    </View>
+  );
+};
+
+// En-tête « vos propres poids collectés » + grille d'actions (Pisteur/Délégué & Magasinier).
+function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock, onDepense }: any) {
+  const mine: Collection[] = (data.collections || []).filter((c: Collection) => c.byStaffId === staffId);
   const today = mine.filter((c) => isToday(c.date));
   const kgAll = mine.reduce((s, c) => s + c.kg, 0);
-  const kgToday = today.reduce((s, c) => s + c.kg, 0);
+  const net = mine.reduce((s, c) => s + c.net, 0);
+  const cards = [
+    { testID: "quick-Peser", icon: "scale", title: isPisteur ? "Collecter" : "Peser", sub: "Nouvelle réception", dark: true, onPress: onPeser },
+    { testID: "quick-Planteurs", icon: "users", title: "Planteurs", sub: "Gérer le réseau", onPress: onPlanteurs },
+    { testID: "quick-Stock", icon: "package", title: "Stock", sub: "Vos poids en magasin", onPress: onStock },
+  ];
+  if (isPisteur) cards.push({ testID: "quick-Dépenses", icon: "receipt", title: "Dépenses", sub: "Suivi des frais", onPress: onDepense });
+  return (
+    <View>
+      <Card style={{ backgroundColor: "#EAF6EE", borderColor: "#CFE6D8", padding: 16, marginBottom: 14 }}>
+        <Text style={{ fontSize: 11.5, fontWeight: "800", color: C.green, textTransform: "uppercase", letterSpacing: 0.4 }}>Volume collecté (vos propres poids)</Text>
+        <Text style={{ fontSize: 34, fontWeight: "900", color: C.ink, marginTop: 2 }}>{group(kgAll)} <Text style={{ fontSize: 17, color: C.muted }}>kg</Text></Text>
+        <Text style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>{today.length} aujourd&apos;hui · {mine.length} collectes · valeur {fFull(net)}</Text>
+        <CropBreakdown cols={mine} />
+      </Card>
+      <CardGrid cards={cards} />
+    </View>
+  );
+}
+
+
+export function CollectorHome({ data, staffId, isPisteur, onReceipt, onOpen, onNew, onPlanteurs, onStock, theme }: any) {
+  const mine: Collection[] = data.collections.filter((c: Collection) => c.byStaffId === staffId);
   const list = [...mine].sort(byDateDesc);
   return (
     <View>
-      <HeroCard theme={theme} icon={isPisteur ? "truck" : "scale"} label={`${isPisteur ? "Ma tournée" : "Mes pesées"} — aujourd'hui`} big={fKg(kgToday)} sub={`${today.length} collectes aujourd'hui · ${fKg(kgAll)} au total`} />
-      <SaveBtn color={C.green} icon={<Icon name="scale" size={18} color="#fff" />} onPress={onNew} style={{ marginBottom: 18 }}>{isPisteur ? "Nouvelle collecte" : "Nouvelle pesée"}</SaveBtn>
+      <CollectorTop data={data} staffId={staffId} isPisteur={isPisteur} onPeser={onNew} onPlanteurs={onPlanteurs} onStock={onStock} />
       <SectionTitle>Historique</SectionTitle>
       {list.length === 0 ? <Empty text="Aucune collecte enregistrée pour l'instant." /> : (
         <View style={{ gap: 8 }}>
@@ -322,7 +359,7 @@ const Segments = ({ segs, seg, setSeg, theme }: { segs: [string, string][]; seg:
   </ScrollView>
 );
 
-export function PisteurHome({ theme, data, staffId, onNewDepense, onReceipt, onOpen }: any) {
+export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onReceipt, onOpen, onPlanteurs, onStock }: any) {
   const [seg, setSeg] = useState("mandats");
   const st = pisteurStats(staffId, data);
   const mandats = (data.mandats || []).filter((m: any) => m.pisteurId === staffId).sort(byDateDesc);
@@ -331,7 +368,7 @@ export function PisteurHome({ theme, data, staffId, onNewDepense, onReceipt, onO
   const segs: [string, string][] = [["mandats", "Mandats reçus"], ["collectes", "Collectes"], ["depenses", "Dépenses"], ["commission", "Commission"]];
   return (
     <View>
-      <HeroCard theme={theme} icon="package" label="Poids collecté — tournée" big={fKg(st.poids)} sub={`${st.count} collectes · commission ${fFull(st.commission)}`} />
+      <CollectorTop data={data} staffId={staffId} isPisteur onPeser={onNew} onPlanteurs={onPlanteurs} onStock={onStock} onDepense={onNewDepense} />
       <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
         <MiniKpi icon={<Icon name="wallet" size={16} color={C.gold} />} label="Mandat reçu" value={fF(st.mandat)} tint={C.gold} />
         <MiniKpi icon={<Icon name="coins" size={16} color={st.solde >= 0 ? C.green : C.loss} />} label="Solde en caisse" value={fF(st.solde)} tint={st.solde >= 0 ? C.green : C.loss} />
