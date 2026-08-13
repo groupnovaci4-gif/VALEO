@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -128,13 +128,13 @@ const ActionCard = ({ icon, title, sub, dark, onPress, badge, testID }: { icon: 
 );
 
 export const CocoaHero = () => (
-  <LinearGradient colors={[C.greenDark, C.teal]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ borderRadius: 18, padding: 18, marginTop: 4, overflow: "hidden" }}>
-    <View style={{ position: "absolute", right: -18, top: -18, width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(255,255,255,0.06)" }} />
-    <View style={{ position: "absolute", right: 26, bottom: -24, width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,0.05)" }} />
-    <Icon name="sprout" size={26} color="rgba(255,255,255,0.9)" />
-    <Text style={{ color: "#fff", fontSize: 17, fontWeight: "900", marginTop: 10 }}>La valeur commence à la source.</Text>
-    <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 12.5, marginTop: 4, lineHeight: 18 }}>Tracer · Gérer · Valoriser la production de votre coopérative.</Text>
-  </LinearGradient>
+  <View style={{ borderRadius: 18, overflow: "hidden", marginTop: 4, height: 150 }}>
+    <Image source={require("../../assets/images/cacao.png")} style={{ position: "absolute", width: "100%", height: "100%" }} resizeMode="cover" />
+    <LinearGradient colors={["rgba(20,40,25,0.15)", "rgba(15,35,20,0.82)"]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={{ flex: 1, justifyContent: "flex-end", padding: 16 }}>
+      <Text style={{ color: "#fff", fontSize: 17, fontWeight: "900" }}>La valeur commence à la source.</Text>
+      <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 12.5, marginTop: 3, lineHeight: 18 }}>Découvrez nos nouvelles pratiques agricoles.</Text>
+    </LinearGradient>
+  </View>
 );
 
 const CropBreakdown = ({ cols }: { cols: Collection[] }) => {
