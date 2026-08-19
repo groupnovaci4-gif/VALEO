@@ -904,7 +904,7 @@ function settlementHtml(s: any, member: Member | undefined, saison: string, agen
       <table>
         <tr><td class="big">SOLDE PAYÉ</td><td class="r big">${fFull(s.amount)}</td></tr>
         <tr><td>Mode</td><td class="r">${s.method === "momo" ? "Mobile Money" : "Espèces"}</td></tr>
-        <tr><td>Nature</td><td class="r">${s.viaPesee ? "Soldé lors d'une pesée" : "Paiement direct (hors livraison)"}</td></tr>
+        <tr><td>Type d'opération</td><td class="r">${s.viaPesee ? "Soldé lors d'une pesée" : "Paiement direct (hors livraison)"}</td></tr>
       </table>
       ${s.refs && s.refs.length ? `<div class="dash"></div><table>${s.refs.map((r: any) => `<tr><td>Réf. reçu ${ticketNo(r.seq)}</td><td class="r">${fF(r.amount)}</td></tr>`).join("")}</table>` : ""}
       <div class="foot">Solde du reste dû au planteur. Le reçu initial reste inchangé. Conservez ce reçu.</div>
@@ -959,7 +959,7 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
                 <Dashed />
                 <TRow k="SOLDE PAYÉ" v={fFull(s.amount)} bold big />
                 <TRow k="Mode" v={s.method === "momo" ? "Mobile Money" : "Espèces"} />
-                <TRow k="Nature" v={s.viaPesee ? "Soldé lors d'une pesée" : "Paiement direct"} />
+                <TRow k="Type d'opération" v={s.viaPesee ? "Soldé lors d'une pesée" : "Paiement direct"} />
                 {s.refs && s.refs.length ? (
                   <>
                     <Dashed />
