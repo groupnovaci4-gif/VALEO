@@ -52,6 +52,7 @@ const MAP: Record<string, [Fam, string]> = {
   eye: ["feather", "eye"],
   "eye-off": ["feather", "eye-off"],
   fingerprint: ["mci", "fingerprint"],
+  mail: ["feather", "mail"],
 };
 
 export function Icon({ name, size = 20, color = "#000" }: { name: string; size?: number; color?: string }) {

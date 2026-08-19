@@ -1,7 +1,7 @@
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 
-import { Data, fDate, fF, fFull, fKg, memberStats, pisteurStats } from "./lib";
+import { Data, fDate, fF, fFull, fKg, memberStats, outstandingReste, pisteurStats } from "./lib";
 
 export function campaignHtml(data: Data, opts?: { village?: string }): string {
   const village = opts?.village;
@@ -10,8 +10,8 @@ export function campaignHtml(data: Data, opts?: { village?: string }): string {
   const cols = village ? data.collections.filter((c) => memberIds.has(c.memberId)) : data.collections;
   const totKg = cols.reduce((s, c) => s + c.kg, 0);
   const totNet = cols.reduce((s, c) => s + c.net, 0);
-  const totPaye = cols.reduce((s, c) => s + c.paye, 0);
-  const totReste = cols.reduce((s, c) => s + c.reste, 0);
+  const totPaye = cols.reduce((s, c) => s + c.paye + (c.resteSolde || 0), 0);
+  const totReste = cols.reduce((s, c) => s + outstandingReste(c), 0);
 
   const members = [...scopedMembers].sort((a, b) => a.nom.localeCompare(b.nom));
   const memberRows = members
@@ -75,9 +75,9 @@ export function campaignHtml(data: Data, opts?: { village?: string }): string {
       <tr class="tot"><td colspan="3">TOTAL</td><td class="r">${fKg(totKg)}</td><td class="r">${fF(totNet)}</td><td class="r">${fF(totPaye)}</td><td class="r">${fF(totReste)}</td></tr>
     </table>
 
-    <h2>Prêts</h2>
+    <h2>Avances</h2>
     <div class="kpis">
-      <div class="k"><div class="l">Total prêté</div><div class="v">${fF(totalPrete)}</div></div>
+      <div class="k"><div class="l">Total avancé</div><div class="v">${fF(totalPrete)}</div></div>
       <div class="k"><div class="l">À recouvrer</div><div class="v due">${fF(aRecouvrer)}</div></div>
     </div>
 

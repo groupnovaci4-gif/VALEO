@@ -131,58 +131,98 @@ export function useCoopData() {
     let created: Collection | null = null;
     setData((d) => {
       if (!d) return d;
-      const rec: Collection = { ...c, id: c.id || uid(), seq: c.seq ?? d.seq, coopId: c.coopId || cid() };
+      let nextSeq = c.seq ?? d.seq;
+      const rec: Collection = { ...c, id: c.id || uid(), seq: nextSeq, coopId: c.coopId || cid() };
+      let dSeq = d.seq;
+      if (c.seq == null) dSeq = d.seq + 1; // le reçu de pesée consomme un numéro
+
+      // --- Recouvrement d'avance : applique le montant recouvré aux avances
+      //     approuvées du planteur (FIFO), en réduisant le solde restant. ---
       let loans = d.loans;
-      if (c._repay && c._repay.amount > 0) {
-        loans = loans.map((l) =>
-          l.id === c._repay.loanId
-            ? { ...l, soldeRestant: Math.max(0, l.soldeRestant - c._repay.amount), status: l.soldeRestant - c._repay.amount <= 0 ? "rembourse" : l.status }
-            : l,
-        );
+      const repayAmt = c._repay && c._repay.amount > 0 ? c._repay.amount : 0;
+      if (repayAmt > 0) {
+        let left = repayAmt;
+        const active = loans
+          .filter((l) => l.memberId === rec.memberId && l.status === "approuve" && l.soldeRestant > 0)
+          .sort((a, b) => +new Date(a.date) - +new Date(b.date));
+        const applied: Record<string, number> = {};
+        for (const l of active) {
+          if (left <= 0) break;
+          const take = Math.min(left, l.soldeRestant);
+          applied[l.id] = take;
+          left -= take;
+        }
+        loans = loans.map((l) => {
+          if (applied[l.id] == null) return l;
+          const nsr = Math.max(0, l.soldeRestant - applied[l.id]);
+          return { ...l, soldeRestant: nsr, status: nsr <= 0 ? "rembourse" : l.status };
+        });
       }
       delete (rec as any)._repay;
-      // Solde des restes dus antérieurs, appliqué aux plus anciennes collectes d'abord (FIFO).
+
+      // --- Solde des restes dus antérieurs (au planteur), sans modifier les
+      //     reçus d'origine : on incrémente resteSolde (FIFO) et on émet un
+      //     reçu de solde distinct référençant les reçus initiaux. ---
       const settleReq = Number(c._settle) || 0;
       let settle = settleReq;
       let cols = d.collections;
       let settlements = d.settlements || [];
       if (settle > 0) {
-        cols = cols.map((x) => {
-          if (x.memberId !== rec.memberId || x.reste <= 0 || settle <= 0) return x;
-          const applied = Math.min(settle, x.reste);
-          settle -= applied;
-          return { ...x, paye: x.paye + applied, reste: x.reste - applied };
-        });
+        const refs: { seq: number; amount: number }[] = [];
+        cols = cols
+          .slice()
+          .sort((a, b) => +new Date(a.date) - +new Date(b.date))
+          .map((x) => {
+            const out = Math.max(0, (x.reste || 0) - (x.resteSolde || 0));
+            if (x.memberId !== rec.memberId || out <= 0 || settle <= 0) return x;
+            const applied = Math.min(settle, out);
+            settle -= applied;
+            refs.push({ seq: x.seq, amount: applied });
+            return { ...x, resteSolde: (x.resteSolde || 0) + applied };
+          });
         const appliedTotal = settleReq - settle;
         if (appliedTotal > 0) {
+          const settSeq = dSeq;
+          dSeq += 1;
           settlements = [
             ...settlements,
-            { id: uid(), coopId: rec.coopId, memberId: rec.memberId, byStaffId: rec.byStaffId, amount: appliedTotal, method: rec.method, date: rec.date, viaPesee: true },
+            { id: uid(), coopId: rec.coopId, memberId: rec.memberId, byStaffId: rec.byStaffId, amount: appliedTotal, method: rec.method, date: rec.date, viaPesee: true, seq: settSeq, refs },
           ];
           (rec as any).oldRegle = appliedTotal;
         }
       }
       delete (rec as any)._settle;
       created = rec;
-      return { ...d, seq: d.seq + 1, collections: [...cols, rec], loans, settlements };
+      return { ...d, seq: dSeq, collections: [...cols, rec], loans, settlements };
     });
     return created;
   }, []);
 
-  // Solde immédiat de tout le reste dû d'un planteur (paiement hors livraison). Retourne le reçu.
+  // Solde immédiat de tout le reste dû d'un planteur (paiement hors livraison).
+  // Ne modifie PAS les reçus d'origine : suit le solde via resteSolde et émet
+  // un nouveau reçu de solde référençant les reçus initiaux. Retourne ce reçu.
   const settleMemberDue = useCallback((memberId: string, byStaffId: string, method: string): Settlement | null => {
     let receipt: Settlement | null = null;
     setData((d) => {
       if (!d) return d;
-      const total = d.collections.filter((c) => c.memberId === memberId).reduce((s, c) => s + (c.reste > 0 ? c.reste : 0), 0);
+      const outOf = (c: Collection) => Math.max(0, (c.reste || 0) - (c.resteSolde || 0));
+      const total = d.collections.filter((c) => c.memberId === memberId).reduce((s, c) => s + outOf(c), 0);
       if (total <= 0) return d;
-      const rec: Settlement = { id: uid(), coopId: cid(), memberId, byStaffId, amount: total, method, date: new Date().toISOString(), viaPesee: false };
+      const refs: { seq: number; amount: number }[] = [];
+      const collections = d.collections
+        .slice()
+        .sort((a, b) => +new Date(a.date) - +new Date(b.date))
+        .map((c) => {
+          if (c.memberId !== memberId) return c;
+          const out = outOf(c);
+          if (out <= 0) return c;
+          refs.push({ seq: c.seq, amount: out });
+          return { ...c, resteSolde: (c.resteSolde || 0) + out };
+        });
+      const settSeq = d.seq;
+      const rec: Settlement = { id: uid(), coopId: cid(), memberId, byStaffId, amount: total, method, date: new Date().toISOString(), viaPesee: false, seq: settSeq, refs };
       receipt = rec;
-      return {
-        ...d,
-        collections: d.collections.map((c) => (c.memberId === memberId && c.reste > 0 ? { ...c, paye: c.paye + c.reste, reste: 0 } : c)),
-        settlements: [...(d.settlements || []), rec],
-      };
+      return { ...d, seq: d.seq + 1, collections, settlements: [...(d.settlements || []), rec] };
     });
     return receipt;
   }, []);
@@ -277,6 +317,10 @@ export function useCoopData() {
 
   const reset = useCallback(() => setData(seed()), []);
 
+  // Met à jour le profil (identité + coordonnées) de la coopérative en portée.
+  const setCoopProfile = useCallback((patch: Record<string, any>) => {
+    setData((d) => (d ? patchCurrentCoop(d, (c) => ({ ...c, ...patch })) : d));
+  }, []);
   const replaceData = useCallback((d: Data) => setData(d), []);
 
   const setCollectionSignature = useCallback((id: string, signature: any) => {
@@ -344,6 +388,7 @@ export function useCoopData() {
     delCoopMomo,
     setPrix,
     setCoopSettings,
+    setCoopProfile,
     setCoopScope,
     reset,
     replaceData,

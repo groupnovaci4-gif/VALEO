@@ -141,3 +141,8 @@ Remplace l'ancien PeseeSheet (sheets.tsx). 4 étapes : (1) planteur + produit (p
 - Utilisé à la création : store.ts addMember + createLoginPlanteur (remplace l'ancien `PL-2026-000X`).
 - Migration : `migrate()` (lib.ts) régénère un identifiant VAL pour tout membre dont le code est absent / ancien format / doublon.
 - Textes UI mis à jour (sheets.tsx CreatePlanteur, screens.tsx MemberDetail). Vérifié e2e : nouveau planteur → code VAL-4718-TV affiché (badge + « Identifiant de connexion »).
+
+## Suppression auto-inscription Planteur v23 (2026-06) — TERMINÉ & vérifié
+- **Règle métier** : un planteur ne peut PLUS créer son compte lui-même. Le compte est créé UNIQUEMENT par le Patron/Acheteur via Tableau de bord → Planteurs → Ajouter un planteur (MemberSheet → store.addMember, qui génère le code VAL-XXXX-YY + PIN 6 chiffres et rattache le planteur à `coopId` de la coop courante).
+- **auth.tsx** : composant `CreatePlanteur` supprimé ; route/écran "create" retiré ; prop `onCreatePlanteur` retirée du composant Login (et de app/index.tsx). Sur l'onglet « Espace Planteur », le bouton « Créer un compte planteur » est remplacé par une note : « Votre compte est créé par votre coopérative. Contactez le Patron / Acheteur pour être enregistré. » L'écran de connexion Planteur ne propose donc que : connexion (téléphone + code 6 chiffres), biométrie, et « Code oublié ? ».
+- La création de coopérative (bouton « Créer une coopérative ») reste disponible sur l'onglet « Espace Coopérative ». Vérifié e2e (web) : onglet Planteur n'affiche aucun bouton d'inscription.

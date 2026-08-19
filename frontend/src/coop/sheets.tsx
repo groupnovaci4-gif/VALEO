@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   C,
+  COOP_TYPES,
   CROPS,
   Collection,
   Culture,
@@ -14,6 +15,7 @@ import {
   Data,
   Member,
   OPERATORS,
+  coopCompleteness,
   crop,
   fDate,
   fDateTime,
@@ -37,6 +39,7 @@ import {
   Chip,
   CulturesPicker,
   Field,
+  PhotoAvatar,
   Row,
   SaveBtn,
   SectionTitle,
@@ -117,11 +120,14 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
   const [method, setMethod] = useState("espece");
   const [payTout, setPayTout] = useState(true);
   const [payePartiel, setPayePartiel] = useState("");
+  const [recAll, setRecAll] = useState(true);
+  const [recStr, setRecStr] = useState("");
 
   useEffect(() => {
     const cc = memberCultures(data.members.find((m) => m.id === memberId));
     setCropId(cc[0]?.cropId || "cacao");
     setWeighs([]); setBrutStr(""); setSacs(0); setEditIdx(null); setShowPay(false);
+    setRecAll(true); setRecStr(""); setPayTout(true); setPayePartiel("");
   }, [memberId, data.members]);
 
   const prix = priceOf(data, cropId);
@@ -131,12 +137,20 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
   const totalSacs = weighs.reduce((s, w) => s + w.sacs, 0);
   const totalNet = weighs.reduce((s, w) => s + w.net, 0);
   const montant = totalNet * prix;
+  // Avance encore à recouvrer auprès de ce planteur (avances approuvées).
+  const avanceDue = data.loans
+    .filter((l) => l.memberId === memberId && l.status === "approuve" && l.soldeRestant > 0)
+    .reduce((s, l) => s + l.soldeRestant, 0);
+  const recMax = Math.min(avanceDue, montant);
+  const recouvre = avanceDue <= 0 ? 0 : recAll ? recMax : Math.min(recMax, Number(recStr) || 0);
+  const avanceReste = avanceDue - recouvre; // reste d'avance conservé
+  const netAPayer = Math.max(0, montant - recouvre); // net dû au planteur pour cette livraison
   const oldReste = memberStats(memberId, data.collections).reste;
-  const totalDu = montant + oldReste;
+  const totalDu = netAPayer + oldReste;
   const payeNow = payTout ? totalDu : Math.min(totalDu, Number(payePartiel) || 0);
   const settleOld = Math.min(payeNow, oldReste);
-  const payeCurrent = Math.min(montant, payeNow - settleOld);
-  const resteCurrent = montant - payeCurrent;
+  const payeCurrent = Math.min(netAPayer, payeNow - settleOld);
+  const resteCurrent = netAPayer - payeCurrent;
   const resteApres = totalDu - payeNow;
   const momoDisabled = !member?.momo;
 
@@ -157,11 +171,12 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
   const delWeigh = (i: number) => { setWeighs((prev) => prev.filter((_, idx) => idx !== i)); if (editIdx === i) { setEditIdx(null); setBrutStr(""); setSacs(0); } };
 
   const confirm = () => {
+    const retenues = recouvre > 0 ? [{ label: "Recouvrement d'avance", amount: recouvre }] : [];
     onSave({
       memberId, byStaffId: staffId, date: new Date().toISOString(), kg: totalNet, prixKg: prix, cropId,
-      brut: montant, retenues: [], net: montant, sacs: totalSacs, weighings: weighs,
+      brut: montant, retenues, net: netAPayer, sacs: totalSacs, weighings: weighs,
       paye: payeCurrent, reste: resteCurrent, method: momoDisabled ? "espece" : method, note: "",
-      _repay: null, _settle: settleOld > 0 ? settleOld : null,
+      _repay: recouvre > 0 ? { amount: recouvre } : null, _settle: settleOld > 0 ? settleOld : null,
     });
   };
 
@@ -243,6 +258,28 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
             <Row label={`Montant (${fKg(totalNet)} × ${fF(prix)})`} value={fFull(montant)} strong color={C.green} />
           </View>
 
+          {avanceDue > 0 ? (
+            <View style={{ backgroundColor: "#FBF0F0", borderWidth: 1, borderColor: "#EAD0CE", borderRadius: 14, padding: 14, marginBottom: 14 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <Icon name="piggy-bank" size={16} color={C.loss} />
+                <Text style={{ flex: 1, fontSize: 13, fontWeight: "800", color: C.ink }}>Avance à recouvrer</Text>
+                <Text style={{ fontSize: 14, fontWeight: "900", color: C.loss }}>{fF(avanceDue)}</Text>
+              </View>
+              <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 10, lineHeight: 16 }}>Ce planteur a une avance en cours. Choisissez le montant recouvré sur cette pesée.</Text>
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: recAll ? 0 : 10 }}>
+                <Toggle active={recAll} onPress={() => setRecAll(true)} color={C.loss}>Recouvrer {recMax >= avanceDue ? "tout" : "le max"}</Toggle>
+                <Toggle active={!recAll} onPress={() => setRecAll(false)} color={C.due}>Partiel</Toggle>
+              </View>
+              {!recAll ? (
+                <TInput value={recStr} onChangeText={(t) => setRecStr(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={`Max ${group(recMax)}`} />
+              ) : null}
+              <View style={{ height: 1, backgroundColor: "#EAD0CE", marginVertical: 10 }} />
+              <Row label="Montant recouvré" value={`− ${fF(recouvre)}`} color={C.loss} />
+              <Row label="Reste d'avance conservé" value={fF(avanceReste)} color={avanceReste > 0 ? C.due : C.muted} />
+              <Row label="Net à payer au planteur" value={fFull(netAPayer)} strong color={C.green} />
+            </View>
+          ) : null}
+
           {oldReste > 0 ? (
             <View style={{ backgroundColor: "#FDF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 10, padding: 11, marginBottom: 14, flexDirection: "row", gap: 8, alignItems: "center" }}>
               <Icon name="wallet" size={16} color={C.due} />
@@ -285,12 +322,12 @@ export function LoanSheet({ onClose, onSave, data, fixedMember }: any) {
   const valid = (fixedMember?.id || memberId) && Number(amount) > 0 && motif.trim();
   if (!fixedMember && (!data || data.members.length === 0))
     return (
-      <Sheet title="Nouveau prêt" onClose={onClose}>
+      <Sheet title="Nouvelle avance" onClose={onClose}>
         <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Aucun planteur enregistré. Ajoutez-en un d'abord.</Text></Card>
       </Sheet>
     );
   return (
-    <Sheet title={fixedMember ? "Demander un prêt / une avance" : "Nouveau prêt / créance"} onClose={onClose}>
+    <Sheet title={fixedMember ? "Demander une avance" : "Nouvelle avance"} onClose={onClose}>
       <Field label="Planteur bénéficiaire">
         {fixedMember ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 12, padding: 12 }}>
@@ -330,7 +367,7 @@ export function LoanApproveSheet({ loan, memberName, onClose, onApprove }: any) 
   const [amount, setAmount] = useState(String(loan.amount));
   const val = Number(amount) > 0 && Number(amount) <= loan.amount;
   return (
-    <Sheet title="Approuver le prêt" onClose={onClose}>
+    <Sheet title="Approuver l'avance" onClose={onClose}>
       <View style={{ backgroundColor: "#F0F6F2", borderRadius: 12, padding: 14, marginBottom: 16 }}>
         <Text style={{ fontSize: 13, color: C.muted }}>Demande de <Text style={{ fontWeight: "800", color: C.ink }}>{memberName}</Text></Text>
         <Text style={{ fontSize: 16, fontWeight: "800", marginTop: 2 }}>{loan.type === "intrant" ? "Intrant" : "Argent"} · {fF(loan.amount)}</Text>
@@ -527,6 +564,116 @@ export function SettingsSheet({ data, onClose, onSave, onReset }: any) {
       <Pressable onPress={onReset} style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, alignItems: "center", marginTop: 12 }}>
         <Text style={{ color: C.muted, fontSize: 12.5, fontWeight: "600" }}>Réinitialiser les données de démonstration</Text>
       </Pressable>
+    </Sheet>
+  );
+}
+
+/* --------------------------- Profil coopérative -------------------------- */
+export function CoopProfileSheet({ coop, patron, onClose, onSave }: { coop: any; patron?: any; onClose: () => void; onSave: (p: { coopPatch: Record<string, any>; patronPatch: Record<string, any> }) => void }) {
+  const c = coop || {};
+  const [photo, setPhoto] = useState<string | null>(c.photo || null);
+  const [nom, setNom] = useState(c.nom && c.nom !== "Ma coopérative" ? c.nom : "");
+  const [sigle, setSigle] = useState(c.sigle || "");
+  const [agrement, setAgrement] = useState(c.agrement || "");
+  const [type, setType] = useState(c.type || COOP_TYPES[0]);
+  const [dateCreation, setDateCreation] = useState(c.dateCreation || "");
+  const [filieres, setFilieres] = useState<string[]>(c.filieres || []);
+  const [description, setDescription] = useState(c.description || "");
+  const [region, setRegion] = useState(c.region || "");
+  const [district, setDistrict] = useState(c.district || "");
+  const [departement, setDepartement] = useState(c.departement || "");
+  const [commune, setCommune] = useState(c.commune || "");
+  const [localite, setLocalite] = useState(c.localite || "");
+  const [adresse, setAdresse] = useState(c.adresse || "");
+  const [tel, setTel] = useState(c.tel || "");
+  const [email, setEmail] = useState(c.email || "");
+  const [rtel, setRtel] = useState(patron?.tel || "");
+  const [rfonction, setRfonction] = useState(patron?.fonction || "");
+
+  const toggleFiliere = (id: string) => setFilieres((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
+
+  // Aperçu en temps réel de la complétude.
+  const live = coopCompleteness(
+    { nom: nom.trim() || "Ma coopérative", type, filieres, tel: tel.trim(), adresse: adresse.trim(), localite: localite.trim(), region: region.trim(), agrement: agrement.trim() },
+    { tel: rtel.trim(), fonction: rfonction.trim() },
+  );
+  const valid = nom.trim().length >= 2;
+
+  const submit = () => {
+    onSave({
+      coopPatch: {
+        nom: nom.trim() || "Ma coopérative", sigle: sigle.trim(), agrement: agrement.trim(), type,
+        dateCreation: dateCreation.trim(), filieres, photo, description: description.trim(),
+        region: region.trim(), district: district.trim(), departement: departement.trim(),
+        commune: commune.trim(), localite: localite.trim(), adresse: adresse.trim(),
+        tel: tel.trim(), email: email.trim(),
+      },
+      patronPatch: { tel: rtel.trim(), fonction: rfonction.trim() || "Responsable" },
+    });
+  };
+
+  return (
+    <Sheet title="Profil de la coopérative" onClose={onClose}>
+      <View style={{ backgroundColor: live === 100 ? "#EAF6EE" : "#FFF6E8", borderWidth: 1, borderColor: live === 100 ? "#CFE6D7" : "#F0DFC0", borderRadius: 14, padding: 14, marginBottom: 16 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <Text style={{ fontSize: 13, fontWeight: "800", color: C.ink }}>Profil complété</Text>
+          <Text style={{ fontSize: 16, fontWeight: "900", color: live === 100 ? C.green : C.gold }}>{live}%</Text>
+        </View>
+        <View style={{ height: 8, borderRadius: 6, backgroundColor: "#E7E0D4", overflow: "hidden" }}>
+          <View style={{ height: 8, width: `${live}%`, borderRadius: 6, backgroundColor: live === 100 ? C.green : C.gold }} />
+        </View>
+        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 8, lineHeight: 16 }}>{live === 100 ? "Profil complet — merci !" : "Complétez les informations ci-dessous pour finaliser le profil de votre coopérative."}</Text>
+      </View>
+
+      <SectionTitle>Identité</SectionTitle>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 14 }}>
+        <PhotoAvatar photo={photo} size={68} editable onChange={setPhoto} fallbackIcon="building" fallbackColor={C.teal} />
+        <View style={{ flexShrink: 1 }}>
+          <Text style={{ fontWeight: "700", fontSize: 13.5 }}>Logo de la coopérative</Text>
+          <Text style={{ fontSize: 12, color: C.muted }}>Facultatif</Text>
+        </View>
+      </View>
+      <Field label="Nom officiel *"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Société Coopérative COOPAGRI" /></Field>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Field label="Sigle" flex><TInput value={sigle} onChangeText={setSigle} placeholder="Ex. COOPAGRI" /></Field>
+        <Field label="Date de création" flex><TInput value={dateCreation} onChangeText={setDateCreation} placeholder="JJ/MM/AAAA" /></Field>
+      </View>
+      <Field label="N° d'agrément"><TInput value={agrement} onChangeText={setAgrement} placeholder="Ex. CI-COOP-2020-01234" /></Field>
+      <Field label="Type de coopérative">
+        <Select value={type} onChange={setType} options={COOP_TYPES.map((t) => ({ value: t, label: t }))} />
+      </Field>
+      <Field label="Filières exploitées">
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
+          {CROPS.map((cr) => <Chip key={cr.id} label={cr.nom} emoji={cr.emoji} active={filieres.includes(cr.id)} onPress={() => toggleFiliere(cr.id)} />)}
+        </View>
+      </Field>
+      <Field label="Description">
+        <TInput value={description} onChangeText={setDescription} placeholder="Quelques mots sur la coopérative" multiline numberOfLines={3} style={{ minHeight: 76, textAlignVertical: "top" }} />
+      </Field>
+
+      <SectionTitle>Coordonnées</SectionTitle>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Field label="Région" flex><TInput value={region} onChangeText={setRegion} placeholder="Ex. Agnéby-Tiassa" /></Field>
+        <Field label="District" flex><TInput value={district} onChangeText={setDistrict} placeholder="Ex. Lagunes" /></Field>
+      </View>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Field label="Département" flex><TInput value={departement} onChangeText={setDepartement} placeholder="Ex. Sikensi" /></Field>
+        <Field label="Commune" flex><TInput value={commune} onChangeText={setCommune} placeholder="Ex. Sikensi" /></Field>
+      </View>
+      <Field label="Localité / village"><TInput value={localite} onChangeText={setLocalite} placeholder="Ex. Gomon" /></Field>
+      <Field label="Adresse"><TInput value={adresse} onChangeText={setAdresse} placeholder="Ex. Quartier, rue…" /></Field>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Field label="Téléphone" flex><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
+        <Field label="Email" flex><TInput value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="coop@email.com" /></Field>
+      </View>
+
+      <SectionTitle>Responsable</SectionTitle>
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <Field label="Téléphone" flex><TInput value={rtel} onChangeText={setRtel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
+        <Field label="Fonction" flex><TInput value={rfonction} onChangeText={setRfonction} placeholder="Ex. Président" /></Field>
+      </View>
+
+      <SaveBtn disabled={!valid} color={C.teal} onPress={submit}>Enregistrer le profil</SaveBtn>
     </Sheet>
   );
 }
@@ -746,18 +893,21 @@ function settlementHtml(s: any, member: Member | undefined, saison: string, agen
     <div class="h"><div class="n">VALEO</div><div class="t">La valeur commence à la source.</div><div class="s">${saison} · Reçu de solde</div></div>
     <div class="b">
       <table>
+        <tr><td>N° reçu</td><td class="r">${s.seq != null ? ticketNo(s.seq) : "—"}</td></tr>
         <tr><td>Date</td><td class="r">${fDateTime(s.date)}</td></tr>
         <tr><td>Planteur</td><td class="r">${member?.nom || "—"}</td></tr>
         <tr><td>Village</td><td class="r">${member?.village || "—"}</td></tr>
         <tr><td>Réglé par</td><td class="r">${agent || "—"}</td></tr>
+        ${s.refs && s.refs.length ? `<tr><td>Nature</td><td class="r">Solde du reçu ${s.refs.map((r: any) => ticketNo(r.seq)).join(", ")}</td></tr>` : ""}
       </table>
       <div class="dash"></div>
       <table>
-        <tr><td class="big">RESTE SOLDÉ</td><td class="r big">${fFull(s.amount)}</td></tr>
+        <tr><td class="big">SOLDE PAYÉ</td><td class="r big">${fFull(s.amount)}</td></tr>
         <tr><td>Mode</td><td class="r">${s.method === "momo" ? "Mobile Money" : "Espèces"}</td></tr>
         <tr><td>Nature</td><td class="r">${s.viaPesee ? "Soldé lors d'une pesée" : "Paiement direct (hors livraison)"}</td></tr>
       </table>
-      <div class="foot">Solde du reste dû au planteur. Conservez ce reçu.</div>
+      ${s.refs && s.refs.length ? `<div class="dash"></div><table>${s.refs.map((r: any) => `<tr><td>Réf. reçu ${ticketNo(r.seq)}</td><td class="r">${fF(r.amount)}</td></tr>`).join("")}</table>` : ""}
+      <div class="foot">Solde du reste dû au planteur. Le reçu initial reste inchangé. Conservez ce reçu.</div>
     </div>
   </body></html>`;
 }
@@ -780,7 +930,7 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
   const whatsapp = async () => {
     const wa = waNumber(member?.tel);
     if (!wa) { onNotice && onNotice("Ce planteur n'a pas de numéro de téléphone enregistré."); return; }
-    const msg = `*VALEO — Reçu de solde*\n${saison}\nPlanteur : ${member?.nom || "—"}\nDate : ${fDateTime(s.date)}\nReste soldé : ${fFull(s.amount)}\nMode : ${s.method === "momo" ? "Mobile Money" : "Espèces"}\n\nVotre reste dû a été soldé. Merci.`;
+    const msg = `*VALEO — Reçu de solde ${s.seq != null ? ticketNo(s.seq) : ""}*\n${saison}\nPlanteur : ${member?.nom || "—"}\nDate : ${fDateTime(s.date)}\n${s.refs && s.refs.length ? `Solde du reçu ${s.refs.map((r: any) => ticketNo(r.seq)).join(", ")}\n` : ""}Solde payé : ${fFull(s.amount)}\nMode : ${s.method === "momo" ? "Mobile Money" : "Espèces"}\n\nVotre reste dû a été soldé. Merci.`;
     const url = `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
     try { if (await Linking.canOpenURL(url)) await Linking.openURL(url); else onNotice && onNotice("WhatsApp n'est pas disponible."); } catch { onNotice && onNotice("Impossible d'ouvrir WhatsApp."); }
   };
@@ -800,16 +950,25 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
                 <Text style={{ fontSize: 11.5, color: "rgba(255,255,255,0.8)", marginTop: 4 }}>{saison} · Reçu de solde</Text>
               </View>
               <View style={{ padding: 16 }}>
+                <TRow k="N° reçu" v={s.seq != null ? ticketNo(s.seq) : "—"} />
                 <TRow k="Date & heure" v={fDateTime(s.date)} />
                 <TRow k="Planteur" v={member?.nom || "—"} />
                 <TRow k="Village" v={member?.village || "—"} />
                 <TRow k="Réglé par" v={agent || "—"} />
+                {s.refs && s.refs.length ? <TRow k="Nature" v={`Solde du reçu ${s.refs.map((r: any) => ticketNo(r.seq)).join(", ")}`} /> : null}
                 <Dashed />
-                <TRow k="RESTE SOLDÉ" v={fFull(s.amount)} bold big />
+                <TRow k="SOLDE PAYÉ" v={fFull(s.amount)} bold big />
                 <TRow k="Mode" v={s.method === "momo" ? "Mobile Money" : "Espèces"} />
                 <TRow k="Nature" v={s.viaPesee ? "Soldé lors d'une pesée" : "Paiement direct"} />
+                {s.refs && s.refs.length ? (
+                  <>
+                    <Dashed />
+                    <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>Référence(s) du reçu initial</Text>
+                    {s.refs.map((r: any, i: number) => <TRow key={i} k={ticketNo(r.seq)} v={fF(r.amount)} muted />)}
+                  </>
+                ) : null}
                 <Dashed />
-                <Text style={{ textAlign: "center", fontSize: 11, color: C.muted, marginTop: 6 }}>Reste dû soldé au planteur. Conservez ce reçu.</Text>
+                <Text style={{ textAlign: "center", fontSize: 11, color: C.muted, marginTop: 6 }}>Solde du reste dû au planteur. Le reçu initial reste inchangé.</Text>
               </View>
             </View>
             <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>

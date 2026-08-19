@@ -11,6 +11,7 @@ import {
   Member,
   Staff,
   byDateDesc,
+  coopCompleteness,
   crop,
   culturesLabel,
   depcat,
@@ -23,6 +24,7 @@ import {
   isToday,
   memberCultures,
   memberStats,
+  outstandingReste,
   op,
   pisteurStats,
   ticketNo,
@@ -172,8 +174,8 @@ export function Dashboard({ data, onReceipt, onOpen, theme, onPeser, onPlanteurs
   const t = {
     kg: cols.reduce((s, c) => s + c.kg, 0),
     net: cols.reduce((s, c) => s + c.net, 0),
-    paye: cols.reduce((s, c) => s + c.paye, 0),
-    reste: cols.reduce((s, c) => s + c.reste, 0),
+    paye: cols.reduce((s, c) => s + c.paye + (c.resteSolde || 0), 0),
+    reste: cols.reduce((s, c) => s + outstandingReste(c), 0),
     active: new Set(cols.map((c) => c.memberId)).size,
   };
   const pending = data.loans.filter((l: any) => l.status === "en_attente").length;
@@ -186,7 +188,7 @@ export function Dashboard({ data, onReceipt, onOpen, theme, onPeser, onPlanteurs
       </View>
       <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
         <ActionCard testID="quick-Stock" icon="package" title="Stock" sub="Poids en magasin" onPress={onStock} />
-        <ActionCard testID="quick-Prêts" icon="piggy-bank" title="Prêts" sub="Avances & crédits" onPress={openPrets} badge={pending} />
+        <ActionCard testID="quick-Prêts" icon="piggy-bank" title="Avances" sub="Suivi & recouvrement" onPress={openPrets} badge={pending} />
       </View>
 
       <Card style={{ backgroundColor: "#EAF6EE", borderColor: "#CFE6D8", padding: 16, marginBottom: 12 }}>
@@ -245,13 +247,13 @@ type Ev = { id: string; date: string; icon: string; tint: string; title: string;
 function buildActivity(data: Data): Ev[] {
   const evs: Ev[] = [];
   (data.collections || []).forEach((c: any) =>
-    evs.push({ id: "c" + c.id, date: c.date, icon: "scale", tint: C.teal, title: `Pesée — ${nameOf(data, c.memberId)}`, sub: `${fKg(c.kg)} · net ${fF(c.net)} · payé ${fF(c.paye)}${c.reste > 0 ? ` · reste ${fF(c.reste)}` : ""}` }),
+    evs.push({ id: "c" + c.id, date: c.date, icon: "scale", tint: C.teal, title: `Pesée — ${nameOf(data, c.memberId)}`, sub: `${fKg(c.kg)} · net ${fF(c.net)} · payé ${fF(c.paye)}${outstandingReste(c) > 0 ? ` · reste ${fF(outstandingReste(c))}` : ""}` }),
   );
   const loanMap: Record<string, [string, string, string]> = {
-    en_attente: ["Demande de prêt", C.due, "clock"],
-    approuve: ["Prêt approuvé", C.green, "check-circle"],
-    refuse: ["Prêt refusé", C.loss, "x-circle"],
-    rembourse: ["Prêt remboursé", C.muted, "check"],
+    en_attente: ["Demande d'avance", C.due, "clock"],
+    approuve: ["Avance accordée", C.green, "check-circle"],
+    refuse: ["Avance refusée", C.loss, "x-circle"],
+    rembourse: ["Avance recouvrée", C.muted, "check"],
   };
   (data.loans || []).forEach((l: any) => {
     const [t, tint, icon] = loanMap[l.status] || loanMap.en_attente;
@@ -269,7 +271,7 @@ export function ActivityLog({ data, onBack }: any) {
     <View>
       <GhostBtn onPress={onBack} style={{ marginBottom: 12 }}>← Retour</GhostBtn>
       <SectionTitle>Journal d&apos;activité ({events.length})</SectionTitle>
-      <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>Historique horodaté des pesées, prêts, mandats et dépenses.</Text>
+      <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>Historique horodaté des pesées, avances, mandats et dépenses.</Text>
       {events.length === 0 ? <Empty text="Aucune activité pour le moment." /> : (
         <View style={{ gap: 8 }}>
           {events.map((e) => (
@@ -317,7 +319,7 @@ function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock,
     { testID: "quick-Stock", icon: "package", title: "Stock", sub: "Vos poids en magasin", onPress: onStock },
   ];
   if (onDepense) cards.push({ testID: "quick-Dépenses", icon: "receipt", title: "Dépenses", sub: "Suivi des frais", onPress: onDepense });
-  if (onPrets) cards.push({ testID: "quick-Prêts", icon: "piggy-bank", title: "Prêts", sub: "Avances & crédits", onPress: onPrets, badge: pending });
+  if (onPrets) cards.push({ testID: "quick-Prêts", icon: "piggy-bank", title: "Avances", sub: "Suivi & recouvrement", onPress: onPrets, badge: pending });
   return (
     <View>
       <Card style={{ backgroundColor: "#EAF6EE", borderColor: "#CFE6D8", padding: 16, marginBottom: 14 }}>
@@ -344,7 +346,7 @@ export function CollectorHome({ data, staffId, isPisteur, onReceipt, onOpen, onN
       {list.length === 0 ? <Empty text="Aucune collecte enregistrée pour l'instant." /> : (
         <View style={{ gap: 8 }}>
           {list.map((c) => (
-            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)}${c.reste > 0 ? ` · reste ${fF(c.reste)}` : ""}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
+            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)}${outstandingReste(c) > 0 ? ` · reste ${fF(outstandingReste(c))}` : ""}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
           ))}
         </View>
       )}
@@ -745,7 +747,7 @@ export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete
       ) : null}
       {loans.length > 0 ? (
         <>
-          <SectionTitle>Prêts</SectionTitle>
+          <SectionTitle>Avances</SectionTitle>
           <View style={{ gap: 8, marginBottom: 16 }}>{loans.map((l: any) => <LoanRow key={l.id} loan={l} />)}</View>
         </>
       ) : null}
@@ -761,7 +763,7 @@ export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={{ fontWeight: "800", fontSize: 14, color: C.gold }}>{fF(c.net)}</Text>
-                  {c.reste > 0 ? <Text style={{ fontSize: 11, color: C.due }}>reste {fF(c.reste)}</Text> : null}
+                  {outstandingReste(c) > 0 ? <Text style={{ fontSize: 11, color: C.due }}>reste {fF(outstandingReste(c))}</Text> : null}
                 </View>
               </View>
               <GhostBtn onPress={() => onReceipt(c)} style={{ marginTop: 10, width: "100%", justifyContent: "center", alignSelf: "stretch" }}>🧾 Bordereau</GhostBtn>
@@ -783,10 +785,10 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecid
     <View>
       {onBack ? <GhostBtn onPress={onBack} style={{ marginBottom: 12 }}>← Retour</GhostBtn> : null}
       <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
-        <MiniKpi icon={<Icon name="coins" size={16} color={C.gold} />} label="Total prêté" value={fF(totalPrete)} tint={C.gold} />
+        <MiniKpi icon={<Icon name="coins" size={16} color={C.gold} />} label="Total avancé" value={fF(totalPrete)} tint={C.gold} />
         <MiniKpi icon={<Icon name="wallet" size={16} color={C.due} />} label="À recouvrer" value={fF(totalDu)} tint={C.due} />
       </View>
-      <SaveBtn color={C.cocoa} icon={<Icon name="plus" size={17} color="#fff" />} onPress={onNew} style={{ marginBottom: 18 }}>Nouveau prêt / créance</SaveBtn>
+      <SaveBtn color={C.cocoa} icon={<Icon name="plus" size={17} color="#fff" />} onPress={onNew} style={{ marginBottom: 18 }}>Nouvelle avance</SaveBtn>
       <SectionTitle>Demandes en attente ({pending.length})</SectionTitle>
       {pending.length === 0 ? <Empty text="Aucune demande en attente." /> : (
         <View style={{ gap: 10, marginBottom: 18 }}>
@@ -817,7 +819,7 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecid
         </View>
       )}
       <SectionTitle>Historique</SectionTitle>
-      {others.length === 0 ? <Empty text="Aucun prêt traité." /> : (
+      {others.length === 0 ? <Empty text="Aucune avance traitée." /> : (
         <View style={{ gap: 8 }}>{others.map((l: any) => <LoanRow key={l.id} loan={l} name={nameOf(data, l.memberId)} />)}</View>
       )}
       <View style={{ height: 20 }} />
@@ -825,9 +827,10 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecid
   );
 }
 
-export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onReset, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
+export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile, onReset, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
   const co = data.coop || {};
   const patron = (data.staff || []).find((s: Staff) => s.role === "patron");
+  const completeness = coopCompleteness(co, patron);
   const filieresTxt = (co.filieres || []).map((id: string) => crop(id).nom).join(", ");
   const info: [string, string | undefined][] = [
     ["Type", co.type],
@@ -846,6 +849,23 @@ export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onReset, o
   const shown = info.filter(([, v]) => v && String(v).trim());
   return (
     <View>
+      <Pressable onPress={onProfile} testID="coop-profile">
+        <Card style={{ padding: 14, marginBottom: 12, borderColor: completeness === 100 ? "#CFE6D7" : "#F0DFC0", backgroundColor: completeness === 100 ? "#F1FAF4" : "#FFF9EF" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: completeness === 100 ? "#DCEBE1" : "#F6E9CF", alignItems: "center", justifyContent: "center" }}>
+              <Icon name={completeness === 100 ? "check" : "building"} size={19} color={completeness === 100 ? C.green : C.gold} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "800", fontSize: 14 }}>Profil de la coopérative</Text>
+              <Text style={{ fontSize: 12, color: C.muted }}>{completeness === 100 ? "Profil complet" : "Complétez les informations de votre coopérative"}</Text>
+            </View>
+            <Text style={{ fontSize: 16, fontWeight: "900", color: completeness === 100 ? C.green : C.gold }}>{completeness}%</Text>
+          </View>
+          <View style={{ height: 8, borderRadius: 6, backgroundColor: "#E7E0D4", overflow: "hidden" }}>
+            <View style={{ height: 8, width: `${completeness}%`, borderRadius: 6, backgroundColor: completeness === 100 ? C.green : C.gold }} />
+          </View>
+        </Card>
+      </Pressable>
       <Card style={{ padding: 16, marginBottom: 16 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <PhotoAvatar photo={co.photo} size={52} fallbackIcon="building" fallbackColor={C.teal} />
@@ -881,7 +901,7 @@ export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onReset, o
         <Pressable onPress={onOpenPrets} testID="coop-loans">
           <Card style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 11 }}>
             <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#F3ECE2", alignItems: "center", justifyContent: "center" }}><Icon name="piggy-bank" size={19} color={C.cocoa} /></View>
-            <Text style={{ flex: 1, fontWeight: "600", fontSize: 14 }}>Demandes de prêt</Text>
+            <Text style={{ flex: 1, fontWeight: "600", fontSize: 14 }}>Demandes d&apos;avance</Text>
             {pendingLoans > 0 ? <View style={{ backgroundColor: C.due, borderRadius: 20, paddingVertical: 2, paddingHorizontal: 9 }}><Text style={{ color: "#fff", fontSize: 11, fontWeight: "800" }}>{pendingLoans}</Text></View> : null}
             <Icon name="chevron-right" size={17} color={C.muted} />
           </Card>
@@ -924,7 +944,7 @@ export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onReset, o
         <SectionTitle noMargin>Comptes Mobile Money de la coop</SectionTitle>
         <GhostBtn onPress={onAddMomo} testID="add-coop-momo">+ Lier</GhostBtn>
       </View>
-      <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>Comptes depuis lesquels la coopérative verse les paiements et prêts aux planteurs.</Text>
+      <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>Comptes depuis lesquels la coopérative verse les paiements et avances aux planteurs.</Text>
       <View style={{ gap: 10, marginBottom: 20 }}>
         {data.coop.momo.map((a: any) => {
           const o = op(a.operator);
@@ -953,14 +973,14 @@ export function buildNotifications(data: Data, session: any): { items: Notif[]; 
   const isCoop = session.side === "coop";
   const isPatron = isCoop && session.role === "patron";
   if (isPatron) {
-    data.loans.filter((l) => l.status === "en_attente").forEach((l) => items.push({ id: "lp" + l.id, kind: "action", date: l.date, icon: "clock", tint: C.due, title: "Demande de prêt en attente", sub: `${nameOf(data, l.memberId)} · ${fF(l.amount)}` }));
-    data.loans.filter((l) => l.status === "approuve" || l.status === "refuse").forEach((l) => items.push({ id: "ld" + l.id, kind: "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : "x-circle", tint: l.status === "approuve" ? C.green : C.loss, title: l.status === "approuve" ? "Crédit accordé" : "Prêt refusé", sub: `${nameOf(data, l.memberId)} · ${fF(l.amount)}` }));
+    data.loans.filter((l) => l.status === "en_attente").forEach((l) => items.push({ id: "lp" + l.id, kind: "action", date: l.date, icon: "clock", tint: C.due, title: "Demande d'avance en attente", sub: `${nameOf(data, l.memberId)} · ${fF(l.amount)}` }));
+    data.loans.filter((l) => l.status === "approuve" || l.status === "refuse").forEach((l) => items.push({ id: "ld" + l.id, kind: "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : "x-circle", tint: l.status === "approuve" ? C.green : C.loss, title: l.status === "approuve" ? "Avance accordée" : "Avance refusée", sub: `${nameOf(data, l.memberId)} · ${fF(l.amount)}` }));
   }
   if (isCoop) {
     data.members.forEach((m) => {
       const st = memberStats(m.id, data.collections);
       if (st.reste > 0) {
-        const lastC = data.collections.filter((c) => c.memberId === m.id && c.reste > 0).sort(byDateDesc)[0];
+        const lastC = data.collections.filter((c) => c.memberId === m.id && outstandingReste(c) > 0).sort(byDateDesc)[0];
         items.push({ id: "rd" + m.id, kind: "action", date: lastC ? lastC.date : new Date().toISOString(), icon: "wallet", tint: C.due, title: "Reste à payer au planteur", sub: `${m.nom} · ${fF(st.reste)}` });
       }
     });
@@ -972,7 +992,7 @@ export function buildNotifications(data: Data, session: any): { items: Notif[]; 
     if (m) {
       const st = memberStats(m.id, data.collections);
       if (st.reste > 0) items.push({ id: "myr", kind: "action", date: new Date().toISOString(), icon: "wallet", tint: C.due, title: "Reste à percevoir", sub: `La coopérative vous doit ${fF(st.reste)}` });
-      data.loans.filter((l) => l.memberId === m.id).forEach((l) => items.push({ id: "ml" + l.id, kind: l.status === "en_attente" ? "action" : "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : l.status === "refuse" ? "x-circle" : "clock", tint: l.status === "approuve" ? C.green : l.status === "refuse" ? C.loss : C.due, title: l.status === "approuve" ? "Prêt accordé" : l.status === "refuse" ? "Prêt refusé" : "Demande en attente", sub: `${fF(l.amount)}${l.motif ? " · " + l.motif : ""}` }));
+      data.loans.filter((l) => l.memberId === m.id).forEach((l) => items.push({ id: "ml" + l.id, kind: l.status === "en_attente" ? "action" : "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : l.status === "refuse" ? "x-circle" : "clock", tint: l.status === "approuve" ? C.green : l.status === "refuse" ? C.loss : C.due, title: l.status === "approuve" ? "Avance accordée" : l.status === "refuse" ? "Avance refusée" : "Demande en attente", sub: `${fF(l.amount)}${l.motif ? " · " + l.motif : ""}` }));
       data.collections.filter((c) => c.memberId === m.id && c.paye > 0).forEach((c) => items.push({ id: "mp" + c.id, kind: "info", date: c.date, icon: "scale", tint: C.teal, title: "Pesée payée", sub: `${fKg(c.kg)} · ${fF(c.paye)}` }));
     }
   }
@@ -1035,8 +1055,8 @@ export function SubTabs({ member, loans, onGoPrets }: any) {
       <View style={{ backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 16, padding: 13, flexDirection: "row", alignItems: "center", gap: 11 }}>
         <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#E1F1E8", alignItems: "center", justifyContent: "center" }}><Icon name="piggy-bank" size={19} color={C.green} /></View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: "700", fontSize: 14 }}>Mes prêts</Text>
-          <Text style={{ fontSize: 12, color: C.muted }}>{pending > 0 ? `${pending} en attente · ` : ""}{due > 0 ? `${fF(due)} à rembourser` : "à jour"}</Text>
+          <Text style={{ fontWeight: "700", fontSize: 14 }}>Mes avances</Text>
+          <Text style={{ fontSize: 12, color: C.muted }}>{pending > 0 ? `${pending} en attente · ` : ""}{due > 0 ? `${fF(due)} à recouvrer` : "à jour"}</Text>
         </View>
         <Icon name="chevron-right" size={18} color={C.muted} />
       </View>
@@ -1089,7 +1109,7 @@ export function PlanteurPoids({ member, data, onReceipt, onSetPhoto }: any) {
                   </View>
                 </View>
               </View>
-              {c.reste > 0 ? <View style={{ marginTop: 8, backgroundColor: "#FDF7EC", borderRadius: 8, padding: 8 }}><Text style={{ fontSize: 12, color: C.due }}>Reste à percevoir : <Text style={{ fontWeight: "700" }}>{fF(c.reste)}</Text></Text></View> : null}
+              {outstandingReste(c) > 0 ? <View style={{ marginTop: 8, backgroundColor: "#FDF7EC", borderRadius: 8, padding: 8 }}><Text style={{ fontSize: 12, color: C.due }}>Reste à percevoir : <Text style={{ fontWeight: "700" }}>{fF(outstandingReste(c))}</Text></Text></View> : null}
               <GhostBtn onPress={() => onReceipt(c)} color={C.green} style={{ marginTop: 10, width: "100%", justifyContent: "center", alignSelf: "stretch" }}>🧾 Mon bordereau</GhostBtn>
             </Card>
           ))}
@@ -1106,13 +1126,13 @@ export function PlanteurPrets({ member, data, onNew }: any) {
   return (
     <View>
       <Card style={{ backgroundColor: due > 0 ? C.due : C.green, padding: 18, marginBottom: 14, borderColor: due > 0 ? C.due : C.green }}>
-        <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.85)" }}>À rembourser à la coopérative</Text>
+        <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.85)" }}>Avance à recouvrer par la coopérative</Text>
         <Text style={{ fontSize: 30, fontWeight: "800", marginTop: 3, color: "#fff" }}>{fFull(due)}</Text>
         <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>Prélevé automatiquement sur vos prochaines livraisons.</Text>
       </Card>
-      <SaveBtn color={C.green} icon={<Icon name="plus" size={18} color="#fff" />} onPress={onNew} style={{ marginBottom: 18 }}>Demander un prêt</SaveBtn>
+      <SaveBtn color={C.green} icon={<Icon name="plus" size={18} color="#fff" />} onPress={onNew} style={{ marginBottom: 18 }}>Demander une avance</SaveBtn>
       <SectionTitle>Mes demandes</SectionTitle>
-      {list.length === 0 ? <Empty text="Vous n'avez pas encore fait de demande de prêt." /> : (
+      {list.length === 0 ? <Empty text="Vous n'avez pas encore fait de demande d'avance." /> : (
         <View style={{ gap: 8 }}>{list.map((l: any) => <LoanRow key={l.id} loan={l} />)}</View>
       )}
       <View style={{ height: 20 }} />

@@ -3,11 +3,11 @@ import { Alert, Image, Linking, Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, COOP_TYPES, CROPS, Culture, Data, OPERATORS, ROLES, Session, totalSuperficie, waNumber } from "./lib";
-import { createPinRecord, isValidPin, normalizePhone, normalizeText, verifyPinAsync } from "./pin";
+import { C, Data, ROLES, Session, waNumber } from "./lib";
+import { hashSecret, isValidPassword, isValidPin, normalizePhone, normalizeText, verifyPinAsync } from "./pin";
 import { getBiometricState, promptBiometric, readSession, saveSession } from "./biometric";
 import { Icon } from "./Icon";
-import { Card, Chip, CulturesPicker, Field, PhotoAvatar, SaveBtn, Select, TInput } from "./ui";
+import { Field, PhotoAvatar, SaveBtn, TInput } from "./ui";
 
 const VALEO_EMBLEM = require("../../assets/images/adaptive-icon.png");
 
@@ -79,18 +79,18 @@ const topIcon = { backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10, p
 export function Login({
   data,
   onPick,
-  onCreatePlanteur,
   onCreateCoop,
 }: {
   data: Data;
   onPick: (s: Session) => void;
-  onCreatePlanteur: (m: any) => void;
   onCreateCoop: (p: any) => void;
 }) {
   const [tab, setTab] = useState<"coop" | "planteur">("coop");
-  const [screen, setScreen] = useState<"home" | "create" | "createCoop">("home");
+  const [screen, setScreen] = useState<"home" | "createCoop">("home");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [bio, setBio] = useState<{ available: boolean; label: string }>({ available: false, label: "empreinte" });
@@ -104,22 +104,23 @@ export function Login({
     })();
   }, []);
 
-  if (screen === "create") return <CreatePlanteur onBack={() => setScreen("home")} onSubmit={onCreatePlanteur} />;
   if (screen === "createCoop") return <CreateCoop onBack={() => setScreen("home")} onSubmit={onCreateCoop} />;
 
-  const switchTab = (t: "coop" | "planteur") => { setTab(t); setErr(""); setPin(""); };
+  const switchTab = (t: "coop" | "planteur") => { setTab(t); setErr(""); setPin(""); setPass(""); };
   const pick = async (s: Session) => { await saveSession(s); onPick(s); };
 
   const doLogin = async () => {
-    const dig = normalizePhone(phone);
-    if (dig.length < 6) { setErr("Saisissez un numéro de téléphone valide."); return; }
-    if (!isValidPin(pin)) { setErr("Le code doit contenir 6 chiffres."); return; }
     if (tab === "coop") {
-      const s = data.staff.find((st) => normalizePhone(st.tel) === dig);
-      if (!s) { setErr("Aucun compte coopérative pour ce numéro."); return; }
-      if (s.pin && !(await verifyPinAsync(pin, s.pin))) { setErr("Code secret incorrect."); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setErr("Saisissez une adresse e-mail valide."); return; }
+      if (!isValidPassword(pass)) { setErr("Mot de passe : au moins 6 caractères."); return; }
+      const s = data.staff.find((st) => normalizeText((st as any).email || "") === normalizeText(email));
+      if (!s) { setErr("Aucun compte pour cette adresse e-mail."); return; }
+      if (s.pin && !(await verifyPinAsync(pass, s.pin))) { setErr("Mot de passe incorrect."); return; }
       pick({ side: "coop", role: s.role, staffId: s.id, coopId: s.coopId });
     } else {
+      const dig = normalizePhone(phone);
+      if (dig.length < 6) { setErr("Saisissez un numéro de téléphone valide."); return; }
+      if (!isValidPin(pin)) { setErr("Le code doit contenir 6 chiffres."); return; }
       const q = normalizeText(phone);
       const m = data.members.find((mm) => normalizePhone(mm.tel) === dig || normalizeText(mm.code) === q);
       if (!m) { setErr("Aucun planteur pour ce numéro / code."); return; }
@@ -136,6 +137,7 @@ export function Login({
   };
 
   const doForgot = async () => {
+    if (tab === "coop") { Alert.alert("Mot de passe oublié", "Contactez l'administrateur VALEO pour réinitialiser votre mot de passe."); return; }
     const wa = waNumber(phone);
     if (!wa) { Alert.alert("Code oublié", "Saisissez d'abord votre numéro de téléphone (WhatsApp)."); return; }
     const msg = encodeURIComponent("Bonjour, j'ai oublié mon code secret VALEO. Merci de m'aider à le récupérer / réinitialiser.");
@@ -168,18 +170,35 @@ export function Login({
         <Text style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{isCoop ? "Gérez la collecte et les paiements" : "Suivez vos livraisons et paiements"}</Text>
       </View>
 
-      <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginBottom: 7 }}>Numéro de téléphone</Text>
-      <View style={fieldWrap}>
-        <Icon name="phone" size={18} color={C.muted} />
-        <TInput value={phone} onChangeText={(t) => { setPhone(t.replace(/[^\d]/g, "")); setErr(""); }} placeholder="ex. 07 00 00 00 01" keyboardType="phone-pad" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 }} />
-      </View>
-
-      <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginTop: 14, marginBottom: 7 }}>Code secret à 6 chiffres</Text>
-      <View style={fieldWrap}>
-        <Icon name="key" size={18} color={C.muted} />
-        <TInput value={pin} onChangeText={(t) => { setPin(t.replace(/\D/g, "").slice(0, 6)); setErr(""); }} placeholder="••••••" keyboardType="number-pad" secureTextEntry={!showPin} maxLength={6} onSubmitEditing={doLogin} returnKeyType="go" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0, letterSpacing: 4 }} />
-        <Pressable onPress={() => setShowPin((v) => !v)} hitSlop={8} testID="toggle-pin"><Icon name={showPin ? "eye-off" : "eye"} size={18} color={C.muted} /></Pressable>
-      </View>
+      {isCoop ? (
+        <>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginBottom: 7 }}>Adresse e-mail</Text>
+          <View style={fieldWrap}>
+            <Icon name="mail" size={18} color={C.muted} />
+            <TInput value={email} onChangeText={(t) => { setEmail(t.trim()); setErr(""); }} placeholder="ex. responsable@coop.ci" keyboardType="email-address" autoCapitalize="none" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 }} />
+          </View>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginTop: 14, marginBottom: 7 }}>Mot de passe</Text>
+          <View style={fieldWrap}>
+            <Icon name="key" size={18} color={C.muted} />
+            <TInput value={pass} onChangeText={(t) => { setPass(t); setErr(""); }} placeholder="Mot de passe" secureTextEntry={!showPin} onSubmitEditing={doLogin} returnKeyType="go" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 }} />
+            <Pressable onPress={() => setShowPin((v) => !v)} hitSlop={8} testID="toggle-pin"><Icon name={showPin ? "eye-off" : "eye"} size={18} color={C.muted} /></Pressable>
+          </View>
+        </>
+      ) : (
+        <>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginBottom: 7 }}>Numéro de téléphone</Text>
+          <View style={fieldWrap}>
+            <Icon name="phone" size={18} color={C.muted} />
+            <TInput value={phone} onChangeText={(t) => { setPhone(t.replace(/[^\d]/g, "")); setErr(""); }} placeholder="ex. 07 00 00 00 01" keyboardType="phone-pad" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 }} />
+          </View>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginTop: 14, marginBottom: 7 }}>Code secret à 6 chiffres</Text>
+          <View style={fieldWrap}>
+            <Icon name="key" size={18} color={C.muted} />
+            <TInput value={pin} onChangeText={(t) => { setPin(t.replace(/\D/g, "").slice(0, 6)); setErr(""); }} placeholder="••••••" keyboardType="number-pad" secureTextEntry={!showPin} maxLength={6} onSubmitEditing={doLogin} returnKeyType="go" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0, letterSpacing: 4 }} />
+            <Pressable onPress={() => setShowPin((v) => !v)} hitSlop={8} testID="toggle-pin"><Icon name={showPin ? "eye-off" : "eye"} size={18} color={C.muted} /></Pressable>
+          </View>
+        </>
+      )}
 
       <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 10 }}>
         <Pressable onPress={doForgot} testID="forgot"><Text style={{ fontSize: 13, fontWeight: "700", color: C.green }}>Code oublié ?</Text></Pressable>
@@ -200,10 +219,17 @@ export function Login({
         <Text style={{ fontWeight: "800", fontSize: 14.5, color: C.ink }}>Se connecter avec l&apos;empreinte</Text>
       </Pressable>
 
-      <Pressable onPress={() => setScreen(isCoop ? "createCoop" : "create")} testID={isCoop ? "create-coop" : "create-planteur"} style={{ marginTop: 14, backgroundColor: "#DCEBE1", borderRadius: 14, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
-        <Icon name={isCoop ? "building" : "user-plus"} size={17} color={C.green} />
-        <Text style={{ fontWeight: "800", fontSize: 14, color: C.green }}>{isCoop ? "Créer une coopérative" : "Créer un compte planteur"}</Text>
-      </Pressable>
+      {isCoop ? (
+        <Pressable onPress={() => setScreen("createCoop")} testID="create-coop" style={{ marginTop: 14, backgroundColor: "#DCEBE1", borderRadius: 14, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <Icon name="building" size={17} color={C.green} />
+          <Text style={{ fontWeight: "800", fontSize: 14, color: C.green }}>Créer une coopérative</Text>
+        </Pressable>
+      ) : (
+        <View style={{ marginTop: 14, backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 14, padding: 13, flexDirection: "row", alignItems: "center", gap: 9 }}>
+          <Icon name="shield-check" size={16} color={C.muted} />
+          <Text style={{ flex: 1, fontSize: 12, color: C.muted, lineHeight: 17 }}>Votre compte est créé par votre coopérative. Contactez le Patron / Acheteur pour être enregistré.</Text>
+        </View>
+      )}
 
       <View style={{ flex: 1 }} />
       <Text style={{ textAlign: "center", fontSize: 11.5, color: C.muted, marginTop: 24 }}>© 2026 Valeo. Tous droits réservés.</Text>
@@ -224,223 +250,63 @@ function AuthHeader({ title, sub, onBack, theme }: { title: string; sub: string;
   );
 }
 
-function CreatePlanteur({ onBack, onSubmit }: { onBack: () => void; onSubmit: (m: any) => void }) {
-  const insets = useSafeAreaInsets();
-  const [photo, setPhoto] = useState<string | null>(null);
-  const [nom, setNom] = useState("");
-  const [village, setVillage] = useState("");
-  const [idNumber, setIdNumber] = useState("");
-  const [cultures, setCultures] = useState<Culture[]>([]);
-  const [tel, setTel] = useState("");
-  const [pin, setPin] = useState("");
-  const [pin2, setPin2] = useState("");
-  const [withMomo, setWithMomo] = useState(false);
-  const [operator, setOperator] = useState("orange");
-  const [number, setNumber] = useState("");
-  const pinOk = isValidPin(pin) && pin === pin2;
-  const valid = nom.trim() && village.trim() && idNumber.trim() && pinOk;
-  const submit = async () => {
-    const momo = withMomo && number.trim().length >= 8 ? { operator, number: number.trim() } : null;
-    const pinRec = await createPinRecord(pin);
-    onSubmit({ nom: nom.trim(), village: village.trim(), idNumber: idNumber.trim(), cultures, cropId: cultures[0]?.cropId || "cacao", superficie: totalSuperficie({ cultures }), tel: tel.trim() || (momo ? momo.number : ""), momo, photo, pin: pinRec });
-  };
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <AuthHeader title="Créer un compte planteur" sub="Un code planteur unique vous sera attribué" onBack={onBack} theme={C.green} />
-      <KeyboardAwareScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 30 }} keyboardShouldPersistTaps="handled">
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 }}>
-          <PhotoAvatar photo={photo} size={72} editable onChange={setPhoto} fallbackColor={C.green} />
-          <View style={{ flexShrink: 1 }}>
-            <Text style={{ fontWeight: "700", fontSize: 13.5 }}>Photo du planteur</Text>
-            <Text style={{ fontSize: 12, color: C.muted }}>Facultatif — prendre ou importer</Text>
-          </View>
-        </View>
-        <Field label="Nom & prénoms"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Kouassi Yao" /></Field>
-        <Field label="Numéro de pièce d'identité"><TInput value={idNumber} onChangeText={setIdNumber} placeholder="Ex. CI 003 451 2" /></Field>
-        <Field label="Localité / village"><TInput value={village} onChangeText={setVillage} placeholder="Ex. Sikensi" /></Field>
-        <Field label="Cultures & superficies (plusieurs possibles)">
-          <CulturesPicker value={cultures} onChange={setCultures} />
-        </Field>
-        <Field label="Téléphone"><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <Field label="Code secret (6 chiffres)" flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
-          <Field label="Confirmer le code" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
-        </View>
-        {pin && pin2 && pin !== pin2 ? <Text style={{ color: C.rust, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux codes ne correspondent pas.</Text> : null}
-
-        <Pressable onPress={() => setWithMomo(!withMomo)} style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 16, padding: 13, flexDirection: "row", alignItems: "center", gap: 11, marginBottom: 14 }}>
-          <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#EDF5F0", alignItems: "center", justifyContent: "center" }}><Icon name="smartphone" size={18} color={C.green} /></View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: "700", fontSize: 13.5 }}>Lier un compte Mobile Money</Text>
-            <Text style={{ fontSize: 12, color: C.muted }}>Facultatif — pour recevoir vos paiements</Text>
-          </View>
-          <View style={{ width: 42, height: 24, borderRadius: 20, backgroundColor: withMomo ? C.green : "#D9D2C7", justifyContent: "center" }}>
-            <View style={{ width: 18, height: 18, borderRadius: 10, backgroundColor: "#fff", marginLeft: withMomo ? 21 : 3 }} />
-          </View>
-        </Pressable>
-
-        {withMomo ? (
-          <Card style={{ padding: 14, marginBottom: 14 }}>
-            <Text style={{ fontSize: 12.5, fontWeight: "600", marginBottom: 6 }}>Opérateur</Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-              {OPERATORS.map((o) => (
-                <Pressable key={o.id} onPress={() => setOperator(o.id)} style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10, paddingHorizontal: 11, borderRadius: 11, borderWidth: operator === o.id ? 2 : 1, borderColor: operator === o.id ? o.color : C.line, backgroundColor: "#fff", width: "47%" }}>
-                  <View style={{ width: 24, height: 24, borderRadius: 7, backgroundColor: o.color, alignItems: "center", justifyContent: "center" }}><Icon name="smartphone" size={13} color={o.ink} /></View>
-                  <Text style={{ fontWeight: "700", fontSize: 12.5 }}>{o.nom}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <Text style={{ fontSize: 12.5, fontWeight: "600", marginBottom: 6 }}>Numéro Mobile Money</Text>
-            <TInput value={number} onChangeText={setNumber} keyboardType="phone-pad" placeholder="07 00 00 00 00" />
-          </Card>
-        ) : null}
-
-        <View style={{ backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-          <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Votre compte est lié à la coopérative. Un <Text style={{ fontWeight: "700" }}>code planteur</Text> unique vous sera attribué automatiquement.</Text>
-        </View>
-        <SaveBtn disabled={!valid} color={C.green} onPress={submit}>Créer mon compte & continuer</SaveBtn>
-      </KeyboardAwareScrollView>
-    </View>
-  );
-}
-
+/* -------- Création coopérative (minimale : responsable + email + mot de passe) -------- */
 function CreateCoop({ onBack, onSubmit }: { onBack: () => void; onSubmit: (p: any) => void }) {
   const insets = useSafeAreaInsets();
-  // Identité
-  const [photo, setPhoto] = useState<string | null>(null);
   const [nom, setNom] = useState("");
-  const [sigle, setSigle] = useState("");
-  const [agrement, setAgrement] = useState("");
-  const [type, setType] = useState(COOP_TYPES[0]);
-  const [dateCreation, setDateCreation] = useState("");
-  const [filieres, setFilieres] = useState<string[]>([]);
-  const [description, setDescription] = useState("");
-  // Coordonnées
-  const [region, setRegion] = useState("");
-  const [district, setDistrict] = useState("");
-  const [departement, setDepartement] = useState("");
-  const [commune, setCommune] = useState("");
-  const [localite, setLocalite] = useState("");
-  const [adresse, setAdresse] = useState("");
-  const [tel, setTel] = useState("");
   const [email, setEmail] = useState("");
-  // Responsable
-  const [rphoto, setRphoto] = useState<string | null>(null);
-  const [rnom, setRnom] = useState("");
-  const [rprenoms, setRprenoms] = useState("");
-  const [rfonction, setRfonction] = useState("");
-  const [rtel, setRtel] = useState("");
-  const [remail, setRemail] = useState("");
-  const [rid, setRid] = useState("");
-  const [rpin, setRpin] = useState("");
-  const [rpin2, setRpin2] = useState("");
+  const [pass, setPass] = useState("");
+  const [pass2, setPass2] = useState("");
+  const [show, setShow] = useState(false);
+  const [err, setErr] = useState("");
 
-  const toggleFiliere = (id: string) => setFilieres((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]));
-  const pinOk = isValidPin(rpin) && rpin === rpin2;
-  const valid = nom.trim() && rnom.trim() && rprenoms.trim() && rtel.trim() && pinOk;
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const passOk = isValidPassword(pass) && pass === pass2;
+  const valid = nom.trim().length >= 2 && emailOk && passOk;
 
   const submit = async () => {
-    const pinRec = await createPinRecord(rpin);
+    setErr("");
+    if (!nom.trim()) { setErr("Saisissez le nom du responsable."); return; }
+    if (!emailOk) { setErr("Adresse e-mail invalide."); return; }
+    if (!isValidPassword(pass)) { setErr("Mot de passe : au moins 6 caractères."); return; }
+    if (pass !== pass2) { setErr("Les deux mots de passe ne correspondent pas."); return; }
+    const pinRec = await hashSecret(pass);
     onSubmit({
-      coop: {
-        nom: nom.trim(), sigle: sigle.trim(), agrement: agrement.trim(), type, dateCreation: dateCreation.trim(),
-        filieres, photo, description: description.trim(),
-        region: region.trim(), district: district.trim(), departement: departement.trim(), commune: commune.trim(),
-        localite: localite.trim(), adresse: adresse.trim(), tel: tel.trim(), email: email.trim(),
-      },
-      responsable: {
-        nom: rnom.trim(), prenoms: rprenoms.trim(), fonction: rfonction.trim(), tel: rtel.trim(),
-        email: remail.trim(), idNumber: rid.trim(), photo: rphoto, pin: pinRec,
-      },
+      coop: { nom: "Ma coopérative", filieres: [] },
+      responsable: { nom: nom.trim(), email: email.trim(), fonction: "Responsable", pin: pinRec },
     });
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <AuthHeader title="Créer une coopérative" sub="Renseignez l'identité, les coordonnées et le responsable" onBack={onBack} theme={C.teal} />
+      <AuthHeader title="Créer une coopérative" sub="Quelques informations suffisent pour démarrer" onBack={onBack} theme={C.teal} />
       <KeyboardAwareScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 30 }} keyboardShouldPersistTaps="handled">
-
-        <SectionLabel icon="building" text="Identité de la coopérative" color={C.teal} />
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 }}>
-          <PhotoAvatar photo={photo} size={72} editable onChange={setPhoto} fallbackIcon="building" fallbackColor={C.teal} />
-          <View style={{ flexShrink: 1 }}>
-            <Text style={{ fontWeight: "700", fontSize: 13.5 }}>Logo / photo de la coopérative</Text>
-            <Text style={{ fontSize: 12, color: C.muted }}>Facultatif</Text>
+        <View style={{ alignItems: "center", marginBottom: 18 }}>
+          <View style={{ width: 66, height: 66, borderRadius: 20, backgroundColor: "#DCEBE1", alignItems: "center", justifyContent: "center" }}>
+            <Icon name="building" size={30} color={C.teal} />
           </View>
-        </View>
-        <Field label="Nom officiel *"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Société Coopérative COOPAGRI" /></Field>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <Field label="Sigle / nom commercial" flex><TInput value={sigle} onChangeText={setSigle} placeholder="Ex. COOPAGRI" /></Field>
-          <Field label="Date de création" flex><TInput value={dateCreation} onChangeText={setDateCreation} placeholder="JJ/MM/AAAA" /></Field>
-        </View>
-        <Field label="N° d'enregistrement / agrément"><TInput value={agrement} onChangeText={setAgrement} placeholder="Ex. CI-COOP-2020-01234" /></Field>
-        <Field label="Type de coopérative">
-          <Select value={type} onChange={setType} options={COOP_TYPES.map((t) => ({ value: t, label: t }))} />
-        </Field>
-        <Field label="Filières exploitées">
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
-            {CROPS.map((c) => <Chip key={c.id} label={c.nom} emoji={c.emoji} active={filieres.includes(c.id)} onPress={() => toggleFiliere(c.id)} />)}
-          </View>
-        </Field>
-        <Field label="Description / présentation">
-          <TInput value={description} onChangeText={setDescription} placeholder="Quelques mots sur la coopérative" multiline numberOfLines={3} style={{ minHeight: 76, textAlignVertical: "top" }} />
-        </Field>
-
-        <SectionLabel icon="map-pin" text="Coordonnées" color={C.gold} />
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <Field label="Région" flex><TInput value={region} onChangeText={setRegion} placeholder="Ex. Agnéby-Tiassa" /></Field>
-          <Field label="District" flex><TInput value={district} onChangeText={setDistrict} placeholder="Ex. Lagunes" /></Field>
-        </View>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <Field label="Département" flex><TInput value={departement} onChangeText={setDepartement} placeholder="Ex. Sikensi" /></Field>
-          <Field label="Commune" flex><TInput value={commune} onChangeText={setCommune} placeholder="Ex. Sikensi" /></Field>
-        </View>
-        <Field label="Localité / village"><TInput value={localite} onChangeText={setLocalite} placeholder="Ex. Gomon" /></Field>
-        <Field label="Adresse"><TInput value={adresse} onChangeText={setAdresse} placeholder="Ex. Quartier, rue…" /></Field>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <Field label="Téléphone" flex><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
-          <Field label="Email" flex><TInput value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="coop@email.com" /></Field>
+          <Text style={{ fontSize: 13, color: C.muted, textAlign: "center", marginTop: 12, lineHeight: 19 }}>Créez votre compte en quelques secondes. Vous compléterez le profil de la coopérative plus tard depuis les réglages.</Text>
         </View>
 
-        <SectionLabel icon="user" text="Responsable (Patron)" color={C.green} />
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16 }}>
-          <PhotoAvatar photo={rphoto} size={72} editable onChange={setRphoto} fallbackIcon="user" fallbackColor={C.green} />
-          <View style={{ flexShrink: 1 }}>
-            <Text style={{ fontWeight: "700", fontSize: 13.5 }}>Photo du responsable</Text>
-            <Text style={{ fontSize: 12, color: C.muted }}>Facultatif</Text>
+        <Field label="Nom du responsable *"><TInput value={nom} onChangeText={(t) => { setNom(t); setErr(""); }} placeholder="Ex. Diomandé Mamadou" /></Field>
+        <Field label="Adresse e-mail *"><TInput value={email} onChangeText={(t) => { setEmail(t.trim()); setErr(""); }} keyboardType="email-address" autoCapitalize="none" placeholder="responsable@coop.ci" /></Field>
+        <Field label="Mot de passe *">
+          <View style={fieldWrap}>
+            <Icon name="key" size={18} color={C.muted} />
+            <TInput value={pass} onChangeText={(t) => { setPass(t); setErr(""); }} placeholder="Au moins 6 caractères" secureTextEntry={!show} style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 }} />
+            <Pressable onPress={() => setShow((v) => !v)} hitSlop={8}><Icon name={show ? "eye-off" : "eye"} size={18} color={C.muted} /></Pressable>
           </View>
-        </View>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <Field label="Nom *" flex><TInput value={rnom} onChangeText={setRnom} placeholder="Ex. Diomandé" /></Field>
-          <Field label="Prénoms *" flex><TInput value={rprenoms} onChangeText={setRprenoms} placeholder="Ex. Mamadou" /></Field>
-        </View>
-        <Field label="Fonction"><TInput value={rfonction} onChangeText={setRfonction} placeholder="Ex. Président / Gérant" /></Field>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <Field label="Téléphone *" flex><TInput value={rtel} onChangeText={setRtel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
-          <Field label="Email" flex><TInput value={remail} onChangeText={setRemail} keyboardType="email-address" autoCapitalize="none" placeholder="nom@email.com" /></Field>
-        </View>
-        <Field label="Pièce d'identité"><TInput value={rid} onChangeText={setRid} placeholder="Ex. CNI CI 003 451 2" /></Field>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <Field label="Code secret (6 chiffres) *" flex><TInput value={rpin} onChangeText={(t) => setRpin(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
-          <Field label="Confirmer le code *" flex><TInput value={rpin2} onChangeText={(t) => setRpin2(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
-        </View>
-        {rpin && rpin2 && rpin !== rpin2 ? <Text style={{ color: C.rust, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux codes ne correspondent pas.</Text> : null}
+        </Field>
+        <Field label="Confirmer le mot de passe *"><TInput value={pass2} onChangeText={(t) => { setPass2(t); setErr(""); }} placeholder="Retapez le mot de passe" secureTextEntry={!show} /></Field>
+        {pass && pass2 && pass !== pass2 ? <Text style={{ color: C.rust, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux mots de passe ne correspondent pas.</Text> : null}
+
+        {err ? <Text style={{ color: C.rust, fontSize: 12.5, marginBottom: 8 }}>{err}</Text> : null}
 
         <View style={{ backgroundColor: "#EAF3EF", borderWidth: 1, borderColor: "#CFE6E0", borderRadius: 10, padding: 12, marginTop: 4, marginBottom: 14 }}>
-          <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Vous serez connecté comme <Text style={{ fontWeight: "700" }}>Patron / Acheteur</Text>. Les champs marqués <Text style={{ fontWeight: "700" }}>*</Text> sont obligatoires.</Text>
+          <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Vous serez connecté comme <Text style={{ fontWeight: "700" }}>Patron</Text>. Vous vous connecterez ensuite avec votre <Text style={{ fontWeight: "700" }}>e-mail + mot de passe</Text>.</Text>
         </View>
         <SaveBtn disabled={!valid} color={C.teal} onPress={submit}>Créer & accéder au tableau de bord</SaveBtn>
       </KeyboardAwareScrollView>
     </View>
   );
 }
-
-const SectionLabel = ({ icon, text, color }: { icon: string; text: string; color: string }) => (
-  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, marginBottom: 12 }}>
-    <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: color + "22", alignItems: "center", justifyContent: "center" }}>
-      <Icon name={icon} size={16} color={color} />
-    </View>
-    <Text style={{ fontSize: 14.5, fontWeight: "800", color: C.ink }}>{text}</Text>
-    <View style={{ flex: 1, height: 1, backgroundColor: C.line, marginLeft: 4 }} />
-  </View>
-);

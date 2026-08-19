@@ -17,6 +17,7 @@ import {
   PeseeSheet,
   ResetPinSheet,
   SettingsSheet,
+  CoopProfileSheet,
   SettlementReceipt,
   StockSheet,
   Bordereau,
@@ -148,7 +149,6 @@ export default function App() {
         <StatusBar style="dark" />
         <Login
           data={raw}
-          onCreatePlanteur={(m) => { const id = store.createLoginPlanteur(m); setSession({ side: "planteur", memberId: id }); setTab("poids"); }}
           onCreateCoop={(p) => { const res = store.createLoginCoop(p); setSession({ side: "coop", role: "patron", staffId: res.staffId, coopId: res.coopId }); setTab("bilan"); }}
           onPick={(s) => { setSession(s); setTab(s.side === "planteur" ? "poids" : s.role === "patron" ? "bilan" : s.role === "commis" ? "jour" : "tournee"); }}
         />
@@ -229,8 +229,8 @@ export default function App() {
         <>
           <QuickActions
             actions={[
-              { icon: "piggy-bank", label: "Demander prêt", color: C.gold, onPress: () => setSheet("loan") },
-              { icon: "wallet", label: "Mes prêts", color: C.green, onPress: () => setTab("prets") },
+              { icon: "piggy-bank", label: "Demander avance", color: C.gold, onPress: () => setSheet("loan") },
+              { icon: "wallet", label: "Mes avances", color: C.green, onPress: () => setTab("prets") },
               { icon: "smartphone", label: "Mobile Money", color: C.teal, onPress: () => setTab("momo") },
             ]}
           />
@@ -265,7 +265,7 @@ export default function App() {
     );
     const collab = openCollab ? data.staff.find((s) => s.id === openCollab) : null;
     const editMemberFn = (m: any) => { setEditMember(m); setSheet("member"); };
-    const deleteMemberFn = (m: any) => setConfirm({ msg: `Supprimer le planteur ${m.nom} ? Ses collectes et prêts seront aussi supprimés.`, onYes: () => { store.deleteMember(m.id); setOpenMember(null); setConfirm(null); } });
+    const deleteMemberFn = (m: any) => setConfirm({ msg: `Supprimer le planteur ${m.nom} ? Ses collectes et avances seront aussi supprimés.`, onYes: () => { store.deleteMember(m.id); setOpenMember(null); setConfirm(null); } });
     const editCollabFn = (s: any) => { setEditCollab(s); setSheet("collab"); };
     const deleteCollabFn = (s: any) => setConfirm({ msg: `Supprimer le collaborateur ${s.nom} ?`, onYes: () => { store.deleteStaff(s.id); setOpenCollab(null); setConfirm(null); } });
     const resetMemberFn = (m: any) => setResetTarget({ kind: "member", id: m.id, name: m.nom });
@@ -295,7 +295,7 @@ export default function App() {
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} onAdd={() => setSheet("collab")} />;
     else if (tab === "prets") body = <PatronPrets data={data} onApprove={(l: any) => setApproveLoanObj(l)} onRefuse={(id: string) => store.refuseLoan(id, session.staffId)} onNew={() => setSheet("loan")} onBack={() => setTab("bilan")} />;
-    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onReset={store.reset} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
+    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onReset={store.reset} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
   } else if (isCoop) {
     const isPisteur = role === "pisteur";
     nav = (
@@ -356,6 +356,7 @@ export default function App() {
       {sheet === "loan" && session.side === "planteur" ? <LoanSheet data={data} fixedMember={me} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ ...l, memberId: session.memberId, date: new Date().toISOString() }); setSheet(null); setTab("prets"); }} /> : null}
       {sheet === "loan" && session.side === "coop" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ date: new Date().toISOString(), ...l }); setSheet(null); }} /> : null}
       {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setCoopSettings(p); setSheet(null); }} onReset={() => { store.reset(); setSheet(null); }} /> : null}
+      {sheet === "coopProfile" ? <CoopProfileSheet coop={data.coop} patron={me} onClose={() => setSheet(null)} onSave={({ coopPatch, patronPatch }: any) => { store.setCoopProfile(coopPatch); if (session.side === "coop" && session.staffId) store.updateStaff(session.staffId, patronPatch); setSheet(null); }} /> : null}
       {sheet === "stock" ? <StockSheet data={data} staffId={staffId} scope={role === "patron" ? "all" : "mine"} onClose={() => setSheet(null)} /> : null}
       {sheet === "linkMomo" && session.side === "planteur" ? <LinkMomoSheet title="Lier mon Mobile Money" onClose={() => setSheet(null)} onSave={(mm: any) => { store.linkMemberMomo(session.memberId, mm); setSheet(null); }} /> : null}
       {sheet === "coopMomo" ? <LinkMomoSheet title="Ajouter un compte coop" withLabel onClose={() => setSheet(null)} onSave={(mm: any) => { store.addCoopMomo(mm); setSheet(null); }} /> : null}

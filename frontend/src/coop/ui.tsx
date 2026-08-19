@@ -226,7 +226,7 @@ export const LoanRow = ({ loan, name }: { loan: Loan; name?: string }) => {
       </View>
       {loan.status === "approuve" && loan.soldeRestant > 0 ? (
         <View style={{ marginTop: 8, backgroundColor: "#FDF7EC", borderRadius: 8, paddingVertical: 6, paddingHorizontal: 9 }}>
-          <Text style={{ fontSize: 12, color: C.due }}>Reste à rembourser : <Text style={{ fontWeight: "700" }}>{fF(loan.soldeRestant)}</Text></Text>
+          <Text style={{ fontSize: 12, color: C.due }}>Reste à recouvrer : <Text style={{ fontWeight: "700" }}>{fF(loan.soldeRestant)}</Text></Text>
         </View>
       ) : null}
     </View>

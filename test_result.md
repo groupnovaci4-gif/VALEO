@@ -101,3 +101,92 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+## user_problem_statement: "Inscription minimale coopérative (Nom responsable + Email + Mot de passe), login coop via Email+Mot de passe, login planteur via Téléphone+Code 6 chiffres, et section Profil de la coopérative avec barre de complétude."
+
+## frontend:
+##   - task: "Création coopérative minimale (Nom responsable + Email + MDP)"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/coop/auth.tsx"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "CreateCoop réparé et remis en version minimale. onCreateCoop crée une coop avec nom provisoire 'Ma coopérative'. Le patron est créé avec email + hash du mot de passe (hashSecret)."
+##   - task: "Login Coopérative via Email + Mot de passe"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/coop/auth.tsx"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "Onglet Coop = email + mot de passe (verifyPinAsync sur staff.pin). Onglet Planteur = téléphone + code 6 chiffres inchangé."
+##   - task: "Profil de la coopérative avec barre de complétude"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/coop/sheets.tsx, frontend/src/coop/screens.tsx, frontend/src/coop/store.ts"
+##     stuck_count: 0
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "Carte 'Profil de la coopérative' (testID coop-profile) dans l'onglet Compte du Patron avec % de complétude. Ouvre CoopProfileSheet (identité complète + coordonnées + responsable). store.setCoopProfile + updateStaff sur enregistrement."
+
+## metadata:
+##   created_by: "main_agent"
+##   version: "1.1"
+##   test_sequence: 1
+##   run_ui: true
+
+## test_plan:
+##   current_focus:
+##     - "Création coopérative minimale (Nom responsable + Email + MDP)"
+##     - "Login Coopérative via Email + Mot de passe"
+##     - "Profil de la coopérative avec barre de complétude"
+##   stuck_tasks: []
+##   test_all: false
+##   test_priority: "high_first"
+
+## agent_communication:
+##     -agent: "main"
+##     -message: "auth.tsx était corrompu (CreateCoop cassé) — réparé. Implémenté l'inscription minimale coop + login email/MDP + Profil coopérative avec barre de complétude. tsc --noEmit passe. Merci de tester les 3 flows côté frontend (données d'aperçu éphémères, créer les comptes à la volée). Voir /app/memory/test_credentials.md."
+
+## NOUVELLE ITÉRATION — Terminologie « Avance » + recouvrement + reçus de solde
+## frontend:
+##   - task: "Recouvrement d'avance à la pesée (partiel possible)"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/coop/sheets.tsx (PeseeSheet), frontend/src/coop/store.ts (addCollection _repay FIFO)"
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "Quand un planteur a une avance approuvée (soldeRestant>0), la pesée affiche 'Avance à recouvrer' + choix Recouvrer tout/Partiel + montant. Recouvrement déduit du net payé (retenue 'Recouvrement d'avance'). Reste d'avance conservé (loan.soldeRestant). Recouvrement partiel: avance 50000, recouvré 30000 -> reste 20000."
+##   - task: "Reçu de solde distinct référençant le reçu initial (reçu original inchangé)"
+##     implemented: true
+##     working: "NA"
+##     file: "frontend/src/coop/store.ts (settleMemberDue + resteSolde), frontend/src/coop/sheets.tsx (SettlementReceipt/settlementHtml), frontend/src/coop/lib.ts (memberStats/outstandingReste)"
+##     priority: "high"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "Solder le reste dû ne modifie PLUS le bordereau initial (paye/reste figés). Un nouveau reçu de solde est créé avec son propre N°, 'Solde du reçu N°XXX', montant payé et référence(s). memberStats.reste = reste - resteSolde."
+##   - task: "Terminologie Crédit/Prêt/Créance -> Avance (UI + PDF)"
+##     implemented: true
+##     working: "NA"
+##     file: "screens.tsx, sheets.tsx, ui.tsx, reports.ts, lib.ts, app/index.tsx"
+##     priority: "medium"
+##     needs_retesting: true
+##     status_history:
+##         -working: "NA"
+##         -agent: "main"
+##         -comment: "Tous les libellés visibles remplacés: Nouvelle avance, Demande d'avance, Avance accordée/refusée/recouvrée, Total avancé, Reste à recouvrer, Mes avances, etc. Identifiants de code (Loan, onPrets, testID quick-Prêts) inchangés."

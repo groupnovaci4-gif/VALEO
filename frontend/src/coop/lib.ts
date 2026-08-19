@@ -33,6 +33,22 @@ export const DEFAULT_COMM: Record<string, number> = { cacao: 25, cafe: 25, anaca
 export const priceOf = (data: any, cropId: string): number => (data?.prices && data.prices[cropId] != null ? data.prices[cropId] : DEFAULT_PRICES[cropId] ?? data?.prixKg ?? 0);
 export const commOf = (data: any, cropId: string): number => (data?.commissions && data.commissions[cropId] != null ? data.commissions[cropId] : DEFAULT_COMM[cropId] ?? data?.commissionRate ?? 0);
 
+// Complétude du profil coopérative (0-100 %).
+export function coopCompleteness(coop: any, patron?: any): number {
+  const checks = [
+    coop?.nom && coop.nom !== "Ma coopérative",
+    coop?.type,
+    Array.isArray(coop?.filieres) && coop.filieres.length > 0,
+    coop?.tel,
+    coop?.adresse || coop?.localite || coop?.region,
+    coop?.agrement,
+    patron?.tel,
+    patron?.fonction,
+  ];
+  const done = checks.filter(Boolean).length;
+  return Math.round((done / checks.length) * 100);
+}
+
 // Identifiant planteur : VAL-XXXX-YY (4 chiffres + 2 lettres majuscules), unique.
 export const MEMBER_CODE_RE = /^VAL-\d{4}-[A-Z]{2}$/;
 export function genMemberCode(existing?: any[]): string {
@@ -57,7 +73,7 @@ export const OPERATORS: Operator[] = [
 export const op = (id: string): Operator => OPERATORS.find((o) => o.id === id) || OPERATORS[0];
 
 export const ROLES: Record<string, { label: string; sub: string; icon: string }> = {
-  patron: { label: "Patron / Acheteur", sub: "Gère la coopérative, approuve les prêts", icon: "shield-check" },
+  patron: { label: "Patron / Acheteur", sub: "Gère la coopérative, approuve les avances", icon: "shield-check" },
   commis: { label: "Magasinier", sub: "Pèse, stocke et délivre les bordereaux", icon: "package" },
   pisteur: { label: "Pisteur / Délégué", sub: "Collecte en tournée dans les villages", icon: "truck" },
 };
@@ -76,7 +92,7 @@ export const STATUS: Record<string, { label: string; color: string; bg: string; 
   en_attente: { label: "En attente", color: C.due, bg: "#FDF7EC", icon: "clock" },
   approuve: { label: "Approuvé", color: C.green, bg: "#F0F6F2", icon: "check-circle" },
   refuse: { label: "Refusé", color: C.loss, bg: "#FBEFED", icon: "x-circle" },
-  rembourse: { label: "Remboursé", color: C.muted, bg: "#F2EEE7", icon: "check" },
+  rembourse: { label: "Recouvré", color: C.muted, bg: "#F2EEE7", icon: "check" },
 };
 
 /* ------------------------------ Formatters ------------------------------ */
@@ -144,8 +160,11 @@ export type Collection = {
   method: string;
   note: string;
   oldRegle?: number;
+  // Montant du reste dû (au planteur) de CE reçu déjà soldé ultérieurement.
+  // Champ de suivi interne : n'apparaît jamais sur le reçu d'origine.
+  resteSolde?: number;
   signature?: { paths: string[]; w: number; h: number } | null;
-  _repay?: { loanId: string; amount: number } | null;
+  _repay?: { loanId?: string; amount: number } | null;
   _settle?: number | null;
 };
 export type Loan = {
@@ -162,7 +181,7 @@ export type Loan = {
   decidedBy: string | null;
   decidedAt?: string | null;
 };
-export type Settlement = { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean };
+export type Settlement = { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; refs?: { seq: number; amount: number }[] };
 export type Mandat = { id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string };
 export type Depense = { id: string; coopId?: string; pisteurId: string; category: string; amount: number; date: string; note: string };
 export type CoopMomo = { id: string; operator: string; number: string; label?: string };
@@ -344,13 +363,16 @@ export function scopeData(raw: Data, coopId?: string): Data {
 }
 
 /* ------------------------------ Derived calc ----------------------------- */
+// Reste dû RÉEL d'un reçu de pesée (reste d'origine moins ce qui a été soldé ensuite).
+export const outstandingReste = (c: Collection): number => Math.max(0, (c.reste || 0) - (c.resteSolde || 0));
+
 export function memberStats(mId: string, cols: Collection[]) {
   const list = cols.filter((c) => c.memberId === mId);
   return {
     kg: list.reduce((s, c) => s + c.kg, 0),
     net: list.reduce((s, c) => s + c.net, 0),
-    paye: list.reduce((s, c) => s + c.paye, 0),
-    reste: list.reduce((s, c) => s + c.reste, 0),
+    paye: list.reduce((s, c) => s + c.paye + (c.resteSolde || 0), 0),
+    reste: list.reduce((s, c) => s + outstandingReste(c), 0),
     count: list.length,
   };
 }
