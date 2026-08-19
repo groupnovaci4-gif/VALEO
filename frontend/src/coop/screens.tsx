@@ -690,10 +690,11 @@ export function Members({ data, onOpen, onAdd, onVillageRecap, restrictTo }: any
   );
 }
 
-export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete, onResetPin, onSettle }: any) {
+export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete, onResetPin, onSettle, onSettlementReceipt }: any) {
   const s = memberStats(member.id, data.collections);
   const list = data.collections.filter((c: Collection) => c.memberId === member.id).sort(byDateDesc);
   const loans = data.loans.filter((l: any) => l.memberId === member.id);
+  const settlements = (data.settlements || []).filter((x: any) => x.memberId === member.id).sort(byDateDesc);
   return (
     <View>
       <GhostBtn onPress={onBack} style={{ marginBottom: 12 }}>← Retour</GhostBtn>
@@ -749,6 +750,26 @@ export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete
         <>
           <SectionTitle>Avances</SectionTitle>
           <View style={{ gap: 8, marginBottom: 16 }}>{loans.map((l: any) => <LoanRow key={l.id} loan={l} />)}</View>
+        </>
+      ) : null}
+      {onSettlementReceipt && settlements.length > 0 ? (
+        <>
+          <SectionTitle>Reçus de solde ({settlements.length})</SectionTitle>
+          <View style={{ gap: 8, marginBottom: 16 }}>
+            {settlements.map((st: any) => (
+              <Pressable key={st.id} onPress={() => onSettlementReceipt(st)} testID={`settlement-open-${st.id}`}>
+                <Card style={{ padding: 13, flexDirection: "row", alignItems: "center", gap: 11 }}>
+                  <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#E1F1E8", alignItems: "center", justifyContent: "center" }}><Icon name="banknote" size={18} color={C.green} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: "700", fontSize: 14 }}>{st.seq != null ? ticketNo(st.seq) : "Reçu de solde"}</Text>
+                    <Text style={{ fontSize: 11.5, color: C.muted }}>{fDateTime(st.date)}{st.refs && st.refs.length ? ` · Solde de ${st.refs.map((r: any) => ticketNo(r.seq)).join(", ")}` : ""}</Text>
+                  </View>
+                  <Text style={{ fontWeight: "800", fontSize: 14, color: C.green }}>{fF(st.amount)}</Text>
+                  <Icon name="chevron-right" size={17} color={C.muted} />
+                </Card>
+              </Pressable>
+            ))}
+          </View>
         </>
       ) : null}
       <SectionTitle>Collectes</SectionTitle>
@@ -994,6 +1015,7 @@ export function buildNotifications(data: Data, session: any): { items: Notif[]; 
       if (st.reste > 0) items.push({ id: "myr", kind: "action", date: new Date().toISOString(), icon: "wallet", tint: C.due, title: "Reste à percevoir", sub: `La coopérative vous doit ${fF(st.reste)}` });
       data.loans.filter((l) => l.memberId === m.id).forEach((l) => items.push({ id: "ml" + l.id, kind: l.status === "en_attente" ? "action" : "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : l.status === "refuse" ? "x-circle" : "clock", tint: l.status === "approuve" ? C.green : l.status === "refuse" ? C.loss : C.due, title: l.status === "approuve" ? "Avance accordée" : l.status === "refuse" ? "Avance refusée" : "Demande en attente", sub: `${fF(l.amount)}${l.motif ? " · " + l.motif : ""}` }));
       data.collections.filter((c) => c.memberId === m.id && c.paye > 0).forEach((c) => items.push({ id: "mp" + c.id, kind: "info", date: c.date, icon: "scale", tint: C.teal, title: "Pesée payée", sub: `${fKg(c.kg)} · ${fF(c.paye)}` }));
+      (data.settlements || []).filter((s: any) => s.memberId === m.id).forEach((s: any) => items.push({ id: "ms" + s.id, kind: "info", date: s.date, icon: "banknote", tint: C.green, title: "Solde reçu", sub: `${fF(s.amount)}${s.refs && s.refs.length ? " · réf. " + s.refs.map((r: any) => ticketNo(r.seq)).join(", ") : ""}` }));
     }
   }
   items.sort(byDateDesc);
@@ -1064,10 +1086,11 @@ export function SubTabs({ member, loans, onGoPrets }: any) {
   );
 }
 
-export function PlanteurPoids({ member, data, onReceipt, onSetPhoto }: any) {
+export function PlanteurPoids({ member, data, onReceipt, onSetPhoto, onSettlementReceipt }: any) {
   const s = memberStats(member.id, data.collections);
   const list = data.collections.filter((c: Collection) => c.memberId === member.id).sort(byDateDesc);
   const mine = data.collections.filter((c: Collection) => c.memberId === member.id);
+  const settlements = (data.settlements || []).filter((x: any) => x.memberId === member.id).sort(byDateDesc);
   return (
     <View>
       <HeroCard theme={C.greenDark} icon="package" label="Total livré cette campagne" big={fKg(s.kg)} sub={`${s.count} livraisons · valeur ${fFull(s.net)}`} />
@@ -1115,6 +1138,26 @@ export function PlanteurPoids({ member, data, onReceipt, onSetPhoto }: any) {
           ))}
         </View>
       )}
+      {onSettlementReceipt && settlements.length > 0 ? (
+        <>
+          <SectionTitle>Mes reçus de solde</SectionTitle>
+          <View style={{ gap: 8 }}>
+            {settlements.map((st: any) => (
+              <Pressable key={st.id} onPress={() => onSettlementReceipt(st)} testID={`my-settlement-${st.id}`}>
+                <Card style={{ padding: 13, flexDirection: "row", alignItems: "center", gap: 11 }}>
+                  <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#E1F1E8", alignItems: "center", justifyContent: "center" }}><Icon name="banknote" size={18} color={C.green} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: "700", fontSize: 14 }}>{st.seq != null ? ticketNo(st.seq) : "Reçu de solde"}</Text>
+                    <Text style={{ fontSize: 11.5, color: C.muted }}>{fDateTime(st.date)}{st.refs && st.refs.length ? ` · Solde de ${st.refs.map((r: any) => ticketNo(r.seq)).join(", ")}` : ""}</Text>
+                  </View>
+                  <Text style={{ fontWeight: "800", fontSize: 14, color: C.green }}>{fF(st.amount)}</Text>
+                  <Icon name="chevron-right" size={17} color={C.muted} />
+                </Card>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      ) : null}
       <View style={{ height: 20 }} />
     </View>
   );

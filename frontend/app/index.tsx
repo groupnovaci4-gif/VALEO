@@ -235,7 +235,7 @@ export default function App() {
             ]}
           />
           <SubTabs member={me} loans={data.loans} onGoPrets={() => setTab("prets")} />
-          <PlanteurPoids member={me} data={data} onReceipt={setReceipt} onSetPhoto={(url: any) => store.setMemberPhoto(me.id, url)} />
+          <PlanteurPoids member={me} data={data} onReceipt={setReceipt} onSettlementReceipt={setSettlementReceipt} onSetPhoto={(url: any) => store.setMemberPhoto(me.id, url)} />
           <CocoaHero />
           <PartnersBanner />
         </>
@@ -270,7 +270,7 @@ export default function App() {
     const deleteCollabFn = (s: any) => setConfirm({ msg: `Supprimer le collaborateur ${s.nom} ?`, onYes: () => { store.deleteStaff(s.id); setOpenCollab(null); setConfirm(null); } });
     const resetMemberFn = (m: any) => setResetTarget({ kind: "member", id: m.id, name: m.nom });
     const resetCollabFn = (s: any) => setResetTarget({ kind: "staff", id: s.id, name: s.nom });
-    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onEdit={editMemberFn} onDelete={deleteMemberFn} onResetPin={resetMemberFn} onSettle={settleMemberFn} />;
+    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onEdit={editMemberFn} onDelete={deleteMemberFn} onResetPin={resetMemberFn} onSettle={settleMemberFn} onSettlementReceipt={setSettlementReceipt} />;
     else if (tab === "collaborateurs" && collab)
       body = collab.role === "pisteur"
         ? <PisteurRecon pisteur={collab} data={data} onBack={() => setOpenCollab(null)} onNewMandat={() => setSheet("mandat")} onReceipt={setReceipt} onOpen={setOpenMember} onSetPhoto={(url: any) => store.setStaffPhoto(collab.id, url)} onEdit={editCollabFn} onDelete={deleteCollabFn} onResetPin={resetCollabFn} />
@@ -310,7 +310,7 @@ export default function App() {
         onFab={() => setSheet("pesee")}
       />
     );
-    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onSettle={settleMemberFn} />;
+    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onSettle={settleMemberFn} onSettlementReceipt={setSettlementReceipt} />;
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
     else if (tab === "prets") body = <PatronPrets data={data} canDecide={false} onNew={() => setSheet("loan")} onBack={() => setTab(isPisteur ? "tournee" : "jour")} />;
     else if (isPisteur) body = (
