@@ -111,12 +111,25 @@ export function Login({
 
   const doLogin = async () => {
     if (tab === "coop") {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setErr("Saisissez une adresse e-mail valide."); return; }
-      if (!isValidPassword(pass)) { setErr("Mot de passe : au moins 6 caractères."); return; }
-      const s = data.staff.find((st) => normalizeText((st as any).email || "") === normalizeText(email));
-      if (!s) { setErr("Aucun compte pour cette adresse e-mail."); return; }
-      if (s.pin && !(await verifyPinAsync(pass, s.pin))) { setErr("Mot de passe incorrect."); return; }
-      pick({ side: "coop", role: s.role, staffId: s.id, coopId: s.coopId });
+      const ident = email.trim();
+      if (ident.includes("@")) {
+        // Patron : e-mail + mot de passe (inchangé)
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ident)) { setErr("Saisissez une adresse e-mail valide."); return; }
+        if (!isValidPassword(pass)) { setErr("Mot de passe : au moins 6 caractères."); return; }
+        const s = data.staff.find((st) => normalizeText((st as any).email || "") === normalizeText(ident));
+        if (!s) { setErr("Aucun compte pour cette adresse e-mail."); return; }
+        if (s.pin && !(await verifyPinAsync(pass, s.pin))) { setErr("Mot de passe incorrect."); return; }
+        pick({ side: "coop", role: s.role, staffId: s.id, coopId: s.coopId });
+      } else {
+        // Membre (Pisteur/Délégué, Magasinier) : téléphone + code 6 chiffres
+        const dig = normalizePhone(ident);
+        if (dig.length < 6) { setErr("Saisissez votre e-mail (Patron) ou votre téléphone (membre)."); return; }
+        if (!isValidPin(pass)) { setErr("Le code doit contenir 6 chiffres."); return; }
+        const s = data.staff.find((st) => normalizePhone(st.tel) === dig);
+        if (!s) { setErr("Aucun compte membre pour ce numéro."); return; }
+        if (s.pin && !(await verifyPinAsync(pass, s.pin))) { setErr("Code secret incorrect."); return; }
+        pick({ side: "coop", role: s.role, staffId: s.id, coopId: s.coopId });
+      }
     } else {
       const dig = normalizePhone(phone);
       if (dig.length < 6) { setErr("Saisissez un numéro de téléphone valide."); return; }
@@ -172,15 +185,15 @@ export function Login({
 
       {isCoop ? (
         <>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginBottom: 7 }}>Adresse e-mail</Text>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginBottom: 7 }}>E-mail (Patron) ou téléphone (membre)</Text>
           <View style={fieldWrap}>
             <Icon name="mail" size={18} color={C.muted} />
-            <TInput value={email} onChangeText={(t) => { setEmail(t.trim()); setErr(""); }} placeholder="ex. responsable@coop.ci" keyboardType="email-address" autoCapitalize="none" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 }} />
+            <TInput value={email} onChangeText={(t) => { setEmail(t.trim()); setErr(""); }} placeholder="e-mail ou n° de téléphone" autoCapitalize="none" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 }} />
           </View>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginTop: 14, marginBottom: 7 }}>Mot de passe</Text>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginTop: 14, marginBottom: 7 }}>Mot de passe ou code secret</Text>
           <View style={fieldWrap}>
             <Icon name="key" size={18} color={C.muted} />
-            <TInput value={pass} onChangeText={(t) => { setPass(t); setErr(""); }} placeholder="Mot de passe" secureTextEntry={!showPin} onSubmitEditing={doLogin} returnKeyType="go" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 }} />
+            <TInput value={pass} onChangeText={(t) => { setPass(t); setErr(""); }} placeholder="Mot de passe (Patron) ou code 6 chiffres" secureTextEntry={!showPin} onSubmitEditing={doLogin} returnKeyType="go" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 }} />
             <Pressable onPress={() => setShowPin((v) => !v)} hitSlop={8} testID="toggle-pin"><Icon name={showPin ? "eye-off" : "eye"} size={18} color={C.muted} /></Pressable>
           </View>
         </>
