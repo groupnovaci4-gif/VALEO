@@ -283,9 +283,18 @@ ADMIN_HTML = r"""<!DOCTYPE html>
 let token = sessionStorage.getItem("valeo_admin_token") || null;
 let state = null;
 let current = "settings";
+let currentCoop = null;
 
 const fF = n => (Math.round(n||0)+"").replace(/\B(?=(\d{3})+(?!\d))/g," ")+" F";
 const $ = id => document.getElementById(id);
+
+// --- Coopératives : chaque coop est un espace indépendant (mêmes données/règles, seulement regroupées). ---
+function coopList(){ return (state.coops&&state.coops.length)? state.coops : [Object.assign({}, state.coop||{nom:"Coopérative"}, {id:"__legacy__"})]; }
+function curCoopObj(){ const l=coopList(); return l.find(c=>c.id===currentCoop) || l[0]; }
+// En mode mono-coopérative (données héritées sans coopId), tout appartient à l'unique espace.
+function belongs(r){ const l=coopList(); if(l.length<=1) return true; return (r&&r.coopId||null)===currentCoop; }
+function coopCounts(id){ const single=coopList().length<=1; const ok=r=>single?true:(r.coopId||null)===id;
+  return { m:(state.members||[]).filter(ok).length, c:(state.collections||[]).filter(ok).length, s:(state.staff||[]).filter(ok).length }; }
 
 async function doLogin(){
   const password = $("pwd").value;
@@ -326,7 +335,7 @@ const SCHEMAS = {
     {k:"memberId",l:"Planteur",ref:"members"},{k:"byStaffId",l:"Agent",ref:"staff"},{k:"kg",l:"Poids (kg)",t:"number"},
     {k:"prixKg",l:"Prix/kg",t:"number"},{k:"net",l:"Net",t:"number"},{k:"paye",l:"Payé",t:"number"},{k:"reste",l:"Reste",t:"number"},
     {k:"method",l:"Paiement",opt:["espece","momo"]}]},
-  loans:{title:"Prêts",arr:"loans",cols:["_member","type","amount","status","soldeRestant"],fields:[
+  loans:{title:"Avances",arr:"loans",cols:["_member","type","amount","status","soldeRestant"],fields:[
     {k:"memberId",l:"Planteur",ref:"members"},{k:"type",l:"Type",opt:["intrant","argent"]},{k:"amount",l:"Montant",t:"number"},
     {k:"motif",l:"Motif"},{k:"status",l:"Statut",opt:["en_attente","approuve","refuse","rembourse"]},{k:"soldeRestant",l:"Solde restant",t:"number"}]},
   mandats:{title:"Mandats",arr:"mandats",cols:["_pisteur","amount","note"],fields:[
@@ -336,15 +345,44 @@ const SCHEMAS = {
 };
 
 function render(){
-  $("sub").textContent = (state.coop&&state.coop.nom||"")+" · "+state.saison;
-  const cols = state.collections||[];
+  const list = coopList();
+  // Vue « Coopératives » : sélection de l'espace à consulter.
+  if(!currentCoop || !list.find(c=>c.id===currentCoop)){ renderCoopsHome(list); return; }
+  const co = curCoopObj();
+  $("sub").textContent = (co.nom||"Coopérative")+" · "+(state.saison||"");
+  const cols = (state.collections||[]).filter(belongs);
+  const mem = (state.members||[]).filter(belongs);
   const kg = cols.reduce((s,c)=>s+(+c.kg||0),0), net=cols.reduce((s,c)=>s+(+c.net||0),0), reste=cols.reduce((s,c)=>s+(+c.reste||0),0);
-  $("kpis").innerHTML = [["Planteurs",state.members.length],["Collectes",cols.length],["Poids total",kg+" kg"],["Valeur nette",fF(net)],["Reste à payer",fF(reste)]]
+  $("kpis").innerHTML = [["Planteurs",mem.length],["Collectes",cols.length],["Poids total",kg+" kg"],["Valeur nette",fF(net)],["Reste à payer",fF(reste)]]
     .map(([l,v])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("");
+  // Sélecteur de coopérative + retour à la liste.
+  const opts = list.map(c=>`<option value="${c.id}" ${c.id===currentCoop?'selected':''}>${esc(c.nom||"Coopérative")}</option>`).join("");
+  const bar = `<div class="toolbar" style="margin-bottom:14px">
+    <button class="ghost" onclick="backToCoops()">← Coopératives</button>
+    <div style="display:flex;align-items:center;gap:8px"><span class="muted" style="font-size:13px">Coopérative :</span>
+    <select onchange="enterCoop(this.value)" style="min-width:200px">${opts}</select></div></div>`;
   const tabs = [["settings","Réglages"],...Object.entries(SCHEMAS).map(([k,s])=>[k,s.title])];
-  $("tabs").innerHTML = tabs.map(([k,l])=>`<button class="tab ${current===k?'on':''}" onclick="go('${k}')">${l}</button>`).join("");
+  $("tabs").innerHTML = bar + tabs.map(([k,l])=>`<button class="tab ${current===k?'on':''}" onclick="go('${k}')">${l}</button>`).join("");
   $("panel").innerHTML = current==="settings"? settingsPanel() : entityPanel(current);
 }
+function renderCoopsHome(list){
+  $("sub").textContent = list.length+" coopérative"+(list.length>1?"s":"");
+  $("kpis").innerHTML = "";
+  $("tabs").innerHTML = `<div class="toolbar" style="margin-bottom:4px"><h3 style="margin:0">Coopératives</h3></div>`;
+  const cards = list.map(c=>{ const n=coopCounts(c.id);
+    return `<div class="card" style="cursor:pointer" onclick="enterCoop('${c.id}')">
+      <div class="toolbar"><h3 style="margin:0">${esc(c.nom||"Coopérative")}</h3><button class="primary" onclick="event.stopPropagation();enterCoop('${c.id}')">Ouvrir →</button></div>
+      <div class="muted" style="font-size:13px;margin-bottom:8px">${esc(c.type||"—")}${c.localite?(" · "+esc(c.localite)):""}</div>
+      <div class="kpis" style="margin:0">
+        <div class="kpi"><div class="l">Équipe</div><div class="v">${n.s}</div></div>
+        <div class="kpi"><div class="l">Planteurs</div><div class="v">${n.m}</div></div>
+        <div class="kpi"><div class="l">Collectes</div><div class="v">${n.c}</div></div>
+      </div></div>`;
+  }).join("");
+  $("panel").innerHTML = cards || `<div class="card muted">Aucune coopérative.</div>`;
+}
+function enterCoop(id){ currentCoop=id; if(current!=="settings"&&!SCHEMAS[current]) current="settings"; render(); }
+function backToCoops(){ currentCoop=null; render(); }
 function go(k){ current=k; render(); }
 
 const COOP_TYPES=["Société coopérative simplifiée (SCOOPS)","Coopérative avec conseil d'administration (COOP-CA)","Union de coopératives","Fédération / Confédération","Autre"];
@@ -352,7 +390,7 @@ const FILIERES=[["cacao","Cacao"],["cafe","Café"],["anacarde","Anacarde"],["hev
 const esc=s=>(""+(s==null?"":s)).replace(/"/g,'&quot;');
 
 function settingsPanel(){
-  const co=state.coop||{}; const fil=co.filieres||[];
+  const co=curCoopObj()||{}; const fil=co.filieres||[];
   const typeOpts=COOP_TYPES.map(t=>`<option ${t===co.type?'selected':''}>${t}</option>`).join("");
   const filBoxes=FILIERES.map(([id,l])=>`<label style="display:inline-flex;align-items:center;gap:6px;margin-right:14px;font-size:14px;color:var(--ink)"><input type="checkbox" data-fil="${id}" ${fil.includes(id)?'checked':''} style="width:auto"/> ${l}</label>`).join("");
   return `<div class="card"><h3>Identité de la coopérative</h3>
@@ -404,7 +442,7 @@ function settingsPanel(){
     <div id="p_msg" class="muted" style="margin-top:8px"></div>
     <button class="green" style="margin-top:12px" onclick="changePassword()">Changer le mot de passe</button>
   </div>
-  <div class="card"><h3>Zone dangereuse</h3><p class="muted">Vide toute la base (planteurs, collectes, prêts…). Irréversible.</p>
+  <div class="card"><h3>Zone dangereuse</h3><p class="muted">Vide toute la base (coopératives, planteurs, collectes, avances…). Irréversible.</p>
     <button class="danger" onclick="wipeAll()">Tout réinitialiser</button></div>`;
 }
 async function changePassword(){
@@ -419,19 +457,22 @@ async function changePassword(){
   }catch(e){ msg.textContent=(""+e).includes("400")?"Mot de passe actuel incorrect.":"Erreur lors du changement du mot de passe."; }
 }
 async function saveSettings(){
-  const co=state.coop; const g=id=>{const e=$(id);return e?e.value:undefined;};
+  const co=curCoopObj(); const g=id=>{const e=$(id);return e?e.value:undefined;};
   const newPrix = +$("s_prix").value||0;
   if(newPrix!==state.prixKg){ state.priceHistory=[...(state.priceHistory||[]),{date:new Date().toISOString(),prixKg:newPrix}]; }
   co.nom=g("s_nom"); co.sigle=g("s_sigle"); co.agrement=g("s_agr"); co.dateCreation=g("s_date"); co.type=g("s_type");
   co.description=g("s_desc"); co.region=g("s_region"); co.district=g("s_district"); co.departement=g("s_dept");
   co.commune=g("s_commune"); co.localite=g("s_loc"); co.adresse=g("s_adr"); co.tel=g("s_tel"); co.email=g("s_email");
   co.filieres=[...document.querySelectorAll("[data-fil]:checked")].map(e=>e.dataset.fil);
+  // Coopérative héritée (mono) : garder l'ancien champ state.coop synchronisé.
+  if(co.id==="__legacy__" && state.coop){ Object.assign(state.coop, co); delete state.coop.id; }
   state.saison=g("s_saison"); state.prixKg=newPrix; state.commissionRate=+$("s_com").value||0;
   await persist();
 }
 async function wipeAll(){
   if(!confirm("Confirmer : vider toute la base de données ?")) return;
-  state={saison:state.saison,prixKg:state.prixKg,seq:1,memberSeq:1,commissionRate:state.commissionRate,coop:{nom:state.coop.nom,momo:[]},staff:[],members:[],collections:[],loans:[],mandats:[],depenses:[],priceHistory:[]};
+  state={saison:state.saison,prixKg:state.prixKg,seq:1,memberSeq:1,commissionRate:state.commissionRate,coop:{nom:(state.coop&&state.coop.nom)||"Coopérative",momo:[]},coops:[],staff:[],members:[],collections:[],loans:[],mandats:[],depenses:[],settlements:[],priceHistory:[]};
+  currentCoop=null;
   await persist();
 }
 
@@ -444,10 +485,11 @@ function cellVal(row,key){
 function entityPanel(k){
   const sc=SCHEMAS[k]; const arr=state[sc.arr]||[];
   const head = sc.cols.map(c=>`<th>${c.replace('_member','Planteur').replace('_pisteur','Pisteur')}</th>`).join("")+"<th></th>";
-  const rows = arr.map((r,i)=>`<tr>${sc.cols.map(c=>`<td>${cellVal(r,c)}</td>`).join("")}
-    <td style="text-align:right;white-space:nowrap"><button class="ghost" onclick="openEdit('${k}',${i})">Modifier</button>
-    <button class="danger" onclick="del('${k}',${i})">Suppr.</button></td></tr>`).join("");
-  return `<div class="card"><div class="toolbar"><h3 style="margin:0">${sc.title} (${arr.length})</h3>
+  const visible = arr.map((r,gi)=>[r,gi]).filter(([r])=>belongs(r));
+  const rows = visible.map(([r,gi])=>`<tr>${sc.cols.map(c=>`<td>${cellVal(r,c)}</td>`).join("")}
+    <td style="text-align:right;white-space:nowrap"><button class="ghost" onclick="openEdit('${k}',${gi})">Modifier</button>
+    <button class="danger" onclick="del('${k}',${gi})">Suppr.</button></td></tr>`).join("");
+  return `<div class="card"><div class="toolbar"><h3 style="margin:0">${sc.title} (${visible.length})</h3>
     <button class="primary" onclick="openEdit('${k}',-1)">+ Ajouter</button></div>
     <div style="overflow:auto"><table><tr>${head}</tr>${rows||`<tr><td colspan="9" class="muted" style="padding:16px;text-align:center">Aucune donnée</td></tr>`}</table></div></div>`;
 }
@@ -459,7 +501,7 @@ function openEdit(k,i){
   $("edTitle").textContent=(isNew?"Ajouter — ":"Modifier — ")+sc.title;
   $("edFields").innerHTML = sc.fields.map(f=>{
     const val = row[f.k]==null?"":row[f.k];
-    if(f.ref){ const opts=state[f.ref].map(o=>`<option value="${o.id}" ${o.id===val?'selected':''}>${o.nom}</option>`).join(""); return `<label>${f.l}</label><select data-k="${f.k}"><option value="">—</option>${opts}</select>`; }
+    if(f.ref){ const opts=state[f.ref].filter(belongs).map(o=>`<option value="${o.id}" ${o.id===val?'selected':''}>${o.nom}</option>`).join(""); return `<label>${f.l}</label><select data-k="${f.k}"><option value="">—</option>${opts}</select>`; }
     if(f.opt){ const opts=f.opt.map(o=>`<option ${o===val?'selected':''}>${o}</option>`).join(""); return `<label>${f.l}</label><select data-k="${f.k}">${opts}</select>`; }
     return `<label>${f.l}</label><input data-k="${f.k}" type="${f.t||'text'}" value="${(""+val).replace(/"/g,'&quot;')}"/>`;
   }).join("");
@@ -472,6 +514,7 @@ async function saveEditor(){
     if(f.t==="number") v=+v||0; row[f.k]=v;
   });
   if(i<0){ row.id = "a"+Math.random().toString(36).slice(2,9); if(!row.date) row.date=new Date().toISOString();
+    if(currentCoop && currentCoop!=="__legacy__") row.coopId=currentCoop;
     if(k==="collections"){ row.seq=state.seq; state.seq=(state.seq||1)+1; row.retenues=row.retenues||[]; row.brut=(+row.kg||0)*(+row.prixKg||0); }
     if(k==="loans"){ row.status=row.status||"en_attente"; }
     state[sc.arr].push(row);
