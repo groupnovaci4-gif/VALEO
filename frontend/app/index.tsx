@@ -121,6 +121,23 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const pickSession = (s: Session) => {
+    setSession(s);
+    setTab(s.side === "planteur" ? "poids" : (s as any).role === "patron" ? "bilan" : (s as any).role === "commis" ? "jour" : "tournee");
+  };
+
+  // Restauration de session au démarrage à partir du jeton stocké (SecureStore).
+  useEffect(() => {
+    if (!session && store.bootSession) pickSession(store.bootSession);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.bootSession]);
+
+  // Jeton expiré / révoqué : déconnexion.
+  useEffect(() => {
+    if (store.authError && session) logout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.authError]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await store.refresh();
@@ -141,16 +158,17 @@ export default function App() {
     );
   }
 
-  const logout = () => { setSession(null); setOpenMember(null); setOpenCollab(null); setSheet(null); setTab(""); setEditMember(null); setEditCollab(null); setApproveLoanObj(null); setResetTarget(null); setConfirm(null); setShowNotif(false); setSettlementReceipt(null); };
+  const logout = () => { store.authLogout(); setSession(null); setOpenMember(null); setOpenCollab(null); setSheet(null); setTab(""); setEditMember(null); setEditCollab(null); setApproveLoanObj(null); setResetTarget(null); setConfirm(null); setShowNotif(false); setSettlementReceipt(null); };
 
   if (!session) {
     return (
       <>
         <StatusBar style="dark" />
         <Login
-          data={raw}
-          onCreateCoop={(p) => { const res = store.createLoginCoop(p); setSession({ side: "coop", role: "patron", staffId: res.staffId, coopId: res.coopId }); setTab("bilan"); }}
-          onPick={(s) => { setSession(s); setTab(s.side === "planteur" ? "poids" : s.role === "patron" ? "bilan" : s.role === "commis" ? "jour" : "tournee"); }}
+          onLogin={pickSession}
+          authLoginCoop={store.authLoginCoop}
+          authLoginPlanteur={store.authLoginPlanteur}
+          authRegisterCoop={store.authRegisterCoop}
         />
       </>
     );

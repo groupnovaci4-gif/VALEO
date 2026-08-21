@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Alert, Image, Linking, Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, Data, ROLES, Session, waNumber } from "./lib";
-import { hashSecret, isValidPassword, isValidPin, normalizePhone, normalizeText, verifyPinAsync } from "./pin";
-import { getBiometricState, promptBiometric, readSession, saveSession } from "./biometric";
+import { C, ROLES, Session, waNumber } from "./lib";
+import { isValidPassword, isValidPin, normalizePhone } from "./pin";
 import { Icon } from "./Icon";
 import { Field, PhotoAvatar, SaveBtn, TInput } from "./ui";
 
@@ -77,13 +76,15 @@ const topIcon = { backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 10, p
 
 /* ------------------------------- Login ----------------------------------- */
 export function Login({
-  data,
-  onPick,
-  onCreateCoop,
+  onLogin,
+  authLoginCoop,
+  authLoginPlanteur,
+  authRegisterCoop,
 }: {
-  data: Data;
-  onPick: (s: Session) => void;
-  onCreateCoop: (p: any) => void;
+  onLogin: (s: Session) => void;
+  authLoginCoop: (identifier: string, secret: string) => Promise<Session>;
+  authLoginPlanteur: (phone: string, pin: string) => Promise<Session>;
+  authRegisterCoop: (p: { nom: string; email: string; password: string }) => Promise<Session>;
 }) {
   const [tab, setTab] = useState<"coop" | "planteur">("coop");
   const [screen, setScreen] = useState<"home" | "createCoop">("home");
@@ -92,61 +93,40 @@ export function Login({
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
   const [showPin, setShowPin] = useState(false);
-  const [bio, setBio] = useState<{ available: boolean; label: string }>({ available: false, label: "empreinte" });
-  const [hasSaved, setHasSaved] = useState(false);
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    (async () => {
-      setBio(await getBiometricState());
-      setHasSaved(!!(await readSession()));
-    })();
-  }, []);
-
-  if (screen === "createCoop") return <CreateCoop onBack={() => setScreen("home")} onSubmit={onCreateCoop} />;
+  if (screen === "createCoop") return <CreateCoop onBack={() => setScreen("home")} onRegister={authRegisterCoop} onDone={onLogin} />;
 
   const switchTab = (t: "coop" | "planteur") => { setTab(t); setErr(""); setPin(""); setPass(""); };
-  const pick = async (s: Session) => { await saveSession(s); onPick(s); };
 
   const doLogin = async () => {
-    if (tab === "coop") {
-      const ident = email.trim();
-      if (ident.includes("@")) {
-        // Patron : e-mail + mot de passe (inchangé)
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ident)) { setErr("Saisissez une adresse e-mail valide."); return; }
-        if (!isValidPassword(pass)) { setErr("Mot de passe : au moins 6 caractères."); return; }
-        const s = data.staff.find((st) => normalizeText((st as any).email || "") === normalizeText(ident));
-        if (!s) { setErr("Aucun compte pour cette adresse e-mail."); return; }
-        if (s.pin && !(await verifyPinAsync(pass, s.pin))) { setErr("Mot de passe incorrect."); return; }
-        pick({ side: "coop", role: s.role, staffId: s.id, coopId: s.coopId });
+    if (busy) return;
+    setErr("");
+    try {
+      if (tab === "coop") {
+        const ident = email.trim();
+        if (ident.includes("@")) {
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ident)) { setErr("Saisissez une adresse e-mail valide."); return; }
+          if (!isValidPassword(pass)) { setErr("Mot de passe : au moins 6 caractères."); return; }
+        } else {
+          if (normalizePhone(ident).length < 6) { setErr("Saisissez votre e-mail (Patron) ou votre téléphone (membre)."); return; }
+          if (!isValidPin(pass)) { setErr("Le code doit contenir 6 chiffres."); return; }
+        }
+        setBusy(true);
+        onLogin(await authLoginCoop(ident, pass));
       } else {
-        // Membre (Pisteur/Délégué, Magasinier) : téléphone + code 6 chiffres
-        const dig = normalizePhone(ident);
-        if (dig.length < 6) { setErr("Saisissez votre e-mail (Patron) ou votre téléphone (membre)."); return; }
-        if (!isValidPin(pass)) { setErr("Le code doit contenir 6 chiffres."); return; }
-        const s = data.staff.find((st) => normalizePhone(st.tel) === dig);
-        if (!s) { setErr("Aucun compte membre pour ce numéro."); return; }
-        if (s.pin && !(await verifyPinAsync(pass, s.pin))) { setErr("Code secret incorrect."); return; }
-        pick({ side: "coop", role: s.role, staffId: s.id, coopId: s.coopId });
+        if (normalizePhone(phone).length < 6) { setErr("Saisissez un numéro de téléphone valide."); return; }
+        if (!isValidPin(pin)) { setErr("Le code doit contenir 6 chiffres."); return; }
+        setBusy(true);
+        onLogin(await authLoginPlanteur(phone, pin));
       }
-    } else {
-      const dig = normalizePhone(phone);
-      if (dig.length < 6) { setErr("Saisissez un numéro de téléphone valide."); return; }
-      if (!isValidPin(pin)) { setErr("Le code doit contenir 6 chiffres."); return; }
-      const q = normalizeText(phone);
-      const m = data.members.find((mm) => normalizePhone(mm.tel) === dig || normalizeText(mm.code) === q);
-      if (!m) { setErr("Aucun planteur pour ce numéro / code."); return; }
-      if (m.pin && !(await verifyPinAsync(pin, m.pin))) { setErr("Code secret incorrect."); return; }
-      pick({ side: "planteur", memberId: m.id, coopId: m.coopId });
+    } catch (e: any) {
+      setErr(e?.message || "Erreur de connexion.");
+    } finally {
+      setBusy(false);
     }
-  };
-
-  const doBiometric = async () => {
-    const saved = await readSession();
-    if (!saved) { Alert.alert("Biométrie", "Connectez-vous d'abord avec votre code une première fois."); return; }
-    const ok = await promptBiometric();
-    if (ok) onPick(saved);
   };
 
   const doForgot = async () => {
@@ -219,18 +199,7 @@ export function Login({
 
       {err ? <Text style={{ color: C.rust, fontSize: 12.5, marginTop: 8 }}>{err}</Text> : null}
 
-      <SaveBtn color={C.greenDark} style={{ marginTop: 14 }} onPress={doLogin}>Se connecter</SaveBtn>
-
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginVertical: 16 }}>
-        <View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
-        <Text style={{ fontSize: 12.5, color: C.muted }}>ou</Text>
-        <View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
-      </View>
-
-      <Pressable onPress={doBiometric} testID="biometric" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, borderWidth: 1.5, borderColor: C.line, borderRadius: 14, paddingVertical: 15, backgroundColor: "#fff", opacity: bio.available && hasSaved ? 1 : 0.55 }}>
-        <Icon name="fingerprint" size={22} color={C.greenDark} />
-        <Text style={{ fontWeight: "800", fontSize: 14.5, color: C.ink }}>Se connecter avec l&apos;empreinte</Text>
-      </Pressable>
+      <SaveBtn color={C.greenDark} style={{ marginTop: 14 }} onPress={doLogin}>{busy ? "Connexion…" : "Se connecter"}</SaveBtn>
 
       {isCoop ? (
         <Pressable onPress={() => setScreen("createCoop")} testID="create-coop" style={{ marginTop: 14, backgroundColor: "#DCEBE1", borderRadius: 14, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -264,7 +233,7 @@ function AuthHeader({ title, sub, onBack, theme }: { title: string; sub: string;
 }
 
 /* -------- Création coopérative (minimale : responsable + email + mot de passe) -------- */
-function CreateCoop({ onBack, onSubmit }: { onBack: () => void; onSubmit: (p: any) => void }) {
+function CreateCoop({ onBack, onRegister, onDone }: { onBack: () => void; onRegister: (p: { nom: string; email: string; password: string }) => Promise<any>; onDone: (s: any) => void }) {
   const insets = useSafeAreaInsets();
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
@@ -272,22 +241,27 @@ function CreateCoop({ onBack, onSubmit }: { onBack: () => void; onSubmit: (p: an
   const [pass2, setPass2] = useState("");
   const [show, setShow] = useState(false);
   const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const passOk = isValidPassword(pass) && pass === pass2;
   const valid = nom.trim().length >= 2 && emailOk && passOk;
 
   const submit = async () => {
+    if (busy) return;
     setErr("");
     if (!nom.trim()) { setErr("Saisissez le nom du responsable."); return; }
     if (!emailOk) { setErr("Adresse e-mail invalide."); return; }
     if (!isValidPassword(pass)) { setErr("Mot de passe : au moins 6 caractères."); return; }
     if (pass !== pass2) { setErr("Les deux mots de passe ne correspondent pas."); return; }
-    const pinRec = await hashSecret(pass);
-    onSubmit({
-      coop: { nom: "Ma coopérative", filieres: [] },
-      responsable: { nom: nom.trim(), email: email.trim(), fonction: "Responsable", pin: pinRec },
-    });
+    setBusy(true);
+    try {
+      onDone(await onRegister({ nom: nom.trim(), email: email.trim(), password: pass }));
+    } catch (e: any) {
+      setErr(e?.message || "Erreur lors de la création.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -318,7 +292,7 @@ function CreateCoop({ onBack, onSubmit }: { onBack: () => void; onSubmit: (p: an
         <View style={{ backgroundColor: "#EAF3EF", borderWidth: 1, borderColor: "#CFE6E0", borderRadius: 10, padding: 12, marginTop: 4, marginBottom: 14 }}>
           <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Vous serez connecté comme <Text style={{ fontWeight: "700" }}>Patron</Text>. Vous vous connecterez ensuite avec votre <Text style={{ fontWeight: "700" }}>e-mail + mot de passe</Text>.</Text>
         </View>
-        <SaveBtn disabled={!valid} color={C.teal} onPress={submit}>Créer & accéder au tableau de bord</SaveBtn>
+        <SaveBtn disabled={!valid || busy} color={C.teal} onPress={submit}>{busy ? "Création…" : "Créer & accéder au tableau de bord"}</SaveBtn>
       </KeyboardAwareScrollView>
     </View>
   );

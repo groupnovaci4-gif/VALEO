@@ -24,6 +24,8 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.emergent.appdeploy.tyyn4z",
+      "allowBackup": false,
+      "usesCleartextTraffic": false,
       "permissions": [
         "android.permission.CAMERA"
       ]

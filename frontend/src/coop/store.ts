@@ -23,60 +23,75 @@ import {
 } from "./lib";
 
 const KEY = "coop:data:v3";
+const TOKEN_KEY = "coop:jwt";
+const IDENT_KEY = "coop:identity";
 const BACKEND = process.env.EXPO_PUBLIC_BACKEND_URL;
 
-async function fetchRemote(): Promise<Data | null> {
-  if (!BACKEND) return null;
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 8000);
-    const r = await fetch(`${BACKEND}/api/state`, { signal: ctrl.signal });
-    clearTimeout(t);
-    if (!r.ok) return null;
-    return migrate(await r.json());
-  } catch {
-    return null;
-  }
+export type Identity = { sub: string; coopId: string; role?: string; side: "coop" | "planteur" };
+export function identToSession(id: Identity): any {
+  return id.side === "planteur"
+    ? { side: "planteur", memberId: id.sub, coopId: id.coopId }
+    : { side: "coop", role: id.role, staffId: id.sub, coopId: id.coopId };
 }
 
-async function pushRemote(d: Data): Promise<void> {
-  if (!BACKEND) return;
+async function apiFetch(path: string, opts: any, token: string | null): Promise<Response | null> {
+  if (!BACKEND) return null;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
   try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 8000);
-    await fetch(`${BACKEND}/api/state`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: d }),
+    const r = await fetch(`${BACKEND}${path}`, {
+      ...opts,
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(opts?.headers || {}) },
       signal: ctrl.signal,
     });
     clearTimeout(t);
-  } catch {}
+    return r;
+  } catch {
+    clearTimeout(t);
+    return null;
+  }
 }
 
 export function useCoopData() {
   const [data, setData] = useState<Data | null>(null);
   const [ready, setReady] = useState(false);
+  const [bootSession, setBootSession] = useState<any>(null);
+  const [authError, setAuthError] = useState(false);
   const remoteApply = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dataRef = useRef<Data | null>(null);
   const dirty = useRef(false); // modifications locales non encore synchronisées
   const coopIdRef = useRef<string>("");
+  const tokenRef = useRef<string>("");
   const setCoopScope = useCallback((id: string) => { coopIdRef.current = id || ""; }, []);
   const cid = () => coopIdRef.current || undefined;
 
+  const clearAuth = useCallback(async () => {
+    tokenRef.current = "";
+    await storage.secureRemove(TOKEN_KEY);
+    await storage.secureRemove(IDENT_KEY);
+    await storage.removeItem(KEY);
+  }, []);
+
   useEffect(() => {
     (async () => {
-      const remote = await fetchRemote();
-      remoteApply.current = true;
-      if (remote) setData(remote);
-      else {
-        const saved = await storage.getItem<any>(KEY, null);
-        setData(saved ? migrate(saved) : seed());
+      const token = await storage.secureGet<string | null>(TOKEN_KEY, null);
+      const ident = await storage.secureGet<any>(IDENT_KEY, null);
+      tokenRef.current = token || "";
+      if (token && ident && ident.coopId) {
+        coopIdRef.current = ident.coopId;
+        setBootSession(identToSession(ident));
+        const r = await apiFetch("/api/state", {}, token);
+        remoteApply.current = true;
+        if (r && r.ok) setData(migrate(await r.json()));
+        else if (r && r.status === 401) { await clearAuth(); setBootSession(null); setData(seed()); }
+        else { const saved = await storage.getItem<any>(KEY, null); setData(saved ? migrate(saved) : seed()); }
+      } else {
+        setData(seed());
       }
       setReady(true);
     })();
-  }, []);
+  }, [clearAuth]);
 
   useEffect(() => {
     if (!ready || !data) return;
@@ -86,30 +101,67 @@ export function useCoopData() {
       remoteApply.current = false; // vient du backend/cache : ne pas renvoyer
       return;
     }
+    if (!tokenRef.current) return; // non authentifié : pas de sync
     dirty.current = true; // changement local à pousser
     if (pushTimer.current) clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(async () => {
-      await pushRemote(data);
+      const r = await apiFetch("/api/state", { method: "PUT", body: JSON.stringify({ data }) }, tokenRef.current);
+      if (r && r.status === 401) { await clearAuth(); setAuthError(true); return; }
       dirty.current = false;
     }, 700);
-  }, [data, ready]);
+  }, [data, ready, clearAuth]);
 
-  // Recharge la dernière version du backend (admin, autre appareil).
+  // Recharge la dernière version du backend (autre appareil).
   const refresh = useCallback(async () => {
-    // Ne jamais écraser des modifications locales non synchronisées (ex. signature) :
-    // on les pousse d'abord au backend au lieu de tirer une version périmée.
+    if (!tokenRef.current) return;
     if (dirty.current) {
       if (pushTimer.current) clearTimeout(pushTimer.current);
-      if (dataRef.current) await pushRemote(dataRef.current);
+      if (dataRef.current) await apiFetch("/api/state", { method: "PUT", body: JSON.stringify({ data: dataRef.current }) }, tokenRef.current);
       dirty.current = false;
       return;
     }
-    const remote = await fetchRemote();
-    if (remote) {
-      remoteApply.current = true;
-      setData(remote);
-    }
+    const r = await apiFetch("/api/state", {}, tokenRef.current);
+    if (r && r.ok) { remoteApply.current = true; setData(migrate(await r.json())); }
+    else if (r && r.status === 401) { await clearAuth(); setAuthError(true); }
+  }, [clearAuth]);
+
+  const applyAuth = useCallback(async (res: any) => {
+    tokenRef.current = res.token;
+    await storage.secureSet(TOKEN_KEY, res.token);
+    await storage.secureSet(IDENT_KEY, res.identity);
+    coopIdRef.current = res.identity.coopId || "";
+    remoteApply.current = true;
+    setAuthError(false);
+    setData(migrate(res.state));
+    return identToSession(res.identity);
   }, []);
+
+  const authLoginCoop = useCallback(async (identifier: string, secret: string) => {
+    const r = await apiFetch("/api/auth/coop/login", { method: "POST", body: JSON.stringify({ identifier, secret }) }, null);
+    if (!r) throw new Error("Connexion au serveur impossible. Vérifiez votre réseau.");
+    if (r.status === 401) throw new Error("Identifiants incorrects.");
+    if (!r.ok) throw new Error("Erreur de connexion.");
+    return applyAuth(await r.json());
+  }, [applyAuth]);
+
+  const authLoginPlanteur = useCallback(async (phone: string, pin: string) => {
+    const r = await apiFetch("/api/auth/planteur/login", { method: "POST", body: JSON.stringify({ phone, pin }) }, null);
+    if (!r) throw new Error("Connexion au serveur impossible. Vérifiez votre réseau.");
+    if (r.status === 401) throw new Error("Identifiants incorrects.");
+    if (!r.ok) throw new Error("Erreur de connexion.");
+    return applyAuth(await r.json());
+  }, [applyAuth]);
+
+  const authRegisterCoop = useCallback(async (p: { nom: string; email: string; password: string }) => {
+    const r = await apiFetch("/api/auth/register", { method: "POST", body: JSON.stringify(p) }, null);
+    if (!r) throw new Error("Connexion au serveur impossible. Vérifiez votre réseau.");
+    if (r.status === 409) throw new Error("Un compte existe déjà pour cette adresse e-mail.");
+    if (!r.ok) { let m = "Erreur lors de la création."; try { m = (await r.json()).detail || m; } catch {} throw new Error(m); }
+    return applyAuth(await r.json());
+  }, [applyAuth]);
+
+  const authLogout = useCallback(async () => { await clearAuth(); setBootSession(null); setData(seed()); }, [clearAuth]);
+
 
   const addMember = useCallback((m: Partial<Member>) => {
     setData((d) => {
@@ -367,6 +419,12 @@ export function useCoopData() {
   return {
     data,
     ready,
+    bootSession,
+    authError,
+    authLoginCoop,
+    authLoginPlanteur,
+    authRegisterCoop,
+    authLogout,
     addMember,
     addMandat,
     addDepense,

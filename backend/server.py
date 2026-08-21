@@ -132,6 +132,113 @@ class ChangePwdRequest(BaseModel):
     new: str
 
 
+# --------------------------- Auth utilisateurs (coop/planteur) --------------------------- #
+ENTITY_ARRAYS = ["staff", "members", "collections", "loans", "mandats", "depenses", "settlements"]
+
+
+def _norm_phone(p: Optional[str]) -> str:
+    return "".join(ch for ch in (p or "") if ch.isdigit())
+
+
+def _norm_text(s: Optional[str]) -> str:
+    return (s or "").strip().lower()
+
+
+def verify_secret(secret: str, record: Optional[dict]) -> bool:
+    """Vérifie un PinRecord PBKDF2-HMAC-SHA256 créé côté client (sans réinitialisation)."""
+    if not record:
+        return False
+    try:
+        salt = bytes.fromhex(record["saltHex"])
+        expected = bytes.fromhex(record["verifierHex"])
+        iterations = int(record.get("iterations", 15000))
+        if not (1 <= iterations <= 10_000_000):
+            return False
+        dk = hashlib.pbkdf2_hmac("sha256", (secret or "").encode("utf-8"), salt, iterations, dklen=len(expected))
+        return _secrets.compare_digest(dk, expected)
+    except Exception:
+        return False
+
+
+def make_pin_record(secret: str, iterations: int = 15000) -> dict:
+    salt = _secrets.token_bytes(16)
+    dk = hashlib.pbkdf2_hmac("sha256", (secret or "").encode("utf-8"), salt, iterations, dklen=32)
+    return {"scheme": "pbkdf2-sha256", "iterations": iterations, "saltHex": salt.hex(), "verifierHex": dk.hex(), "version": 1}
+
+
+def issue_user_token(identity: dict) -> str:
+    now = datetime.now(timezone.utc)
+    return jwt.encode({**identity, "iat": now, "exp": now + timedelta(days=30)}, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def require_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer)) -> dict:
+    if not credentials or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Non authentifié")
+    try:
+        p = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"require": ["exp", "sub", "coopId", "side"]})
+        if not p.get("coopId"):
+            raise jwt.InvalidTokenError("missing coopId")
+        return {"sub": p["sub"], "coopId": p["coopId"], "role": p.get("role"), "side": p["side"]}
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expirée")
+
+
+def scope_state(state: dict, coop_id: str) -> dict:
+    """Renvoie uniquement la tranche de l'état appartenant à une coopérative (isolation tenant)."""
+    coops = state.get("coops") or []
+    co = next((c for c in coops if c.get("id") == coop_id), None) or {}
+    out = {
+        "saison": state.get("saison"),
+        "prixKg": state.get("prixKg"),
+        "seq": state.get("seq", 1),
+        "memberSeq": state.get("memberSeq", 1),
+        "commissionRate": state.get("commissionRate", 25),
+        "coops": [co] if co else [],
+        "coop": co or state.get("coop", {}),
+        "prices": co.get("prices") or state.get("prices"),
+        "commissions": co.get("commissions") or state.get("commissions"),
+        "priceHistory": state.get("priceHistory", []),
+    }
+    for e in ENTITY_ARRAYS:
+        out[e] = [x for x in (state.get(e) or []) if x.get("coopId") == coop_id]
+    return out
+
+
+def merge_state(state: dict, incoming: dict, coop_id: str) -> dict:
+    """Fusionne la tranche reçue dans l'état global, en forçant le coopId côté serveur (anti-IDOR)."""
+    for e in ENTITY_ARRAYS:
+        others = [x for x in (state.get(e) or []) if x.get("coopId") != coop_id]
+        mine = [{**x, "coopId": coop_id} for x in (incoming.get(e) or [])]
+        state[e] = others + mine
+    inc_coops = incoming.get("coops") or []
+    inc_co = next((c for c in inc_coops if c.get("id") == coop_id), None) or (inc_coops[0] if inc_coops else None) or incoming.get("coop") or {}
+    inc_co = {**inc_co, "id": coop_id}
+    state["coops"] = [c for c in (state.get("coops") or []) if c.get("id") != coop_id] + [inc_co]
+    state["seq"] = max(int(state.get("seq", 1) or 1), int(incoming.get("seq", 1) or 1))
+    state["memberSeq"] = max(int(state.get("memberSeq", 1) or 1), int(incoming.get("memberSeq", 1) or 1))
+    if incoming.get("saison"):
+        state["saison"] = incoming["saison"]
+    if incoming.get("priceHistory") is not None:
+        state["priceHistory"] = incoming["priceHistory"]
+    return state
+
+
+class CoopLoginBody(BaseModel):
+    identifier: str
+    secret: str
+
+
+class PlanteurLoginBody(BaseModel):
+    phone: str
+    pin: str
+
+
+class RegisterBody(BaseModel):
+    nom: str
+    email: str
+    password: str
+
+
 # ------------------------------- Public API ------------------------------- #
 @app.get("/")
 async def health_root():
@@ -149,15 +256,68 @@ async def root():
 
 
 @app.get("/api/state")
-async def get_state():
-    return await load_state()
+async def get_state(me: dict = Depends(require_user)):
+    state = await load_state()
+    return scope_state(state, me["coopId"])
 
 
 @app.put("/api/state")
-async def put_state(body: StateBody):
-    # Used by the mobile app to persist its full data document (offline-first sync).
-    await save_state(body.data)
+async def put_state(body: StateBody, me: dict = Depends(require_user)):
+    # Sync offline-first : le serveur ne fusionne QUE la coopérative du jeton (isolation stricte).
+    state = await load_state()
+    merge_state(state, body.data, me["coopId"])
+    await save_state(state)
     return {"ok": True}
+
+
+@app.post("/api/auth/coop/login")
+async def coop_login(body: CoopLoginBody):
+    state = await load_state()
+    ident = (body.identifier or "").strip()
+    staff = state.get("staff") or []
+    if "@" in ident:
+        s = next((x for x in staff if _norm_text(x.get("email")) == _norm_text(ident)), None)
+    else:
+        ph = _norm_phone(ident)
+        s = next((x for x in staff if ph and _norm_phone(x.get("tel")) == ph), None)
+    if not s or not verify_secret(body.secret, s.get("pin")):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects")
+    claims = {"sub": s["id"], "coopId": s.get("coopId"), "role": s.get("role"), "side": "coop"}
+    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, s.get("coopId"))}
+
+
+@app.post("/api/auth/planteur/login")
+async def planteur_login(body: PlanteurLoginBody):
+    state = await load_state()
+    ph = _norm_phone(body.phone)
+    q = _norm_text(body.phone)
+    m = next((x for x in (state.get("members") or []) if (ph and _norm_phone(x.get("tel")) == ph) or _norm_text(x.get("code")) == q), None)
+    if not m or not verify_secret(body.pin, m.get("pin")):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects")
+    claims = {"sub": m["id"], "coopId": m.get("coopId"), "side": "planteur"}
+    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, m.get("coopId"))}
+
+
+@app.post("/api/auth/register")
+async def register_coop(body: RegisterBody):
+    state = await load_state()
+    email = _norm_text(body.email)
+    if "@" not in email:
+        raise HTTPException(status_code=400, detail="Adresse e-mail invalide")
+    if len(body.password or "") < 6:
+        raise HTTPException(status_code=400, detail="Mot de passe : au moins 6 caractères")
+    if any(_norm_text(x.get("email")) == email for x in (state.get("staff") or [])):
+        raise HTTPException(status_code=409, detail="Un compte existe déjà pour cette adresse e-mail")
+    coop_id = "c" + _secrets.token_hex(6)
+    staff_id = "s" + _secrets.token_hex(6)
+    coop = {"id": coop_id, "nom": "Ma coopérative", "momo": [], "filieres": []}
+    patron = {"id": staff_id, "coopId": coop_id, "nom": (body.nom or "").strip(), "role": "patron",
+              "fonction": "Responsable", "email": email, "pin": make_pin_record(body.password)}
+    state.setdefault("coops", []).append(coop)
+    state.setdefault("staff", []).append(patron)
+    await save_state(state)
+    claims = {"sub": staff_id, "coopId": coop_id, "role": "patron", "side": "coop"}
+    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, coop_id)}
 
 
 # ------------------------------- Admin API -------------------------------- #

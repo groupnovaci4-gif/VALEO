@@ -153,3 +153,13 @@ Remplace l'ancien PeseeSheet (sheets.tsx). 4 étapes : (1) planteur + produit (p
 - Dans l'espace coop : sélecteur + « ← Coopératives » + onglets Réglages, Planteurs, Équipe, Collectes, **Avances** (ex-Prêts), Mandats, Dépenses. Toutes les listes filtrées par `belongs()` = `coopId===currentCoop`. Mode mono/legacy (coops vide) → affiche tout dans un seul espace.
 - Ajout d'un enregistrement : `row.coopId=currentCoop`. Selects de référence (planteur/agent/pisteur) filtrés par coop. Réglages édite `curCoopObj()` (coop sélectionnée), sync legacy `state.coop` si id `__legacy__`. wipeAll réinitialise aussi `coops`/`settlements`.
 - Aucune donnée/règle/rôle modifié. Vérifié e2e (login admin123 → accueil Coopératives → ouverture coop → 7 onglets + Avances). ⚠️ Backend sur K8s : nécessite redeploy pour la production.
+
+## SÉCURITÉ v25 — Auth serveur + isolation multi-coop (Tâche 2 du plan sécurité) — TERMINÉ & vérifié
+- **Tâche 1 (faite)** : durcissement mobile app.json — allowBackup=false, usesCleartextTraffic=false (Android). Permissions déjà minimales (CAMERA only).
+- **Tâche 2 (faite, CRITIQUE)** : corrige SEC-001/002/003 de l'audit.
+  - Backend `server.py` : nouveaux endpoints POST /api/auth/register, /api/auth/coop/login (email+password OU téléphone+code), /api/auth/planteur/login (téléphone+code). JWT 30 j (sub, coopId, role, side). verify_secret() rejoue les PinRecord PBKDF2-HMAC-SHA256 côté serveur (pas de reset des comptes existants). make_pin_record() pour les nouveaux.
+  - `/api/state` GET/PUT protégés par require_user (401 sinon). scope_state() renvoie SEULEMENT la coop du jeton ; merge_state() ne fusionne que cette coop et force coopId (anti-IDOR). Compteurs seq/memberSeq via max().
+  - Frontend `store.ts` : apiFetch avec Bearer ; bootstrap lit le jeton (SecureStore clé coop:jwt) → fetch scoped ; authLoginCoop/authLoginPlanteur/authRegisterCoop/authLogout ; sync PUT authentifié ; 401 → authError → logout. `auth.tsx` Login/CreateCoop appellent le serveur (plus de vérif client). Bouton biométrie retiré (session persistante par jeton). `index.tsx` : pickSession, restauration via store.bootSession, logout appelle authLogout.
+  - Vérifié : register→dashboard, login patron, mauvais mdp→erreur, login membre (commis) & planteur, isolation Coop A/B (B ne voit pas A), écritures scopées. TOUT OK.
+  - ⚠️ PRODUCTION : nécessite REDEPLOY (backend+frontend). L'ancien front (sans jeton) recevra 401 tant que non redéployé.
+- Reste du plan sécurité (à faire, dans l'ordre choisi) : journal d'audit financier ; chiffrement du stockage local ; documents (archi sécurité + réponse incident + conservation). Pentest tiers & chiffrement au repos Mongo = hors périmètre agent (prestataire / support Emergent).
