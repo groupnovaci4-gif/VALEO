@@ -175,3 +175,9 @@ Remplace l'ancien PeseeSheet (sheets.tsx). 4 étapes : (1) planteur + produit (p
 - Tâche 4 : cache hors-ligne chiffré AES (crypto-js) ; clé aléatoire (expo-crypto) en SecureStore. Nouveau `src/coop/secureCache.ts` (saveCache/loadCache) utilisé par store.ts (bootstrap + persistance). Vérifié : le blob AsyncStorage commence par "U2FsdGVk" (AES) et ne contient plus les noms en clair.
 - Tâche 5 : documents dans /app/docs/ — SECURITE_ARCHITECTURE.md, REPONSE_INCIDENT.md, POLITIQUE_DONNEES.md (FR).
 - Reste (hors périmètre agent) : pentest tiers indépendant ; chiffrement au repos MongoDB (support Emergent). À faire côté serveur ensuite : rate limiting + anti-force-brute, jetons courts + refresh/révocation, OTP SMS, certificate pinning (build natif).
+
+## v28 — Dépenses Patron + calcul pesée + renommage (2026-06) — TERMINÉ & vérifié (testing_agent iter14)
+- (1) Dépenses Patron : nouvel écran `DepensesPatron` (screens.tsx) + carte `coop-depenses` dans CoopAccount → tab "depenses". Le Patron saisit sa propre dépense (setSheet "depense", pisteurId=session.staffId) et VOIT toutes les dépenses de la coop avec auteur (Nom · Rôle) et TOTAL mensuel auto + total global. Saisie propre des membres inchangée.
+- (2) Calcul pesée : formule confirmée = livraison − avance recouvrée + ancien reste dû (netAPayer=montant−recouvre ; totalDu=netAPayer+oldReste). AUCUN changement de code requis (déjà correct depuis v25). Ancien reçu strictement inchangé (resteSolde, jamais reste/paye).
+- (3) Renommage nav Patron « Bilan » → « Tableau de bord » (label uniquement, id "bilan" conservé).
+- Vérifié end-to-end par testing_agent (iter14) : tout PASS. ⚠️ Redeploy requis pour production.

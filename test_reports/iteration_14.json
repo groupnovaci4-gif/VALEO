@@ -1,0 +1,35 @@
+{
+  "summary": "VALEO frontend-only validation of 3 changes on a freshly registered coop (Expo web, mobile viewport 390x844): (1) BUG PESÉE — formula verified end-to-end in UI. Flow: register patron → add planteur → 1st pesée 200 kg × 1800 = 360 000 F, partial payment 160 000 F → laisse reste dû 200 000 F. Approved avance 100 000 F. 2nd pesée 478 kg × 1800 = 860 400 F. The PeseeSheet 'Calculer' summary displays EXACTLY: Montant 860 400 FCFA, Avance à recouvrer 100 000 F, Net à payer au planteur 760 400 FCFA, banner 'Reste dû précédent 200 000 F ajouté. Total à payer : 960 400 FCFA'. Formula CONFIRMED: total = livraison − avance recouvrée + ancien reste dû (860 400 − 100 000 + 200 000 = 960 400 F). Code review of sheets.tsx L145-154 (recouvre / netAPayer / oldReste / totalDu) and store.ts addCollection L195-267 confirms the old receipt stays IMMUABLE: store increments c.resteSolde (tracking) but NEVER mutates c.reste or c.paye on the initial collection; Bordereau renders c.reste directly (sheets.tsx L773, L885) so ancien reçu unchanged. (2) MODULE DÉPENSES PATRON — validated: tab 'Coop' → card testID coop-depenses opens 'Dépenses de la coopérative'. 'Enregistrer ma dépense' opens DepenseSheet, saisie catégorie/montant/note. After enregistrement, la ligne apparaît avec l'AUTEUR affiché 'Patron Alpha · Patron', regroupée par mois ('AOÛT 2026'), avec sous-total mensuel et TOTAL GLOBAL en haut qui se recalcule automatiquement (25 000 F → 35 000 F après ajout d'une 2ᵉ dépense). Le screen inclut aussi la mention 'Patron, Pisteur/Délégué et Magasinier réunis'. (3) RENOMMAGE — validé : la barre de navigation du Patron affiche bien 'Tableau de bord' (nav-bilan label = 'Tableau de bord'), et le contenu du tableau de bord (Dashboard) est inchangé. NO MOCKED APIS. No red screen, no JS console errors captured.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/tmp/depenses_screen.png",
+    "/tmp/pesee2_calc.png"
+  ],
+  "action_items": [
+    "OPTIONAL: envisager d'ajouter des testID stables sur les champs du formulaire 'Créer une coopérative' (nom-responsable, email-coop, pass, pass2) et sur les inputs de MemberSheet / LoanSheet / DepenseSheet. Le test a dû s'appuyer sur les placeholders — fonctionnel mais fragile si les libellés changent."
+  ],
+  "critical_code_review_comments": [
+    "sheets.tsx PeseeSheet L140-154 — Formule correcte : avanceDue = Σ loans approuvées ; recouvre = min(avanceDue, montant) [ou partiel] ; netAPayer = max(0, montant − recouvre) ; oldReste = memberStats(memberId, data.collections).reste (via outstandingReste = reste − resteSolde) ; totalDu = netAPayer + oldReste. Exactement la formule demandée : total = livraison − recouvre + oldReste.",
+    "store.ts addCollection L232-260 — Immuabilité du reçu initial préservée : lorsqu'un _settle > 0 est passé, la fonction incrémente x.resteSolde sur les reçus anciens (FIFO) sans modifier x.reste ni x.paye ; un settlement séparé est créé (avec seq, refs). L'ancien bordereau qui lit c.reste et c.paye rendra donc les valeurs d'origine.",
+    "sheets.tsx Bordereau L773, L834, L885 — lit c.reste directement et affiche 'Ancien reste soldé : oldRegle' UNIQUEMENT sur le nouveau reçu de pesée qui a soldé, jamais sur l'ancien reçu. Correct.",
+    "screens.tsx DepensesPatron L851-909 — Regroupement mensuel correct (clé YYYY-MM), tri desc, total global calculé sur data.depenses, sous-total mensuel calculé sur list du groupe, auteur formaté 'nom · Patron/Pisteur-Délégué/Magasinier' via lookup dans data.staff. Card total en haut se recalcule automatiquement (React re-render sur chaque add).",
+    "screens.tsx CoopAccount L966-978 — Card testID 'coop-depenses' correctement câblée à onDepenses (setTab('depenses') dans index.tsx L319). Icône receipt + libellé 'Dépenses' + sous-titre explicite.",
+    "index.tsx L280 — Nav gauche : { id: 'bilan', icon: 'trending-up', label: 'Tableau de bord' } — renommage effectué au niveau du label uniquement ; l'id interne 'bilan' est conservé donc setTab('bilan') et le contenu du dashboard restent inchangés."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend-only per request)",
+    "frontend": "100% (3/3 features validated end-to-end in mobile web preview)"
+  },
+  "seed_data_creation": "Two ephemeral coops créées à la volée pendant le test (register JWT côté serveur) : (a) 'Ma coopérative' / patron_<ts>@valeo.test / valeo123 avec 2 dépenses (25 000 + 10 000 = 35 000 F) ; (b) 'Ma coopérative' / patron2_<ts>@valeo.test / valeo123 avec 1 planteur 'Planteur X' (Sikensi, tel 0700000099, pin 246810) + 1 pesée 200 kg (paye 160 000 / reste 200 000) + 1 avance approuvée 100 000 F espèces + 1 pesée 478 kg calculée mais NON confirmée (fermée sans persister). Le main agent peut réutiliser ces comptes ou reset via /api/admin.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Register form placeholders : 'Ex. Diomandé Mamadou' (nom), 'responsable@coop.ci' (email), 'Au moins 6 caractères' (pass), 'Retapez le mot de passe' (pass2). Bouton 'Créer & accéder au tableau de bord'. MemberSheet placeholders: 'Ex. Kouassi Yao' (nom), 'Ex. Sikensi' (village), '07 00 00 00 00' (tel), '••••••' (pin ×2). PeseeSheet utilise un NumPad (testID='num-0'..'num-9', 'num-back') pour le poids brut, testID='sacs-plus'/'sacs-minus'. Après 'Ajouter cette pesée' puis 'Calculer', pour paiement partiel : cliquer toggle 'Partiel' puis remplir l'input avec placeholder commençant par 'Max '. Pour tester la formule pesée en une passe : viser 200 kg partial 160 000 (→ reste 200 000) puis Nouvelle avance 100 000 approuvée espèces puis 2ᵉ pesée 478 kg → l'encart doit afficher 'Reste dû précédent 200 000 F' + 'Total à payer : 960 400 FCFA'. Dépenses : tab nav-coop → card testID='coop-depenses' → bouton 'Enregistrer ma dépense' → placeholder 'Ex. 15000' (montant) + 'Ex. Location tricycle' (note) → 'Enregistrer la dépense'. Le total global mensuel et global se recalculent au ré-affichage.",
+  "rca_of_issue": "Non applicable — la formule de pesée demandée est déjà correctement implémentée dans PeseeSheet L145-154 (sheets.tsx) et n'a pas nécessité de correctif. Le test UI complet a validé le calcul affiché : 860 400 − 100 000 + 200 000 = 960 400 F. L'ancien reçu reste inchangé par construction (store.addCollection modifie resteSolde, pas reste)."
+}

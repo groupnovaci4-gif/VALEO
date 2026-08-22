@@ -27,6 +27,7 @@ import {
   ActivityLog,
   buildNotifications,
   CoopAccount,
+  DepensesPatron,
   Collaborateurs,
   CollectorHome,
   CocoaHero,
@@ -276,7 +277,7 @@ export default function App() {
         active={tab}
         fabIcon="scale"
         fabColor={C.green}
-        left={[{ id: "bilan", icon: "trending-up", label: "Bilan" }, { id: "planteurs", icon: "users", label: "Planteurs" }]}
+        left={[{ id: "bilan", icon: "trending-up", label: "Tableau de bord" }, { id: "planteurs", icon: "users", label: "Planteurs" }]}
         right={[{ id: "collaborateurs", icon: "briefcase", label: "Équipe" }, { id: "coop", icon: "building", label: "Coop", badge: pendingLoans }]}
         onTab={(t) => { setTab(t); setOpenMember(null); setOpenCollab(null); }}
         onFab={() => setSheet("pesee")}
@@ -314,7 +315,8 @@ export default function App() {
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} onAdd={() => setSheet("collab")} />;
     else if (tab === "prets") body = <PatronPrets data={data} onApprove={(l: any) => setApproveLoanObj(l)} onRefuse={(id: string) => store.refuseLoan(id, session.staffId)} onNew={() => setSheet("loan")} onBack={() => setTab("bilan")} />;
-    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onAudit={() => setSheet("audit")} onReset={store.reset} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
+    else if (tab === "depenses") body = <DepensesPatron data={data} onBack={() => setTab("coop")} onAdd={() => setSheet("depense")} />;
+    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onAudit={() => setSheet("audit")} onDepenses={() => setTab("depenses")} onReset={store.reset} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
   } else if (isCoop) {
     const isPisteur = role === "pisteur";
     nav = (

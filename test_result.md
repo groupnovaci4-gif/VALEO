@@ -156,7 +156,7 @@
 
 ## agent_communication:
 ##     -agent: "main"
-##     -message: "auth.tsx était corrompu (CreateCoop cassé) — réparé. Implémenté l'inscription minimale coop + login email/MDP + Profil coopérative avec barre de complétude. tsc --noEmit passe. Merci de tester les 3 flows côté frontend (données d'aperçu éphémères, créer les comptes à la volée). Voir /app/memory/test_credentials.md."
+##     -message: "v28 — 3 modifs: (1) Dépenses Patron (saisie + vue globale avec auteur + total mensuel), (2) calcul pesée = livraison − avance recouvrée + ancien reste dû (déjà en place, à VÉRIFIER), (3) 'Bilan' renommé 'Tableau de bord'. Merci de tester le point 2 de bout en bout (bug reporté) et le point 1."
 
 ## NOUVELLE ITÉRATION — Terminologie « Avance » + recouvrement + reçus de solde
 ## frontend:

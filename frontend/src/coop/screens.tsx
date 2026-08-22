@@ -848,7 +848,68 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecid
   );
 }
 
-export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile, onAudit, onReset, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
+export function DepensesPatron({ data, onBack, onAdd }: any) {
+  const deps = (data.depenses || []).slice().sort(byDateDesc);
+  const author = (id: string) => {
+    const s = (data.staff || []).find((x: any) => x.id === id);
+    if (!s) return "—";
+    const r = s.role === "patron" ? "Patron" : s.role === "pisteur" ? "Pisteur/Délégué" : "Magasinier";
+    return `${s.nom} · ${r}`;
+  };
+  const groups: Record<string, any[]> = {};
+  deps.forEach((x: any) => {
+    const d = new Date(x.date);
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    (groups[k] = groups[k] || []).push(x);
+  });
+  const months = Object.keys(groups).sort().reverse();
+  const total = deps.reduce((s: number, x: any) => s + (+x.amount || 0), 0);
+  const monthLabel = (k: string) => { const [y, m] = k.split("-"); return new Date(+y, +m - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }); };
+  return (
+    <View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <Pressable onPress={onBack} hitSlop={8} style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" }}>
+          <Icon name="chevron-left" size={20} color={C.ink} />
+        </Pressable>
+        <Text style={{ flex: 1, fontSize: 18, fontWeight: "800", color: C.ink }}>Dépenses de la coopérative</Text>
+      </View>
+      <Card style={{ padding: 16, marginBottom: 14, backgroundColor: "#FBF0EE", borderColor: "#EAD0CE" }}>
+        <Text style={{ fontSize: 12.5, color: C.muted }}>Total des dépenses enregistrées</Text>
+        <Text style={{ fontSize: 26, fontWeight: "900", color: C.rust, marginTop: 2 }}>{fF(total)}</Text>
+        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Patron, Pisteur/Délégué et Magasinier réunis</Text>
+      </Card>
+      <SaveBtn color={C.rust} icon={<Icon name="plus" size={17} color="#fff" />} onPress={onAdd} style={{ marginBottom: 18 }}>Enregistrer ma dépense</SaveBtn>
+      {months.length === 0 ? <Empty text="Aucune dépense enregistrée." /> : months.map((k) => {
+        const list = groups[k];
+        const mTotal = list.reduce((s: number, x: any) => s + (+x.amount || 0), 0);
+        return (
+          <View key={k} style={{ marginBottom: 18 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <SectionTitle>{monthLabel(k)}</SectionTitle>
+              <Text style={{ fontWeight: "800", color: C.rust, fontSize: 14 }}>{fF(mTotal)}</Text>
+            </View>
+            <View style={{ gap: 8 }}>
+              {list.sort(byDateDesc).map((x: any) => (
+                <Card key={x.id} style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: 9, backgroundColor: "#F6E4E1", alignItems: "center", justifyContent: "center" }}>
+                    <Icon name="receipt" size={16} color={C.rust} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: "700", fontSize: 13.5 }}>{depcat(x.category).nom}{x.note ? ` · ${x.note}` : ""}</Text>
+                    <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 1 }}>{author(x.pisteurId)} · {fDate(x.date)}</Text>
+                  </View>
+                  <Text style={{ fontWeight: "800", fontSize: 14, color: C.rust }}>{fF(x.amount)}</Text>
+                </Card>
+              ))}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile, onAudit, onDepenses, onReset, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
   const co = data.coop || {};
   const patron = (data.staff || []).find((s: Staff) => s.role === "patron");
   const completeness = coopCompleteness(co, patron);
@@ -896,6 +957,20 @@ export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile,
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: "800", fontSize: 14 }}>Journal d&apos;audit</Text>
               <Text style={{ fontSize: 12, color: C.muted }}>Traçabilité des opérations financières</Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={C.muted} />
+          </Card>
+        </Pressable>
+      ) : null}
+      {onDepenses ? (
+        <Pressable onPress={onDepenses} testID="coop-depenses">
+          <Card style={{ padding: 14, marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#F6E4E1", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="receipt" size={19} color={C.rust} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "800", fontSize: 14 }}>Dépenses</Text>
+              <Text style={{ fontSize: 12, color: C.muted }}>Saisir mes dépenses & voir celles de la coopérative</Text>
             </View>
             <Icon name="chevron-right" size={18} color={C.muted} />
           </Card>
