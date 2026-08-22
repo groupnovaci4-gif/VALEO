@@ -163,3 +163,15 @@ Remplace l'ancien PeseeSheet (sheets.tsx). 4 étapes : (1) planteur + produit (p
   - Vérifié : register→dashboard, login patron, mauvais mdp→erreur, login membre (commis) & planteur, isolation Coop A/B (B ne voit pas A), écritures scopées. TOUT OK.
   - ⚠️ PRODUCTION : nécessite REDEPLOY (backend+frontend). L'ancien front (sans jeton) recevra 401 tant que non redéployé.
 - Reste du plan sécurité (à faire, dans l'ordre choisi) : journal d'audit financier ; chiffrement du stockage local ; documents (archi sécurité + réponse incident + conservation). Pentest tiers & chiffrement au repos Mongo = hors périmètre agent (prestataire / support Emergent).
+
+## SÉCURITÉ v26 — Journal d'audit financier (Tâche 3) — TERMINÉ & vérifié
+- Backend `server.py` : collection Mongo `audit` (append-only). POST /api/audit (authentifié) pose coopId + actorId(sub) + actorRole + side + at(horodatage SERVEUR) — non falsifiable par le client. GET /api/audit (scopé coopId, 300 derniers, tri desc). 401 sans jeton.
+- Frontend `store.ts` : logAudit(action, meta) best-effort + fetchAudit(). Appelé sur : addCollection→"pesee" (net/paye/reste/recouvre), settleMemberDue→"solde", approveLoan→"avance_approuvee", refuseLoan→"avance_refusee".
+- UI : `AuditSheet` (sheets.tsx) + carte « Journal d'audit » (testID coop-audit) dans CoopAccount (onglet Coop du Patron) → index sheet "audit". Libellés/acteur/horodatage lisibles.
+- Vérifié : endpoints (401/POST/GET, actorRole=patron, at serveur) + UI (carte + ouverture sheet, état vide). ⚠️ Redeploy requis pour production.
+- Reste plan sécurité : Tâche 4 chiffrement stockage local ; Tâche 5 documents (archi/incident/conservation).
+
+## SÉCURITÉ v27 — Chiffrement cache local + Documents (Tâches 4 & 5) — TERMINÉ
+- Tâche 4 : cache hors-ligne chiffré AES (crypto-js) ; clé aléatoire (expo-crypto) en SecureStore. Nouveau `src/coop/secureCache.ts` (saveCache/loadCache) utilisé par store.ts (bootstrap + persistance). Vérifié : le blob AsyncStorage commence par "U2FsdGVk" (AES) et ne contient plus les noms en clair.
+- Tâche 5 : documents dans /app/docs/ — SECURITE_ARCHITECTURE.md, REPONSE_INCIDENT.md, POLITIQUE_DONNEES.md (FR).
+- Reste (hors périmètre agent) : pentest tiers indépendant ; chiffrement au repos MongoDB (support Emergent). À faire côté serveur ensuite : rate limiting + anti-force-brute, jetons courts + refresh/révocation, OTP SMS, certificate pinning (build natif).

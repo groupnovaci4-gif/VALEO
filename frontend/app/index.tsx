@@ -18,6 +18,7 @@ import {
   ResetPinSheet,
   SettingsSheet,
   CoopProfileSheet,
+  AuditSheet,
   SettlementReceipt,
   StockSheet,
   Bordereau,
@@ -313,7 +314,7 @@ export default function App() {
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} onAdd={() => setSheet("collab")} />;
     else if (tab === "prets") body = <PatronPrets data={data} onApprove={(l: any) => setApproveLoanObj(l)} onRefuse={(id: string) => store.refuseLoan(id, session.staffId)} onNew={() => setSheet("loan")} onBack={() => setTab("bilan")} />;
-    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onReset={store.reset} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
+    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onAudit={() => setSheet("audit")} onReset={store.reset} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
   } else if (isCoop) {
     const isPisteur = role === "pisteur";
     nav = (
@@ -375,6 +376,7 @@ export default function App() {
       {sheet === "loan" && session.side === "coop" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ date: new Date().toISOString(), ...l }); setSheet(null); }} /> : null}
       {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setCoopSettings(p); setSheet(null); }} onReset={() => { store.reset(); setSheet(null); }} /> : null}
       {sheet === "coopProfile" ? <CoopProfileSheet coop={data.coop} patron={me} onClose={() => setSheet(null)} onSave={({ coopPatch, patronPatch }: any) => { store.setCoopProfile(coopPatch); if (session.side === "coop" && session.staffId) store.updateStaff(session.staffId, patronPatch); setSheet(null); }} /> : null}
+      {sheet === "audit" ? <AuditSheet data={data} fetchAudit={store.fetchAudit} onClose={() => setSheet(null)} /> : null}
       {sheet === "stock" ? <StockSheet data={data} staffId={staffId} scope={role === "patron" ? "all" : "mine"} onClose={() => setSheet(null)} /> : null}
       {sheet === "linkMomo" && session.side === "planteur" ? <LinkMomoSheet title="Lier mon Mobile Money" onClose={() => setSheet(null)} onSave={(mm: any) => { store.linkMemberMomo(session.memberId, mm); setSheet(null); }} /> : null}
       {sheet === "coopMomo" ? <LinkMomoSheet title="Ajouter un compte coop" withLabel onClose={() => setSheet(null)} onSave={(mm: any) => { store.addCoopMomo(mm); setSheet(null); }} /> : null}

@@ -848,7 +848,7 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecid
   );
 }
 
-export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile, onReset, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
+export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile, onAudit, onReset, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
   const co = data.coop || {};
   const patron = (data.staff || []).find((s: Staff) => s.role === "patron");
   const completeness = coopCompleteness(co, patron);
@@ -887,6 +887,20 @@ export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile,
           </View>
         </Card>
       </Pressable>
+      {onAudit ? (
+        <Pressable onPress={onAudit} testID="coop-audit">
+          <Card style={{ padding: 14, marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#E8EEF6", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="clock" size={19} color={C.ink} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "800", fontSize: 14 }}>Journal d&apos;audit</Text>
+              <Text style={{ fontSize: 12, color: C.muted }}>Traçabilité des opérations financières</Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={C.muted} />
+          </Card>
+        </Pressable>
+      ) : null}
       <Card style={{ padding: 16, marginBottom: 16 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <PhotoAvatar photo={co.photo} size={52} fallbackIcon="building" fallbackColor={C.teal} />

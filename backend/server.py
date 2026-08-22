@@ -320,6 +320,33 @@ async def register_coop(body: RegisterBody):
     return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, coop_id)}
 
 
+class AuditBody(BaseModel):
+    action: str
+    meta: dict = {}
+
+
+@app.post("/api/audit")
+async def add_audit(body: AuditBody, me: dict = Depends(require_user)):
+    # Journal d'audit inviolable côté client : acteur + horodatage posés par le SERVEUR.
+    entry = {
+        "coopId": me["coopId"],
+        "actorId": me["sub"],
+        "actorRole": me.get("role"),
+        "side": me["side"],
+        "action": body.action,
+        "meta": body.meta or {},
+        "at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.audit.insert_one(entry)
+    return {"ok": True}
+
+
+@app.get("/api/audit")
+async def list_audit(me: dict = Depends(require_user)):
+    cur = db.audit.find({"coopId": me["coopId"]}, {"_id": 0}).sort("at", -1).limit(300)
+    return await cur.to_list(length=300)
+
+
 # ------------------------------- Admin API -------------------------------- #
 @app.post("/api/admin/login")
 async def admin_login(data: LoginRequest):

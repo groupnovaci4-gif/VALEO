@@ -678,6 +678,57 @@ export function CoopProfileSheet({ coop, patron, onClose, onSave }: { coop: any;
   );
 }
 
+/* ------------------------------ Journal d'audit -------------------------- */
+const AUDIT_LABELS: Record<string, { t: string; icon: string; color: string }> = {
+  pesee: { t: "Pesée / paiement", icon: "scale", color: C.teal },
+  solde: { t: "Solde du reste dû payé", icon: "banknote", color: C.green },
+  avance_approuvee: { t: "Avance accordée", icon: "check-circle", color: C.green },
+  avance_refusee: { t: "Avance refusée", icon: "x-circle", color: C.loss },
+};
+export function AuditSheet({ data, onClose, fetchAudit }: { data: Data; onClose: () => void; fetchAudit: () => Promise<any[]> }) {
+  const [items, setItems] = useState<any[] | null>(null);
+  useEffect(() => { (async () => setItems(await fetchAudit()))(); }, [fetchAudit]);
+  const staffName = (id: string) => (data.staff || []).find((s: any) => s.id === id)?.nom || "";
+  const memberName = (id: string) => (data.members || []).find((m: any) => m.id === id)?.nom || "";
+  const detail = (e: any) => {
+    const m = e.meta || {};
+    if (e.action === "pesee") return `${memberName(m.memberId) || "Planteur"} · net ${fF(m.net || 0)} · payé ${fF(m.paye || 0)}${m.recouvre ? ` · recouvré ${fF(m.recouvre)}` : ""}`;
+    if (e.action === "solde") return `${memberName(m.memberId) || "Planteur"} · ${fF(m.amount || 0)}`;
+    if (e.action === "avance_approuvee") return `${memberName(m.memberId) || "Planteur"} · ${fF(m.amount || 0)}`;
+    if (e.action === "avance_refusee") return `${memberName(m.memberId) || "Planteur"}`;
+    return "";
+  };
+  return (
+    <Sheet title="Journal d'audit" onClose={onClose}>
+      <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 14, lineHeight: 18 }}>Traçabilité des opérations financières (acteur et horodatage enregistrés côté serveur, non modifiables depuis l&apos;application).</Text>
+      {items === null ? (
+        <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Chargement…</Text></Card>
+      ) : items.length === 0 ? (
+        <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Aucune opération enregistrée.</Text></Card>
+      ) : (
+        <View style={{ gap: 8 }}>
+          {items.map((e, i) => {
+            const lbl = AUDIT_LABELS[e.action] || { t: e.action, icon: "clock", color: C.muted };
+            const actor = staffName(e.actorId) || (e.side === "planteur" ? "Planteur" : e.actorRole || "—");
+            return (
+              <Card key={i} style={{ padding: 12, flexDirection: "row", gap: 11, alignItems: "flex-start" }}>
+                <View style={{ width: 34, height: 34, borderRadius: 9, backgroundColor: lbl.color + "22", alignItems: "center", justifyContent: "center", marginTop: 2 }}>
+                  <Icon name={lbl.icon} size={16} color={lbl.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: "800", fontSize: 13.5, color: C.ink }}>{lbl.t}</Text>
+                  <Text style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{detail(e)}</Text>
+                  <Text style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>Par {actor} · {fDateTime(e.at)}</Text>
+                </View>
+              </Card>
+            );
+          })}
+        </View>
+      )}
+    </Sheet>
+  );
+}
+
 /* ------------------------------ Bordereau -------------------------------- */
 function receiptHtml(c: Collection, member: Member | undefined, saison: string, sig?: Sig | null): string {
   const rows: string[] = [

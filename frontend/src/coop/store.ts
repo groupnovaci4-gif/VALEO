@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { storage } from "@/src/utils/storage";
+
+import { loadCache, saveCache } from "./secureCache";
 import {
   Collection,
   Coop,
@@ -85,7 +87,7 @@ export function useCoopData() {
         remoteApply.current = true;
         if (r && r.ok) setData(migrate(await r.json()));
         else if (r && r.status === 401) { await clearAuth(); setBootSession(null); setData(seed()); }
-        else { const saved = await storage.getItem<any>(KEY, null); setData(saved ? migrate(saved) : seed()); }
+        else { const saved = await loadCache<any>(KEY); setData(saved ? migrate(saved) : seed()); }
       } else {
         setData(seed());
       }
@@ -96,7 +98,7 @@ export function useCoopData() {
   useEffect(() => {
     if (!ready || !data) return;
     dataRef.current = data;
-    storage.setItem(KEY, data as any); // cache hors-ligne
+    saveCache(KEY, data); // cache hors-ligne chiffré (AES)
     if (remoteApply.current) {
       remoteApply.current = false; // vient du backend/cache : ne pas renvoyer
       return;
@@ -162,6 +164,17 @@ export function useCoopData() {
 
   const authLogout = useCallback(async () => { await clearAuth(); setBootSession(null); setData(seed()); }, [clearAuth]);
 
+  // Journal d'audit : envoi best-effort (acteur/horodatage posés côté serveur).
+  const logAudit = useCallback((action: string, meta: Record<string, any> = {}) => {
+    if (!tokenRef.current) return;
+    apiFetch("/api/audit", { method: "POST", body: JSON.stringify({ action, meta }) }, tokenRef.current).catch(() => {});
+  }, []);
+  const fetchAudit = useCallback(async (): Promise<any[]> => {
+    if (!tokenRef.current) return [];
+    const r = await apiFetch("/api/audit", {}, tokenRef.current);
+    return r && r.ok ? await r.json() : [];
+  }, []);
+
 
   const addMember = useCallback((m: Partial<Member>) => {
     setData((d) => {
@@ -181,6 +194,7 @@ export function useCoopData() {
 
   const addCollection = useCallback((c: any): Collection | null => {
     let created: Collection | null = null;
+    let repayAudit = 0;
     setData((d) => {
       if (!d) return d;
       let nextSeq = c.seq ?? d.seq;
@@ -192,6 +206,7 @@ export function useCoopData() {
       //     approuvées du planteur (FIFO), en réduisant le solde restant. ---
       let loans = d.loans;
       const repayAmt = c._repay && c._repay.amount > 0 ? c._repay.amount : 0;
+      repayAudit = repayAmt;
       if (repayAmt > 0) {
         let left = repayAmt;
         const active = loans
@@ -247,8 +262,9 @@ export function useCoopData() {
       created = rec;
       return { ...d, seq: dSeq, collections: [...cols, rec], loans, settlements };
     });
+    if (created) { const cc: any = created; logAudit("pesee", { memberId: cc.memberId, seq: cc.seq, cropId: cc.cropId, net: cc.net, paye: cc.paye, reste: cc.reste, recouvre: repayAudit, oldRegle: cc.oldRegle || 0 }); }
     return created;
-  }, []);
+  }, [logAudit]);
 
   // Solde immédiat de tout le reste dû d'un planteur (paiement hors livraison).
   // Ne modifie PAS les reçus d'origine : suit le solde via resteSolde et émet
@@ -276,8 +292,9 @@ export function useCoopData() {
       receipt = rec;
       return { ...d, seq: d.seq + 1, collections, settlements: [...(d.settlements || []), rec] };
     });
+    if (receipt) logAudit("solde", { memberId, seq: (receipt as any).seq, amount: (receipt as any).amount, method, refs: (receipt as any).refs });
     return receipt;
-  }, []);
+  }, [logAudit]);
 
   const addLoan = useCallback((l: Partial<Loan>) => {
     setData((d) => (d ? { ...d, loans: [...d.loans, { id: uid(), coopId: cid(), status: "en_attente", soldeRestant: 0, decidedBy: null, ...l } as Loan] } : d));
@@ -290,15 +307,23 @@ export function useCoopData() {
   }, []);
 
   const approveLoan = useCallback((id: string, granted: number, paymentMode: string, by: string) => {
-    setData((d) =>
-      d
-        ? { ...d, loans: d.loans.map((l) => (l.id === id ? { ...l, status: "approuve", amount: granted, soldeRestant: granted, paymentMode, decidedBy: by, decidedAt: new Date().toISOString() } : l)) }
-        : d,
-    );
-  }, []);
+    let mid = "";
+    setData((d) => {
+      if (!d) return d;
+      mid = d.loans.find((l) => l.id === id)?.memberId || "";
+      return { ...d, loans: d.loans.map((l) => (l.id === id ? { ...l, status: "approuve", amount: granted, soldeRestant: granted, paymentMode, decidedBy: by, decidedAt: new Date().toISOString() } : l)) };
+    });
+    logAudit("avance_approuvee", { loanId: id, memberId: mid, amount: granted, paymentMode });
+  }, [logAudit]);
   const refuseLoan = useCallback((id: string, by: string) => {
-    setData((d) => (d ? { ...d, loans: d.loans.map((l) => (l.id === id ? { ...l, status: "refuse", soldeRestant: 0, decidedBy: by, decidedAt: new Date().toISOString() } : l)) } : d));
-  }, []);
+    let mid = "";
+    setData((d) => {
+      if (!d) return d;
+      mid = d.loans.find((l) => l.id === id)?.memberId || "";
+      return { ...d, loans: d.loans.map((l) => (l.id === id ? { ...l, status: "refuse", soldeRestant: 0, decidedBy: by, decidedAt: new Date().toISOString() } : l)) };
+    });
+    logAudit("avance_refusee", { loanId: id, memberId: mid });
+  }, [logAudit]);
 
   const updateMember = useCallback((id: string, patch: Partial<Member>) => {
     setData((d) => (d ? { ...d, members: d.members.map((m) => (m.id === id ? { ...m, ...patch } : m)) } : d));
@@ -425,6 +450,7 @@ export function useCoopData() {
     authLoginPlanteur,
     authRegisterCoop,
     authLogout,
+    fetchAudit,
     addMember,
     addMandat,
     addDepense,
