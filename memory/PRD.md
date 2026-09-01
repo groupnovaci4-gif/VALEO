@@ -267,3 +267,28 @@ correspondait jamais au magasin, alors que c'est le cœur du métier du Magasini
   peut corriger. Auditée (`sortie_stock`) et présente au journal d'activité.
 - Espace admin web : nouvel onglet « Sorties magasin » (CRUD complet).
 - Tests : 37 backend + 33 frontend (`stock.test.mjs`).
+
+## Anti-force-brute sur les connexions v32 (2026-09) — TERMINÉ & TESTÉ
+Dernier trou de sécurité du plan : rien ne limitait les tentatives. Un code à
+6 chiffres (10^6 combinaisons) vérifié en quelques millisecondes était épuisable
+en quelques heures depuis n'importe où.
+- Verrouillage progressif par **identifiant tenté** : 5 échecs → blocage 1 min,
+  puis 5 min, puis 15 min (plafonné). Le compteur repart à zéro après 15 min
+  sans échec, ou immédiatement après une connexion réussie. Réponse HTTP 429
+  avec en-tête `Retry-After` et un message indiquant le délai.
+- Le verrou porte sur l'identifiant et **non sur l'IP** : derrière un ingress
+  Kubernetes toutes les requêtes partagent la même adresse (on bloquerait une
+  coopérative entière) et `X-Forwarded-For` est falsifiable, donc un verrou par
+  IP serait à la fois injuste et contournable. L'attaquant, lui, ne peut pas
+  éviter de fournir l'identifiant qu'il vise. Plafond court (15 min) assumé pour
+  qu'un blocage ciblé reste une gêne, jamais un déni de service durable.
+- Protégés : connexion coopérative, connexion planteur, connexion admin et
+  changement de mot de passe admin.
+- **Non-énumération des comptes** : un identifiant inconnu consomme le même
+  temps de calcul PBKDF2 qu'un mauvais code (`burn_secret_time`) et renvoie le
+  même message ; sans cela la durée de réponse révélait les comptes existants.
+- Purge automatique des compteurs (index TTL Mongo, 1 jour) : un balayage
+  d'identifiants ne fait plus grossir la collection indéfiniment.
+- Interface : l'app et l'espace admin web affichent le délai d'attente au lieu
+  d'un « Identifiants incorrects » trompeur quand le bon code est refusé.
+- Tests : 49 backend (dont test_login_bruteforce.py, 12 tests) + 33 frontend.

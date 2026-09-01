@@ -73,8 +73,8 @@ Backend (dossier `backend/`) :
 
 Variables d'environnement requises (backend, via `backend/.env`) :
 `MONGO_URL`, `DB_NAME`, `ADMIN_PASSWORD`, `JWT_SECRET` (obligatoires — le serveur refuse
-de démarrer sans `ADMIN_PASSWORD`/`JWT_SECRET`), `JWT_EXPIRE_MINUTES` et `CORS_ORIGINS`
-(optionnels). Frontend : `EXPO_PUBLIC_BACKEND_URL` (base de l'API, lue dans `store.ts`).
+de démarrer sans `ADMIN_PASSWORD`/`JWT_SECRET`), `JWT_EXPIRE_MINUTES`, `CORS_ORIGINS`
+et `LOGIN_MAX_FAILS` (optionnels). Frontend : `EXPO_PUBLIC_BACKEND_URL` (base de l'API, lue dans `store.ts`).
 
 ## 4. Invariants métier — NE JAMAIS CASSER
 
@@ -137,7 +137,15 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     `"rembourse"`. Ne pas introduire d'autre orthographe.
 16. **Poids net.** `net = max(0, brut - sacs)` (1 kg de tare par sac). Le montant se
     calcule sur le net, jamais sur le brut.
-17. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
+17. **Connexions limitées.** Toute vérification de secret (`/api/auth/*/login`,
+    `/api/admin/login`, changement de mot de passe admin) passe par
+    `guard_login` / `note_login_failure` / `note_login_success`, sinon un code à
+    6 chiffres redevient brute-forçable. Le verrou porte sur l'**identifiant
+    tenté**, jamais sur l'IP (derrière un ingress toutes les requêtes la
+    partagent, et `X-Forwarded-For` est falsifiable). Un identifiant inconnu doit
+    consommer le même temps de calcul qu'un mauvais code (`burn_secret_time`) :
+    sinon la durée de réponse révèle quels comptes existent.
+18. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
 
 ## 5. Feuille de route
 
@@ -159,6 +167,7 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
 - **M6 — Cloisonnement par campagne.** Cf. invariant 13. Arbitrage retenu : les
   dettes sont **reportées** d'une campagne à l'autre, seule la production est
   cloisonnée.
+- **Anti-force-brute sur les connexions.** Cf. invariant 17.
 - **Stock magasin réel.** Cf. invariant 13. Modèle `Sortie` + `stockStats`.
 - **Numéro de bordereau unique.** Cf. invariant 12. Arbitrage retenu : **préfixe par
   agent**, pour rester 100 % hors-ligne (aucune contrainte réseau à la pesée).
@@ -170,8 +179,13 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
 - **Même agent sur deux téléphones.** La suite par agent est dérivée de ses propres
   enregistrements : un agent qui pèse hors-ligne depuis deux appareils à la fois peut
   encore produire deux fois le même numéro. Cas rare, mais non couvert.
-- Anti-force-brute sur les connexions ; jetons courts + révocation ; OTP SMS ;
-  certificate pinning (build natif).
+- **Jetons courts + révocation.** Le jeton dure 30 jours et rien ne permet de le
+  révoquer : un téléphone perdu reste connecté jusqu'à expiration.
+- OTP SMS ; certificate pinning (build natif).
+- **Itérations PBKDF2 (15 000).** Volontairement basses : le calcul se fait en JS
+  pur sur des téléphones d'entrée de gamme et 100 000 figeait l'interface (v11).
+  Le verrou de connexion (invariant 17) compense. Ne remonter qu'avec une
+  implémentation native du KDF.
 
 ## 6. Conventions & règles de contribution
 

@@ -175,20 +175,30 @@ export function useCoopData() {
     return identToSession(res.identity);
   }, []);
 
-  const authLoginCoop = useCallback(async (identifier: string, secret: string) => {
-    const r = await apiFetch("/api/auth/coop/login", { method: "POST", body: JSON.stringify({ identifier, secret }) }, null);
+  // Vérifie une réponse de connexion et lève un message lisible par l'utilisateur.
+  const assertLoginOk = async (r: Response | null) => {
     if (!r) throw new Error("Connexion au serveur impossible. Vérifiez votre réseau.");
     if (r.status === 401) throw new Error("Identifiants incorrects.");
+    if (r.status === 429) {
+      // Compte temporairement verrouillé après trop d'essais : le serveur dit
+      // combien de temps attendre, on relaie son message tel quel.
+      let m = "Trop de tentatives. Réessayez dans quelques minutes.";
+      try { m = (await r.json()).detail || m; } catch {}
+      throw new Error(m);
+    }
     if (!r.ok) throw new Error("Erreur de connexion.");
-    return applyAuth(await r.json());
+  };
+
+  const authLoginCoop = useCallback(async (identifier: string, secret: string) => {
+    const r = await apiFetch("/api/auth/coop/login", { method: "POST", body: JSON.stringify({ identifier, secret }) }, null);
+    await assertLoginOk(r);
+    return applyAuth(await r!.json());
   }, [applyAuth]);
 
   const authLoginPlanteur = useCallback(async (phone: string, pin: string) => {
     const r = await apiFetch("/api/auth/planteur/login", { method: "POST", body: JSON.stringify({ phone, pin }) }, null);
-    if (!r) throw new Error("Connexion au serveur impossible. Vérifiez votre réseau.");
-    if (r.status === 401) throw new Error("Identifiants incorrects.");
-    if (!r.ok) throw new Error("Erreur de connexion.");
-    return applyAuth(await r.json());
+    await assertLoginOk(r);
+    return applyAuth(await r!.json());
   }, [applyAuth]);
 
   const authRegisterCoop = useCallback(async (p: { nom: string; email: string; password: string }) => {

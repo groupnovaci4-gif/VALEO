@@ -173,6 +173,92 @@ def make_pin_record(secret: str, iterations: int = 15000) -> dict:
     return {"scheme": "pbkdf2-sha256", "iterations": iterations, "saltHex": salt.hex(), "verifierHex": dk.hex(), "version": 1}
 
 
+# ------------------- Anti-force-brute sur les connexions ------------------- #
+# Un code secret fait 6 chiffres, soit 10^6 combinaisons, et sa vérification
+# PBKDF2 (15 000 itérations) coûte quelques millisecondes au serveur : sans
+# limitation, un attaquant épuise l'espace des codes en quelques heures.
+#
+# Le verrou porte sur l'IDENTIFIANT tenté, pas sur l'adresse IP : derrière un
+# ingress Kubernetes toutes les requêtes partagent la même IP (on bloquerait
+# une coopérative entière), et l'en-tête X-Forwarded-For est falsifiable, donc
+# un verrou par IP serait à la fois injuste et contournable. Un attaquant, lui,
+# ne peut pas éviter de fournir l'identifiant qu'il vise.
+LOGIN_MAX_FAILS = int(os.environ.get("LOGIN_MAX_FAILS", "5"))
+# Sans nouvel échec pendant cette durée, le compteur repart de zéro.
+LOGIN_FAIL_WINDOW = timedelta(minutes=15)
+# Durées de blocage successives : la 1re série bloque 1 min, la 2e 5 min, puis
+# 15 min. Le plafond est volontairement court — un verrou long transformerait
+# la protection en déni de service ciblé contre un planteur dont on connaît le
+# numéro, alors qu'un blocage de 15 min suffit à rendre l'attaque irréaliste.
+LOGIN_LOCK_STEPS_SECONDS = [60, 300, 900]
+# Au-delà, l'enregistrement de tentatives est purgé (index TTL) : sans cela un
+# balayage d'identifiants ferait grossir la collection indéfiniment.
+LOGIN_RETENTION = timedelta(days=1)
+
+
+async def _login_state(key: str) -> dict:
+    doc = await db.login_attempts.find_one({"_id": key})
+    return doc or {}
+
+
+async def guard_login(key: str) -> None:
+    """Refuse (429) une tentative sur un identifiant temporairement bloqué."""
+    doc = await _login_state(key)
+    until = _parse_ts(doc.get("lockedUntil"))
+    if not until:
+        return
+    now = datetime.now(timezone.utc)
+    if until <= now:
+        return
+    wait = max(1, int((until - now).total_seconds()))
+    minutes = max(1, round(wait / 60))
+    raise HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=f"Trop de tentatives. Réessayez dans {minutes} minute{'s' if minutes > 1 else ''}.",
+        headers={"Retry-After": str(wait)},
+    )
+
+
+async def note_login_failure(key: str) -> None:
+    now = datetime.now(timezone.utc)
+    doc = await _login_state(key)
+    last = _parse_ts(doc.get("lastFailAt"))
+    # Série d'échecs interrompue depuis assez longtemps : on repart de zéro.
+    fails = (int(doc.get("fails", 0)) if last and now - last <= LOGIN_FAIL_WINDOW else 0) + 1
+    lock_count = int(doc.get("lockCount", 0))
+    # `expiresAt` est un datetime (et non une chaîne) : l'index TTL l'exige.
+    update = {"fails": fails, "lastFailAt": now.isoformat(), "expiresAt": now + LOGIN_RETENTION}
+    if fails >= LOGIN_MAX_FAILS:
+        step = LOGIN_LOCK_STEPS_SECONDS[min(lock_count, len(LOGIN_LOCK_STEPS_SECONDS) - 1)]
+        update.update(
+            fails=0,
+            lockCount=lock_count + 1,
+            lockedUntil=(now + timedelta(seconds=step)).isoformat(),
+        )
+    await db.login_attempts.update_one({"_id": key}, {"$set": update}, upsert=True)
+
+
+async def note_login_success(key: str) -> None:
+    await db.login_attempts.delete_one({"_id": key})
+
+
+def login_key(kind: str, identifier: str) -> str:
+    """Clé de comptage, normalisée pour qu'une même cible compte une seule fois."""
+    raw = (identifier or "").strip()
+    norm = _norm_text(raw) if "@" in raw else (_norm_phone(raw) or _norm_text(raw))
+    return f"{kind}:{norm}"
+
+
+def burn_secret_time(secret: str) -> None:
+    """Consomme le même temps de calcul qu'une vérification réelle.
+
+    Sans cela, un identifiant inconnu répond nettement plus vite qu'un mauvais
+    code : la différence suffit à énumérer les comptes existants.
+    """
+    verify_secret(secret, {"scheme": "pbkdf2-sha256", "iterations": 15000,
+                           "saltHex": "00" * 16, "verifierHex": "00" * 32, "version": 1})
+
+
 def issue_user_token(identity: dict) -> str:
     now = datetime.now(timezone.utc)
     return jwt.encode({**identity, "iat": now, "exp": now + timedelta(days=30)}, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -603,6 +689,8 @@ async def put_state(body: StateBody, me: dict = Depends(require_user)):
 
 @app.post("/api/auth/coop/login")
 async def coop_login(body: CoopLoginBody):
+    key = login_key("coop", body.identifier)
+    await guard_login(key)
     state = await load_state()
     ident = (body.identifier or "").strip()
     staff = state.get("staff") or []
@@ -611,20 +699,30 @@ async def coop_login(body: CoopLoginBody):
     else:
         ph = _norm_phone(ident)
         s = next((x for x in staff if ph and _norm_phone(x.get("tel")) == ph), None)
+    if s is None:
+        burn_secret_time(body.secret)  # même temps de réponse qu'un mauvais code
     if not s or not verify_secret(body.secret, s.get("pin")):
+        await note_login_failure(key)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects")
+    await note_login_success(key)
     claims = {"sub": s["id"], "coopId": s.get("coopId"), "role": s.get("role"), "side": "coop"}
     return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, s.get("coopId"), claims)}
 
 
 @app.post("/api/auth/planteur/login")
 async def planteur_login(body: PlanteurLoginBody):
+    key = login_key("planteur", body.phone)
+    await guard_login(key)
     state = await load_state()
     ph = _norm_phone(body.phone)
     q = _norm_text(body.phone)
     m = next((x for x in (state.get("members") or []) if (ph and _norm_phone(x.get("tel")) == ph) or _norm_text(x.get("code")) == q), None)
+    if m is None:
+        burn_secret_time(body.pin)  # même temps de réponse qu'un mauvais code
     if not m or not verify_secret(body.pin, m.get("pin")):
+        await note_login_failure(key)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects")
+    await note_login_success(key)
     claims = {"sub": m["id"], "coopId": m.get("coopId"), "side": "planteur"}
     return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, m.get("coopId"), claims)}
 
@@ -681,15 +779,24 @@ async def list_audit(me: dict = Depends(require_user)):
 # ------------------------------- Admin API -------------------------------- #
 @app.post("/api/admin/login")
 async def admin_login(data: LoginRequest):
+    # Compte unique et à tout pouvoir : c'est la cible la plus intéressante.
+    key = "admin:owner"
+    await guard_login(key)
     if not await verify_admin_password(data.password or ""):
+        await note_login_failure(key)
         raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    await note_login_success(key)
     return {"access_token": issue_token(), "token_type": "bearer", "expires_in": JWT_EXPIRE_MINUTES * 60}
 
 
 @app.post("/api/admin/change-password")
 async def admin_change_password(body: ChangePwdRequest, _: dict = Depends(require_admin)):
+    key = "admin:change"
+    await guard_login(key)
     if not await verify_admin_password(body.current or ""):
+        await note_login_failure(key)
         raise HTTPException(status_code=400, detail="Mot de passe actuel incorrect")
+    await note_login_success(key)
     if len(body.new or "") < 6:
         raise HTTPException(status_code=400, detail="Le nouveau mot de passe doit contenir au moins 6 caractères")
     salt_hex, hash_hex, iters = _hash_password(body.new)
@@ -728,6 +835,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def ensure_indexes():
+    # Best-effort : une base indisponible au démarrage ne doit pas empêcher le
+    # service de se lancer (l'absence d'index n'affecte que la purge).
+    try:
+        await db.login_attempts.create_index("expiresAt", expireAfterSeconds=0)
+    except Exception as exc:  # pragma: no cover - dépend de l'infrastructure
+        logger.warning("Index TTL login_attempts non créé : %s", exc)
 
 
 @app.on_event("shutdown")
@@ -822,7 +939,11 @@ async function doLogin(){
   const password = $("pwd").value;
   try{
     const r = await fetch("/api/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password})});
-    if(!r.ok){ $("loginErr").textContent="Mot de passe incorrect"; return; }
+    if(!r.ok){
+      let msg = "Mot de passe incorrect";
+      if(r.status===429){ try{ msg = (await r.json()).detail || msg; }catch(e){ msg = "Trop de tentatives. Réessayez plus tard."; } }
+      $("loginErr").textContent = msg; return;
+    }
     token = (await r.json()).access_token; sessionStorage.setItem("valeo_admin_token", token);
     await load();
   }catch(e){ $("loginErr").textContent="Erreur de connexion"; }
