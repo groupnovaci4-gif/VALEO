@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { AppState, Modal, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, Session, fF, scopeData, uid } from "@/src/coop/lib";
+import { C, Session, fF, makeTicket, nextTicketSeq, scopeData, uid } from "@/src/coop/lib";
 import { Icon } from "@/src/coop/Icon";
 import { Login, TopBar } from "@/src/coop/auth";
 import {
@@ -194,11 +194,16 @@ export default function App() {
   const savePesee = (c: any) => {
     const id = uid();
     const settleReq = Number(c._settle) || 0;
-    const rec: any = { ...c, seq: data.seq, id };
+    // Numéro de bordereau : suite propre à l'agent, préfixée par son trigramme.
+    // Il est fixé ici et transmis au store, pour que le reçu affiché soit
+    // exactement celui enregistré.
+    const seq = nextTicketSeq(c.byStaffId, data);
+    const ticket = makeTicket(c.byStaffId, seq);
+    const rec: any = { ...c, seq, ticket, id };
     if (settleReq > 0) rec.oldRegle = settleReq;
     delete rec._repay;
     delete rec._settle;
-    store.addCollection({ ...c, id });
+    store.addCollection({ ...c, id, seq, ticket });
     setSheet(null);
     setReceipt(rec);
   };

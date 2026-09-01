@@ -115,11 +115,21 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     `collection.paye` : les oublier fait apparaître un manquant fictif.
 11. **Idempotence de la pesée.** Une saisie porte un `clientOpId` ; le serveur ignore
     une seconde création portant le même. Ne jamais créer une écriture financière sans.
-12. **Statuts d'avance** (valeurs exactes) : `"en_attente"`, `"approuve"`, `"refuse"`,
+12. **Numéro de bordereau par agent.** Format `P-<trigramme>-0000` : le trigramme est
+    *dérivé* de l'identifiant de l'agent (`staffTag`, non stocké — un magasinier n'a
+    pas le droit d'écrire sur une fiche de collaborateur), et la suite (`nextTicketSeq`)
+    est propre à chaque agent. Le numéro est **figé** sur l'enregistrement (`ticket`)
+    à l'émission ; l'affichage passe toujours par `ticketOf`, jamais par un recalcul.
+13. **Campagnes : la production est cloisonnée, les dettes sont reportées.**
+    `scopeSaison(data)` filtre collectes, mandats, dépenses et soldes sur la campagne
+    active — à utiliser pour les volumes, le stock, la caisse et la commission.
+    Le **reste dû** et les **avances à recouvrer** ne sont JAMAIS filtrés : ils suivent
+    le planteur d'une campagne à l'autre. Les historiques et journaux non plus.
+14. **Statuts d'avance** (valeurs exactes) : `"en_attente"`, `"approuve"`, `"refuse"`,
     `"rembourse"`. Ne pas introduire d'autre orthographe.
-13. **Poids net.** `net = max(0, brut - sacs)` (1 kg de tare par sac). Le montant se
+15. **Poids net.** `net = max(0, brut - sacs)` (1 kg de tare par sac). Le montant se
     calcule sur le net, jamais sur le brut.
-14. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
+16. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
 
 ## 5. Feuille de route
 
@@ -138,16 +148,19 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
   `VAL-XXXX-YY` **ou** téléphone ; retrait du bouton « Réinitialiser les données de
   démonstration » qui vidait toute la coopérative sans confirmation.
 
+- **M6 — Cloisonnement par campagne.** Cf. invariant 13. Arbitrage retenu : les
+  dettes sont **reportées** d'une campagne à l'autre, seule la production est
+  cloisonnée.
+- **Numéro de bordereau unique.** Cf. invariant 12. Arbitrage retenu : **préfixe par
+  agent**, pour rester 100 % hors-ligne (aucune contrainte réseau à la pesée).
+
 ### Reste à faire
-- **M6 — Cloisonnement par campagne (à moitié fait).** Toutes les écritures datées
-  (`Collection`, `Loan`, `Settlement`, `Mandat`, `Depense`) portent désormais
-  `saison`. **Le filtrage des écrans reste à décider et à implémenter** : il faut
-  trancher si les dettes (reste dû, avances à recouvrer) suivent le planteur d'une
-  campagne à l'autre — les filtrer aveuglément masquerait de l'argent réellement dû.
-- **Numéro de bordereau non unique.** `state.seq` est un compteur **global à toutes
-  les coops**, fusionné par `max()` : deux appareils hors-ligne partis du même `seq`
-  émettent deux bordereaux `P-2026-0042`. Corriger demande un arbitrage produit
-  (numéro attribué par le serveur, donc pesée en ligne — ou préfixe par agent).
+- **Sélecteur de campagne.** `saisons(data)` liste les campagnes présentes, mais les
+  écrans n'affichent que la campagne active (`data.saison`) : il manque un sélecteur
+  pour consulter une campagne close.
+- **Même agent sur deux téléphones.** La suite par agent est dérivée de ses propres
+  enregistrements : un agent qui pèse hors-ligne depuis deux appareils à la fois peut
+  encore produire deux fois le même numéro. Cas rare, mais non couvert.
 - **Stock magasin** : `StockSheet` additionne toutes les collectes, sans aucune
   sortie (expédition, vente, perte) : le stock ne peut que monter. Il manque un
   modèle `Sortie` pour que le chiffre corresponde au magasin réel.

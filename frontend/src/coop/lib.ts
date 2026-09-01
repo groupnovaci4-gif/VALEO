@@ -116,7 +116,43 @@ export const fDateTime = (iso: string) => {
   const d = new Date(iso);
   return `${fDate(iso)} · ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
+// Ancien format, conservé pour afficher les bordereaux émis avant le passage
+// à la numérotation par agent.
 export const ticketNo = (seq: number) => `P-2026-${String(seq).padStart(4, "0")}`;
+
+/**
+ * Trigramme stable d'un agent, dérivé de son identifiant.
+ *
+ * Il rend le numéro de bordereau unique entre agents sans aucun compteur
+ * partagé : deux agents hors-ligne ne peuvent plus émettre le même numéro.
+ * Il est *dérivé* (et non stocké) pour ne nécessiter ni migration ni écriture
+ * sur la fiche du collaborateur — écriture qu'un magasinier n'a d'ailleurs pas
+ * le droit de faire.
+ */
+export function staffTag(staffId: string): string {
+  const L = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // sans I ni O, confondus avec 1 et 0
+  let h = 2166136261;
+  for (let i = 0; i < (staffId || "").length; i++) {
+    h ^= staffId.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  let out = "";
+  for (let i = 0; i < 3; i++) { out += L[h % L.length]; h = Math.floor(h / L.length); }
+  return out;
+}
+
+// Numéro du prochain reçu de cet agent : sa propre suite, indépendante de
+// celle des autres agents et des autres coopératives.
+export function nextTicketSeq(staffId: string, data: Data): number {
+  const own = [...(data.collections || []), ...(data.settlements || [])].filter((x: any) => x.byStaffId === staffId);
+  return own.reduce((m: number, x: any) => Math.max(m, Number(x.seq) || 0), 0) + 1;
+}
+
+export const makeTicket = (staffId: string, seq: number) => `P-${staffTag(staffId)}-${String(seq).padStart(4, "0")}`;
+
+// Numéro affiché d'un reçu : celui figé à l'émission, sinon l'ancien format.
+export const ticketOf = (rec: { ticket?: string; seq?: number } | null | undefined): string =>
+  (rec && rec.ticket) || (rec && rec.seq != null ? ticketNo(rec.seq) : "—");
 export const byDateDesc = (a: any, b: any) => +new Date(b.date) - +new Date(a.date);
 
 /* --------------------------------- Types --------------------------------- */
@@ -151,6 +187,8 @@ export type Retenue = { label: string; amount: number };
 export type Collection = Synced & Campagne & {
   id: string;
   seq: number;
+  // Numéro de bordereau figé à l'émission (format P-<agent>-0000).
+  ticket?: string;
   coopId?: string;
   memberId: string;
   byStaffId: string;
@@ -195,7 +233,7 @@ export type Loan = Synced & Campagne & {
   decidedBy: string | null;
   decidedAt?: string | null;
 };
-export type Settlement = Synced & Campagne & { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; clientOpId?: string; refs?: { seq: number; amount: number }[] };
+export type Settlement = Synced & Campagne & { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; ticket?: string; clientOpId?: string; refs?: { seq: number; ticket?: string; amount: number }[] };
 export type Mandat = Synced & Campagne & { id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string };
 export type Depense = Synced & Campagne & { id: string; coopId?: string; pisteurId: string; category: string; amount: number; date: string; note: string };
 export type CoopMomo = { id: string; operator: string; number: string; label?: string };
@@ -374,6 +412,46 @@ export function scopeData(raw: Data, coopId?: string): Data {
     depenses: (raw.depenses || []).filter((x) => !id || x.coopId === id),
     settlements: (raw.settlements || []).filter((x) => !id || x.coopId === id),
   };
+}
+
+/* ------------------------------ Campagnes -------------------------------- */
+/**
+ * Une écriture appartient-elle à la campagne donnée ?
+ *
+ * Les écritures antérieures à l'estampillage n'ont pas de `saison` : elles sont
+ * rattachées à la campagne active, faute de mieux, plutôt que d'être masquées.
+ */
+export const inSaison = (x: { saison?: string }, saison?: string): boolean =>
+  !saison || !x.saison || x.saison === saison;
+
+/**
+ * Vue « campagne en cours » : filtre la PRODUCTION (collectes, mandats,
+ * dépenses, soldes) sur la campagne active.
+ *
+ * Les **dettes ne sont jamais filtrées** : un reste dû ou une avance à
+ * recouvrer suit le planteur d'une campagne à l'autre. Les écrans qui parlent
+ * d'argent dû (fiche planteur, rappels de paiement, avances) doivent donc
+ * continuer d'utiliser `data`, pas cette vue. Voir CLAUDE.md §4.
+ */
+export function scopeSaison(data: Data, saison?: string): Data {
+  const s = saison || data.saison;
+  return {
+    ...data,
+    collections: (data.collections || []).filter((x) => inSaison(x, s)),
+    mandats: (data.mandats || []).filter((x) => inSaison(x, s)),
+    depenses: (data.depenses || []).filter((x) => inSaison(x, s)),
+    settlements: (data.settlements || []).filter((x) => inSaison(x, s)),
+  };
+}
+
+// Campagnes présentes dans les données, de la plus récente à la plus ancienne.
+export function saisons(data: Data): string[] {
+  const set = new Set<string>();
+  [...(data.collections || []), ...(data.loans || []), ...(data.settlements || [])].forEach((x: any) => {
+    if (x.saison) set.add(x.saison);
+  });
+  if (data.saison) set.add(data.saison);
+  return Array.from(set).sort().reverse();
 }
 
 /* ------------------------------ Derived calc ----------------------------- */

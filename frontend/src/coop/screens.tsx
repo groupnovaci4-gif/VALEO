@@ -24,11 +24,14 @@ import {
   group,
   isToday,
   memberCultures,
+  inSaison,
   memberStats,
   outstandingReste,
   op,
   pisteurStats,
+  scopeSaison,
   ticketNo,
+  ticketOf,
 } from "./lib";
 import { Icon } from "./Icon";
 import {
@@ -156,13 +159,14 @@ const CropBreakdown = ({ cols }: { cols: Collection[] }) => {
   );
 };
 
-const PayCard = ({ label, value, icon, tint, actionLabel, onAction, testID }: { label: string; value: string; icon: string; tint: string; actionLabel: string; onAction: () => void; testID?: string }) => (
+const PayCard = ({ label, value, icon, tint, actionLabel, onAction, testID, note }: { label: string; value: string; icon: string; tint: string; actionLabel: string; onAction: () => void; testID?: string; note?: string }) => (
   <View style={{ flex: 1, backgroundColor: "#fff", borderRadius: 16, borderWidth: 1, borderColor: C.line, padding: 13 }}>
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 }}>
       <Icon name={icon} size={14} color={tint} />
       <Text style={{ fontSize: 10.5, fontWeight: "800", color: C.muted, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</Text>
     </View>
     <Text style={{ fontSize: 18, fontWeight: "900", color: tint }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+    {note ? <Text style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{note}</Text> : null}
     <Pressable onPress={onAction} testID={testID} style={{ marginTop: 8 }}>
       <Text style={{ fontSize: 12, fontWeight: "700", color: tint }}>{actionLabel} →</Text>
     </Pressable>
@@ -171,14 +175,18 @@ const PayCard = ({ label, value, icon, tint, actionLabel, onAction, testID }: { 
 
 export function Dashboard({ data, onReceipt, onOpen, theme, onPeser, onPlanteurs, onStock, onPrets, onOpenPrets, onOpenJournal }: any) {
   const openPrets = onPrets || onOpenPrets;
-  const cols: Collection[] = data.collections;
+  // Production : campagne en cours. Dettes : toutes campagnes confondues —
+  // un reste dû ne disparaît pas parce qu'une nouvelle campagne a commencé.
+  const cols: Collection[] = scopeSaison(data).collections;
+  const tousCols: Collection[] = data.collections || [];
   const t = {
     kg: cols.reduce((s, c) => s + c.kg, 0),
     net: cols.reduce((s, c) => s + c.net, 0),
     paye: cols.reduce((s, c) => s + c.paye + (c.resteSolde || 0), 0),
-    reste: cols.reduce((s, c) => s + outstandingReste(c), 0),
+    reste: tousCols.reduce((s, c) => s + outstandingReste(c), 0),
     active: new Set(cols.map((c) => c.memberId)).size,
   };
+  const resteHorsCampagne = tousCols.filter((c) => !inSaison(c, data.saison)).reduce((s, c) => s + outstandingReste(c), 0);
   const pending = data.loans.filter((l: any) => l.status === "en_attente").length;
   const events = buildActivity(data).slice(0, 3);
   return (
@@ -194,6 +202,7 @@ export function Dashboard({ data, onReceipt, onOpen, theme, onPeser, onPlanteurs
 
       <Card style={{ backgroundColor: "#EAF6EE", borderColor: "#CFE6D8", padding: 16, marginBottom: 12 }}>
         <Text style={{ fontSize: 11.5, fontWeight: "800", color: C.green, textTransform: "uppercase", letterSpacing: 0.5 }}>Volume collecté</Text>
+        <Text style={{ fontSize: 11, color: C.muted }}>{data.saison}</Text>
         <Text style={{ fontSize: 34, fontWeight: "900", color: C.ink, marginTop: 2 }}>{group(t.kg)} <Text style={{ fontSize: 17, color: C.muted }}>kg</Text></Text>
         <View style={{ flexDirection: "row", gap: 24, marginTop: 8 }}>
           <View><Text style={{ fontSize: 11, color: C.muted }}>Collectes</Text><Text style={{ fontSize: 14.5, fontWeight: "800" }}>{cols.length}</Text></View>
@@ -208,7 +217,7 @@ export function Dashboard({ data, onReceipt, onOpen, theme, onPeser, onPlanteurs
 
       <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
         <PayCard label="Déjà payé" value={fF(t.paye)} icon="banknote" tint={C.green} actionLabel="Voir détails" onAction={onOpenJournal} testID="pay-details" />
-        <PayCard label="Reste à payer" value={fF(t.reste)} icon="wallet" tint={C.due} actionLabel="Initier paiement" onAction={onPlanteurs} testID="pay-initiate" />
+        <PayCard label="Reste à payer" value={fF(t.reste)} icon="wallet" tint={C.due} actionLabel="Initier paiement" onAction={onPlanteurs} testID="pay-initiate" note={resteHorsCampagne > 0 ? `dont ${fF(resteHorsCampagne)} de campagnes précédentes` : undefined} />
       </View>
 
       <Card style={{ padding: 15, marginBottom: 16 }}>
@@ -309,7 +318,8 @@ const CardGrid = ({ cards }: { cards: any[] }) => {
 
 // En-tête « vos propres poids collectés » + grille d'actions (Pisteur/Délégué & Magasinier).
 function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock, onDepense, onPrets }: any) {
-  const mine: Collection[] = (data.collections || []).filter((c: Collection) => c.byStaffId === staffId);
+  // Volume : campagne en cours (les avances en attente, elles, ne sont pas filtrées).
+  const mine: Collection[] = (scopeSaison(data).collections || []).filter((c: Collection) => c.byStaffId === staffId);
   const today = mine.filter((c) => isToday(c.date));
   const kgAll = mine.reduce((s, c) => s + c.kg, 0);
   const net = mine.reduce((s, c) => s + c.net, 0);
@@ -325,6 +335,7 @@ function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock,
     <View>
       <Card style={{ backgroundColor: "#EAF6EE", borderColor: "#CFE6D8", padding: 16, marginBottom: 14 }}>
         <Text style={{ fontSize: 11.5, fontWeight: "800", color: C.green, textTransform: "uppercase", letterSpacing: 0.4 }}>Volume collecté (vos propres poids)</Text>
+        <Text style={{ fontSize: 11, color: C.muted }}>{data.saison}</Text>
         <Text style={{ fontSize: 34, fontWeight: "900", color: C.ink, marginTop: 2 }}>{group(kgAll)} <Text style={{ fontSize: 17, color: C.muted }}>kg</Text></Text>
         <Text style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>{today.length} aujourd&apos;hui · {mine.length} collectes · valeur {fFull(net)}</Text>
         <CropBreakdown cols={mine} />
@@ -400,10 +411,13 @@ function commissionParProduit(data: Data, staffId: string) {
 
 export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onReceipt, onOpen, onPlanteurs, onStock }: any) {
   const [seg, setSeg] = useState("mandats");
-  const st = pisteurStats(staffId, data);
-  const mandats = (data.mandats || []).filter((m: any) => m.pisteurId === staffId).sort(byDateDesc);
-  const deps = (data.depenses || []).filter((x: any) => x.pisteurId === staffId).sort(byDateDesc);
-  const cols = (data.collections || []).filter((c: Collection) => c.byStaffId === staffId).sort(byDateDesc);
+  // La caisse se justifie campagne par campagne : mandats reçus, achats payés
+  // et dépenses de la campagne en cours.
+  const campagne = scopeSaison(data);
+  const st = pisteurStats(staffId, campagne);
+  const mandats = (campagne.mandats || []).filter((m: any) => m.pisteurId === staffId).sort(byDateDesc);
+  const deps = (campagne.depenses || []).filter((x: any) => x.pisteurId === staffId).sort(byDateDesc);
+  const cols = (campagne.collections || []).filter((c: Collection) => c.byStaffId === staffId).sort(byDateDesc);
   const segs: [string, string][] = [["mandats", "Mandats reçus"], ["collectes", "Collectes"], ["depenses", "Dépenses"], ["commission", "Commission"]];
   return (
     <View>
@@ -480,7 +494,7 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
           </View>
           <Row label="Poids collecté" value={fKg(st.poids)} />
           <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 10 }} />
-          {commissionParProduit(data, staffId).map((r) => (
+          {commissionParProduit(campagne, staffId).map((r) => (
             <View key={r.cropId} style={{ marginBottom: 6 }}>
               <Row label={`${crop(r.cropId).emoji} ${crop(r.cropId).nom} — ${fKg(r.kg)} × ${fF(r.rate)}/kg`} value={fF(r.montant)} />
             </View>
@@ -495,10 +509,13 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
 }
 
 export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, onOpen, onSetPhoto, onEdit, onDelete, onResetPin }: any) {
-  const st = pisteurStats(pisteur.id, data);
-  const mandats = (data.mandats || []).filter((m: any) => m.pisteurId === pisteur.id).sort(byDateDesc);
-  const deps = (data.depenses || []).filter((x: any) => x.pisteurId === pisteur.id).sort(byDateDesc);
-  const cols = (data.collections || []).filter((c: Collection) => c.byStaffId === pisteur.id).sort(byDateDesc);
+  // Même périmètre que l'écran du pisteur : la justification de caisse porte
+  // sur la campagne en cours.
+  const campagne = scopeSaison(data);
+  const st = pisteurStats(pisteur.id, campagne);
+  const mandats = (campagne.mandats || []).filter((m: any) => m.pisteurId === pisteur.id).sort(byDateDesc);
+  const deps = (campagne.depenses || []).filter((x: any) => x.pisteurId === pisteur.id).sort(byDateDesc);
+  const cols = (campagne.collections || []).filter((c: Collection) => c.byStaffId === pisteur.id).sort(byDateDesc);
   return (
     <View>
       <GhostBtn onPress={onBack} style={{ marginBottom: 12 }}>← Retour</GhostBtn>
@@ -583,7 +600,7 @@ export function Collaborateurs({ data, onOpen, onAdd }: any) {
         <View style={{ gap: 9 }}>
           {collabs.map((s) => {
             const isP = s.role === "pisteur";
-            const st = pisteurStats(s.id, data);
+            const st = pisteurStats(s.id, scopeSaison(data));
             return (
               <Pressable key={s.id} onPress={() => onOpen(s.id)} testID={`collab-${s.id}`}>
                 <Card style={{ padding: 13, flexDirection: "row", alignItems: "center", gap: 11 }}>
@@ -786,8 +803,8 @@ export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete
                 <Card style={{ padding: 13, flexDirection: "row", alignItems: "center", gap: 11 }}>
                   <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#E1F1E8", alignItems: "center", justifyContent: "center" }}><Icon name="banknote" size={18} color={C.green} /></View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: "700", fontSize: 14 }}>{st.seq != null ? ticketNo(st.seq) : "Reçu de solde"}</Text>
-                    <Text style={{ fontSize: 11.5, color: C.muted }}>{fDateTime(st.date)}{st.refs && st.refs.length ? ` · Solde de ${st.refs.map((r: any) => ticketNo(r.seq)).join(", ")}` : ""}</Text>
+                    <Text style={{ fontWeight: "700", fontSize: 14 }}>{ticketOf(st)}</Text>
+                    <Text style={{ fontSize: 11.5, color: C.muted }}>{fDateTime(st.date)}{st.refs && st.refs.length ? ` · Solde de ${st.refs.map((r: any) => r.ticket || ticketNo(r.seq)).join(", ")}` : ""}</Text>
                   </View>
                   <Text style={{ fontWeight: "800", fontSize: 14, color: C.green }}>{fF(st.amount)}</Text>
                   <Icon name="chevron-right" size={17} color={C.muted} />
@@ -805,7 +822,7 @@ export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <View>
                   <Text style={{ fontWeight: "700", fontSize: 14 }}>{fKg(c.kg)} <Text style={{ color: C.muted, fontWeight: "400", fontSize: 12 }}>× {fF(c.prixKg)}</Text></Text>
-                  <Text style={{ fontSize: 11.5, color: C.muted }}>{crop(c.cropId || "cacao").emoji} {crop(c.cropId || "cacao").nom} · {ticketNo(c.seq)} · {fDate(c.date)}</Text>
+                  <Text style={{ fontSize: 11.5, color: C.muted }}>{crop(c.cropId || "cacao").emoji} {crop(c.cropId || "cacao").nom} · {ticketOf(c)} · {fDate(c.date)}</Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={{ fontWeight: "800", fontSize: 14, color: C.gold }}>{fF(c.net)}</Text>
@@ -1126,7 +1143,7 @@ export function buildNotifications(data: Data, session: any): { items: Notif[]; 
       if (st.reste > 0) items.push({ id: "myr", kind: "action", date: new Date().toISOString(), icon: "wallet", tint: C.due, title: "Reste à percevoir", sub: `La coopérative vous doit ${fF(st.reste)}` });
       data.loans.filter((l) => l.memberId === m.id).forEach((l) => items.push({ id: "ml" + l.id, kind: l.status === "en_attente" ? "action" : "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : l.status === "refuse" ? "x-circle" : "clock", tint: l.status === "approuve" ? C.green : l.status === "refuse" ? C.loss : C.due, title: l.status === "approuve" ? "Avance accordée" : l.status === "refuse" ? "Avance refusée" : "Demande en attente", sub: `${fF(l.amount)}${l.motif ? " · " + l.motif : ""}` }));
       data.collections.filter((c) => c.memberId === m.id && c.paye > 0).forEach((c) => items.push({ id: "mp" + c.id, kind: "info", date: c.date, icon: "scale", tint: C.teal, title: "Pesée payée", sub: `${fKg(c.kg)} · ${fF(c.paye)}` }));
-      (data.settlements || []).filter((s: any) => s.memberId === m.id).forEach((s: any) => items.push({ id: "ms" + s.id, kind: "info", date: s.date, icon: "banknote", tint: C.green, title: "Solde reçu", sub: `${fF(s.amount)}${s.refs && s.refs.length ? " · réf. " + s.refs.map((r: any) => ticketNo(r.seq)).join(", ") : ""}` }));
+      (data.settlements || []).filter((s: any) => s.memberId === m.id).forEach((s: any) => items.push({ id: "ms" + s.id, kind: "info", date: s.date, icon: "banknote", tint: C.green, title: "Solde reçu", sub: `${fF(s.amount)}${s.refs && s.refs.length ? " · réf. " + s.refs.map((r: any) => r.ticket || ticketNo(r.seq)).join(", ") : ""}` }));
     }
   }
   items.sort(byDateDesc);
@@ -1198,13 +1215,17 @@ export function SubTabs({ member, loans, onGoPrets }: any) {
 }
 
 export function PlanteurPoids({ member, data, onReceipt, onSetPhoto, onSettlementReceipt }: any) {
+  // « Total livré cette campagne » : campagne en cours. Le « reste dû par la
+  // coop », lui, est reporté d'une campagne à l'autre.
+  const campagne = scopeSaison(data);
   const s = memberStats(member.id, data.collections);
+  const sCampagne = memberStats(member.id, campagne.collections);
   const list = data.collections.filter((c: Collection) => c.memberId === member.id).sort(byDateDesc);
-  const mine = data.collections.filter((c: Collection) => c.memberId === member.id);
+  const mine = campagne.collections.filter((c: Collection) => c.memberId === member.id);
   const settlements = (data.settlements || []).filter((x: any) => x.memberId === member.id).sort(byDateDesc);
   return (
     <View>
-      <HeroCard theme={C.greenDark} icon="package" label="Total livré cette campagne" big={fKg(s.kg)} sub={`${s.count} livraisons · valeur ${fFull(s.net)}`} />
+      <HeroCard theme={C.greenDark} icon="package" label={`Total livré · ${data.saison}`} big={fKg(sCampagne.kg)} sub={`${sCampagne.count} livraisons · valeur ${fFull(sCampagne.net)}`} />
       <CropBreakdown cols={mine} />
       <View style={{ flexDirection: "row", gap: 10, marginBottom: 18 }}>
         <MiniKpi icon={<Icon name="banknote" size={16} color={C.green} />} label="Reçu" value={fF(s.paye)} tint={C.green} />
@@ -1233,7 +1254,7 @@ export function PlanteurPoids({ member, data, onReceipt, onSetPhoto, onSettlemen
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <View>
                   <Text style={{ fontWeight: "800", fontSize: 16 }}>{fKg(c.kg)}</Text>
-                  <Text style={{ fontSize: 11.5, color: C.muted }}>{crop(c.cropId || "cacao").emoji} {crop(c.cropId || "cacao").nom} · {ticketNo(c.seq)} · {fDate(c.date)}</Text>
+                  <Text style={{ fontSize: 11.5, color: C.muted }}>{crop(c.cropId || "cacao").emoji} {crop(c.cropId || "cacao").nom} · {ticketOf(c)} · {fDate(c.date)}</Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={{ fontWeight: "700", fontSize: 14, color: C.gold }}>{fF(c.net)}</Text>
@@ -1258,8 +1279,8 @@ export function PlanteurPoids({ member, data, onReceipt, onSetPhoto, onSettlemen
                 <Card style={{ padding: 13, flexDirection: "row", alignItems: "center", gap: 11 }}>
                   <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: "#E1F1E8", alignItems: "center", justifyContent: "center" }}><Icon name="banknote" size={18} color={C.green} /></View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: "700", fontSize: 14 }}>{st.seq != null ? ticketNo(st.seq) : "Reçu de solde"}</Text>
-                    <Text style={{ fontSize: 11.5, color: C.muted }}>{fDateTime(st.date)}{st.refs && st.refs.length ? ` · Solde de ${st.refs.map((r: any) => ticketNo(r.seq)).join(", ")}` : ""}</Text>
+                    <Text style={{ fontWeight: "700", fontSize: 14 }}>{ticketOf(st)}</Text>
+                    <Text style={{ fontSize: 11.5, color: C.muted }}>{fDateTime(st.date)}{st.refs && st.refs.length ? ` · Solde de ${st.refs.map((r: any) => r.ticket || ticketNo(r.seq)).join(", ")}` : ""}</Text>
                   </View>
                   <Text style={{ fontWeight: "800", fontSize: 14, color: C.green }}>{fF(st.amount)}</Text>
                   <Icon name="chevron-right" size={17} color={C.muted} />
@@ -1335,7 +1356,7 @@ export function PlanteurMomo({ member, data, onLink, onUnlink }: any) {
           {momoPayments.map((c: Collection) => (
             <Card key={c.id} style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
               <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#EDF5F0", alignItems: "center", justifyContent: "center" }}><Icon name="smartphone" size={17} color={C.green} /></View>
-              <View style={{ flex: 1 }}><Text style={{ fontWeight: "700", fontSize: 13.5 }}>Paiement livraison</Text><Text style={{ fontSize: 11.5, color: C.muted }}>{ticketNo(c.seq)} · {fDate(c.date)}</Text></View>
+              <View style={{ flex: 1 }}><Text style={{ fontWeight: "700", fontSize: 13.5 }}>Paiement livraison</Text><Text style={{ fontSize: 11.5, color: C.muted }}>{ticketOf(c)} · {fDate(c.date)}</Text></View>
               <Text style={{ fontWeight: "800", fontSize: 14, color: C.green }}>+{fF(c.paye)}</Text>
             </Card>
           ))}

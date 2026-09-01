@@ -27,7 +27,9 @@ import {
   memberStats,
   commOf,
   priceOf,
+  scopeSaison,
   ticketNo,
+  ticketOf,
   totalSuperficie,
   waNumber,
 } from "./lib";
@@ -736,7 +738,7 @@ export function AuditSheet({ data, onClose, fetchAudit }: { data: Data; onClose:
 /* ------------------------------ Bordereau -------------------------------- */
 function receiptHtml(c: Collection, member: Member | undefined, saison: string, sig?: Sig | null): string {
   const rows: string[] = [
-    ["N° bordereau", ticketNo(c.seq)],
+    ["N° bordereau", ticketOf(c)],
     ["Date", fDate(c.date)],
     ["Planteur", member?.nom || "—"],
     ["Village", member?.village || "—"],
@@ -817,7 +819,7 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
     try {
       const { uri } = await Print.printToFileAsync({ html: receiptHtml(c, member, saison, sig) });
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Bordereau ${ticketNo(c.seq)}` });
+        await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Bordereau ${ticketOf(c)}` });
       }
     } catch {} finally {
       setBusy(false);
@@ -835,7 +837,7 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
     const wa = waNumber(member?.tel);
     if (!wa) { onNotice && onNotice("Ce planteur n'a pas de numéro de téléphone enregistré."); return; }
     const msg =
-      `*VALEO — Bordereau ${ticketNo(c.seq)}*\n` +
+      `*VALEO — Bordereau ${ticketOf(c)}*\n` +
       `${saison}\n` +
       `Planteur : ${member?.nom || "—"}\n` +
       `Poids : ${fKg(c.kg)} × ${fF(c.prixKg)}\n` +
@@ -872,7 +874,7 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
                 <Text style={{ fontSize: 11.5, color: "rgba(255,255,255,0.8)", marginTop: 4 }}>{saison} · Reçu de livraison</Text>
               </View>
               <View style={{ padding: 16 }}>
-                <TRow k="N° bordereau" v={ticketNo(c.seq)} />
+                <TRow k="N° bordereau" v={ticketOf(c)} />
                 <TRow k="Date" v={fDate(c.date)} />
                 <TRow k="Planteur" v={member?.nom || "—"} />
                 <TRow k="Village" v={member?.village || "—"} />
@@ -959,12 +961,12 @@ function settlementHtml(s: any, member: Member | undefined, saison: string, agen
     <div class="h"><div class="n">VALEO</div><div class="t">La valeur commence à la source.</div><div class="s">${saison} · Reçu de solde</div></div>
     <div class="b">
       <table>
-        <tr><td>N° reçu</td><td class="r">${s.seq != null ? ticketNo(s.seq) : "—"}</td></tr>
+        <tr><td>N° reçu</td><td class="r">${ticketOf(s)}</td></tr>
         <tr><td>Date</td><td class="r">${fDateTime(s.date)}</td></tr>
         <tr><td>Planteur</td><td class="r">${member?.nom || "—"}</td></tr>
         <tr><td>Village</td><td class="r">${member?.village || "—"}</td></tr>
         <tr><td>Réglé par</td><td class="r">${agent || "—"}</td></tr>
-        ${s.refs && s.refs.length ? `<tr><td>Nature</td><td class="r">Solde du reçu ${s.refs.map((r: any) => ticketNo(r.seq)).join(", ")}</td></tr>` : ""}
+        ${s.refs && s.refs.length ? `<tr><td>Nature</td><td class="r">Solde du reçu ${s.refs.map((r: any) => (r.ticket || ticketNo(r.seq))).join(", ")}</td></tr>` : ""}
       </table>
       <div class="dash"></div>
       <table>
@@ -972,7 +974,7 @@ function settlementHtml(s: any, member: Member | undefined, saison: string, agen
         <tr><td>Mode</td><td class="r">${s.method === "momo" ? "Mobile Money" : "Espèces"}</td></tr>
         <tr><td>Type d'opération</td><td class="r">${s.viaPesee ? "Soldé lors d'une pesée" : "Paiement direct (hors livraison)"}</td></tr>
       </table>
-      ${s.refs && s.refs.length ? `<div class="dash"></div><table>${s.refs.map((r: any) => `<tr><td>Réf. reçu ${ticketNo(r.seq)}</td><td class="r">${fF(r.amount)}</td></tr>`).join("")}</table>` : ""}
+      ${s.refs && s.refs.length ? `<div class="dash"></div><table>${s.refs.map((r: any) => `<tr><td>Réf. reçu ${(r.ticket || ticketNo(r.seq))}</td><td class="r">${fF(r.amount)}</td></tr>`).join("")}</table>` : ""}
       <div class="foot">Solde du reste dû au planteur. Le reçu initial reste inchangé. Conservez ce reçu.</div>
     </div>
   </body></html>`;
@@ -996,7 +998,7 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
   const whatsapp = async () => {
     const wa = waNumber(member?.tel);
     if (!wa) { onNotice && onNotice("Ce planteur n'a pas de numéro de téléphone enregistré."); return; }
-    const msg = `*VALEO — Reçu de solde ${s.seq != null ? ticketNo(s.seq) : ""}*\n${saison}\nPlanteur : ${member?.nom || "—"}\nDate : ${fDateTime(s.date)}\n${s.refs && s.refs.length ? `Solde du reçu ${s.refs.map((r: any) => ticketNo(r.seq)).join(", ")}\n` : ""}Solde payé : ${fFull(s.amount)}\nMode : ${s.method === "momo" ? "Mobile Money" : "Espèces"}\n\nVotre reste dû a été soldé. Merci.`;
+    const msg = `*VALEO — Reçu de solde ${ticketOf(s)}*\n${saison}\nPlanteur : ${member?.nom || "—"}\nDate : ${fDateTime(s.date)}\n${s.refs && s.refs.length ? `Solde du reçu ${s.refs.map((r: any) => (r.ticket || ticketNo(r.seq))).join(", ")}\n` : ""}Solde payé : ${fFull(s.amount)}\nMode : ${s.method === "momo" ? "Mobile Money" : "Espèces"}\n\nVotre reste dû a été soldé. Merci.`;
     const url = `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
     try { if (await Linking.canOpenURL(url)) await Linking.openURL(url); else onNotice && onNotice("WhatsApp n'est pas disponible."); } catch { onNotice && onNotice("Impossible d'ouvrir WhatsApp."); }
   };
@@ -1016,12 +1018,12 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
                 <Text style={{ fontSize: 11.5, color: "rgba(255,255,255,0.8)", marginTop: 4 }}>{saison} · Reçu de solde</Text>
               </View>
               <View style={{ padding: 16 }}>
-                <TRow k="N° reçu" v={s.seq != null ? ticketNo(s.seq) : "—"} />
+                <TRow k="N° reçu" v={ticketOf(s)} />
                 <TRow k="Date & heure" v={fDateTime(s.date)} />
                 <TRow k="Planteur" v={member?.nom || "—"} />
                 <TRow k="Village" v={member?.village || "—"} />
                 <TRow k="Réglé par" v={agent || "—"} />
-                {s.refs && s.refs.length ? <TRow k="Nature" v={`Solde du reçu ${s.refs.map((r: any) => ticketNo(r.seq)).join(", ")}`} /> : null}
+                {s.refs && s.refs.length ? <TRow k="Nature" v={`Solde du reçu ${s.refs.map((r: any) => (r.ticket || ticketNo(r.seq))).join(", ")}`} /> : null}
                 <Dashed />
                 <TRow k="SOLDE PAYÉ" v={fFull(s.amount)} bold big />
                 <TRow k="Mode" v={s.method === "momo" ? "Mobile Money" : "Espèces"} />
@@ -1030,7 +1032,7 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
                   <>
                     <Dashed />
                     <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 4 }}>Référence(s) du reçu initial</Text>
-                    {s.refs.map((r: any, i: number) => <TRow key={i} k={ticketNo(r.seq)} v={fF(r.amount)} muted />)}
+                    {s.refs.map((r: any, i: number) => <TRow key={i} k={(r.ticket || ticketNo(r.seq))} v={fF(r.amount)} muted />)}
                   </>
                 ) : null}
                 <Dashed />
@@ -1053,7 +1055,8 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
 /* -------------------------------- Stock ---------------------------------- */
 export function StockSheet({ data, staffId, scope, onClose }: { data: Data; staffId?: string; scope?: "all" | "mine"; onClose: () => void }) {
   const insets = useSafeAreaInsets();
-  const cols: Collection[] = (data.collections || []).filter((c) => (scope === "mine" && staffId ? c.byStaffId === staffId : true));
+  // Campagne en cours : le stock d'une campagne close n'a plus de sens ici.
+  const cols: Collection[] = (scopeSaison(data).collections || []).filter((c) => (scope === "mine" && staffId ? c.byStaffId === staffId : true));
   const rows = CROPS.map((cr) => {
     const list = cols.filter((c) => (c.cropId || "cacao") === cr.id);
     return { cr, kg: list.reduce((s, c) => s + c.kg, 0), count: list.length, valeur: list.reduce((s, c) => s + c.net, 0) };
@@ -1069,7 +1072,7 @@ export function StockSheet({ data, staffId, scope, onClose }: { data: Data; staf
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 18, paddingBottom: 12 }}>
             <View>
               <Text style={{ fontWeight: "800", fontSize: 17 }}>Stock en magasin</Text>
-              <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{scope === "mine" ? "Poids que vous avez pesés" : "Tous poids collectés & livrés"}</Text>
+              <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{scope === "mine" ? "Poids que vous avez pesés" : "Tous poids collectés & livrés"} · {data.saison}</Text>
             </View>
             <Pressable onPress={onClose} hitSlop={10} testID="stock-close"><Icon name="x" size={22} color={C.muted} /></Pressable>
           </View>

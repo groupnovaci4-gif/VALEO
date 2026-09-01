@@ -221,3 +221,26 @@ Correction des défauts d'architecture identifiés par l'audit (CLAUDE.md §5).
 - Tests : 30 backend en processus (`tests/conftest.py`, MongoDB simulée, sans réseau)
   + 15 frontend (`yarn test`, modules purs `sync.ts`/`lib.ts`).
 - ⚠️ Backend et frontend doivent être **déployés ensemble**.
+
+## Numérotation par agent + campagnes v30 (2026-09) — TERMINÉ & TESTÉ
+Deux arbitrages métier tranchés avec l'utilisateur, puis implémentés.
+- **Numéro de bordereau par agent** (au lieu d'un compteur global à toutes les
+  coopératives, où deux agents hors-ligne émettaient le même `P-2026-0042`) :
+  format `P-<trigramme>-0000`. Le trigramme (`staffTag`) est dérivé de
+  l'identifiant de l'agent — non stocké, donc ni migration ni écriture sur la
+  fiche du collaborateur (qu'un magasinier n'a pas le droit de faire) ; la suite
+  (`nextTicketSeq`) est propre à chaque agent, pesées et reçus de solde
+  confondus. Le numéro est figé sur l'enregistrement (`Collection.ticket`,
+  `Settlement.ticket`) à l'émission ; l'affichage passe par `ticketOf`, avec
+  repli sur l'ancien format pour les bordereaux déjà émis. Les références d'un
+  reçu de solde (`refs`) portent aussi le numéro figé. Choix assumé : reste
+  100 % hors-ligne, aucune contrainte réseau à la pesée.
+- **Cloisonnement par campagne (M6 terminé)** : `scopeSaison(data)` filtre
+  collectes, mandats, dépenses et soldes sur la campagne active. Appliqué au
+  volume collecté (Patron et agents), au stock, à la caisse et à la commission
+  du pisteur, et au « Total livré » du planteur.
+  **Les dettes ne sont PAS filtrées** : reste dû et avances à recouvrer suivent
+  le planteur d'une campagne à l'autre — les masquer ferait disparaître de
+  l'argent réellement dû. La carte « Reste à payer » du tableau de bord indique
+  la part héritée des campagnes précédentes.
+- Tests : 25 frontend (`yarn test`, dont `campagne.test.mjs`) + 30 backend.

@@ -20,8 +20,11 @@ import {
   Momo,
   Settlement,
   Staff,
+  makeTicket,
   migrate,
+  nextTicketSeq,
   seed,
+  ticketOf,
   uid,
 } from "./lib";
 
@@ -237,10 +240,15 @@ export function useCoopData() {
     let repayAudit = 0;
     setData((d) => {
       if (!d) return d;
-      let nextSeq = c.seq ?? d.seq;
-      const rec: Collection = { ...c, id: c.id || uid(), seq: nextSeq, coopId: c.coopId || cid(), saison: c.saison || d.saison };
-      let dSeq = d.seq;
-      if (c.seq == null) dSeq = d.seq + 1; // le reçu de pesée consomme un numéro
+      const staffId = c.byStaffId || "";
+      // Suite propre à l'agent : le numéro reste unique même si deux agents
+      // pèsent hors-ligne en même temps.
+      let nextSeq = c.seq ?? nextTicketSeq(staffId, d);
+      const rec: Collection = {
+        ...c, id: c.id || uid(), seq: nextSeq, ticket: c.ticket || makeTicket(staffId, nextSeq),
+        coopId: c.coopId || cid(), saison: c.saison || d.saison,
+      };
+      let dSeq = Math.max(d.seq, nextSeq + 1); // compteur hérité, conservé pour l'espace admin
 
       // --- Recouvrement d'avance : applique le montant recouvré aux avances
       //     approuvées du planteur (FIFO), en réduisant le solde restant. ---
@@ -275,7 +283,7 @@ export function useCoopData() {
       let cols = d.collections;
       let settlements = d.settlements || [];
       if (settle > 0) {
-        const refs: { seq: number; amount: number }[] = [];
+        const refs: { seq: number; ticket?: string; amount: number }[] = [];
         cols = cols
           .slice()
           .sort((a, b) => +new Date(a.date) - +new Date(b.date))
@@ -284,16 +292,17 @@ export function useCoopData() {
             if (x.memberId !== rec.memberId || out <= 0 || settle <= 0) return x;
             const applied = Math.min(settle, out);
             settle -= applied;
-            refs.push({ seq: x.seq, amount: applied });
+            refs.push({ seq: x.seq, ticket: ticketOf(x), amount: applied });
             return { ...x, resteSolde: (x.resteSolde || 0) + applied };
           });
         const appliedTotal = settleReq - settle;
         if (appliedTotal > 0) {
-          const settSeq = dSeq;
-          dSeq += 1;
+          // Le reçu de solde prend le numéro suivant de la suite de l'agent.
+          const settSeq = nextSeq + 1;
+          dSeq = Math.max(dSeq, settSeq + 1);
           settlements = [
             ...settlements,
-            { id: uid(), coopId: rec.coopId, saison: d.saison, memberId: rec.memberId, byStaffId: rec.byStaffId, amount: appliedTotal, method: rec.method, date: rec.date, viaPesee: true, seq: settSeq, clientOpId: rec.clientOpId ? `${rec.clientOpId}:solde` : undefined, refs },
+            { id: uid(), coopId: rec.coopId, saison: d.saison, memberId: rec.memberId, byStaffId: rec.byStaffId, amount: appliedTotal, method: rec.method, date: rec.date, viaPesee: true, seq: settSeq, ticket: makeTicket(staffId, settSeq), clientOpId: rec.clientOpId ? `${rec.clientOpId}:solde` : undefined, refs },
           ];
           (rec as any).oldRegle = appliedTotal;
         }
@@ -316,7 +325,7 @@ export function useCoopData() {
       const outOf = (c: Collection) => Math.max(0, (c.reste || 0) - (c.resteSolde || 0));
       const total = d.collections.filter((c) => c.memberId === memberId).reduce((s, c) => s + outOf(c), 0);
       if (total <= 0) return d;
-      const refs: { seq: number; amount: number }[] = [];
+      const refs: { seq: number; ticket?: string; amount: number }[] = [];
       const collections = d.collections
         .slice()
         .sort((a, b) => +new Date(a.date) - +new Date(b.date))
@@ -324,13 +333,13 @@ export function useCoopData() {
           if (c.memberId !== memberId) return c;
           const out = outOf(c);
           if (out <= 0) return c;
-          refs.push({ seq: c.seq, amount: out });
+          refs.push({ seq: c.seq, ticket: ticketOf(c), amount: out });
           return { ...c, resteSolde: (c.resteSolde || 0) + out };
         });
-      const settSeq = d.seq;
-      const rec: Settlement = { id: uid(), coopId: cid(), saison: d.saison, memberId, byStaffId, amount: total, method, date: new Date().toISOString(), viaPesee: false, seq: settSeq, refs };
+      const settSeq = nextTicketSeq(byStaffId, d);
+      const rec: Settlement = { id: uid(), coopId: cid(), saison: d.saison, memberId, byStaffId, amount: total, method, date: new Date().toISOString(), viaPesee: false, seq: settSeq, ticket: makeTicket(byStaffId, settSeq), refs };
       receipt = rec;
-      return { ...d, seq: d.seq + 1, collections, settlements: [...(d.settlements || []), rec] };
+      return { ...d, seq: Math.max(d.seq, settSeq + 1), collections, settlements: [...(d.settlements || []), rec] };
     });
     if (receipt) logAudit("solde", { memberId, seq: (receipt as any).seq, amount: (receipt as any).amount, method, refs: (receipt as any).refs });
     return receipt;
