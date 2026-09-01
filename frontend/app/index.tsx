@@ -20,6 +20,7 @@ import {
   CoopProfileSheet,
   AuditSheet,
   SettlementReceipt,
+  SortieSheet,
   StockSheet,
   Bordereau,
 } from "@/src/coop/sheets";
@@ -375,6 +376,7 @@ export default function App() {
   }
 
   const staffId = session.side === "coop" ? session.staffId : "";
+  const stockScope: "all" | "mine" = role === "pisteur" ? "mine" : "all";
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -403,7 +405,10 @@ export default function App() {
       {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setCoopSettings(p); setSheet(null); }} /> : null}
       {sheet === "coopProfile" ? <CoopProfileSheet coop={data.coop} patron={me} onClose={() => setSheet(null)} onSave={({ coopPatch, patronPatch }: any) => { store.setCoopProfile(coopPatch); if (session.side === "coop" && session.staffId) store.updateStaff(session.staffId, patronPatch); setSheet(null); }} /> : null}
       {sheet === "audit" ? <AuditSheet data={data} fetchAudit={store.fetchAudit} onClose={() => setSheet(null)} /> : null}
-      {sheet === "stock" ? <StockSheet data={data} staffId={staffId} scope={role === "patron" ? "all" : "mine"} onClose={() => setSheet(null)} /> : null}
+      {/* Le magasinier tient le magasin : il voit le stock réel de la coopérative,
+          comme le patron. Le pisteur, lui, suit ce qu'il a collecté et pas encore remis. */}
+      {sheet === "stock" ? <StockSheet data={data} staffId={staffId} scope={stockScope} onClose={() => setSheet(null)} onNewSortie={isCoop ? () => setSheet("sortie") : undefined} /> : null}
+      {sheet === "sortie" ? <SortieSheet data={data} staffId={staffId} scope={stockScope} onClose={() => setSheet("stock")} onSave={(x: any) => { store.addSortie(x); setSheet("stock"); setNotice("Sortie enregistrée. Le stock a été mis à jour."); }} /> : null}
       {sheet === "linkMomo" && session.side === "planteur" ? <LinkMomoSheet title="Lier mon Mobile Money" onClose={() => setSheet(null)} onSave={(mm: any) => { store.linkMemberMomo(session.memberId, mm); setSheet(null); }} /> : null}
       {sheet === "coopMomo" ? <LinkMomoSheet title="Ajouter un compte coop" withLabel onClose={() => setSheet(null)} onSave={(mm: any) => { store.addCoopMomo(mm); setSheet(null); }} /> : null}
       {sheet === "depense" ? <DepenseSheet onClose={() => setSheet(null)} onSave={(x: any) => { store.addDepense({ pisteurId: staffId, ...x }); setSheet(null); }} /> : null}

@@ -19,6 +19,7 @@ import {
   Member,
   Momo,
   Settlement,
+  Sortie,
   Staff,
   makeTicket,
   migrate,
@@ -230,6 +231,13 @@ export function useCoopData() {
   const addMandat = useCallback((m: Partial<Mandat>) => {
     setData((d) => (d ? { ...d, mandats: [...d.mandats, { id: uid(), coopId: cid(), saison: d.saison, date: new Date().toISOString(), ...m } as Mandat] } : d));
   }, []);
+
+  // Sortie de magasin (expédition, vente, transfert, perte) : contrepartie des
+  // collectes dans le calcul du stock.
+  const addSortie = useCallback((x: Partial<Sortie>) => {
+    setData((d) => (d ? { ...d, sorties: [...(d.sorties || []), { id: uid(), coopId: cid(), saison: d.saison, date: new Date().toISOString(), ...x } as Sortie] } : d));
+    logAudit("sortie_stock", { cropId: x.cropId, kg: x.kg, type: x.type, destinataire: x.destinataire || "" });
+  }, [logAudit]);
 
   const addDepense = useCallback((x: Partial<Depense>) => {
     setData((d) => (d ? { ...d, depenses: [...d.depenses, { id: uid(), coopId: cid(), saison: d.saison, date: new Date().toISOString(), ...x } as Depense] } : d));
@@ -498,6 +506,7 @@ export function useCoopData() {
     addMember,
     addMandat,
     addDepense,
+    addSortie,
     addCollection,
     settleMemberDue,
     addLoan,

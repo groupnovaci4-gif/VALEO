@@ -30,6 +30,7 @@ import {
   op,
   pisteurStats,
   scopeSaison,
+  sortieType,
   ticketNo,
   ticketOf,
 } from "./lib";
@@ -271,6 +272,9 @@ function buildActivity(data: Data): Ev[] {
   });
   (data.mandats || []).forEach((m: any) => evs.push({ id: "m" + m.id, date: m.date, icon: "wallet", tint: C.gold, title: `Mandat confié — ${staffNameOf(data, m.pisteurId)}`, sub: `${fF(m.amount)}${m.note ? ` · ${m.note}` : ""}` }));
   (data.depenses || []).forEach((x: any) => evs.push({ id: "d" + x.id, date: x.date, icon: "receipt", tint: C.rust, title: `Dépense — ${staffNameOf(data, x.pisteurId)}`, sub: `${depcat(x.category).nom} · ${fF(x.amount)}${x.note ? ` · ${x.note}` : ""}` }));
+  (data.sorties || []).forEach((x: any) =>
+    evs.push({ id: "so" + x.id, date: x.date, icon: "truck", tint: C.rust, title: `Sortie magasin — ${sortieType(x.type).nom}`, sub: `${crop(x.cropId).nom} · ${fKg(x.kg)}${x.destinataire ? ` · ${x.destinataire}` : ""} · ${staffNameOf(data, x.byStaffId)}` }),
+  );
   (data.settlements || []).forEach((s: any) => evs.push({ id: "s" + s.id, date: s.date, icon: "banknote", tint: C.green, title: `Reste soldé${s.viaPesee ? " (à la pesée)" : ""} — ${nameOf(data, s.memberId)}`, sub: `${fF(s.amount)} · ${s.method === "momo" ? "Mobile Money" : "espèces"}` }));
   return evs.sort(byDateDesc);
 }
@@ -327,7 +331,7 @@ function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock,
   const cards: any[] = [
     { testID: "quick-Peser", icon: "scale", title: isPisteur ? "Collecter" : "Peser", sub: "Nouvelle réception", dark: true, onPress: onPeser },
     { testID: "quick-Planteurs", icon: "users", title: "Planteurs", sub: "Gérer le réseau", onPress: onPlanteurs },
-    { testID: "quick-Stock", icon: "package", title: "Stock", sub: "Vos poids en magasin", onPress: onStock },
+    { testID: "quick-Stock", icon: "package", title: "Stock", sub: isPisteur ? "Vos poids collectés" : "Entrées, sorties, stock", onPress: onStock },
   ];
   if (onDepense) cards.push({ testID: "quick-Dépenses", icon: "receipt", title: "Dépenses", sub: "Suivi des frais", onPress: onDepense });
   if (onPrets) cards.push({ testID: "quick-Prêts", icon: "piggy-bank", title: "Avances", sub: "Suivi & recouvrement", onPress: onPrets, badge: pending });

@@ -28,6 +28,10 @@ import {
   commOf,
   priceOf,
   scopeSaison,
+  SORTIE_TYPES,
+  sortieType,
+  stockDispo,
+  stockStats,
   ticketNo,
   ticketOf,
   totalSuperficie,
@@ -1053,26 +1057,99 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
 
 
 /* -------------------------------- Stock ---------------------------------- */
-export function StockSheet({ data, staffId, scope, onClose }: { data: Data; staffId?: string; scope?: "all" | "mine"; onClose: () => void }) {
+export function SortieSheet({ data, staffId, scope, onClose, onSave }: { data: Data; staffId?: string; scope?: "all" | "mine"; onClose: () => void; onSave: (x: any) => void }) {
+  // Identifiant d'opération : une sortie validée deux fois ne doit pas être
+  // décomptée deux fois du stock.
+  const [clientOpId] = useState(() => `so-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
+  const st = stockStats(data, { scope, staffId });
+  const dispo = st.rows.filter((r) => r.stock > 0);
+  const [cropId, setCropId] = useState(dispo[0]?.cropId || "cacao");
+  const [type, setType] = useState("expedition");
+  const [kg, setKg] = useState("");
+  const [destinataire, setDestinataire] = useState("");
+  const [note, setNote] = useState("");
+
+  const max = stockDispo(data, cropId, { scope, staffId });
+  const n = Number(kg) || 0;
+  const trop = n > max;
+  const valid = n > 0 && !trop;
+
+  if (dispo.length === 0)
+    return (
+      <Sheet title="Sortie de magasin" onClose={onClose}>
+        <Card style={{ padding: 20 }}>
+          <Text style={{ textAlign: "center", color: C.muted }}>Aucun stock disponible. Enregistrez d&apos;abord une pesée.</Text>
+        </Card>
+      </Sheet>
+    );
+
+  return (
+    <Sheet title="Sortie de magasin" onClose={onClose}>
+      <Field label="Produit">
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
+          {dispo.map((r) => (
+            <Chip key={r.cropId} label={`${crop(r.cropId).nom} · ${fKg(r.stock)}`} emoji={crop(r.cropId).emoji} active={cropId === r.cropId} onPress={() => { setCropId(r.cropId); setKg(""); }} />
+          ))}
+        </View>
+        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Stock disponible : <Text style={{ fontWeight: "800", color: C.green }}>{fKg(max)}</Text></Text>
+      </Field>
+      <Field label="Motif de la sortie">
+        <View style={{ gap: 8 }}>
+          {SORTIE_TYPES.map((t) => (
+            <Pressable
+              key={t.id}
+              onPress={() => setType(t.id)}
+              testID={`sortie-${t.id}`}
+              style={{ flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: type === t.id ? C.teal : C.line, backgroundColor: type === t.id ? "#EAF3EF" : "#fff", borderRadius: 12, padding: 11 }}
+            >
+              <Text style={{ fontSize: 18 }}>{t.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: "700", fontSize: 14, color: C.ink }}>{t.nom}</Text>
+                <Text style={{ fontSize: 11.5, color: C.muted }}>{t.sub}</Text>
+              </View>
+              {type === t.id ? <Icon name="check-circle" size={17} color={C.teal} /> : null}
+            </Pressable>
+          ))}
+        </View>
+      </Field>
+      <Field label="Poids sorti (kg)">
+        <TInput value={kg} onChangeText={(t) => setKg(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={`Max ${group(max)}`} />
+        {trop ? <Text style={{ fontSize: 12, color: C.loss, marginTop: 6 }}>Le stock disponible n&apos;est que de {fKg(max)}.</Text> : null}
+      </Field>
+      <Field label={type === "perte" ? "Cause (facultatif)" : "Destinataire (facultatif)"}>
+        <TInput value={destinataire} onChangeText={setDestinataire} placeholder={type === "perte" ? "Ex. humidité" : "Ex. SACO Abidjan"} />
+      </Field>
+      <Field label="Note (facultatif)"><TInput value={note} onChangeText={setNote} placeholder="N° de camion, bon de livraison…" /></Field>
+      <SaveBtn
+        disabled={!valid}
+        color={C.rust}
+        onPress={() => onSave({ cropId, type, kg: n, destinataire: destinataire.trim(), note: note.trim(), byStaffId: staffId, clientOpId })}
+      >
+        Enregistrer la sortie
+      </SaveBtn>
+    </Sheet>
+  );
+}
+
+export function StockSheet({ data, staffId, scope, onClose, onNewSortie }: { data: Data; staffId?: string; scope?: "all" | "mine"; onClose: () => void; onNewSortie?: () => void }) {
   const insets = useSafeAreaInsets();
   // Campagne en cours : le stock d'une campagne close n'a plus de sens ici.
-  const cols: Collection[] = (scopeSaison(data).collections || []).filter((c) => (scope === "mine" && staffId ? c.byStaffId === staffId : true));
-  const rows = CROPS.map((cr) => {
-    const list = cols.filter((c) => (c.cropId || "cacao") === cr.id);
-    return { cr, kg: list.reduce((s, c) => s + c.kg, 0), count: list.length, valeur: list.reduce((s, c) => s + c.net, 0) };
-  }).filter((r) => r.kg > 0);
-  const totalKg = rows.reduce((s, r) => s + r.kg, 0);
-  const totalVal = rows.reduce((s, r) => s + r.valeur, 0);
-  const totalCount = rows.reduce((s, r) => s + r.count, 0);
+  const campagne = scopeSaison(data);
+  const st = stockStats(campagne, { scope, staffId });
+  const mouvements = (campagne.sorties || [])
+    .filter((x) => (scope === "mine" && staffId ? x.byStaffId === staffId : true))
+    .slice()
+    .sort((a, b) => +new Date(b.date) - +new Date(a.date));
+  const agent = (id: string) => (data.staff || []).find((x) => x.id === id)?.nom || "—";
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: "rgba(30,20,12,0.5)", justifyContent: "flex-end" }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} />
         <View style={{ backgroundColor: C.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "88%" }}>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 18, paddingBottom: 12 }}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: "800", fontSize: 17 }}>Stock en magasin</Text>
-              <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{scope === "mine" ? "Poids que vous avez pesés" : "Tous poids collectés & livrés"} · {data.saison}</Text>
+              <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{scope === "mine" ? "Vos poids non encore sortis" : "Magasin de la coopérative"} · {data.saison}</Text>
             </View>
             <Pressable onPress={onClose} hitSlop={10} testID="stock-close"><Icon name="x" size={22} color={C.muted} /></Pressable>
           </View>
@@ -1080,26 +1157,68 @@ export function StockSheet({ data, staffId, scope, onClose }: { data: Data; staf
             <Card style={{ backgroundColor: C.greenDark, borderColor: C.greenDark, padding: 18, marginBottom: 14 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Icon name="package" size={16} color="rgba(255,255,255,0.85)" />
-                <Text style={{ fontSize: 12.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>Stock total</Text>
+                <Text style={{ fontSize: 12.5, color: "rgba(255,255,255,0.85)", fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>Stock actuel</Text>
               </View>
-              <Text style={{ fontSize: 33, fontWeight: "900", color: "#fff", marginTop: 4 }}>{group(totalKg)} <Text style={{ fontSize: 17 }}>kg</Text></Text>
-              <Text style={{ fontSize: 12.5, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>{totalCount} collectes · valeur {fFull(totalVal)}</Text>
+              <Text style={{ fontSize: 33, fontWeight: "900", color: st.stock < 0 ? "#FFC9C0" : "#fff", marginTop: 4 }}>{group(st.stock)} <Text style={{ fontSize: 17 }}>kg</Text></Text>
+              <View style={{ flexDirection: "row", gap: 20, marginTop: 8, borderTopWidth: 1, borderColor: "rgba(255,255,255,0.2)", paddingTop: 8 }}>
+                <View>
+                  <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.75)" }}>Entrées (pesées)</Text>
+                  <Text style={{ fontSize: 14.5, fontWeight: "800", color: "#fff" }}>{fKg(st.entrees)}</Text>
+                </View>
+                <View>
+                  <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.75)" }}>Sorties</Text>
+                  <Text style={{ fontSize: 14.5, fontWeight: "800", color: "#fff" }}>− {fKg(st.sorties)}</Text>
+                </View>
+              </View>
+              {st.stock < 0 ? (
+                <Text style={{ fontSize: 11.5, color: "#FFC9C0", marginTop: 8, lineHeight: 16 }}>
+                  Stock négatif : plus de sorties que d&apos;entrées ont été saisies. Vérifiez les pesées et les sorties.
+                </Text>
+              ) : null}
             </Card>
+
+            {onNewSortie ? (
+              <SaveBtn color={C.rust} icon={<Icon name="truck" size={17} color="#fff" />} onPress={onNewSortie} style={{ marginBottom: 18 }}>
+                Enregistrer une sortie
+              </SaveBtn>
+            ) : null}
+
             <SectionTitle>Par produit</SectionTitle>
-            {rows.length === 0 ? (
-              <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Aucun poids collecté pour le moment.</Text></Card>
+            {st.rows.length === 0 ? (
+              <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Aucun mouvement pour le moment.</Text></Card>
             ) : (
               <View style={{ gap: 9 }}>
-                {rows.map((r) => (
-                  <Card key={r.cr.id} style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                {st.rows.map((r) => (
+                  <Card key={r.cropId} style={{ padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
                     <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "#F0EBE2", alignItems: "center", justifyContent: "center" }}>
                       <Text style={{ fontSize: 20 }}>{r.cr.emoji}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontWeight: "800", fontSize: 15 }}>{r.cr.nom}</Text>
-                      <Text style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{r.count} collecte{r.count > 1 ? "s" : ""} · {fFull(r.valeur)}</Text>
+                      <Text style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{fKg(r.entrees)} entrés · {fKg(r.sorties)} sortis</Text>
                     </View>
-                    <Text style={{ fontWeight: "900", fontSize: 16, color: C.teal }}>{fKg(r.kg)}</Text>
+                    <Text style={{ fontWeight: "900", fontSize: 16, color: r.stock < 0 ? C.loss : C.teal }}>{fKg(r.stock)}</Text>
+                  </Card>
+                ))}
+              </View>
+            )}
+
+            <View style={{ height: 18 }} />
+            <SectionTitle>Sorties enregistrées ({mouvements.length})</SectionTitle>
+            {mouvements.length === 0 ? (
+              <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Aucune sortie enregistrée.</Text></Card>
+            ) : (
+              <View style={{ gap: 8 }}>
+                {mouvements.map((x) => (
+                  <Card key={x.id} style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
+                    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#F7EDE7", alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ fontSize: 16 }}>{sortieType(x.type).emoji}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: "700", fontSize: 13.5 }}>{sortieType(x.type).nom} · {crop(x.cropId).nom}</Text>
+                      <Text style={{ fontSize: 11.5, color: C.muted }}>{fDateTime(x.date)} · {agent(x.byStaffId)}{x.destinataire ? ` · ${x.destinataire}` : ""}{x.note ? ` · ${x.note}` : ""}</Text>
+                    </View>
+                    <Text style={{ fontWeight: "800", fontSize: 13.5, color: C.rust }}>− {fKg(x.kg)}</Text>
                   </Card>
                 ))}
               </View>

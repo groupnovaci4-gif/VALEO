@@ -244,3 +244,26 @@ Deux arbitrages métier tranchés avec l'utilisateur, puis implémentés.
   l'argent réellement dû. La carte « Reste à payer » du tableau de bord indique
   la part héritée des campagnes précédentes.
 - Tests : 25 frontend (`yarn test`, dont `campagne.test.mjs`) + 30 backend.
+
+## Stock magasin réel v31 (2026-09) — TERMINÉ & TESTÉ
+Le « stock » n'était qu'un cumul de collectes : il ne pouvait que monter et ne
+correspondait jamais au magasin, alors que c'est le cœur du métier du Magasinier.
+- Nouveau modèle `Sortie` (`data.sorties`) : expédition, vente, transfert,
+  perte/freinte — avec produit, poids, destinataire, note, agent, campagne et
+  `clientOpId` (une sortie validée deux fois n'est décomptée qu'une fois).
+- `stockStats(data, {scope, staffId})` : entrées (pesées) − sorties, par produit
+  et au total. `stockDispo` borne une nouvelle sortie au stock restant. Le stock
+  n'est pas borné à zéro : un négatif est affiché en rouge avec un avertissement,
+  car il signale une erreur de saisie.
+- `SortieSheet` : choix du produit (avec stock disponible), motif illustré,
+  poids plafonné, destinataire et note. `StockSheet` refait : stock actuel,
+  entrées/sorties, détail par produit et historique des sorties horodaté.
+- Portées : le **Magasinier voit désormais le magasin de la coopérative** (c'était
+  auparavant ses seules pesées, alors qu'il tient le magasin), comme le Patron ;
+  le **Pisteur** garde la vue « ce que j'ai collecté et pas encore remis » ; le
+  **Planteur** ne voit rien (mouvement interne, filtré par `scope_state`).
+- Sécurité : une sortie est enregistrée au nom de l'agent, avec poids strictement
+  positif, et devient définitive (ni modification ni suppression) ; seul le patron
+  peut corriger. Auditée (`sortie_stock`) et présente au journal d'activité.
+- Espace admin web : nouvel onglet « Sorties magasin » (CRUD complet).
+- Tests : 37 backend + 33 frontend (`stock.test.mjs`).

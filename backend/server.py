@@ -50,6 +50,7 @@ def empty_state() -> dict:
         "coop": {"nom": "Coopérative", "momo": [], "filieres": []},
         "coops": [],
         "settlements": [],
+        "sorties": [],
         "staff": [],
         "members": [],
         "collections": [],
@@ -139,7 +140,7 @@ class ChangePwdRequest(BaseModel):
 
 
 # --------------------------- Auth utilisateurs (coop/planteur) --------------------------- #
-ENTITY_ARRAYS = ["staff", "members", "collections", "loans", "mandats", "depenses", "settlements"]
+ENTITY_ARRAYS = ["staff", "members", "collections", "loans", "mandats", "depenses", "settlements", "sorties"]
 
 
 def _norm_phone(p: Optional[str]) -> str:
@@ -249,7 +250,7 @@ def scope_state(state: dict, coop_id: str, me: Optional[dict] = None) -> dict:
                 # Annuaire minimal : nommer l'agent sur un reçu, rien de plus.
                 rows = [_public_staff(x) for x in rows]
             else:
-                rows = []  # mandats, dépenses : affaires internes de la coop.
+                rows = []  # mandats, dépenses, sorties : affaires internes de la coop.
         out[e] = [_strip_secrets(x) for x in rows]
     return out
 
@@ -485,7 +486,7 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
     if side == "planteur":
         actor = "Planteur"
         _check_coop_settings_untouched(visible, incoming, coop_id, actor)
-        _deny_touching(delta, ["staff", "mandats", "depenses", "settlements"], actor)
+        _deny_touching(delta, ["staff", "mandats", "depenses", "settlements", "sorties"], actor)
         # Aucune création ni suppression de planteur, de collecte ou de solde.
         for e in ("members", "collections"):
             if (delta[e]["created"] or delta[e]["deleted"]):
@@ -510,12 +511,14 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
         for e in ("members", "staff"):
             if delta[e]["created"] or delta[e]["deleted"]:
                 raise Forbidden(f"{actor} : seul le patron crée ou supprime un enregistrement « {e} ».")
-        if delta["collections"]["deleted"] or delta["settlements"]["deleted"] or delta["depenses"]["deleted"] or delta["loans"]["deleted"]:
-            raise Forbidden(f"{actor} : les écritures financières ne peuvent pas être supprimées.")
+        if delta["collections"]["deleted"] or delta["settlements"]["deleted"] or delta["depenses"]["deleted"] or delta["loans"]["deleted"] or delta["sorties"]["deleted"]:
+            raise Forbidden(f"{actor} : les écritures financières et de stock ne peuvent pas être supprimées.")
         if delta["settlements"]["updated"]:
             raise Forbidden(f"{actor} : un reçu de solde est définitif.")
         if delta["depenses"]["updated"]:
             raise Forbidden(f"{actor} : une dépense enregistrée ne peut plus être modifiée.")
+        if delta["sorties"]["updated"]:
+            raise Forbidden(f"{actor} : une sortie de magasin enregistrée ne peut plus être modifiée.")
         if delta["loans"]["updated"]:
             raise Forbidden(f"{actor} : seul le patron approuve ou refuse une avance.")
         for row in delta["collections"]["created"]:
@@ -527,6 +530,15 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
         for row in delta["depenses"]["created"]:
             if row.get("pisteurId") != me_id:
                 raise Forbidden(f"{actor} : une dépense doit être enregistrée à votre nom.")
+        for row in delta["sorties"]["created"]:
+            if row.get("byStaffId") != me_id:
+                raise Forbidden(f"{actor} : une sortie de magasin doit être enregistrée à votre nom.")
+            try:
+                kg = float(row.get("kg") or 0)
+            except (TypeError, ValueError):
+                kg = 0
+            if kg <= 0:
+                raise Forbidden(f"{actor} : une sortie de magasin doit porter un poids positif.")
         for row in delta["loans"]["created"]:
             if not _is_pending_loan(row):
                 raise Forbidden(f"{actor} : une avance créée doit rester « en_attente » jusqu'à validation du patron.")
@@ -852,6 +864,10 @@ const SCHEMAS = {
     {k:"pisteurId",l:"Pisteur",ref:"staff"},{k:"amount",l:"Montant",t:"number"},{k:"note",l:"Note"}]},
   depenses:{title:"Dépenses",arr:"depenses",cols:["_pisteur","category","amount","note"],fields:[
     {k:"pisteurId",l:"Pisteur",ref:"staff"},{k:"category",l:"Catégorie"},{k:"amount",l:"Montant",t:"number"},{k:"note",l:"Note"}]},
+  sorties:{title:"Sorties magasin",arr:"sorties",cols:["cropId","kg","type","_agent","destinataire"],fields:[
+    {k:"cropId",l:"Produit",opt:["cacao","cafe","anacarde","hevea","palmier"]},{k:"kg",l:"Poids (kg)",t:"number"},
+    {k:"type",l:"Motif",opt:["expedition","vente","transfert","perte"]},{k:"byStaffId",l:"Agent",ref:"staff"},
+    {k:"destinataire",l:"Destinataire"},{k:"note",l:"Note"}]},
 };
 
 function render(){
@@ -981,7 +997,7 @@ async function saveSettings(){
 }
 async function wipeAll(){
   if(!confirm("Confirmer : vider toute la base de données ?")) return;
-  state={saison:state.saison,prixKg:state.prixKg,seq:1,memberSeq:1,commissionRate:state.commissionRate,coop:{nom:(state.coop&&state.coop.nom)||"Coopérative",momo:[]},coops:[],staff:[],members:[],collections:[],loans:[],mandats:[],depenses:[],settlements:[],priceHistory:[]};
+  state={saison:state.saison,prixKg:state.prixKg,seq:1,memberSeq:1,commissionRate:state.commissionRate,coop:{nom:(state.coop&&state.coop.nom)||"Coopérative",momo:[]},coops:[],staff:[],members:[],collections:[],loans:[],mandats:[],depenses:[],settlements:[],sorties:[],priceHistory:[]};
   currentCoop=null;
   await persist();
 }
@@ -989,6 +1005,7 @@ async function wipeAll(){
 function cellVal(row,key){
   if(key==="_member") return name(row.memberId);
   if(key==="_pisteur") return name(row.pisteurId);
+  if(key==="_agent") return name(row.byStaffId);
   if(typeof row[key]==="number") return (key==='kg')? row[key]+" kg" : (['net','paye','reste','amount','soldeRestant','prixKg'].includes(key)? fF(row[key]) : row[key]);
   return row[key]==null? "—" : row[key];
 }

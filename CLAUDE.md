@@ -120,16 +120,24 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     pas le droit d'écrire sur une fiche de collaborateur), et la suite (`nextTicketSeq`)
     est propre à chaque agent. Le numéro est **figé** sur l'enregistrement (`ticket`)
     à l'émission ; l'affichage passe toujours par `ticketOf`, jamais par un recalcul.
-13. **Campagnes : la production est cloisonnée, les dettes sont reportées.**
-    `scopeSaison(data)` filtre collectes, mandats, dépenses et soldes sur la campagne
+13. **Stock = entrées − sorties.** `stockStats(data, {scope, staffId})` : les pesées
+    entrent, les `Sortie` (expédition, vente, transfert, perte) sortent. Ne jamais
+    présenter un cumul de collectes comme un stock. Le résultat n'est PAS borné à
+    zéro : un stock négatif signale une erreur de saisie, le masquer serait pire.
+    Une sortie est définitive pour un agent (ni modification ni suppression) ; seul
+    le patron corrige. Portées : le **magasinier et le patron** voient le magasin de
+    la coopérative (`scope: "all"`), le **pisteur** ce qu'il a collecté et pas encore
+    remis (`scope: "mine"`), le **planteur** rien (mouvement interne).
+14. **Campagnes : la production est cloisonnée, les dettes sont reportées.**
+    `scopeSaison(data)` filtre collectes, mandats, dépenses, soldes et sorties sur la campagne
     active — à utiliser pour les volumes, le stock, la caisse et la commission.
     Le **reste dû** et les **avances à recouvrer** ne sont JAMAIS filtrés : ils suivent
     le planteur d'une campagne à l'autre. Les historiques et journaux non plus.
-14. **Statuts d'avance** (valeurs exactes) : `"en_attente"`, `"approuve"`, `"refuse"`,
+15. **Statuts d'avance** (valeurs exactes) : `"en_attente"`, `"approuve"`, `"refuse"`,
     `"rembourse"`. Ne pas introduire d'autre orthographe.
-15. **Poids net.** `net = max(0, brut - sacs)` (1 kg de tare par sac). Le montant se
+16. **Poids net.** `net = max(0, brut - sacs)` (1 kg de tare par sac). Le montant se
     calcule sur le net, jamais sur le brut.
-16. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
+17. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
 
 ## 5. Feuille de route
 
@@ -151,6 +159,7 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
 - **M6 — Cloisonnement par campagne.** Cf. invariant 13. Arbitrage retenu : les
   dettes sont **reportées** d'une campagne à l'autre, seule la production est
   cloisonnée.
+- **Stock magasin réel.** Cf. invariant 13. Modèle `Sortie` + `stockStats`.
 - **Numéro de bordereau unique.** Cf. invariant 12. Arbitrage retenu : **préfixe par
   agent**, pour rester 100 % hors-ligne (aucune contrainte réseau à la pesée).
 
@@ -161,9 +170,6 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
 - **Même agent sur deux téléphones.** La suite par agent est dérivée de ses propres
   enregistrements : un agent qui pèse hors-ligne depuis deux appareils à la fois peut
   encore produire deux fois le même numéro. Cas rare, mais non couvert.
-- **Stock magasin** : `StockSheet` additionne toutes les collectes, sans aucune
-  sortie (expédition, vente, perte) : le stock ne peut que monter. Il manque un
-  modèle `Sortie` pour que le chiffre corresponde au magasin réel.
 - Anti-force-brute sur les connexions ; jetons courts + révocation ; OTP SMS ;
   certificate pinning (build natif).
 

@@ -78,6 +78,16 @@ export const ROLES: Record<string, { label: string; sub: string; icon: string }>
   pisteur: { label: "Pisteur / Délégué", sub: "Collecte en tournée dans les villages", icon: "truck" },
 };
 
+// Motifs de sortie du magasin. Sans eux, le « stock » ne pouvait que monter :
+// il additionnait les entrées sans jamais rien retrancher.
+export const SORTIE_TYPES = [
+  { id: "expedition", nom: "Expédition", emoji: "🚚", sub: "Départ vers l'exportateur / usine" },
+  { id: "vente", nom: "Vente", emoji: "💰", sub: "Vente directe depuis le magasin" },
+  { id: "transfert", nom: "Transfert", emoji: "🔁", sub: "Vers un autre magasin de la coop" },
+  { id: "perte", nom: "Perte / freinte", emoji: "⚠️", sub: "Casse, humidité, écart de pesée" },
+];
+export const sortieType = (id: string) => SORTIE_TYPES.find((t) => t.id === id) || SORTIE_TYPES[SORTIE_TYPES.length - 1];
+
 export const DEPCATS = [
   { id: "transport", nom: "Transport" },
   { id: "sacs", nom: "Sacs / emballage" },
@@ -236,6 +246,20 @@ export type Loan = Synced & Campagne & {
 export type Settlement = Synced & Campagne & { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; ticket?: string; clientOpId?: string; refs?: { seq: number; ticket?: string; amount: number }[] };
 export type Mandat = Synced & Campagne & { id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string };
 export type Depense = Synced & Campagne & { id: string; coopId?: string; pisteurId: string; category: string; amount: number; date: string; note: string };
+// Sortie de magasin : expédition, vente, transfert ou perte. C'est la
+// contrepartie des collectes dans le calcul du stock réel.
+export type Sortie = Synced & Campagne & {
+  id: string;
+  coopId?: string;
+  cropId: string;
+  kg: number;
+  type: string;
+  date: string;
+  byStaffId: string;
+  destinataire?: string;
+  note: string;
+  clientOpId?: string;
+};
 export type CoopMomo = { id: string; operator: string; number: string; label?: string };
 export type PriceHistory = { date: string; prixKg: number };
 export type Coop = {
@@ -284,6 +308,7 @@ export type Data = {
   mandats: Mandat[];
   depenses: Depense[];
   settlements: Settlement[];
+  sorties: Sortie[];
   priceHistory: PriceHistory[];
 };
 export type Session =
@@ -321,6 +346,7 @@ export function seed(): Data {
     mandats: [],
     depenses: [],
     settlements: [],
+    sorties: [],
     priceHistory: [],
   };
 }
@@ -330,6 +356,7 @@ export function migrate(d: any): Data {
   if (!Array.isArray(out.mandats)) out.mandats = [];
   if (!Array.isArray(out.depenses)) out.depenses = [];
   if (!Array.isArray(out.settlements)) out.settlements = [];
+  if (!Array.isArray(out.sorties)) out.sorties = [];
   if (!Array.isArray(out.loans)) out.loans = [];
   if (!Array.isArray(out.collections)) out.collections = [];
   if (!Array.isArray(out.staff)) out.staff = [];
@@ -380,6 +407,7 @@ export function migrate(d: any): Data {
     out.mandats = out.mandats.map((x: any) => ({ ...x, coopId: x.coopId || legacyId }));
     out.depenses = out.depenses.map((x: any) => ({ ...x, coopId: x.coopId || legacyId }));
     out.settlements = out.settlements.map((x: any) => ({ ...x, coopId: x.coopId || legacyId }));
+    out.sorties = out.sorties.map((x: any) => ({ ...x, coopId: x.coopId || legacyId }));
   }
   // Chaque coopérative a des prix/commissions complets.
   out.coops = out.coops.map((c: any) => {
@@ -411,6 +439,7 @@ export function scopeData(raw: Data, coopId?: string): Data {
     mandats: (raw.mandats || []).filter((x) => !id || x.coopId === id),
     depenses: (raw.depenses || []).filter((x) => !id || x.coopId === id),
     settlements: (raw.settlements || []).filter((x) => !id || x.coopId === id),
+    sorties: (raw.sorties || []).filter((x) => !id || x.coopId === id),
   };
 }
 
@@ -441,6 +470,7 @@ export function scopeSaison(data: Data, saison?: string): Data {
     mandats: (data.mandats || []).filter((x) => inSaison(x, s)),
     depenses: (data.depenses || []).filter((x) => inSaison(x, s)),
     settlements: (data.settlements || []).filter((x) => inSaison(x, s)),
+    sorties: (data.sorties || []).filter((x) => inSaison(x, s)),
   };
 }
 
@@ -480,6 +510,53 @@ export const totalSuperficie = (m: any): number => memberCultures(m).reduce((s, 
 // sinon (données antérieures) le barème courant du produit.
 export const collectionComm = (data: Data, c: Collection): number =>
   c.commissionRate != null ? c.commissionRate : commOf(data, c.cropId || "cacao");
+
+/**
+ * Stock réel en magasin, par produit : entrées (pesées) − sorties.
+ *
+ * Sans les sorties, le « stock » n'était qu'un cumul de collectes : il ne
+ * pouvait que monter et ne correspondait jamais au magasin.
+ *
+ * `scope: "mine"` restreint aux mouvements d'un agent (ce qu'un pisteur a
+ * collecté et pas encore remis) ; `"all"` donne le magasin de la coopérative.
+ * Le stock n'est PAS borné à zéro : un négatif signale une erreur de saisie,
+ * le masquer serait pire que l'afficher.
+ */
+export function stockStats(data: Data, opts?: { scope?: "all" | "mine"; staffId?: string }) {
+  const mine = opts?.scope === "mine" && !!opts?.staffId;
+  const staffId = opts?.staffId;
+  const cols = (data.collections || []).filter((c) => !mine || c.byStaffId === staffId);
+  const outs = (data.sorties || []).filter((x) => !mine || x.byStaffId === staffId);
+  const rows = CROPS.map((cr) => {
+    const list = cols.filter((c) => (c.cropId || "cacao") === cr.id);
+    const outList = outs.filter((x) => (x.cropId || "cacao") === cr.id);
+    const entrees = list.reduce((s, c) => s + (Number(c.kg) || 0), 0);
+    const sorties = outList.reduce((s, x) => s + (Number(x.kg) || 0), 0);
+    return {
+      cr,
+      cropId: cr.id,
+      entrees,
+      sorties,
+      stock: entrees - sorties,
+      count: list.length,
+      valeur: list.reduce((s, c) => s + (Number(c.net) || 0), 0),
+    };
+  }).filter((r) => r.entrees > 0 || r.sorties > 0);
+  return {
+    rows,
+    entrees: rows.reduce((s, r) => s + r.entrees, 0),
+    sorties: rows.reduce((s, r) => s + r.sorties, 0),
+    stock: rows.reduce((s, r) => s + r.stock, 0),
+    count: rows.reduce((s, r) => s + r.count, 0),
+    valeur: rows.reduce((s, r) => s + r.valeur, 0),
+  };
+}
+
+// Stock encore disponible pour un produit : borne haute d'une nouvelle sortie.
+export const stockDispo = (data: Data, cropId: string, opts?: { scope?: "all" | "mine"; staffId?: string }): number => {
+  const r = stockStats(data, opts).rows.find((x) => x.cropId === cropId);
+  return r ? r.stock : 0;
+};
 
 export function pisteurStats(pid: string, data: Data) {
   const cols = (data.collections || []).filter((c) => c.byStaffId === pid);
