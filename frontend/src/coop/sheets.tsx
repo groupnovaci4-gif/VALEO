@@ -37,6 +37,7 @@ import {
   totalSuperficie,
   waNumber,
 } from "./lib";
+import { Localisation, libelleLocalite, rapprocherTexte } from "./geo";
 import { Icon } from "./Icon";
 import { createPinRecord, isValidPin } from "./pin";
 import { Sig, SignaturePad, SigPreview, sigToSvg } from "./Signature";
@@ -45,6 +46,7 @@ import {
   Chip,
   CulturesPicker,
   Field,
+  LieuPicker,
   PhotoAvatar,
   Row,
   SaveBtn,
@@ -57,7 +59,12 @@ import {
 
 export function MemberSheet({ onClose, onSave, initial }: any) {
   const [nom, setNom] = useState(initial?.nom || "");
-  const [village, setVillage] = useState(initial?.village || "");
+  // Localisation structurée ; reconstruite depuis l'ancien champ texte pour
+  // une fiche créée avant cette évolution (aucune donnée perdue).
+  const [loc, setLoc] = useState<Localisation>(() => initial?.loc || rapprocherTexte({ village: initial?.village }));
+  // `village` reste la valeur affichée partout (listes, filtres, reçus, PDF) :
+  // elle est recopiée depuis la sélection, plus jamais saisie à la main.
+  const village = libelleLocalite(loc);
   const [idNumber, setIdNumber] = useState(initial?.idNumber || "");
   const [cultures, setCultures] = useState<Culture[]>(initial ? memberCultures(initial) : []);
   const [tel, setTel] = useState(initial?.tel || "");
@@ -67,7 +74,7 @@ export function MemberSheet({ onClose, onSave, initial }: any) {
   const pinOk = initial ? (!pinTouched || (isValidPin(pin) && pin === pin2)) : (isValidPin(pin) && pin === pin2);
   const valid = nom.trim() && village.trim() && pinOk;
   const save = async () => {
-    const base: any = { nom: nom.trim(), village: village.trim(), idNumber: idNumber.trim(), cultures, cropId: cultures[0]?.cropId || "cacao", superficie: totalSuperficie({ cultures }), tel: tel.trim() };
+    const base: any = { nom: nom.trim(), village: village.trim(), loc, idNumber: idNumber.trim(), cultures, cropId: cultures[0]?.cropId || "cacao", superficie: totalSuperficie({ cultures }), tel: tel.trim() };
     if (isValidPin(pin) && pin === pin2) base.pin = await createPinRecord(pin);
     onSave(base);
   };
@@ -75,7 +82,11 @@ export function MemberSheet({ onClose, onSave, initial }: any) {
     <Sheet title={initial ? "Modifier le planteur" : "Nouveau planteur"} onClose={onClose}>
       <Field label="Nom & prénoms"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Kouassi Yao" /></Field>
       <Field label="Numéro de pièce d'identité"><TInput value={idNumber} onChangeText={setIdNumber} placeholder="Ex. CI 003 451 2" /></Field>
-      <Field label="Localité / village"><TInput value={village} onChangeText={setVillage} placeholder="Ex. Sikensi" /></Field>
+      <Field label="Localisation">
+        {/* Sélection hiérarchique : District → Région → Département → Village.
+            Le nom retenu alimente `village`, utilisé par les filtres et les reçus. */}
+        <LieuPicker value={loc} onChange={setLoc} />
+      </Field>
       <Field label="Cultures & superficies (plusieurs possibles)">
         <CulturesPicker value={cultures} onChange={setCultures} />
       </Field>
@@ -589,11 +600,11 @@ export function CoopProfileSheet({ coop, patron, onClose, onSave }: { coop: any;
   const [dateCreation, setDateCreation] = useState(c.dateCreation || "");
   const [filieres, setFilieres] = useState<string[]>(c.filieres || []);
   const [description, setDescription] = useState(c.description || "");
-  const [region, setRegion] = useState(c.region || "");
-  const [district, setDistrict] = useState(c.district || "");
-  const [departement, setDepartement] = useState(c.departement || "");
-  const [commune, setCommune] = useState(c.commune || "");
-  const [localite, setLocalite] = useState(c.localite || "");
+  // Localisation structurée. Une fiche créée avant cette évolution n'a pas de
+  // `loc` : on la reconstruit depuis ses anciens champs texte, sans rien perdre.
+  const [loc, setLoc] = useState<Localisation>(() =>
+    c.loc || rapprocherTexte({ district: c.district, region: c.region, departement: c.departement, village: c.localite }),
+  );
   const [adresse, setAdresse] = useState(c.adresse || "");
   const [tel, setTel] = useState(c.tel || "");
   const [email, setEmail] = useState(c.email || "");
@@ -604,7 +615,7 @@ export function CoopProfileSheet({ coop, patron, onClose, onSave }: { coop: any;
 
   // Aperçu en temps réel de la complétude.
   const live = coopCompleteness(
-    { nom: nom.trim() || "Ma coopérative", type, filieres, tel: tel.trim(), adresse: adresse.trim(), localite: localite.trim(), region: region.trim(), agrement: agrement.trim() },
+    { nom: nom.trim() || "Ma coopérative", type, filieres, tel: tel.trim(), adresse: adresse.trim(), localite: libelleLocalite(loc), region: loc.region || "", agrement: agrement.trim() },
     { tel: rtel.trim(), fonction: rfonction.trim() },
   );
   const valid = nom.trim().length >= 2;
@@ -614,8 +625,11 @@ export function CoopProfileSheet({ coop, patron, onClose, onSave }: { coop: any;
       coopPatch: {
         nom: nom.trim() || "Ma coopérative", sigle: sigle.trim(), agrement: agrement.trim(), type,
         dateCreation: dateCreation.trim(), filieres, photo, description: description.trim(),
-        region: region.trim(), district: district.trim(), departement: departement.trim(),
-        commune: commune.trim(), localite: localite.trim(), adresse: adresse.trim(),
+        // Les champs texte restent alimentés (affichage, espace admin, export) :
+        // ils sont désormais recopiés depuis la sélection, jamais saisis à la main.
+        loc,
+        region: loc.region || "", district: loc.district || "", departement: loc.departement || "",
+        commune: loc.sousPrefecture || loc.departement || "", localite: libelleLocalite(loc), adresse: adresse.trim(),
         tel: tel.trim(), email: email.trim(),
       },
       patronPatch: { tel: rtel.trim(), fonction: rfonction.trim() || "Responsable" },
@@ -662,15 +676,11 @@ export function CoopProfileSheet({ coop, patron, onClose, onSave }: { coop: any;
       </Field>
 
       <SectionTitle>Coordonnées</SectionTitle>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Field label="Région" flex><TInput value={region} onChangeText={setRegion} placeholder="Ex. Agnéby-Tiassa" /></Field>
-        <Field label="District" flex><TInput value={district} onChangeText={setDistrict} placeholder="Ex. Lagunes" /></Field>
-      </View>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Field label="Département" flex><TInput value={departement} onChangeText={setDepartement} placeholder="Ex. Sikensi" /></Field>
-        <Field label="Commune" flex><TInput value={commune} onChangeText={setCommune} placeholder="Ex. Sikensi" /></Field>
-      </View>
-      <Field label="Localité / village"><TInput value={localite} onChangeText={setLocalite} placeholder="Ex. Gomon" /></Field>
+      <Field label="Localisation">
+        {/* Sélection hiérarchique : District → Région → Département → Village.
+            Remplace la saisie manuelle pour éviter les orthographes multiples. */}
+        <LieuPicker value={loc} onChange={setLoc} />
+      </Field>
       <Field label="Adresse"><TInput value={adresse} onChangeText={setAdresse} placeholder="Ex. Quartier, rue…" /></Field>
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Field label="Téléphone" flex><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>

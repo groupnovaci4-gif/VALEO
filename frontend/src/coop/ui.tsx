@@ -17,6 +17,17 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { C, CROPS, Culture, Loan, STATUS, crop, fDate, fF, op } from "./lib";
+import {
+  cheminLisible,
+  chercher,
+  enfantsDe,
+  LIBELLE_NIVEAU,
+  lieuParId,
+  Localisation,
+  localisationDepuisLieu,
+  Niveau,
+  niveauDisponible,
+} from "./geo";
 import { Icon } from "./Icon";
 
 /* ------------------------------ Card / text ------------------------------ */
@@ -404,6 +415,161 @@ export function Select({
   );
 }
 
+/* ----------------------------- Localisation ------------------------------ */
+/**
+ * Sélecteur d'un niveau géographique, avec recherche.
+ *
+ * La recherche ne fait que filtrer la liste officielle : impossible de créer
+ * une localité au passage, donc pas de doublon orthographique.
+ */
+function NiveauSelect({
+  niveau,
+  parentId,
+  value,
+  onChange,
+  disabled,
+}: {
+  niveau: Niveau;
+  parentId?: string | null;
+  value?: string;
+  onChange: (id: string) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const courant = lieuParId(value);
+  const options = chercher(parentId, niveau, open ? q : "");
+  const vide = enfantsDe(parentId, niveau).length === 0;
+  const bloque = disabled || vide;
+  return (
+    <>
+      <Pressable
+        style={[styles.input, { flexDirection: "row", alignItems: "center", justifyContent: "space-between", opacity: bloque ? 0.55 : 1 }]}
+        onPress={() => { if (!bloque) { setQ(""); setOpen(true); } }}
+        disabled={bloque}
+        testID={`geo-${niveau}`}
+      >
+        <Text style={{ fontSize: 15, color: courant ? C.ink : C.muted, flexShrink: 1 }} numberOfLines={1}>
+          {courant ? courant.n : disabled ? `Choisissez d'abord le niveau précédent` : vide ? "Aucune donnée dans la base" : `Choisir — ${LIBELLE_NIVEAU[niveau]}`}
+        </Text>
+        <Icon name="chevron-right" size={18} color={C.muted} />
+      </Pressable>
+      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+        <View style={styles.overlay}>
+          <Pressable style={{ flex: 1 }} onPress={() => setOpen(false)} />
+          <View style={[styles.sheetBox, { maxHeight: "80%", paddingBottom: 24 }]}>
+            <View style={{ padding: 18, paddingBottom: 10 }}>
+              <Text style={{ fontWeight: "800", fontSize: 16, marginBottom: 10 }}>{LIBELLE_NIVEAU[niveau]}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingHorizontal: 12 }}>
+                <Icon name="search" size={17} color={C.muted} />
+                <TInput
+                  value={q}
+                  onChangeText={setQ}
+                  placeholder="Rechercher…"
+                  autoCorrect={false}
+                  style={{ flex: 1, borderWidth: 0, paddingHorizontal: 0, backgroundColor: "transparent" }}
+                />
+              </View>
+            </View>
+            <KeyboardAwareScrollView contentContainerStyle={{ paddingHorizontal: 12 }} keyboardShouldPersistTaps="handled">
+              {options.length === 0 ? (
+                <Text style={{ padding: 16, color: C.muted, fontSize: 14, textAlign: "center" }}>Aucune localité ne correspond.</Text>
+              ) : (
+                options.map((o) => (
+                  <Pressable
+                    key={o.id}
+                    onPress={() => { onChange(o.id); setOpen(false); }}
+                    style={{ paddingVertical: 14, paddingHorizontal: 12, borderRadius: 12, backgroundColor: o.id === value ? "#EAF3EF" : "transparent", flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+                    testID={`geo-option-${o.id}`}
+                  >
+                    <Text style={{ fontSize: 15, fontWeight: o.id === value ? "700" : "500", color: C.ink, flexShrink: 1 }}>{o.n}</Text>
+                    {o.id === value ? <Icon name="check" size={18} color={C.teal} /> : null}
+                  </Pressable>
+                ))
+              )}
+            </KeyboardAwareScrollView>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
+/**
+ * Sélection géographique en cascade : District → Région → Département / Ville
+ * → (Sous-préfecture) → Village. Chaque niveau ne propose que les localités
+ * rattachées au choix précédent.
+ *
+ * Tant que la base ne contient pas les villages, le dernier niveau reste en
+ * saisie libre, signalée comme telle (`villageLibre`) pour pouvoir être
+ * rapprochée plus tard sans perdre la donnée.
+ */
+export function LieuPicker({ value, onChange }: { value?: Localisation | null; onChange: (loc: Localisation) => void }) {
+  const loc = value || {};
+  const villagesDispo = niveauDisponible("village");
+  const spDispo = niveauDisponible("sousPrefecture");
+
+  // Choisir un niveau réinitialise les niveaux inférieurs : on ne peut pas
+  // conserver un village qui n'appartiendrait plus au département choisi.
+  const choisir = (niveau: Niveau, id: string) => {
+    const base = localisationDepuisLieu(id);
+    if (niveau === "village") onChange(base);
+    else onChange({ ...base, villageLibre: undefined });
+  };
+
+  return (
+    <View style={{ gap: 10 }}>
+      <View>
+        <Text style={styles.geoLabel}>{LIBELLE_NIVEAU.district}</Text>
+        <NiveauSelect niveau="district" parentId={null} value={loc.districtId} onChange={(id) => choisir("district", id)} />
+      </View>
+      <View>
+        <Text style={styles.geoLabel}>{LIBELLE_NIVEAU.region}</Text>
+        <NiveauSelect niveau="region" parentId={loc.districtId} value={loc.regionId} onChange={(id) => choisir("region", id)} disabled={!loc.districtId} />
+      </View>
+      <View>
+        <Text style={styles.geoLabel}>{LIBELLE_NIVEAU.departement}</Text>
+        <NiveauSelect niveau="departement" parentId={loc.regionId} value={loc.departementId} onChange={(id) => choisir("departement", id)} disabled={!loc.regionId} />
+      </View>
+      {spDispo ? (
+        <View>
+          <Text style={styles.geoLabel}>{LIBELLE_NIVEAU.sousPrefecture}</Text>
+          <NiveauSelect niveau="sousPrefecture" parentId={loc.departementId} value={loc.sousPrefectureId} onChange={(id) => choisir("sousPrefecture", id)} disabled={!loc.departementId} />
+        </View>
+      ) : null}
+      <View>
+        <Text style={styles.geoLabel}>{LIBELLE_NIVEAU.village}</Text>
+        {villagesDispo ? (
+          <NiveauSelect
+            niveau="village"
+            parentId={loc.sousPrefectureId || loc.departementId}
+            value={loc.villageId}
+            onChange={(id) => choisir("village", id)}
+            disabled={!(loc.sousPrefectureId || loc.departementId)}
+          />
+        ) : (
+          <>
+            <TInput
+              value={loc.village || ""}
+              onChangeText={(t) => onChange({ ...loc, village: t, villageId: undefined, villageLibre: t.trim() ? true : undefined })}
+              placeholder="Nom du village"
+            />
+            <Text style={{ fontSize: 11.5, color: C.due, marginTop: 5, lineHeight: 16 }}>
+              La base de villages n&apos;est pas encore chargée : ce nom est saisi librement et sera rattaché
+              automatiquement à la localité officielle lors de l&apos;import.
+            </Text>
+          </>
+        )}
+      </View>
+      {cheminLisible(loc) ? (
+        <View style={{ backgroundColor: "#EAF3EF", borderWidth: 1, borderColor: "#CFE6E0", borderRadius: 10, padding: 10 }}>
+          <Text style={{ fontSize: 12, color: C.cocoaSoft }}>{cheminLisible(loc)}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 /* --------------------------------- Sheet --------------------------------- */
 export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
@@ -433,6 +599,7 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
 }
 
 export const styles = StyleSheet.create({
+  geoLabel: { fontSize: 12.5, fontWeight: "700", color: C.muted, marginBottom: 5 },
   card: { backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.line },
   sectionTitle: { fontSize: 12.5, fontWeight: "700", color: C.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10, marginHorizontal: 2, marginTop: 2 },
   saveBtn: { width: "100%", paddingVertical: 14, borderRadius: 13, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, marginTop: 4 },

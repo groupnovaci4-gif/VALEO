@@ -1,4 +1,5 @@
 // VALEO — logique métier & données (100% hors-ligne)
+import type { Localisation } from "./geo";
 import type { PinRecord } from "./pin";
 
 export const C = {
@@ -166,6 +167,8 @@ export const ticketOf = (rec: { ticket?: string; seq?: number } | null | undefin
 export const byDateDesc = (a: any, b: any) => +new Date(b.date) - +new Date(a.date);
 
 /* --------------------------------- Types --------------------------------- */
+export type { Localisation } from "./geo";
+
 export type Momo = { operator: string; number: string; label?: string };
 // Horodatage de dernière écriture, posé automatiquement par la couche de
 // synchronisation (store.prepareSync). Il arbitre les conflits côté serveur :
@@ -181,7 +184,12 @@ export type Member = Synced & {
   coopId?: string;
   code: string;
   nom: string;
+  // Nom de la localité, recopié depuis `loc` quand une sélection structurée
+  // est faite. Reste la valeur affichée sur les écrans, reçus et bilans.
   village: string;
+  // Localisation structurée (District › Région › Département › Village).
+  // Facultative : les fiches créées avant la sélection structurée n'en ont pas.
+  loc?: Localisation;
   idNumber: string;
   superficie: number;
   cropId: string;
@@ -280,6 +288,9 @@ export type Coop = {
   commune?: string;
   localite?: string;
   adresse?: string;
+  // Localisation structurée. Les champs texte ci-dessus restent renseignés
+  // (affichage, espace admin, export) et sont recopiés depuis celle-ci.
+  loc?: Localisation;
   tel?: string;
   email?: string;
   momo: CoopMomo[];

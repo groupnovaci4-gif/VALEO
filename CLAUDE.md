@@ -34,6 +34,10 @@ Fichiers clés du frontend (`frontend/src/coop/`) :
   **Aucun import d'exécution** : le module est testable directement par Node.
 - `sync.ts` — `prepareSync(local, baseline)` : horodate les enregistrements modifiés
   et calcule les suppressions explicites. Module **pur**, testé par `yarn test`.
+- `geo.ts` + `geo/` — base des localités de Côte d'Ivoire et sélection en cascade
+  (District → Région → Département → Village). Module **pur**. La base est
+  **générée** (`yarn geo:build`) depuis `geo/ci-decoupage.csv` : voir
+  `geo/README.md` pour charger une base officielle complète.
 - `store.ts` — hook d'état global + synchro (`push`/`pull`, `PUT /api/state` debouncé
   700 ms), création de collecte (`addCollection`), avances (`addLoan`/`approveLoan`/
   `refuseLoan`), soldes (`settleMemberDue`).
@@ -53,8 +57,11 @@ Frontend (dossier `frontend/`) :
 - `yarn lint` — ESLint (`expo lint`). Config : `eslint.config.js`, `tsconfig.json`.
   ⚠️ 8 erreurs `react/no-unescaped-entities` **préexistantes** : c'est le niveau de
   référence, ne pas croire qu'on vient de les introduire.
-- `yarn test` — tests des modules purs (`sync.ts`, `lib.ts`) avec le lanceur intégré
-  de Node, après transpilation vers `.sync-build/`. Aucune dépendance de test.
+- `yarn test` — tests des modules purs (`sync.ts`, `lib.ts`, `geo.ts`) avec le
+  lanceur intégré de Node, après transpilation vers `.sync-build/`. Aucune
+  dépendance de test.
+- `yarn geo:build` — régénère la base des localités depuis
+  `src/coop/geo/ci-decoupage.csv` (voir `src/coop/geo/README.md`).
 - `npx tsc --noEmit -p tsconfig.json` — vérification de types (doit rester à zéro erreur).
 - Build APK/IPA : **EAS Build** (`npx eas build`) — c'est Expo, indépendant de tout builder.
 
@@ -145,7 +152,17 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     partagent, et `X-Forwarded-For` est falsifiable). Un identifiant inconnu doit
     consommer le même temps de calcul qu'un mauvais code (`burn_secret_time`) :
     sinon la durée de réponse révèle quels comptes existent.
-18. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
+18. **Localisation : sélection, jamais saisie libre.** La localisation d'une
+    coopérative ou d'un planteur se choisit dans la base (`LieuPicker`), qui ne
+    fait que filtrer une liste officielle — impossible de créer une localité
+    avec une faute de frappe. Elle est stockée dans `loc` (identifiant **et**
+    nom de chaque niveau, pour permettre des regroupements fiables), et les
+    champs texte historiques (`Member.village`, `Coop.region`/`district`/
+    `departement`/`localite`) restent alimentés par recopie : listes, filtres,
+    reçus, PDF et espace admin continuent de fonctionner à l'identique. Ne
+    jamais supprimer ces champs texte. Une valeur non retrouvée dans la base
+    est conservée telle quelle (`villageLibre`), jamais effacée.
+19. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
 
 ## 5. Feuille de route
 
@@ -173,6 +190,10 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
   agent**, pour rester 100 % hors-ligne (aucune contrainte réseau à la pesée).
 
 ### Reste à faire
+- **Base des villages.** `src/coop/geo/` ne contient que districts, régions et
+  départements. Sous-préfectures et villages restent à importer depuis une base
+  officielle (`node scripts/import-geo.mjs base.csv`) ; jusque-là le village est
+  en saisie libre marquée `villageLibre`.
 - **Sélecteur de campagne.** `saisons(data)` liste les campagnes présentes, mais les
   écrans n'affichent que la campagne active (`data.saison`) : il manque un sélecteur
   pour consulter une campagne close.

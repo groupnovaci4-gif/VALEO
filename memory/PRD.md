@@ -292,3 +292,30 @@ en quelques heures depuis n'importe où.
 - Interface : l'app et l'espace admin web affichent le délai d'attente au lieu
   d'un « Identifiants incorrects » trompeur quand le bon code est refusé.
 - Tests : 49 backend (dont test_login_bruteforce.py, 12 tests) + 33 frontend.
+
+## Localisation structurée v33 (2026-09) — TERMINÉ & TESTÉ
+Remplace la saisie manuelle de la localisation par une sélection hiérarchique,
+pour la coopérative et le planteur. **Aucune autre logique métier modifiée.**
+- Cascade **District → Région → Département / Ville → (Sous-préfecture) →
+  Village** : chaque niveau ne propose que les localités rattachées au choix
+  précédent, avec recherche insensible aux accents et à la casse. La recherche
+  ne fait que filtrer la liste officielle : impossible de créer une localité
+  avec une faute de frappe.
+- Base : `src/coop/geo/ci-geo.json`, **générée** par `scripts/import-geo.mjs`
+  depuis un CSV hiérarchique à 5 colonnes (`yarn geo:build`). Contient
+  aujourd'hui 14 districts, 33 régions (31 + 2 miroirs pour Abidjan et
+  Yamoussoukro, qui n'ont pas ce niveau) et 108 départements, issus du
+  découpage de 2011-2012. Sous-préfectures et villages restent à importer
+  depuis une base officielle : l'import ne demande aucune modification de code.
+- Tant que le niveau village est vide, ce champ reste en saisie libre signalée
+  à l'écran et marquée `villageLibre: true`, pour être rapprochée après import.
+- **Compatibilité** : `Member.village` et `Coop.region/district/departement/
+  localite` restent alimentés par recopie depuis la sélection — filtres par
+  village, reçus, PDF, bilans et espace admin fonctionnent à l'identique. À
+  l'ouverture d'une fiche ancienne, `rapprocherTexte()` retrouve la localité
+  officielle correspondante ; ce qui n'est pas reconnu est conservé tel quel.
+- Chaque fiche stocke l'identifiant ET le nom de chaque niveau, ce qui rendra
+  possibles les statistiques par zone (non développées ici).
+- Aucun changement backend : `loc` est un champ de plus sur des enregistrements
+  déjà autorisés, et seul le patron peut modifier une fiche planteur ou coop.
+- Tests : 51 frontend (dont geo.test.mjs) ; backend inchangé (49).
