@@ -1,7 +1,7 @@
 // VALEO — préparation de la charge utile de synchronisation.
 //
 // Module volontairement PUR (aucune dépendance d'exécution, seulement un import
-// de type) afin d'être testable directement par Node : `yarn test:sync`.
+// de type) afin d'être testable directement par Node : `yarn test`.
 import type { Data } from "./lib";
 
 // Tableaux d'enregistrements fusionnés un par un par le backend.

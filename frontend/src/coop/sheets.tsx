@@ -82,7 +82,7 @@ export function MemberSheet({ onClose, onSave, initial }: any) {
       {initial ? <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>Laissez vide pour conserver le code actuel.</Text> : null}
       {!initial ? (
         <View style={{ backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-          <Text style={{ fontSize: 12, color: C.muted }}>Un <Text style={{ fontWeight: "700" }}>identifiant planteur</Text> unique sera généré automatiquement (format VAL-XXXX-YY). Le planteur se connecte avec cet identifiant (ou son téléphone) et son <Text style={{ fontWeight: "700" }}>code secret</Text>.</Text>
+          <Text style={{ fontSize: 12, color: C.muted }}>Un <Text style={{ fontWeight: "700" }}>identifiant planteur</Text> unique sera généré automatiquement (format VAL-XXXX-YY). Le planteur se connecte avec cet identifiant (ou son téléphone) et son <Text style={{ fontWeight: "700" }}>code secret</Text>.{!tel.trim() ? <Text style={{ color: C.due }}>{"\n"}Sans téléphone, il ne pourra se connecter qu&apos;avec son identifiant : notez-le et remettez-le lui.</Text> : null}</Text>
         </View>
       ) : null}
       <SaveBtn disabled={!valid} color={C.green} onPress={save}>Enregistrer</SaveBtn>
@@ -107,6 +107,9 @@ const NumPad = ({ onKey }: { onKey: (k: string) => void }) => {
 type Weigh = { brut: number; sacs: number; net: number };
 
 export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Data; role?: string; staffId: string; onClose: () => void; onSave: (c: any) => void }) {
+  // Identifiant d'opération unique à cette saisie : si la validation part deux
+  // fois (double-tap, rejeu réseau), le serveur ne crée qu'une seule pesée.
+  const [clientOpId] = useState(() => `op-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
   const [memberId, setMemberId] = useState(data.members[0]?.id || "");
   const member = data.members.find((m) => m.id === memberId);
   const memCrops = memberCultures(member).map((c) => c.cropId);
@@ -174,6 +177,10 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
     const retenues = recouvre > 0 ? [{ label: "Recouvrement d'avance", amount: recouvre }] : [];
     onSave({
       memberId, byStaffId: staffId, date: new Date().toISOString(), kg: totalNet, prixKg: prix, cropId,
+      // Barème figé au moment de la pesée : un changement de réglage ultérieur
+      // ne doit pas réécrire la commission déjà due sur cette collecte.
+      commissionRate: commOf(data, cropId),
+      clientOpId,
       brut: montant, retenues, net: netAPayer, sacs: totalSacs, weighings: weighs,
       paye: payeCurrent, reste: resteCurrent, method: momoDisabled ? "espece" : method, note: "",
       _repay: recouvre > 0 ? { amount: recouvre } : null, _settle: settleOld > 0 ? settleOld : null,
@@ -750,6 +757,7 @@ function receiptHtml(c: Collection, member: Member | undefined, saison: string, 
     .dash{border-top:1px dashed #EAE2D5;margin:10px 0}
     .big{font-size:19px;font-weight:900}
     .due{color:#B8791E}
+    .ok{color:#1E7A4D}
     .foot{text-align:center;font-size:11px;color:#7A6E62;margin-top:12px;font-family:sans-serif}
   </style></head><body>
     <div class="h"><div class="n">VALEO</div><div class="t">La valeur commence à la source.</div><div class="s">${saison} · Reçu de livraison</div></div>
@@ -767,7 +775,12 @@ function receiptHtml(c: Collection, member: Member | undefined, saison: string, 
       <table>
         <tr><td class="big">NET À PAYER</td><td class="r big">${fF(c.net)}</td></tr>
         <tr><td>Payé (${c.method === "momo" ? "Mobile Money" : "espèces"})</td><td class="r">${fF(c.paye)}</td></tr>
+        ${c.oldRegle && c.oldRegle > 0 ? `<tr><td class="ok">Ancien reste soldé</td><td class="r ok">${fF(c.oldRegle)}</td></tr>` : ""}
         ${c.reste > 0 ? `<tr><td class="due">Reste à payer</td><td class="r due">${fF(c.reste)}</td></tr>` : ""}
+      </table>
+      <div class="dash"></div>
+      <table>
+        <tr><td class="big">TOTAL REMIS</td><td class="r big">${fF((c.paye || 0) + (c.oldRegle || 0))}</td></tr>
       </table>
       <div class="dash"></div>
       ${sig && sig.paths.length ? `<div style="margin-top:6px"><div style="font-size:11px;color:#7A6E62;font-family:sans-serif;margin-bottom:4px">Signature du planteur</div><div style="border:1px solid #EAE2D5;border-radius:8px;padding:6px;display:inline-block">${sigToSvg(sig, 70)}</div></div>` : ""}
@@ -830,6 +843,7 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
       `Payé (${c.method === "momo" ? "Mobile Money" : "espèces"}) : ${fF(c.paye)}\n` +
       (c.oldRegle && c.oldRegle > 0 ? `Ancien reste soldé : ${fF(c.oldRegle)}\n` : "") +
       (c.reste > 0 ? `Reste à payer : ${fF(c.reste)}\n` : "") +
+      `*TOTAL REMIS : ${fFull((c.paye || 0) + (c.oldRegle || 0))}*\n` +
       `\nMerci pour votre livraison.`;
     const url = `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
     try {
@@ -880,6 +894,10 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
                   </View>
                 ) : null}
                 {c.reste > 0 ? <TRow k="Reste à payer" v={fF(c.reste)} due /> : null}
+                <Dashed />
+                {/* Somme réellement remise au planteur : paiement de la pesée
+                    du jour + ancien reste soldé à cette occasion. */}
+                <TRow k="TOTAL REMIS" v={fF((c.paye || 0) + (c.oldRegle || 0))} bold big />
                 <Dashed />
                 <Text style={{ textAlign: "center", fontSize: 11, color: C.muted, marginTop: 6 }}>Merci pour votre livraison. Conservez ce reçu.</Text>
               </View>

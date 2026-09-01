@@ -1,6 +1,6 @@
 // Tests de `src/coop/sync.ts` (préparation de la charge utile de synchro).
 //
-// Lancer : `yarn test:sync` — le script transpile d'abord le module (pur, sans
+// Lancer : `yarn test` — le script transpile d'abord le module (pur, sans
 // dépendance d'exécution) vers `.sync-build/`, puis exécute ce fichier avec le
 // lanceur de tests intégré de Node. Aucune dépendance supplémentaire.
 import assert from "node:assert/strict";

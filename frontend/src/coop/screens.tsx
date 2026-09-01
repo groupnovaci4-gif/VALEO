@@ -12,6 +12,7 @@ import {
   Staff,
   byDateDesc,
   coopCompleteness,
+  collectionComm,
   crop,
   culturesLabel,
   depcat,
@@ -384,6 +385,19 @@ const Segments = ({ segs, seg, setSeg, theme }: { segs: [string, string][]; seg:
   </ScrollView>
 );
 
+// Détail de la commission par produit : chaque collecte est valorisée au
+// barème figé lors de la pesée (jamais au barème courant).
+function commissionParProduit(data: Data, staffId: string) {
+  const cols = (data.collections || []).filter((c) => c.byStaffId === staffId);
+  return CROPS.map((cr) => {
+    const list = cols.filter((c) => (c.cropId || "cacao") === cr.id);
+    const kg = list.reduce((s, c) => s + c.kg, 0);
+    const montant = list.reduce((s, c) => s + Math.round(c.kg * collectionComm(data, c)), 0);
+    const rate = kg > 0 ? Math.round(montant / kg) : 0;
+    return { cropId: cr.id, kg, montant, rate };
+  }).filter((r) => r.kg > 0);
+}
+
 export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onReceipt, onOpen, onPlanteurs, onStock }: any) {
   const [seg, setSeg] = useState("mandats");
   const st = pisteurStats(staffId, data);
@@ -406,7 +420,13 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
         <Text style={{ fontSize: 12, color: C.muted, marginBottom: 8, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>Justification de caisse</Text>
         <Row label="Mandat reçu" value={fF(st.mandat)} />
         <View style={{ height: 6 }} />
-        <Row label="− Achats payés aux planteurs" value={fF(st.achats)} />
+        <Row label="− Achats payés aux planteurs" value={fF(st.achatsPesees)} />
+        {st.soldes > 0 ? (
+          <>
+            <View style={{ height: 6 }} />
+            <Row label="− Anciens restes dus soldés" value={fF(st.soldes)} />
+          </>
+        ) : null}
         <View style={{ height: 6 }} />
         <Row label="− Dépenses de tournée" value={fF(st.depenses)} />
         <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 10 }} />
@@ -456,11 +476,15 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
         <Card style={{ padding: 16 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
             <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#EDF5F0", alignItems: "center", justifyContent: "center" }}><Icon name="coins" size={19} color={C.green} /></View>
-            <View><Text style={{ fontWeight: "800", fontSize: 15 }}>Ma commission</Text><Text style={{ fontSize: 12, color: C.muted }}>Barème {fF(data.commissionRate)} / kg</Text></View>
+            <View><Text style={{ fontWeight: "800", fontSize: 15 }}>Ma commission</Text><Text style={{ fontSize: 12, color: C.muted }}>Barème par produit, figé à la pesée</Text></View>
           </View>
           <Row label="Poids collecté" value={fKg(st.poids)} />
-          <View style={{ height: 6 }} />
-          <Row label={`× barème (${fF(data.commissionRate)}/kg)`} value={fKg(st.poids)} />
+          <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 10 }} />
+          {commissionParProduit(data, staffId).map((r) => (
+            <View key={r.cropId} style={{ marginBottom: 6 }}>
+              <Row label={`${crop(r.cropId).emoji} ${crop(r.cropId).nom} — ${fKg(r.kg)} × ${fF(r.rate)}/kg`} value={fF(r.montant)} />
+            </View>
+          ))}
           <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 10 }} />
           <Row label="Commission due" value={fFull(st.commission)} strong color={C.green} />
         </Card>

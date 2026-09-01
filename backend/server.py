@@ -48,6 +48,8 @@ def empty_state() -> dict:
         "memberSeq": 1,
         "commissionRate": 25,
         "coop": {"nom": "Coopérative", "momo": [], "filieres": []},
+        "coops": [],
+        "settlements": [],
         "staff": [],
         "members": [],
         "collections": [],
@@ -274,11 +276,19 @@ def _parse_ts(value) -> Optional[datetime]:
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
-def _clamped_ts(value, now: datetime) -> Optional[datetime]:
+def _normalize_ts(value, now: datetime):
+    """(horodatage comparable, chaîne à stocker).
+
+    La chaîne d'origine est conservée telle quelle : la réécrire dans un autre
+    format ferait apparaître une différence à chaque renvoi et déclencherait de
+    faux refus d'autorisation. Seule une horloge client en avance est ramenée.
+    """
     ts = _parse_ts(value)
     if ts is None:
-        return None
-    return now if ts > now + CLOCK_SKEW_TOLERANCE else ts
+        return None, None
+    if ts > now + CLOCK_SKEW_TOLERANCE:
+        return now, now.isoformat()
+    return ts, value
 
 
 def _rows_by_id(rows) -> dict:
@@ -305,11 +315,20 @@ def merge_state(state: dict, incoming: dict, coop_id: str, deletions: Optional[d
     for e in ENTITY_ARRAYS:
         others = [x for x in (state.get(e) or []) if not isinstance(x, dict) or x.get("coopId") != coop_id]
         merged = _rows_by_id([x for x in (state.get(e) or []) if isinstance(x, dict) and x.get("coopId") == coop_id])
+        # Idempotence (M5) : une pesée validée deux fois (double-tap, rejeu
+        # réseau après une réponse perdue) porte le même `clientOpId` ; on ne
+        # crée alors qu'un seul enregistrement, donc un seul paiement.
+        seen_ops = {r["clientOpId"]: rid for rid, r in merged.items() if r.get("clientOpId")}
         for rid, incoming_row in _rows_by_id(incoming.get(e)).items():
             stored = merged.get(rid)
-            incoming_ts = _clamped_ts(incoming_row.get("updatedAt"), now)
+            incoming_ts, stamp = _normalize_ts(incoming_row.get("updatedAt"), now)
             if stored is None:
-                merged[rid] = {**incoming_row, "coopId": coop_id, "updatedAt": (incoming_ts or now).isoformat()}
+                op = incoming_row.get("clientOpId")
+                if op and op in seen_ops and seen_ops[op] != rid:
+                    continue  # doublon de la même opération : ignoré.
+                merged[rid] = {**incoming_row, "coopId": coop_id, "updatedAt": stamp or now.isoformat()}
+                if op:
+                    seen_ops[op] = rid
                 continue
             stored_ts = _parse_ts(stored.get("updatedAt"))
             if incoming_ts is not None and (stored_ts is None or incoming_ts > stored_ts):
@@ -317,7 +336,7 @@ def merge_state(state: dict, incoming: dict, coop_id: str, deletions: Optional[d
                 # empreintes `pin` ne quittent jamais le serveur, un planteur ne
                 # voit qu'un annuaire réduit du personnel). Écraser
                 # l'enregistrement entier effacerait ces champs invisibles.
-                merged[rid] = {**stored, **incoming_row, "coopId": coop_id, "updatedAt": incoming_ts.isoformat()}
+                merged[rid] = {**stored, **incoming_row, "coopId": coop_id, "updatedAt": stamp}
         for rid in deletions.get(e) or []:
             merged.pop(rid, None)
         state[e] = others + list(merged.values())
@@ -362,7 +381,8 @@ class Forbidden(HTTPException):
 
 
 def _changed_keys(before: dict, after: dict) -> set:
-    return {k for k in set(before) | set(after) if before.get(k) != after.get(k)}
+    """Champs réellement modifiés, `updatedAt` exclu (il n'est qu'un marqueur)."""
+    return {k for k in set(before) | set(after) if k != "updatedAt" and before.get(k) != after.get(k)}
 
 
 def _diff_entities(visible: dict, incoming: dict, coop_id: str, deletions: dict) -> dict:
@@ -685,10 +705,14 @@ async def admin_dashboard():
     return HTMLResponse(ADMIN_HTML)
 
 
+# CORS : l'application s'authentifie par jeton Bearer (aucun cookie), donc
+# `allow_credentials` reste désactivé. Restreindre les origines via la variable
+# d'environnement CORS_ORIGINS (liste séparée par des virgules).
+_cors_origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "*").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=["*"],
+    allow_credentials=False,
+    allow_origins=_cors_origins or ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

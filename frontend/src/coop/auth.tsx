@@ -3,12 +3,17 @@ import { Alert, Image, Linking, Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, ROLES, Session, waNumber } from "./lib";
+import { C, MEMBER_CODE_RE, ROLES, Session, waNumber } from "./lib";
 import { isValidPassword, isValidPin, normalizePhone } from "./pin";
 import { Icon } from "./Icon";
 import { Field, PhotoAvatar, SaveBtn, TInput } from "./ui";
 
 const VALEO_EMBLEM = require("../../assets/images/adaptive-icon.png");
+
+// Le planteur se connecte avec son téléphone OU son identifiant VAL-XXXX-YY :
+// le backend accepte les deux (server.py, planteur_login).
+const isPlanteurIdentifier = (v: string): boolean =>
+  MEMBER_CODE_RE.test((v || "").trim().toUpperCase()) || normalizePhone(v).length >= 6;
 
 /* ------------------------------- Top bar --------------------------------- */
 export function TopBar({
@@ -117,10 +122,11 @@ export function Login({
         setBusy(true);
         onLogin(await authLoginCoop(ident, pass));
       } else {
-        if (normalizePhone(phone).length < 6) { setErr("Saisissez un numéro de téléphone valide."); return; }
+        const ident = phone.trim();
+        if (!isPlanteurIdentifier(ident)) { setErr("Saisissez votre téléphone ou votre identifiant VAL-XXXX-YY."); return; }
         if (!isValidPin(pin)) { setErr("Le code doit contenir 6 chiffres."); return; }
         setBusy(true);
-        onLogin(await authLoginPlanteur(phone, pin));
+        onLogin(await authLoginPlanteur(phone.trim(), pin));
       }
     } catch (e: any) {
       setErr(e?.message || "Erreur de connexion.");
@@ -131,8 +137,8 @@ export function Login({
 
   const doForgot = async () => {
     if (tab === "coop") { Alert.alert("Mot de passe oublié", "Contactez l'administrateur VALEO pour réinitialiser votre mot de passe."); return; }
-    const wa = waNumber(phone);
-    if (!wa) { Alert.alert("Code oublié", "Saisissez d'abord votre numéro de téléphone (WhatsApp)."); return; }
+    const wa = normalizePhone(phone).length >= 6 ? waNumber(phone) : null;
+    if (!wa) { Alert.alert("Code oublié", "Saisissez d'abord votre numéro de téléphone (WhatsApp) pour contacter votre coopérative."); return; }
     const msg = encodeURIComponent("Bonjour, j'ai oublié mon code secret VALEO. Merci de m'aider à le récupérer / réinitialiser.");
     try { await Linking.openURL(`https://wa.me/${wa}?text=${msg}`); }
     catch { Alert.alert("WhatsApp", "Impossible d'ouvrir WhatsApp sur cet appareil."); }
@@ -179,10 +185,10 @@ export function Login({
         </>
       ) : (
         <>
-          <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginBottom: 7 }}>Numéro de téléphone</Text>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginBottom: 7 }}>Téléphone ou identifiant planteur</Text>
           <View style={fieldWrap}>
             <Icon name="phone" size={18} color={C.muted} />
-            <TInput value={phone} onChangeText={(t) => { setPhone(t.replace(/[^\d]/g, "")); setErr(""); }} placeholder="ex. 07 00 00 00 01" keyboardType="phone-pad" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 }} />
+            <TInput value={phone} onChangeText={(t) => { setPhone(t.replace(/[^\dA-Za-z-]/g, "").toUpperCase()); setErr(""); }} placeholder="ex. 07 00 00 00 01 ou VAL-1234-AB" autoCapitalize="characters" style={{ flex: 1, borderWidth: 0, backgroundColor: "transparent", paddingHorizontal: 0 }} />
           </View>
           <Text style={{ fontSize: 13, fontWeight: "700", color: C.ink, marginTop: 14, marginBottom: 7 }}>Code secret à 6 chiffres</Text>
           <View style={fieldWrap}>

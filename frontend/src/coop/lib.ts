@@ -153,7 +153,13 @@ export type Collection = Synced & {
   date: string;
   kg: number;
   prixKg: number;
+  // Barème de commission (F/kg) figé à la création, au même titre que prixKg :
+  // un changement de barème ne doit jamais réécrire l'historique.
+  commissionRate?: number;
   cropId?: string;
+  // Identifiant d'opération posé par le client à la validation : le serveur
+  // ignore une seconde création portant le même (double-tap, rejeu réseau).
+  clientOpId?: string;
   brut: number;
   retenues: Retenue[];
   net: number;
@@ -185,7 +191,7 @@ export type Loan = Synced & {
   decidedBy: string | null;
   decidedAt?: string | null;
 };
-export type Settlement = Synced & { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; refs?: { seq: number; amount: number }[] };
+export type Settlement = Synced & { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; clientOpId?: string; refs?: { seq: number; amount: number }[] };
 export type Mandat = Synced & { id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string };
 export type Depense = Synced & { id: string; coopId?: string; pisteurId: string; category: string; amount: number; date: string; note: string };
 export type CoopMomo = { id: string; operator: string; number: string; label?: string };
@@ -388,13 +394,24 @@ export const memberCultures = (m: any): Culture[] =>
 export const culturesLabel = (m: any): string => memberCultures(m).map((c) => crop(c.cropId).nom).join(", ") || "—";
 export const totalSuperficie = (m: any): number => memberCultures(m).reduce((s, c) => s + (Number(c.superficie) || 0), 0);
 
+// Barème de commission applicable à une collecte : celui figé à la création,
+// sinon (données antérieures) le barème courant du produit.
+export const collectionComm = (data: Data, c: Collection): number =>
+  c.commissionRate != null ? c.commissionRate : commOf(data, c.cropId || "cacao");
+
 export function pisteurStats(pid: string, data: Data) {
   const cols = (data.collections || []).filter((c) => c.byStaffId === pid);
   const poids = cols.reduce((s, c) => s + c.kg, 0);
-  const achats = cols.reduce((s, c) => s + c.paye, 0);
+  // Payé sur les pesées du jour…
+  const achatsPesees = cols.reduce((s, c) => s + c.paye, 0);
+  // …plus les anciens restes dus soldés par cet agent (à la pesée ou hors
+  // livraison) : cet argent sort aussi de sa caisse, mais il est enregistré
+  // dans `settlements`, jamais dans `collection.paye`.
+  const soldes = (data.settlements || []).filter((x) => x.byStaffId === pid).reduce((s, x) => s + (x.amount || 0), 0);
+  const achats = achatsPesees + soldes;
   const mandat = (data.mandats || []).filter((m) => m.pisteurId === pid).reduce((s, m) => s + m.amount, 0);
   const depenses = (data.depenses || []).filter((x) => x.pisteurId === pid).reduce((s, x) => s + x.amount, 0);
-  const commission = cols.reduce((s, c) => s + Math.round(c.kg * commOf(data, c.cropId || "cacao")), 0);
+  const commission = cols.reduce((s, c) => s + Math.round(c.kg * collectionComm(data, c)), 0);
   const solde = mandat - achats - depenses;
-  return { poids, achats, mandat, depenses, commission, solde, count: cols.length };
+  return { poids, achats, achatsPesees, soldes, mandat, depenses, commission, solde, count: cols.length };
 }

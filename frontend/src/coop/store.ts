@@ -293,7 +293,7 @@ export function useCoopData() {
           dSeq += 1;
           settlements = [
             ...settlements,
-            { id: uid(), coopId: rec.coopId, memberId: rec.memberId, byStaffId: rec.byStaffId, amount: appliedTotal, method: rec.method, date: rec.date, viaPesee: true, seq: settSeq, refs },
+            { id: uid(), coopId: rec.coopId, memberId: rec.memberId, byStaffId: rec.byStaffId, amount: appliedTotal, method: rec.method, date: rec.date, viaPesee: true, seq: settSeq, clientOpId: rec.clientOpId ? `${rec.clientOpId}:solde` : undefined, refs },
           ];
           (rec as any).oldRegle = appliedTotal;
         }
@@ -338,12 +338,6 @@ export function useCoopData() {
 
   const addLoan = useCallback((l: Partial<Loan>) => {
     setData((d) => (d ? { ...d, loans: [...d.loans, { id: uid(), coopId: cid(), status: "en_attente", soldeRestant: 0, decidedBy: null, ...l } as Loan] } : d));
-  }, []);
-
-  const decideLoan = useCallback((id: string, status: string, by: string) => {
-    setData((d) =>
-      d ? { ...d, loans: d.loans.map((l) => (l.id === id ? { ...l, status, soldeRestant: status === "approuve" ? l.amount : 0, decidedBy: by } : l)) } : d,
-    );
   }, []);
 
   const approveLoan = useCallback((id: string, granted: number, paymentMode: string, by: string) => {
@@ -498,7 +492,6 @@ export function useCoopData() {
     addCollection,
     settleMemberDue,
     addLoan,
-    decideLoan,
     approveLoan,
     refuseLoan,
     updateMember,
