@@ -181,3 +181,43 @@ Remplace l'ancien PeseeSheet (sheets.tsx). 4 étapes : (1) planteur + produit (p
 - (2) Calcul pesée : formule confirmée = livraison − avance recouvrée + ancien reste dû (netAPayer=montant−recouvre ; totalDu=netAPayer+oldReste). AUCUN changement de code requis (déjà correct depuis v25). Ancien reçu strictement inchangé (resteSolde, jamais reste/paye).
 - (3) Renommage nav Patron « Bilan » → « Tableau de bord » (label uniquement, id "bilan" conservé).
 - Vérifié end-to-end par testing_agent (iter14) : tout PASS. ⚠️ Redeploy requis pour production.
+
+## Sécurité & intégrité v29 (2026-09) — B1/B2/B3 + M4/M5 + mineurs — TERMINÉ & TESTÉ
+Correction des défauts d'architecture identifiés par l'audit (CLAUDE.md §5).
+- **B1 — Autorisation par rôle côté serveur** : `PUT /api/state` acceptait toute
+  écriture de tout utilisateur authentifié (un planteur pouvait approuver sa propre
+  avance ou effacer sa dette). `authorize_state_write` compare l'entrant à la
+  projection reçue par l'appelant et renvoie 403. Matrice : planteur (MoMo, photo,
+  signature, demande d'avance à son nom en_attente) ; commis/pisteur (pesée à leur
+  nom, solde, dépenses, demande d'avance ; ni approbation, ni mandat, ni réglages,
+  ni création/suppression de planteur ou de collaborateur) ; patron souverain sur sa
+  coop. Seul le patron pose ou réinitialise un `pin`.
+- **B2 — Fusion par enregistrement** : `merge_state` ne remplace plus le tableau
+  entier d'une coop (deux agents hors-ligne s'écrasaient, une pesée pouvait
+  disparaître). Upsert par `id`, `updatedAt` le plus récent gagne, horloge client en
+  avance ramenée, fusion champ par champ. Une absence n'est plus une suppression :
+  seule la liste `deletions` supprime.
+- **B3 — Périmètre planteur** : `scope_state` ne renvoie plus toute la coop à chaque
+  planteur (ses seules données + annuaire minimal du personnel). Les empreintes
+  PBKDF2 (`pin`) ne quittent plus le serveur, pour aucun rôle.
+- **M4 — Commission figée** : `Collection.commissionRate` gelé à la pesée (comme
+  `prixKg`) ; `collectionComm` fait le repli pour l'historique. La carte « Ma
+  commission » détaille poids × barème par produit.
+- **M5 — Idempotence** : `clientOpId` posé par `PeseeSheet` ; le serveur ignore une
+  seconde création portant le même identifiant (fin du double paiement au double-tap).
+- **Caisse des agents** : `pisteurStats` ignorait les `settlements`, faisant
+  apparaître un manquant fictif (200 000 F sur l'exemple type). Les anciens restes
+  soldés sont décomptés et affichés sur une ligne dédiée.
+- **Bordereau** : le PDF/imprimé omettait « Ancien reste soldé » ; les trois supports
+  (écran, PDF, WhatsApp) portent désormais un « TOTAL REMIS ».
+- **Connexion planteur** : l'écran rejetait l'identifiant `VAL-XXXX-YY` que le
+  backend accepte — un planteur sans téléphone ne pouvait pas se connecter.
+- **Retraits** : bouton « Réinitialiser les données de démonstration » (il vidait
+  toute la coopérative sans confirmation) ; `decideLoan` (chemin mort sans audit).
+  La restauration d'une sauvegarde demande confirmation.
+- **Admin web** : l'édition d'une collecte recalcule `brut`/`net`/`reste`.
+- **M6 (moitié)** : toutes les écritures datées portent `saison`. Le filtrage des
+  écrans par campagne reste à arbitrer (les dettes suivent-elles le planteur ?).
+- Tests : 30 backend en processus (`tests/conftest.py`, MongoDB simulée, sans réseau)
+  + 15 frontend (`yarn test`, modules purs `sync.ts`/`lib.ts`).
+- ⚠️ Backend et frontend doivent être **déployés ensemble**.

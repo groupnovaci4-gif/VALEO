@@ -225,11 +225,11 @@ export function useCoopData() {
   }, []);
 
   const addMandat = useCallback((m: Partial<Mandat>) => {
-    setData((d) => (d ? { ...d, mandats: [...d.mandats, { id: uid(), coopId: cid(), date: new Date().toISOString(), ...m } as Mandat] } : d));
+    setData((d) => (d ? { ...d, mandats: [...d.mandats, { id: uid(), coopId: cid(), saison: d.saison, date: new Date().toISOString(), ...m } as Mandat] } : d));
   }, []);
 
   const addDepense = useCallback((x: Partial<Depense>) => {
-    setData((d) => (d ? { ...d, depenses: [...d.depenses, { id: uid(), coopId: cid(), date: new Date().toISOString(), ...x } as Depense] } : d));
+    setData((d) => (d ? { ...d, depenses: [...d.depenses, { id: uid(), coopId: cid(), saison: d.saison, date: new Date().toISOString(), ...x } as Depense] } : d));
   }, []);
 
   const addCollection = useCallback((c: any): Collection | null => {
@@ -238,7 +238,7 @@ export function useCoopData() {
     setData((d) => {
       if (!d) return d;
       let nextSeq = c.seq ?? d.seq;
-      const rec: Collection = { ...c, id: c.id || uid(), seq: nextSeq, coopId: c.coopId || cid() };
+      const rec: Collection = { ...c, id: c.id || uid(), seq: nextSeq, coopId: c.coopId || cid(), saison: c.saison || d.saison };
       let dSeq = d.seq;
       if (c.seq == null) dSeq = d.seq + 1; // le reçu de pesée consomme un numéro
 
@@ -293,7 +293,7 @@ export function useCoopData() {
           dSeq += 1;
           settlements = [
             ...settlements,
-            { id: uid(), coopId: rec.coopId, memberId: rec.memberId, byStaffId: rec.byStaffId, amount: appliedTotal, method: rec.method, date: rec.date, viaPesee: true, seq: settSeq, clientOpId: rec.clientOpId ? `${rec.clientOpId}:solde` : undefined, refs },
+            { id: uid(), coopId: rec.coopId, saison: d.saison, memberId: rec.memberId, byStaffId: rec.byStaffId, amount: appliedTotal, method: rec.method, date: rec.date, viaPesee: true, seq: settSeq, clientOpId: rec.clientOpId ? `${rec.clientOpId}:solde` : undefined, refs },
           ];
           (rec as any).oldRegle = appliedTotal;
         }
@@ -328,7 +328,7 @@ export function useCoopData() {
           return { ...c, resteSolde: (c.resteSolde || 0) + out };
         });
       const settSeq = d.seq;
-      const rec: Settlement = { id: uid(), coopId: cid(), memberId, byStaffId, amount: total, method, date: new Date().toISOString(), viaPesee: false, seq: settSeq, refs };
+      const rec: Settlement = { id: uid(), coopId: cid(), saison: d.saison, memberId, byStaffId, amount: total, method, date: new Date().toISOString(), viaPesee: false, seq: settSeq, refs };
       receipt = rec;
       return { ...d, seq: d.seq + 1, collections, settlements: [...(d.settlements || []), rec] };
     });
@@ -337,7 +337,7 @@ export function useCoopData() {
   }, [logAudit]);
 
   const addLoan = useCallback((l: Partial<Loan>) => {
-    setData((d) => (d ? { ...d, loans: [...d.loans, { id: uid(), coopId: cid(), status: "en_attente", soldeRestant: 0, decidedBy: null, ...l } as Loan] } : d));
+    setData((d) => (d ? { ...d, loans: [...d.loans, { id: uid(), coopId: cid(), saison: d.saison, status: "en_attente", soldeRestant: 0, decidedBy: null, ...l } as Loan] } : d));
   }, []);
 
   const approveLoan = useCallback((id: string, granted: number, paymentMode: string, by: string) => {

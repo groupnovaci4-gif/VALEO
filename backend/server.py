@@ -843,7 +843,7 @@ const SCHEMAS = {
     {k:"fonction",l:"Fonction"},{k:"tel",l:"Téléphone"},{k:"email",l:"Email"},{k:"idNumber",l:"Pièce d'identité"}]},
   collections:{title:"Collectes",arr:"collections",cols:["seq","_member","kg","net","paye","reste","method"],fields:[
     {k:"memberId",l:"Planteur",ref:"members"},{k:"byStaffId",l:"Agent",ref:"staff"},{k:"kg",l:"Poids (kg)",t:"number"},
-    {k:"prixKg",l:"Prix/kg",t:"number"},{k:"net",l:"Net",t:"number"},{k:"paye",l:"Payé",t:"number"},{k:"reste",l:"Reste",t:"number"},
+    {k:"prixKg",l:"Prix/kg",t:"number"},{k:"paye",l:"Payé",t:"number"},
     {k:"method",l:"Paiement",opt:["espece","momo"]}]},
   loans:{title:"Avances",arr:"loans",cols:["_member","type","amount","status","soldeRestant"],fields:[
     {k:"memberId",l:"Planteur",ref:"members"},{k:"type",l:"Type",opt:["intrant","argent"]},{k:"amount",l:"Montant",t:"number"},
@@ -1017,6 +1017,18 @@ function openEdit(k,i){
   }).join("");
   $("editor").showModal();
 }
+// Recalcule les montants derives d'une collecte pour qu'une edition manuelle
+// ne laisse jamais brut/net/reste incoherents avec kg, prix et retenues.
+function recomputeCollection(row){
+  row.retenues = row.retenues || [];
+  const retenues = row.retenues.reduce((s,r)=>s+(+r.amount||0),0);
+  row.brut = Math.round((+row.kg||0) * (+row.prixKg||0));
+  row.net = Math.max(0, row.brut - retenues);
+  row.paye = Math.min(Math.max(0, +row.paye||0), row.net);
+  row.reste = Math.max(0, row.net - row.paye);
+  if(row.resteSolde != null) row.resteSolde = Math.min(Math.max(0, +row.resteSolde||0), row.reste);
+  return row;
+}
 async function saveEditor(){
   const {k,i,row}=edCtx; const sc=SCHEMAS[k];
   $("edFields").querySelectorAll("[data-k]").forEach(el=>{
@@ -1025,10 +1037,16 @@ async function saveEditor(){
   });
   if(i<0){ row.id = "a"+Math.random().toString(36).slice(2,9); if(!row.date) row.date=new Date().toISOString();
     if(currentCoop && currentCoop!=="__legacy__") row.coopId=currentCoop;
-    if(k==="collections"){ row.seq=state.seq; state.seq=(state.seq||1)+1; row.retenues=row.retenues||[]; row.brut=(+row.kg||0)*(+row.prixKg||0); }
+    if(k==="collections"){ row.seq=state.seq; state.seq=(state.seq||1)+1; recomputeCollection(row); }
     if(k==="loans"){ row.status=row.status||"en_attente"; }
     state[sc.arr].push(row);
-  } else { state[sc.arr][i]=row; }
+  } else {
+    if(k==="collections") recomputeCollection(row);
+    state[sc.arr][i]=row;
+  }
+  // Horodatage d'ecriture : l'admin est un ecrivain comme un autre pour la
+  // fusion par enregistrement cote application mobile.
+  row.updatedAt = new Date().toISOString();
   document.getElementById("editor").close();
   await persist();
 }

@@ -125,6 +125,10 @@ export type Momo = { operator: string; number: string; label?: string };
 // synchronisation (store.prepareSync). Il arbitre les conflits côté serveur :
 // sur un même enregistrement, la version la plus récente gagne.
 export type Synced = { updatedAt?: string };
+// Campagne (`data.saison`) figée à la création de l'écriture : sans elle, les
+// bilans mélangent les campagnes et il devient impossible de les séparer
+// rétroactivement.
+export type Campagne = { saison?: string };
 export type Culture = { cropId: string; superficie: number };
 export type Member = Synced & {
   id: string;
@@ -144,7 +148,7 @@ export type Member = Synced & {
 };
 export type Staff = Synced & { id: string; coopId?: string; nom: string; role: string; tel?: string; photo?: string | null; prenoms?: string; email?: string; fonction?: string; idNumber?: string; pin?: PinRecord | null };
 export type Retenue = { label: string; amount: number };
-export type Collection = Synced & {
+export type Collection = Synced & Campagne & {
   id: string;
   seq: number;
   coopId?: string;
@@ -177,7 +181,7 @@ export type Collection = Synced & {
   _repay?: { loanId?: string; amount: number } | null;
   _settle?: number | null;
 };
-export type Loan = Synced & {
+export type Loan = Synced & Campagne & {
   id: string;
   coopId?: string;
   memberId: string;
@@ -191,9 +195,9 @@ export type Loan = Synced & {
   decidedBy: string | null;
   decidedAt?: string | null;
 };
-export type Settlement = Synced & { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; clientOpId?: string; refs?: { seq: number; amount: number }[] };
-export type Mandat = Synced & { id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string };
-export type Depense = Synced & { id: string; coopId?: string; pisteurId: string; category: string; amount: number; date: string; note: string };
+export type Settlement = Synced & Campagne & { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; clientOpId?: string; refs?: { seq: number; amount: number }[] };
+export type Mandat = Synced & Campagne & { id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string };
+export type Depense = Synced & Campagne & { id: string; coopId?: string; pisteurId: string; category: string; amount: number; date: string; note: string };
 export type CoopMomo = { id: string; operator: string; number: string; label?: string };
 export type PriceHistory = { date: string; prixKg: number };
 export type Coop = {
