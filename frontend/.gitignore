@@ -38,3 +38,6 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Sortie de transpilation du test de synchro (yarn test:sync)
+.sync-build/

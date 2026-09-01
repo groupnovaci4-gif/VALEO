@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { storage } from "@/src/utils/storage";
 
 import { loadCache, saveCache } from "./secureCache";
+import { prepareSync } from "./sync";
 import {
   Collection,
   Coop,
@@ -59,9 +60,14 @@ export function useCoopData() {
   const [ready, setReady] = useState(false);
   const [bootSession, setBootSession] = useState<any>(null);
   const [authError, setAuthError] = useState(false);
+  // Message d'erreur de synchronisation (écriture refusée par le serveur).
+  const [syncError, setSyncError] = useState<string | null>(null);
   const remoteApply = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dataRef = useRef<Data | null>(null);
+  // Dernière version connue du serveur : référence pour calculer ce qui a
+  // changé localement (horodatages et suppressions).
+  const serverRef = useRef<Data | null>(null);
   const dirty = useRef(false); // modifications locales non encore synchronisées
   const coopIdRef = useRef<string>("");
   const tokenRef = useRef<string>("");
@@ -85,7 +91,7 @@ export function useCoopData() {
         setBootSession(identToSession(ident));
         const r = await apiFetch("/api/state", {}, token);
         remoteApply.current = true;
-        if (r && r.ok) setData(migrate(await r.json()));
+        if (r && r.ok) { const fresh = migrate(await r.json()); serverRef.current = fresh; setData(fresh); }
         else if (r && r.status === 401) { await clearAuth(); setBootSession(null); setData(seed()); }
         else { const saved = await loadCache<any>(KEY); setData(saved ? migrate(saved) : seed()); }
       } else {
@@ -94,6 +100,38 @@ export function useCoopData() {
       setReady(true);
     })();
   }, [clearAuth]);
+
+  // Tire la dernière version du backend et la prend comme nouvelle référence.
+  const pull = useCallback(async () => {
+    if (!tokenRef.current) return;
+    const r = await apiFetch("/api/state", {}, tokenRef.current);
+    if (r && r.ok) {
+      const fresh = migrate(await r.json());
+      serverRef.current = fresh;
+      remoteApply.current = true;
+      setData(fresh);
+    } else if (r && r.status === 401) { await clearAuth(); setAuthError(true); }
+  }, [clearAuth]);
+
+  // Pousse les changements locaux (horodatés + suppressions explicites).
+  const push = useCallback(async (current: Data) => {
+    if (!tokenRef.current) return;
+    const { data: payload, deletions } = prepareSync(current, serverRef.current);
+    const r = await apiFetch("/api/state", { method: "PUT", body: JSON.stringify({ data: payload, deletions }) }, tokenRef.current);
+    if (r && r.status === 401) { await clearAuth(); setAuthError(true); return; }
+    if (r && r.status === 403) {
+      // Le serveur a refusé une écriture que ce rôle n'a pas le droit de faire :
+      // on annule la modification locale en rechargeant la vérité du serveur.
+      let detail = "Votre rôle ne permet pas cette modification.";
+      try { detail = (await r.json()).detail || detail; } catch {}
+      dirty.current = false;
+      setSyncError(detail);
+      await pull();
+      return;
+    }
+    if (r && r.ok) { serverRef.current = payload; dirty.current = false; }
+    // Réseau indisponible : `dirty` reste vrai, la prochaine occasion réessaiera.
+  }, [clearAuth, pull]);
 
   useEffect(() => {
     if (!ready || !data) return;
@@ -106,26 +144,18 @@ export function useCoopData() {
     if (!tokenRef.current) return; // non authentifié : pas de sync
     dirty.current = true; // changement local à pousser
     if (pushTimer.current) clearTimeout(pushTimer.current);
-    pushTimer.current = setTimeout(async () => {
-      const r = await apiFetch("/api/state", { method: "PUT", body: JSON.stringify({ data }) }, tokenRef.current);
-      if (r && r.status === 401) { await clearAuth(); setAuthError(true); return; }
-      dirty.current = false;
-    }, 700);
-  }, [data, ready, clearAuth]);
+    pushTimer.current = setTimeout(() => { push(data); }, 700);
+  }, [data, ready, push]);
 
-  // Recharge la dernière version du backend (autre appareil).
+  // Retour au premier plan / tiré-pour-rafraîchir.
   const refresh = useCallback(async () => {
     if (!tokenRef.current) return;
-    if (dirty.current) {
-      if (pushTimer.current) clearTimeout(pushTimer.current);
-      if (dataRef.current) await apiFetch("/api/state", { method: "PUT", body: JSON.stringify({ data: dataRef.current }) }, tokenRef.current);
-      dirty.current = false;
-      return;
-    }
-    const r = await apiFetch("/api/state", {}, tokenRef.current);
-    if (r && r.ok) { remoteApply.current = true; setData(migrate(await r.json())); }
-    else if (r && r.status === 401) { await clearAuth(); setAuthError(true); }
-  }, [clearAuth]);
+    if (pushTimer.current) clearTimeout(pushTimer.current);
+    // On pousse d'abord les changements locaux pour ne pas les perdre, puis on
+    // tire : la fusion par enregistrement rend les deux sens compatibles.
+    if (dirty.current && dataRef.current) await push(dataRef.current);
+    await pull();
+  }, [push, pull]);
 
   const applyAuth = useCallback(async (res: any) => {
     tokenRef.current = res.token;
@@ -134,7 +164,10 @@ export function useCoopData() {
     coopIdRef.current = res.identity.coopId || "";
     remoteApply.current = true;
     setAuthError(false);
-    setData(migrate(res.state));
+    setSyncError(null);
+    const fresh = migrate(res.state);
+    serverRef.current = fresh;
+    setData(fresh);
     return identToSession(res.identity);
   }, []);
 
@@ -162,7 +195,14 @@ export function useCoopData() {
     return applyAuth(await r.json());
   }, [applyAuth]);
 
-  const authLogout = useCallback(async () => { await clearAuth(); setBootSession(null); setData(seed()); }, [clearAuth]);
+  const authLogout = useCallback(async () => {
+    await clearAuth();
+    serverRef.current = null;
+    dirty.current = false;
+    setSyncError(null);
+    setBootSession(null);
+    setData(seed());
+  }, [clearAuth]);
 
   // Journal d'audit : envoi best-effort (acteur/horodatage posés côté serveur).
   const logAudit = useCallback((action: string, meta: Record<string, any> = {}) => {
@@ -392,13 +432,12 @@ export function useCoopData() {
     });
   }, []);
 
-  const reset = useCallback(() => setData(seed()), []);
-
   // Met à jour le profil (identité + coordonnées) de la coopérative en portée.
   const setCoopProfile = useCallback((patch: Record<string, any>) => {
     setData((d) => (d ? patchCurrentCoop(d, (c) => ({ ...c, ...patch })) : d));
   }, []);
   const replaceData = useCallback((d: Data) => setData(d), []);
+  const clearSyncError = useCallback(() => setSyncError(null), []);
 
   const setCollectionSignature = useCallback((id: string, signature: any) => {
     setData((d) => (d ? { ...d, collections: d.collections.map((c) => (c.id === id ? { ...c, signature } as any : c)) } : d));
@@ -446,6 +485,8 @@ export function useCoopData() {
     ready,
     bootSession,
     authError,
+    syncError,
+    clearSyncError,
     authLoginCoop,
     authLoginPlanteur,
     authRegisterCoop,
@@ -474,7 +515,6 @@ export function useCoopData() {
     setCoopSettings,
     setCoopProfile,
     setCoopScope,
-    reset,
     replaceData,
     setCollectionSignature,
     createLoginPlanteur,

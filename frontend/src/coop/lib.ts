@@ -121,8 +121,12 @@ export const byDateDesc = (a: any, b: any) => +new Date(b.date) - +new Date(a.da
 
 /* --------------------------------- Types --------------------------------- */
 export type Momo = { operator: string; number: string; label?: string };
+// Horodatage de dernière écriture, posé automatiquement par la couche de
+// synchronisation (store.prepareSync). Il arbitre les conflits côté serveur :
+// sur un même enregistrement, la version la plus récente gagne.
+export type Synced = { updatedAt?: string };
 export type Culture = { cropId: string; superficie: number };
-export type Member = {
+export type Member = Synced & {
   id: string;
   coopId?: string;
   code: string;
@@ -138,9 +142,9 @@ export type Member = {
   photo?: string | null;
   pin?: PinRecord | null;
 };
-export type Staff = { id: string; coopId?: string; nom: string; role: string; tel?: string; photo?: string | null; prenoms?: string; email?: string; fonction?: string; idNumber?: string; pin?: PinRecord | null };
+export type Staff = Synced & { id: string; coopId?: string; nom: string; role: string; tel?: string; photo?: string | null; prenoms?: string; email?: string; fonction?: string; idNumber?: string; pin?: PinRecord | null };
 export type Retenue = { label: string; amount: number };
-export type Collection = {
+export type Collection = Synced & {
   id: string;
   seq: number;
   coopId?: string;
@@ -167,7 +171,7 @@ export type Collection = {
   _repay?: { loanId?: string; amount: number } | null;
   _settle?: number | null;
 };
-export type Loan = {
+export type Loan = Synced & {
   id: string;
   coopId?: string;
   memberId: string;
@@ -181,9 +185,9 @@ export type Loan = {
   decidedBy: string | null;
   decidedAt?: string | null;
 };
-export type Settlement = { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; refs?: { seq: number; amount: number }[] };
-export type Mandat = { id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string };
-export type Depense = { id: string; coopId?: string; pisteurId: string; category: string; amount: number; date: string; note: string };
+export type Settlement = Synced & { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; refs?: { seq: number; amount: number }[] };
+export type Mandat = Synced & { id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string };
+export type Depense = Synced & { id: string; coopId?: string; pisteurId: string; category: string; amount: number; date: string; note: string };
 export type CoopMomo = { id: string; operator: string; number: string; label?: string };
 export type PriceHistory = { date: string; prixKg: number };
 export type Coop = {

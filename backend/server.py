@@ -125,6 +125,10 @@ class LoginRequest(BaseModel):
 
 class StateBody(BaseModel):
     data: dict
+    # Suppressions explicites {entite: [id, ...]}. Sans cette liste, un
+    # enregistrement absent de `data` est simplement inconnu du client, jamais
+    # supprimé (cf. merge_state).
+    deletions: Optional[dict] = None
 
 
 class ChangePwdRequest(BaseModel):
@@ -183,10 +187,43 @@ def require_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(b
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expirée")
 
 
-def scope_state(state: dict, coop_id: str) -> dict:
-    """Renvoie uniquement la tranche de l'état appartenant à une coopérative (isolation tenant)."""
+# Champs du profil coopérative jamais transmis à un planteur (comptes de
+# encaissement de la coop). Le planteur n'en a aucun usage.
+COOP_FIELDS_HIDDEN_FROM_PLANTEUR = {"momo"}
+# Champs du personnel exposés au planteur : juste de quoi nommer l'agent sur un
+# reçu. Jamais de téléphone, e-mail, pièce d'identité ni empreinte de code.
+STAFF_PUBLIC_FIELDS = {"id", "coopId", "nom", "role", "fonction"}
+# `pin` est une empreinte PBKDF2 : elle ne doit JAMAIS quitter le serveur, sinon
+# un code à 6 chiffres (10^6 combinaisons) se casse hors-ligne en quelques minutes.
+SECRET_FIELDS = {"pin"}
+
+
+def _strip_secrets(row: dict) -> dict:
+    return {k: v for k, v in row.items() if k not in SECRET_FIELDS}
+
+
+def _public_staff(row: dict) -> dict:
+    return {k: v for k, v in row.items() if k in STAFF_PUBLIC_FIELDS}
+
+
+def scope_state(state: dict, coop_id: str, me: Optional[dict] = None) -> dict:
+    """Tranche de l'état visible par l'appelant.
+
+    Deux niveaux de cloisonnement :
+    1. **Coopérative** (isolation tenant) — jamais les données d'une autre coop.
+    2. **Rôle** — un planteur (`side="planteur"`) ne reçoit QUE ses propres
+       données (B3) : sans cela, chaque téléphone de planteur détenait la liste
+       complète des membres, collectes et avances de la coopérative.
+    Dans tous les cas les empreintes de code secret (`pin`) sont retirées.
+    """
     coops = state.get("coops") or []
     co = next((c for c in coops if c.get("id") == coop_id), None) or {}
+    is_planteur = bool(me) and me.get("side") == "planteur"
+    member_id = me.get("sub") if is_planteur else None
+
+    if is_planteur:
+        co = {k: v for k, v in co.items() if k not in COOP_FIELDS_HIDDEN_FROM_PLANTEUR}
+
     out = {
         "saison": state.get("saison"),
         "prixKg": state.get("prixKg"),
@@ -200,19 +237,97 @@ def scope_state(state: dict, coop_id: str) -> dict:
         "priceHistory": state.get("priceHistory", []),
     }
     for e in ENTITY_ARRAYS:
-        out[e] = [x for x in (state.get(e) or []) if x.get("coopId") == coop_id]
+        rows = [x for x in (state.get(e) or []) if isinstance(x, dict) and x.get("coopId") == coop_id]
+        if is_planteur:
+            if e == "members":
+                rows = [x for x in rows if x.get("id") == member_id]
+            elif e in ("collections", "loans", "settlements"):
+                rows = [x for x in rows if x.get("memberId") == member_id]
+            elif e == "staff":
+                # Annuaire minimal : nommer l'agent sur un reçu, rien de plus.
+                rows = [_public_staff(x) for x in rows]
+            else:
+                rows = []  # mandats, dépenses : affaires internes de la coop.
+        out[e] = [_strip_secrets(x) for x in rows]
     return out
 
 
-def merge_state(state: dict, incoming: dict, coop_id: str) -> dict:
-    """Fusionne la tranche reçue dans l'état global, en forçant le coopId côté serveur (anti-IDOR)."""
+# ----------------------- Fusion par enregistrement (B2) ----------------------- #
+# L'ancienne fusion remplaçait le tableau entier d'une coopérative par celui du
+# client : deux agents hors-ligne s'écrasaient mutuellement à la synchro (une
+# pesée pouvait disparaître définitivement). On fusionne désormais
+# enregistrement par enregistrement, la version la plus récente gagnant.
+
+# Tolérance d'avance d'horloge : au-delà, l'horodatage client est ramené à
+# l'heure serveur pour qu'un téléphone mal réglé ne gèle pas un enregistrement.
+CLOCK_SKEW_TOLERANCE = timedelta(minutes=5)
+
+
+def _parse_ts(value) -> Optional[datetime]:
+    """Analyse un horodatage ISO (client `...Z` ou serveur `...+00:00`)."""
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _clamped_ts(value, now: datetime) -> Optional[datetime]:
+    ts = _parse_ts(value)
+    if ts is None:
+        return None
+    return now if ts > now + CLOCK_SKEW_TOLERANCE else ts
+
+
+def _rows_by_id(rows) -> dict:
+    out = {}
+    for r in rows or []:
+        if isinstance(r, dict) and r.get("id"):
+            out[r["id"]] = r
+    return out
+
+
+def merge_state(state: dict, incoming: dict, coop_id: str, deletions: Optional[dict] = None) -> dict:
+    """Fusionne la tranche reçue enregistrement par enregistrement.
+
+    Règles :
+    - `coopId` est toujours réécrit par le serveur (anti-IDOR).
+    - un enregistrement absent de la charge utile n'est PAS supprimé : seule la
+      liste explicite `deletions` supprime (sinon un client au périmètre réduit
+      effacerait tout ce qu'il ne voit pas) ;
+    - sur conflit, l'enregistrement au `updatedAt` le plus récent gagne ; sans
+      horodatage, la version stockée est conservée (on ne régresse jamais).
+    """
+    now = datetime.now(timezone.utc)
+    deletions = deletions or {}
     for e in ENTITY_ARRAYS:
-        others = [x for x in (state.get(e) or []) if x.get("coopId") != coop_id]
-        mine = [{**x, "coopId": coop_id} for x in (incoming.get(e) or [])]
-        state[e] = others + mine
+        others = [x for x in (state.get(e) or []) if not isinstance(x, dict) or x.get("coopId") != coop_id]
+        merged = _rows_by_id([x for x in (state.get(e) or []) if isinstance(x, dict) and x.get("coopId") == coop_id])
+        for rid, incoming_row in _rows_by_id(incoming.get(e)).items():
+            stored = merged.get(rid)
+            incoming_ts = _clamped_ts(incoming_row.get("updatedAt"), now)
+            if stored is None:
+                merged[rid] = {**incoming_row, "coopId": coop_id, "updatedAt": (incoming_ts or now).isoformat()}
+                continue
+            stored_ts = _parse_ts(stored.get("updatedAt"))
+            if incoming_ts is not None and (stored_ts is None or incoming_ts > stored_ts):
+                # Fusion CHAMP par champ : le client ne reçoit pas tout (les
+                # empreintes `pin` ne quittent jamais le serveur, un planteur ne
+                # voit qu'un annuaire réduit du personnel). Écraser
+                # l'enregistrement entier effacerait ces champs invisibles.
+                merged[rid] = {**stored, **incoming_row, "coopId": coop_id, "updatedAt": incoming_ts.isoformat()}
+        for rid in deletions.get(e) or []:
+            merged.pop(rid, None)
+        state[e] = others + list(merged.values())
+
     inc_coops = incoming.get("coops") or []
     inc_co = next((c for c in inc_coops if c.get("id") == coop_id), None) or (inc_coops[0] if inc_coops else None) or incoming.get("coop") or {}
-    inc_co = {**inc_co, "id": coop_id}
+    stored_co = next((c for c in (state.get("coops") or []) if c.get("id") == coop_id), None)
+    # Le profil coop n'est envoyé complet que par le patron ; pour les autres
+    # rôles, l'autorisation a déjà vérifié qu'il est inchangé.
+    inc_co = {**(stored_co or {}), **inc_co, "id": coop_id}
     state["coops"] = [c for c in (state.get("coops") or []) if c.get("id") != coop_id] + [inc_co]
     state["seq"] = max(int(state.get("seq", 1) or 1), int(incoming.get("seq", 1) or 1))
     state["memberSeq"] = max(int(state.get("memberSeq", 1) or 1), int(incoming.get("memberSeq", 1) or 1))
@@ -221,6 +336,186 @@ def merge_state(state: dict, incoming: dict, coop_id: str) -> dict:
     if incoming.get("priceHistory") is not None:
         state["priceHistory"] = incoming["priceHistory"]
     return state
+
+
+# ------------------- Autorisation par rôle côté serveur (B1) ------------------- #
+# Les garde-fous d'interface (`canDecide={false}`, boutons masqués) sont
+# cosmétiques : un client modifié pouvait réécrire tout l'état de sa
+# coopérative. On compare donc l'entrant au stocké et on refuse (403) toute
+# modification que le rôle n'a pas le droit de faire.
+
+# Champs qu'un rôle peut modifier sur un enregistrement existant.
+# `updatedAt` accompagne toute écriture légitime.
+PLANTEUR_MEMBER_FIELDS = {"momo", "photo", "updatedAt"}
+PLANTEUR_COLLECTION_FIELDS = {"signature", "updatedAt"}
+STAFF_SELF_FIELDS = {"photo", "updatedAt"}
+# Pesée : signature du planteur et solde d'anciens restes dus (`resteSolde`).
+AGENT_COLLECTION_FIELDS = {"signature", "resteSolde", "updatedAt"}
+IMMUTABLE_FIELDS = {"id", "coopId"}
+# Réglages financiers de la coopérative : patron uniquement.
+COOP_SETTINGS_KEYS = ("prices", "commissions")
+
+
+class Forbidden(HTTPException):
+    def __init__(self, message: str):
+        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail=message)
+
+
+def _changed_keys(before: dict, after: dict) -> set:
+    return {k for k in set(before) | set(after) if before.get(k) != after.get(k)}
+
+
+def _diff_entities(visible: dict, incoming: dict, coop_id: str, deletions: dict) -> dict:
+    """Delta par entité : créations, modifications (avant/après) et suppressions.
+
+    La comparaison se fait contre la **projection réellement reçue** par
+    l'appelant (`scope_state`), pas contre l'état brut : un planteur ne voit
+    qu'un annuaire réduit du personnel, et personne ne reçoit les empreintes
+    `pin`. Comparer au brut ferait passer ces champs absents pour des
+    modifications.
+    """
+    delta = {}
+    for e in ENTITY_ARRAYS:
+        before = _rows_by_id(visible.get(e))
+        after = _rows_by_id(incoming.get(e))
+        created = [row for rid, row in after.items() if rid not in before]
+        updated = [(before[rid], row) for rid, row in after.items() if rid in before and _changed_keys(before[rid], {**before[rid], **row, "coopId": coop_id})]
+        deleted = [before[rid] for rid in (deletions.get(e) or []) if rid in before]
+        delta[e] = {"created": created, "updated": updated, "deleted": deleted}
+    return delta
+
+
+def _is_pending_loan(row: dict) -> bool:
+    """Une demande d'avance créée par un non-patron doit rester non décidée."""
+    return (
+        row.get("status") == "en_attente"
+        and not row.get("soldeRestant")
+        and not row.get("decidedBy")
+        and not row.get("decidedAt")
+    )
+
+
+def _deny_touching(delta: dict, entities, actor: str) -> None:
+    for e in entities:
+        d = delta.get(e) or {}
+        if d.get("created") or d.get("updated") or d.get("deleted"):
+            raise Forbidden(f"{actor} : modification non autorisée de « {e} ».")
+
+
+def _check_updates(delta: dict, entity: str, allowed_fields: set, owns, actor: str) -> None:
+    """Chaque modification doit porter sur un enregistrement possédé et n'affecter
+    que les champs autorisés."""
+    for before, after in (delta.get(entity) or {}).get("updated", []):
+        if not owns(before):
+            raise Forbidden(f"{actor} : modification d'un enregistrement « {entity} » qui ne vous appartient pas.")
+        changed = _changed_keys(before, after)
+        if changed & IMMUTABLE_FIELDS:
+            raise Forbidden(f"{actor} : les champs {sorted(changed & IMMUTABLE_FIELDS)} sont immuables.")
+        forbidden = changed - allowed_fields
+        if forbidden:
+            raise Forbidden(f"{actor} : champs non modifiables sur « {entity} » : {sorted(forbidden)}.")
+
+
+def _check_coop_settings_untouched(visible: dict, incoming: dict, coop_id: str, actor: str) -> None:
+    """Prix, commissions, campagne et profil de la coop : patron uniquement."""
+    stored_co = next((c for c in (visible.get("coops") or []) if c.get("id") == coop_id), None) or {}
+    inc_coops = incoming.get("coops") or []
+    inc_co = next((c for c in inc_coops if c.get("id") == coop_id), None)
+    if inc_co is None and inc_coops:
+        inc_co = inc_coops[0]
+    if inc_co is None:
+        inc_co = incoming.get("coop")
+    if isinstance(inc_co, dict):
+        for key in COOP_SETTINGS_KEYS:
+            if key in inc_co and inc_co.get(key) != stored_co.get(key):
+                raise Forbidden(f"{actor} : seul le patron peut changer « {key} ».")
+        profile_changed = {
+            k for k in set(inc_co) | set(stored_co)
+            if k not in COOP_SETTINGS_KEYS and inc_co.get(k, stored_co.get(k)) != stored_co.get(k)
+        }
+        if profile_changed:
+            raise Forbidden(f"{actor} : seul le patron peut modifier le profil de la coopérative.")
+    if incoming.get("saison") and incoming["saison"] != visible.get("saison"):
+        raise Forbidden(f"{actor} : seul le patron peut changer la campagne.")
+    if incoming.get("priceHistory") is not None and incoming["priceHistory"] != (visible.get("priceHistory") or []):
+        raise Forbidden(f"{actor} : seul le patron peut modifier l'historique des prix.")
+
+
+def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dict) -> None:
+    """Refuse (403) toute écriture que le rôle du jeton n'autorise pas.
+
+    Le patron est souverain sur SA coopérative ; les autres rôles n'ont que les
+    droits strictement nécessaires à leur métier.
+    """
+    coop_id = me["coopId"]
+    side, role, me_id = me.get("side"), me.get("role"), me.get("sub")
+    if side == "coop" and role == "patron":
+        return  # souverain sur sa propre coopérative (isolation déjà garantie).
+
+    # Seul le patron définit ou réinitialise un code secret : personne d'autre
+    # ne doit pouvoir en poser un (ni en effacer un en envoyant `pin: null`).
+    for e in ENTITY_ARRAYS:
+        for row in incoming.get(e) or []:
+            if isinstance(row, dict) and "pin" in row:
+                raise Forbidden("Seul le patron peut définir ou réinitialiser un code secret.")
+
+    visible = scope_state(stored, coop_id, me)
+    delta = _diff_entities(visible, incoming, coop_id, deletions)
+
+    if side == "planteur":
+        actor = "Planteur"
+        _check_coop_settings_untouched(visible, incoming, coop_id, actor)
+        _deny_touching(delta, ["staff", "mandats", "depenses", "settlements"], actor)
+        # Aucune création ni suppression de planteur, de collecte ou de solde.
+        for e in ("members", "collections"):
+            if (delta[e]["created"] or delta[e]["deleted"]):
+                raise Forbidden(f"{actor} : création ou suppression de « {e} » non autorisée.")
+        if delta["loans"]["updated"] or delta["loans"]["deleted"]:
+            raise Forbidden(f"{actor} : une demande d'avance déjà enregistrée ne peut plus être modifiée.")
+        for row in delta["loans"]["created"]:
+            if row.get("memberId") != me_id:
+                raise Forbidden(f"{actor} : impossible de demander une avance au nom d'un autre planteur.")
+            if not _is_pending_loan(row):
+                raise Forbidden(f"{actor} : une demande d'avance doit rester « en_attente ».")
+        _check_updates(delta, "members", PLANTEUR_MEMBER_FIELDS, lambda r: r.get("id") == me_id, actor)
+        _check_updates(delta, "collections", PLANTEUR_COLLECTION_FIELDS, lambda r: r.get("memberId") == me_id, actor)
+        return
+
+    if side == "coop" and role in ("commis", "pisteur"):
+        actor = "Magasinier" if role == "commis" else "Pisteur / Délégué"
+        _check_coop_settings_untouched(visible, incoming, coop_id, actor)
+        # Les mandats sont confiés par le patron ; l'équipe ne se les attribue pas.
+        _deny_touching(delta, ["mandats"], actor)
+        # Comptes planteurs et collaborateurs : création/suppression réservées au patron.
+        for e in ("members", "staff"):
+            if delta[e]["created"] or delta[e]["deleted"]:
+                raise Forbidden(f"{actor} : seul le patron crée ou supprime un enregistrement « {e} ».")
+        if delta["collections"]["deleted"] or delta["settlements"]["deleted"] or delta["depenses"]["deleted"] or delta["loans"]["deleted"]:
+            raise Forbidden(f"{actor} : les écritures financières ne peuvent pas être supprimées.")
+        if delta["settlements"]["updated"]:
+            raise Forbidden(f"{actor} : un reçu de solde est définitif.")
+        if delta["depenses"]["updated"]:
+            raise Forbidden(f"{actor} : une dépense enregistrée ne peut plus être modifiée.")
+        if delta["loans"]["updated"]:
+            raise Forbidden(f"{actor} : seul le patron approuve ou refuse une avance.")
+        for row in delta["collections"]["created"]:
+            if row.get("byStaffId") != me_id:
+                raise Forbidden(f"{actor} : une pesée doit être enregistrée à votre nom.")
+        for row in delta["settlements"]["created"]:
+            if row.get("byStaffId") != me_id:
+                raise Forbidden(f"{actor} : un solde doit être enregistré à votre nom.")
+        for row in delta["depenses"]["created"]:
+            if row.get("pisteurId") != me_id:
+                raise Forbidden(f"{actor} : une dépense doit être enregistrée à votre nom.")
+        for row in delta["loans"]["created"]:
+            if not _is_pending_loan(row):
+                raise Forbidden(f"{actor} : une avance créée doit rester « en_attente » jusqu'à validation du patron.")
+        _check_updates(delta, "members", set(), lambda r: False, actor)
+        _check_updates(delta, "staff", STAFF_SELF_FIELDS, lambda r: r.get("id") == me_id, actor)
+        _check_updates(delta, "collections", AGENT_COLLECTION_FIELDS, lambda r: True, actor)
+        return
+
+    raise Forbidden("Rôle inconnu : écriture refusée.")
 
 
 class CoopLoginBody(BaseModel):
@@ -258,14 +553,18 @@ async def root():
 @app.get("/api/state")
 async def get_state(me: dict = Depends(require_user)):
     state = await load_state()
-    return scope_state(state, me["coopId"])
+    return scope_state(state, me["coopId"], me)
 
 
 @app.put("/api/state")
 async def put_state(body: StateBody, me: dict = Depends(require_user)):
-    # Sync offline-first : le serveur ne fusionne QUE la coopérative du jeton (isolation stricte).
+    # Sync offline-first : le serveur ne fusionne QUE la coopérative du jeton
+    # (isolation stricte), après avoir vérifié que le rôle a le droit de faire
+    # chacune des modifications reçues.
     state = await load_state()
-    merge_state(state, body.data, me["coopId"])
+    deletions = {e: list(body.deletions.get(e) or []) for e in ENTITY_ARRAYS} if body.deletions else {}
+    authorize_state_write(state, body.data, me, deletions)
+    merge_state(state, body.data, me["coopId"], deletions)
     await save_state(state)
     return {"ok": True}
 
@@ -283,7 +582,7 @@ async def coop_login(body: CoopLoginBody):
     if not s or not verify_secret(body.secret, s.get("pin")):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects")
     claims = {"sub": s["id"], "coopId": s.get("coopId"), "role": s.get("role"), "side": "coop"}
-    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, s.get("coopId"))}
+    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, s.get("coopId"), claims)}
 
 
 @app.post("/api/auth/planteur/login")
@@ -295,7 +594,7 @@ async def planteur_login(body: PlanteurLoginBody):
     if not m or not verify_secret(body.pin, m.get("pin")):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects")
     claims = {"sub": m["id"], "coopId": m.get("coopId"), "side": "planteur"}
-    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, m.get("coopId"))}
+    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, m.get("coopId"), claims)}
 
 
 @app.post("/api/auth/register")
@@ -317,7 +616,7 @@ async def register_coop(body: RegisterBody):
     state.setdefault("staff", []).append(patron)
     await save_state(state)
     claims = {"sub": staff_id, "coopId": coop_id, "role": "patron", "side": "coop"}
-    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, coop_id)}
+    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, coop_id, claims)}
 
 
 class AuditBody(BaseModel):

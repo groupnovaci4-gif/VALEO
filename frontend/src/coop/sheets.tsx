@@ -508,7 +508,7 @@ export function LinkMomoSheet({ title, withLabel, onClose, onSave }: any) {
   );
 }
 
-export function SettingsSheet({ data, onClose, onSave, onReset }: any) {
+export function SettingsSheet({ data, onClose, onSave }: any) {
   const [saison, setSaison] = useState(data.saison);
   const crops = CROPS; // Tous les produits sont toujours réglables (prix + commission).
   const [prices, setPrices] = useState<Record<string, string>>(() => {
@@ -561,9 +561,6 @@ export function SettingsSheet({ data, onClose, onSave, onReset }: any) {
         </View>
       ) : null}
       <SaveBtn disabled={!valid} color={C.cocoa} onPress={submit}>Enregistrer</SaveBtn>
-      <Pressable onPress={onReset} style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, alignItems: "center", marginTop: 12 }}>
-        <Text style={{ color: C.muted, fontSize: 12.5, fontWeight: "600" }}>Réinitialiser les données de démonstration</Text>
-      </Pressable>
     </Sheet>
   );
 }

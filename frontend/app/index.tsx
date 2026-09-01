@@ -140,6 +140,15 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.authError]);
 
+  // Modification refusée par le serveur (rôle insuffisant) : la vérité du
+  // serveur a été rechargée, on explique pourquoi l'écran a « bougé ».
+  useEffect(() => {
+    if (!store.syncError) return;
+    setNotice(`${store.syncError}\n\nLa modification n'a pas été enregistrée.`);
+    store.clearSyncError();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.syncError]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await store.refresh();
@@ -206,8 +215,18 @@ export default function App() {
   };
   const doRestore = async () => {
     const restored = await importData();
-    if (restored) { store.replaceData(restored); setOpenMember(null); setOpenCollab(null); setNotice("Données restaurées avec succès."); }
-    else setNotice("Aucune donnée restaurée (fichier invalide ou annulé).");
+    if (!restored) { setNotice("Aucune donnée restaurée (fichier invalide ou annulé)."); return; }
+    setConfirm({
+      msg: "Restaurer cette sauvegarde ? Tout ce qui a été enregistré depuis (pesées, avances, soldes) sera définitivement supprimé pour toute la coopérative.",
+      yesLabel: "Restaurer",
+      onYes: () => {
+        store.replaceData(restored);
+        setOpenMember(null);
+        setOpenCollab(null);
+        setConfirm(null);
+        setNotice("Données restaurées avec succès.");
+      },
+    });
   };
 
   const openMemberObj = openMember ? data.members.find((m) => m.id === openMember) : null;
@@ -316,7 +335,7 @@ export default function App() {
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} onAdd={() => setSheet("collab")} />;
     else if (tab === "prets") body = <PatronPrets data={data} onApprove={(l: any) => setApproveLoanObj(l)} onRefuse={(id: string) => store.refuseLoan(id, session.staffId)} onNew={() => setSheet("loan")} onBack={() => setTab("bilan")} />;
     else if (tab === "depenses") body = <DepensesPatron data={data} onBack={() => setTab("coop")} onAdd={() => setSheet("depense")} />;
-    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onAudit={() => setSheet("audit")} onDepenses={() => setTab("depenses")} onReset={store.reset} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
+    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onAudit={() => setSheet("audit")} onDepenses={() => setTab("depenses")} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
   } else if (isCoop) {
     const isPisteur = role === "pisteur";
     nav = (
@@ -332,7 +351,7 @@ export default function App() {
       />
     );
     if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onSettle={settleMemberFn} onSettlementReceipt={setSettlementReceipt} />;
-    else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} onVillageRecap={doVillageRecap} />;
+    else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onVillageRecap={doVillageRecap} />;
     else if (tab === "prets") body = <PatronPrets data={data} canDecide={false} onNew={() => setSheet("loan")} onBack={() => setTab(isPisteur ? "tournee" : "jour")} />;
     else if (isPisteur) body = (
       <>
@@ -376,7 +395,7 @@ export default function App() {
       {sheet === "pesee" ? <PeseeSheet data={data} role={role} staffId={staffId} onClose={() => setSheet(null)} onSave={savePesee} /> : null}
       {sheet === "loan" && session.side === "planteur" ? <LoanSheet data={data} fixedMember={me} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ ...l, memberId: session.memberId, date: new Date().toISOString() }); setSheet(null); setTab("prets"); }} /> : null}
       {sheet === "loan" && session.side === "coop" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ date: new Date().toISOString(), ...l }); setSheet(null); }} /> : null}
-      {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setCoopSettings(p); setSheet(null); }} onReset={() => { store.reset(); setSheet(null); }} /> : null}
+      {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setCoopSettings(p); setSheet(null); }} /> : null}
       {sheet === "coopProfile" ? <CoopProfileSheet coop={data.coop} patron={me} onClose={() => setSheet(null)} onSave={({ coopPatch, patronPatch }: any) => { store.setCoopProfile(coopPatch); if (session.side === "coop" && session.staffId) store.updateStaff(session.staffId, patronPatch); setSheet(null); }} /> : null}
       {sheet === "audit" ? <AuditSheet data={data} fetchAudit={store.fetchAudit} onClose={() => setSheet(null)} /> : null}
       {sheet === "stock" ? <StockSheet data={data} staffId={staffId} scope={role === "patron" ? "all" : "mine"} onClose={() => setSheet(null)} /> : null}

@@ -9,7 +9,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test:sync": "tsc src/coop/sync.ts --outDir .sync-build --module es2020 --target es2020 --moduleResolution bundler --skipLibCheck && node --test tests/sync.test.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "6.1.2",

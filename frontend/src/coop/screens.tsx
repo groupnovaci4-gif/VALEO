@@ -639,7 +639,8 @@ export function Members({ data, onOpen, onAdd, onVillageRecap, restrictTo }: any
     <View>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <SectionTitle noMargin>{restrictTo ? "Mes planteurs" : "Planteurs"} ({base.length})</SectionTitle>
-        <GhostBtn onPress={onAdd} testID="add-member">+ Ajouter</GhostBtn>
+        {/* Seul le Patron enregistre un planteur (règle métier v23). */}
+        {onAdd ? <GhostBtn onPress={onAdd} testID="add-member">+ Ajouter</GhostBtn> : null}
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, paddingHorizontal: 12, marginBottom: 10 }}>
         <Icon name="search" size={17} color={C.muted} />
@@ -909,7 +910,7 @@ export function DepensesPatron({ data, onBack, onAdd }: any) {
   );
 }
 
-export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile, onAudit, onDepenses, onReset, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
+export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile, onAudit, onDepenses, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
   const co = data.coop || {};
   const patron = (data.staff || []).find((s: Staff) => s.role === "patron");
   const completeness = coopCompleteness(co, patron);
@@ -1069,9 +1070,6 @@ export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile,
         {data.coop.momo.length === 0 ? <Empty text="Aucun compte lié. Touchez « Lier » pour ajouter un compte Mobile Money." /> : null}
       </View>
 
-      <Pressable onPress={onReset} style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, alignItems: "center", marginBottom: 20 }} testID="reset-data">
-        <Text style={{ color: C.muted, fontSize: 12.5, fontWeight: "600" }}>Réinitialiser les données de démonstration</Text>
-      </Pressable>
     </View>
   );
 }
