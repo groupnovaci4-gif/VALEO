@@ -32,6 +32,7 @@ import {
   estVerifiee,
   manquantVerif,
   memberStats,
+  poidsPlusVerif,
   outstandingReste,
   op,
   pisteurStats,
@@ -443,9 +444,9 @@ function SuiviVerification({ data, staffId }: any) {
   if (attente.length === 0 && verifiees.length === 0) return null;
   const enAttente = attente.reduce((s: number, c: Collection) => s + (Number(c.kg) || 0), 0);
   // Chiffré sur TOUTES ses collectes, pas seulement les 5 affichées.
-  const manquant = (data.collections || [])
-    .filter((c: Collection) => c.byStaffId === staffId)
-    .reduce((s: number, c: Collection) => s + manquantVerif(c), 0);
+  const mesCols = (data.collections || []).filter((c: Collection) => c.byStaffId === staffId);
+  const manquant = mesCols.reduce((s: number, c: Collection) => s + manquantVerif(c), 0);
+  const poidsPlus = mesCols.reduce((s: number, c: Collection) => s + poidsPlusVerif(c), 0);
   return (
     <Card style={{ padding: 14, marginBottom: 14 }}>
       <Text style={{ fontSize: 12, color: C.muted, marginBottom: 9, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
@@ -477,6 +478,15 @@ function SuiviVerification({ data, staffId }: any) {
             Manquant à votre charge : <Text style={{ fontWeight: "800", color: C.loss }}>{fF(manquant)}</Text>.
             Vous avez réglé les planteurs sur le poids déclaré ; la coopérative n&apos;a pas reçu
             cette marchandise. Le montant est déduit de votre caisse.
+          </Text>
+        </View>
+      ) : null}
+      {poidsPlus > 0 ? (
+        <View style={{ backgroundColor: "#F0F6F2", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 10, padding: 11, marginTop: 10 }}>
+          <Text style={{ fontSize: 12.5, color: C.ink, lineHeight: 18 }}>
+            Poids plus : <Text style={{ fontWeight: "800", color: C.green }}>{fF(poidsPlus)}</Text>.
+            Le magasin a reçu plus que le poids annoncé. Le mandat portait sur le poids acheté :
+            ce qui arrive en plus vous revient, et s&apos;ajoute à votre caisse.
           </Text>
         </View>
       ) : null}
@@ -595,6 +605,13 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
             <Row label="− Manquant après vérification" value={fF(st.manquant)} />
           </>
         ) : null}
+        {/* Poids arrivé au magasin au-delà du poids déclaré : il vous revient. */}
+        {st.poidsPlus > 0 ? (
+          <>
+            <View style={{ height: 6 }} />
+            <Row label="+ Poids plus" value={fF(st.poidsPlus)} />
+          </>
+        ) : null}
         <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 10 }} />
         <Row label="Solde en caisse à justifier" value={fF(st.solde)} strong color={st.solde >= 0 ? C.green : C.loss} />
       </Card>
@@ -686,21 +703,17 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
           <StatCell label="Commission" value={fF(st.commission)} color={C.green} />
           <StatCell label="À justifier" value={fF(st.solde)} color={st.solde >= 0 ? C.green : C.loss} strong />
         </View>
-        {/* Écart de vérification : ce que la coopérative a payé pour de la
-            marchandise qu'elle n'a jamais reçue. Déjà déduit du solde. */}
-        {st.manquant > 0 || st.excedent > 0 ? (
+        {/* Écarts constatés à la vérification, déjà pris dans le solde :
+            le manquant est à sa charge, le poids plus lui revient. */}
+        {st.manquant > 0 || st.poidsPlus > 0 ? (
           <View style={{ marginTop: 10, borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", paddingTop: 10 }}>
             {st.manquant > 0 ? (
-              <Row label="Manquant après vérification (déduit)" value={fF(st.manquant)} strong />
+              <Row label="Manquant après vérification (à sa charge)" value={fF(st.manquant)} strong />
             ) : null}
-            {st.excedent > 0 ? (
+            {st.poidsPlus > 0 ? (
               <>
                 {st.manquant > 0 ? <View style={{ height: 6 }} /> : null}
-                <Row label="Excédent constaté (non crédité)" value={fF(st.excedent)} />
-                <Text style={{ fontSize: 11, color: C.muted, marginTop: 5, lineHeight: 16 }}>
-                  Le magasin a reçu plus que le poids déclaré : le planteur a donc été payé pour
-                  moins qu&apos;il n&apos;a livré. À examiner.
-                </Text>
+                <Row label="Poids plus (lui revient)" value={fF(st.poidsPlus)} strong />
               </>
             ) : null}
           </View>

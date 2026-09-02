@@ -125,18 +125,23 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
 8. **Net jamais négatif.** `netAPayer = max(0, montant - recouvre)`. Le net dû au
    planteur = poids **net** (après tare sacs) × prix, moins recouvrement.
 9. **Ordre de paiement.** L'ancien reste dû est soldé avant le net de la livraison courante.
-10. **Caisse d'un agent** = `mandat − (paiements de ses pesées + anciens restes qu'il a
-    soldés) − ses dépenses − son manquant après vérification`. Les soldes vivent
-    dans `settlements`, jamais dans `collection.paye` : les oublier fait
-    apparaître un manquant fictif. Le **manquant** (`manquantVerif`) est la
-    marchandise réglée au bord-champ qui n'est jamais arrivée au magasin :
-    `max(0, kg − verif.kg) × prixKg` **figé sur la collecte** — de l'argent du
-    mandat sorti sans contrepartie, donc à la charge de l'agent. Il n'est imputé
-    qu'**après** vérification : on ne reproche pas un écart non constaté. Un
-    **excédent** (`excedentVerif`) est affiché mais **jamais crédité** — le
-    créditer récompenserait la sous-déclaration, puisqu'il signifie que le
-    planteur a été payé pour moins qu'il n'a livré. Manquants et excédents ne se
-    compensent pas entre collectes.
+10. **Caisse d'un agent** = `mandat − (paiements de ses pesées + anciens restes
+    qu'il a soldés) − ses dépenses − son manquant + son poids plus`. Les soldes
+    vivent dans `settlements`, jamais dans `collection.paye` : les oublier fait
+    apparaître un manquant fictif.
+    Les deux écarts de vérification sont de **vrais mouvements d'argent**,
+    symétriques, valorisés au `prixKg` **figé sur la collecte** et imputés
+    seulement **après** vérification (on ne règle pas un écart non constaté) :
+    - **manquant** (`manquantVerif` = `max(0, kg − verif.kg) × prixKg`) —
+      marchandise réglée au bord-champ jamais arrivée au magasin : de l'argent
+      du mandat sorti sans contrepartie, **à la charge de l'agent** ;
+    - **poids plus** (`poidsPlusVerif` = `max(0, verif.kg − kg) × prixKg`) — ce
+      qui arrive au magasin au-delà du poids déclaré : **il revient à l'agent**.
+      C'est la pratique du métier : le mandat est confié pour acheter un poids
+      donné, et l'acheteur n'attend en retour que le poids correspondant au
+      mandat octroyé ; le surplus est le fruit de la tournée et lui est versé.
+    Chaque écart garde son montant propre à l'affichage ; dans la caisse, les
+    deux se compensent naturellement puisqu'ils vont en sens inverse.
 11. **Idempotence de la pesée.** Une saisie porte un `clientOpId` ; le serveur ignore
     une seconde création portant le même. Ne jamais créer une écriture financière sans.
 12. **Numéro de bordereau par agent.** Format `P-<trigramme>-0000` : le trigramme est
@@ -198,7 +203,8 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     sur sa propre pesée, **une seule fois** (seul le patron corrige) ; elle
     n'altère ni `kg`, ni le montant, ni le bordereau déjà remis au planteur —
     l'écart (`ecartVerif`) reste lisible plutôt que masqué, et se règle sur la
-    **caisse du pisteur** (invariant 10), jamais en rouvrant le paiement du
+    **caisse du pisteur** dans les deux sens (invariant 10 : manquant à sa
+    charge, poids plus à son bénéfice), jamais en rouvrant le paiement du
     planteur. Chaîne conservée : pisteur → poids déclaré → poids vérifié →
     magasinier → date.
 21. **Restes dus cloisonnés par agent.** Un pisteur ne voit et ne solde que les
@@ -252,9 +258,10 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
   constaté qui entre en stock. Arbitrage retenu : la vérification **n'altère pas
   la pesée d'origine** — le planteur a déjà été payé au bord-champ sur le poids
   déclaré, et rouvrir ce calcul reviendrait à lui réclamer de l'argent après
-  coup. L'écart est en revanche **imputé à la caisse du pisteur** comme son
-  propre manquant (invariant 10) : c'est lui qui a engagé l'argent de la
-  coopérative sur un poids que le magasin n'a pas retrouvé.
+  coup. L'écart est en revanche **réglé sur la caisse du pisteur** dans les deux
+  sens (invariant 10) : le manquant est à sa charge — c'est lui qui a engagé
+  l'argent de la coopérative sur un poids que le magasin n'a pas retrouvé — et
+  le **poids plus** lui revient, le mandat n'ayant acheté qu'un poids donné.
 - **Demande d'avance du planteur restaurée.** Cf. invariant 23 : la
   fonctionnalité existait, mais toute synchronisation du planteur était refusée
   (403) à cause d'un champ ajouté par `migrate()`.

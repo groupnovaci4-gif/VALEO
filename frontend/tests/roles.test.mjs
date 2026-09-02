@@ -6,7 +6,7 @@ import test from "node:test";
 const {
   migrate, stockStats, origineOf, estBordChamp, estVerifiee, kgEnStock,
   ecartVerif, aVerifier, restesAgent, resteAgentTotal, avancesInfo, memberCultures,
-  pisteurStats, manquantVerif, excedentVerif,
+  pisteurStats, manquantVerif, poidsPlusVerif,
 } = await import("../.sync-build/lib.js");
 const { prepareSync } = await import("../.sync-build/sync.js");
 
@@ -224,25 +224,45 @@ test("le manquant est valorisé au prix figé sur la collecte", () => {
   assert.equal(pisteurStats("pis", d).manquant, 15000, "10 kg × 1 500, pas × 1 800");
 });
 
-test("un excédent est signalé mais jamais crédité", () => {
-  // Le créditer récompenserait la sous-déclaration, au détriment du planteur
-  // qui a été payé pour moins que ce qu'il a livré.
+test("le « poids plus » revient au pisteur et abonde sa caisse", () => {
+  // Le mandat est confié pour acheter un poids donné : la coopérative n'attend
+  // en retour que le poids correspondant au mandat. Ce qui arrive en plus est
+  // le fruit de la tournée de l'agent et lui est versé.
   const d = base([colPisteur("c1", 980, { paye: 1764000, verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
   d.mandats = [{ id: "m1", pisteurId: "pis", amount: 2000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
   const st = pisteurStats("pis", d);
-  assert.equal(st.excedent, 36000);
+  assert.equal(st.poidsPlus, 36000, "20 kg de plus × 1 800");
   assert.equal(st.manquant, 0);
-  assert.equal(st.solde, 2000000 - 1764000, "la caisse n'est pas gonflée par l'excédent");
+  assert.equal(st.achats, 1764000, "le montant réglé au planteur ne change pas");
+  assert.equal(st.solde, 2000000 - 1764000 + 36000, "le poids plus s'ajoute à sa caisse");
+  assert.equal(st.solde, 272000);
 });
 
-test("manquants et excédents ne se compensent pas entre collectes", () => {
+test("manquant et poids plus restent lisibles séparément", () => {
   const d = base([
     colPisteur("c1", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } }),
     colPisteur("c2", 500, { paye: 900000, verif: { kg: 520, byStaffId: "mag", date: "2026-02-03T10:00:00.000Z" } }),
   ]);
+  d.mandats = [{ id: "m1", pisteurId: "pis", amount: 3000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
   const st = pisteurStats("pis", d);
-  assert.equal(st.manquant, 36000, "le manque reste dû en entier");
-  assert.equal(st.excedent, 36000);
+  assert.equal(st.manquant, 36000, "chaque écart garde son montant propre…");
+  assert.equal(st.poidsPlus, 36000);
+  // …mais dans la caisse, les deux se compensent : ce sont deux vrais
+  // mouvements d'argent, en sens inverse.
+  assert.equal(st.achats, 2700000);
+  assert.equal(st.solde, 300000, "3 000 000 − 2 700 000 − 36 000 + 36 000");
+});
+
+test("le poids plus est valorisé au prix figé sur la collecte", () => {
+  const d = base([colPisteur("c1", 90, { prixKg: 1500, paye: 135000, verif: { kg: 100, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
+  d.prices = { cacao: 1800 };
+  assert.equal(pisteurStats("pis", d).poidsPlus, 15000, "10 kg × 1 500, pas × 1 800");
+});
+
+test("tant que le poids n'est pas vérifié, aucun poids plus n'est versé", () => {
+  const d = base([colPisteur("c1", 1000)]);
+  assert.equal(pisteurStats("pis", d).poidsPlus, 0);
+  assert.equal(poidsPlusVerif(colPisteur("c2", 1000)), 0);
 });
 
 test("le manquant d'un pisteur ne touche pas la caisse d'un autre", () => {

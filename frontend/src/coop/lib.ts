@@ -631,14 +631,16 @@ export const manquantVerif = (c: Collection): number =>
   Math.round(Math.max(0, -ecartVerif(c)) * (Number(c.prixKg) || 0));
 
 /**
- * Excédent valorisé : le magasin a reçu PLUS que le poids déclaré.
+ * « Poids plus » valorisé : le magasin a reçu PLUS que le poids déclaré.
  *
- * Affiché, mais volontairement **non crédité** à la caisse du pisteur : cet
- * excédent signifie que le planteur a été payé pour moins que ce qu'il a
- * livré. Le porter au crédit du pisteur récompenserait la sous-déclaration,
- * aux dépens du planteur. C'est un signal à examiner, pas un gain.
+ * Il revient au pisteur, et c'est la pratique réelle du métier : le mandat est
+ * confié pour acheter un poids donné, et l'acheteur n'attend en retour que le
+ * poids correspondant au mandat octroyé. Tout ce qui arrive en plus est le
+ * fruit de la tournée de l'agent — sa marge — et lui est versé.
+ *
+ * Symétrique du manquant : l'un ampute sa caisse, l'autre l'abonde.
  */
-export const excedentVerif = (c: Collection): number =>
+export const poidsPlusVerif = (c: Collection): number =>
   Math.round(Math.max(0, ecartVerif(c)) * (Number(c.prixKg) || 0));
 
 /**
@@ -787,10 +789,14 @@ export function pisteurStats(pid: string, data: Data) {
   // C'est de l'argent du mandat sorti sans contrepartie, donc à la charge de
   // l'agent — au même titre qu'un billet manquant dans sa sacoche.
   const manquant = cols.reduce((s, c) => s + manquantVerif(c), 0);
-  const excedent = cols.reduce((s, c) => s + excedentVerif(c), 0);
+  // « Poids plus » : ce qui est arrivé au magasin au-delà du poids déclaré.
+  // Il revient à l'agent (cf. `poidsPlusVerif`).
+  const poidsPlus = cols.reduce((s, c) => s + poidsPlusVerif(c), 0);
   // Poids réellement remis au magasin (après vérification), pour distinguer ce
   // qu'il a collecté de ce que la coopérative a effectivement reçu.
   const poidsRemis = cols.reduce((s, c) => s + (estVerifiee(c) ? Number(c.verif!.kg) || 0 : 0), 0);
-  const solde = mandat - achats - depenses - manquant;
-  return { poids, poidsRemis, achats, achatsPesees, soldes, mandat, depenses, commission, manquant, excedent, solde, count: cols.length };
+  // Le manquant ampute la caisse de l'agent, le poids plus l'abonde : les deux
+  // écarts de vérification sont de vrais mouvements d'argent le concernant.
+  const solde = mandat - achats - depenses - manquant + poidsPlus;
+  return { poids, poidsRemis, achats, achatsPesees, soldes, mandat, depenses, commission, manquant, poidsPlus, solde, count: cols.length };
 }

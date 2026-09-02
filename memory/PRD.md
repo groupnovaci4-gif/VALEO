@@ -435,3 +435,35 @@ Visible dans la justification de caisse du pisteur, dans son suivi de remise au
 magasin, et dans le bilan du patron sur cet agent.
 
 75 tests frontend (+8).
+
+### v34.2 — Le « poids plus » revient au pisteur
+
+Correction de l'arbitrage de la v34.1, qui ne reflétait pas la pratique du
+métier. L'excédent constaté au magasin — appelé **poids plus** — n'est plus
+seulement signalé : il est **versé au pisteur**.
+
+Règle métier (dictée par l'usage réel) : le mandat est confié pour acheter un
+poids donné. L'acheteur n'attend en retour que le poids correspondant au mandat
+octroyé. Tout ce qui arrive au-delà est le fruit de la tournée de l'agent et lui
+revient.
+
+```
+Caisse = mandat − achats − dépenses − manquant + poids plus
+manquant   = Σ max(0, kg − verif.kg) × prixKg
+poids plus = Σ max(0, verif.kg − kg) × prixKg
+```
+
+Les deux écarts sont désormais symétriques : même valorisation au prix figé sur
+la collecte, même condition (imputés seulement après vérification), sens
+opposés. Chacun garde son montant propre à l'affichage ; dans la caisse, ils se
+compensent naturellement.
+
+Exemple couvert par un test : mandat 2 000 000 F, 980 kg déclarés payés
+1 764 000 F, 1 000 kg constatés → poids plus 36 000 F → solde 272 000 F au lieu
+de 236 000 F.
+
+Visible dans la justification de caisse du pisteur (`+ Poids plus`), dans son
+suivi de remise au magasin et dans le bilan du patron sur cet agent. Le
+bordereau du planteur et le montant qui lui a été réglé restent inchangés.
+
+77 tests frontend (+2).
