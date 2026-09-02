@@ -1,7 +1,7 @@
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import React, { useEffect, useState } from "react";
-import { Linking, Modal, Pressable, Text, View } from "react-native";
+import { Image, Linking, Modal, Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -44,6 +44,8 @@ import { Localisation, libelleLocalite, rapprocherTexte } from "./geo";
 import { Icon } from "./Icon";
 import { createPinRecord, isValidPin } from "./pin";
 import { Sig, SignaturePad, SigPreview, sigToSvg } from "./Signature";
+import { VALEO_LOGO } from "./brand";
+import { VALEO_LOGO_PRINT } from "./logo-print";
 import {
   Card,
   Chip,
@@ -826,7 +828,12 @@ function receiptHtml(c: Collection, member: Member | undefined, saison: string, 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
   <style>
     body{font-family:-apple-system,Roboto,'Helvetica Neue',sans-serif;color:#241C15;padding:24px;background:#fff}
+    /* Sans cela, la plupart des moteurs d'impression suppriment les aplats. */
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .h{background:#0E8E80;color:#fff;text-align:center;padding:20px;border-radius:14px 14px 0 0}
+    /* Le logo est composité sur blanc (papier) : une pastille blanche le pose
+       proprement sur le bandeau de couleur au lieu d'un carré qui déborde. */
+    .h .logo{display:block;margin:0 auto 9px;width:62px;height:62px;background:#fff;border-radius:12px;padding:5px;box-sizing:border-box}
     .h .n{font-size:26px;font-weight:900;letter-spacing:1px}
     .h .t{font-size:12px;opacity:.9;font-style:italic;margin-top:4px}
     .h .s{font-size:12px;opacity:.85;margin-top:6px}
@@ -840,7 +847,7 @@ function receiptHtml(c: Collection, member: Member | undefined, saison: string, 
     .ok{color:#1E7A4D}
     .foot{text-align:center;font-size:11px;color:#7A6E62;margin-top:12px;font-family:sans-serif}
   </style></head><body>
-    <div class="h"><div class="n">VALEO</div><div class="t">La valeur commence à la source.</div><div class="s">${saison} · Reçu de livraison</div></div>
+    <div class="h"><img class="logo" src="${VALEO_LOGO_PRINT}" alt="VALEO"><div class="n">VALEO</div><div class="t">La valeur commence à la source.</div><div class="s">${saison} · Reçu de livraison</div></div>
     <div class="b">
       <table>${rows.join("")}</table>
       <div class="dash"></div>
@@ -947,6 +954,9 @@ export function Bordereau({ collection, member, saison, onClose, onSign, onNotic
           <KeyboardAwareScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
             <View style={{ backgroundColor: "#fff", borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: C.line }}>
               <View style={{ backgroundColor: C.teal, paddingVertical: 14, paddingHorizontal: 16, alignItems: "center" }}>
+                <View style={{ width: 54, height: 54, borderRadius: 12, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", marginBottom: 7 }}>
+                  <Image source={VALEO_LOGO} style={{ width: 44, height: 44 }} resizeMode="contain" />
+                </View>
                 <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", letterSpacing: 1 }}>VALEO</Text>
                 <Text style={{ fontSize: 10.5, color: "rgba(255,255,255,0.85)", fontStyle: "italic", marginTop: 3 }}>La valeur commence à la source.</Text>
                 <Text style={{ fontSize: 11.5, color: "rgba(255,255,255,0.8)", marginTop: 4 }}>{saison} · Reçu de livraison</Text>
@@ -1027,7 +1037,11 @@ function settlementHtml(s: any, member: Member | undefined, saison: string, agen
   return `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
   <style>
     body{font-family:-apple-system,Roboto,'Helvetica Neue',sans-serif;color:#241C15;padding:24px;background:#fff}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     .h{background:#2E8B3D;color:#fff;text-align:center;padding:20px;border-radius:14px 14px 0 0}
+    /* Le logo est composité sur blanc (papier) : une pastille blanche le pose
+       proprement sur le bandeau de couleur au lieu d'un carré qui déborde. */
+    .h .logo{display:block;margin:0 auto 9px;width:62px;height:62px;background:#fff;border-radius:12px;padding:5px;box-sizing:border-box}
     .h .n{font-size:26px;font-weight:900;letter-spacing:1px}
     .h .t{font-size:12px;opacity:.9;font-style:italic;margin-top:4px}
     .h .s{font-size:12px;opacity:.85;margin-top:6px}
@@ -1036,7 +1050,7 @@ function settlementHtml(s: any, member: Member | undefined, saison: string, agen
     .dash{border-top:1px dashed #EAE2D5;margin:10px 0} .big{font-size:19px;font-weight:900;color:#2E8B3D}
     .foot{text-align:center;font-size:11px;color:#7A6E62;margin-top:12px;font-family:sans-serif}
   </style></head><body>
-    <div class="h"><div class="n">VALEO</div><div class="t">La valeur commence à la source.</div><div class="s">${saison} · Reçu de solde</div></div>
+    <div class="h"><img class="logo" src="${VALEO_LOGO_PRINT}" alt="VALEO"><div class="n">VALEO</div><div class="t">La valeur commence à la source.</div><div class="s">${saison} · Reçu de solde</div></div>
     <div class="b">
       <table>
         <tr><td>N° reçu</td><td class="r">${ticketOf(s)}</td></tr>
@@ -1092,6 +1106,9 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
           <KeyboardAwareScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
             <View style={{ backgroundColor: "#fff", borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: C.line }}>
               <View style={{ backgroundColor: C.green, paddingVertical: 14, alignItems: "center" }}>
+                <View style={{ width: 54, height: 54, borderRadius: 12, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", marginBottom: 7 }}>
+                  <Image source={VALEO_LOGO} style={{ width: 44, height: 44 }} resizeMode="contain" />
+                </View>
                 <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", letterSpacing: 1 }}>VALEO</Text>
                 <Text style={{ fontSize: 11.5, color: "rgba(255,255,255,0.8)", marginTop: 4 }}>{saison} · Reçu de solde</Text>
               </View>

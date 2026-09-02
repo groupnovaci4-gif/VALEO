@@ -11,7 +11,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "tsc src/coop/sync.ts src/coop/lib.ts src/coop/geo.ts --outDir .sync-build --module commonjs --target es2020 --moduleResolution node --skipLibCheck --resolveJsonModule --esModuleInterop && node --test tests/*.test.mjs",
-    "geo:build": "node scripts/import-geo.mjs"
+    "geo:build": "node scripts/import-geo.mjs",
+    "brand:build": "node scripts/build-logo.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "6.1.2",
