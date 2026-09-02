@@ -6,9 +6,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { C, MEMBER_CODE_RE, ROLES, Session, waNumber } from "./lib";
 import { isValidPassword, isValidPin, normalizePhone } from "./pin";
 import { Icon } from "./Icon";
+import { VALEO_LOGO } from "./brand";
 import { Field, PhotoAvatar, SaveBtn, TInput } from "./ui";
 
-const VALEO_EMBLEM = require("../../assets/images/adaptive-icon.png");
+// Logo officiel, via la source unique `brand.ts` : remplacer le fichier
+// suffit à mettre à jour l'appli partout.
 
 // Le planteur se connecte avec son téléphone OU son identifiant VAL-XXXX-YY :
 // le backend accepte les deux (server.py, planteur_login).
@@ -149,7 +151,7 @@ export function Login({
   return (
     <KeyboardAwareScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: insets.bottom + 20, paddingTop: insets.top + 20, paddingHorizontal: 20, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
       <View style={{ alignItems: "center", marginBottom: 20 }}>
-        <Image source={VALEO_EMBLEM} style={{ width: 82, height: 82 }} resizeMode="contain" />
+        <Image source={VALEO_LOGO} style={{ width: 132, height: 132 }} resizeMode="contain" />
         <Text style={{ marginTop: 8, fontSize: 11, fontWeight: "700", letterSpacing: 3, color: C.muted }}>TRACER. GÉRER. VALORISER.</Text>
       </View>
 
