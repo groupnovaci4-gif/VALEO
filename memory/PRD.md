@@ -401,3 +401,37 @@ l'instance déployée : réseau bloqué dans l'environnement de développement.
 
 ⚠️ Backend sur K8s : nécessite redeploy pour la production. Backend et frontend
 doivent être déployés ensemble (cf. CLAUDE.md §8).
+
+### v34.1 — L'écart de vérification est à la charge du pisteur
+
+Complément demandé après coup : l'écart constaté au magasin n'est plus seulement
+une information de gestion, il est **imputé à la caisse du pisteur**.
+
+Raisonnement : le pisteur a réglé le planteur sur le poids déclaré, avec
+l'argent du mandat. Si le magasin en constate moins, la différence est de
+l'argent de la coopérative sorti sans contrepartie — exactement un manquant de
+caisse.
+
+```
+Caisse = mandat − achats − dépenses − manquant
+manquant = Σ max(0, kg − verif.kg) × prixKg (figé sur la collecte)
+```
+
+Exemple couvert par un test : mandat 2 000 000 F, 1 000 kg payés 1 800 000 F,
+980 kg constatés → manquant 36 000 F → solde 164 000 F au lieu de 200 000 F.
+
+Trois garde-fous :
+
+- **imputé seulement après vérification** — on ne reproche pas un écart qui n'a
+  pas été constaté ;
+- **valorisé au prix figé** sur la collecte, jamais au prix courant
+  (invariant 6) ;
+- **un excédent n'est jamais crédité**, seulement signalé. Le créditer
+  récompenserait la sous-déclaration : un excédent signifie que le planteur a
+  été payé pour moins qu'il n'a livré. Manquants et excédents ne se compensent
+  pas entre collectes.
+
+Visible dans la justification de caisse du pisteur, dans son suivi de remise au
+magasin, et dans le bilan du patron sur cet agent.
+
+75 tests frontend (+8).

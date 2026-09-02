@@ -6,6 +6,7 @@ import test from "node:test";
 const {
   migrate, stockStats, origineOf, estBordChamp, estVerifiee, kgEnStock,
   ecartVerif, aVerifier, restesAgent, resteAgentTotal, avancesInfo, memberCultures,
+  pisteurStats, manquantVerif, excedentVerif,
 } = await import("../.sync-build/lib.js");
 const { prepareSync } = await import("../.sync-build/sync.js");
 
@@ -182,4 +183,84 @@ test("les dettes ne sont pas cloisonnées par campagne", () => {
   d.saison = "Campagne 2026-2027";
   d.loans = [{ id: "l1", memberId: "m1", amount: 50000, status: "approuve", soldeRestant: 50000, saison: "Campagne 2025-2026", date: "2025-11-05T09:00:00.000Z" }];
   assert.equal(avancesInfo("m1", d).reste, 50000, "une dette suit le planteur d'une campagne à l'autre");
+});
+
+/* ------------- Écart de vérification à la charge du pisteur --------------- */
+
+test("le manquant après vérification est déduit de la caisse du pisteur", () => {
+  // Le pisteur a reçu 2 000 000 F de mandat et payé 1 000 kg × 1 800 = 1 800 000 F
+  // au planteur. Le magasin n'a reçu que 980 kg : 20 kg × 1 800 = 36 000 F sont
+  // sortis du mandat sans contrepartie — c'est son manquant.
+  const d = base([colPisteur("c1", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
+  d.mandats = [{ id: "m1", pisteurId: "pis", amount: 2000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
+  const st = pisteurStats("pis", d);
+  assert.equal(st.manquant, 36000);
+  assert.equal(st.achats, 1800000, "le montant réglé au planteur ne change pas");
+  assert.equal(st.solde, 2000000 - 1800000 - 36000, "le manquant sort de sa caisse");
+  assert.equal(st.solde, 164000);
+});
+
+test("sans écart, la caisse est inchangée", () => {
+  const d = base([colPisteur("c1", 1000, { verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
+  d.mandats = [{ id: "m1", pisteurId: "pis", amount: 2000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
+  const st = pisteurStats("pis", d);
+  assert.equal(st.manquant, 0);
+  assert.equal(st.solde, 200000);
+});
+
+test("tant que le poids n'est pas vérifié, aucun manquant n'est imputé", () => {
+  // On ne peut pas reprocher un écart qui n'a pas encore été constaté.
+  const d = base([colPisteur("c1", 1000)]);
+  d.mandats = [{ id: "m1", pisteurId: "pis", amount: 2000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
+  const st = pisteurStats("pis", d);
+  assert.equal(st.manquant, 0);
+  assert.equal(st.solde, 200000);
+});
+
+test("le manquant est valorisé au prix figé sur la collecte", () => {
+  // Le prix courant a changé depuis la pesée : c'est le prix payé qui compte.
+  const d = base([colPisteur("c1", 100, { prixKg: 1500, paye: 150000, verif: { kg: 90, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
+  d.prices = { cacao: 1800 };
+  assert.equal(pisteurStats("pis", d).manquant, 15000, "10 kg × 1 500, pas × 1 800");
+});
+
+test("un excédent est signalé mais jamais crédité", () => {
+  // Le créditer récompenserait la sous-déclaration, au détriment du planteur
+  // qui a été payé pour moins que ce qu'il a livré.
+  const d = base([colPisteur("c1", 980, { paye: 1764000, verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
+  d.mandats = [{ id: "m1", pisteurId: "pis", amount: 2000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
+  const st = pisteurStats("pis", d);
+  assert.equal(st.excedent, 36000);
+  assert.equal(st.manquant, 0);
+  assert.equal(st.solde, 2000000 - 1764000, "la caisse n'est pas gonflée par l'excédent");
+});
+
+test("manquants et excédents ne se compensent pas entre collectes", () => {
+  const d = base([
+    colPisteur("c1", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } }),
+    colPisteur("c2", 500, { paye: 900000, verif: { kg: 520, byStaffId: "mag", date: "2026-02-03T10:00:00.000Z" } }),
+  ]);
+  const st = pisteurStats("pis", d);
+  assert.equal(st.manquant, 36000, "le manque reste dû en entier");
+  assert.equal(st.excedent, 36000);
+});
+
+test("le manquant d'un pisteur ne touche pas la caisse d'un autre", () => {
+  const d = base([
+    colPisteur("c1", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } }),
+    col("c2", "pis2", 1000, { origine: "bord_champ", verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } }),
+  ]);
+  d.staff = [...STAFF, { id: "pis2", nom: "Konan", role: "pisteur" }];
+  assert.equal(pisteurStats("pis", d).manquant, 36000);
+  assert.equal(pisteurStats("pis2", d).manquant, 0);
+});
+
+test("le poids remis distingue le collecté du reçu", () => {
+  const d = base([
+    colPisteur("c1", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } }),
+    colPisteur("c2", 500),
+  ]);
+  const st = pisteurStats("pis", d);
+  assert.equal(st.poids, 1500, "ce qu'il a collecté");
+  assert.equal(st.poidsRemis, 980, "ce que la coopérative a effectivement reçu");
 });

@@ -30,6 +30,7 @@ import {
   ecartVerif,
   estBordChamp,
   estVerifiee,
+  manquantVerif,
   memberStats,
   outstandingReste,
   op,
@@ -441,6 +442,10 @@ function SuiviVerification({ data, staffId }: any) {
     .slice(0, 5);
   if (attente.length === 0 && verifiees.length === 0) return null;
   const enAttente = attente.reduce((s: number, c: Collection) => s + (Number(c.kg) || 0), 0);
+  // Chiffré sur TOUTES ses collectes, pas seulement les 5 affichées.
+  const manquant = (data.collections || [])
+    .filter((c: Collection) => c.byStaffId === staffId)
+    .reduce((s: number, c: Collection) => s + manquantVerif(c), 0);
   return (
     <Card style={{ padding: 14, marginBottom: 14 }}>
       <Text style={{ fontSize: 12, color: C.muted, marginBottom: 9, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
@@ -464,6 +469,15 @@ function SuiviVerification({ data, staffId }: any) {
               </View>
             );
           })}
+        </View>
+      ) : null}
+      {manquant > 0 ? (
+        <View style={{ backgroundColor: "#FBEFED", borderWidth: 1, borderColor: "#EFD3CE", borderRadius: 10, padding: 11, marginTop: 10 }}>
+          <Text style={{ fontSize: 12.5, color: C.ink, lineHeight: 18 }}>
+            Manquant à votre charge : <Text style={{ fontWeight: "800", color: C.loss }}>{fF(manquant)}</Text>.
+            Vous avez réglé les planteurs sur le poids déclaré ; la coopérative n&apos;a pas reçu
+            cette marchandise. Le montant est déduit de votre caisse.
+          </Text>
         </View>
       ) : null}
       <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 9, lineHeight: 17 }}>
@@ -573,6 +587,14 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
         ) : null}
         <View style={{ height: 6 }} />
         <Row label="− Dépenses de tournée" value={fF(st.depenses)} />
+        {/* Marchandise payée au bord-champ mais jamais arrivée au magasin :
+            l'argent est sorti du mandat sans contrepartie. */}
+        {st.manquant > 0 ? (
+          <>
+            <View style={{ height: 6 }} />
+            <Row label="− Manquant après vérification" value={fF(st.manquant)} />
+          </>
+        ) : null}
         <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 10 }} />
         <Row label="Solde en caisse à justifier" value={fF(st.solde)} strong color={st.solde >= 0 ? C.green : C.loss} />
       </Card>
@@ -664,6 +686,25 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
           <StatCell label="Commission" value={fF(st.commission)} color={C.green} />
           <StatCell label="À justifier" value={fF(st.solde)} color={st.solde >= 0 ? C.green : C.loss} strong />
         </View>
+        {/* Écart de vérification : ce que la coopérative a payé pour de la
+            marchandise qu'elle n'a jamais reçue. Déjà déduit du solde. */}
+        {st.manquant > 0 || st.excedent > 0 ? (
+          <View style={{ marginTop: 10, borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", paddingTop: 10 }}>
+            {st.manquant > 0 ? (
+              <Row label="Manquant après vérification (déduit)" value={fF(st.manquant)} strong />
+            ) : null}
+            {st.excedent > 0 ? (
+              <>
+                {st.manquant > 0 ? <View style={{ height: 6 }} /> : null}
+                <Row label="Excédent constaté (non crédité)" value={fF(st.excedent)} />
+                <Text style={{ fontSize: 11, color: C.muted, marginTop: 5, lineHeight: 16 }}>
+                  Le magasin a reçu plus que le poids déclaré : le planteur a donc été payé pour
+                  moins qu&apos;il n&apos;a livré. À examiner.
+                </Text>
+              </>
+            ) : null}
+          </View>
+        ) : null}
       </Card>
       {onEdit ? (
         <View style={{ flexDirection: "row", gap: 9, marginBottom: 14 }}>

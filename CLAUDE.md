@@ -126,8 +126,17 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
    planteur = poids **net** (après tare sacs) × prix, moins recouvrement.
 9. **Ordre de paiement.** L'ancien reste dû est soldé avant le net de la livraison courante.
 10. **Caisse d'un agent** = `mandat − (paiements de ses pesées + anciens restes qu'il a
-    soldés) − ses dépenses`. Les soldes vivent dans `settlements`, jamais dans
-    `collection.paye` : les oublier fait apparaître un manquant fictif.
+    soldés) − ses dépenses − son manquant après vérification`. Les soldes vivent
+    dans `settlements`, jamais dans `collection.paye` : les oublier fait
+    apparaître un manquant fictif. Le **manquant** (`manquantVerif`) est la
+    marchandise réglée au bord-champ qui n'est jamais arrivée au magasin :
+    `max(0, kg − verif.kg) × prixKg` **figé sur la collecte** — de l'argent du
+    mandat sorti sans contrepartie, donc à la charge de l'agent. Il n'est imputé
+    qu'**après** vérification : on ne reproche pas un écart non constaté. Un
+    **excédent** (`excedentVerif`) est affiché mais **jamais crédité** — le
+    créditer récompenserait la sous-déclaration, puisqu'il signifie que le
+    planteur a été payé pour moins qu'il n'a livré. Manquants et excédents ne se
+    compensent pas entre collectes.
 11. **Idempotence de la pesée.** Une saisie porte un `clientOpId` ; le serveur ignore
     une seconde création portant le même. Ne jamais créer une écriture financière sans.
 12. **Numéro de bordereau par agent.** Format `P-<trigramme>-0000` : le trigramme est
@@ -188,8 +197,10 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     La vérification (`Collection.verif`) est posée **par le magasinier**, jamais
     sur sa propre pesée, **une seule fois** (seul le patron corrige) ; elle
     n'altère ni `kg`, ni le montant, ni le bordereau déjà remis au planteur —
-    l'écart (`ecartVerif`) reste lisible plutôt que masqué. Chaîne conservée :
-    pisteur → poids déclaré → poids vérifié → magasinier → date.
+    l'écart (`ecartVerif`) reste lisible plutôt que masqué, et se règle sur la
+    **caisse du pisteur** (invariant 10), jamais en rouvrant le paiement du
+    planteur. Chaîne conservée : pisteur → poids déclaré → poids vérifié →
+    magasinier → date.
 21. **Restes dus cloisonnés par agent.** Un pisteur ne voit et ne solde que les
     restes issus de **ses propres** pesées (`collectesPourRestes`,
     `restesAgent`) : ceux d'une pesée du patron ou du magasinier ne sortent pas
@@ -241,7 +252,9 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
   constaté qui entre en stock. Arbitrage retenu : la vérification **n'altère pas
   la pesée d'origine** — le planteur a déjà été payé au bord-champ sur le poids
   déclaré, et rouvrir ce calcul reviendrait à lui réclamer de l'argent après
-  coup. L'écart est une information de gestion, pas une correction comptable.
+  coup. L'écart est en revanche **imputé à la caisse du pisteur** comme son
+  propre manquant (invariant 10) : c'est lui qui a engagé l'argent de la
+  coopérative sur un poids que le magasin n'a pas retrouvé.
 - **Demande d'avance du planteur restaurée.** Cf. invariant 23 : la
   fonctionnalité existait, mais toute synchronisation du planteur était refusée
   (403) à cause d'un champ ajouté par `migrate()`.

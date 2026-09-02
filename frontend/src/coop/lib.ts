@@ -616,6 +616,32 @@ export const ecartVerif = (c: Collection): number =>
   estVerifiee(c) ? (Number(c.verif!.kg) || 0) - (Number(c.kg) || 0) : 0;
 
 /**
+ * Manquant valorisé d'une collecte : ce que la coopérative a payé pour de la
+ * marchandise qu'elle n'a jamais reçue.
+ *
+ * Le pisteur a réglé le planteur sur le poids DÉCLARÉ, avec l'argent du
+ * mandat. Si le magasin en constate moins, la différence est de l'argent de la
+ * coopérative sorti sans contrepartie : elle est à sa charge, comme un
+ * manquant de caisse.
+ *
+ * Valorisé au prix FIGÉ sur la collecte (jamais au prix courant), au même
+ * titre que le montant payé au planteur.
+ */
+export const manquantVerif = (c: Collection): number =>
+  Math.round(Math.max(0, -ecartVerif(c)) * (Number(c.prixKg) || 0));
+
+/**
+ * Excédent valorisé : le magasin a reçu PLUS que le poids déclaré.
+ *
+ * Affiché, mais volontairement **non crédité** à la caisse du pisteur : cet
+ * excédent signifie que le planteur a été payé pour moins que ce qu'il a
+ * livré. Le porter au crédit du pisteur récompenserait la sous-déclaration,
+ * aux dépens du planteur. C'est un signal à examiner, pas un gain.
+ */
+export const excedentVerif = (c: Collection): number =>
+  Math.round(Math.max(0, ecartVerif(c)) * (Number(c.prixKg) || 0));
+
+/**
  * Collectes bord-champ en attente de vérification par le magasinier.
  * `staffId` restreint à celles d'un pisteur donné (son propre suivi).
  */
@@ -757,6 +783,14 @@ export function pisteurStats(pid: string, data: Data) {
   const mandat = (data.mandats || []).filter((m) => m.pisteurId === pid).reduce((s, m) => s + m.amount, 0);
   const depenses = (data.depenses || []).filter((x) => x.pisteurId === pid).reduce((s, x) => s + x.amount, 0);
   const commission = cols.reduce((s, c) => s + Math.round(c.kg * collectionComm(data, c)), 0);
-  const solde = mandat - achats - depenses;
-  return { poids, achats, achatsPesees, soldes, mandat, depenses, commission, solde, count: cols.length };
+  // Manquant : marchandise payée au bord-champ mais jamais entrée au magasin.
+  // C'est de l'argent du mandat sorti sans contrepartie, donc à la charge de
+  // l'agent — au même titre qu'un billet manquant dans sa sacoche.
+  const manquant = cols.reduce((s, c) => s + manquantVerif(c), 0);
+  const excedent = cols.reduce((s, c) => s + excedentVerif(c), 0);
+  // Poids réellement remis au magasin (après vérification), pour distinguer ce
+  // qu'il a collecté de ce que la coopérative a effectivement reçu.
+  const poidsRemis = cols.reduce((s, c) => s + (estVerifiee(c) ? Number(c.verif!.kg) || 0 : 0), 0);
+  const solde = mandat - achats - depenses - manquant;
+  return { poids, poidsRemis, achats, achatsPesees, soldes, mandat, depenses, commission, manquant, excedent, solde, count: cols.length };
 }
