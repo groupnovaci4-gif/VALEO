@@ -404,7 +404,9 @@ export default function App() {
       </ScrollView>
       {nav}
 
-      {sheet === "member" ? <MemberSheet initial={editMember} onClose={() => { setSheet(null); setEditMember(null); }} onSave={(m: any) => { if (editMember) store.updateMember(editMember.id, m); else { store.addMember({ ...m, createdBy: staffId || null }); setTab("planteurs"); } setSheet(null); setEditMember(null); }} /> : null}
+      {/* Seul le patron pose un code secret : le serveur refuse `pin` venant
+          d'un agent, et rejetterait alors TOUTE la synchronisation. */}
+      {sheet === "member" ? <MemberSheet initial={editMember} canSetPin={role === "patron"} onClose={() => { setSheet(null); setEditMember(null); }} onSave={(m: any) => { if (editMember) store.updateMember(editMember.id, m); else { store.addMember({ ...m, createdBy: staffId || null }); setTab("planteurs"); } setSheet(null); setEditMember(null); }} /> : null}
       {sheet === "pesee" ? <PeseeSheet data={data} role={role} staffId={staffId} onClose={() => setSheet(null)} onSave={savePesee} /> : null}
       {sheet === "loan" && session.side === "planteur" ? <LoanSheet data={data} fixedMember={me} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ ...l, memberId: session.memberId, date: new Date().toISOString() }); setSheet(null); setTab("prets"); }} /> : null}
       {sheet === "loan" && session.side === "coop" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ date: new Date().toISOString(), origine: role === "patron" ? "patron" : "planteur", ...l }); setSheet(null); }} /> : null}

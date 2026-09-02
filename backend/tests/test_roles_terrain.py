@@ -16,10 +16,20 @@ from tests.test_state_authorization import (
 
 
 def _member(mid, nom, created_by, code="VAL-7777-QQ"):
+    """Charge utile EXACTE produite par `MemberSheet` + `store.addMember`.
+
+    Volontairement complète : un seul champ non prévu par
+    `AGENT_MEMBER_CREATE_FIELDS` ferait refuser tout le PUT (403), et la fiche
+    ne serait jamais créée. C'est ce qui arrivait tant que l'écran imposait un
+    code secret que seul le patron a le droit de poser.
+    """
     return {
-        "id": mid, "code": code, "nom": nom, "village": "Gomon", "tel": "0700009999",
-        "momo": None, "photo": None, "createdBy": created_by,
+        "id": mid, "coopId": None, "code": code, "nom": nom, "village": "Gomon",
+        "tel": "0700009999", "momo": None, "photo": None, "createdBy": created_by,
+        "idNumber": "CI 003 451 2",
+        "loc": {"districtId": "DS-lagunes", "district": "Lagunes", "village": "Gomon", "villageLibre": True},
         "cultures": [{"cropId": "cacao", "superficie": 2}],
+        "cropId": "cacao", "superficie": 2,
         "updatedAt": "2026-03-01T09:00:00.000Z",
     }
 
@@ -57,6 +67,15 @@ class TestCreationPlanteur:
         vue["members"].append(_member("mb-c1", "Brou", "st-magasin"))
         assert _put(app_client, t["commis"], vue).status_code == 200
         assert "mb-c1" in {m["id"] for m in _get_state(app_client, t["patron"])["members"]}
+
+    def test_le_planteur_cree_par_un_agent_na_pas_encore_de_code(self, app_client):
+        """Il attend celui du patron : la fiche existe, la connexion pas encore."""
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["pisteur"])
+        vue["members"].append(_member("mb-p3", "Affoué", "st-pisteur"))
+        assert _put(app_client, t["pisteur"], vue).status_code == 200
+        r = app_client.post("/api/auth/planteur/login", json={"phone": "0700009999", "pin": "000000"})
+        assert r.status_code == 401, "sans code posé par le patron, aucune connexion"
 
     def test_un_agent_ne_glisse_pas_de_code_secret_dans_une_creation(self, app_client):
         """La création ne doit pas devenir une porte dérobée vers le `pin`."""

@@ -62,7 +62,15 @@ import {
   Toggle,
 } from "./ui";
 
-export function MemberSheet({ onClose, onSave, initial }: any) {
+/**
+ * Fiche planteur.
+ *
+ * `canSetPin` : seul le patron peut poser un code secret (le serveur refuse
+ * tout enregistrement contenant `pin` venant d'un autre rôle, et rejette alors
+ * TOUTE la synchronisation). Un pisteur ou un magasinier crée donc la fiche
+ * sans code ; le patron le pose ensuite depuis la fiche du planteur.
+ */
+export function MemberSheet({ onClose, onSave, initial, canSetPin = true }: any) {
   const [nom, setNom] = useState(initial?.nom || "");
   // Localisation structurée ; reconstruite depuis l'ancien champ texte pour
   // une fiche créée avant cette évolution (aucune donnée perdue).
@@ -76,11 +84,13 @@ export function MemberSheet({ onClose, onSave, initial }: any) {
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
   const pinTouched = pin.length > 0 || pin2.length > 0;
-  const pinOk = initial ? (!pinTouched || (isValidPin(pin) && pin === pin2)) : (isValidPin(pin) && pin === pin2);
+  const pinOk = !canSetPin ? true : initial ? (!pinTouched || (isValidPin(pin) && pin === pin2)) : (isValidPin(pin) && pin === pin2);
   const valid = nom.trim() && village.trim() && pinOk;
   const save = async () => {
     const base: any = { nom: nom.trim(), village: village.trim(), loc, idNumber: idNumber.trim(), cultures, cropId: cultures[0]?.cropId || "cacao", superficie: totalSuperficie({ cultures }), tel: tel.trim() };
-    if (isValidPin(pin) && pin === pin2) base.pin = await createPinRecord(pin);
+    // Jamais de `pin` dans la charge utile d'un agent : le serveur refuserait
+    // l'intégralité du PUT, et la fiche ne serait jamais créée.
+    if (canSetPin && isValidPin(pin) && pin === pin2) base.pin = await createPinRecord(pin);
     onSave(base);
   };
   return (
@@ -96,12 +106,24 @@ export function MemberSheet({ onClose, onSave, initial }: any) {
         <CulturesPicker value={cultures} onChange={setCultures} />
       </Field>
       <Field label="Téléphone"><TInput value={tel} onChangeText={setTel} keyboardType="phone-pad" placeholder="07 00 00 00 00" /></Field>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Field label={initial ? "Nouveau code (6 chiffres)" : "Code secret (6 chiffres)"} flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
-        <Field label="Confirmer le code" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
-      </View>
-      {pin && pin2 && pin !== pin2 ? <Text style={{ color: C.loss, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux codes ne correspondent pas.</Text> : null}
-      {initial ? <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>Laissez vide pour conserver le code actuel.</Text> : null}
+      {canSetPin ? (
+        <>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <Field label={initial ? "Nouveau code (6 chiffres)" : "Code secret (6 chiffres)"} flex><TInput value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
+            <Field label="Confirmer le code" flex><TInput value={pin2} onChangeText={(t) => setPin2(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry maxLength={6} placeholder="••••••" /></Field>
+          </View>
+          {pin && pin2 && pin !== pin2 ? <Text style={{ color: C.loss, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux codes ne correspondent pas.</Text> : null}
+          {initial ? <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>Laissez vide pour conserver le code actuel.</Text> : null}
+        </>
+      ) : (
+        <View style={{ backgroundColor: "#FDF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+          <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>
+            Le <Text style={{ fontWeight: "700" }}>code secret</Text> est posé par le patron, depuis la fiche du
+            planteur. Vous pouvez enregistrer la fiche maintenant : il pourra se connecter dès que
+            le patron lui aura donné son code.
+          </Text>
+        </View>
+      )}
       {!initial ? (
         <View style={{ backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
           <Text style={{ fontSize: 12, color: C.muted }}>Un <Text style={{ fontWeight: "700" }}>identifiant planteur</Text> unique sera généré automatiquement (format VAL-XXXX-YY). Le planteur se connecte avec cet identifiant (ou son téléphone) et son <Text style={{ fontWeight: "700" }}>code secret</Text>.{!tel.trim() ? <Text style={{ color: C.due }}>{"\n"}Sans téléphone, il ne pourra se connecter qu&apos;avec son identifiant : notez-le et remettez-le lui.</Text> : null}</Text>
