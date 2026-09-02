@@ -25,6 +25,11 @@ import {
   isToday,
   memberCultures,
   inSaison,
+  aVerifier,
+  collectesPourRestes,
+  ecartVerif,
+  estBordChamp,
+  estVerifiee,
   memberStats,
   outstandingReste,
   op,
@@ -77,13 +82,35 @@ const CropTag = ({ cropId }: { cropId?: string }) => {
   );
 };
 
-const CollectionRow = ({ title, sub, cropId, onOpen, onReceipt }: { title: string; sub: string; cropId?: string; onOpen?: () => void; onReceipt?: () => void }) => (
+/**
+ * D'où vient le poids : pesée au magasin, collecte de pisteur vérifiée, ou
+ * collecte encore en attente de vérification.
+ *
+ * C'est l'information qui permet au patron de lire un chiffre sans se
+ * demander s'il est déjà en magasin ou encore dans un véhicule.
+ */
+const OrigineTag = ({ col, data }: { col: Collection; data: Data }) => {
+  if (!estBordChamp(col, data)) return null;
+  const ok = estVerifiee(col);
+  const e = ecartVerif(col);
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: ok ? "#F0F6F2" : "#FDF7EC", borderRadius: 20, paddingVertical: 2, paddingHorizontal: 8 }}>
+      <Icon name={ok ? "check-circle" : "truck"} size={11} color={ok ? C.green : C.due} />
+      <Text style={{ fontSize: 10.5, fontWeight: "700", color: ok ? C.green : C.due }}>
+        {ok ? `Vérifié ${fKg(Number(col.verif?.kg) || 0)}${e !== 0 ? ` (${e > 0 ? "+" : ""}${e})` : ""}` : "À vérifier"}
+      </Text>
+    </View>
+  );
+};
+
+const CollectionRow = ({ title, sub, cropId, onOpen, onReceipt, col, data }: { title: string; sub: string; cropId?: string; onOpen?: () => void; onReceipt?: () => void; col?: Collection; data?: Data }) => (
   <Card style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
     <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#F3ECE2", alignItems: "center", justifyContent: "center" }}><Icon name="user" size={17} color={C.cocoaSoft} /></View>
     <Pressable onPress={onOpen} style={{ flex: 1 }} disabled={!onOpen}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
         <Text style={{ fontWeight: "700", fontSize: 14 }}>{title}</Text>
         <CropTag cropId={cropId} />
+        {col && data ? <OrigineTag col={col} data={data} /> : null}
       </View>
       <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 1 }}>{sub}</Text>
     </Pressable>
@@ -321,7 +348,7 @@ const CardGrid = ({ cards }: { cards: any[] }) => {
 };
 
 // En-tête « vos propres poids collectés » + grille d'actions (Pisteur/Délégué & Magasinier).
-function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock, onDepense, onPrets }: any) {
+function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock, onDepense, onPrets, onGrantLoan, onVerifier }: any) {
   // Volume : campagne en cours (les avances en attente, elles, ne sont pas filtrées).
   const mine: Collection[] = (scopeSaison(data).collections || []).filter((c: Collection) => c.byStaffId === staffId);
   const today = mine.filter((c) => isToday(c.date));
@@ -333,6 +360,14 @@ function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock,
     { testID: "quick-Planteurs", icon: "users", title: "Planteurs", sub: "Gérer le réseau", onPress: onPlanteurs },
     { testID: "quick-Stock", icon: "package", title: "Stock", sub: isPisteur ? "Vos poids collectés" : "Entrées, sorties, stock", onPress: onStock },
   ];
+  // Le magasinier réceptionne les poids ramenés par les pisteurs : opération
+  // distincte d'une pesée, et signalée tant qu'il en reste en attente.
+  if (onVerifier) {
+    const file = aVerifier(data).length;
+    cards.push({ testID: "quick-Vérifier", icon: "truck", title: "Vérifier", sub: file > 0 ? `${file} poids de pisteur` : "Poids des pisteurs", onPress: onVerifier, badge: file });
+  }
+  // Le pisteur/délégué accorde une avance sur le terrain, en face du planteur.
+  if (onGrantLoan) cards.push({ testID: "quick-Accorder", icon: "piggy-bank", title: "Accorder", sub: "Avance au planteur", onPress: onGrantLoan });
   if (onDepense) cards.push({ testID: "quick-Dépenses", icon: "receipt", title: "Dépenses", sub: "Suivi des frais", onPress: onDepense });
   if (onPrets) cards.push({ testID: "quick-Prêts", icon: "piggy-bank", title: "Avances", sub: "Suivi & recouvrement", onPress: onPrets, badge: pending });
   return (
@@ -350,19 +385,109 @@ function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock,
 }
 
 
-export function CollectorHome({ data, staffId, isPisteur, onReceipt, onOpen, onNew, onPlanteurs, onStock, onDepense, onPrets, theme }: any) {
+/**
+ * File des poids ramenés par les pisteurs, en attente de vérification.
+ *
+ * Affichée au magasinier : tant qu'il n'a pas constaté le poids réel, cette
+ * marchandise n'est PAS dans son stock — il faut donc qu'il la voie.
+ */
+function FileVerification({ data, onVerifier }: any) {
+  const file = aVerifier(data);
+  if (file.length === 0) return null;
+  const total = file.reduce((s: number, c: Collection) => s + (Number(c.kg) || 0), 0);
+  return (
+    <Card style={{ backgroundColor: "#FDF7EC", borderColor: "#EAD9BE", padding: 14, marginBottom: 14 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <Icon name="truck" size={17} color={C.due} />
+        <Text style={{ fontWeight: "800", fontSize: 14, color: C.due, flex: 1 }}>
+          {file.length} poids de pisteur à vérifier
+        </Text>
+        <Text style={{ fontWeight: "800", fontSize: 14, color: C.due }}>{fKg(total)}</Text>
+      </View>
+      <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18, marginBottom: 10 }}>
+        Ces poids ne sont pas encore comptés en stock : c&apos;est le poids que vous constaterez
+        à la réception qui y entrera.
+      </Text>
+      <View style={{ gap: 7, marginBottom: 11 }}>
+        {file.slice(0, 4).map((c: Collection) => (
+          <View key={c.id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text style={{ fontSize: 12.5, color: C.ink, flex: 1 }}>
+              {nameOf(data, c.memberId)} · {(data.staff || []).find((x: any) => x.id === c.byStaffId)?.nom || "Pisteur"}
+            </Text>
+            <Text style={{ fontSize: 12.5, fontWeight: "700", color: C.ink }}>{fKg(c.kg)}</Text>
+          </View>
+        ))}
+        {file.length > 4 ? <Text style={{ fontSize: 11.5, color: C.muted }}>et {file.length - 4} autre(s)…</Text> : null}
+      </View>
+      <Pressable onPress={onVerifier} testID="goto-verif" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: C.green, borderRadius: 12, paddingVertical: 11 }}>
+        <Icon name="check-circle" size={16} color="#fff" />
+        <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13.5 }}>Vérifier maintenant</Text>
+      </Pressable>
+    </Card>
+  );
+}
+
+/**
+ * Suivi, côté pisteur, de ce qu'il a remis au magasin.
+ *
+ * Il ne vérifie pas lui-même son poids, mais il doit savoir ce qui a été
+ * constaté à la réception — c'est de là que naissent les litiges d'écart.
+ */
+function SuiviVerification({ data, staffId }: any) {
+  const attente = aVerifier(data, staffId);
+  const verifiees = (data.collections || [])
+    .filter((c: Collection) => c.byStaffId === staffId && estVerifiee(c))
+    .sort(byDateDesc)
+    .slice(0, 5);
+  if (attente.length === 0 && verifiees.length === 0) return null;
+  const enAttente = attente.reduce((s: number, c: Collection) => s + (Number(c.kg) || 0), 0);
+  return (
+    <Card style={{ padding: 14, marginBottom: 14 }}>
+      <Text style={{ fontSize: 12, color: C.muted, marginBottom: 9, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
+        Remise au magasin
+      </Text>
+      {attente.length > 0 ? (
+        <Row label={`En attente de vérification (${attente.length})`} value={fKg(enAttente)} strong />
+      ) : null}
+      {verifiees.length > 0 ? (
+        <View style={{ gap: 6, marginTop: attente.length > 0 ? 9 : 0 }}>
+          {verifiees.map((c: Collection) => {
+            const e = ecartVerif(c);
+            return (
+              <View key={c.id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Icon name="check-circle" size={14} color={C.green} />
+                <Text style={{ fontSize: 12.5, color: C.ink, flex: 1 }}>{nameOf(data, c.memberId)}</Text>
+                <Text style={{ fontSize: 12.5, color: C.muted }}>{fKg(c.kg)} → </Text>
+                <Text style={{ fontSize: 12.5, fontWeight: "800", color: e < 0 ? C.loss : e > 0 ? C.due : C.green }}>
+                  {fKg(Number(c.verif?.kg) || 0)}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
+      <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 9, lineHeight: 17 }}>
+        Le poids constaté par le magasinier est celui qui entre en stock. Votre bordereau et le
+        montant réglé au planteur ne changent pas.
+      </Text>
+    </Card>
+  );
+}
+
+export function CollectorHome({ data, staffId, isPisteur, onReceipt, onOpen, onNew, onPlanteurs, onStock, onDepense, onPrets, onVerifier, theme }: any) {
   const mine: Collection[] = data.collections.filter((c: Collection) => c.byStaffId === staffId);
   const list = [...mine].sort(byDateDesc);
   const deps = (data.depenses || []).filter((x: any) => x.pisteurId === staffId).sort(byDateDesc);
   const depTot = deps.reduce((s: number, x: any) => s + x.amount, 0);
   return (
     <View>
-      <CollectorTop data={data} staffId={staffId} isPisteur={isPisteur} onPeser={onNew} onPlanteurs={onPlanteurs} onStock={onStock} onDepense={onDepense} onPrets={onPrets} />
+      <CollectorTop data={data} staffId={staffId} isPisteur={isPisteur} onPeser={onNew} onPlanteurs={onPlanteurs} onStock={onStock} onDepense={onDepense} onPrets={onPrets} onVerifier={onVerifier} />
+      {onVerifier ? <FileVerification data={data} onVerifier={onVerifier} /> : null}
       <SectionTitle>Historique</SectionTitle>
       {list.length === 0 ? <Empty text="Aucune collecte enregistrée pour l'instant." /> : (
         <View style={{ gap: 8 }}>
           {list.map((c) => (
-            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)}${outstandingReste(c) > 0 ? ` · reste ${fF(outstandingReste(c))}` : ""}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
+            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} col={c} data={data} sub={`${fKg(c.kg)} · ${fDate(c.date)}${outstandingReste(c) > 0 ? ` · reste ${fF(outstandingReste(c))}` : ""}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
           ))}
         </View>
       )}
@@ -413,7 +538,7 @@ function commissionParProduit(data: Data, staffId: string) {
   }).filter((r) => r.kg > 0);
 }
 
-export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onReceipt, onOpen, onPlanteurs, onStock }: any) {
+export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onReceipt, onOpen, onPlanteurs, onStock, onGrantLoan, onPrets }: any) {
   const [seg, setSeg] = useState("mandats");
   // La caisse se justifie campagne par campagne : mandats reçus, achats payés
   // et dépenses de la campagne en cours.
@@ -425,7 +550,8 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
   const segs: [string, string][] = [["mandats", "Mandats reçus"], ["collectes", "Collectes"], ["depenses", "Dépenses"], ["commission", "Commission"]];
   return (
     <View>
-      <CollectorTop data={data} staffId={staffId} isPisteur onPeser={onNew} onPlanteurs={onPlanteurs} onStock={onStock} onDepense={onNewDepense} />
+      <CollectorTop data={data} staffId={staffId} isPisteur onPeser={onNew} onPlanteurs={onPlanteurs} onStock={onStock} onDepense={onNewDepense} onGrantLoan={onGrantLoan} onPrets={onPrets} />
+      <SuiviVerification data={data} staffId={staffId} />
       <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
         <MiniKpi icon={<Icon name="wallet" size={16} color={C.gold} />} label="Mandat reçu" value={fF(st.mandat)} tint={C.gold} />
         <MiniKpi icon={<Icon name="coins" size={16} color={st.solde >= 0 ? C.green : C.loss} />} label="Solde en caisse" value={fF(st.solde)} tint={st.solde >= 0 ? C.green : C.loss} />
@@ -468,7 +594,7 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
       {seg === "collectes" && (cols.length === 0 ? <Empty text="Aucune collecte. Touchez la balance pour peser un planteur." /> : (
         <View style={{ gap: 8 }}>
           {cols.map((c: Collection) => (
-            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)} · payé ${fF(c.paye)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
+            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} col={c} data={data} sub={`${fKg(c.kg)} · ${fDate(c.date)} · payé ${fF(c.paye)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
           ))}
         </View>
       ))}
@@ -582,7 +708,7 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
       {cols.length === 0 ? <Empty text="Aucune collecte." /> : (
         <View style={{ gap: 8 }}>
           {cols.map((c: Collection) => (
-            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)} · payé ${fF(c.paye)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
+            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} col={c} data={data} sub={`${fKg(c.kg)} · ${fDate(c.date)} · payé ${fF(c.paye)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
           ))}
         </View>
       )}
@@ -659,7 +785,7 @@ export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhot
       {cols.length === 0 ? <Empty text="Ce magasinier n'a pas encore enregistré de pesée." /> : (
         <View style={{ gap: 8 }}>
           {cols.map((c: Collection) => (
-            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} sub={`${fKg(c.kg)} · ${fDate(c.date)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
+            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} col={c} data={data} sub={`${fKg(c.kg)} · ${fDate(c.date)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
           ))}
         </View>
       )}
@@ -668,7 +794,9 @@ export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhot
   );
 }
 
-export function Members({ data, onOpen, onAdd, onVillageRecap, restrictTo }: any) {
+export function Members({ data, onOpen, onAdd, onVillageRecap, restrictTo, resteScope }: any) {
+  // Un pisteur ne voit que les restes dus qu'il a lui-même générés (`resteScope`).
+  const colsRestes = collectesPourRestes(data, resteScope);
   const [q, setQ] = useState("");
   const [selVillage, setSelVillage] = useState("all");
   const [selCrop, setSelCrop] = useState("all");
@@ -708,7 +836,7 @@ export function Members({ data, onOpen, onAdd, onVillageRecap, restrictTo }: any
       {sorted.length === 0 ? <Empty text="Aucun planteur trouvé." /> : (
         <View style={{ gap: 9 }}>
           {sorted.map((m: Member) => {
-            const s = memberStats(m.id, data.collections);
+            const s = memberStats(m.id, colsRestes);
             return (
               <Pressable key={m.id} onPress={() => onOpen(m.id)} testID={`member-${m.id}`}>
                 <Card style={{ padding: 13, flexDirection: "row", alignItems: "center", gap: 11 }}>
@@ -736,8 +864,10 @@ export function Members({ data, onOpen, onAdd, onVillageRecap, restrictTo }: any
   );
 }
 
-export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete, onResetPin, onSettle, onSettlementReceipt }: any) {
-  const s = memberStats(member.id, data.collections);
+export function MemberDetail({ member, data, onBack, onReceipt, onEdit, onDelete, onResetPin, onSettle, onSettlementReceipt, resteScope }: any) {
+  // `resteScope` (pisteur) : le reste dû affiché — et donc soldable — se limite
+  // à ce que cet agent a lui-même engagé.
+  const s = memberStats(member.id, collectesPourRestes(data, resteScope));
   const list = data.collections.filter((c: Collection) => c.memberId === member.id).sort(byDateDesc);
   const loans = data.loans.filter((l: any) => l.memberId === member.id);
   const settlements = (data.settlements || []).filter((x: any) => x.memberId === member.id).sort(byDateDesc);

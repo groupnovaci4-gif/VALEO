@@ -319,3 +319,85 @@ pour la coopérative et le planteur. **Aucune autre logique métier modifiée.**
 - Aucun changement backend : `loc` est un champ de plus sur des enregistrements
   déjà autorisés, et seul le patron peut modifier une fiche planteur ou coop.
 - Tests : 51 frontend (dont geo.test.mjs) ; backend inchangé (49).
+
+---
+
+## v34 — Rôles terrain, vérification des poids, restauration de la demande d'avance
+
+### Régression corrigée : « Demander une avance » (planteur)
+
+La fonctionnalité était intacte à l'écran ; c'est la **synchronisation** qui
+échouait. `migrate()` (lib.ts) complétait chaque fiche planteur avec un champ
+`cultures` par défaut. Comme `prepareSync` renvoie *toutes* les lignes, ce champ
+inventé arrivait au serveur, qui le lisait comme une modification interdite au
+planteur et refusait **tout le PUT** (403) — la demande d'avance partait avec.
+Le client rechargeait alors l'état serveur, effaçant l'avance : de l'extérieur,
+« le bouton ne fait rien ».
+
+Correctif : `migrate()` ne complète plus la fiche ; la valeur par défaut est
+dérivée à la lecture par `memberCultures()`, qui existait déjà. Gardé par
+`frontend/tests/roles.test.mjs` (vérifié : le test échoue si l'on réintroduit
+l'injection).
+
+### Rôle pisteur / délégué
+
+- Crée un planteur, rattaché à lui (`Member.createdBy`), admis dans la base de
+  la coopérative et visible du patron comme du magasinier.
+- Accorde une avance directement sur le terrain (`Loan.origine = "pisteur"`,
+  naît `approuve`, signée `decidedBy`). **Même système d'avance** que la demande
+  du planteur : seule l'origine change.
+- Voit la situation du planteur avant de décider (`avancesInfo` → avance en
+  cours, reste à rembourser, demande déjà soumise au patron, total accordé).
+- Ne solde que **ses propres** restes dus. Appliqué sur la donnée : le serveur
+  refuse un `resteSolde` posé sur la collecte d'un autre agent.
+- N'expédie plus vers l'usine (motif retiré, et refusé côté serveur).
+
+### Vérification des poids par le magasinier
+
+Deux opérations désormais distinctes dans les données comme à l'écran :
+
+| | Chemin | Entrée en stock |
+|---|---|---|
+| Pesée magasin | Planteur → Magasin → pesée | le poids pesé |
+| Collecte pisteur | Planteur → Pisteur → bord-champ → Magasin → **vérification** | le poids **constaté** |
+
+`Collection.origine` (`magasin` / `bord_champ`) est figée à la création, comme
+`prixKg`. `Collection.verif` porte le poids constaté, le magasinier et la date.
+
+Arbitrage : la vérification **n'altère pas** la pesée d'origine. Le planteur a
+été payé au bord-champ sur le poids déclaré ; rouvrir ce calcul reviendrait à
+lui réclamer de l'argent après coup. L'écart (`ecartVerif`) est affiché des deux
+côtés — magasinier et pisteur — comme information de gestion.
+
+Garde-fous serveur : on ne vérifie pas sa propre pesée, la vérification est
+signée de son nom, elle est définitive (seul le patron corrige), et un pisteur
+ne peut pas déclarer une pesée d'origine « magasin » — sinon son poids entrerait
+en stock sans jamais être vérifié.
+
+### Stock (règle 9)
+
+Stock magasin = pesées du patron + pesées du magasinier + collectes des pisteurs
+**après vérification**. L'exemple de référence (500 + 300 + 1000 déclarés
+vérifiés à 980 = **1 780 kg**) est couvert par un test. Les poids annoncés et
+non vérifiés sont exposés séparément (`stockStats().attente`) : le magasinier
+sait ce qui l'attend sans que cela gonfle son stock.
+
+La portée `mine` du pisteur change de sens : elle vaut désormais « collecté et
+pas encore remis » (bord-champ non vérifié), ce qui correspond à ce qu'il a
+réellement en charge.
+
+### Magasinier
+
+Crée un planteur ; distingue à l'écran « nouvelle pesée » et « vérification
+d'une collecte pisteur » (file d'attente sur son accueil, avec le total en
+attente).
+
+### Vérification
+
+72 tests backend (49 + 23), 67 tests frontend (51 + 16), `tsc --noEmit` à zéro
+erreur, lint au niveau de référence (8 erreurs préexistantes, 1 avertissement).
+Les 9 échecs pytest restants sont les tests d'intégration qui frappent
+l'instance déployée : réseau bloqué dans l'environnement de développement.
+
+⚠️ Backend sur K8s : nécessite redeploy pour la production. Backend et frontend
+doivent être déployés ensemble (cf. CLAUDE.md §8).

@@ -24,6 +24,9 @@ import {
   fKg,
   group,
   memberCultures,
+  aVerifier,
+  avancesInfo,
+  collectesPourRestes,
   memberStats,
   commOf,
   priceOf,
@@ -165,7 +168,9 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
   const recouvre = avanceDue <= 0 ? 0 : recAll ? recMax : Math.min(recMax, Number(recStr) || 0);
   const avanceReste = avanceDue - recouvre; // reste d'avance conservé
   const netAPayer = Math.max(0, montant - recouvre); // net dû au planteur pour cette livraison
-  const oldReste = memberStats(memberId, data.collections).reste;
+  // Ancien reste dû qu'ON PEUT solder ici : un pisteur ne solde que ce qu'il a
+  // lui-même engagé (cf. règle « restes à payer par agent »).
+  const oldReste = memberStats(memberId, collectesPourRestes(data, role === "pisteur" ? staffId : undefined)).reste;
   const totalDu = netAPayer + oldReste;
   const payeNow = payTout ? totalDu : Math.min(totalDu, Number(payePartiel) || 0);
   const settleOld = Math.min(payeNow, oldReste);
@@ -337,13 +342,62 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
   );
 }
 
-export function LoanSheet({ onClose, onSave, data, fixedMember }: any) {
+/**
+ * Situation d'un planteur au regard des avances, à afficher AVANT d'en
+ * accorder une nouvelle : avance en cours, reste à rembourser, demande déjà
+ * soumise au patron. Sans cette vue, on accorde à l'aveugle.
+ */
+export function AvancesRecap({ memberId, data }: { memberId: string; data: Data }) {
+  const info = avancesInfo(memberId, data);
+  const rien = info.list.length === 0;
+  return (
+    <View style={{ backgroundColor: rien ? "#F0F6F2" : "#FDF7EC", borderWidth: 1, borderColor: rien ? "#D8E8DE" : "#EAD9BE", borderRadius: 12, padding: 13, marginBottom: 14 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: rien ? 0 : 9 }}>
+        <Icon name={rien ? "check-circle" : "alert-triangle"} size={16} color={rien ? C.green : C.due} />
+        <Text style={{ fontWeight: "800", fontSize: 13.5, color: rien ? C.green : C.due }}>
+          {rien ? "Aucune avance à ce jour" : "Situation des avances"}
+        </Text>
+      </View>
+      {rien ? null : (
+        <View style={{ gap: 6 }}>
+          {info.reste > 0 ? (
+            <Row label={`Reste à rembourser (${info.enCours.length} avance${info.enCours.length > 1 ? "s" : ""} en cours)`} value={fF(info.reste)} strong />
+          ) : (
+            <Row label="Avances en cours" value="Aucune" />
+          )}
+          {info.attente > 0 ? (
+            <Row label={`Demande déjà soumise au patron (${info.enAttente.length})`} value={fF(info.attente)} />
+          ) : null}
+          {info.accorde > 0 ? <Row label="Total déjà accordé" value={fF(info.accorde)} /> : null}
+          {info.nbRembourse > 0 ? <Row label="Avances soldées" value={String(info.nbRembourse)} /> : null}
+          {info.reste > 0 ? (
+            <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 17 }}>
+              Le reste dû est prélevé automatiquement sur les prochaines livraisons.
+            </Text>
+          ) : null}
+        </View>
+      )}
+    </View>
+  );
+}
+
+/**
+ * Saisie d'une avance.
+ *
+ * Un seul et même système d'avance, trois origines :
+ * - `fixedMember` (espace planteur) : demande, qui part « en attente » ;
+ * - `grant` (pisteur/délégué sur le terrain) : accordée immédiatement, parce
+ *   que l'argent est remis séance tenante ;
+ * - sinon (patron) : saisie classique.
+ */
+export function LoanSheet({ onClose, onSave, data, fixedMember, grant }: any) {
   const [memberId, setMemberId] = useState(fixedMember?.id || data?.members[0]?.id || "");
   const [type, setType] = useState("intrant");
   const [amount, setAmount] = useState("");
   const [motif, setMotif] = useState("");
   const presets = type === "intrant" ? ["Engrais NPK", "Produits phyto", "Semences", "Petit matériel"] : ["Scolarité", "Santé", "Dépense familiale"];
-  const valid = (fixedMember?.id || memberId) && Number(amount) > 0 && motif.trim();
+  const cible = fixedMember?.id || memberId;
+  const valid = cible && Number(amount) > 0 && motif.trim();
   if (!fixedMember && (!data || data.members.length === 0))
     return (
       <Sheet title="Nouvelle avance" onClose={onClose}>
@@ -351,7 +405,7 @@ export function LoanSheet({ onClose, onSave, data, fixedMember }: any) {
       </Sheet>
     );
   return (
-    <Sheet title={fixedMember ? "Demander une avance" : "Nouvelle avance"} onClose={onClose}>
+    <Sheet title={grant ? "Accorder une avance" : fixedMember ? "Demander une avance" : "Nouvelle avance"} onClose={onClose}>
       <Field label="Planteur bénéficiaire">
         {fixedMember ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#F3FAF5", borderWidth: 1, borderColor: "#D8E8DE", borderRadius: 12, padding: 12 }}>
@@ -365,6 +419,8 @@ export function LoanSheet({ onClose, onSave, data, fixedMember }: any) {
           <Select value={memberId} onChange={setMemberId} options={data.members.map((m: Member) => ({ value: m.id, label: `${m.nom} — ${m.village}` }))} />
         )}
       </Field>
+      {/* Ce que le planteur doit déjà : indispensable pour décider. */}
+      {cible ? <AvancesRecap memberId={cible} data={data} /> : null}
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 16, backgroundColor: "#F1EDE3", padding: 4, borderRadius: 12 }}>
         <Toggle active={type === "intrant"} onPress={() => { setType("intrant"); setMotif(""); }} color={C.green}>Intrant</Toggle>
         <Toggle active={type === "argent"} onPress={() => { setType("argent"); setMotif(""); }} color={C.gold}>Argent</Toggle>
@@ -378,10 +434,18 @@ export function LoanSheet({ onClose, onSave, data, fixedMember }: any) {
         </View>
         <TInput value={motif} onChangeText={setMotif} placeholder="Préciser le motif" />
       </Field>
-      <View style={{ backgroundColor: "#FDF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Enregistré comme demande <Text style={{ fontWeight: "700" }}>en attente</Text>. Approuvez-la ensuite pour fixer le montant accordé et le mode de versement.</Text>
+      <View style={{ backgroundColor: grant ? "#F0F6F2" : "#FDF7EC", borderWidth: 1, borderColor: grant ? "#D8E8DE" : "#EAD9BE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>
+          {grant ? (
+            <>Accordée <Text style={{ fontWeight: "700" }}>immédiatement</Text> et à votre nom : la coopérative est engagée dès maintenant, et le montant sera recouvré sur les prochaines livraisons.</>
+          ) : (
+            <>Enregistré comme demande <Text style={{ fontWeight: "700" }}>en attente</Text>. Approuvez-la ensuite pour fixer le montant accordé et le mode de versement.</>
+          )}
+        </Text>
       </View>
-      <SaveBtn disabled={!valid} color={C.cocoa} onPress={() => onSave({ memberId: fixedMember?.id || memberId, type, amount: Number(amount), motif: motif.trim() })}>Enregistrer la demande</SaveBtn>
+      <SaveBtn disabled={!valid} color={grant ? C.green : C.cocoa} onPress={() => onSave({ memberId: cible, type, amount: Number(amount), motif: motif.trim() })}>
+        {grant ? "Accorder l'avance" : "Enregistrer la demande"}
+      </SaveBtn>
     </Sheet>
   );
 }
@@ -1067,14 +1131,138 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
 
 
 /* -------------------------------- Stock ---------------------------------- */
-export function SortieSheet({ data, staffId, scope, onClose, onSave }: { data: Data; staffId?: string; scope?: "all" | "mine"; onClose: () => void; onSave: (x: any) => void }) {
+/**
+ * Vérification par le magasinier d'un poids ramené du bord-champ par un
+ * pisteur/délégué.
+ *
+ * L'opération est volontairement distincte d'une nouvelle pesée : ici on ne
+ * crée pas de collecte, on constate le poids réellement reçu d'une collecte
+ * qui existe déjà. Le poids déclaré reste affiché à côté — l'écart est une
+ * information de gestion, pas une erreur à masquer.
+ */
+export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Data; staffId: string; onClose: () => void; onSave: (collectionId: string, kg: number, note: string) => void }) {
+  const file = aVerifier(data);
+  const [sel, setSel] = useState<string>(file[0]?.id || "");
+  const [kgStr, setKgStr] = useState("");
+  const [note, setNote] = useState("");
+  const col = file.find((c) => c.id === sel);
+  const membre = data.members.find((m) => m.id === col?.memberId);
+  const pisteur = data.staff.find((x) => x.id === col?.byStaffId);
+  const declare = Number(col?.kg) || 0;
+  const verifie = Number(kgStr) || 0;
+  const ecart = verifie - declare;
+  const valid = !!col && kgStr.trim() !== "" && verifie >= 0;
+
+  if (file.length === 0)
+    return (
+      <Sheet title="Vérifier un poids" onClose={onClose}>
+        <Card style={{ padding: 20 }}>
+          <Text style={{ textAlign: "center", color: C.muted }}>
+            Aucun poids en attente. Les collectes ramenées par les pisteurs apparaîtront ici.
+          </Text>
+        </Card>
+      </Sheet>
+    );
+
+  return (
+    <Sheet title="Vérifier un poids de pisteur" onClose={onClose}>
+      <View style={{ backgroundColor: "#EEF4FB", borderWidth: 1, borderColor: "#D4E2F2", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>
+          Vous ne créez pas une nouvelle pesée : vous constatez le poids réellement reçu.
+          C&apos;est <Text style={{ fontWeight: "700" }}>ce poids</Text> qui entrera en stock.
+        </Text>
+      </View>
+
+      <Field label={`Collecte à vérifier (${file.length})`}>
+        <View style={{ gap: 8 }}>
+          {file.map((c) => {
+            const m = data.members.find((x) => x.id === c.memberId);
+            const p = data.staff.find((x) => x.id === c.byStaffId);
+            const on = sel === c.id;
+            return (
+              <Pressable
+                key={c.id}
+                onPress={() => { setSel(c.id); setKgStr(""); setNote(""); }}
+                testID={`verif-pick-${c.id}`}
+                style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: on ? "#F0F6F2" : "#fff", borderWidth: 1, borderColor: on ? C.green : C.line, borderRadius: 12, padding: 12 }}
+              >
+                <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: on ? "#DCEBE1" : "#F2EEE7", alignItems: "center", justifyContent: "center" }}>
+                  <Icon name="truck" size={17} color={on ? C.green : C.muted} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: "800", fontSize: 14 }}>{m?.nom || "—"} · {fKg(c.kg)}</Text>
+                  <Text style={{ fontSize: 12, color: C.muted }}>{p?.nom || "Pisteur"} · {crop(c.cropId || "cacao").nom} · {ticketOf(c)}</Text>
+                </View>
+                {on ? <Icon name="check-circle" size={18} color={C.green} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Field>
+
+      {col ? (
+        <>
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
+            <View style={{ flex: 1, backgroundColor: "#F7F3EC", borderRadius: 12, padding: 12 }}>
+              <Text style={{ fontSize: 11.5, color: C.muted }}>Déclaré par {pisteur?.nom || "le pisteur"}</Text>
+              <Text style={{ fontSize: 19, fontWeight: "800", marginTop: 2 }}>{fKg(declare)}</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: "#F0F6F2", borderRadius: 12, padding: 12 }}>
+              <Text style={{ fontSize: 11.5, color: C.muted }}>Constaté au magasin</Text>
+              <Text style={{ fontSize: 19, fontWeight: "800", marginTop: 2, color: C.green }}>{kgStr.trim() === "" ? "—" : fKg(verifie)}</Text>
+            </View>
+          </View>
+
+          <Field label="Poids réellement reçu (kg)">
+            <TInput value={kgStr} onChangeText={(t) => setKgStr(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={String(declare)} testID="verif-kg" />
+          </Field>
+
+          {kgStr.trim() !== "" && ecart !== 0 ? (
+            <View style={{ backgroundColor: ecart < 0 ? "#FBEFED" : "#FDF7EC", borderWidth: 1, borderColor: ecart < 0 ? "#EFD3CE" : "#EAD9BE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+              <Text style={{ fontSize: 12.5, color: C.ink, lineHeight: 18 }}>
+                Écart de <Text style={{ fontWeight: "800", color: ecart < 0 ? C.loss : C.due }}>{ecart > 0 ? "+" : ""}{fKg(ecart)}</Text>
+                {ecart < 0 ? " (manquant)" : " (excédent)"} par rapport au poids annoncé. Précisez la cause ci-dessous.
+              </Text>
+            </View>
+          ) : null}
+
+          <Field label={ecart !== 0 ? "Cause de l'écart" : "Observation (facultatif)"}>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 8 }}>
+              {["Humidité", "Freinte de transport", "Déchets / corps étrangers", "Erreur de balance"].map((x) => (
+                <Chip key={x} label={x} active={note === x} onPress={() => setNote(x)} />
+              ))}
+            </View>
+            <TInput value={note} onChangeText={setNote} placeholder="Préciser" />
+          </Field>
+
+          <View style={{ backgroundColor: "#F0F6F2", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+            <Text style={{ fontSize: 12.5, color: C.muted, lineHeight: 18 }}>
+              Le bordereau remis à {membre?.nom || "au planteur"} n&apos;est pas modifié : le montant déjà réglé au
+              bord-champ reste celui du poids déclaré. La vérification est <Text style={{ fontWeight: "700" }}>définitive</Text>.
+            </Text>
+          </View>
+
+          <SaveBtn disabled={!valid} color={C.green} onPress={() => onSave(col.id, verifie, note.trim())}>
+            Valider la vérification
+          </SaveBtn>
+        </>
+      ) : null}
+    </Sheet>
+  );
+}
+
+export function SortieSheet({ data, staffId, scope, role, onClose, onSave }: { data: Data; staffId?: string; scope?: "all" | "mine"; role?: string; onClose: () => void; onSave: (x: any) => void }) {
   // Identifiant d'opération : une sortie validée deux fois ne doit pas être
   // décomptée deux fois du stock.
   const [clientOpId] = useState(() => `so-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
   const st = stockStats(data, { scope, staffId });
   const dispo = st.rows.filter((r) => r.stock > 0);
+  // Le pisteur ramène au magasin, il n'expédie pas à l'usine : sa marchandise
+  // sort de sa charge par la vérification du magasinier, pas par une
+  // expédition qu'il déciderait seul.
+  const motifs = role === "pisteur" ? SORTIE_TYPES.filter((t) => t.id !== "expedition") : SORTIE_TYPES;
   const [cropId, setCropId] = useState(dispo[0]?.cropId || "cacao");
-  const [type, setType] = useState("expedition");
+  const [type, setType] = useState(motifs[0]?.id || "perte");
   const [kg, setKg] = useState("");
   const [destinataire, setDestinataire] = useState("");
   const [note, setNote] = useState("");
@@ -1105,7 +1293,7 @@ export function SortieSheet({ data, staffId, scope, onClose, onSave }: { data: D
       </Field>
       <Field label="Motif de la sortie">
         <View style={{ gap: 8 }}>
-          {SORTIE_TYPES.map((t) => (
+          {motifs.map((t) => (
             <Pressable
               key={t.id}
               onPress={() => setType(t.id)}

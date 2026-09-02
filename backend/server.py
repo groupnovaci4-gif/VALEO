@@ -457,6 +457,15 @@ PLANTEUR_COLLECTION_FIELDS = {"signature", "updatedAt"}
 STAFF_SELF_FIELDS = {"photo", "updatedAt"}
 # Pesée : signature du planteur et solde d'anciens restes dus (`resteSolde`).
 AGENT_COLLECTION_FIELDS = {"signature", "resteSolde", "updatedAt"}
+# Le magasinier constate le poids réellement reçu d'un pisteur : c'est le seul
+# champ qu'il ajoute sur une collecte qui n'est pas la sienne.
+MAGASINIER_COLLECTION_FIELDS = AGENT_COLLECTION_FIELDS | {"verif"}
+# Champs qu'un agent (magasinier ou pisteur) renseigne en créant un planteur.
+# Tout le reste — et surtout `pin` — reste au patron.
+AGENT_MEMBER_CREATE_FIELDS = {
+    "id", "coopId", "code", "nom", "village", "loc", "idNumber", "superficie",
+    "cropId", "cultures", "tel", "momo", "photo", "createdBy", "updatedAt",
+}
 IMMUTABLE_FIELDS = {"id", "coopId"}
 # Réglages financiers de la coopérative : patron uniquement.
 COOP_SETTINGS_KEYS = ("prices", "commissions")
@@ -500,6 +509,55 @@ def _is_pending_loan(row: dict) -> bool:
         and not row.get("decidedBy")
         and not row.get("decidedAt")
     )
+
+
+def _is_granted_by(row: dict, staff_id: str) -> bool:
+    """Avance accordée sur le terrain par l'agent qui l'enregistre.
+
+    Elle naît « approuve » parce que l'argent est remis au planteur séance
+    tenante. On exige que le décideur soit l'agent lui-même : personne ne peut
+    faire signer une avance au nom d'un autre.
+    """
+    try:
+        amount = float(row.get("amount") or 0)
+        solde = float(row.get("soldeRestant") or 0)
+    except (TypeError, ValueError):
+        return False
+    return (
+        row.get("status") == "approuve"
+        and row.get("origine") == "pisteur"
+        and row.get("decidedBy") == staff_id
+        and amount > 0
+        and solde == amount
+    )
+
+
+def _check_verifications(delta: dict, me_id: str, actor: str) -> None:
+    """Contrôle les vérifications de poids posées par un magasinier.
+
+    Trois garde-fous : on ne vérifie que le poids d'un AUTRE (sinon un agent
+    validerait sa propre collecte), on signe la vérification de son nom, et une
+    vérification déjà enregistrée est définitive — sinon le stock deviendrait
+    ajustable après coup, sans trace.
+    """
+    for before, after in (delta.get("collections") or {}).get("updated", []):
+        if "verif" not in _changed_keys(before, after):
+            continue
+        if before.get("verif"):
+            raise Forbidden(f"{actor} : ce poids a déjà été vérifié ; seul le patron peut corriger.")
+        verif = after.get("verif")
+        if not isinstance(verif, dict):
+            raise Forbidden(f"{actor} : vérification illisible.")
+        if verif.get("byStaffId") != me_id:
+            raise Forbidden(f"{actor} : une vérification doit être enregistrée à votre nom.")
+        if before.get("byStaffId") == me_id:
+            raise Forbidden(f"{actor} : vous ne pouvez pas vérifier votre propre pesée.")
+        try:
+            kg = float(verif.get("kg"))
+        except (TypeError, ValueError):
+            raise Forbidden(f"{actor} : le poids vérifié doit être un nombre.")
+        if kg < 0:
+            raise Forbidden(f"{actor} : le poids vérifié ne peut pas être négatif.")
 
 
 def _deny_touching(delta: dict, entities, actor: str) -> None:
@@ -593,10 +651,20 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
         _check_coop_settings_untouched(visible, incoming, coop_id, actor)
         # Les mandats sont confiés par le patron ; l'équipe ne se les attribue pas.
         _deny_touching(delta, ["mandats"], actor)
-        # Comptes planteurs et collaborateurs : création/suppression réservées au patron.
-        for e in ("members", "staff"):
-            if delta[e]["created"] or delta[e]["deleted"]:
-                raise Forbidden(f"{actor} : seul le patron crée ou supprime un enregistrement « {e} ».")
+        # Collaborateurs : création/suppression réservées au patron.
+        if delta["staff"]["created"] or delta["staff"]["deleted"]:
+            raise Forbidden(f"{actor} : seul le patron crée ou supprime un collaborateur.")
+        # Un planteur, en revanche, se recrute sur le terrain : le pisteur comme
+        # le magasinier peuvent en créer un. La fiche entre dans la base de la
+        # coopérative (le patron la voit) et reste rattachée à son créateur.
+        if delta["members"]["deleted"]:
+            raise Forbidden(f"{actor} : seul le patron peut supprimer un planteur.")
+        for row in delta["members"]["created"]:
+            if row.get("createdBy") != me_id:
+                raise Forbidden(f"{actor} : un planteur créé doit rester rattaché à votre compte.")
+            extra = {k for k in row if k not in AGENT_MEMBER_CREATE_FIELDS}
+            if extra:
+                raise Forbidden(f"{actor} : champs non autorisés à la création d'un planteur : {sorted(extra)}.")
         if delta["collections"]["deleted"] or delta["settlements"]["deleted"] or delta["depenses"]["deleted"] or delta["loans"]["deleted"] or delta["sorties"]["deleted"]:
             raise Forbidden(f"{actor} : les écritures financières et de stock ne peuvent pas être supprimées.")
         if delta["settlements"]["updated"]:
@@ -607,9 +675,18 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
             raise Forbidden(f"{actor} : une sortie de magasin enregistrée ne peut plus être modifiée.")
         if delta["loans"]["updated"]:
             raise Forbidden(f"{actor} : seul le patron approuve ou refuse une avance.")
+        # Origine attendue selon le métier : le pisteur collecte au bord-champ
+        # (son poids devra être vérifié au magasin), le magasinier pèse au
+        # magasin. Sans ce contrôle, un pisteur déclarerait « magasin » et son
+        # poids entrerait en stock sans jamais passer par la vérification.
+        attendue = "bord_champ" if role == "pisteur" else "magasin"
         for row in delta["collections"]["created"]:
             if row.get("byStaffId") != me_id:
                 raise Forbidden(f"{actor} : une pesée doit être enregistrée à votre nom.")
+            if row.get("origine") not in (None, attendue):
+                raise Forbidden(f"{actor} : l'origine d'une pesée ne peut pas être « {row.get('origine')} ».")
+            if row.get("verif"):
+                raise Forbidden(f"{actor} : une pesée ne peut pas naître déjà vérifiée.")
         for row in delta["settlements"]["created"]:
             if row.get("byStaffId") != me_id:
                 raise Forbidden(f"{actor} : un solde doit être enregistré à votre nom.")
@@ -625,12 +702,35 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
                 kg = 0
             if kg <= 0:
                 raise Forbidden(f"{actor} : une sortie de magasin doit porter un poids positif.")
+            # Le pisteur ramène au magasin, il n'expédie pas vers l'usine :
+            # sa marchandise sort de sa charge par la vérification du
+            # magasinier, jamais par une expédition qu'il déciderait seul.
+            if role == "pisteur" and row.get("type") == "expedition":
+                raise Forbidden(f"{actor} : une expédition vers l'usine relève du magasin, pas de la tournée.")
         for row in delta["loans"]["created"]:
+            # Le pisteur/délégué est au contact du planteur : il peut accorder
+            # une avance sur-le-champ, et engage alors la coopérative — il
+            # signe donc sa décision. Le magasinier, lui, ne fait que
+            # transmettre : sa demande attend le patron.
+            if role == "pisteur" and _is_granted_by(row, me_id):
+                continue
             if not _is_pending_loan(row):
                 raise Forbidden(f"{actor} : une avance créée doit rester « en_attente » jusqu'à validation du patron.")
         _check_updates(delta, "members", set(), lambda r: False, actor)
         _check_updates(delta, "staff", STAFF_SELF_FIELDS, lambda r: r.get("id") == me_id, actor)
-        _check_updates(delta, "collections", AGENT_COLLECTION_FIELDS, lambda r: True, actor)
+
+        if role == "commis":
+            # Le magasinier vérifie les poids ramenés par les pisteurs.
+            _check_updates(delta, "collections", MAGASINIER_COLLECTION_FIELDS, lambda r: True, actor)
+            _check_verifications(delta, me_id, actor)
+        else:
+            # Un pisteur ne solde que les restes dus qu'il a lui-même générés :
+            # ceux d'une pesée du patron ou du magasinier ne sortent pas de sa
+            # caisse et ne le regardent pas. Règle appliquée sur la donnée.
+            _check_updates(
+                delta, "collections", AGENT_COLLECTION_FIELDS,
+                lambda r: r.get("byStaffId") == me_id, actor,
+            )
         return
 
     raise Forbidden("Rôle inconnu : écriture refusée.")

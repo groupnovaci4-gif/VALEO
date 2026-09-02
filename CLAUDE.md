@@ -95,9 +95,17 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
    d'UI sont cosmétiques ; c'est le serveur qui décide. Matrice :
    - *planteur* : lier son Mobile Money, sa photo, signer ses bordereaux, déposer une
      demande d'avance **à son nom** et **en_attente** ;
-   - *commis / pisteur* : peser **à leur nom**, solder un reste dû, saisir **leurs**
-     dépenses, déposer une demande d'avance en_attente ; jamais d'approbation, de
-     mandat, de réglages, ni de création/suppression de planteur ou de collaborateur ;
+   - *commis (magasinier)* : peser **à leur nom** (origine `magasin`), **vérifier**
+     les poids ramenés par un pisteur (jamais les leurs), **créer un planteur**
+     rattaché à eux, solder un reste dû, saisir **leurs** dépenses, déposer une
+     demande d'avance en_attente ;
+   - *pisteur / délégué* : collecter **à leur nom** (origine `bord_champ`),
+     **créer un planteur** rattaché à eux, **accorder directement une avance**
+     signée de leur nom, solder **uniquement leurs propres** restes dus, saisir
+     **leurs** dépenses ; jamais d'expédition vers l'usine, jamais de
+     vérification de poids ;
+   - aucun des deux : mandat, réglages, suppression de planteur, création ou
+     suppression de collaborateur, approbation d'une demande d'avance ;
    - *patron* : souverain sur **sa seule** coopérative.
    Aucun rôle autre que le patron ne peut poser ou effacer un `pin`.
 3. **Fusion par enregistrement.** `merge_state` fait un upsert par `id` ; le
@@ -127,14 +135,21 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     pas le droit d'écrire sur une fiche de collaborateur), et la suite (`nextTicketSeq`)
     est propre à chaque agent. Le numéro est **figé** sur l'enregistrement (`ticket`)
     à l'émission ; l'affichage passe toujours par `ticketOf`, jamais par un recalcul.
-13. **Stock = entrées − sorties.** `stockStats(data, {scope, staffId})` : les pesées
-    entrent, les `Sortie` (expédition, vente, transfert, perte) sortent. Ne jamais
-    présenter un cumul de collectes comme un stock. Le résultat n'est PAS borné à
-    zéro : un stock négatif signale une erreur de saisie, le masquer serait pire.
-    Une sortie est définitive pour un agent (ni modification ni suppression) ; seul
-    le patron corrige. Portées : le **magasinier et le patron** voient le magasin de
-    la coopérative (`scope: "all"`), le **pisteur** ce qu'il a collecté et pas encore
-    remis (`scope: "mine"`), le **planteur** rien (mouvement interne).
+13. **Stock = entrées − sorties, et l'entrée est le poids VÉRIFIÉ.**
+    `stockStats(data, {scope, staffId})`. Les `Sortie` (expédition, vente,
+    transfert, perte) sortent. Ne jamais présenter un cumul de collectes comme un
+    stock. Le résultat n'est PAS borné à zéro : un stock négatif signale une
+    erreur de saisie, le masquer serait pire. Une sortie est définitive pour un
+    agent ; seul le patron corrige. Portées :
+    - `scope: "all"` (**magasinier et patron**) = magasin de la coopérative :
+      pesées `origine: "magasin"` (patron, magasinier) **+ collectes bord-champ
+      vérifiées, au poids constaté** (`verif.kg`). Une collecte bord-champ non
+      vérifiée n'y entre PAS : la marchandise est encore dans le véhicule.
+      `stockStats(...).attente` l'expose à part, sans jamais la compter.
+    - `scope: "mine"` (**pisteur**) = ce qu'il a collecté et **pas encore remis**,
+      c'est-à-dire ses collectes bord-champ non vérifiées, au poids déclaré. La
+      vérification transfère le poids de sa charge vers le magasin.
+    - **planteur** : rien (mouvement interne).
 14. **Campagnes : la production est cloisonnée, les dettes sont reportées.**
     `scopeSaison(data)` filtre collectes, mandats, dépenses, soldes et sorties sur la campagne
     active — à utiliser pour les volumes, le stock, la caisse et la commission.
@@ -163,6 +178,36 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     jamais supprimer ces champs texte. Une valeur non retrouvée dans la base
     est conservée telle quelle (`villageLibre`), jamais effacée.
 19. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
+20. **Origine du poids figée, vérification définitive.** `Collection.origine`
+    (`"magasin"` | `"bord_champ"`) est gelée à la création, comme `prixKg` ; le
+    serveur refuse une origine qui ne correspond pas au rôle. Le circuit de
+    vérification s'appuie sur le **seul champ enregistré**, jamais sur le rôle
+    de l'agent : les collectes antérieures n'ont pas ce champ et restent
+    comptées en magasin. Les déduire du rôle ferait chuter le stock existant et
+    créerait une file d'attente fictive pour des livraisons déjà faites.
+    La vérification (`Collection.verif`) est posée **par le magasinier**, jamais
+    sur sa propre pesée, **une seule fois** (seul le patron corrige) ; elle
+    n'altère ni `kg`, ni le montant, ni le bordereau déjà remis au planteur —
+    l'écart (`ecartVerif`) reste lisible plutôt que masqué. Chaîne conservée :
+    pisteur → poids déclaré → poids vérifié → magasinier → date.
+21. **Restes dus cloisonnés par agent.** Un pisteur ne voit et ne solde que les
+    restes issus de **ses propres** pesées (`collectesPourRestes`,
+    `restesAgent`) : ceux d'une pesée du patron ou du magasinier ne sortent pas
+    de sa caisse. Appliqué **sur la donnée** — le serveur refuse un `resteSolde`
+    posé par un pisteur sur la collecte d'un autre — et pas seulement à
+    l'affichage. Le patron et le magasinier, eux, voient tout.
+22. **Un seul système d'avance, trois origines.** `Loan.origine` :
+    `"planteur"` (demandée depuis l'espace planteur → `en_attente`, décision du
+    patron), `"pisteur"` (accordée sur le terrain → naît `approuve`, `decidedBy`
+    = le pisteur, `soldeRestant` = `amount`), `"patron"`. Ne jamais créer un
+    second circuit d'avance parallèle : le recouvrement, les statuts et le
+    report entre campagnes restent communs. Le magasinier ne décide pas.
+23. **`migrate()` ne complète jamais une fiche avec une valeur inventée.**
+    `prepareSync` renvoie TOUTES les lignes : un champ ajouté au chargement
+    voyage jusqu'au serveur, qui le lit comme une modification interdite et
+    refuse **tout le PUT** (403). C'est ce qui cassait la demande d'avance du
+    planteur (`cultures`). Les valeurs par défaut se dérivent à la lecture
+    (`memberCultures`), jamais en réécrivant l'enregistrement.
 
 ## 5. Feuille de route
 
@@ -188,6 +233,18 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
 - **Stock magasin réel.** Cf. invariant 13. Modèle `Sortie` + `stockStats`.
 - **Numéro de bordereau unique.** Cf. invariant 12. Arbitrage retenu : **préfixe par
   agent**, pour rester 100 % hors-ligne (aucune contrainte réseau à la pesée).
+
+- **Rôles terrain (pisteur, magasinier) et vérification des poids.** Cf.
+  invariants 20 à 22. Le pisteur et le magasinier recrutent un planteur ; le
+  pisteur accorde une avance sur-le-champ (après avoir vu la situation du
+  planteur) ; le magasinier vérifie les poids ramenés, et c'est le poids
+  constaté qui entre en stock. Arbitrage retenu : la vérification **n'altère pas
+  la pesée d'origine** — le planteur a déjà été payé au bord-champ sur le poids
+  déclaré, et rouvrir ce calcul reviendrait à lui réclamer de l'argent après
+  coup. L'écart est une information de gestion, pas une correction comptable.
+- **Demande d'avance du planteur restaurée.** Cf. invariant 23 : la
+  fonctionnalité existait, mais toute synchronisation du planteur était refusée
+  (403) à cause d'un champ ajouté par `migrate()`.
 
 ### Reste à faire
 - **Base des villages.** `src/coop/geo/` ne contient que districts, régions et

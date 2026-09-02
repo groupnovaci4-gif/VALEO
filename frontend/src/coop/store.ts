@@ -18,6 +18,7 @@ import {
   Mandat,
   Member,
   Momo,
+  Origine,
   Settlement,
   Sortie,
   Staff,
@@ -262,9 +263,17 @@ export function useCoopData() {
       // Suite propre à l'agent : le numéro reste unique même si deux agents
       // pèsent hors-ligne en même temps.
       let nextSeq = c.seq ?? nextTicketSeq(staffId, d);
+      // L'origine est figée à la création, au même titre que le prix : elle
+      // décide si le poids entre directement en magasin (pesée du patron ou du
+      // magasinier) ou s'il doit d'abord être vérifié (collecte d'un pisteur).
+      const agent = (d.staff || []).find((x) => x.id === staffId);
+      const origine: Origine = c.origine || (agent && agent.role === "pisteur" ? "bord_champ" : "magasin");
+      // NB : toute collecte créée à partir d'ici porte son origine. Les
+      // collectes antérieures n'en ont pas et restent comptées en magasin
+      // (cf. `origineOf`) — leur livraison est déjà faite.
       const rec: Collection = {
         ...c, id: c.id || uid(), seq: nextSeq, ticket: c.ticket || makeTicket(staffId, nextSeq),
-        coopId: c.coopId || cid(), saison: c.saison || d.saison,
+        coopId: c.coopId || cid(), saison: c.saison || d.saison, origine,
       };
       let dSeq = Math.max(d.seq, nextSeq + 1); // compteur hérité, conservé pour l'espace admin
 
@@ -302,12 +311,16 @@ export function useCoopData() {
       let settlements = d.settlements || [];
       if (settle > 0) {
         const refs: { seq: number; ticket?: string; amount: number }[] = [];
+        // Même cloisonnement qu'ailleurs : un pisteur ne solde que ses propres
+        // restes. `origine === "bord_champ"` identifie sa pesée sans avoir à
+        // relire son rôle une seconde fois.
+        const sien = (x: Collection) => origine !== "bord_champ" || x.byStaffId === rec.byStaffId;
         cols = cols
           .slice()
           .sort((a, b) => +new Date(a.date) - +new Date(b.date))
           .map((x) => {
             const out = Math.max(0, (x.reste || 0) - (x.resteSolde || 0));
-            if (x.memberId !== rec.memberId || out <= 0 || settle <= 0) return x;
+            if (x.memberId !== rec.memberId || !sien(x) || out <= 0 || settle <= 0) return x;
             const applied = Math.min(settle, out);
             settle -= applied;
             refs.push({ seq: x.seq, ticket: ticketOf(x), amount: applied });
@@ -329,26 +342,30 @@ export function useCoopData() {
       created = rec;
       return { ...d, seq: dSeq, collections: [...cols, rec], loans, settlements };
     });
-    if (created) { const cc: any = created; logAudit("pesee", { memberId: cc.memberId, seq: cc.seq, cropId: cc.cropId, net: cc.net, paye: cc.paye, reste: cc.reste, recouvre: repayAudit, oldRegle: cc.oldRegle || 0 }); }
+    if (created) { const cc: any = created; logAudit("pesee", { memberId: cc.memberId, seq: cc.seq, cropId: cc.cropId, origine: cc.origine, kg: cc.kg, net: cc.net, paye: cc.paye, reste: cc.reste, recouvre: repayAudit, oldRegle: cc.oldRegle || 0 }); }
     return created;
   }, [logAudit]);
 
   // Solde immédiat de tout le reste dû d'un planteur (paiement hors livraison).
   // Ne modifie PAS les reçus d'origine : suit le solde via resteSolde et émet
   // un nouveau reçu de solde référençant les reçus initiaux. Retourne ce reçu.
-  const settleMemberDue = useCallback((memberId: string, byStaffId: string, method: string): Settlement | null => {
+  const settleMemberDue = useCallback((memberId: string, byStaffId: string, method: string, opts?: { onlyMine?: boolean }): Settlement | null => {
     let receipt: Settlement | null = null;
+    // Un pisteur ne solde que les restes issus de SES pesées : ceux du patron
+    // ou du magasinier ne sortent pas de sa caisse (le serveur refuserait
+    // l'écriture, mais l'écran ne doit pas les proposer non plus).
+    const sien = (c: Collection) => !opts?.onlyMine || c.byStaffId === byStaffId;
     setData((d) => {
       if (!d) return d;
       const outOf = (c: Collection) => Math.max(0, (c.reste || 0) - (c.resteSolde || 0));
-      const total = d.collections.filter((c) => c.memberId === memberId).reduce((s, c) => s + outOf(c), 0);
+      const total = d.collections.filter((c) => c.memberId === memberId && sien(c)).reduce((s, c) => s + outOf(c), 0);
       if (total <= 0) return d;
       const refs: { seq: number; ticket?: string; amount: number }[] = [];
       const collections = d.collections
         .slice()
         .sort((a, b) => +new Date(a.date) - +new Date(b.date))
         .map((c) => {
-          if (c.memberId !== memberId) return c;
+          if (c.memberId !== memberId || !sien(c)) return c;
           const out = outOf(c);
           if (out <= 0) return c;
           refs.push({ seq: c.seq, ticket: ticketOf(c), amount: out });
@@ -363,9 +380,61 @@ export function useCoopData() {
     return receipt;
   }, [logAudit]);
 
+  /**
+   * Vérification par le magasinier d'un poids ramené par un pisteur.
+   *
+   * N'altère JAMAIS la pesée d'origine (poids déclaré, montant, reçu déjà
+   * remis au planteur) : la vérification s'ajoute à côté. C'est elle qui
+   * décide du poids entrant en magasin.
+   */
+  const verifyCollection = useCallback((collectionId: string, kg: number, byStaffId: string, note?: string) => {
+    let done: { memberId: string; declare: number } | null = null;
+    setData((d) => {
+      if (!d) return d;
+      const cur = d.collections.find((c) => c.id === collectionId);
+      if (!cur || (cur.verif && cur.verif.byStaffId)) return d; // déjà vérifiée
+      done = { memberId: cur.memberId, declare: cur.kg };
+      const verif = { kg, byStaffId, date: new Date().toISOString(), note: note || "" };
+      return { ...d, collections: d.collections.map((c) => (c.id === collectionId ? { ...c, verif } : c)) };
+    });
+    if (done) {
+      const info: any = done;
+      logAudit("verification_poids", { collectionId, memberId: info.memberId, declare: info.declare, verifie: kg, ecart: kg - info.declare, note: note || "" });
+    }
+  }, [logAudit]);
+
   const addLoan = useCallback((l: Partial<Loan>) => {
-    setData((d) => (d ? { ...d, loans: [...d.loans, { id: uid(), coopId: cid(), saison: d.saison, status: "en_attente", soldeRestant: 0, decidedBy: null, ...l } as Loan] } : d));
+    setData((d) => (d ? { ...d, loans: [...d.loans, { id: uid(), coopId: cid(), saison: d.saison, status: "en_attente", soldeRestant: 0, decidedBy: null, origine: "planteur", ...l } as Loan] } : d));
   }, []);
+
+  /**
+   * Avance accordée directement sur le terrain par le pisteur/délégué.
+   *
+   * Réutilise le MÊME système d'avance : seule l'origine change. Elle naît
+   * « approuve » parce que le pisteur engage la coopérative au moment où il
+   * remet l'argent au planteur — la faire naître « en_attente » afficherait
+   * une dette inexistante tant que le patron n'a pas cliqué.
+   */
+  const grantLoan = useCallback((l: Partial<Loan>, by: string) => {
+    const amount = Number(l.amount) || 0;
+    setData((d) =>
+      d
+        ? {
+            ...d,
+            loans: [
+              ...d.loans,
+              {
+                id: uid(), coopId: cid(), saison: d.saison, type: "argent", motif: "", date: new Date().toISOString(),
+                ...l,
+                amount, origine: "pisteur", status: "approuve", soldeRestant: amount,
+                decidedBy: by, decidedAt: new Date().toISOString(),
+              } as Loan,
+            ],
+          }
+        : d,
+    );
+    logAudit("avance_accordee_terrain", { memberId: l.memberId, amount, motif: l.motif || "", type: l.type || "argent" });
+  }, [logAudit]);
 
   const approveLoan = useCallback((id: string, granted: number, paymentMode: string, by: string) => {
     let mid = "";
@@ -520,8 +589,10 @@ export function useCoopData() {
     addCollection,
     settleMemberDue,
     addLoan,
+    grantLoan,
     approveLoan,
     refuseLoan,
+    verifyCollection,
     updateMember,
     deleteMember,
     updateStaff,

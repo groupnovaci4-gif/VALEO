@@ -53,13 +53,30 @@ test("un produit sans aucun mouvement n'apparaît pas", () => {
 });
 
 test("scope « mine » ne compte que les mouvements de l'agent", () => {
+  // Portée « mine » = ce qu'un pisteur a collecté et PAS ENCORE REMIS au
+  // magasin. Ses collectes bord-champ y restent tant que le magasinier ne les
+  // a pas vérifiées ; une fois vérifiées, elles passent au magasin.
+  const staff = [{ id: "st-a", nom: "A", role: "pisteur" }, { id: "st-b", nom: "B", role: "pisteur" }];
   const data = etat({
-    collections: [collecte("c1", { byStaffId: "st-a", kg: 100 }), collecte("c2", { byStaffId: "st-b", kg: 60 })],
+    staff,
+    collections: [
+      collecte("c1", { byStaffId: "st-a", kg: 100, origine: "bord_champ" }),
+      collecte("c2", { byStaffId: "st-b", kg: 60, origine: "bord_champ" }),
+    ],
     sorties: [sortie("s1", { byStaffId: "st-a", kg: 30 })],
   });
   assert.equal(stockStats(data, { scope: "mine", staffId: "st-a" }).stock, 70);
   assert.equal(stockStats(data, { scope: "mine", staffId: "st-b" }).stock, 60);
-  assert.equal(stockStats(data, { scope: "all" }).stock, 130, "le magasin voit tout");
+  // Le magasin, lui, ne compte rien tant que rien n'est vérifié.
+  assert.equal(stockStats(data, { scope: "all" }).stock, -30, "seule la sortie est effective");
+  assert.equal(stockStats(data, { scope: "all" }).attente, 160, "160 kg annoncés, à vérifier");
+});
+
+test("une pesée faite au magasin entre en stock sans vérification", () => {
+  const staff = [{ id: "st-magasin", nom: "Bakary", role: "commis" }];
+  const data = etat({ staff, collections: [collecte("c1")], sorties: [sortie("s1")] });
+  assert.equal(stockStats(data, { scope: "all" }).stock, 70);
+  assert.equal(stockStats(data, { scope: "all" }).attente, 0);
 });
 
 test("un stock négatif est affiché, pas masqué", () => {

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { AppState, Modal, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, Session, fF, makeTicket, nextTicketSeq, scopeData, uid } from "@/src/coop/lib";
+import { C, Session, fF, fKg, makeTicket, nextTicketSeq, scopeData, uid } from "@/src/coop/lib";
 import { Icon } from "@/src/coop/Icon";
 import { Login, TopBar } from "@/src/coop/auth";
 import {
@@ -23,6 +23,7 @@ import {
   SortieSheet,
   StockSheet,
   Bordereau,
+  VerificationSheet,
 } from "@/src/coop/sheets";
 import {
   ActivityLog,
@@ -244,7 +245,8 @@ export default function App() {
       yesLabel: "Solder",
       yesColor: C.green,
       onYes: () => {
-        const receiptS = store.settleMemberDue(m.id, staffIdNow, "espece");
+        // Un pisteur ne solde que les restes issus de ses propres pesées.
+        const receiptS = store.settleMemberDue(m.id, staffIdNow, "espece", { onlyMine: role === "pisteur" });
         setConfirm(null);
         if (receiptS) setSettlementReceipt(receiptS);
         setNotice("Reste dû soldé. Reçu généré.");
@@ -356,19 +358,23 @@ export default function App() {
         onFab={() => setSheet("pesee")}
       />
     );
-    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onSettle={settleMemberFn} onSettlementReceipt={setSettlementReceipt} />;
-    else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onVillageRecap={doVillageRecap} />;
-    else if (tab === "prets") body = <PatronPrets data={data} canDecide={false} onNew={() => setSheet("loan")} onBack={() => setTab(isPisteur ? "tournee" : "jour")} />;
+    // Le pisteur ne voit et ne solde que les restes dus issus de SES pesées.
+    const resteScope = isPisteur ? session.staffId : undefined;
+    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} resteScope={resteScope} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onSettle={settleMemberFn} onSettlementReceipt={setSettlementReceipt} />;
+    // Pisteur comme magasinier recrutent sur le terrain : la fiche entre dans
+    // la base de la coopérative et reste rattachée à son créateur.
+    else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} resteScope={resteScope} onVillageRecap={doVillageRecap} />;
+    else if (tab === "prets") body = <PatronPrets data={data} canDecide={false} onNew={() => setSheet(isPisteur ? "grantLoan" : "loan")} onBack={() => setTab(isPisteur ? "tournee" : "jour")} />;
     else if (isPisteur) body = (
       <>
-        <PisteurHome theme={theme} data={data} staffId={session.staffId} onNew={() => setSheet("pesee")} onNewDepense={() => setSheet("depense")} onReceipt={setReceipt} onOpen={setOpenMember} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} />
+        <PisteurHome theme={theme} data={data} staffId={session.staffId} onNew={() => setSheet("pesee")} onNewDepense={() => setSheet("depense")} onReceipt={setReceipt} onOpen={setOpenMember} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} onGrantLoan={() => setSheet("grantLoan")} onPrets={() => setTab("prets")} />
         <CocoaHero />
         <PartnersBanner />
       </>
     );
     else body = (
       <>
-        <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} onDepense={() => setSheet("depense")} onPrets={() => setTab("prets")} />
+        <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} onDepense={() => setSheet("depense")} onPrets={() => setTab("prets")} onVerifier={() => setSheet("verif")} />
         <CocoaHero />
         <PartnersBanner />
       </>
@@ -398,17 +404,22 @@ export default function App() {
       </ScrollView>
       {nav}
 
-      {sheet === "member" ? <MemberSheet initial={editMember} onClose={() => { setSheet(null); setEditMember(null); }} onSave={(m: any) => { if (editMember) store.updateMember(editMember.id, m); else { store.addMember(m); setTab("planteurs"); } setSheet(null); setEditMember(null); }} /> : null}
+      {sheet === "member" ? <MemberSheet initial={editMember} onClose={() => { setSheet(null); setEditMember(null); }} onSave={(m: any) => { if (editMember) store.updateMember(editMember.id, m); else { store.addMember({ ...m, createdBy: staffId || null }); setTab("planteurs"); } setSheet(null); setEditMember(null); }} /> : null}
       {sheet === "pesee" ? <PeseeSheet data={data} role={role} staffId={staffId} onClose={() => setSheet(null)} onSave={savePesee} /> : null}
       {sheet === "loan" && session.side === "planteur" ? <LoanSheet data={data} fixedMember={me} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ ...l, memberId: session.memberId, date: new Date().toISOString() }); setSheet(null); setTab("prets"); }} /> : null}
-      {sheet === "loan" && session.side === "coop" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ date: new Date().toISOString(), ...l }); setSheet(null); }} /> : null}
+      {sheet === "loan" && session.side === "coop" ? <LoanSheet data={data} onClose={() => setSheet(null)} onSave={(l: any) => { store.addLoan({ date: new Date().toISOString(), origine: role === "patron" ? "patron" : "planteur", ...l }); setSheet(null); }} /> : null}
+      {/* Le pisteur/délégué accorde sur-le-champ : même système d'avance,
+          origine différente. */}
+      {sheet === "grantLoan" && role === "pisteur" ? <LoanSheet data={data} grant onClose={() => setSheet(null)} onSave={(l: any) => { store.grantLoan(l, staffId); setSheet(null); setNotice("Avance accordée. Elle sera recouvrée sur les prochaines livraisons."); }} /> : null}
+      {/* Le magasinier constate le poids réellement reçu d'un pisteur. */}
+      {sheet === "verif" && role === "commis" ? <VerificationSheet data={data} staffId={staffId} onClose={() => setSheet(null)} onSave={(id: string, kg: number, note: string) => { store.verifyCollection(id, kg, staffId, note); setSheet(null); setNotice(`Vérification enregistrée : ${fKg(kg)} entrent en stock.`); }} /> : null}
       {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setCoopSettings(p); setSheet(null); }} /> : null}
       {sheet === "coopProfile" ? <CoopProfileSheet coop={data.coop} patron={me} onClose={() => setSheet(null)} onSave={({ coopPatch, patronPatch }: any) => { store.setCoopProfile(coopPatch); if (session.side === "coop" && session.staffId) store.updateStaff(session.staffId, patronPatch); setSheet(null); }} /> : null}
       {sheet === "audit" ? <AuditSheet data={data} fetchAudit={store.fetchAudit} onClose={() => setSheet(null)} /> : null}
       {/* Le magasinier tient le magasin : il voit le stock réel de la coopérative,
           comme le patron. Le pisteur, lui, suit ce qu'il a collecté et pas encore remis. */}
       {sheet === "stock" ? <StockSheet data={data} staffId={staffId} scope={stockScope} onClose={() => setSheet(null)} onNewSortie={isCoop ? () => setSheet("sortie") : undefined} /> : null}
-      {sheet === "sortie" ? <SortieSheet data={data} staffId={staffId} scope={stockScope} onClose={() => setSheet("stock")} onSave={(x: any) => { store.addSortie(x); setSheet("stock"); setNotice("Sortie enregistrée. Le stock a été mis à jour."); }} /> : null}
+      {sheet === "sortie" ? <SortieSheet data={data} staffId={staffId} scope={stockScope} role={role} onClose={() => setSheet("stock")} onSave={(x: any) => { store.addSortie(x); setSheet("stock"); setNotice("Sortie enregistrée. Le stock a été mis à jour."); }} /> : null}
       {sheet === "linkMomo" && session.side === "planteur" ? <LinkMomoSheet title="Lier mon Mobile Money" onClose={() => setSheet(null)} onSave={(mm: any) => { store.linkMemberMomo(session.memberId, mm); setSheet(null); }} /> : null}
       {sheet === "coopMomo" ? <LinkMomoSheet title="Ajouter un compte coop" withLabel onClose={() => setSheet(null)} onSave={(mm: any) => { store.addCoopMomo(mm); setSheet(null); }} /> : null}
       {sheet === "depense" ? <DepenseSheet onClose={() => setSheet(null)} onSave={(x: any) => { store.addDepense({ pisteurId: staffId, ...x }); setSheet(null); }} /> : null}

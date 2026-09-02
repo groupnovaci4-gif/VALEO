@@ -202,6 +202,33 @@ export type Member = Synced & {
 };
 export type Staff = Synced & { id: string; coopId?: string; nom: string; role: string; tel?: string; photo?: string | null; prenoms?: string; email?: string; fonction?: string; idNumber?: string; pin?: PinRecord | null };
 export type Retenue = { label: string; amount: number };
+
+/**
+ * Où la pesée a eu lieu.
+ *
+ * - `magasin` : le planteur apporte sa production au magasin (patron ou
+ *   magasinier). Le poids entre directement en stock.
+ * - `bord_champ` : le pisteur/délégué collecte en tournée puis ramène au
+ *   magasin. Le poids n'entre en stock qu'APRÈS vérification du magasinier,
+ *   et c'est le poids vérifié qui compte (cf. `Verification`).
+ */
+export type Origine = "magasin" | "bord_champ";
+
+/**
+ * Vérification par le magasinier d'un poids ramené par un pisteur.
+ *
+ * Le poids déclaré au bord-champ et le poids constaté au magasin diffèrent
+ * presque toujours (humidité, freinte, tassement). C'est `kg` — le poids
+ * réellement constaté — qui entre en stock, jamais le poids déclaré.
+ * L'écart n'est pas effacé : les deux valeurs restent lisibles côte à côte.
+ */
+export type Verification = {
+  kg: number;
+  byStaffId: string;
+  date: string;
+  note?: string;
+};
+
 export type Collection = Synced & Campagne & {
   id: string;
   seq: number;
@@ -220,6 +247,12 @@ export type Collection = Synced & Campagne & {
   // Identifiant d'opération posé par le client à la validation : le serveur
   // ignore une seconde création portant le même (double-tap, rejeu réseau).
   clientOpId?: string;
+  // Lieu de la pesée. Absent sur les collectes antérieures : `origineOf()`
+  // fait alors le repli sur le rôle de l'agent, sans réécrire l'historique.
+  origine?: Origine;
+  // Vérification du magasinier, pour une collecte bord-champ uniquement.
+  // Tant qu'elle est absente, le poids n'est pas encore entré en magasin.
+  verif?: Verification | null;
   brut: number;
   retenues: Retenue[];
   net: number;
@@ -237,10 +270,23 @@ export type Collection = Synced & Campagne & {
   _repay?: { loanId?: string; amount: number } | null;
   _settle?: number | null;
 };
+/**
+ * Qui est à l'origine de l'avance.
+ *
+ * - `planteur` : demandée depuis l'espace planteur, part « en_attente » et
+ *   attend la décision du patron ;
+ * - `pisteur` : accordée directement sur le terrain par le pisteur/délégué,
+ *   qui engage la coopérative — elle naît donc « approuve » ;
+ * - `patron` : saisie par le patron lui-même.
+ */
+export type LoanOrigine = "planteur" | "pisteur" | "patron";
+
 export type Loan = Synced & Campagne & {
   id: string;
   coopId?: string;
   memberId: string;
+  // Origine de la demande. Absente sur les avances antérieures.
+  origine?: LoanOrigine;
   type: string;
   amount: number;
   motif: string;
@@ -392,7 +438,11 @@ export function migrate(d: any): Data {
       code,
       momo: m.momo != null ? m.momo : null,
       photo: m.photo != null ? m.photo : null,
-      cultures: Array.isArray(m.cultures) && m.cultures.length ? m.cultures : [{ cropId: m.cropId || "cacao", superficie: Number(m.superficie) || 0 }],
+      // `cultures` n'est PLUS injecté ici. Le faire réécrivait la fiche de
+      // chaque planteur au chargement ; comme `prepareSync` renvoie toutes les
+      // lignes, le serveur voyait un champ interdit et refusait TOUT le PUT
+      // (403) — y compris la demande d'avance que le planteur venait de créer.
+      // La valeur par défaut est dérivée à la lecture par `memberCultures()`.
       createdBy: m.createdBy != null ? m.createdBy : null,
     };
   });
@@ -522,14 +572,128 @@ export const totalSuperficie = (m: any): number => memberCultures(m).reduce((s, 
 export const collectionComm = (data: Data, c: Collection): number =>
   c.commissionRate != null ? c.commissionRate : commOf(data, c.cropId || "cacao");
 
+/* ------------------- Origine du poids & vérification magasin ------------------ */
+
 /**
- * Stock réel en magasin, par produit : entrées (pesées) − sorties.
+ * Origine d'une collecte.
  *
- * Sans les sorties, le « stock » n'était qu'un cumul de collectes : il ne
- * pouvait que monter et ne correspondait jamais au magasin.
+ * Volontairement fondée sur le SEUL champ enregistré, sans repli sur le rôle
+ * de l'agent. Les collectes antérieures à la vérification n'ont pas ce champ :
+ * elles ont déjà été livrées et comptées en magasin à l'époque. Les déduire du
+ * rôle les ferait toutes rebasculer « à vérifier » — le stock du magasin
+ * chuterait du jour au lendemain et une file d'attente fictive apparaîtrait
+ * pour des livraisons faites depuis longtemps.
  *
- * `scope: "mine"` restreint aux mouvements d'un agent (ce qu'un pisteur a
- * collecté et pas encore remis) ; `"all"` donne le magasin de la coopérative.
+ * La vérification s'applique donc aux collectes enregistrées **à partir de
+ * maintenant**, pour lesquelles `addCollection` fige toujours l'origine (et le
+ * serveur la contrôle).
+ */
+export function origineOf(c: Collection, _data?: Data): Origine {
+  return c.origine === "bord_champ" ? "bord_champ" : "magasin";
+}
+
+/** Collecte ramenée du bord-champ par un pisteur (donc à vérifier au magasin). */
+export const estBordChamp = (c: Collection, _data?: Data): boolean => c.origine === "bord_champ";
+
+/** Une collecte bord-champ dont le magasinier a constaté le poids réel. */
+export const estVerifiee = (c: Collection): boolean => !!(c.verif && c.verif.byStaffId);
+
+/**
+ * Poids réellement entré dans le magasin de la coopérative.
+ *
+ * - pesée au magasin (patron ou magasinier) : le poids pesé ;
+ * - collecte bord-champ vérifiée : le poids **constaté par le magasinier** ;
+ * - collecte bord-champ non encore vérifiée : **rien**. Le cacao est encore
+ *   dans le véhicule du pisteur, l'annoncer en magasin serait un stock fictif.
+ */
+export function kgEnStock(c: Collection, data: Data): number {
+  if (!estBordChamp(c, data)) return Number(c.kg) || 0;
+  return estVerifiee(c) ? Number(c.verif!.kg) || 0 : 0;
+}
+
+/** Écart entre le poids déclaré au bord-champ et le poids constaté au magasin. */
+export const ecartVerif = (c: Collection): number =>
+  estVerifiee(c) ? (Number(c.verif!.kg) || 0) - (Number(c.kg) || 0) : 0;
+
+/**
+ * Collectes bord-champ en attente de vérification par le magasinier.
+ * `staffId` restreint à celles d'un pisteur donné (son propre suivi).
+ */
+export function aVerifier(data: Data, staffId?: string): Collection[] {
+  return (data.collections || [])
+    .filter((c) => estBordChamp(c, data) && !estVerifiee(c) && (!staffId || c.byStaffId === staffId))
+    .sort(byDateDesc);
+}
+
+/* --------------------------- Restes dus par agent ------------------------- */
+
+/**
+ * Restes dus aux planteurs générés par les pesées d'UN agent.
+ *
+ * Un pisteur ne solde que ce qu'il a lui-même engagé : le reste d'une pesée du
+ * magasinier ne sort pas de sa caisse et ne le regarde pas. La règle est
+ * appliquée sur les données (le serveur refuse l'écriture), pas seulement à
+ * l'affichage.
+ */
+export function restesAgent(data: Data, staffId: string, memberId?: string): Collection[] {
+  return (data.collections || []).filter(
+    (c) => c.byStaffId === staffId && outstandingReste(c) > 0 && (!memberId || c.memberId === memberId),
+  );
+}
+
+/**
+ * Collectes visibles pour le calcul des restes dus.
+ *
+ * `agentId` renseigné (pisteur) : uniquement ses propres pesées — il ne voit
+ * ni ne solde ce qu'il n'a pas engagé. Sinon (patron, magasinier) : tout.
+ */
+export const collectesPourRestes = (data: Data, agentId?: string): Collection[] =>
+  agentId ? (data.collections || []).filter((c) => c.byStaffId === agentId) : data.collections || [];
+
+/** Total du reste dû d'un planteur, limité aux pesées d'un agent donné. */
+export const resteAgentTotal = (data: Data, staffId: string, memberId: string): number =>
+  restesAgent(data, staffId, memberId).reduce((s, c) => s + outstandingReste(c), 0);
+
+/* ------------------------- Situation des avances -------------------------- */
+
+/**
+ * Situation d'un planteur au regard des avances, pour décider en connaissance
+ * de cause avant d'en accorder une nouvelle (règle métier : le pisteur doit
+ * voir ce qui existe déjà).
+ */
+export function avancesInfo(memberId: string, data: Data) {
+  // Jamais filtré par campagne : une dette suit le planteur d'une campagne à
+  // l'autre (invariant « les dettes sont reportées »).
+  const list = (data.loans || []).filter((l) => l.memberId === memberId).sort(byDateDesc);
+  const enCours = list.filter((l) => l.status === "approuve" && l.soldeRestant > 0);
+  const enAttente = list.filter((l) => l.status === "en_attente");
+  return {
+    list,
+    enCours,
+    enAttente,
+    // Reste à rembourser, toutes avances approuvées confondues.
+    reste: enCours.reduce((s, l) => s + (Number(l.soldeRestant) || 0), 0),
+    // Montant déjà demandé et non encore tranché par le patron.
+    attente: enAttente.reduce((s, l) => s + (Number(l.amount) || 0), 0),
+    accorde: list.filter((l) => l.status === "approuve" || l.status === "rembourse").reduce((s, l) => s + (Number(l.amount) || 0), 0),
+    nbRembourse: list.filter((l) => l.status === "rembourse").length,
+  };
+}
+
+/**
+ * Stock réel, par produit : entrées − sorties.
+ *
+ * Deux portées, qui ne comptent PAS la même chose :
+ *
+ * - `all` (magasinier et patron) — le magasin de la coopérative :
+ *   pesées du patron + pesées du magasinier + collectes des pisteurs
+ *   **après vérification**, au poids constaté par le magasinier. Une collecte
+ *   bord-champ non vérifiée n'y figure pas : la marchandise n'est pas encore
+ *   entrée.
+ * - `mine` (pisteur) — ce qu'il a collecté et **pas encore remis** :
+ *   ses collectes bord-champ non vérifiées, au poids qu'il a déclaré. Dès que
+ *   le magasinier vérifie, le poids quitte sa charge et entre au magasin.
+ *
  * Le stock n'est PAS borné à zéro : un négatif signale une erreur de saisie,
  * le masquer serait pire que l'afficher.
  */
@@ -538,25 +702,36 @@ export function stockStats(data: Data, opts?: { scope?: "all" | "mine"; staffId?
   const staffId = opts?.staffId;
   const cols = (data.collections || []).filter((c) => !mine || c.byStaffId === staffId);
   const outs = (data.sorties || []).filter((x) => !mine || x.byStaffId === staffId);
+  // En charge d'un pisteur : le déclaré tant que ce n'est pas vérifié.
+  // En magasin : le vérifié, et rien avant la vérification.
+  const poids = (c: Collection): number =>
+    mine ? (estBordChamp(c, data) && !estVerifiee(c) ? Number(c.kg) || 0 : 0) : kgEnStock(c, data);
   const rows = CROPS.map((cr) => {
     const list = cols.filter((c) => (c.cropId || "cacao") === cr.id);
     const outList = outs.filter((x) => (x.cropId || "cacao") === cr.id);
-    const entrees = list.reduce((s, c) => s + (Number(c.kg) || 0), 0);
+    const entrees = list.reduce((s, c) => s + poids(c), 0);
     const sorties = outList.reduce((s, x) => s + (Number(x.kg) || 0), 0);
+    // Poids annoncés par les pisteurs et pas encore vérifiés : hors stock,
+    // mais affichés à part pour que le magasinier sache ce qui l'attend.
+    const attente = mine
+      ? 0
+      : list.filter((c) => estBordChamp(c, data) && !estVerifiee(c)).reduce((s, c) => s + (Number(c.kg) || 0), 0);
     return {
       cr,
       cropId: cr.id,
       entrees,
       sorties,
+      attente,
       stock: entrees - sorties,
-      count: list.length,
-      valeur: list.reduce((s, c) => s + (Number(c.net) || 0), 0),
+      count: list.filter((c) => poids(c) > 0).length,
+      valeur: list.reduce((s, c) => s + (poids(c) > 0 ? Number(c.net) || 0 : 0), 0),
     };
-  }).filter((r) => r.entrees > 0 || r.sorties > 0);
+  }).filter((r) => r.entrees > 0 || r.sorties > 0 || r.attente > 0);
   return {
     rows,
     entrees: rows.reduce((s, r) => s + r.entrees, 0),
     sorties: rows.reduce((s, r) => s + r.sorties, 0),
+    attente: rows.reduce((s, r) => s + r.attente, 0),
     stock: rows.reduce((s, r) => s + r.stock, 0),
     count: rows.reduce((s, r) => s + r.count, 0),
     valeur: rows.reduce((s, r) => s + r.valeur, 0),

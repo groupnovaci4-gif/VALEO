@@ -228,14 +228,22 @@ class TestAgentAuthorization:
         vue["collections"] = [_collection("col-x", "mb-1", "st-pisteur")]
         assert _put(app_client, t["commis"], vue).status_code == 403
 
-    def test_agent_ne_peut_ni_creer_ni_supprimer_un_planteur(self, app_client):
+    def test_agent_ne_peut_pas_supprimer_un_planteur(self, app_client):
+        """Le recrutement se fait sur le terrain, la radiation reste au patron."""
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["commis"])
+        assert _put(app_client, t["commis"], vue, deletions={"members": ["mb-2"]}).status_code == 403
+        assert len(_get_state(app_client, t["patron"])["members"]) == 2
+
+    def test_agent_ne_peut_pas_creer_un_planteur_rattache_a_un_autre(self, app_client):
+        """Une fiche créée par un agent reste rattachée à son créateur."""
         t = _seed_coop(app_client)
         vue = _get_state(app_client, t["commis"])
         cree = copy.deepcopy(vue)
         cree["members"].append({"id": "mb-faux", "code": "VAL-9999-ZZ", "nom": "Faux", "village": "X",
-                                "momo": None, "photo": None, "updatedAt": "2026-02-02T09:00:00.000Z"})
+                                "momo": None, "photo": None, "createdBy": "st-pisteur",
+                                "updatedAt": "2026-02-02T09:00:00.000Z"})
         assert _put(app_client, t["commis"], cree).status_code == 403
-        assert _put(app_client, t["commis"], vue, deletions={"members": ["mb-2"]}).status_code == 403
         assert len(_get_state(app_client, t["patron"])["members"]) == 2
 
     def test_agent_ne_peut_pas_poser_de_code_secret(self, app_client):
