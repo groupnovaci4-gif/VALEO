@@ -284,3 +284,64 @@ test("le poids remis distingue le collecté du reçu", () => {
   assert.equal(st.poids, 1500, "ce qu'il a collecté");
   assert.equal(st.poidsRemis, 980, "ce que la coopérative a effectivement reçu");
 });
+
+/* ---------------- Formule du stock : les trois composantes ---------------- */
+
+test("STOCK = poids direct magasinier + poids patron + poids vérifié du pisteur", () => {
+  // Chaque composante isolée, puis leur somme : c'est la règle capitale.
+  const magasinier = base([colMagasin("c1", "mag", 300)]);
+  assert.equal(stockStats(magasinier, { scope: "all" }).stock, 300);
+
+  const patron = base([colMagasin("c2", "pat", 500)]);
+  assert.equal(stockStats(patron, { scope: "all" }).stock, 500);
+
+  const pisteurVerifie = base([colPisteur("c3", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
+  assert.equal(stockStats(pisteurVerifie, { scope: "all" }).stock, 980, "le poids VÉRIFIÉ, pas le déclaré");
+
+  const tout = base([
+    colMagasin("c1", "mag", 300),
+    colMagasin("c2", "pat", 500),
+    colPisteur("c3", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } }),
+  ]);
+  assert.equal(stockStats(tout, { scope: "all" }).stock, 1780, "300 + 500 + 980");
+});
+
+test("un poids de pisteur NON vérifié n'est pas comptabilisé", () => {
+  const d = base([
+    colMagasin("c1", "mag", 300),
+    colMagasin("c2", "pat", 500),
+    colPisteur("c3", 1000),
+  ]);
+  const st = stockStats(d, { scope: "all" });
+  assert.equal(st.stock, 800, "seulement 300 + 500");
+  assert.notEqual(st.stock, 1800, "le déclaré n'entre jamais en stock");
+  assert.equal(st.attente, 1000, "il est annoncé à part, sans être compté");
+});
+
+test("le poids déclaré par le pisteur est conservé après vérification", () => {
+  // Il doit rester comparable au poids constaté : c'est la base du contrôle.
+  const c = colPisteur("c1", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } });
+  assert.equal(c.kg, 1000, "le déclaré n'est jamais écrasé");
+  assert.equal(c.verif.kg, 980);
+  assert.equal(ecartVerif(c), -20);
+  assert.equal(c.verif.byStaffId, "mag", "on sait qui a vérifié");
+  assert.ok(c.verif.date, "et quand");
+});
+
+test("la différence distingue déficit, excédent et égalité", () => {
+  const deficit = colPisteur("a", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } });
+  const excedent = colPisteur("b", 1000, { verif: { kg: 1020, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } });
+  const egal = colPisteur("c", 1000, { verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } });
+
+  assert.equal(ecartVerif(deficit), -20);
+  assert.equal(manquantVerif(deficit), 36000);
+  assert.equal(poidsPlusVerif(deficit), 0);
+
+  assert.equal(ecartVerif(excedent), 20);
+  assert.equal(manquantVerif(excedent), 0);
+  assert.equal(poidsPlusVerif(excedent), 36000);
+
+  assert.equal(ecartVerif(egal), 0);
+  assert.equal(manquantVerif(egal), 0);
+  assert.equal(poidsPlusVerif(egal), 0);
+});

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { AppState, Modal, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, Session, fF, fKg, makeTicket, nextTicketSeq, scopeData, uid } from "@/src/coop/lib";
+import { C, Session, buildNotifications, fF, fKg, makeTicket, nextTicketSeq, scopeData, uid } from "@/src/coop/lib";
 import { Icon } from "@/src/coop/Icon";
 import { Login, TopBar } from "@/src/coop/auth";
 import {
@@ -27,7 +27,6 @@ import {
 } from "@/src/coop/sheets";
 import {
   ActivityLog,
-  buildNotifications,
   CoopAccount,
   DepensesPatron,
   Collaborateurs,

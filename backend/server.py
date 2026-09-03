@@ -457,6 +457,8 @@ PLANTEUR_COLLECTION_FIELDS = {"signature", "updatedAt"}
 STAFF_SELF_FIELDS = {"photo", "updatedAt"}
 # Pesée : signature du planteur et solde d'anciens restes dus (`resteSolde`).
 AGENT_COLLECTION_FIELDS = {"signature", "resteSolde", "updatedAt"}
+# Motifs de sortie fermés au pisteur : il ramasse et livre, il ne commercialise pas.
+PISTEUR_SORTIES_INTERDITES = {"expedition", "vente"}
 # Le magasinier constate le poids réellement reçu d'un pisteur : c'est le seul
 # champ qu'il ajoute sur une collecte qui n'est pas la sienne.
 MAGASINIER_COLLECTION_FIELDS = AGENT_COLLECTION_FIELDS | {"verif"}
@@ -702,11 +704,12 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
                 kg = 0
             if kg <= 0:
                 raise Forbidden(f"{actor} : une sortie de magasin doit porter un poids positif.")
-            # Le pisteur ramène au magasin, il n'expédie pas vers l'usine :
-            # sa marchandise sort de sa charge par la vérification du
-            # magasinier, jamais par une expédition qu'il déciderait seul.
-            if role == "pisteur" and row.get("type") == "expedition":
-                raise Forbidden(f"{actor} : une expédition vers l'usine relève du magasin, pas de la tournée.")
+            # Le pisteur ramasse au bord-champ puis LIVRE au magasin : il ne
+            # vend pas et n'évacue pas vers l'usine. Sa marchandise quitte sa
+            # charge par la vérification du magasinier, jamais par une
+            # décision qu'il prendrait seul.
+            if role == "pisteur" and row.get("type") in PISTEUR_SORTIES_INTERDITES:
+                raise Forbidden(f"{actor} : vendre ou expédier relève du magasin, pas de la tournée.")
         for row in delta["loans"]["created"]:
             # Le pisteur/délégué est au contact du planteur : il peut accorder
             # une avance sur-le-champ, et engage alors la coopérative — il

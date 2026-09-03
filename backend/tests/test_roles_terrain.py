@@ -353,3 +353,97 @@ class TestGardeFousServeur:
             "destinataire": "SACO", "note": "", "updatedAt": "2026-02-06T09:00:00.000Z",
         })
         assert _put(app_client, t["commis"], vue).status_code == 200
+
+
+class TestLivraisonAuMagasin:
+    """Le pisteur ramasse et livre : il ne commercialise pas."""
+
+    def test_le_pisteur_ne_peut_pas_vendre(self, app_client):
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["pisteur"])
+        vue["sorties"].append({
+            "id": "so-v", "cropId": "cacao", "kg": 100, "type": "vente",
+            "date": "2026-02-06T09:00:00.000Z", "byStaffId": "st-pisteur",
+            "destinataire": "Marché", "note": "", "updatedAt": "2026-02-06T09:00:00.000Z",
+        })
+        assert _put(app_client, t["pisteur"], vue).status_code == 403
+
+    def test_le_magasinier_vend_toujours(self, app_client):
+        """La restriction ne vise que la tournée, pas le magasin."""
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["commis"])
+        vue["sorties"].append({
+            "id": "so-v2", "cropId": "cacao", "kg": 100, "type": "vente",
+            "date": "2026-02-06T09:00:00.000Z", "byStaffId": "st-magasin",
+            "destinataire": "Marché", "note": "", "updatedAt": "2026-02-06T09:00:00.000Z",
+        })
+        assert _put(app_client, t["commis"], vue).status_code == 200
+
+
+class TestAvancePlanteurBoutDeBout:
+    """Demande du planteur → décision du patron, montant ajustable."""
+
+    def _demande(self, app_client, tokens, montant=200000):
+        vue = _get_state(app_client, tokens["planteur"])
+        vue["loans"].append(_loan("ln-dem", "mb-1", amount=montant, origine="planteur"))
+        assert _put(app_client, tokens["planteur"], vue).status_code == 200
+
+    def test_la_demande_parvient_au_patron(self, app_client):
+        t = _seed_coop(app_client)
+        self._demande(app_client, t)
+        chez_patron = _get_state(app_client, t["patron"])["loans"]
+        assert len(chez_patron) == 1
+        assert chez_patron[0]["status"] == "en_attente"
+        assert chez_patron[0]["amount"] == 200000
+        assert chez_patron[0]["origine"] == "planteur"
+
+    def test_le_patron_accorde_un_montant_inferieur(self, app_client):
+        """200 000 demandés, 150 000 accordés : c'est 150 000 qui est dû."""
+        t = _seed_coop(app_client)
+        self._demande(app_client, t)
+        st = _get_state(app_client, t["patron"])
+        st["loans"][0].update(status="approuve", amount=150000, soldeRestant=150000,
+                              decidedBy=t["patron_id"], decidedAt="2026-03-05T09:00:00.000Z",
+                              updatedAt="2026-03-05T09:00:00.000Z")
+        assert _put(app_client, t["patron"], st).status_code == 200
+
+        chez_planteur = _get_state(app_client, t["planteur"])["loans"][0]
+        assert chez_planteur["status"] == "approuve"
+        assert chez_planteur["amount"] == 150000
+        assert chez_planteur["soldeRestant"] == 150000
+
+    def test_le_patron_accorde_la_totalite(self, app_client):
+        t = _seed_coop(app_client)
+        self._demande(app_client, t)
+        st = _get_state(app_client, t["patron"])
+        st["loans"][0].update(status="approuve", soldeRestant=200000,
+                              decidedBy=t["patron_id"], decidedAt="2026-03-05T09:00:00.000Z",
+                              updatedAt="2026-03-05T09:00:00.000Z")
+        assert _put(app_client, t["patron"], st).status_code == 200
+        assert _get_state(app_client, t["planteur"])["loans"][0]["soldeRestant"] == 200000
+
+    def test_le_patron_refuse(self, app_client):
+        t = _seed_coop(app_client)
+        self._demande(app_client, t)
+        st = _get_state(app_client, t["patron"])
+        st["loans"][0].update(status="refuse", soldeRestant=0,
+                              decidedBy=t["patron_id"], decidedAt="2026-03-05T09:00:00.000Z",
+                              updatedAt="2026-03-05T09:00:00.000Z")
+        assert _put(app_client, t["patron"], st).status_code == 200
+
+        chez_planteur = _get_state(app_client, t["planteur"])["loans"][0]
+        assert chez_planteur["status"] == "refuse"
+        assert chez_planteur["soldeRestant"] == 0
+
+    def test_le_planteur_ne_retouche_pas_une_demande_tranchee(self, app_client):
+        t = _seed_coop(app_client)
+        self._demande(app_client, t)
+        st = _get_state(app_client, t["patron"])
+        st["loans"][0].update(status="refuse", soldeRestant=0, decidedBy=t["patron_id"],
+                              decidedAt="2026-03-05T09:00:00.000Z", updatedAt="2026-03-05T09:00:00.000Z")
+        assert _put(app_client, t["patron"], st).status_code == 200
+
+        vue = _get_state(app_client, t["planteur"])
+        vue["loans"][0].update(status="en_attente", amount=500000, updatedAt="2026-03-09T09:00:00.000Z")
+        assert _put(app_client, t["planteur"], vue).status_code == 403
+        assert _get_state(app_client, t["patron"])["loans"][0]["status"] == "refuse"

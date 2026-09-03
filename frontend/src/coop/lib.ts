@@ -800,3 +800,84 @@ export function pisteurStats(pid: string, data: Data) {
   const solde = mandat - achats - depenses - manquant + poidsPlus;
   return { poids, poidsRemis, achats, achatsPesees, soldes, mandat, depenses, commission, manquant, poidsPlus, solde, count: cols.length };
 }
+
+/* ------------------------------ Notifications ---------------------------- */
+
+/** Nom d'un collaborateur (l'agent qui a pesé), ou tiret. */
+export const staffNameOf = (data: Data, id?: string) => (data.staff || []).find((s) => s.id === id)?.nom || "—";
+
+/** Nom d'un planteur, ou tiret : les listes ne doivent jamais afficher un id. */
+export const nameOf = (data: Data, id: string) => (data.members || []).find((m) => m.id === id)?.nom || "—";
+
+export type Notif = { id: string; kind: "action" | "info"; date: string; icon: string; tint: string; title: string; sub: string };
+export function buildNotifications(data: Data, session: any): { items: Notif[]; count: number } {
+  const items: Notif[] = [];
+  const isCoop = session.side === "coop";
+  const isPatron = isCoop && session.role === "patron";
+  if (isPatron) {
+    data.loans.filter((l) => l.status === "en_attente").forEach((l) => items.push({ id: "lp" + l.id, kind: "action", date: l.date, icon: "clock", tint: C.due, title: "Demande d'avance en attente", sub: `${nameOf(data, l.memberId)} · ${fF(l.amount)}` }));
+    data.loans.filter((l) => l.status === "approuve" || l.status === "refuse").forEach((l) => items.push({ id: "ld" + l.id, kind: "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : "x-circle", tint: l.status === "approuve" ? C.green : C.loss, title: l.status === "approuve" ? "Avance accordée" : "Avance refusée", sub: `${nameOf(data, l.memberId)} · ${fF(l.amount)}` }));
+  }
+  if (isCoop) {
+    // Restes dus : un pisteur n'est alerté que de CEUX QU'IL A GÉNÉRÉS. Sans ce
+    // filtre, sa cloche lui annonçait les restes du patron et du magasinier,
+    // qu'il n'a pourtant ni le droit de voir ni celui de solder.
+    const colsRestes = collectesPourRestes(data, isPatron || !isCoop ? undefined : session.role === "pisteur" ? session.staffId : undefined);
+    (data.members || []).forEach((m) => {
+      const st = memberStats(m.id, colsRestes);
+      if (st.reste > 0) {
+        const lastC = colsRestes.filter((c) => c.memberId === m.id && outstandingReste(c) > 0).sort(byDateDesc)[0];
+        items.push({ id: "rd" + m.id, kind: "action", date: lastC ? lastC.date : new Date().toISOString(), icon: "wallet", tint: C.due, title: "Reste à payer au planteur", sub: `${m.nom} · ${fF(st.reste)}` });
+      }
+    });
+    (data.settlements || []).forEach((s: any) => items.push({ id: "st" + s.id, kind: "info", date: s.date, icon: "banknote", tint: C.green, title: s.viaPesee ? "Reste soldé (à la pesée)" : "Reste soldé", sub: `${nameOf(data, s.memberId)} · ${fF(s.amount)}` }));
+    data.collections.filter((c) => c.paye > 0).forEach((c) => items.push({ id: "pp" + c.id, kind: "info", date: c.date, icon: "scale", tint: C.teal, title: "Pesée payée", sub: `${nameOf(data, c.memberId)} · ${fF(c.paye)}` }));
+
+    // Livraison au magasin : le patron doit savoir qu'un poids attend d'être
+    // vérifié, le magasinier qu'il a une pesée à faire. Le pisteur, lui, a
+    // déjà son suivi de remise sur son accueil : l'alerter de sa propre
+    // livraison n'apprendrait rien.
+    if (isPatron || session.role === "commis") {
+      aVerifier(data).forEach((c) =>
+        items.push({
+          id: "vf" + c.id,
+          kind: "action",
+          date: c.date,
+          icon: "truck",
+          tint: C.due,
+          title: isPatron ? "Livraison à vérifier au magasin" : "Livraison à vérifier",
+          sub: `${staffNameOf(data, c.byStaffId)} · ${nameOf(data, c.memberId)} · ${fKg(c.kg)}`,
+        }),
+      );
+    }
+    // Écart constaté : l'information intéresse le patron (caisse de l'agent).
+    if (isPatron) {
+      (data.collections || [])
+        .filter((c) => estVerifiee(c) && ecartVerif(c) !== 0)
+        .forEach((c) => {
+          const e = ecartVerif(c);
+          items.push({
+            id: "ec" + c.id,
+            kind: "info",
+            date: c.verif!.date,
+            icon: e < 0 ? "alert-triangle" : "trending-up",
+            tint: e < 0 ? C.loss : C.green,
+            title: e < 0 ? "Manquant après vérification" : "Poids plus constaté",
+            sub: `${staffNameOf(data, c.byStaffId)} · ${fKg(c.kg)} → ${fKg(Number(c.verif!.kg) || 0)} (${e > 0 ? "+" : ""}${e} kg)`,
+          });
+        });
+    }
+  }
+  if (session.side === "planteur") {
+    const m = data.members.find((x) => x.id === session.memberId);
+    if (m) {
+      const st = memberStats(m.id, data.collections);
+      if (st.reste > 0) items.push({ id: "myr", kind: "action", date: new Date().toISOString(), icon: "wallet", tint: C.due, title: "Reste à percevoir", sub: `La coopérative vous doit ${fF(st.reste)}` });
+      data.loans.filter((l) => l.memberId === m.id).forEach((l) => items.push({ id: "ml" + l.id, kind: l.status === "en_attente" ? "action" : "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : l.status === "refuse" ? "x-circle" : "clock", tint: l.status === "approuve" ? C.green : l.status === "refuse" ? C.loss : C.due, title: l.status === "approuve" ? "Avance accordée" : l.status === "refuse" ? "Avance refusée" : "Demande en attente", sub: `${fF(l.amount)}${l.motif ? " · " + l.motif : ""}` }));
+      data.collections.filter((c) => c.memberId === m.id && c.paye > 0).forEach((c) => items.push({ id: "mp" + c.id, kind: "info", date: c.date, icon: "scale", tint: C.teal, title: "Pesée payée", sub: `${fKg(c.kg)} · ${fF(c.paye)}` }));
+      (data.settlements || []).filter((s: any) => s.memberId === m.id).forEach((s: any) => items.push({ id: "ms" + s.id, kind: "info", date: s.date, icon: "banknote", tint: C.green, title: "Solde reçu", sub: `${fF(s.amount)}${s.refs && s.refs.length ? " · réf. " + s.refs.map((r: any) => r.ticket || ticketNo(r.seq)).join(", ") : ""}` }));
+    }
+  }
+  items.sort(byDateDesc);
+  return { items, count: items.filter((i) => i.kind === "action").length };
+}

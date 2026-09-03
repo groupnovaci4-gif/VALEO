@@ -467,3 +467,35 @@ suivi de remise au magasin et dans le bilan du patron sur cet agent. Le
 bordereau du planteur et le montant qui lui a été réglé restent inchangés.
 
 77 tests frontend (+2).
+
+### v34.3 — Alertes de livraison, et fuite des restes dans les notifications
+
+Audit de la logique existante avant modification : sur les huit règles
+demandées, six étaient déjà en place (demande d'avance du planteur, montant
+ajustable par le patron, distinction pesée directe / vérification, conservation
+du poids déclaré, calcul de la différence, formule du stock). Deux manquaient,
+dont un défaut réel.
+
+**Fuite corrigée (règle des restes dus).** `buildNotifications` calculait les
+restes sur `data.collections` en entier : la cloche du pisteur lui annonçait
+les restes générés par le patron, le magasinier ou un autre pisteur — ceux
+qu'il n'a précisément ni le droit de voir ni celui de solder. Le cloisonnement
+était appliqué dans les écrans et sur le serveur, mais pas là.
+
+Cause structurelle : la fonction vivait dans `screens.tsx`, donc hors de portée
+des tests des modules purs. Elle est déplacée dans `lib.ts` — c'est une règle
+métier, pas de l'affichage — et couverte par 14 tests. Vérifié : retirer le
+filtre fait échouer 3 d'entre eux.
+
+**Alertes de livraison au magasin.** Le patron et le magasinier reçoivent
+désormais une alerte pour chaque collecte bord-champ en attente de
+vérification, nommant le pisteur, le planteur et le poids. Le patron est en
+outre informé de chaque écart constaté (manquant ou poids plus). Le pisteur
+n'est pas alerté de sa propre livraison : son accueil porte déjà son suivi.
+
+**Vocabulaire métier.** « Poids direct » et « Vérifier » côté magasinier,
+« Nouvelle avance » côté pisteur, « Livraison — à livrer au magasin » pour son
+stock. La vente rejoint l'expédition parmi les motifs fermés au pisteur, côté
+serveur comme à l'écran (`PISTEUR_SORTIES_INTERDITES`).
+
+80 tests backend (+7), 95 tests frontend (+18).

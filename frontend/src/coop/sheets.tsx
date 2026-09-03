@@ -1296,10 +1296,11 @@ export function SortieSheet({ data, staffId, scope, role, onClose, onSave }: { d
   const [clientOpId] = useState(() => `so-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
   const st = stockStats(data, { scope, staffId });
   const dispo = st.rows.filter((r) => r.stock > 0);
-  // Le pisteur ramène au magasin, il n'expédie pas à l'usine : sa marchandise
-  // sort de sa charge par la vérification du magasinier, pas par une
-  // expédition qu'il déciderait seul.
-  const motifs = role === "pisteur" ? SORTIE_TYPES.filter((t) => t.id !== "expedition") : SORTIE_TYPES;
+  // Le pisteur ramasse au bord-champ puis LIVRE au magasin : il ne vend pas et
+  // n'évacue pas vers l'usine. Sa marchandise quitte sa charge par la
+  // vérification du magasinier, pas par une décision qu'il prendrait seul.
+  // Ne lui restent que les mouvements qu'il constate réellement en tournée.
+  const motifs = role === "pisteur" ? SORTIE_TYPES.filter((t) => t.id !== "expedition" && t.id !== "vente") : SORTIE_TYPES;
   const [cropId, setCropId] = useState(dispo[0]?.cropId || "cacao");
   const [type, setType] = useState(motifs[0]?.id || "perte");
   const [kg, setKg] = useState("");
@@ -1321,7 +1322,7 @@ export function SortieSheet({ data, staffId, scope, role, onClose, onSave }: { d
     );
 
   return (
-    <Sheet title="Sortie de magasin" onClose={onClose}>
+    <Sheet title={role === "pisteur" ? "Sortie de tournée" : "Sortie de magasin"} onClose={onClose}>
       <Field label="Produit">
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
           {dispo.map((r) => (

@@ -32,6 +32,8 @@ import {
   estVerifiee,
   manquantVerif,
   memberStats,
+  nameOf,
+  Notif,
   poidsPlusVerif,
   outstandingReste,
   op,
@@ -59,8 +61,6 @@ import {
   StatCell,
   TInput,
 } from "./ui";
-
-const nameOf = (data: Data, id: string) => data.members.find((m) => m.id === id)?.nom || "—";
 
 const HeroCard = ({ theme, icon, label, big, sub }: { theme: string; icon: string; label: string; big: string; sub: string }) => (
   <Card style={{ backgroundColor: theme, padding: 18, marginBottom: 14, borderColor: theme }}>
@@ -358,9 +358,20 @@ function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock,
   const net = mine.reduce((s, c) => s + c.net, 0);
   const pending = (data.loans || []).filter((l: any) => l.status === "en_attente").length;
   const cards: any[] = [
-    { testID: "quick-Peser", icon: "scale", title: isPisteur ? "Collecter" : "Peser", sub: "Nouvelle réception", dark: true, onPress: onPeser },
+    // Le magasinier a DEUX opérations distinctes : sa pesée directe (le
+    // planteur vient au magasin) et la vérification d'un poids de pisteur.
+    // Les nommer pareil serait la meilleure façon de les confondre.
+    {
+      testID: "quick-Peser", icon: "scale", dark: true, onPress: onPeser,
+      title: isPisteur ? "Collecter" : onVerifier ? "Poids direct" : "Peser",
+      sub: isPisteur ? "Pesée bord-champ" : onVerifier ? "Planteur venu au magasin" : "Nouvelle réception",
+    },
     { testID: "quick-Planteurs", icon: "users", title: "Planteurs", sub: "Gérer le réseau", onPress: onPlanteurs },
-    { testID: "quick-Stock", icon: "package", title: "Stock", sub: isPisteur ? "Vos poids collectés" : "Entrées, sorties, stock", onPress: onStock },
+    {
+      testID: "quick-Stock", icon: "package", onPress: onStock,
+      title: isPisteur ? "Livraison" : "Stock",
+      sub: isPisteur ? "À livrer au magasin" : "Entrées, sorties, stock",
+    },
   ];
   // Le magasinier réceptionne les poids ramenés par les pisteurs : opération
   // distincte d'une pesée, et signalée tant qu'il en reste en attente.
@@ -369,7 +380,7 @@ function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock,
     cards.push({ testID: "quick-Vérifier", icon: "truck", title: "Vérifier", sub: file > 0 ? `${file} poids de pisteur` : "Poids des pisteurs", onPress: onVerifier, badge: file });
   }
   // Le pisteur/délégué accorde une avance sur le terrain, en face du planteur.
-  if (onGrantLoan) cards.push({ testID: "quick-Accorder", icon: "piggy-bank", title: "Accorder", sub: "Avance au planteur", onPress: onGrantLoan });
+  if (onGrantLoan) cards.push({ testID: "quick-Accorder", icon: "piggy-bank", title: "Nouvelle avance", sub: "Accorder à un planteur", onPress: onGrantLoan });
   if (onDepense) cards.push({ testID: "quick-Dépenses", icon: "receipt", title: "Dépenses", sub: "Suivi des frais", onPress: onDepense });
   if (onPrets) cards.push({ testID: "quick-Prêts", icon: "piggy-bank", title: "Avances", sub: "Suivi & recouvrement", onPress: onPrets, badge: pending });
   return (
@@ -450,7 +461,7 @@ function SuiviVerification({ data, staffId }: any) {
   return (
     <Card style={{ padding: 14, marginBottom: 14 }}>
       <Text style={{ fontSize: 12, color: C.muted, marginBottom: 9, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
-        Remise au magasin
+        Livraison au magasin
       </Text>
       {attente.length > 0 ? (
         <Row label={`En attente de vérification (${attente.length})`} value={fKg(enAttente)} strong />
@@ -1304,40 +1315,6 @@ export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile,
 }
 
 /* ========================== NOTIFICATIONS =============================== */
-export type Notif = { id: string; kind: "action" | "info"; date: string; icon: string; tint: string; title: string; sub: string };
-export function buildNotifications(data: Data, session: any): { items: Notif[]; count: number } {
-  const items: Notif[] = [];
-  const isCoop = session.side === "coop";
-  const isPatron = isCoop && session.role === "patron";
-  if (isPatron) {
-    data.loans.filter((l) => l.status === "en_attente").forEach((l) => items.push({ id: "lp" + l.id, kind: "action", date: l.date, icon: "clock", tint: C.due, title: "Demande d'avance en attente", sub: `${nameOf(data, l.memberId)} · ${fF(l.amount)}` }));
-    data.loans.filter((l) => l.status === "approuve" || l.status === "refuse").forEach((l) => items.push({ id: "ld" + l.id, kind: "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : "x-circle", tint: l.status === "approuve" ? C.green : C.loss, title: l.status === "approuve" ? "Avance accordée" : "Avance refusée", sub: `${nameOf(data, l.memberId)} · ${fF(l.amount)}` }));
-  }
-  if (isCoop) {
-    data.members.forEach((m) => {
-      const st = memberStats(m.id, data.collections);
-      if (st.reste > 0) {
-        const lastC = data.collections.filter((c) => c.memberId === m.id && outstandingReste(c) > 0).sort(byDateDesc)[0];
-        items.push({ id: "rd" + m.id, kind: "action", date: lastC ? lastC.date : new Date().toISOString(), icon: "wallet", tint: C.due, title: "Reste à payer au planteur", sub: `${m.nom} · ${fF(st.reste)}` });
-      }
-    });
-    (data.settlements || []).forEach((s: any) => items.push({ id: "st" + s.id, kind: "info", date: s.date, icon: "banknote", tint: C.green, title: s.viaPesee ? "Reste soldé (à la pesée)" : "Reste soldé", sub: `${nameOf(data, s.memberId)} · ${fF(s.amount)}` }));
-    data.collections.filter((c) => c.paye > 0).forEach((c) => items.push({ id: "pp" + c.id, kind: "info", date: c.date, icon: "scale", tint: C.teal, title: "Pesée payée", sub: `${nameOf(data, c.memberId)} · ${fF(c.paye)}` }));
-  }
-  if (session.side === "planteur") {
-    const m = data.members.find((x) => x.id === session.memberId);
-    if (m) {
-      const st = memberStats(m.id, data.collections);
-      if (st.reste > 0) items.push({ id: "myr", kind: "action", date: new Date().toISOString(), icon: "wallet", tint: C.due, title: "Reste à percevoir", sub: `La coopérative vous doit ${fF(st.reste)}` });
-      data.loans.filter((l) => l.memberId === m.id).forEach((l) => items.push({ id: "ml" + l.id, kind: l.status === "en_attente" ? "action" : "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : l.status === "refuse" ? "x-circle" : "clock", tint: l.status === "approuve" ? C.green : l.status === "refuse" ? C.loss : C.due, title: l.status === "approuve" ? "Avance accordée" : l.status === "refuse" ? "Avance refusée" : "Demande en attente", sub: `${fF(l.amount)}${l.motif ? " · " + l.motif : ""}` }));
-      data.collections.filter((c) => c.memberId === m.id && c.paye > 0).forEach((c) => items.push({ id: "mp" + c.id, kind: "info", date: c.date, icon: "scale", tint: C.teal, title: "Pesée payée", sub: `${fKg(c.kg)} · ${fF(c.paye)}` }));
-      (data.settlements || []).filter((s: any) => s.memberId === m.id).forEach((s: any) => items.push({ id: "ms" + s.id, kind: "info", date: s.date, icon: "banknote", tint: C.green, title: "Solde reçu", sub: `${fF(s.amount)}${s.refs && s.refs.length ? " · réf. " + s.refs.map((r: any) => r.ticket || ticketNo(r.seq)).join(", ") : ""}` }));
-    }
-  }
-  items.sort(byDateDesc);
-  return { items, count: items.filter((i) => i.kind === "action").length };
-}
-
 const NotifRow = ({ n }: { n: Notif }) => (
   <Card style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
     <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: n.tint + "22", alignItems: "center", justifyContent: "center" }}><Icon name={n.icon} size={16} color={n.tint} /></View>

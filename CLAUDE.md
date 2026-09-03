@@ -102,7 +102,8 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
    - *pisteur / délégué* : collecter **à leur nom** (origine `bord_champ`),
      **créer un planteur** rattaché à eux, **accorder directement une avance**
      signée de leur nom, solder **uniquement leurs propres** restes dus, saisir
-     **leurs** dépenses ; jamais d'expédition vers l'usine, jamais de
+     **leurs** dépenses ; il ramasse puis **livre au magasin** — ni vente, ni
+     expédition vers l'usine (`PISTEUR_SORTIES_INTERDITES`) — et jamais de
      vérification de poids ;
    - aucun des deux : mandat, réglages, suppression de planteur, création ou
      suppression de collaborateur, approbation d'une demande d'avance ;
@@ -192,7 +193,10 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     jamais supprimer ces champs texte. Une valeur non retrouvée dans la base
     est conservée telle quelle (`villageLibre`), jamais effacée.
 19. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
-20. **Origine du poids figée, vérification définitive.** `Collection.origine`
+20. **Livraison au magasin, origine figée, vérification définitive.**
+    Le flux du pisteur est : ramassage bord-champ → **livraison au magasin** →
+    alerte du patron ET du magasinier (`buildNotifications`, entrées `vf*`) →
+    vérification → stock. Le pisteur ne commercialise jamais lui-même. `Collection.origine`
     (`"magasin"` | `"bord_champ"`) est gelée à la création, comme `prixKg` ; le
     serveur refuse une origine qui ne correspond pas au rôle. Le circuit de
     vérification s'appuie sur le **seul champ enregistré**, jamais sur le rôle
@@ -209,10 +213,16 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     magasinier → date.
 21. **Restes dus cloisonnés par agent.** Un pisteur ne voit et ne solde que les
     restes issus de **ses propres** pesées (`collectesPourRestes`,
-    `restesAgent`) : ceux d'une pesée du patron ou du magasinier ne sortent pas
-    de sa caisse. Appliqué **sur la donnée** — le serveur refuse un `resteSolde`
-    posé par un pisteur sur la collecte d'un autre — et pas seulement à
-    l'affichage. Le patron et le magasinier, eux, voient tout.
+    `restesAgent`) : ceux du patron, du magasinier **ou d'un autre pisteur** ne
+    sortent pas de sa caisse, même sur un planteur qu'il suit. Appliqué **sur la
+    donnée** — le serveur refuse un `resteSolde` posé par un pisteur sur la
+    collecte d'un autre — et pas seulement à l'affichage. Les **notifications**
+    comptent aussi : `buildNotifications` passe par `collectesPourRestes`, sans
+    quoi la cloche du pisteur lui annonce des restes qu'il n'a pas le droit de
+    voir. Le patron et le magasinier, eux, voient tout.
+    `buildNotifications` vit dans `lib.ts` (module pur) **parce que** c'est une
+    règle métier : la loger dans un écran la rendait intestable, et c'est
+    exactement là que la fuite était passée.
 22. **Un seul système d'avance, trois origines.** `Loan.origine` :
     `"planteur"` (demandée depuis l'espace planteur → `en_attente`, décision du
     patron), `"pisteur"` (accordée sur le terrain → naît `approuve`, `decidedBy`
