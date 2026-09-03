@@ -265,6 +265,15 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     refuse **tout le PUT** (403). C'est ce qui cassait la demande d'avance du
     planteur (`cultures`). Les valeurs par défaut se dérivent à la lecture
     (`memberCultures`), jamais en réécrivant l'enregistrement.
+    **La fiche coopérative aussi** : `POST /api/auth/register` la crée sans
+    `prices` ni `commissions`, et `migrate` les remplissait avec les barèmes par
+    défaut. Le serveur y lisait un changement de réglage réservé au patron, et
+    refusait **toute** synchronisation du pisteur comme du magasinier (403
+    « seul le patron peut changer "prices" ») : sur une coopérative neuve, plus
+    aucun agent ne pouvait rien enregistrer. Les barèmes se dérivent à la
+    lecture (`priceOf` / `commOf` retombent sur `DEFAULT_PRICES` /
+    `DEFAULT_COMM`). `migrate` ne fait plus que **réparer** une valeur du
+    mauvais type ; il n'ajoute jamais une clé que le serveur n'a pas envoyée.
 
 24. **Les dépenses d'un pisteur / délégué n'appartiennent qu'à lui.**
     Il n'est pas salarié : c'est un **prestataire**, un apporteur d'affaires

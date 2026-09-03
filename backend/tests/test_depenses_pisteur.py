@@ -91,6 +91,50 @@ class TestPerimetreDepenses:
         assert _get_state(app_client, t["planteur"])["depenses"] == []
 
 
+# ---- RÉGRESSION : une coopérative neuve n'a pas encore de barème ---------- #
+
+class TestCooperativeSansBareme:
+    """`POST /api/auth/register` crée la coop SANS `prices` ni `commissions`.
+
+    Tant que le patron n'a pas réglé ses barèmes, la fiche coop n'en porte
+    aucun. Le client renvoie cette fiche telle quelle à chaque synchro : s'il la
+    complétait avec des valeurs par défaut, le serveur y lirait un changement de
+    réglage et refuserait TOUT le PUT de l'agent (403). Plus personne, ni
+    pisteur ni magasinier, ne pouvait alors rien enregistrer.
+    """
+
+    def test_la_coop_creee_na_pas_de_bareme(self, app_client):
+        t = _seed_coop(app_client)
+        co = _get_state(app_client, t["patron"])["coops"][0]
+        assert co.get("prices") is None
+        assert co.get("commissions") is None
+
+    def test_le_pisteur_enregistre_malgre_labsence_de_bareme(self, app_client):
+        t = _seed_coop(app_client)
+        # Renvoi fidèle de la vue reçue, dépense en plus : c'est ce que produit
+        # `prepareSync` une fois que `migrate` ne complète plus la fiche coop.
+        vue = _get_state(app_client, t["pisteur"])
+        vue["depenses"].append(_depense("dep-neuf", "st-pisteur", 45000))
+        r = _put(app_client, t["pisteur"], vue)
+        assert r.status_code == 200, r.text
+        assert [x["id"] for x in _get_state(app_client, t["pisteur"])["depenses"]] == ["dep-neuf"]
+
+    def test_le_magasinier_enregistre_malgre_labsence_de_bareme(self, app_client):
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["commis"])
+        vue["collections"].append(_collection("col-neuf", "mb-1", "st-magasin"))
+        assert _put(app_client, t["commis"], vue).status_code == 200
+
+    def test_un_bareme_inventé_reste_refusé(self, app_client):
+        """Le serveur, lui, ne bouge pas : poser un barème reste l'affaire du patron."""
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["pisteur"])
+        vue["coops"][0]["prices"] = {"cacao": 1800}
+        r = _put(app_client, t["pisteur"], vue)
+        assert r.status_code == 403, r.text
+        assert "prices" in r.json()["detail"]
+
+
 # ------------------- Écriture : personne d'autre n'y touche ---------------- #
 
 class TestEcritureDepenses:

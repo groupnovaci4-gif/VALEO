@@ -491,15 +491,24 @@ export function migrate(d: any): Data {
     out.settlements = out.settlements.map((x: any) => ({ ...x, coopId: x.coopId || legacyId }));
     out.sorties = out.sorties.map((x: any) => ({ ...x, coopId: x.coopId || legacyId }));
   }
-  // Chaque coopérative a des prix/commissions complets.
+  // Fiche coopérative : on ne la COMPLÈTE pas (invariant 23).
+  //
+  // On remplissait ici les prix et commissions manquants avec les barèmes par
+  // défaut. Comme `prepareSync` renvoie la fiche coop, ces valeurs inventées
+  // partaient au serveur, qui les lisait comme un changement de réglage — et
+  // refusait TOUT le PUT d'un pisteur ou d'un magasinier (403 « seul le patron
+  // peut changer "prices" »). Une coopérative fraîchement créée n'a pas encore
+  // de barème : aucun agent ne pouvait donc rien enregistrer.
+  //
+  // Les barèmes se dérivent à la LECTURE (`priceOf` / `commOf` retombent sur
+  // `DEFAULT_PRICES` / `DEFAULT_COMM`), jamais en réécrivant l'enregistrement.
+  // On se contente ici de réparer une valeur du mauvais type, sans jamais
+  // ajouter une clé que le serveur n'a pas envoyée.
   out.coops = out.coops.map((c: any) => {
-    const prices = { ...c.prices };
-    const commissions = { ...c.commissions };
-    CROPS.forEach((cr) => {
-      if (prices[cr.id] == null) prices[cr.id] = DEFAULT_PRICES[cr.id] ?? out.prixKg;
-      if (commissions[cr.id] == null) commissions[cr.id] = DEFAULT_COMM[cr.id] ?? out.commissionRate;
-    });
-    return { ...c, prices, commissions, momo: Array.isArray(c.momo) ? c.momo : [], filieres: Array.isArray(c.filieres) ? c.filieres : [] };
+    const fix: any = { ...c };
+    if ("momo" in c && !Array.isArray(c.momo)) fix.momo = [];
+    if ("filieres" in c && !Array.isArray(c.filieres)) fix.filieres = [];
+    return fix;
   });
   return out as Data;
 }

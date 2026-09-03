@@ -7,7 +7,7 @@ const {
   migrate, stockStats, origineOf, estBordChamp, estVerifiee, kgEnStock,
   ecartVerif, aVerifier, restesAgent, resteAgentTotal, avancesInfo, memberCultures,
   pisteurStats, manquantVerif, poidsPlusVerif,
-  aLivrer, estLivree, statutLivraison, estPisteur,
+  aLivrer, estLivree, statutLivraison, estPisteur, priceOf, commOf,
 } = await import("../.sync-build/lib.js");
 const { prepareSync } = await import("../.sync-build/sync.js");
 
@@ -452,4 +452,55 @@ test("estPisteur distingue le prestataire du personnel salarié", () => {
   assert.equal(estPisteur(d, "mag"), false, "le magasinier est salarié : ses frais sont ceux de la coop");
   assert.equal(estPisteur(d, "pat"), false);
   assert.equal(estPisteur(d, undefined), false);
+});
+
+/* --- RÉGRESSION : migrate ne complète pas la fiche coop (invariant 23) ---- */
+
+// État exactement tel que `POST /api/auth/register` le crée puis que
+// `scope_state` le renvoie : la coopérative n'a PAS encore de barème.
+const etatNeuf = () => ({
+  saison: "Campagne 2025-2026", prixKg: 1800, seq: 1, memberSeq: 1, commissionRate: 25,
+  coops: [{ id: "co1", nom: "Ma coopérative", momo: [], filieres: [] }],
+  coop: { id: "co1", nom: "Ma coopérative", momo: [], filieres: [] },
+  staff: [{ id: "pis", coopId: "co1", nom: "Yao", role: "pisteur" }],
+  members: [], collections: [], loans: [], mandats: [], depenses: [],
+  settlements: [], sorties: [], priceHistory: [],
+});
+
+test("migrate n'invente pas les barèmes d'une coopérative qui n'en a pas", () => {
+  // C'était le blocage : migrate remplissait `prices`/`commissions` avec les
+  // barèmes par défaut, `prepareSync` renvoyait la fiche coop ainsi complétée,
+  // et le serveur refusait TOUT le PUT d'un pisteur ou d'un magasinier
+  // (403 « seul le patron peut changer "prices" »). Plus aucun agent ne
+  // pouvait enregistrer quoi que ce soit sur une coopérative neuve.
+  const serveur = etatNeuf();
+  const co = migrate(JSON.parse(JSON.stringify(serveur))).coops[0];
+  assert.deepEqual(co, serveur.coops[0], "la fiche coop doit repartir telle quelle");
+  assert.equal("prices" in co, false, "aucun barème inventé");
+  assert.equal("commissions" in co, false);
+});
+
+test("les barèmes se dérivent quand même à la lecture", () => {
+  // La complétion était inutile : `priceOf` / `commOf` retombent déjà sur les
+  // barèmes par défaut. L'écran de réglages du patron affiche donc 1 800 F.
+  const d = migrate(etatNeuf());
+  assert.equal(priceOf(d, "cacao"), 1800);
+  assert.equal(commOf(d, "cacao"), 25);
+  assert.equal(priceOf(d, "anacarde"), 500);
+});
+
+test("aucune modification de la coop ne part à la synchro", () => {
+  const serveur = etatNeuf();
+  const local = migrate(JSON.parse(JSON.stringify(serveur)));
+  const { data } = prepareSync(local, serveur);
+  assert.deepEqual(data.coops[0], serveur.coops[0], "le serveur ne doit voir aucun changement de réglage");
+});
+
+test("migrate répare tout de même une valeur du mauvais type", () => {
+  const serveur = etatNeuf();
+  serveur.coops[0].momo = null;
+  serveur.coops[0].filieres = "cacao";
+  const co = migrate(serveur).coops[0];
+  assert.deepEqual(co.momo, []);
+  assert.deepEqual(co.filieres, []);
 });
