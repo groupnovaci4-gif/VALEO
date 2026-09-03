@@ -7,7 +7,7 @@ const {
   migrate, stockStats, origineOf, estBordChamp, estVerifiee, kgEnStock,
   ecartVerif, aVerifier, restesAgent, resteAgentTotal, avancesInfo, memberCultures,
   pisteurStats, manquantVerif, poidsPlusVerif,
-  aLivrer, estLivree, statutLivraison,
+  aLivrer, estLivree, statutLivraison, estPisteur,
 } = await import("../.sync-build/lib.js");
 const { prepareSync } = await import("../.sync-build/sync.js");
 
@@ -416,4 +416,40 @@ test("le poids déclaré reste consultable après vérification", () => {
   assert.equal(ecartVerif(c), -20);
   assert.equal(c.livraison.byStaffId, "pis", "on sait qui a livré");
   assert.ok(c.livraison.date, "et quand");
+});
+
+/* ------- Dépenses du pisteur : personnelles, hors comptes de la coop ------ */
+
+const depense = (id, pisteurId, amount) => ({
+  id, pisteurId, amount, category: "carburant", date: "2026-02-01T10:00:00.000Z", note: "",
+});
+
+test("les frais de tournée du pisteur n'entament pas son mandat", () => {
+  // Il est prestataire, rémunéré à la commission : le mandat lui est confié
+  // pour ACHETER du cacao, pas pour financer son carburant. Ce qu'il doit
+  // justifier, c'est le mandat moins les achats — ses frais sont les siens.
+  const d = base([colPisteur("c1", 100, { paye: 180000 })]);
+  d.mandats = [{ id: "m1", pisteurId: "pis", amount: 500000, date: "2026-02-01T08:00:00.000Z", note: "" }];
+  d.depenses = [depense("d1", "pis", 40000)];
+  const st = pisteurStats("pis", d);
+  assert.equal(st.achats, 180000);
+  assert.equal(st.depenses, 40000, "elles restent affichées sur son propre écran…");
+  assert.equal(st.solde, 320000, "…mais la caisse à justifier vaut 500 000 − 180 000");
+});
+
+test("une dépense d'un autre agent ne touche pas la caisse du pisteur", () => {
+  const d = base([]);
+  d.mandats = [{ id: "m1", pisteurId: "pis", amount: 500000, date: "2026-02-01T08:00:00.000Z", note: "" }];
+  d.depenses = [depense("d1", "mag", 40000)];
+  const st = pisteurStats("pis", d);
+  assert.equal(st.depenses, 0);
+  assert.equal(st.solde, 500000);
+});
+
+test("estPisteur distingue le prestataire du personnel salarié", () => {
+  const d = base([]);
+  assert.equal(estPisteur(d, "pis"), true);
+  assert.equal(estPisteur(d, "mag"), false, "le magasinier est salarié : ses frais sont ceux de la coop");
+  assert.equal(estPisteur(d, "pat"), false);
+  assert.equal(estPisteur(d, undefined), false);
 });

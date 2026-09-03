@@ -54,13 +54,18 @@ test("le solde payé par un AUTRE agent n'entame pas ma caisse", () => {
   assert.equal(pisteurStats(PISTEUR, data).solde, 500000);
 });
 
-test("les dépenses de tournée restent décomptées", () => {
+test("les dépenses de tournée ne sont pas décomptées du mandat", () => {
+  // Le pisteur/délégué est un prestataire rémunéré à la commission : ses frais
+  // sont à sa charge, pas à celle de la coopérative. Le mandat lui est confié
+  // pour acheter du cacao, et c'est cela seul qu'il justifie (invariant 24).
   const data = etat({
     mandats: [{ id: "md-1", pisteurId: PISTEUR, amount: 300000, date: "2026-02-01T08:00:00.000Z", note: "" }],
     depenses: [{ id: "d1", pisteurId: PISTEUR, category: "carburant", amount: 25000,
                  date: "2026-02-01T10:00:00.000Z", note: "" }],
   });
-  assert.equal(pisteurStats(PISTEUR, data).solde, 275000);
+  const st = pisteurStats(PISTEUR, data);
+  assert.equal(st.depenses, 25000, "son écran continue de les lui totaliser");
+  assert.equal(st.solde, 300000, "mais sa caisse à justifier reste le mandat non dépensé");
 });
 
 test("la commission utilise le barème figé sur la collecte", () => {

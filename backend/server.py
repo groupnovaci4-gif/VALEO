@@ -142,6 +142,11 @@ class ChangePwdRequest(BaseModel):
 # --------------------------- Auth utilisateurs (coop/planteur) --------------------------- #
 ENTITY_ARRAYS = ["staff", "members", "collections", "loans", "mandats", "depenses", "settlements", "sorties"]
 
+# Mouvements : tout ce qui s'enregistre au fil d'une campagne. Les **acteurs**
+# (coopératives, collaborateurs, planteurs) n'en font pas partie — c'est ce qui
+# permet de repartir d'une base propre sans avoir à ressaisir les fiches.
+MOVEMENT_ARRAYS = ["collections", "loans", "mandats", "depenses", "settlements", "sorties"]
+
 
 def _norm_phone(p: Optional[str]) -> str:
     return "".join(ch for ch in (p or "") if ch.isdigit())
@@ -295,6 +300,18 @@ def _public_staff(row: dict) -> dict:
     return {k: v for k, v in row.items() if k in STAFF_PUBLIC_FIELDS}
 
 
+def _pisteur_ids(state: dict, coop_id: str) -> set:
+    """Identifiants des pisteurs / délégués d'une coopérative.
+
+    Sert à cloisonner leurs dépenses : elles n'appartiennent qu'à eux.
+    """
+    return {
+        x.get("id")
+        for x in (state.get("staff") or [])
+        if isinstance(x, dict) and x.get("coopId") == coop_id and x.get("role") == "pisteur"
+    }
+
+
 def scope_state(state: dict, coop_id: str, me: Optional[dict] = None) -> dict:
     """Tranche de l'état visible par l'appelant.
 
@@ -309,6 +326,9 @@ def scope_state(state: dict, coop_id: str, me: Optional[dict] = None) -> dict:
     co = next((c for c in coops if c.get("id") == coop_id), None) or {}
     is_planteur = bool(me) and me.get("side") == "planteur"
     member_id = me.get("sub") if is_planteur else None
+    is_pisteur = bool(me) and me.get("side") == "coop" and me.get("role") == "pisteur"
+    staff_id = me.get("sub") if bool(me) and me.get("side") == "coop" else None
+    pisteur_ids = _pisteur_ids(state, coop_id)
 
     if is_planteur:
         co = {k: v for k, v in co.items() if k not in COOP_FIELDS_HIDDEN_FROM_PLANTEUR}
@@ -337,6 +357,16 @@ def scope_state(state: dict, coop_id: str, me: Optional[dict] = None) -> dict:
                 rows = [_public_staff(x) for x in rows]
             else:
                 rows = []  # mandats, dépenses, sorties : affaires internes de la coop.
+        elif e == "depenses":
+            # Frais de tournée d'un pisteur / délégué : strictement personnels
+            # (invariant 24). Il est prestataire, rémunéré à la commission :
+            # ses dépenses ne sont pas celles de la coopérative et ne quittent
+            # pas son compte. Le patron et le magasinier ne reçoivent donc que
+            # les dépenses de la coopérative ; le pisteur, que les siennes.
+            if is_pisteur:
+                rows = [x for x in rows if x.get("pisteurId") == staff_id]
+            else:
+                rows = [x for x in rows if x.get("pisteurId") not in pisteur_ids]
         out[e] = [_strip_secrets(x) for x in rows]
     return out
 
@@ -538,6 +568,45 @@ def _is_granted_by(row: dict, staff_id: str) -> bool:
     )
 
 
+def _check_depenses_privees(stored: dict, incoming: dict, deletions: dict, coop_id: str, me: dict) -> None:
+    """Les frais de tournée d'un pisteur / délégué n'appartiennent qu'à lui.
+
+    Le pisteur est un prestataire rémunéré à la commission : ses dépenses ne
+    sont pas celles de la coopérative (invariant 24). `scope_state` ne les
+    envoie donc plus au patron ni au magasinier ; cette règle interdit en outre
+    de les créer, modifier ou supprimer depuis un autre compte — le patron
+    compris, qui est pourtant souverain sur le reste de sa coopérative.
+
+    On tolère le renvoi **à l'identique** d'une ligne déjà stockée : un
+    téléphone resté hors ligne peut encore la porter en cache, et refuser tout
+    le PUT bloquerait son travail (c'est exactement le piège de l'invariant 23).
+    """
+    me_id = me.get("sub") if me.get("side") == "coop" else None
+    pisteurs = _pisteur_ids(stored, coop_id)
+    if not pisteurs:
+        return
+    refus = "Les dépenses d'un pisteur / délégué ne regardent que lui."
+    stored_rows = {
+        x.get("id"): x
+        for x in (stored.get("depenses") or [])
+        if isinstance(x, dict) and x.get("coopId") == coop_id
+    }
+    for row in incoming.get("depenses") or []:
+        if not isinstance(row, dict):
+            continue
+        owner = row.get("pisteurId")
+        if owner not in pisteurs or owner == me_id:
+            continue
+        before = stored_rows.get(row.get("id"))
+        if before is not None and not _changed_keys(before, {**before, **row}):
+            continue  # renvoi sans effet d'une ligne déjà connue.
+        raise Forbidden(refus)
+    for rid in (deletions or {}).get("depenses") or []:
+        before = stored_rows.get(rid)
+        if before is not None and before.get("pisteurId") in pisteurs and before.get("pisteurId") != me_id:
+            raise Forbidden(refus)
+
+
 def _check_livraisons(delta: dict, me_id: str, actor: str) -> None:
     """Contrôle les livraisons au magasin déclarées par un pisteur.
 
@@ -642,6 +711,9 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
     """
     coop_id = me["coopId"]
     side, role, me_id = me.get("side"), me.get("role"), me.get("sub")
+    # Seule limite au pouvoir du patron : les dépenses personnelles d'un
+    # pisteur / délégué, qu'il ne voit même pas (invariant 24).
+    _check_depenses_privees(stored, incoming, deletions, coop_id, me)
     if side == "coop" and role == "patron":
         return  # souverain sur sa propre coopérative (isolation déjà garantie).
 
@@ -951,6 +1023,52 @@ async def admin_put_state(body: StateBody, _: dict = Depends(require_admin)):
     return {"ok": True}
 
 
+class PurgeBody(BaseModel):
+    coopId: Optional[str] = None
+
+
+@app.post("/api/admin/purge-mouvements")
+async def admin_purge_movements(body: PurgeBody, _: dict = Depends(require_admin)):
+    """Efface les mouvements en conservant les acteurs.
+
+    Partent : collectes/pesées, avances, mandats, dépenses, soldes (restes à
+    payer et leurs reçus) et sorties de magasin, ainsi que le journal d'audit
+    correspondant. Restent : les coopératives, les collaborateurs, les
+    planteurs et les réglages (prix, commission, campagne).
+
+    `coopId` limite la purge à une seule coopérative ; sans lui, tous les
+    mouvements de toutes les coopératives sont effacés.
+    """
+    state = await load_state()
+    coop_id = (body.coopId or "").strip() or None
+
+    def vise(row) -> bool:
+        """La ligne appartient-elle à la coopérative purgée ?"""
+        if coop_id is None:
+            return True  # purge totale des mouvements
+        if not isinstance(row, dict):
+            return True
+        # « __legacy__ » désigne la coopérative héritée d'avant le
+        # multi-coopérative : ses lignes n'ont pas encore de `coopId`.
+        if coop_id == "__legacy__":
+            return not row.get("coopId") or row.get("coopId") == "__legacy__"
+        return row.get("coopId") == coop_id
+
+    removed: dict = {}
+    for e in MOVEMENT_ARRAYS:
+        rows = state.get(e) or []
+        kept = [x for x in rows if not vise(x)]
+        removed[e] = len(rows) - len(kept)
+        state[e] = kept
+    # Les bordereaux repartent de 1 : `nextTicketSeq` se dérive des collectes
+    # de chaque agent, il n'y a donc rien à remettre à zéro sur les fiches.
+    await save_state(state)
+    audit_filter = {"coopId": coop_id} if coop_id and coop_id != "__legacy__" else {}
+    res = await db.audit.delete_many(audit_filter)
+    removed["audit"] = getattr(res, "deleted_count", 0)
+    return {"ok": True, "removed": removed}
+
+
 @app.get("/api/admin", response_class=HTMLResponse)
 async def admin_dashboard():
     return HTMLResponse(ADMIN_HTML)
@@ -1221,6 +1339,10 @@ function settingsPanel(){
     <div id="p_msg" class="muted" style="margin-top:8px"></div>
     <button class="green" style="margin-top:12px" onclick="changePassword()">Changer le mot de passe</button>
   </div>
+  <div class="card"><h3>Repartir d'une base propre</h3>
+    <p class="muted">Efface les <b>mouvements</b> de cette coopérative : collectes et pesées, avances, restes à payer et leurs reçus, mandats, dépenses, sorties de magasin et journal d'audit.
+    Les <b>acteurs</b> sont conservés : coopératives, collaborateurs et planteurs. Irréversible.</p>
+    <button class="danger" onclick="purgeMouvements()">Effacer les mouvements de cette coopérative</button></div>
   <div class="card"><h3>Zone dangereuse</h3><p class="muted">Vide toute la base (coopératives, planteurs, collectes, avances…). Irréversible.</p>
     <button class="danger" onclick="wipeAll()">Tout réinitialiser</button></div>`;
 }
@@ -1247,6 +1369,18 @@ async function saveSettings(){
   if(co.id==="__legacy__" && state.coop){ Object.assign(state.coop, co); delete state.coop.id; }
   state.saison=g("s_saison"); state.prixKg=newPrix; state.commissionRate=+$("s_com").value||0;
   await persist();
+}
+async function purgeMouvements(){
+  const co=curCoopObj(); const nom=((co&&co.nom)||"").trim();
+  if(!confirm("Effacer TOUS les mouvements de \u00ab "+nom+" \u00bb ?\n\nCollectes, pes\u00e9es, avances, restes \u00e0 payer, re\u00e7us, mandats, d\u00e9penses, sorties et journal d'audit seront supprim\u00e9s.\nLes coop\u00e9ratives, collaborateurs et planteurs sont conserv\u00e9s.\n\nCette action est irr\u00e9versible.")) return;
+  const saisi=prompt("Pour confirmer, recopiez le nom exact de la coop\u00e9rative :\n\n"+nom);
+  if((saisi||"").trim()!==nom){ alert("Nom incorrect : rien n'a \u00e9t\u00e9 effac\u00e9."); return; }
+  try{
+    const r=await api("/api/admin/purge-mouvements",{method:"POST",body:JSON.stringify({coopId:(co&&co.id)||null})});
+    const n=Object.values(r.removed||{}).reduce((s,x)=>s+x,0);
+    alert(n+" enregistrement(s) effac\u00e9(s). Les acteurs sont conserv\u00e9s.\n\nPensez \u00e0 rouvrir l'application sur chaque t\u00e9l\u00e9phone : le cache local se remet \u00e0 jour au d\u00e9marrage.");
+    await load();
+  }catch(e){ alert("\u00c9chec de la purge : "+e); }
 }
 async function wipeAll(){
   if(!confirm("Confirmer : vider toute la base de données ?")) return;

@@ -99,8 +99,11 @@ class TestPlanteurScope:
             {"id": "ln-2", "memberId": "mb-2", "type": "argent", "amount": 90000, "motif": "Scolarité",
              "date": "2026-02-02T09:00:00.000Z", "status": "en_attente", "soldeRestant": 0, "decidedBy": None},
         ]
+        # Dépense du magasinier : c'est bien une dépense de la coopérative.
+        # (Celles d'un pisteur/délégué lui sont personnelles — invariant 24 —
+        # et le patron n'a pas le droit de les saisir à sa place.)
         patron_state["depenses"] = [
-            {"id": "dp-1", "pisteurId": "st-pisteur", "category": "transport", "amount": 5000,
+            {"id": "dp-1", "pisteurId": "st-magasin", "category": "transport", "amount": 5000,
              "date": "2026-02-02T09:00:00.000Z", "note": ""}
         ]
         assert _put(app_client, t["patron"], patron_state).status_code == 200

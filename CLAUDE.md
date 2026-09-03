@@ -49,6 +49,12 @@ Fichiers clés du frontend (`frontend/src/coop/`) :
 Endpoints backend : `GET/PUT /api/state`, `POST /api/auth/coop/login`,
 `POST /api/auth/planteur/login`, `POST /api/auth/register`, `GET/POST /api/audit`,
 `/api/admin/*` (+ tableau de bord HTML admin intégré dans `server.py`).
+Dont `POST /api/admin/purge-mouvements` : efface les **mouvements** d'une
+coopérative (`MOVEMENT_ARRAYS` + journal d'audit) en conservant les **acteurs**
+— coopératives, collaborateurs, planteurs, réglages et codes secrets. Réservé au
+jeton administrateur, avec double confirmation dans le tableau de bord (recopie
+du nom de la coopérative). Après la purge, rouvrir l'application sur chaque
+téléphone : le cache local se remet à jour au démarrage (`pull`).
 
 ## 3. Commandes
 
@@ -127,7 +133,9 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
    planteur = poids **net** (après tare sacs) × prix, moins recouvrement.
 9. **Ordre de paiement.** L'ancien reste dû est soldé avant le net de la livraison courante.
 10. **Caisse d'un agent** = `mandat − (paiements de ses pesées + anciens restes
-    qu'il a soldés) − ses dépenses − son manquant + son poids plus`. Les soldes
+    qu'il a soldés) − son manquant + son poids plus`. Ses **dépenses n'y entrent
+    pas** : le mandat est confié pour *acheter* du cacao, et le pisteur/délégué
+    est un prestataire rémunéré à la commission (invariant 24). Les soldes
     vivent dans `settlements`, jamais dans `collection.paye` : les oublier fait
     apparaître un manquant fictif.
     Les deux écarts de vérification sont de **vrais mouvements d'argent**,
@@ -251,6 +259,24 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     planteur (`cultures`). Les valeurs par défaut se dérivent à la lecture
     (`memberCultures`), jamais en réécrivant l'enregistrement.
 
+24. **Les dépenses d'un pisteur / délégué n'appartiennent qu'à lui.**
+    Il n'est pas salarié : c'est un **prestataire**, un apporteur d'affaires
+    rémunéré à la commission, donc autonome sur ses frais. Conséquences, toutes
+    appliquées **sur la donnée** :
+    - `scope_state` ne transmet ses dépenses qu'à lui — ni au patron, ni au
+      magasinier, ni à un autre pisteur (le planteur n'en recevait déjà aucune) ;
+    - `_check_depenses_privees` interdit à quiconque d'autre de les créer, de
+      les modifier ou de les supprimer — **le patron compris**, seule limite à
+      sa souveraineté. Le renvoi *à l'identique* d'une ligne déjà stockée reste
+      toléré : un téléphone hors ligne la porte encore en cache, et refuser tout
+      le PUT rejouerait l'invariant 23 ;
+    - elles **n'entament pas son mandat** (`pisteurStats.solde`), ni les
+      dépenses de la coopérative (`DepensesPatron`), ni le journal d'activité,
+      ni le bilan de campagne. `pisteurStats` renvoie toujours `depenses` :
+      c'est son suivi personnel, affiché sur son seul écran.
+    Les dépenses du **magasinier** et du **patron**, elles, restent celles de la
+    coopérative — ils sont salariés.
+
 ## 5. Feuille de route
 
 ### Fait (voir l'historique git)
@@ -290,6 +316,11 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
 - **Demande d'avance du planteur restaurée.** Cf. invariant 23 : la
   fonctionnalité existait, mais toute synchronisation du planteur était refusée
   (403) à cause d'un champ ajouté par `migrate()`.
+- **Dépenses du pisteur cloisonnées.** Cf. invariant 24 : prestataire rémunéré à
+  la commission, il est autonome sur ses frais — ils ne sortent plus de son
+  compte et n'entament plus son mandat.
+- **Purge des mouvements** dans l'espace admin : repartir d'une campagne vierge
+  sans ressaisir les collaborateurs ni les planteurs.
 
 ### Reste à faire
 - **Base des villages.** `src/coop/geo/` ne contient que districts, régions et

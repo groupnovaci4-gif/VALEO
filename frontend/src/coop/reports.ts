@@ -30,7 +30,10 @@ export function campaignHtml(data: Data, opts?: { village?: string }): string {
   const pisteurRows = pisteurs
     .map((p) => {
       const st = pisteurStats(p.id, data);
-      return `<tr><td>${p.nom}</td><td class="r">${fF(st.mandat)}</td><td class="r">${fKg(st.poids)}</td><td class="r">${fF(st.achats)}</td><td class="r">${fF(st.depenses)}</td><td class="r">${fF(st.solde)}</td></tr>`;
+      // Pas de colonne « Dépenses » : les frais de tournée d'un pisteur/délégué
+      // lui sont personnels et n'entrent pas dans les comptes de la
+      // coopérative (invariant 24).
+      return `<tr><td>${p.nom}</td><td class="r">${fF(st.mandat)}</td><td class="r">${fKg(st.poids)}</td><td class="r">${fKg(st.poidsRemis)}</td><td class="r">${fF(st.achats)}</td><td class="r">${fF(st.solde)}</td></tr>`;
     })
     .join("");
 
@@ -83,7 +86,7 @@ export function campaignHtml(data: Data, opts?: { village?: string }): string {
 
     ${pisteurs.length > 0 ? `<h2>Pisteurs — justification de caisse</h2>
     <table>
-      <tr><th>Pisteur / Délégué</th><th class="r">Mandat</th><th class="r">Poids</th><th class="r">Achats</th><th class="r">Dépenses</th><th class="r">Solde</th></tr>
+      <tr><th>Pisteur / Délégué</th><th class="r">Mandat</th><th class="r">Collecté</th><th class="r">Remis</th><th class="r">Achats</th><th class="r">Solde</th></tr>
       ${pisteurRows}
     </table>` : ""}
 

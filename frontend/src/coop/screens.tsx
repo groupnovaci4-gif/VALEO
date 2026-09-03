@@ -30,6 +30,7 @@ import {
   collectesPourRestes,
   ecartVerif,
   estBordChamp,
+  estPisteur,
   estVerifiee,
   manquantVerif,
   memberStats,
@@ -301,7 +302,10 @@ function buildActivity(data: Data): Ev[] {
     evs.push({ id: "l" + l.id, date: l.date, icon, tint, title: `${t} — ${nameOf(data, l.memberId)}`, sub: `${l.type === "intrant" ? "Intrant" : "Argent"} · ${fF(l.amount)}${l.motif ? ` · ${l.motif}` : ""}` });
   });
   (data.mandats || []).forEach((m: any) => evs.push({ id: "m" + m.id, date: m.date, icon: "wallet", tint: C.gold, title: `Mandat confié — ${staffNameOf(data, m.pisteurId)}`, sub: `${fF(m.amount)}${m.note ? ` · ${m.note}` : ""}` }));
-  (data.depenses || []).forEach((x: any) => evs.push({ id: "d" + x.id, date: x.date, icon: "receipt", tint: C.rust, title: `Dépense — ${staffNameOf(data, x.pisteurId)}`, sub: `${depcat(x.category).nom} · ${fF(x.amount)}${x.note ? ` · ${x.note}` : ""}` }));
+  // Les frais de tournée d'un pisteur/délégué lui sont personnels (invariant 24) :
+  // le serveur ne les envoie plus à la coopérative, et le journal les ignore —
+  // un cache ancien pourrait encore en contenir.
+  (data.depenses || []).filter((x: any) => !estPisteur(data, x.pisteurId)).forEach((x: any) => evs.push({ id: "d" + x.id, date: x.date, icon: "receipt", tint: C.rust, title: `Dépense — ${staffNameOf(data, x.pisteurId)}`, sub: `${depcat(x.category).nom} · ${fF(x.amount)}${x.note ? ` · ${x.note}` : ""}` }));
   (data.sorties || []).forEach((x: any) =>
     evs.push({ id: "so" + x.id, date: x.date, icon: "truck", tint: C.rust, title: `Sortie magasin — ${sortieType(x.type).nom}`, sub: `${crop(x.cropId).nom} · ${fKg(x.kg)}${x.destinataire ? ` · ${x.destinataire}` : ""} · ${staffNameOf(data, x.byStaffId)}` }),
   );
@@ -623,8 +627,8 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
             <Row label="− Anciens restes dus soldés" value={fF(st.soldes)} />
           </>
         ) : null}
-        <View style={{ height: 6 }} />
-        <Row label="− Dépenses de tournée" value={fF(st.depenses)} />
+        {/* Les frais de tournée n'apparaissent pas ici : ils sont personnels
+            au pisteur/délégué, couverts par sa commission (invariant 24). */}
         {/* Marchandise payée au bord-champ mais jamais arrivée au magasin :
             l'argent est sorti du mandat sans contrepartie. */}
         {st.manquant > 0 ? (
@@ -668,6 +672,11 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
 
       {seg === "depenses" && (
         <View>
+          <Card style={{ padding: 13, marginBottom: 12, backgroundColor: "#FBF6EE", borderColor: "#EEE1CC" }}>
+            <Text style={{ fontSize: 12.5, color: C.muted, lineHeight: 18 }}>
+              Vos frais de tournée ne regardent que vous : ils ne sont pas visibles par la coopérative et ne sont pas déduits de votre mandat. Vous êtes rémunéré à la commission.
+            </Text>
+          </Card>
           <SaveBtn color={theme} icon={<Icon name="plus" size={17} color="#fff" />} onPress={onNewDepense} style={{ marginBottom: 12 }}>Nouvelle dépense</SaveBtn>
           {deps.length === 0 ? <Empty text="Aucune dépense enregistrée." /> : (
             <View style={{ gap: 8 }}>
@@ -711,7 +720,6 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
   const campagne = scopeSaison(data);
   const st = pisteurStats(pisteur.id, campagne);
   const mandats = (campagne.mandats || []).filter((m: any) => m.pisteurId === pisteur.id).sort(byDateDesc);
-  const deps = (campagne.depenses || []).filter((x: any) => x.pisteurId === pisteur.id).sort(byDateDesc);
   const cols = (campagne.collections || []).filter((c: Collection) => c.byStaffId === pisteur.id).sort(byDateDesc);
   return (
     <View>
@@ -727,7 +735,7 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
           <StatCell label="Achats" value={fF(st.achats)} color={C.cocoaSoft} />
         </View>
         <View style={{ flexDirection: "row", gap: 8 }}>
-          <StatCell label="Dépenses" value={fF(st.depenses)} color={C.rust} />
+          <StatCell label="Remis au magasin" value={fKg(st.poidsRemis)} color={C.teal} />
           <StatCell label="Commission" value={fF(st.commission)} color={C.green} />
           <StatCell label="À justifier" value={fF(st.solde)} color={st.solde >= 0 ? C.green : C.loss} strong />
         </View>
@@ -773,18 +781,14 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
         </View>
       )}
 
-      <SectionTitle>Dépenses ({fF(st.depenses)})</SectionTitle>
-      {deps.length === 0 ? <Empty text="Aucune dépense." /> : (
-        <View style={{ gap: 8, marginBottom: 16 }}>
-          {deps.map((x: any) => (
-            <Card key={x.id} style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
-              <View style={{ width: 34, height: 34, borderRadius: 9, backgroundColor: "#F7EDE7", alignItems: "center", justifyContent: "center" }}><Icon name="receipt" size={15} color={C.rust} /></View>
-              <View style={{ flex: 1 }}><Text style={{ fontWeight: "700", fontSize: 13.5 }}>{depcat(x.category).nom}</Text><Text style={{ fontSize: 11.5, color: C.muted }}>{fDate(x.date)}{x.note ? ` · ${x.note}` : ""}</Text></View>
-              <Text style={{ fontWeight: "800", fontSize: 13.5, color: C.rust }}>{fF(x.amount)}</Text>
-            </Card>
-          ))}
-        </View>
-      )}
+      {/* Aucune dépense affichée ici : le pisteur/délégué est un prestataire
+          rémunéré à la commission, autonome sur ses frais (invariant 24). Le
+          serveur ne les transmet même plus au patron. */}
+      <Card style={{ padding: 13, marginBottom: 16, backgroundColor: "#FBF6EE", borderColor: "#EEE1CC" }}>
+        <Text style={{ fontSize: 12.5, color: C.muted, lineHeight: 18 }}>
+          Les frais de tournée du pisteur / délégué lui sont personnels : rémunéré à la commission, il en est seul responsable. Ils n&apos;entrent ni dans les dépenses de la coopérative, ni dans son solde à justifier.
+        </Text>
+      </Card>
 
       <SectionTitle>Collectes ({st.count})</SectionTitle>
       {cols.length === 0 ? <Empty text="Aucune collecte." /> : (
@@ -1107,11 +1111,14 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecid
 }
 
 export function DepensesPatron({ data, onBack, onAdd }: any) {
-  const deps = (data.depenses || []).slice().sort(byDateDesc);
+  // Les frais de tournée d'un pisteur/délégué ne sont pas des dépenses de la
+  // coopérative (invariant 24) : le serveur ne les envoie plus, et ce filtre
+  // protège en plus d'un cache antérieur à la règle.
+  const deps = (data.depenses || []).filter((x: any) => !estPisteur(data, x.pisteurId)).sort(byDateDesc);
   const author = (id: string) => {
     const s = (data.staff || []).find((x: any) => x.id === id);
     if (!s) return "—";
-    const r = s.role === "patron" ? "Patron" : s.role === "pisteur" ? "Pisteur/Délégué" : "Magasinier";
+    const r = s.role === "patron" ? "Patron" : "Magasinier";
     return `${s.nom} · ${r}`;
   };
   const groups: Record<string, any[]> = {};
@@ -1134,7 +1141,8 @@ export function DepensesPatron({ data, onBack, onAdd }: any) {
       <Card style={{ padding: 16, marginBottom: 14, backgroundColor: "#FBF0EE", borderColor: "#EAD0CE" }}>
         <Text style={{ fontSize: 12.5, color: C.muted }}>Total des dépenses enregistrées</Text>
         <Text style={{ fontSize: 26, fontWeight: "900", color: C.rust, marginTop: 2 }}>{fF(total)}</Text>
-        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Patron, Pisteur/Délégué et Magasinier réunis</Text>
+        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Patron et Magasinier réunis</Text>
+        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6, lineHeight: 16 }}>Les frais de tournée des pisteurs / délégués n&apos;y figurent pas : prestataires rémunérés à la commission, ils sont autonomes sur leurs dépenses.</Text>
       </Card>
       <SaveBtn color={C.rust} icon={<Icon name="plus" size={17} color="#fff" />} onPress={onAdd} style={{ marginBottom: 18 }}>Enregistrer ma dépense</SaveBtn>
       {months.length === 0 ? <Empty text="Aucune dépense enregistrée." /> : months.map((k) => {

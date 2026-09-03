@@ -837,6 +837,11 @@ export function pisteurStats(pid: string, data: Data) {
   const soldes = (data.settlements || []).filter((x) => x.byStaffId === pid).reduce((s, x) => s + (x.amount || 0), 0);
   const achats = achatsPesees + soldes;
   const mandat = (data.mandats || []).filter((m) => m.pisteurId === pid).reduce((s, m) => s + m.amount, 0);
+  // Frais de tournée : ils ne servent QU'À l'agent, pour son propre suivi.
+  // Le pisteur/délégué est un prestataire rémunéré à la commission : il est
+  // autonome sur ses dépenses, qui n'entament donc pas le mandat de la
+  // coopérative (invariant 24). Elles restent renvoyées ici parce que son
+  // écran les lui affiche, mais elles ne pèsent plus sur `solde`.
   const depenses = (data.depenses || []).filter((x) => x.pisteurId === pid).reduce((s, x) => s + x.amount, 0);
   const commission = cols.reduce((s, c) => s + Math.round(c.kg * collectionComm(data, c)), 0);
   // Manquant : marchandise payée au bord-champ mais jamais entrée au magasin.
@@ -851,11 +856,17 @@ export function pisteurStats(pid: string, data: Data) {
   const poidsRemis = cols.reduce((s, c) => s + (estVerifiee(c) ? Number(c.verif!.kg) || 0 : 0), 0);
   // Le manquant ampute la caisse de l'agent, le poids plus l'abonde : les deux
   // écarts de vérification sont de vrais mouvements d'argent le concernant.
-  const solde = mandat - achats - depenses - manquant + poidsPlus;
+  // Ses dépenses, elles, n'entrent pas : le mandat est confié pour ACHETER du
+  // cacao, et sa commission couvre ses frais (invariant 24).
+  const solde = mandat - achats - manquant + poidsPlus;
   return { poids, poidsRemis, achats, achatsPesees, soldes, mandat, depenses, commission, manquant, poidsPlus, solde, count: cols.length };
 }
 
 /* ------------------------------ Notifications ---------------------------- */
+
+/** L'agent est-il un pisteur / délégué ? (ses dépenses lui sont personnelles) */
+export const estPisteur = (data: Data, id?: string): boolean =>
+  !!id && (data.staff || []).some((s) => s.id === id && s.role === "pisteur");
 
 /** Nom d'un collaborateur (l'agent qui a pesé), ou tiret. */
 export const staffNameOf = (data: Data, id?: string) => (data.staff || []).find((s) => s.id === id)?.nom || "—";

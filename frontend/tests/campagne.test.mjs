@@ -117,7 +117,10 @@ test("la caisse d'un agent se justifie campagne par campagne", () => {
   const st = pisteurStats("st-a", scopeSaison(data, CAMPAGNE));
   assert.equal(st.mandat, 1_000_000);
   assert.equal(st.achats, 400000);
-  assert.equal(st.solde, 575000, "la campagne précédente ne doit pas polluer la caisse courante");
+  // Les frais de tournée restent visibles pour l'agent, mais n'entament pas
+  // le mandat : il est prestataire, rémunéré à la commission (invariant 24).
+  assert.equal(st.depenses, 25000);
+  assert.equal(st.solde, 600000, "la campagne précédente ne doit pas polluer la caisse courante");
 });
 
 test("saisons liste les campagnes présentes, de la plus récente à la plus ancienne", () => {
