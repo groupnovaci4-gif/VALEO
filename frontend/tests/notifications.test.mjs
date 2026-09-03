@@ -177,3 +177,42 @@ test("le compteur d'actions du pisteur ne compte que ce qui le regarde", () => {
   assert.equal(compte(d, SESSION.pisteur), 0, "ni le reste du magasinier, ni la demande adressée au patron");
   assert.ok(compte(d, SESSION.patron) >= 2);
 });
+
+/* ------- Cloche du pisteur : ses pesées et ses soldes, rien d'autre ------- */
+
+test("le pisteur n'est pas informé des pesées des autres agents", () => {
+  // Même raison que pour les restes : la pesée d'un autre agent lui livrait le
+  // nom du planteur et la somme versée, qui ne le regardent pas.
+  const d = etat([
+    col("c1", "pis", 100, { origine: "bord_champ", paye: 180000 }),
+    col("c2", "mag", 50, { origine: "magasin", memberId: "m2", paye: 90000 }),
+    col("c3", "pis2", 70, { origine: "bord_champ", memberId: "m2", paye: 126000 }),
+  ]);
+  const pesees = buildNotifications(d, SESSION.pisteur).items.filter((i) => i.title === "Pesée payée");
+  assert.equal(pesees.length, 1, "seulement la sienne");
+  assert.match(pesees[0].sub, /Kouassi/);
+  assert.equal(pesees.some((p) => /Aya/.test(p.sub)), false, "ni le planteur, ni le montant d'un autre agent");
+});
+
+test("le patron et le magasinier voient toutes les pesées", () => {
+  const d = etat([
+    col("c1", "pis", 100, { origine: "bord_champ", paye: 180000 }),
+    col("c2", "mag", 50, { origine: "magasin", memberId: "m2", paye: 90000 }),
+  ]);
+  for (const s of [SESSION.patron, SESSION.magasinier]) {
+    assert.equal(buildNotifications(d, s).items.filter((i) => i.title === "Pesée payée").length, 2);
+  }
+});
+
+test("le pisteur n'est informé que des restes qu'il a lui-même soldés", () => {
+  const d = etat([col("c1", "pis", 100, { origine: "bord_champ", paye: 180000 })]);
+  d.settlements = [
+    { id: "s1", memberId: "m1", byStaffId: "pis", amount: 50000, method: "espece", date: "2026-02-03T09:00:00.000Z" },
+    { id: "s2", memberId: "m2", byStaffId: "mag", amount: 70000, method: "espece", date: "2026-02-03T10:00:00.000Z" },
+  ];
+  const soldes = buildNotifications(d, SESSION.pisteur).items.filter((i) => i.title.startsWith("Reste soldé"));
+  assert.equal(soldes.length, 1, "le sien seulement");
+  assert.match(soldes[0].sub, /Kouassi/);
+  // Le patron, lui, voit les deux mouvements de caisse.
+  assert.equal(buildNotifications(d, SESSION.patron).items.filter((i) => i.title.startsWith("Reste soldé")).length, 2);
+});

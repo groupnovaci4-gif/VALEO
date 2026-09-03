@@ -1024,7 +1024,7 @@ async def admin_put_state(body: StateBody, _: dict = Depends(require_admin)):
 
 
 class PurgeBody(BaseModel):
-    coopId: Optional[str] = None
+    coopId: str
 
 
 @app.post("/api/admin/purge-mouvements")
@@ -1036,18 +1036,21 @@ async def admin_purge_movements(body: PurgeBody, _: dict = Depends(require_admin
     correspondant. Restent : les coopératives, les collaborateurs, les
     planteurs et les réglages (prix, commission, campagne).
 
-    `coopId` limite la purge à une seule coopérative ; sans lui, tous les
-    mouvements de toutes les coopératives sont effacés.
+    `coopId` est OBLIGATOIRE : la purge vise une coopérative et une seule.
+    Sans lui, une valeur vide effacerait silencieusement les mouvements de
+    toutes les coopératives — l'isolation entre coops est la garantie la plus
+    importante du produit, elle vaut aussi pour une opération d'administration.
+    (Pour tout vider, il reste « Tout réinitialiser ».)
     """
+    coop_id = (body.coopId or "").strip()
+    if not coop_id:
+        raise HTTPException(status_code=400, detail="coopId requis : la purge vise une seule coopérative")
     state = await load_state()
-    coop_id = (body.coopId or "").strip() or None
 
     def vise(row) -> bool:
         """La ligne appartient-elle à la coopérative purgée ?"""
-        if coop_id is None:
-            return True  # purge totale des mouvements
         if not isinstance(row, dict):
-            return True
+            return False
         # « __legacy__ » désigne la coopérative héritée d'avant le
         # multi-coopérative : ses lignes n'ont pas encore de `coopId`.
         if coop_id == "__legacy__":
@@ -1063,7 +1066,7 @@ async def admin_purge_movements(body: PurgeBody, _: dict = Depends(require_admin
     # Les bordereaux repartent de 1 : `nextTicketSeq` se dérive des collectes
     # de chaque agent, il n'y a donc rien à remettre à zéro sur les fiches.
     await save_state(state)
-    audit_filter = {"coopId": coop_id} if coop_id and coop_id != "__legacy__" else {}
+    audit_filter = {} if coop_id == "__legacy__" else {"coopId": coop_id}
     res = await db.audit.delete_many(audit_filter)
     removed["audit"] = getattr(res, "deleted_count", 0)
     return {"ok": True, "removed": removed}
@@ -1372,11 +1375,13 @@ async function saveSettings(){
 }
 async function purgeMouvements(){
   const co=curCoopObj(); const nom=((co&&co.nom)||"").trim();
+  // La purge vise UNE coopérative : sans identifiant, on ne lance rien.
+  if(!co||!co.id){ alert("Aucune coop\u00e9rative s\u00e9lectionn\u00e9e : rien n'a \u00e9t\u00e9 effac\u00e9."); return; }
   if(!confirm("Effacer TOUS les mouvements de \u00ab "+nom+" \u00bb ?\n\nCollectes, pes\u00e9es, avances, restes \u00e0 payer, re\u00e7us, mandats, d\u00e9penses, sorties et journal d'audit seront supprim\u00e9s.\nLes coop\u00e9ratives, collaborateurs et planteurs sont conserv\u00e9s.\n\nCette action est irr\u00e9versible.")) return;
   const saisi=prompt("Pour confirmer, recopiez le nom exact de la coop\u00e9rative :\n\n"+nom);
   if((saisi||"").trim()!==nom){ alert("Nom incorrect : rien n'a \u00e9t\u00e9 effac\u00e9."); return; }
   try{
-    const r=await api("/api/admin/purge-mouvements",{method:"POST",body:JSON.stringify({coopId:(co&&co.id)||null})});
+    const r=await api("/api/admin/purge-mouvements",{method:"POST",body:JSON.stringify({coopId:co.id})});
     const n=Object.values(r.removed||{}).reduce((s,x)=>s+x,0);
     alert(n+" enregistrement(s) effac\u00e9(s). Les acteurs sont conserv\u00e9s.\n\nPensez \u00e0 rouvrir l'application sur chaque t\u00e9l\u00e9phone : le cache local se remet \u00e0 jour au d\u00e9marrage.");
     await load();

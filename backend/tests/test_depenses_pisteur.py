@@ -228,10 +228,20 @@ class TestPurgeMouvements:
 
     def test_la_purge_exige_un_jeton_administrateur(self, app_client):
         t = self._etat_charge(app_client)
+        coop_id = _get_state(app_client, t["patron"])["coops"][0]["id"]
         r = app_client.post(
-            "/api/admin/purge-mouvements", json={}, headers=_auth(t["patron"]),
+            "/api/admin/purge-mouvements", json={"coopId": coop_id}, headers=_auth(t["patron"]),
         )
         assert r.status_code in (401, 403)
+        assert [c["id"] for c in _get_state(app_client, t["patron"])["collections"]] == ["col-1"]
+
+    def test_la_purge_refuse_une_cooperative_non_designee(self, app_client):
+        """Sans `coopId`, une purge « toutes coops » passerait en silence."""
+        t = self._etat_charge(app_client)
+        admin = _admin_token(app_client)
+        for corps in ({}, {"coopId": ""}, {"coopId": "   "}):
+            r = app_client.post("/api/admin/purge-mouvements", json=corps, headers=_auth(admin))
+            assert r.status_code in (400, 422), (corps, r.text)
         assert [c["id"] for c in _get_state(app_client, t["patron"])["collections"]] == ["col-1"]
 
     def test_la_connexion_des_acteurs_survit_a_la_purge(self, app_client):

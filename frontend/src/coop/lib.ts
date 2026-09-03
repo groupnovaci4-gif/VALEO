@@ -884,19 +884,24 @@ export function buildNotifications(data: Data, session: any): { items: Notif[]; 
     data.loans.filter((l) => l.status === "approuve" || l.status === "refuse").forEach((l) => items.push({ id: "ld" + l.id, kind: "info", date: (l as any).decidedAt || l.date, icon: l.status === "approuve" ? "check-circle" : "x-circle", tint: l.status === "approuve" ? C.green : C.loss, title: l.status === "approuve" ? "Avance accordée" : "Avance refusée", sub: `${nameOf(data, l.memberId)} · ${fF(l.amount)}` }));
   }
   if (isCoop) {
-    // Restes dus : un pisteur n'est alerté que de CEUX QU'IL A GÉNÉRÉS. Sans ce
-    // filtre, sa cloche lui annonçait les restes du patron et du magasinier,
-    // qu'il n'a pourtant ni le droit de voir ni celui de solder.
-    const colsRestes = collectesPourRestes(data, isPatron || !isCoop ? undefined : session.role === "pisteur" ? session.staffId : undefined);
+    // Cloche d'un agent : un pisteur n'est alerté que de SES PROPRES pesées.
+    // Sans ce filtre, sa cloche lui annonçait les restes du patron et du
+    // magasinier, qu'il n'a pourtant ni le droit de voir ni celui de solder —
+    // et, tout autant, le nom du planteur et la somme versée sur la pesée d'un
+    // autre agent. Le patron et le magasinier, eux, voient tout (invariant 21).
+    const agentCloisonne = isCoop && !isPatron && session.role === "pisteur" ? session.staffId : undefined;
+    const colsVues = collectesPourRestes(data, agentCloisonne);
     (data.members || []).forEach((m) => {
-      const st = memberStats(m.id, colsRestes);
+      const st = memberStats(m.id, colsVues);
       if (st.reste > 0) {
-        const lastC = colsRestes.filter((c) => c.memberId === m.id && outstandingReste(c) > 0).sort(byDateDesc)[0];
+        const lastC = colsVues.filter((c) => c.memberId === m.id && outstandingReste(c) > 0).sort(byDateDesc)[0];
         items.push({ id: "rd" + m.id, kind: "action", date: lastC ? lastC.date : new Date().toISOString(), icon: "wallet", tint: C.due, title: "Reste à payer au planteur", sub: `${m.nom} · ${fF(st.reste)}` });
       }
     });
-    (data.settlements || []).forEach((s: any) => items.push({ id: "st" + s.id, kind: "info", date: s.date, icon: "banknote", tint: C.green, title: s.viaPesee ? "Reste soldé (à la pesée)" : "Reste soldé", sub: `${nameOf(data, s.memberId)} · ${fF(s.amount)}` }));
-    data.collections.filter((c) => c.paye > 0).forEach((c) => items.push({ id: "pp" + c.id, kind: "info", date: c.date, icon: "scale", tint: C.teal, title: "Pesée payée", sub: `${nameOf(data, c.memberId)} · ${fF(c.paye)}` }));
+    (data.settlements || [])
+      .filter((s: any) => !agentCloisonne || s.byStaffId === agentCloisonne)
+      .forEach((s: any) => items.push({ id: "st" + s.id, kind: "info", date: s.date, icon: "banknote", tint: C.green, title: s.viaPesee ? "Reste soldé (à la pesée)" : "Reste soldé", sub: `${nameOf(data, s.memberId)} · ${fF(s.amount)}` }));
+    colsVues.filter((c) => c.paye > 0).forEach((c) => items.push({ id: "pp" + c.id, kind: "info", date: c.date, icon: "scale", tint: C.teal, title: "Pesée payée", sub: `${nameOf(data, c.memberId)} · ${fF(c.paye)}` }));
 
     // Livraison au magasin : le patron doit savoir qu'un poids attend d'être
     // vérifié, le magasinier qu'il a une pesée à faire. Le pisteur, lui, a

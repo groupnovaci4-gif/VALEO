@@ -52,8 +52,10 @@ Endpoints backend : `GET/PUT /api/state`, `POST /api/auth/coop/login`,
 Dont `POST /api/admin/purge-mouvements` : efface les **mouvements** d'une
 coopérative (`MOVEMENT_ARRAYS` + journal d'audit) en conservant les **acteurs**
 — coopératives, collaborateurs, planteurs, réglages et codes secrets. Réservé au
-jeton administrateur, avec double confirmation dans le tableau de bord (recopie
-du nom de la coopérative). Après la purge, rouvrir l'application sur chaque
+jeton administrateur, `coopId` **obligatoire** (l'isolation entre coops vaut
+aussi pour une opération d'administration : une valeur vide ne doit jamais
+dégénérer en purge de toutes les coopératives), double confirmation dans le
+tableau de bord (recopie du nom de la coopérative). Après la purge, rouvrir l'application sur chaque
 téléphone : le cache local se remet à jour au démarrage (`pull`).
 
 ## 3. Commandes
@@ -243,6 +245,11 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     comptent aussi : `buildNotifications` passe par `collectesPourRestes`, sans
     quoi la cloche du pisteur lui annonce des restes qu'il n'a pas le droit de
     voir. Le patron et le magasinier, eux, voient tout.
+    Le cloisonnement porte sur **toute la cloche**, pas seulement sur la ligne
+    « reste » : `buildNotifications` filtre aussi les « Pesée payée » et les
+    « Reste soldé » sur les seules pesées et les seuls soldes de l'agent. Une
+    pesée d'un autre agent lui livrait sinon le nom du planteur et la somme
+    versée — la même fuite, sur une autre ligne.
     `buildNotifications` vit dans `lib.ts` (module pur) **parce que** c'est une
     règle métier : la loger dans un écran la rendait intestable, et c'est
     exactement là que la fuite était passée.
