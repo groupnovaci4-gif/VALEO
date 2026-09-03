@@ -499,3 +499,42 @@ stock. La vente rejoint l'expédition parmi les motifs fermés au pisteur, côt�
 serveur comme à l'écran (`PISTEUR_SORTIES_INTERDITES`).
 
 80 tests backend (+7), 95 tests frontend (+18).
+
+### v34.4 — Le workflow de sortie du pisteur devient une livraison
+
+Correction d'un traitement trop superficiel de ma part : la « livraison au
+magasin » avait été traitée comme un changement de vocabulaire. Elle devient un
+véritable acte métier.
+
+**Avant.** Le pisteur pesait au bord-champ et la collecte apparaissait
+aussitôt dans la file du magasinier — patron et magasinier alertés alors que la
+marchandise était peut-être encore à 40 km, dans le véhicule. Le bouton
+« Sortie » lui proposait par ailleurs transfert et perte.
+
+**Maintenant.** Trois états successifs (`statutLivraison`) :
+
+| État | Signification | Stock |
+|---|---|---|
+| `collectee` | en tournée | charge du pisteur |
+| `en_attente` | livrée, à vérifier | charge du pisteur |
+| `verifiee` | poids constaté | magasin de la coopérative |
+
+Le bouton « Sortie » du pisteur ouvre un écran à **motif unique** — « Livraison
+de poids au magasin » — où il coche les collectes qu'il remet. La validation
+pose `Collection.livraison`, met les poids en attente et déclenche les alertes.
+
+Arbitrage retenu : **la livraison n'est pas une `Sortie`.** Une sortie retranche
+du stock, or le poids ne quitte la charge du pisteur qu'à la vérification. En
+créer une l'aurait décompté deux fois — un test le vérifie explicitement.
+
+**Écran de pesée partagé.** La procédure de pesée (pavé numérique, tare par sac,
+pesées multiples, totaux) est extraite en `usePesee` / `PeseeCorps`, utilisés
+par la pesée **et** par la vérification. Le magasinier repèse donc avec les
+mêmes contrôles ; seul le paiement est absent, une vérification ne réglant rien.
+
+Garde-fous serveur : la livraison est signée de son auteur, porte sa date, est
+définitive, ne peut viser que ses propres collectes, et une pesée ne peut pas
+naître déjà livrée. Le transfert rejoint la vente et l'expédition parmi les
+motifs fermés au pisteur.
+
+89 tests backend (+9), 102 tests frontend (+7).

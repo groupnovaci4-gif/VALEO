@@ -7,6 +7,7 @@ const {
   migrate, stockStats, origineOf, estBordChamp, estVerifiee, kgEnStock,
   ecartVerif, aVerifier, restesAgent, resteAgentTotal, avancesInfo, memberCultures,
   pisteurStats, manquantVerif, poidsPlusVerif,
+  aLivrer, estLivree, statutLivraison,
 } = await import("../.sync-build/lib.js");
 const { prepareSync } = await import("../.sync-build/sync.js");
 
@@ -23,6 +24,10 @@ const col = (id, byStaffId, kg, extra = {}) => ({
 });
 // Collecte bord-champ d'un pisteur : `addCollection` fige toujours l'origine.
 const colPisteur = (id, kg, extra = {}) => col(id, "pis", kg, { origine: "bord_champ", ...extra });
+// Livraison déclarée par le pisteur : c'est elle qui met la collecte en
+// attente de vérification. Sans elle, la marchandise est encore en tournée.
+const LIVREE = { date: "2026-02-02T08:00:00.000Z", byStaffId: "pis" };
+const colLivree = (id, kg, extra = {}) => colPisteur(id, kg, { livraison: LIVREE, ...extra });
 const colMagasin = (id, byStaffId, kg, extra = {}) => col(id, byStaffId, kg, { origine: "magasin", ...extra });
 
 const base = (collections, sorties = []) => ({
@@ -131,15 +136,18 @@ test("l'écart de vérification reste lisible", () => {
   assert.equal(ecartVerif(colPisteur("c2", 1000)), 0, "pas d'écart tant qu'il n'y a pas de vérification");
 });
 
-test("la file de vérification liste les collectes bord-champ en attente", () => {
+test("la file de vérification ne contient que ce qui a été LIVRÉ", () => {
   const d = base([
-    colPisteur("c1", 1000),
-    colPisteur("c2", 500, { verif: { kg: 500, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } }),
-    colMagasin("c3", "mag", 300),
+    colLivree("c1", 1000),                                   // livrée, à vérifier
+    colPisteur("c2", 800),                                    // encore en tournée
+    colLivree("c3", 500, { verif: { kg: 500, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } }),
+    colMagasin("c4", "mag", 300),                             // pesée directe
   ]);
-  assert.deepEqual(aVerifier(d).map((c) => c.id), ["c1"]);
+  assert.deepEqual(aVerifier(d).map((c) => c.id), ["c1"], "ni la collecte en tournée, ni la pesée magasin");
   assert.deepEqual(aVerifier(d, "pis").map((c) => c.id), ["c1"]);
   assert.deepEqual(aVerifier(d, "mag"), []);
+  // Ce qui reste à livrer est la contrepartie exacte.
+  assert.deepEqual(aLivrer(d, "pis").map((c) => c.id), ["c2"]);
 });
 
 /* --------------------- Restes dus : cloisonnés par agent ------------------ */
@@ -344,4 +352,68 @@ test("la différence distingue déficit, excédent et égalité", () => {
   assert.equal(ecartVerif(egal), 0);
   assert.equal(manquantVerif(egal), 0);
   assert.equal(poidsPlusVerif(egal), 0);
+});
+
+
+/* ------------- Livraison au magasin : le parcours du pisteur -------------- */
+
+test("les trois états d'une collecte bord-champ se suivent dans l'ordre", () => {
+  const enTournee = colPisteur("a", 1000);
+  const livree = colLivree("b", 1000);
+  const verifiee = colLivree("c", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } });
+
+  assert.equal(statutLivraison(enTournee), "collectee");
+  assert.equal(statutLivraison(livree), "en_attente");
+  assert.equal(statutLivraison(verifiee), "verifiee");
+
+  assert.equal(estLivree(enTournee), false);
+  assert.equal(estLivree(livree), true);
+});
+
+test("ce qui reste à livrer n'appartient qu'au pisteur concerné", () => {
+  const d = base([colPisteur("c1", 1000), col("c2", "pis2", 500, { origine: "bord_champ" })]);
+  d.staff = [...STAFF, { id: "pis2", nom: "Konan", role: "pisteur" }];
+  assert.deepEqual(aLivrer(d, "pis").map((c) => c.id), ["c1"]);
+  assert.deepEqual(aLivrer(d, "pis2").map((c) => c.id), ["c2"]);
+});
+
+test("une collecte livrée sort de la liste « à livrer »", () => {
+  const avant = base([colPisteur("c1", 1000)]);
+  assert.equal(aLivrer(avant, "pis").length, 1);
+  assert.equal(aVerifier(avant).length, 0, "rien à vérifier tant qu'elle n'est pas livrée");
+
+  const apres = base([colLivree("c1", 1000)]);
+  assert.equal(aLivrer(apres, "pis").length, 0);
+  assert.equal(aVerifier(apres).length, 1);
+});
+
+test("la livraison ne fait PAS entrer le poids en stock", () => {
+  // Règle capitale : seule la vérification alimente le stock.
+  const d = base([colMagasin("c1", "mag", 300), colLivree("c2", 1000)]);
+  const st = stockStats(d, { scope: "all" });
+  assert.equal(st.stock, 300, "les 1 000 kg livrés attendent la vérification");
+  assert.equal(st.attente, 1000);
+});
+
+test("la livraison ne décompte rien deux fois", () => {
+  // Le poids quitte la charge du pisteur à la VÉRIFICATION, pas à la
+  // livraison : déclarer la livraison ne doit pas l'en retirer une fois de
+  // plus. Une `Sortie` aurait produit ce double décompte.
+  const enTournee = base([colPisteur("c1", 1000)]);
+  const livree = base([colLivree("c1", 1000)]);
+  const verifiee = base([colLivree("c1", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
+
+  assert.equal(stockStats(enTournee, { scope: "mine", staffId: "pis" }).stock, 1000);
+  assert.equal(stockStats(livree, { scope: "mine", staffId: "pis" }).stock, 1000, "livré mais pas encore accepté : toujours sa charge");
+  assert.equal(stockStats(verifiee, { scope: "mine", staffId: "pis" }).stock, 0, "accepté au magasin");
+  assert.equal(stockStats(verifiee, { scope: "all" }).stock, 980, "et compté une seule fois");
+});
+
+test("le poids déclaré reste consultable après vérification", () => {
+  const c = colLivree("c1", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } });
+  assert.equal(c.kg, 1000, "le déclaré du pisteur n'est jamais écrasé");
+  assert.equal(c.verif.kg, 980);
+  assert.equal(ecartVerif(c), -20);
+  assert.equal(c.livraison.byStaffId, "pis", "on sait qui a livré");
+  assert.ok(c.livraison.date, "et quand");
 });

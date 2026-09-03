@@ -457,8 +457,12 @@ PLANTEUR_COLLECTION_FIELDS = {"signature", "updatedAt"}
 STAFF_SELF_FIELDS = {"photo", "updatedAt"}
 # Pesée : signature du planteur et solde d'anciens restes dus (`resteSolde`).
 AGENT_COLLECTION_FIELDS = {"signature", "resteSolde", "updatedAt"}
-# Motifs de sortie fermés au pisteur : il ramasse et livre, il ne commercialise pas.
-PISTEUR_SORTIES_INTERDITES = {"expedition", "vente"}
+# Motifs de sortie fermés au pisteur : il ramasse et livre au magasin, il ne
+# commercialise pas et ne déplace pas le stock d'un magasin à l'autre.
+PISTEUR_SORTIES_INTERDITES = {"expedition", "vente", "transfert"}
+# Le pisteur déclare la livraison de SES collectes au magasin : c'est cet acte
+# qui les met en attente de vérification et alerte le patron et le magasinier.
+PISTEUR_COLLECTION_FIELDS = AGENT_COLLECTION_FIELDS | {"livraison"}
 # Le magasinier constate le poids réellement reçu d'un pisteur : c'est le seul
 # champ qu'il ajoute sur une collecte qui n'est pas la sienne.
 MAGASINIER_COLLECTION_FIELDS = AGENT_COLLECTION_FIELDS | {"verif"}
@@ -532,6 +536,28 @@ def _is_granted_by(row: dict, staff_id: str) -> bool:
         and amount > 0
         and solde == amount
     )
+
+
+def _check_livraisons(delta: dict, me_id: str, actor: str) -> None:
+    """Contrôle les livraisons au magasin déclarées par un pisteur.
+
+    Une livraison est un engagement : elle met le poids en attente de
+    vérification et alerte la coopérative. On exige donc qu'elle soit signée du
+    pisteur lui-même, et qu'elle soit définitive — sinon il pourrait retirer sa
+    marchandise de la file du magasin après coup.
+    """
+    for before, after in (delta.get("collections") or {}).get("updated", []):
+        if "livraison" not in _changed_keys(before, after):
+            continue
+        if before.get("livraison"):
+            raise Forbidden(f"{actor} : cette livraison est déjà déclarée ; seul le patron peut la corriger.")
+        livraison = after.get("livraison")
+        if not isinstance(livraison, dict):
+            raise Forbidden(f"{actor} : livraison illisible.")
+        if livraison.get("byStaffId") != me_id:
+            raise Forbidden(f"{actor} : une livraison doit être déclarée à votre nom.")
+        if not livraison.get("date"):
+            raise Forbidden(f"{actor} : une livraison doit porter sa date.")
 
 
 def _check_verifications(delta: dict, me_id: str, actor: str) -> None:
@@ -689,6 +715,8 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
                 raise Forbidden(f"{actor} : l'origine d'une pesée ne peut pas être « {row.get('origine')} ».")
             if row.get("verif"):
                 raise Forbidden(f"{actor} : une pesée ne peut pas naître déjà vérifiée.")
+            if row.get("livraison"):
+                raise Forbidden(f"{actor} : une collecte est livrée au magasin après coup, pas à la pesée.")
         for row in delta["settlements"]["created"]:
             if row.get("byStaffId") != me_id:
                 raise Forbidden(f"{actor} : un solde doit être enregistré à votre nom.")
@@ -731,9 +759,10 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
             # ceux d'une pesée du patron ou du magasinier ne sortent pas de sa
             # caisse et ne le regardent pas. Règle appliquée sur la donnée.
             _check_updates(
-                delta, "collections", AGENT_COLLECTION_FIELDS,
+                delta, "collections", PISTEUR_COLLECTION_FIELDS,
                 lambda r: r.get("byStaffId") == me_id, actor,
             )
+            _check_livraisons(delta, me_id, actor)
         return
 
     raise Forbidden("Rôle inconnu : écriture refusée.")

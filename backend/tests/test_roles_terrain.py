@@ -447,3 +447,111 @@ class TestAvancePlanteurBoutDeBout:
         vue["loans"][0].update(status="en_attente", amount=500000, updatedAt="2026-03-09T09:00:00.000Z")
         assert _put(app_client, t["planteur"], vue).status_code == 403
         assert _get_state(app_client, t["patron"])["loans"][0]["status"] == "refuse"
+
+
+class TestLivraisonWorkflow:
+    """Le pisteur déclare sa livraison ; c'est un engagement, pas un brouillon."""
+
+    def _collecte(self, app_client, tokens, cid="col-l1", kg=1000):
+        vue = _get_state(app_client, tokens["pisteur"])
+        row = _collection(cid, "mb-1", "st-pisteur", kg=kg, paye=kg * 1800)
+        row["origine"] = "bord_champ"
+        vue["collections"].append(row)
+        assert _put(app_client, tokens["pisteur"], vue).status_code == 200
+
+    def _livrer(self, app_client, tokens, cid="col-l1", by="st-pisteur", token="pisteur",
+                date="2026-02-05T09:00:00.000Z"):
+        vue = _get_state(app_client, tokens[token])
+        col = next(c for c in vue["collections"] if c["id"] == cid)
+        col["livraison"] = {"date": date, "byStaffId": by}
+        col["updatedAt"] = date
+        return _put(app_client, tokens[token], vue)
+
+    def test_le_pisteur_livre_sa_collecte(self, app_client):
+        t = _seed_coop(app_client)
+        self._collecte(app_client, t)
+        assert self._livrer(app_client, t).status_code == 200
+
+        stored = next(c for c in _get_state(app_client, t["patron"])["collections"] if c["id"] == "col-l1")
+        assert stored["livraison"]["byStaffId"] == "st-pisteur"
+        assert stored["kg"] == 1000, "le poids déclaré reste intact"
+        assert not stored.get("verif"), "la livraison ne vérifie rien"
+
+    def test_une_collecte_ne_naît_pas_livree(self, app_client):
+        """La livraison est un acte distinct de la pesée : c'est elle qui alerte."""
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["pisteur"])
+        row = _collection("col-l9", "mb-1", "st-pisteur", kg=500, paye=900000)
+        row["origine"] = "bord_champ"
+        row["livraison"] = {"date": "2026-02-01T09:00:00.000Z", "byStaffId": "st-pisteur"}
+        vue["collections"].append(row)
+        assert _put(app_client, t["pisteur"], vue).status_code == 403
+
+    def test_le_pisteur_ne_livre_pas_la_collecte_dun_autre(self, app_client):
+        t = _seed_coop(app_client)
+        st = _get_state(app_client, t["patron"])
+        autre = _collection("col-mag", "mb-1", "st-magasin", kg=300, paye=540000)
+        autre["origine"] = "magasin"
+        st["collections"].append(autre)
+        assert _put(app_client, t["patron"], st).status_code == 200
+        assert self._livrer(app_client, t, cid="col-mag").status_code == 403
+
+    def test_une_livraison_est_signee_de_son_auteur(self, app_client):
+        t = _seed_coop(app_client)
+        self._collecte(app_client, t)
+        assert self._livrer(app_client, t, by="st-magasin").status_code == 403
+
+    def test_une_livraison_est_definitive(self, app_client):
+        """Sinon le pisteur retirerait sa marchandise de la file du magasin."""
+        t = _seed_coop(app_client)
+        self._collecte(app_client, t)
+        assert self._livrer(app_client, t).status_code == 200
+        r = self._livrer(app_client, t, date="2026-02-08T09:00:00.000Z")
+        assert r.status_code == 403
+
+        stored = next(c for c in _get_state(app_client, t["patron"])["collections"] if c["id"] == "col-l1")
+        assert stored["livraison"]["date"] == "2026-02-05T09:00:00.000Z"
+
+    def test_le_magasinier_ne_declare_pas_de_livraison(self, app_client):
+        """Il réceptionne et vérifie ; c'est le pisteur qui livre."""
+        t = _seed_coop(app_client)
+        self._collecte(app_client, t)
+        assert self._livrer(app_client, t, by="st-magasin", token="commis").status_code == 403
+
+    def test_le_magasinier_verifie_une_livraison(self, app_client):
+        """Le parcours complet : collecte → livraison → vérification → stock."""
+        t = _seed_coop(app_client)
+        self._collecte(app_client, t)
+        assert self._livrer(app_client, t).status_code == 200
+
+        vue = _get_state(app_client, t["commis"])
+        col = next(c for c in vue["collections"] if c["id"] == "col-l1")
+        col["verif"] = {"kg": 980, "byStaffId": "st-magasin",
+                        "date": "2026-02-06T10:00:00.000Z", "note": "humidité"}
+        col["updatedAt"] = "2026-02-06T10:00:00.000Z"
+        assert _put(app_client, t["commis"], vue).status_code == 200
+
+        stored = next(c for c in _get_state(app_client, t["patron"])["collections"] if c["id"] == "col-l1")
+        assert stored["kg"] == 1000, "poids déclaré conservé"
+        assert stored["verif"]["kg"] == 980, "poids vérifié enregistré"
+        assert stored["livraison"]["byStaffId"] == "st-pisteur", "et la livraison qui l'a précédé"
+
+    def test_le_pisteur_ne_transfere_pas_vers_un_autre_magasin(self, app_client):
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["pisteur"])
+        vue["sorties"].append({
+            "id": "so-t", "cropId": "cacao", "kg": 100, "type": "transfert",
+            "date": "2026-02-06T09:00:00.000Z", "byStaffId": "st-pisteur",
+            "destinataire": "Magasin 2", "note": "", "updatedAt": "2026-02-06T09:00:00.000Z",
+        })
+        assert _put(app_client, t["pisteur"], vue).status_code == 403
+
+    def test_le_magasinier_transfere_toujours(self, app_client):
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["commis"])
+        vue["sorties"].append({
+            "id": "so-t2", "cropId": "cacao", "kg": 100, "type": "transfert",
+            "date": "2026-02-06T09:00:00.000Z", "byStaffId": "st-magasin",
+            "destinataire": "Magasin 2", "note": "", "updatedAt": "2026-02-06T09:00:00.000Z",
+        })
+        assert _put(app_client, t["commis"], vue).status_code == 200

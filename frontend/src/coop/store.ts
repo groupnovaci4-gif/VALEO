@@ -381,6 +381,39 @@ export function useCoopData() {
   }, [logAudit]);
 
   /**
+   * Livraison au magasin : le pisteur déclare remettre ses collectes.
+   *
+   * N'écrit RIEN d'autre que l'horodatage de la remise sur les collectes
+   * choisies. Aucune `Sortie` n'est créée : le poids ne quitte la charge du
+   * pisteur qu'à la vérification, et une sortie le décompterait deux fois.
+   * C'est cet acte qui déclenche les alertes du patron et du magasinier.
+   */
+  const livrerCollections = useCallback((ids: string[], byStaffId: string) => {
+    const cibles = new Set(ids);
+    let livrees: { n: number; kg: number } | null = null;
+    setData((d) => {
+      if (!d) return d;
+      const date = new Date().toISOString();
+      let n = 0;
+      let kg = 0;
+      const collections = d.collections.map((c) => {
+        // Une livraison déjà déclarée est définitive : on ne la rejoue pas.
+        if (!cibles.has(c.id) || c.byStaffId !== byStaffId || (c.livraison && c.livraison.date)) return c;
+        n += 1;
+        kg += Number(c.kg) || 0;
+        return { ...c, livraison: { date, byStaffId } };
+      });
+      if (n === 0) return d;
+      livrees = { n, kg };
+      return { ...d, collections };
+    });
+    if (livrees) {
+      const info: any = livrees;
+      logAudit("livraison_magasin", { collections: ids, nombre: info.n, kg: info.kg });
+    }
+  }, [logAudit]);
+
+  /**
    * Vérification par le magasinier d'un poids ramené par un pisteur.
    *
    * N'altère JAMAIS la pesée d'origine (poids déclaré, montant, reçu déjà
@@ -590,6 +623,7 @@ export function useCoopData() {
     settleMemberDue,
     addLoan,
     grantLoan,
+    livrerCollections,
     approveLoan,
     refuseLoan,
     verifyCollection,

@@ -229,6 +229,24 @@ export type Verification = {
   note?: string;
 };
 
+/**
+ * Livraison au magasin d'une collecte bord-champ.
+ *
+ * Le pisteur ramasse, transporte, puis DÉCLARE sa livraison : c'est cet acte
+ * — et non la pesée au bord-champ — qui met la collecte « en attente de
+ * vérification », alerte le patron et le magasinier, et la fait apparaître
+ * dans la file du magasin. Tant qu'elle est absente, la marchandise est
+ * réputée encore en tournée.
+ *
+ * Ce n'est volontairement PAS une `Sortie` : une sortie retranche du stock, or
+ * le poids quitte la charge du pisteur au moment de la vérification. En créer
+ * une ici le décompterait deux fois.
+ */
+export type Livraison = {
+  date: string;
+  byStaffId: string;
+};
+
 export type Collection = Synced & Campagne & {
   id: string;
   seq: number;
@@ -250,6 +268,9 @@ export type Collection = Synced & Campagne & {
   // Lieu de la pesée. Absent sur les collectes antérieures : `origineOf()`
   // fait alors le repli sur le rôle de l'agent, sans réécrire l'historique.
   origine?: Origine;
+  // Livraison au magasin déclarée par le pisteur (collecte bord-champ).
+  // Absente = encore en tournée ; présente = en attente de vérification.
+  livraison?: Livraison | null;
   // Vérification du magasinier, pour une collecte bord-champ uniquement.
   // Tant qu'elle est absente, le poids n'est pas encore entré en magasin.
   verif?: Verification | null;
@@ -598,6 +619,25 @@ export const estBordChamp = (c: Collection, _data?: Data): boolean => c.origine 
 /** Une collecte bord-champ dont le magasinier a constaté le poids réel. */
 export const estVerifiee = (c: Collection): boolean => !!(c.verif && c.verif.byStaffId);
 
+/** Collecte que le pisteur a déclaré avoir livrée au magasin. */
+export const estLivree = (c: Collection): boolean => !!(c.livraison && c.livraison.date);
+
+/**
+ * Statut d'une collecte bord-champ, tel qu'il se lit à l'écran.
+ * `collectee` → en tournée · `en_attente` → livrée, à vérifier · `verifiee`.
+ */
+export type StatutLivraison = "collectee" | "en_attente" | "verifiee";
+export function statutLivraison(c: Collection): StatutLivraison {
+  if (estVerifiee(c)) return "verifiee";
+  return estLivree(c) ? "en_attente" : "collectee";
+}
+
+export const LIBELLE_STATUT: Record<StatutLivraison, string> = {
+  collectee: "En tournée",
+  en_attente: "En attente de vérification",
+  verifiee: "Vérifiée",
+};
+
 /**
  * Poids réellement entré dans le magasin de la coopérative.
  *
@@ -644,12 +684,26 @@ export const poidsPlusVerif = (c: Collection): number =>
   Math.round(Math.max(0, ecartVerif(c)) * (Number(c.prixKg) || 0));
 
 /**
- * Collectes bord-champ en attente de vérification par le magasinier.
+ * Collectes bord-champ **livrées** au magasin et en attente de vérification.
+ *
+ * La livraison est la condition : une collecte encore en tournée n'a rien à
+ * faire dans la file du magasinier, et n'alerte personne. C'est ce qui fait
+ * partir les notifications au bon moment — à la livraison, pas à la pesée.
  * `staffId` restreint à celles d'un pisteur donné (son propre suivi).
  */
 export function aVerifier(data: Data, staffId?: string): Collection[] {
   return (data.collections || [])
-    .filter((c) => estBordChamp(c, data) && !estVerifiee(c) && (!staffId || c.byStaffId === staffId))
+    .filter((c) => estBordChamp(c, data) && estLivree(c) && !estVerifiee(c) && (!staffId || c.byStaffId === staffId))
+    .sort(byDateDesc);
+}
+
+/**
+ * Collectes qu'un pisteur a en tournée et n'a pas encore livrées.
+ * C'est ce qu'il coche dans « Livraison de poids au magasin ».
+ */
+export function aLivrer(data: Data, staffId: string): Collection[] {
+  return (data.collections || [])
+    .filter((c) => c.byStaffId === staffId && estBordChamp(c, data) && !estLivree(c) && !estVerifiee(c))
     .sort(byDateDesc);
 }
 

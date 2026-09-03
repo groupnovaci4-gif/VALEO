@@ -25,6 +25,7 @@ import {
   isToday,
   memberCultures,
   inSaison,
+  aLivrer,
   aVerifier,
   collectesPourRestes,
   ecartVerif,
@@ -446,14 +447,16 @@ function FileVerification({ data, onVerifier }: any) {
  * Il ne vérifie pas lui-même son poids, mais il doit savoir ce qui a été
  * constaté à la réception — c'est de là que naissent les litiges d'écart.
  */
-function SuiviVerification({ data, staffId }: any) {
+function SuiviVerification({ data, staffId, onLivrer }: any) {
+  const enTournee = aLivrer(data, staffId);
   const attente = aVerifier(data, staffId);
   const verifiees = (data.collections || [])
     .filter((c: Collection) => c.byStaffId === staffId && estVerifiee(c))
     .sort(byDateDesc)
     .slice(0, 5);
-  if (attente.length === 0 && verifiees.length === 0) return null;
+  if (enTournee.length === 0 && attente.length === 0 && verifiees.length === 0) return null;
   const enAttente = attente.reduce((s: number, c: Collection) => s + (Number(c.kg) || 0), 0);
+  const aLivrerKg = enTournee.reduce((s: number, c: Collection) => s + (Number(c.kg) || 0), 0);
   // Chiffré sur TOUTES ses collectes, pas seulement les 5 affichées.
   const mesCols = (data.collections || []).filter((c: Collection) => c.byStaffId === staffId);
   const manquant = mesCols.reduce((s: number, c: Collection) => s + manquantVerif(c), 0);
@@ -463,8 +466,22 @@ function SuiviVerification({ data, staffId }: any) {
       <Text style={{ fontSize: 12, color: C.muted, marginBottom: 9, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>
         Livraison au magasin
       </Text>
+      {/* Trois états successifs, dans l'ordre du parcours réel. */}
+      {enTournee.length > 0 ? (
+        <>
+          <Row label={`En tournée, à livrer (${enTournee.length})`} value={fKg(aLivrerKg)} strong />
+          {onLivrer ? (
+            <Pressable onPress={onLivrer} testID="goto-livraison" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: C.green, borderRadius: 12, paddingVertical: 10, marginTop: 9 }}>
+              <Icon name="truck" size={15} color="#fff" />
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>Livrer au magasin</Text>
+            </Pressable>
+          ) : null}
+        </>
+      ) : null}
       {attente.length > 0 ? (
-        <Row label={`En attente de vérification (${attente.length})`} value={fKg(enAttente)} strong />
+        <View style={{ marginTop: enTournee.length > 0 ? 9 : 0 }}>
+          <Row label={`Livré, en attente de vérification (${attente.length})`} value={fKg(enAttente)} strong />
+        </View>
       ) : null}
       {verifiees.length > 0 ? (
         <View style={{ gap: 6, marginTop: attente.length > 0 ? 9 : 0 }}>
@@ -573,7 +590,7 @@ function commissionParProduit(data: Data, staffId: string) {
   }).filter((r) => r.kg > 0);
 }
 
-export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onReceipt, onOpen, onPlanteurs, onStock, onGrantLoan, onPrets }: any) {
+export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onReceipt, onOpen, onPlanteurs, onStock, onGrantLoan, onPrets, onLivrer }: any) {
   const [seg, setSeg] = useState("mandats");
   // La caisse se justifie campagne par campagne : mandats reçus, achats payés
   // et dépenses de la campagne en cours.
@@ -586,7 +603,7 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
   return (
     <View>
       <CollectorTop data={data} staffId={staffId} isPisteur onPeser={onNew} onPlanteurs={onPlanteurs} onStock={onStock} onDepense={onNewDepense} onGrantLoan={onGrantLoan} onPrets={onPrets} />
-      <SuiviVerification data={data} staffId={staffId} />
+      <SuiviVerification data={data} staffId={staffId} onLivrer={onLivrer} />
       <View style={{ flexDirection: "row", gap: 10, marginBottom: 10 }}>
         <MiniKpi icon={<Icon name="wallet" size={16} color={C.gold} />} label="Mandat reçu" value={fF(st.mandat)} tint={C.gold} />
         <MiniKpi icon={<Icon name="coins" size={16} color={st.solde >= 0 ? C.green : C.loss} />} label="Solde en caisse" value={fF(st.solde)} tint={st.solde >= 0 ? C.green : C.loss} />

@@ -1,6 +1,6 @@
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Image, Linking, Modal, Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,6 +24,7 @@ import {
   fKg,
   group,
   memberCultures,
+  aLivrer,
   aVerifier,
   avancesInfo,
   collectesPourRestes,
@@ -150,6 +151,94 @@ const NumPad = ({ onKey }: { onKey: (k: string) => void }) => {
 
 type Weigh = { brut: number; sacs: number; net: number };
 
+/**
+ * Procédure de pesée partagée : pavé numérique, tare par sac, pesées
+ * multiples, totaux.
+ *
+ * Extraite pour que la **vérification du magasinier** utilise exactement la
+ * même que la pesée — mêmes chiffres, mêmes contrôles, même façon de compter
+ * les sacs. Deux implémentations divergeraient au premier correctif.
+ */
+function usePesee() {
+  const [brutStr, setBrutStr] = useState("");
+  const [sacs, setSacs] = useState(0);
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [weighs, setWeighs] = useState<Weigh[]>([]);
+
+  const brutNow = Number(brutStr) || 0;
+  const netNow = Math.max(0, brutNow - sacs);
+  const totalBrut = weighs.reduce((s, w) => s + w.brut, 0);
+  const totalSacs = weighs.reduce((s, w) => s + w.sacs, 0);
+  const totalNet = weighs.reduce((s, w) => s + w.net, 0);
+
+  const onKey = (k: string) => {
+    if (k === "back") setBrutStr((v) => v.slice(0, -1));
+    else setBrutStr((v) => (v.length >= 6 ? v : v === "0" ? k : v + k));
+  };
+  const addWeigh = () => {
+    if (brutNow <= 0) return;
+    const w: Weigh = { brut: brutNow, sacs, net: Math.max(0, brutNow - sacs) };
+    setWeighs((prev) => {
+      if (editIdx != null) { const copy = [...prev]; copy[editIdx] = w; return copy; }
+      return [...prev, w];
+    });
+    setBrutStr(""); setSacs(0); setEditIdx(null);
+  };
+  const editWeigh = (i: number) => { const w = weighs[i]; setBrutStr(String(w.brut)); setSacs(w.sacs); setEditIdx(i); };
+  const delWeigh = (i: number) => { setWeighs((prev) => prev.filter((_, idx) => idx !== i)); if (editIdx === i) { setEditIdx(null); setBrutStr(""); setSacs(0); } };
+  // Référence stable : les `useEffect` qui remettent la pesée à zéro peuvent
+  // la déclarer en dépendance sans reboucler à chaque rendu.
+  const reset = useCallback(() => { setWeighs([]); setBrutStr(""); setSacs(0); setEditIdx(null); }, []);
+
+  return { brutStr, sacs, setSacs, editIdx, weighs, brutNow, netNow, totalBrut, totalSacs, totalNet, onKey, addWeigh, editWeigh, delWeigh, reset };
+}
+type Pesee = ReturnType<typeof usePesee>;
+
+/** Bloc de saisie de la pesée : identique à la pesée et à la vérification. */
+function PeseeCorps({ p }: { p: Pesee }) {
+  return (
+    <>
+      <SectionTitle>{p.editIdx != null ? "Modifier la pesée" : "Saisir une pesée"}</SectionTitle>
+      <View style={{ backgroundColor: "#FBF7F0", borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 14, marginBottom: 12 }}>
+        <Text style={{ fontSize: 12, color: C.muted }}>Poids brut relevé (kg)</Text>
+        <Text style={{ fontSize: 40, fontWeight: "900", color: C.ink, marginTop: 2, marginBottom: 10 }}>{p.brutStr || "0"} <Text style={{ fontSize: 18, color: C.muted }}>kg</Text></Text>
+        <NumPad onKey={p.onKey} />
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
+          <Text style={{ fontSize: 13.5, fontWeight: "700" }}>Nombre de sacs</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <Pressable onPress={() => p.setSacs((v: number) => Math.max(0, v - 1))} testID="sacs-minus" style={{ width: 38, height: 38, borderRadius: 10, borderWidth: 1, borderColor: C.line, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 22, fontWeight: "800", color: C.ink }}>−</Text></Pressable>
+            <Text style={{ fontSize: 20, fontWeight: "900", minWidth: 30, textAlign: "center" }}>{p.sacs}</Text>
+            <Pressable onPress={() => p.setSacs((v: number) => v + 1)} testID="sacs-plus" style={{ width: 38, height: 38, borderRadius: 10, borderWidth: 1, borderColor: C.line, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 22, fontWeight: "800", color: C.ink }}>+</Text></Pressable>
+          </View>
+        </View>
+        <View style={{ height: 1, backgroundColor: C.line, marginVertical: 12 }} />
+        <Row label={`Tare (${p.sacs} × 1 kg)`} value={`− ${fKg(p.sacs)}`} />
+        <Row label="Poids net de cette pesée" value={fKg(p.netNow)} strong color={C.green} />
+        <SaveBtn disabled={p.brutNow <= 0} color={C.teal} onPress={p.addWeigh} style={{ marginTop: 10 }}>{p.editIdx != null ? "Mettre à jour la pesée" : "Ajouter cette pesée"}</SaveBtn>
+      </View>
+
+      {p.weighs.length > 0 ? (
+        <>
+          <SectionTitle>Pesées saisies ({p.weighs.length})</SectionTitle>
+          <View style={{ gap: 8, marginBottom: 12 }}>
+            {p.weighs.map((w: Weigh, i: number) => (
+              <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: p.editIdx === i ? C.teal : C.line, borderRadius: 12, padding: 12 }}>
+                <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: "#F0EBE2", alignItems: "center", justifyContent: "center" }}><Text style={{ fontWeight: "800", color: C.cocoaSoft }}>{i + 1}</Text></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: "800", fontSize: 14 }}>Net {fKg(w.net)}</Text>
+                  <Text style={{ fontSize: 11.5, color: C.muted }}>Brut {fKg(w.brut)} · {w.sacs} sac{w.sacs > 1 ? "s" : ""}</Text>
+                </View>
+                <Pressable onPress={() => p.editWeigh(i)} hitSlop={8} testID={`edit-weigh-${i}`}><Icon name="edit" size={17} color={C.teal} /></Pressable>
+                <Pressable onPress={() => p.delWeigh(i)} hitSlop={8} testID={`del-weigh-${i}`}><Icon name="trash" size={17} color={C.loss} /></Pressable>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Data; role?: string; staffId: string; onClose: () => void; onSave: (c: any) => void }) {
   // Identifiant d'opération unique à cette saisie : si la validation part deux
   // fois (double-tap, rejeu réseau), le serveur ne crée qu'une seule pesée.
@@ -159,10 +248,9 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
   const memCrops = memberCultures(member).map((c) => c.cropId);
   const cropChoices = memCrops.length ? memCrops : CROPS.map((c) => c.id);
   const [cropId, setCropId] = useState(cropChoices[0] || "cacao");
-  const [brutStr, setBrutStr] = useState("");
-  const [sacs, setSacs] = useState(0);
-  const [editIdx, setEditIdx] = useState<number | null>(null);
-  const [weighs, setWeighs] = useState<Weigh[]>([]);
+  // Même procédure de pesée que la vérification du magasinier (bloc partagé).
+  const pesee = usePesee();
+  const { weighs, totalBrut, totalSacs, totalNet, reset: resetPesee } = pesee;
   const [showPay, setShowPay] = useState(false);
   const [method, setMethod] = useState("espece");
   const [payTout, setPayTout] = useState(true);
@@ -173,16 +261,11 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
   useEffect(() => {
     const cc = memberCultures(data.members.find((m) => m.id === memberId));
     setCropId(cc[0]?.cropId || "cacao");
-    setWeighs([]); setBrutStr(""); setSacs(0); setEditIdx(null); setShowPay(false);
+    resetPesee(); setShowPay(false);
     setRecAll(true); setRecStr(""); setPayTout(true); setPayePartiel("");
-  }, [memberId, data.members]);
+  }, [memberId, data.members, resetPesee]);
 
   const prix = priceOf(data, cropId);
-  const brutNow = Number(brutStr) || 0;
-  const netNow = Math.max(0, brutNow - sacs);
-  const totalBrut = weighs.reduce((s, w) => s + w.brut, 0);
-  const totalSacs = weighs.reduce((s, w) => s + w.sacs, 0);
-  const totalNet = weighs.reduce((s, w) => s + w.net, 0);
   const montant = totalNet * prix;
   // Avance encore à recouvrer auprès de ce planteur (avances approuvées).
   const avanceDue = data.loans
@@ -202,22 +285,6 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
   const resteCurrent = netAPayer - payeCurrent;
   const resteApres = totalDu - payeNow;
   const momoDisabled = !member?.momo;
-
-  const onKey = (k: string) => {
-    if (k === "back") setBrutStr((s) => s.slice(0, -1));
-    else setBrutStr((s) => (s.length >= 6 ? s : s === "0" ? k : s + k));
-  };
-  const addWeigh = () => {
-    if (brutNow <= 0) return;
-    const w: Weigh = { brut: brutNow, sacs, net: Math.max(0, brutNow - sacs) };
-    setWeighs((prev) => {
-      if (editIdx != null) { const copy = [...prev]; copy[editIdx] = w; return copy; }
-      return [...prev, w];
-    });
-    setBrutStr(""); setSacs(0); setEditIdx(null);
-  };
-  const editWeigh = (i: number) => { const w = weighs[i]; setBrutStr(String(w.brut)); setSacs(w.sacs); setEditIdx(i); };
-  const delWeigh = (i: number) => { setWeighs((prev) => prev.filter((_, idx) => idx !== i)); if (editIdx === i) { setEditIdx(null); setBrutStr(""); setSacs(0); } };
 
   const confirm = () => {
     const retenues = recouvre > 0 ? [{ label: "Recouvrement d'avance", amount: recouvre }] : [];
@@ -261,43 +328,7 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
         <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Prix en vigueur : <Text style={{ fontWeight: "800", color: C.green }}>{fF(prix)}/kg</Text> · tare 1 kg / sac</Text>
       </Field>
 
-      <SectionTitle>{editIdx != null ? "Modifier la pesée" : "Saisir une pesée"}</SectionTitle>
-      <View style={{ backgroundColor: "#FBF7F0", borderWidth: 1, borderColor: C.line, borderRadius: 14, padding: 14, marginBottom: 12 }}>
-        <Text style={{ fontSize: 12, color: C.muted }}>Poids brut relevé (kg)</Text>
-        <Text style={{ fontSize: 40, fontWeight: "900", color: C.ink, marginTop: 2, marginBottom: 10 }}>{brutStr || "0"} <Text style={{ fontSize: 18, color: C.muted }}>kg</Text></Text>
-        <NumPad onKey={onKey} />
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
-          <Text style={{ fontSize: 13.5, fontWeight: "700" }}>Nombre de sacs</Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <Pressable onPress={() => setSacs((s) => Math.max(0, s - 1))} testID="sacs-minus" style={{ width: 38, height: 38, borderRadius: 10, borderWidth: 1, borderColor: C.line, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 22, fontWeight: "800", color: C.ink }}>−</Text></Pressable>
-            <Text style={{ fontSize: 20, fontWeight: "900", minWidth: 30, textAlign: "center" }}>{sacs}</Text>
-            <Pressable onPress={() => setSacs((s) => s + 1)} testID="sacs-plus" style={{ width: 38, height: 38, borderRadius: 10, borderWidth: 1, borderColor: C.line, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 22, fontWeight: "800", color: C.ink }}>+</Text></Pressable>
-          </View>
-        </View>
-        <View style={{ height: 1, backgroundColor: C.line, marginVertical: 12 }} />
-        <Row label={`Tare (${sacs} × 1 kg)`} value={`− ${fKg(sacs)}`} />
-        <Row label="Poids net de cette pesée" value={fKg(netNow)} strong color={C.green} />
-        <SaveBtn disabled={brutNow <= 0} color={C.teal} onPress={addWeigh} style={{ marginTop: 10 }}>{editIdx != null ? "Mettre à jour la pesée" : "Ajouter cette pesée"}</SaveBtn>
-      </View>
-
-      {weighs.length > 0 ? (
-        <>
-          <SectionTitle>Pesées saisies ({weighs.length})</SectionTitle>
-          <View style={{ gap: 8, marginBottom: 12 }}>
-            {weighs.map((w, i) => (
-              <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: editIdx === i ? C.teal : C.line, borderRadius: 12, padding: 12 }}>
-                <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: "#F0EBE2", alignItems: "center", justifyContent: "center" }}><Text style={{ fontWeight: "800", color: C.cocoaSoft }}>{i + 1}</Text></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: "800", fontSize: 14 }}>Net {fKg(w.net)}</Text>
-                  <Text style={{ fontSize: 11.5, color: C.muted }}>Brut {fKg(w.brut)} · {w.sacs} sac{w.sacs > 1 ? "s" : ""}</Text>
-                </View>
-                <Pressable onPress={() => editWeigh(i)} hitSlop={8} testID={`edit-weigh-${i}`}><Icon name="edit" size={17} color={C.teal} /></Pressable>
-                <Pressable onPress={() => delWeigh(i)} hitSlop={8} testID={`del-weigh-${i}`}><Icon name="trash" size={17} color={C.loss} /></Pressable>
-              </View>
-            ))}
-          </View>
-        </>
-      ) : null}
+      <PeseeCorps p={pesee} />
 
       {!showPay ? (
         <SaveBtn disabled={weighs.length === 0} color={C.green} onPress={() => setShowPay(true)}>Calculer</SaveBtn>
@@ -1179,49 +1210,144 @@ export function SettlementReceipt({ settlement, member, saison, agent, onClose, 
  * qui existe déjà. Le poids déclaré reste affiché à côté — l'écart est une
  * information de gestion, pas une erreur à masquer.
  */
-export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Data; staffId: string; onClose: () => void; onSave: (collectionId: string, kg: number, note: string) => void }) {
-  const file = aVerifier(data);
-  const [sel, setSel] = useState<string>(file[0]?.id || "");
-  const [kgStr, setKgStr] = useState("");
-  const [note, setNote] = useState("");
-  const col = file.find((c) => c.id === sel);
-  const membre = data.members.find((m) => m.id === col?.memberId);
-  const pisteur = data.staff.find((x) => x.id === col?.byStaffId);
-  const declare = Number(col?.kg) || 0;
-  const verifie = Number(kgStr) || 0;
-  const ecart = verifie - declare;
-  const valid = !!col && kgStr.trim() !== "" && verifie >= 0;
+/**
+ * Vérification par le magasinier d'une livraison de poids d'un pisteur.
+ *
+ * Le magasinier REPÈSE physiquement la marchandise : il utilise donc la même
+ * procédure de pesée que pour une pesée normale (`PeseeCorps`) — même pavé,
+ * même tare par sac, mêmes pesées multiples. Seule la partie paiement est
+ * absente : une vérification ne règle rien, le planteur a déjà été payé au
+ * bord-champ sur le poids déclaré.
+ *
+ * Ce qui est constaté ici devient le poids officiel d'entrée en stock ; le
+ * poids déclaré par le pisteur reste intact à côté, pour le contrôle.
+ */
+/**
+ * Livraison de poids au magasin — le seul « motif de sortie » du pisteur.
+ *
+ * Il ne vend pas, n'expédie pas et ne transfère pas : il ramasse au
+ * bord-champ puis remet au magasin. L'écran liste donc ce qu'il a en tournée
+ * et lui fait cocher ce qu'il livre. Aucune `Sortie` n'est enregistrée : le
+ * poids ne quitte sa charge qu'à la vérification du magasinier, et une sortie
+ * le décompterait une seconde fois.
+ */
+export function LivraisonSheet({ data, staffId, onClose, onSave }: { data: Data; staffId: string; onClose: () => void; onSave: (ids: string[]) => void }) {
+  const enTournee = aLivrer(data, staffId);
+  const [choisis, setChoisis] = useState<string[]>(() => enTournee.map((c) => c.id));
+  const bascule = (id: string) => setChoisis((v) => (v.includes(id) ? v.filter((x) => x !== id) : [...v, id]));
+  const retenues = enTournee.filter((c) => choisis.includes(c.id));
+  const totalKg = retenues.reduce((s, c) => s + (Number(c.kg) || 0), 0);
 
-  if (file.length === 0)
+  if (enTournee.length === 0)
     return (
-      <Sheet title="Vérifier un poids" onClose={onClose}>
+      <Sheet title="Livraison au magasin" onClose={onClose}>
         <Card style={{ padding: 20 }}>
           <Text style={{ textAlign: "center", color: C.muted }}>
-            Aucun poids en attente. Les collectes ramenées par les pisteurs apparaîtront ici.
+            Rien à livrer. Vos collectes bord-champ apparaîtront ici, en attente d&apos;être remises au magasin.
           </Text>
         </Card>
       </Sheet>
     );
 
   return (
-    <Sheet title="Vérifier un poids de pisteur" onClose={onClose}>
-      <View style={{ backgroundColor: "#EEF4FB", borderWidth: 1, borderColor: "#D4E2F2", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>
-          Vous ne créez pas une nouvelle pesée : vous constatez le poids réellement reçu.
-          C&apos;est <Text style={{ fontWeight: "700" }}>ce poids</Text> qui entrera en stock.
+    <Sheet title="Livraison au magasin" onClose={onClose}>
+      {/* Motif unique : c'est la seule opération de sortie du pisteur. */}
+      <Field label="Motif de la sortie">
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 11, backgroundColor: "#F0F6F2", borderWidth: 1, borderColor: C.green, borderRadius: 12, padding: 13 }}>
+          <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#DCEBE1", alignItems: "center", justifyContent: "center" }}>
+            <Icon name="truck" size={17} color={C.green} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: "800", fontSize: 14 }}>Livraison de poids au magasin</Text>
+            <Text style={{ fontSize: 12, color: C.muted }}>Remise du ramassage à la coopérative</Text>
+          </View>
+          <Icon name="check-circle" size={18} color={C.green} />
+        </View>
+      </Field>
+
+      <Field label={`Poids à livrer (${enTournee.length} collecte${enTournee.length > 1 ? "s" : ""} en tournée)`}>
+        <View style={{ gap: 8 }}>
+          {enTournee.map((c) => {
+            const m = data.members.find((x) => x.id === c.memberId);
+            const on = choisis.includes(c.id);
+            return (
+              <Pressable
+                key={c.id}
+                onPress={() => bascule(c.id)}
+                testID={`livrer-${c.id}`}
+                style={{ flexDirection: "row", alignItems: "center", gap: 11, backgroundColor: on ? "#F0F6F2" : "#fff", borderWidth: 1, borderColor: on ? C.green : C.line, borderRadius: 12, padding: 12 }}
+              >
+                <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: on ? C.green : C.line, backgroundColor: on ? C.green : "#fff", alignItems: "center", justifyContent: "center" }}>
+                  {on ? <Icon name="check" size={14} color="#fff" /> : null}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: "800", fontSize: 14 }}>{m?.nom || "—"} · {fKg(c.kg)}</Text>
+                  <Text style={{ fontSize: 12, color: C.muted }}>{crop(c.cropId || "cacao").nom} · {fDate(c.date)} · {ticketOf(c)}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Field>
+
+      <View style={{ backgroundColor: "#EAF6EE", borderWidth: 1, borderColor: "#CFE6D8", borderRadius: 14, padding: 14, marginBottom: 14 }}>
+        <Row label={`Poids déclaré (${retenues.length} collecte${retenues.length > 1 ? "s" : ""})`} value={fKg(totalKg)} strong color={C.green} />
+        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 7, lineHeight: 17 }}>
+          Ce poids passe en <Text style={{ fontWeight: "700" }}>attente de vérification</Text>. Le patron et le magasinier
+          en sont avertis. Il n&apos;entrera en stock qu&apos;après la pesée de contrôle du magasinier.
         </Text>
       </View>
 
-      <Field label={`Collecte à vérifier (${file.length})`}>
+      <SaveBtn disabled={retenues.length === 0} color={C.green} onPress={() => onSave(retenues.map((c) => c.id))}>
+        Valider la livraison
+      </SaveBtn>
+    </Sheet>
+  );
+}
+
+export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Data; staffId: string; onClose: () => void; onSave: (collectionId: string, kg: number, note: string) => void }) {
+  const file = aVerifier(data);
+  const [sel, setSel] = useState<string>(file[0]?.id || "");
+  const [note, setNote] = useState("");
+  const pesee = usePesee();
+  const col = file.find((c) => c.id === sel);
+  const membre = data.members.find((m) => m.id === col?.memberId);
+  const pisteur = data.staff.find((x) => x.id === col?.byStaffId);
+  const declare = Number(col?.kg) || 0;
+  const verifie = pesee.totalNet;
+  const ecart = verifie - declare;
+  const valid = !!col && pesee.weighs.length > 0;
+
+  if (file.length === 0)
+    return (
+      <Sheet title="Vérifier une livraison" onClose={onClose}>
+        <Card style={{ padding: 20 }}>
+          <Text style={{ textAlign: "center", color: C.muted }}>
+            Aucune livraison en attente. Les poids livrés au magasin par les pisteurs apparaîtront ici.
+          </Text>
+        </Card>
+      </Sheet>
+    );
+
+  return (
+    <Sheet title="Vérifier une livraison" onClose={onClose}>
+      <View style={{ backgroundColor: "#EEF4FB", borderWidth: 1, borderColor: "#D4E2F2", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>
+          Vous ne créez pas une nouvelle pesée : vous <Text style={{ fontWeight: "700" }}>repesez</Text> ce que le pisteur
+          a livré. C&apos;est ce poids qui entrera en stock.
+        </Text>
+      </View>
+
+      <Field label={`Livraison à vérifier (${file.length})`}>
         <View style={{ gap: 8 }}>
           {file.map((c) => {
             const m = data.members.find((x) => x.id === c.memberId);
-            const p = data.staff.find((x) => x.id === c.byStaffId);
+            const ps = data.staff.find((x) => x.id === c.byStaffId);
             const on = sel === c.id;
             return (
               <Pressable
                 key={c.id}
-                onPress={() => { setSel(c.id); setKgStr(""); setNote(""); }}
+                onPress={() => { setSel(c.id); pesee.reset(); setNote(""); }}
                 testID={`verif-pick-${c.id}`}
                 style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: on ? "#F0F6F2" : "#fff", borderWidth: 1, borderColor: on ? C.green : C.line, borderRadius: 12, padding: 12 }}
               >
@@ -1230,7 +1356,7 @@ export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Da
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: "800", fontSize: 14 }}>{m?.nom || "—"} · {fKg(c.kg)}</Text>
-                  <Text style={{ fontSize: 12, color: C.muted }}>{p?.nom || "Pisteur"} · {crop(c.cropId || "cacao").nom} · {ticketOf(c)}</Text>
+                  <Text style={{ fontSize: 12, color: C.muted }}>{ps?.nom || "Pisteur"} · {crop(c.cropId || "cacao").nom} · {ticketOf(c)}</Text>
                 </View>
                 {on ? <Icon name="check-circle" size={18} color={C.green} /> : null}
               </Pressable>
@@ -1248,19 +1374,37 @@ export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Da
             </View>
             <View style={{ flex: 1, backgroundColor: "#F0F6F2", borderRadius: 12, padding: 12 }}>
               <Text style={{ fontSize: 11.5, color: C.muted }}>Constaté au magasin</Text>
-              <Text style={{ fontSize: 19, fontWeight: "800", marginTop: 2, color: C.green }}>{kgStr.trim() === "" ? "—" : fKg(verifie)}</Text>
+              <Text style={{ fontSize: 19, fontWeight: "800", marginTop: 2, color: C.green }}>{pesee.weighs.length === 0 ? "—" : fKg(verifie)}</Text>
             </View>
           </View>
 
-          <Field label="Poids réellement reçu (kg)">
-            <TInput value={kgStr} onChangeText={(t) => setKgStr(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={String(declare)} testID="verif-kg" />
-          </Field>
+          {/* Exactement la procédure de pesée habituelle. */}
+          <PeseeCorps p={pesee} />
 
-          {kgStr.trim() !== "" && ecart !== 0 ? (
+          {pesee.weighs.length > 0 ? (
+            <View style={{ backgroundColor: "#EAF6EE", borderWidth: 1, borderColor: "#CFE6D8", borderRadius: 14, padding: 14, marginBottom: 14 }}>
+              <Row label="Poids brut total" value={fKg(pesee.totalBrut)} />
+              <Row label={`Tare (${pesee.totalSacs} sacs × 1 kg)`} value={`− ${fKg(pesee.totalSacs)}`} />
+              <Row label="Poids vérifié" value={fKg(verifie)} strong color={C.ink} />
+              <View style={{ height: 1, backgroundColor: "#CFE6D8", marginVertical: 8 }} />
+              <Row label="Poids déclaré par le pisteur" value={fKg(declare)} />
+              <Row
+                label={ecart < 0 ? "Déficit" : ecart > 0 ? "Excédent" : "Différence"}
+                value={`${ecart > 0 ? "+" : ""}${fKg(ecart)}`}
+                strong
+                color={ecart < 0 ? C.loss : ecart > 0 ? C.green : C.muted}
+              />
+            </View>
+          ) : null}
+
+          {pesee.weighs.length > 0 && ecart !== 0 ? (
             <View style={{ backgroundColor: ecart < 0 ? "#FBEFED" : "#FDF7EC", borderWidth: 1, borderColor: ecart < 0 ? "#EFD3CE" : "#EAD9BE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
               <Text style={{ fontSize: 12.5, color: C.ink, lineHeight: 18 }}>
-                Écart de <Text style={{ fontWeight: "800", color: ecart < 0 ? C.loss : C.due }}>{ecart > 0 ? "+" : ""}{fKg(ecart)}</Text>
-                {ecart < 0 ? " (manquant)" : " (excédent)"} par rapport au poids annoncé. Précisez la cause ci-dessous.
+                {ecart < 0 ? (
+                  <>Il manque <Text style={{ fontWeight: "800", color: C.loss }}>{fKg(-ecart)}</Text> par rapport au poids annoncé. Le montant correspondant sera à la charge de {pisteur?.nom || "ce pisteur"}.</>
+                ) : (
+                  <>Il arrive <Text style={{ fontWeight: "800", color: C.green }}>{fKg(ecart)}</Text> de plus que le poids annoncé. Ce « poids plus » revient à {pisteur?.nom || "ce pisteur"}.</>
+                )}
               </Text>
             </View>
           ) : null}
@@ -1282,7 +1426,7 @@ export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Da
           </View>
 
           <SaveBtn disabled={!valid} color={C.green} onPress={() => onSave(col.id, verifie, note.trim())}>
-            Valider la vérification
+            Valider le poids vérifié
           </SaveBtn>
         </>
       ) : null}
@@ -1369,7 +1513,7 @@ export function SortieSheet({ data, staffId, scope, role, onClose, onSave }: { d
   );
 }
 
-export function StockSheet({ data, staffId, scope, onClose, onNewSortie }: { data: Data; staffId?: string; scope?: "all" | "mine"; onClose: () => void; onNewSortie?: () => void }) {
+export function StockSheet({ data, staffId, scope, role, onClose, onNewSortie }: { data: Data; staffId?: string; scope?: "all" | "mine"; role?: string; onClose: () => void; onNewSortie?: () => void }) {
   const insets = useSafeAreaInsets();
   // Campagne en cours : le stock d'une campagne close n'a plus de sens ici.
   const campagne = scopeSaison(data);
@@ -1415,9 +1559,11 @@ export function StockSheet({ data, staffId, scope, onClose, onNewSortie }: { dat
               ) : null}
             </Card>
 
+            {/* Pour le pisteur, la seule sortie possible est la livraison au
+                magasin : ni vente, ni expédition, ni transfert. */}
             {onNewSortie ? (
-              <SaveBtn color={C.rust} icon={<Icon name="truck" size={17} color="#fff" />} onPress={onNewSortie} style={{ marginBottom: 18 }}>
-                Enregistrer une sortie
+              <SaveBtn color={role === "pisteur" ? C.green : C.rust} icon={<Icon name="truck" size={17} color="#fff" />} onPress={onNewSortie} style={{ marginBottom: 18 }}>
+                {role === "pisteur" ? "Livraison de poids au magasin" : "Enregistrer une sortie"}
               </SaveBtn>
             ) : null}
 

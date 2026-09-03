@@ -194,9 +194,24 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     est conservée telle quelle (`villageLibre`), jamais effacée.
 19. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
 20. **Livraison au magasin, origine figée, vérification définitive.**
-    Le flux du pisteur est : ramassage bord-champ → **livraison au magasin** →
-    alerte du patron ET du magasinier (`buildNotifications`, entrées `vf*`) →
-    vérification → stock. Le pisteur ne commercialise jamais lui-même. `Collection.origine`
+    Le flux du pisteur est : ramassage bord-champ → **livraison au magasin**
+    (`Collection.livraison`, déclarée par lui) → alerte du patron ET du
+    magasinier (`buildNotifications`, entrées `vf*`) → vérification → stock.
+    Trois états, dans cet ordre (`statutLivraison`) : `collectee` (en tournée),
+    `en_attente` (livrée, à vérifier), `verifiee`.
+    La livraison n'est **PAS une `Sortie`** : une sortie retranche du stock, or
+    le poids ne quitte la charge du pisteur qu'à la vérification. En créer une
+    le décompterait deux fois. C'est le seul « motif de sortie » qui lui est
+    offert : ni vente, ni expédition, ni transfert
+    (`PISTEUR_SORTIES_INTERDITES`). Elle est signée de son auteur et
+    **définitive** — sinon il retirerait sa marchandise de la file du magasin
+    après coup. `aVerifier` exige la livraison : une collecte encore en tournée
+    n'alerte personne et n'entre dans aucune file.
+    Le magasinier vérifie avec **la procédure de pesée habituelle**
+    (`usePesee` / `PeseeCorps`, partagés avec `PeseeSheet`) : même pavé, même
+    tare par sac, mêmes pesées multiples. Seul le paiement est absent — une
+    vérification ne règle rien. Deux implémentations divergeraient au premier
+    correctif. `Collection.origine`
     (`"magasin"` | `"bord_champ"`) est gelée à la création, comme `prixKg` ; le
     serveur refuse une origine qui ne correspond pas au rôle. Le circuit de
     vérification s'appuie sur le **seul champ enregistré**, jamais sur le rôle

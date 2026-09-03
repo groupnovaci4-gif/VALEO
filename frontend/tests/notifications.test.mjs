@@ -74,8 +74,10 @@ test("le pisteur n'est pas alerté des demandes adressées au patron", () => {
 
 /* ------------------ Livraison au magasin : patron + magasinier ----------- */
 
+const LIVREE = { date: "2026-02-02T08:00:00.000Z", byStaffId: "pis" };
+
 test("une livraison à vérifier alerte le patron ET le magasinier", () => {
-  const d = etat([col("c1", "pis", 1000, { origine: "bord_champ" })]);
+  const d = etat([col("c1", "pis", 1000, { origine: "bord_champ", livraison: LIVREE })]);
 
   const pat = buildNotifications(d, SESSION.patron).items.find((i) => i.id === "vfc1");
   assert.ok(pat, "le patron doit savoir qu'un poids attend une vérification");
@@ -89,8 +91,18 @@ test("une livraison à vérifier alerte le patron ET le magasinier", () => {
 });
 
 test("l'alerte disparaît une fois la vérification faite", () => {
-  const d = etat([col("c1", "pis", 1000, { origine: "bord_champ", verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
+  const d = etat([col("c1", "pis", 1000, { origine: "bord_champ", livraison: LIVREE, verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
   assert.equal(buildNotifications(d, SESSION.magasinier).items.some((i) => i.id === "vfc1"), false);
+});
+
+test("une collecte encore en tournée n'alerte personne", () => {
+  // C'est le cœur du parcours : tant que le pisteur n'a pas déclaré sa
+  // livraison, la marchandise est dans son véhicule. Alerter le magasinier
+  // l'enverrait vérifier un poids qui n'est pas encore au magasin.
+  const d = etat([col("c1", "pis", 1000, { origine: "bord_champ" })]);
+  for (const s of [SESSION.patron, SESSION.magasinier]) {
+    assert.equal(buildNotifications(d, s).items.some((i) => i.id.startsWith("vf")), false);
+  }
 });
 
 test("une pesée faite au magasin n'attend aucune vérification", () => {
@@ -100,27 +112,27 @@ test("une pesée faite au magasin n'attend aucune vérification", () => {
 
 test("le pisteur n'est pas alerté de sa propre livraison", () => {
   // Il a déjà son suivi de remise sur son accueil.
-  const d = etat([col("c1", "pis", 1000, { origine: "bord_champ" })]);
+  const d = etat([col("c1", "pis", 1000, { origine: "bord_champ", livraison: LIVREE })]);
   assert.equal(buildNotifications(d, SESSION.pisteur).items.some((i) => i.id.startsWith("vf")), false);
 });
 
 /* --------------------------- Écarts de vérification ---------------------- */
 
 test("le patron est informé d'un manquant et d'un poids plus", () => {
-  const manque = etat([col("c1", "pis", 1000, { origine: "bord_champ", verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
+  const manque = etat([col("c1", "pis", 1000, { origine: "bord_champ", livraison: LIVREE, verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
   const m = buildNotifications(manque, SESSION.patron).items.find((i) => i.id === "ecc1");
   assert.equal(m.title, "Manquant après vérification");
   assert.match(m.sub, /1 000 kg → 980 kg \(-20 kg\)/);
   assert.equal(m.kind, "info", "constat, pas action : la caisse est déjà ajustée");
 
-  const plus = etat([col("c1", "pis", 980, { origine: "bord_champ", verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
+  const plus = etat([col("c1", "pis", 980, { origine: "bord_champ", livraison: LIVREE, verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
   const p = buildNotifications(plus, SESSION.patron).items.find((i) => i.id === "ecc1");
   assert.equal(p.title, "Poids plus constaté");
   assert.match(p.sub, /\(\+20 kg\)/);
 });
 
 test("aucune alerte quand la vérification tombe juste", () => {
-  const d = etat([col("c1", "pis", 1000, { origine: "bord_champ", verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
+  const d = etat([col("c1", "pis", 1000, { origine: "bord_champ", livraison: LIVREE, verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
   assert.equal(buildNotifications(d, SESSION.patron).items.some((i) => i.id.startsWith("ec")), false);
 });
 
