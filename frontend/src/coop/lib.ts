@@ -744,7 +744,13 @@ export type LivraisonGroupe = {
   byStaffId: string;
   date: string;
   collections: Collection[];
+  // Collectes du chargement qui restent à vérifier. Normalement toutes ou
+  // aucune ; une livraison ANTÉRIEURE peut en revanche être à moitié vérifiée,
+  // puisque la vérification se faisait alors collecte par collecte. Le
+  // magasinier pèse ce qui reste, sinon elle resterait bloquée dans sa file.
+  enAttente: Collection[];
   kgDeclare: number;
+  kgEnAttente: number;
   kgVerifie: number;
   ecart: number;
   deficit: number;
@@ -766,11 +772,12 @@ function grouper(c: Collection[]): LivraisonGroupe[] {
   });
   return [...parCle.entries()].map(([id, cols]) => {
     const kgDeclare = cols.reduce((s, x) => s + (Number(x.kg) || 0), 0);
+    const enAttente = cols.filter((x) => !estVerifiee(x));
     // Le poids vérifié global est la SOMME des quotes-parts réparties sur les
     // collectes : la répartition est exacte, la somme redonne donc au kilo
     // près le poids unique constaté par le magasinier.
-    const verifiee = cols.every((x) => estVerifiee(x));
-    const kgVerifie = verifiee ? cols.reduce((s, x) => s + (Number(x.verif!.kg) || 0), 0) : 0;
+    const verifiee = enAttente.length === 0;
+    const kgVerifie = cols.reduce((s, x) => s + (estVerifiee(x) ? Number(x.verif!.kg) || 0 : 0), 0);
     const ecart = verifiee ? kgVerifie - kgDeclare : 0;
     const ref = cols.find((x) => estVerifiee(x));
     return {
@@ -778,7 +785,9 @@ function grouper(c: Collection[]): LivraisonGroupe[] {
       byStaffId: cols[0].livraison!.byStaffId,
       date: cols[0].livraison!.date,
       collections: [...cols].sort(byDateDesc),
+      enAttente: [...enAttente].sort(byDateDesc),
       kgDeclare,
+      kgEnAttente: enAttente.reduce((s, x) => s + (Number(x.kg) || 0), 0),
       kgVerifie,
       ecart,
       deficit: Math.max(0, -ecart),
@@ -1112,7 +1121,7 @@ export function buildNotifications(data: Data, session: any): { items: Notif[]; 
           icon: "truck",
           tint: C.due,
           title: isPatron ? "Livraison à vérifier au magasin" : "Livraison à vérifier",
-          sub: `${staffNameOf(data, l.byStaffId)} · ${l.collections.length} planteur${l.collections.length > 1 ? "s" : ""} · ${fKg(l.kgDeclare)}`,
+          sub: `${staffNameOf(data, l.byStaffId)} · ${l.enAttente.length} planteur${l.enAttente.length > 1 ? "s" : ""} · ${fKg(l.kgEnAttente)}`,
         }),
       );
     }

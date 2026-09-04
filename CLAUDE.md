@@ -232,10 +232,19 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     chaque collecte, ce qui revient au prix moyen pondéré du chargement. La
     somme des quotes-parts est **exacte** (résidu d'arrondi sur la dernière) :
     sans cela le stock différerait du poids réellement pesé.
+    Une livraison **antérieure** peut être à moitié vérifiée (la vérification se
+    faisait alors collecte par collecte) : `LivraisonGroupe.enAttente` /
+    `kgEnAttente` exposent ce qui RESTE à peser, et c'est cela que le magasinier
+    voit et valide. Sans quoi le chargement resterait bloqué à jamais dans sa
+    file, refusé parce que déjà partiellement vérifié.
+    `verif.kg` d'une collecte n'étant plus une mesure mais une quote-part, on ne
+    l'affiche **jamais** comme « poids vérifié de ce planteur » : les listes de
+    collectes montrent le statut de la livraison, pas un poids.
     **La validation n'efface rien.** La livraison vérifiée reste consultable par
     le magasinier ET le patron (`HistoriqueLivraisons`) : pisteur, date et
     heure, poids déclaré, poids vérifié, écart, détail des planteurs. Stock
-    **et** traçabilité, pas stock seul.
+    **et** traçabilité, pas stock seul. Le journal d'audit horodate les deux
+    actes côté serveur (`livraison_magasin`, `verification_livraison`).
     Le magasinier vérifie avec **la procédure de pesée habituelle**
     (`usePesee` / `PeseeCorps`, partagés avec `PeseeSheet`) : même pavé, même
     tare par sac, mêmes pesées multiples. Seul le paiement est absent — une

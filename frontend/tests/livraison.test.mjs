@@ -269,3 +269,44 @@ test("le poids plus total vaut exactement l'excédent global", () => {
     assert.equal(st.manquant, 0);
   }
 });
+
+/* ------- Régression : livraison à MOITIÉ vérifiée (données anciennes) ----- */
+
+test("une livraison déjà vérifiée en partie ne reste pas bloquée", () => {
+  // Avant la vérification globale, le magasinier validait collecte par
+  // collecte : il pouvait s'arrêter en cours de route. Ces chargements
+  // existent donc déjà. Sans traitement, le groupe restait « en attente » et
+  // `verifyLivraison` le refusait — invérifiable pour toujours.
+  const d = CHARGEMENT();
+  d.collections[0] = { ...d.collections[0], verif: { kg: 840, byStaffId: "mag", date: "2026-02-02T09:00:00.000Z" } };
+
+  const [l] = livraisons(d, { statut: "en_attente" });
+  assert.ok(l, "elle reste dans la file du magasinier");
+  assert.equal(l.verifiee, false);
+  assert.equal(l.enAttente.length, 2, "seules les deux non vérifiées restent à peser");
+  assert.equal(l.kgEnAttente, 1200 + 1500, "et c'est ce poids-là qu'il doit peser");
+  assert.equal(l.kgDeclare, 3550, "le total déclaré du chargement ne change pas");
+  assert.equal(l.kgVerifie, 840, "ce qui est déjà vérifié reste compté");
+
+  // Le magasinier pèse le reste : la livraison se referme.
+  const parts = repartirVerif(l.enAttente, 2680);
+  const quote = new Map(l.enAttente.map((c, i) => [c.id, parts[i]]));
+  const fini = {
+    ...d,
+    collections: d.collections.map((c) =>
+      quote.has(c.id) ? { ...c, verif: { kg: quote.get(c.id), byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } } : c,
+    ),
+  };
+  const [apres] = livraisons(fini);
+  assert.equal(apres.verifiee, true);
+  assert.equal(apres.kgVerifie, 840 + 2680);
+  assert.equal(livraisons(fini, { statut: "en_attente" }).length, 0, "la file se vide");
+  assert.equal(stockStats(fini, { scope: "all" }).stock, 3520, "et le stock vaut la somme réellement pesée");
+});
+
+test("une livraison entièrement neuve met tout en attente", () => {
+  const [l] = livraisons(CHARGEMENT(), { statut: "en_attente" });
+  assert.equal(l.enAttente.length, 3);
+  assert.equal(l.kgEnAttente, 3550);
+  assert.equal(l.kgVerifie, 0);
+});

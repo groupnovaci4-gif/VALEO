@@ -30,10 +30,8 @@ import {
   LivraisonGroupe,
   aVerifier,
   collectesPourRestes,
-  ecartVerif,
   estBordChamp,
   estPisteur,
-  estVerifiee,
   manquantVerif,
   memberStats,
   nameOf,
@@ -44,6 +42,7 @@ import {
   op,
   pisteurStats,
   scopeSaison,
+  statutLivraison,
   sortieType,
   ticketNo,
   ticketOf,
@@ -98,13 +97,18 @@ const CropTag = ({ cropId }: { cropId?: string }) => {
  */
 const OrigineTag = ({ col, data }: { col: Collection; data: Data }) => {
   if (!estBordChamp(col, data)) return null;
-  const ok = estVerifiee(col);
-  const e = ecartVerif(col);
+  // Statut de la LIVRAISON, jamais un poids vérifié par planteur : depuis la
+  // vérification globale, `verif.kg` d'une collecte n'est plus une mesure mais
+  // la quote-part du poids pesé sur tout le chargement. L'afficher ici
+  // laisserait croire que le magasinier a repesé ce planteur-là.
+  const statut = statutLivraison(col);
+  const ok = statut === "verifiee";
+  const attente = statut === "en_attente";
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: ok ? "#F0F6F2" : "#FDF7EC", borderRadius: 20, paddingVertical: 2, paddingHorizontal: 8 }}>
       <Icon name={ok ? "check-circle" : "truck"} size={11} color={ok ? C.green : C.due} />
       <Text style={{ fontSize: 10.5, fontWeight: "700", color: ok ? C.green : C.due }}>
-        {ok ? `Vérifié ${fKg(Number(col.verif?.kg) || 0)}${e !== 0 ? ` (${e > 0 ? "+" : ""}${e})` : ""}` : "À vérifier"}
+        {ok ? "Livraison vérifiée" : attente ? "Livrée, à vérifier" : "En tournée"}
       </Text>
     </View>
   );
@@ -418,7 +422,7 @@ function FileVerification({ data, onVerifier }: any) {
   // planteur : le magasinier pèse l'ensemble en une fois.
   const file = livraisons(data, { statut: "en_attente" });
   if (file.length === 0) return null;
-  const total = file.reduce((s: number, l: LivraisonGroupe) => s + l.kgDeclare, 0);
+  const total = file.reduce((s: number, l: LivraisonGroupe) => s + l.kgEnAttente, 0);
   return (
     <Card style={{ backgroundColor: "#FDF7EC", borderColor: "#EAD9BE", padding: 14, marginBottom: 14 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -436,9 +440,9 @@ function FileVerification({ data, onVerifier }: any) {
         {file.slice(0, 4).map((l: LivraisonGroupe) => (
           <View key={l.id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Text style={{ fontSize: 12.5, color: C.ink, flex: 1 }}>
-              {staffNameOf(data, l.byStaffId)} · {l.collections.length} planteur{l.collections.length > 1 ? "s" : ""}
+              {staffNameOf(data, l.byStaffId)} · {l.enAttente.length} planteur{l.enAttente.length > 1 ? "s" : ""}
             </Text>
-            <Text style={{ fontSize: 12.5, fontWeight: "700", color: C.ink }}>{fKg(l.kgDeclare)}</Text>
+            <Text style={{ fontSize: 12.5, fontWeight: "700", color: C.ink }}>{fKg(l.kgEnAttente)}</Text>
           </View>
         ))}
         {file.length > 4 ? <Text style={{ fontSize: 11.5, color: C.muted }}>et {file.length - 4} autre(s)…</Text> : null}

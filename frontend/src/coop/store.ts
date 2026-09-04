@@ -436,8 +436,12 @@ export function useCoopData() {
     let done: { pisteurId: string; declare: number; n: number } | null = null;
     setData((d) => {
       if (!d) return d;
-      const cible = d.collections.filter((c) => livraisonKey(c) === livId);
-      if (cible.length === 0 || cible.some((c) => c.verif && c.verif.byStaffId)) return d; // déjà vérifiée
+      // Ce qui RESTE à vérifier dans ce chargement. Normalement tout ; une
+      // livraison antérieure peut être à moitié vérifiée (l'ancienne
+      // vérification se faisait collecte par collecte) — on pèse le reste
+      // plutôt que de la laisser bloquée dans la file du magasinier.
+      const cible = d.collections.filter((c) => livraisonKey(c) === livId && !(c.verif && c.verif.byStaffId));
+      if (cible.length === 0) return d; // déjà entièrement vérifiée
       // UNE pesée globale, répartie sur les collectes du chargement : le stock
       // vaut exactement le poids constaté, et l'écart reste valorisé au prix
       // figé de chaque collecte (cf. `repartirVerif`).

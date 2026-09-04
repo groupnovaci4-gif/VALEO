@@ -854,6 +854,8 @@ const AUDIT_LABELS: Record<string, { t: string; icon: string; color: string }> =
   solde: { t: "Solde du reste dû payé", icon: "banknote", color: C.green },
   avance_approuvee: { t: "Avance accordée", icon: "check-circle", color: C.green },
   avance_refusee: { t: "Avance refusée", icon: "x-circle", color: C.loss },
+  livraison_magasin: { t: "Livraison au magasin", icon: "truck", color: C.due },
+  verification_livraison: { t: "Vérification de livraison", icon: "check-circle", color: C.green },
 };
 export function AuditSheet({ data, onClose, fetchAudit }: { data: Data; onClose: () => void; fetchAudit: () => Promise<any[]> }) {
   const [items, setItems] = useState<any[] | null>(null);
@@ -866,6 +868,11 @@ export function AuditSheet({ data, onClose, fetchAudit }: { data: Data; onClose:
     if (e.action === "solde") return `${memberName(m.memberId) || "Planteur"} · ${fF(m.amount || 0)}`;
     if (e.action === "avance_approuvee") return `${memberName(m.memberId) || "Planteur"} · ${fF(m.amount || 0)}`;
     if (e.action === "avance_refusee") return `${memberName(m.memberId) || "Planteur"}`;
+    if (e.action === "livraison_magasin") return `${m.nombre || 0} pesée(s) · ${fKg(m.kg || 0)} annoncés`;
+    if (e.action === "verification_livraison") {
+      const ec = Number(m.ecart) || 0;
+      return `${staffName(m.pisteurId) || "Pisteur"} · ${fKg(m.declare || 0)} → ${fKg(m.verifie || 0)}${ec !== 0 ? ` (${ec > 0 ? "+" : ""}${ec} kg)` : " (juste)"}`;
+    }
     return "";
   };
   return (
@@ -1355,7 +1362,7 @@ export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Da
   const pesee = usePesee();
   const liv = file.find((l) => l.id === sel);
   const pisteur = data.staff.find((x) => x.id === liv?.byStaffId);
-  const declare = liv?.kgDeclare || 0;
+  const declare = liv?.kgEnAttente || 0;
   const verifie = pesee.totalNet;
   const ecart = verifie - declare;
   const valid = !!liv && pesee.weighs.length > 0;
@@ -1396,8 +1403,8 @@ export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Da
                   <Icon name="truck" size={17} color={on ? C.green : C.muted} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: "800", fontSize: 14 }}>{ps?.nom || "Pisteur"} · {fKg(l.kgDeclare)}</Text>
-                  <Text style={{ fontSize: 12, color: C.muted }}>{l.collections.length} planteur{l.collections.length > 1 ? "s" : ""} · {fDateTime(l.date)}</Text>
+                  <Text style={{ fontWeight: "800", fontSize: 14 }}>{ps?.nom || "Pisteur"} · {fKg(l.kgEnAttente)}</Text>
+                  <Text style={{ fontSize: 12, color: C.muted }}>{l.enAttente.length} planteur{l.enAttente.length > 1 ? "s" : ""} · {fDateTime(l.date)}</Text>
                 </View>
                 {on ? <Icon name="check-circle" size={18} color={C.green} /> : null}
               </Pressable>
@@ -1425,12 +1432,12 @@ export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Da
           <Pressable onPress={() => setDetail((v) => !v)} testID="verif-detail" style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: detail ? 8 : 14 }}>
             <Icon name={detail ? "chevron-down" : "chevron-right"} size={16} color={C.muted} />
             <Text style={{ fontSize: 12.5, color: C.muted, fontWeight: "700" }}>
-              Détail des {liv.collections.length} pesée{liv.collections.length > 1 ? "s" : ""} du pisteur
+              Détail des {liv.enAttente.length} pesée{liv.enAttente.length > 1 ? "s" : ""} du pisteur
             </Text>
           </Pressable>
           {detail ? (
             <View style={{ gap: 6, marginBottom: 14 }}>
-              {liv.collections.map((c) => (
+              {liv.enAttente.map((c) => (
                 <View key={c.id} style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FAF7F2", borderRadius: 9, paddingVertical: 8, paddingHorizontal: 11 }}>
                   <Text style={{ flex: 1, fontSize: 12.5, color: C.ink }}>{nameOf(data, c.memberId)}</Text>
                   <Text style={{ fontSize: 11.5, color: C.muted }}>{ticketOf(c)}</Text>
