@@ -25,9 +25,12 @@ import {
   group,
   memberCultures,
   aLivrer,
-  aVerifier,
   avancesInfo,
+  avancesParCreancier,
   collectesPourRestes,
+  livraisons,
+  nameOf,
+  origineAvance,
   memberStats,
   commOf,
   priceOf,
@@ -267,10 +270,12 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
 
   const prix = priceOf(data, cropId);
   const montant = totalNet * prix;
-  // Avance encore à recouvrer auprès de ce planteur (avances approuvées).
-  const avanceDue = data.loans
-    .filter((l) => l.memberId === memberId && l.status === "approuve" && l.soldeRestant > 0)
-    .reduce((s, l) => s + l.soldeRestant, 0);
+  // Avances en cours de ce planteur, SÉPARÉES par créancier : l'agent ne
+  // recouvre que les siennes. Une avance accordée par le patron ne doit ni
+  // s'additionner à celle du pisteur, ni l'empêcher de recouvrer la sienne —
+  // les deux créances sont indépendantes.
+  const { miennes, autres, dueMienne, dueAutres } = avancesParCreancier(data, memberId, staffId, role);
+  const avanceDue = dueMienne;
   const recMax = Math.min(avanceDue, montant);
   const recouvre = avanceDue <= 0 ? 0 : recAll ? recMax : Math.min(recMax, Number(recStr) || 0);
   const avanceReste = avanceDue - recouvre; // reste d'avance conservé
@@ -349,7 +354,13 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
                 <Text style={{ flex: 1, fontSize: 13, fontWeight: "800", color: C.ink }}>Avance à recouvrer</Text>
                 <Text style={{ fontSize: 14, fontWeight: "900", color: C.loss }}>{fF(avanceDue)}</Text>
               </View>
-              <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 10, lineHeight: 16 }}>Ce planteur a une avance en cours. Choisissez le montant recouvré sur cette pesée.</Text>
+              <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 8, lineHeight: 16 }}>Choisissez le montant recouvré sur cette pesée.</Text>
+              {miennes.map((l) => (
+                <Text key={l.id} style={{ fontSize: 11.5, color: C.muted, lineHeight: 17 }}>
+                  {origineAvance(data, l)} · {fF(l.amount)} accordés · reste {fF(l.soldeRestant)}
+                </Text>
+              ))}
+              <View style={{ height: 8 }} />
               <View style={{ flexDirection: "row", gap: 8, marginBottom: recAll ? 0 : 10 }}>
                 <Toggle active={recAll} onPress={() => setRecAll(true)} color={C.loss}>Recouvrer {recMax >= avanceDue ? "tout" : "le max"}</Toggle>
                 <Toggle active={!recAll} onPress={() => setRecAll(false)} color={C.due}>Partiel</Toggle>
@@ -361,6 +372,26 @@ export function PeseeSheet({ data, role, staffId, onClose, onSave }: { data: Dat
               <Row label="Montant recouvré" value={`− ${fF(recouvre)}`} color={C.loss} />
               <Row label="Reste d'avance conservé" value={fF(avanceReste)} color={avanceReste > 0 ? C.due : C.muted} />
               <Row label="Net à payer au planteur" value={fFull(netAPayer)} strong color={C.green} />
+            </View>
+          ) : null}
+
+          {/* Avances d'un autre créancier : information seulement. Ni recouvrées
+              ici, ni additionnées à celles de l'agent. */}
+          {dueAutres > 0 ? (
+            <View style={{ backgroundColor: "#F5F3EF", borderWidth: 1, borderColor: C.line, borderRadius: 12, padding: 12, marginBottom: 14 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <Icon name="info" size={15} color={C.muted} />
+                <Text style={{ flex: 1, fontSize: 12.5, fontWeight: "800", color: C.ink }}>Autre avance en cours</Text>
+                <Text style={{ fontSize: 13, fontWeight: "800", color: C.muted }}>{fF(dueAutres)}</Text>
+              </View>
+              {autres.map((l) => (
+                <Text key={l.id} style={{ fontSize: 11.5, color: C.muted, lineHeight: 17 }}>
+                  {origineAvance(data, l)} · {fF(l.amount)} accordés · reste {fF(l.soldeRestant)}
+                </Text>
+              ))}
+              <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6, lineHeight: 16 }}>
+                Pour information : cette avance ne vous appartient pas et n&apos;est pas recouvrée sur cette pesée.
+              </Text>
             </View>
           ) : null}
 
@@ -1305,25 +1336,36 @@ export function LivraisonSheet({ data, staffId, onClose, onSave }: { data: Data;
   );
 }
 
-export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Data; staffId: string; onClose: () => void; onSave: (collectionId: string, kg: number, note: string) => void }) {
-  const file = aVerifier(data);
+/**
+ * Vérification d'une LIVRAISON, en une seule pesée globale.
+ *
+ * Le magasinier ne repèse plus planteur par planteur : il pèse le chargement
+ * entier que le pisteur lui a remis. Il peut le faire en une fois, par groupes
+ * de sacs, comme il veut — le pavé de pesée est celui de toujours
+ * (`usePesee` / `PeseeCorps`), avec la même tare par sac.
+ *
+ * Le détail des planteurs reste affiché pour la traçabilité, mais il n'est
+ * plus une étape de vérification.
+ */
+export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Data; staffId: string; onClose: () => void; onSave: (livraisonId: string, kg: number, note: string) => void }) {
+  const file = livraisons(data, { statut: "en_attente" });
   const [sel, setSel] = useState<string>(file[0]?.id || "");
   const [note, setNote] = useState("");
+  const [detail, setDetail] = useState(false);
   const pesee = usePesee();
-  const col = file.find((c) => c.id === sel);
-  const membre = data.members.find((m) => m.id === col?.memberId);
-  const pisteur = data.staff.find((x) => x.id === col?.byStaffId);
-  const declare = Number(col?.kg) || 0;
+  const liv = file.find((l) => l.id === sel);
+  const pisteur = data.staff.find((x) => x.id === liv?.byStaffId);
+  const declare = liv?.kgDeclare || 0;
   const verifie = pesee.totalNet;
   const ecart = verifie - declare;
-  const valid = !!col && pesee.weighs.length > 0;
+  const valid = !!liv && pesee.weighs.length > 0;
 
   if (file.length === 0)
     return (
       <Sheet title="Vérifier une livraison" onClose={onClose}>
         <Card style={{ padding: 20 }}>
           <Text style={{ textAlign: "center", color: C.muted }}>
-            Aucune livraison en attente. Les poids livrés au magasin par les pisteurs apparaîtront ici.
+            Aucune livraison en attente. Les chargements livrés au magasin par les pisteurs apparaîtront ici.
           </Text>
         </Card>
       </Sheet>
@@ -1333,30 +1375,29 @@ export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Da
     <Sheet title="Vérifier une livraison" onClose={onClose}>
       <View style={{ backgroundColor: "#EEF4FB", borderWidth: 1, borderColor: "#D4E2F2", borderRadius: 10, padding: 12, marginBottom: 14 }}>
         <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>
-          Vous ne créez pas une nouvelle pesée : vous <Text style={{ fontWeight: "700" }}>repesez</Text> ce que le pisteur
-          a livré. C&apos;est ce poids qui entrera en stock.
+          Pesez <Text style={{ fontWeight: "700" }}>l&apos;ensemble du chargement</Text> en une seule vérification — en une
+          fois ou par groupes de sacs. C&apos;est ce poids global qui entrera en stock.
         </Text>
       </View>
 
-      <Field label={`Livraison à vérifier (${file.length})`}>
+      <Field label={`Chargement à vérifier (${file.length})`}>
         <View style={{ gap: 8 }}>
-          {file.map((c) => {
-            const m = data.members.find((x) => x.id === c.memberId);
-            const ps = data.staff.find((x) => x.id === c.byStaffId);
-            const on = sel === c.id;
+          {file.map((l) => {
+            const ps = data.staff.find((x) => x.id === l.byStaffId);
+            const on = sel === l.id;
             return (
               <Pressable
-                key={c.id}
-                onPress={() => { setSel(c.id); pesee.reset(); setNote(""); }}
-                testID={`verif-pick-${c.id}`}
+                key={l.id}
+                onPress={() => { setSel(l.id); pesee.reset(); setNote(""); setDetail(false); }}
+                testID={`verif-pick-${l.id}`}
                 style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: on ? "#F0F6F2" : "#fff", borderWidth: 1, borderColor: on ? C.green : C.line, borderRadius: 12, padding: 12 }}
               >
                 <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: on ? "#DCEBE1" : "#F2EEE7", alignItems: "center", justifyContent: "center" }}>
                   <Icon name="truck" size={17} color={on ? C.green : C.muted} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: "800", fontSize: 14 }}>{m?.nom || "—"} · {fKg(c.kg)}</Text>
-                  <Text style={{ fontSize: 12, color: C.muted }}>{ps?.nom || "Pisteur"} · {crop(c.cropId || "cacao").nom} · {ticketOf(c)}</Text>
+                  <Text style={{ fontWeight: "800", fontSize: 14 }}>{ps?.nom || "Pisteur"} · {fKg(l.kgDeclare)}</Text>
+                  <Text style={{ fontSize: 12, color: C.muted }}>{l.collections.length} planteur{l.collections.length > 1 ? "s" : ""} · {fDateTime(l.date)}</Text>
                 </View>
                 {on ? <Icon name="check-circle" size={18} color={C.green} /> : null}
               </Pressable>
@@ -1365,18 +1406,43 @@ export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Da
         </View>
       </Field>
 
-      {col ? (
+      {liv ? (
         <>
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
             <View style={{ flex: 1, backgroundColor: "#F7F3EC", borderRadius: 12, padding: 12 }}>
-              <Text style={{ fontSize: 11.5, color: C.muted }}>Déclaré par {pisteur?.nom || "le pisteur"}</Text>
-              <Text style={{ fontSize: 19, fontWeight: "800", marginTop: 2 }}>{fKg(declare)}</Text>
+              <Text style={{ fontSize: 11.5, color: C.muted }}>Poids déclaré</Text>
+              <Text style={{ fontSize: 19, fontWeight: "800", marginTop: 2 }} testID="verif-declare">{fKg(declare)}</Text>
+              <Text style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>par {pisteur?.nom || "le pisteur"}</Text>
             </View>
             <View style={{ flex: 1, backgroundColor: "#F0F6F2", borderRadius: 12, padding: 12 }}>
               <Text style={{ fontSize: 11.5, color: C.muted }}>Constaté au magasin</Text>
               <Text style={{ fontSize: 19, fontWeight: "800", marginTop: 2, color: C.green }}>{pesee.weighs.length === 0 ? "—" : fKg(verifie)}</Text>
             </View>
           </View>
+
+          {/* Traçabilité : le détail des planteurs reste consultable, mais il
+              n'est plus une étape de vérification. */}
+          <Pressable onPress={() => setDetail((v) => !v)} testID="verif-detail" style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: detail ? 8 : 14 }}>
+            <Icon name={detail ? "chevron-down" : "chevron-right"} size={16} color={C.muted} />
+            <Text style={{ fontSize: 12.5, color: C.muted, fontWeight: "700" }}>
+              Détail des {liv.collections.length} pesée{liv.collections.length > 1 ? "s" : ""} du pisteur
+            </Text>
+          </Pressable>
+          {detail ? (
+            <View style={{ gap: 6, marginBottom: 14 }}>
+              {liv.collections.map((c) => (
+                <View key={c.id} style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FAF7F2", borderRadius: 9, paddingVertical: 8, paddingHorizontal: 11 }}>
+                  <Text style={{ flex: 1, fontSize: 12.5, color: C.ink }}>{nameOf(data, c.memberId)}</Text>
+                  <Text style={{ fontSize: 11.5, color: C.muted }}>{ticketOf(c)}</Text>
+                  <Text style={{ fontSize: 12.5, fontWeight: "700" }}>{fKg(c.kg)}</Text>
+                </View>
+              ))}
+              <View style={{ flexDirection: "row", paddingHorizontal: 11, paddingTop: 4 }}>
+                <Text style={{ flex: 1, fontSize: 12.5, fontWeight: "800" }}>Total déclaré</Text>
+                <Text style={{ fontSize: 12.5, fontWeight: "800" }}>{fKg(declare)}</Text>
+              </View>
+            </View>
+          ) : null}
 
           {/* Exactement la procédure de pesée habituelle. */}
           <PeseeCorps p={pesee} />
@@ -1385,11 +1451,11 @@ export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Da
             <View style={{ backgroundColor: "#EAF6EE", borderWidth: 1, borderColor: "#CFE6D8", borderRadius: 14, padding: 14, marginBottom: 14 }}>
               <Row label="Poids brut total" value={fKg(pesee.totalBrut)} />
               <Row label={`Tare (${pesee.totalSacs} sacs × 1 kg)`} value={`− ${fKg(pesee.totalSacs)}`} />
-              <Row label="Poids vérifié" value={fKg(verifie)} strong color={C.ink} />
+              <Row label="Poids vérifié global" value={fKg(verifie)} strong color={C.ink} />
               <View style={{ height: 1, backgroundColor: "#CFE6D8", marginVertical: 8 }} />
-              <Row label="Poids déclaré par le pisteur" value={fKg(declare)} />
+              <Row label="Poids déclaré global" value={fKg(declare)} />
               <Row
-                label={ecart < 0 ? "Déficit" : ecart > 0 ? "Excédent" : "Différence"}
+                label={ecart < 0 ? "Déficit" : ecart > 0 ? "Excédent" : "Écart"}
                 value={`${ecart > 0 ? "+" : ""}${fKg(ecart)}`}
                 strong
                 color={ecart < 0 ? C.loss : ecart > 0 ? C.green : C.muted}
@@ -1401,7 +1467,7 @@ export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Da
             <View style={{ backgroundColor: ecart < 0 ? "#FBEFED" : "#FDF7EC", borderWidth: 1, borderColor: ecart < 0 ? "#EFD3CE" : "#EAD9BE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
               <Text style={{ fontSize: 12.5, color: C.ink, lineHeight: 18 }}>
                 {ecart < 0 ? (
-                  <>Il manque <Text style={{ fontWeight: "800", color: C.loss }}>{fKg(-ecart)}</Text> par rapport au poids annoncé. Le montant correspondant sera à la charge de {pisteur?.nom || "ce pisteur"}.</>
+                  <>Il manque <Text style={{ fontWeight: "800", color: C.loss }}>{fKg(-ecart)}</Text> sur l&apos;ensemble du chargement. Le montant correspondant sera à la charge de {pisteur?.nom || "ce pisteur"}.</>
                 ) : (
                   <>Il arrive <Text style={{ fontWeight: "800", color: C.green }}>{fKg(ecart)}</Text> de plus que le poids annoncé. Ce « poids plus » revient à {pisteur?.nom || "ce pisteur"}.</>
                 )}
@@ -1420,12 +1486,12 @@ export function VerificationSheet({ data, staffId, onClose, onSave }: { data: Da
 
           <View style={{ backgroundColor: "#F0F6F2", borderRadius: 10, padding: 12, marginBottom: 14 }}>
             <Text style={{ fontSize: 12.5, color: C.muted, lineHeight: 18 }}>
-              Le bordereau remis à {membre?.nom || "au planteur"} n&apos;est pas modifié : le montant déjà réglé au
-              bord-champ reste celui du poids déclaré. La vérification est <Text style={{ fontWeight: "700" }}>définitive</Text>.
+              Les bordereaux déjà remis aux planteurs ne sont pas modifiés : les montants réglés au bord-champ restent
+              ceux des poids déclarés. La vérification est <Text style={{ fontWeight: "700" }}>définitive</Text>.
             </Text>
           </View>
 
-          <SaveBtn disabled={!valid} color={C.green} onPress={() => onSave(col.id, verifie, note.trim())}>
+          <SaveBtn disabled={!valid} color={C.green} onPress={() => onSave(liv.id, verifie, note.trim())}>
             Valider le poids vérifié
           </SaveBtn>
         </>

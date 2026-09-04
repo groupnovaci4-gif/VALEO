@@ -30,6 +30,7 @@ import {
   ActivityLog,
   CoopAccount,
   DepensesPatron,
+  HistoriqueLivraisons,
   Collaborateurs,
   CollectorHome,
   CocoaHero,
@@ -343,7 +344,8 @@ export default function App() {
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} onAdd={() => setSheet("collab")} />;
     else if (tab === "prets") body = <PatronPrets data={data} onApprove={(l: any) => setApproveLoanObj(l)} onRefuse={(id: string) => store.refuseLoan(id, session.staffId)} onNew={() => setSheet("loan")} onBack={() => setTab("bilan")} />;
     else if (tab === "depenses") body = <DepensesPatron data={data} onBack={() => setTab("coop")} onAdd={() => setSheet("depense")} />;
-    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onAudit={() => setSheet("audit")} onDepenses={() => setTab("depenses")} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
+    else if (tab === "livraisons") body = <HistoriqueLivraisons data={data} onBack={() => setTab("coop")} />;
+    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onAudit={() => setSheet("audit")} onDepenses={() => setTab("depenses")} onLivraisons={() => setTab("livraisons")} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
   } else if (isCoop) {
     const isPisteur = role === "pisteur";
     nav = (
@@ -365,6 +367,9 @@ export default function App() {
     // la base de la coopérative et reste rattachée à son créateur.
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onAdd={() => setSheet("member")} resteScope={resteScope} onVillageRecap={doVillageRecap} />;
     else if (tab === "prets") body = <PatronPrets data={data} canDecide={false} onNew={() => setSheet(isPisteur ? "grantLoan" : "loan")} onBack={() => setTab(isPisteur ? "tournee" : "jour")} />;
+    // Le magasinier retrouve à tout moment les livraisons de chaque pisteur,
+    // vérifiées comprises : la validation n'efface plus rien.
+    else if (tab === "livraisons") body = <HistoriqueLivraisons data={data} onBack={() => setTab(isPisteur ? "tournee" : "jour")} />;
     else if (isPisteur) body = (
       <>
         <PisteurHome theme={theme} data={data} staffId={session.staffId} onNew={() => setSheet("pesee")} onNewDepense={() => setSheet("depense")} onReceipt={setReceipt} onOpen={setOpenMember} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} onGrantLoan={() => setSheet("grantLoan")} onPrets={() => setTab("prets")} onLivrer={() => setSheet("livraison")} />
@@ -374,7 +379,7 @@ export default function App() {
     );
     else body = (
       <>
-        <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} onDepense={() => setSheet("depense")} onPrets={() => setTab("prets")} onVerifier={() => setSheet("verif")} />
+        <CollectorHome theme={theme} data={data} staffId={session.staffId} isPisteur={false} onReceipt={setReceipt} onOpen={setOpenMember} onNew={() => setSheet("pesee")} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} onDepense={() => setSheet("depense")} onPrets={() => setTab("prets")} onVerifier={() => setSheet("verif")} onLivraisons={() => setTab("livraisons")} />
         <CocoaHero />
         <PartnersBanner />
       </>
@@ -414,7 +419,7 @@ export default function App() {
           origine différente. */}
       {sheet === "grantLoan" && role === "pisteur" ? <LoanSheet data={data} grant onClose={() => setSheet(null)} onSave={(l: any) => { store.grantLoan(l, staffId); setSheet(null); setNotice("Avance accordée. Elle sera recouvrée sur les prochaines livraisons."); }} /> : null}
       {/* Le magasinier constate le poids réellement reçu d'un pisteur. */}
-      {sheet === "verif" && role === "commis" ? <VerificationSheet data={data} staffId={staffId} onClose={() => setSheet(null)} onSave={(id: string, kg: number, note: string) => { store.verifyCollection(id, kg, staffId, note); setSheet(null); setNotice(`Vérification enregistrée : ${fKg(kg)} entrent en stock.`); }} /> : null}
+      {sheet === "verif" && role === "commis" ? <VerificationSheet data={data} staffId={staffId} onClose={() => setSheet(null)} onSave={(livId: string, kg: number, note: string) => { store.verifyLivraison(livId, kg, staffId, note); setSheet(null); setNotice(`Livraison vérifiée : ${fKg(kg)} entrent en stock.`); }} /> : null}
       {sheet === "settings" ? <SettingsSheet data={data} onClose={() => setSheet(null)} onSave={(p: any) => { store.setCoopSettings(p); setSheet(null); }} /> : null}
       {sheet === "coopProfile" ? <CoopProfileSheet coop={data.coop} patron={me} onClose={() => setSheet(null)} onSave={({ coopPatch, patronPatch }: any) => { store.setCoopProfile(coopPatch); if (session.side === "coop" && session.staffId) store.updateStaff(session.staffId, patronPatch); setSheet(null); }} /> : null}
       {sheet === "audit" ? <AuditSheet data={data} fetchAudit={store.fetchAudit} onClose={() => setSheet(null)} /> : null}

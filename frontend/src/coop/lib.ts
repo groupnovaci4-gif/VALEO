@@ -243,6 +243,10 @@ export type Verification = {
  * une ici le décompterait deux fois.
  */
 export type Livraison = {
+  // Identifiant du chargement. Toutes les collectes remises ensemble le
+  // partagent : c'est LUI l'unité de vérification, pas la collecte.
+  // Absent sur les livraisons antérieures (repli sur agent + date).
+  id?: string;
   date: string;
   byStaffId: string;
 };
@@ -716,6 +720,129 @@ export function aLivrer(data: Data, staffId: string): Collection[] {
     .sort(byDateDesc);
 }
 
+/* ------------------------- Livraison : vue globale ------------------------ */
+
+/**
+ * Clé de regroupement d'un chargement.
+ *
+ * Les livraisons antérieures n'ont pas d'identifiant : on retombe sur
+ * « agent + horodatage », qui les regroupe correctement puisqu'elles étaient
+ * déclarées d'un seul geste.
+ */
+export const livraisonKey = (c: Collection): string =>
+  (c.livraison && (c.livraison.id || `${c.livraison.byStaffId}@${c.livraison.date}`)) || "";
+
+/**
+ * Un chargement livré au magasin, vu globalement.
+ *
+ * Le magasinier ne vérifie plus planteur par planteur : il pèse **une fois**
+ * l'ensemble du chargement. Le détail des planteurs reste conservé pour la
+ * traçabilité (`collections`), mais il n'est plus une étape de vérification.
+ */
+export type LivraisonGroupe = {
+  id: string;
+  byStaffId: string;
+  date: string;
+  collections: Collection[];
+  kgDeclare: number;
+  kgVerifie: number;
+  ecart: number;
+  deficit: number;
+  excedent: number;
+  verifiee: boolean;
+  verifPar?: string;
+  verifDate?: string;
+  note?: string;
+};
+
+function grouper(c: Collection[]): LivraisonGroupe[] {
+  const parCle = new Map<string, Collection[]>();
+  c.forEach((x) => {
+    const k = livraisonKey(x);
+    if (!k) return;
+    const liste = parCle.get(k);
+    if (liste) liste.push(x);
+    else parCle.set(k, [x]);
+  });
+  return [...parCle.entries()].map(([id, cols]) => {
+    const kgDeclare = cols.reduce((s, x) => s + (Number(x.kg) || 0), 0);
+    // Le poids vérifié global est la SOMME des quotes-parts réparties sur les
+    // collectes : la répartition est exacte, la somme redonne donc au kilo
+    // près le poids unique constaté par le magasinier.
+    const verifiee = cols.every((x) => estVerifiee(x));
+    const kgVerifie = verifiee ? cols.reduce((s, x) => s + (Number(x.verif!.kg) || 0), 0) : 0;
+    const ecart = verifiee ? kgVerifie - kgDeclare : 0;
+    const ref = cols.find((x) => estVerifiee(x));
+    return {
+      id,
+      byStaffId: cols[0].livraison!.byStaffId,
+      date: cols[0].livraison!.date,
+      collections: [...cols].sort(byDateDesc),
+      kgDeclare,
+      kgVerifie,
+      ecart,
+      deficit: Math.max(0, -ecart),
+      excedent: Math.max(0, ecart),
+      verifiee,
+      verifPar: ref?.verif?.byStaffId,
+      verifDate: ref?.verif?.date,
+      note: ref?.verif?.note || "",
+    };
+  });
+}
+
+/**
+ * Livraisons au magasin, les plus récentes d'abord.
+ *
+ * `statut` : `"en_attente"` = la file du magasinier · `"verifiee"` =
+ * l'historique, qui NE disparaît PAS une fois le poids entré en stock.
+ * `staffId` restreint à un pisteur donné.
+ */
+export function livraisons(
+  data: Data,
+  opts?: { staffId?: string; statut?: "en_attente" | "verifiee" },
+): LivraisonGroupe[] {
+  const cols = (data.collections || []).filter(
+    (c) => estBordChamp(c, data) && estLivree(c) && (!opts?.staffId || c.byStaffId === opts.staffId),
+  );
+  let out = grouper(cols);
+  if (opts?.statut === "en_attente") out = out.filter((l) => !l.verifiee);
+  if (opts?.statut === "verifiee") out = out.filter((l) => l.verifiee);
+  return out.sort((a, b) => +new Date(b.date) - +new Date(a.date));
+}
+
+/**
+ * Répartit le poids global constaté sur les collectes du chargement.
+ *
+ * Le magasinier ne fait QU'UNE pesée ; cette quote-part par collecte n'est pas
+ * une mesure, c'est l'imputation de cette mesure unique. Elle sert à deux
+ * choses, sans rien changer aux formules existantes :
+ *  - le **stock** reste `Σ verif.kg`, donc exactement le poids global constaté
+ *    (jamais le déclaré, jamais les deux additionnés) ;
+ *  - l'**écart** reste valorisé au `prixKg` FIGÉ de chaque collecte, ce qui
+ *    revient à valoriser l'écart global au prix moyen pondéré du chargement.
+ *
+ * La somme des quotes-parts est exacte : le résidu d'arrondi va sur la
+ * dernière, sans quoi le stock différerait du poids réellement pesé.
+ */
+export function repartirVerif(cols: Collection[], kgGlobal: number): number[] {
+  if (cols.length === 0) return [];
+  const total = cols.reduce((s, c) => s + (Number(c.kg) || 0), 0);
+  if (total <= 0) return cols.map((_, i) => (i === 0 ? kgGlobal : 0));
+  // Quotes-parts en kilos ENTIERS. Les pesées le sont toujours (le pavé ne
+  // saisit que des entiers), donc chaque écart l'est aussi : le manquant et le
+  // poids plus tombent alors juste au franc près. Répartir au millième faisait
+  // perdre quelques francs à l'arrondi entre la somme des montants et le
+  // montant de l'écart global.
+  let reste = kgGlobal;
+  return cols.map((c, i) => {
+    if (i === cols.length - 1) return Math.round(reste * 1000) / 1000;
+    const part = Math.round((kgGlobal * (Number(c.kg) || 0)) / total);
+    reste -= part;
+    return part;
+  });
+}
+
 /* --------------------------- Restes dus par agent ------------------------- */
 
 /**
@@ -746,6 +873,64 @@ export const resteAgentTotal = (data: Data, staffId: string, memberId: string): 
   restesAgent(data, staffId, memberId).reduce((s, c) => s + outstandingReste(c), 0);
 
 /* ------------------------- Situation des avances -------------------------- */
+
+/**
+ * Créancier d'une avance : qui a sorti l'argent, et donc qui peut le récupérer.
+ *
+ * Une avance accordée sur le terrain appartient au **pisteur qui l'a signée**.
+ * Toutes les autres — accordées par le patron, ou demandées par le planteur et
+ * approuvées par lui — sont celles de la **coopérative**.
+ *
+ * Les deux créances sont indépendantes : elles peuvent coexister sur un même
+ * planteur sans jamais se mélanger ni se bloquer l'une l'autre.
+ */
+export const CREANCIER_COOP = "coop";
+export const creancierAvance = (l: Loan): string =>
+  l.origine === "pisteur" && l.decidedBy ? l.decidedBy : CREANCIER_COOP;
+
+/**
+ * Créancier que représente un agent au moment d'une pesée.
+ *
+ * Le pisteur/délégué est un prestataire : il ne représente que lui-même. Le
+ * patron et le magasinier, eux, agissent pour la coopérative.
+ */
+export const creancierAgent = (staffId: string, role?: string): string =>
+  role === "pisteur" ? staffId : CREANCIER_COOP;
+
+/** Cet agent a-t-il le droit de recouvrer cette avance ? */
+export const peutRecouvrer = (l: Loan, staffId: string, role?: string): boolean =>
+  creancierAvance(l) === creancierAgent(staffId, role);
+
+/**
+ * Avances en cours d'un planteur, **séparées par créancier**.
+ *
+ * `miennes` : celles que l'agent peut recouvrer sur cette pesée.
+ * `autres`  : celles d'un autre créancier — affichées pour information, jamais
+ *             additionnées aux siennes ni recouvrées à sa place. Une avance du
+ *             patron ne doit pas empêcher le pisteur de recouvrer la sienne.
+ */
+export function avancesParCreancier(data: Data, memberId: string, staffId: string, role?: string) {
+  const actives = (data.loans || []).filter(
+    (l) => l.memberId === memberId && l.status === "approuve" && (Number(l.soldeRestant) || 0) > 0,
+  );
+  const miennes = actives.filter((l) => peutRecouvrer(l, staffId, role));
+  const autres = actives.filter((l) => !peutRecouvrer(l, staffId, role));
+  const total = (list: Loan[]) => list.reduce((s, l) => s + (Number(l.soldeRestant) || 0), 0);
+  return { miennes, autres, dueMienne: total(miennes), dueAutres: total(autres) };
+}
+
+/**
+ * Origine lisible d'une avance : « Patron » ou « Pisteur / Délégué — Nom ».
+ *
+ * Le planteur doit pouvoir savoir QUI lui a accordé chaque avance : deux
+ * avances de créanciers différents ne se regroupent jamais.
+ */
+export function origineAvance(data: Data, l: Loan): string {
+  if (l.origine === "pisteur" && l.decidedBy) return `Pisteur / Délégué — ${staffNameOf(data, l.decidedBy)}`;
+  if (l.origine === "planteur") return "Patron (sur votre demande)";
+  return "Patron";
+}
+
 
 /**
  * Situation d'un planteur au regard des avances, pour décider en connaissance
@@ -917,32 +1102,34 @@ export function buildNotifications(data: Data, session: any): { items: Notif[]; 
     // déjà son suivi de remise sur son accueil : l'alerter de sa propre
     // livraison n'apprendrait rien.
     if (isPatron || session.role === "commis") {
-      aVerifier(data).forEach((c) =>
+      // Une alerte par CHARGEMENT : le magasinier vérifie la livraison en une
+      // fois, pas planteur par planteur.
+      livraisons(data, { statut: "en_attente" }).forEach((l) =>
         items.push({
-          id: "vf" + c.id,
+          id: "vf" + l.id,
           kind: "action",
-          date: c.date,
+          date: l.date,
           icon: "truck",
           tint: C.due,
           title: isPatron ? "Livraison à vérifier au magasin" : "Livraison à vérifier",
-          sub: `${staffNameOf(data, c.byStaffId)} · ${nameOf(data, c.memberId)} · ${fKg(c.kg)}`,
+          sub: `${staffNameOf(data, l.byStaffId)} · ${l.collections.length} planteur${l.collections.length > 1 ? "s" : ""} · ${fKg(l.kgDeclare)}`,
         }),
       );
     }
     // Écart constaté : l'information intéresse le patron (caisse de l'agent).
     if (isPatron) {
-      (data.collections || [])
-        .filter((c) => estVerifiee(c) && ecartVerif(c) !== 0)
-        .forEach((c) => {
-          const e = ecartVerif(c);
+      // L'écart se constate sur le chargement entier, en une ligne.
+      livraisons(data, { statut: "verifiee" })
+        .filter((l) => l.ecart !== 0)
+        .forEach((l) => {
           items.push({
-            id: "ec" + c.id,
+            id: "ec" + l.id,
             kind: "info",
-            date: c.verif!.date,
-            icon: e < 0 ? "alert-triangle" : "trending-up",
-            tint: e < 0 ? C.loss : C.green,
-            title: e < 0 ? "Manquant après vérification" : "Poids plus constaté",
-            sub: `${staffNameOf(data, c.byStaffId)} · ${fKg(c.kg)} → ${fKg(Number(c.verif!.kg) || 0)} (${e > 0 ? "+" : ""}${e} kg)`,
+            date: l.verifDate || l.date,
+            icon: l.ecart < 0 ? "alert-triangle" : "trending-up",
+            tint: l.ecart < 0 ? C.loss : C.green,
+            title: l.ecart < 0 ? "Manquant après vérification" : "Poids plus constaté",
+            sub: `${staffNameOf(data, l.byStaffId)} · ${fKg(l.kgDeclare)} → ${fKg(l.kgVerifie)} (${l.ecart > 0 ? "+" : ""}${l.ecart} kg)`,
           });
         });
     }

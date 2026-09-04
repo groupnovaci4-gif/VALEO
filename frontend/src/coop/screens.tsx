@@ -26,6 +26,8 @@ import {
   memberCultures,
   inSaison,
   aLivrer,
+  livraisons,
+  LivraisonGroupe,
   aVerifier,
   collectesPourRestes,
   ecartVerif,
@@ -37,6 +39,7 @@ import {
   nameOf,
   Notif,
   poidsPlusVerif,
+  origineAvance,
   outstandingReste,
   op,
   pisteurStats,
@@ -355,7 +358,7 @@ const CardGrid = ({ cards }: { cards: any[] }) => {
 };
 
 // En-tête « vos propres poids collectés » + grille d'actions (Pisteur/Délégué & Magasinier).
-function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock, onDepense, onPrets, onGrantLoan, onVerifier }: any) {
+function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock, onDepense, onPrets, onGrantLoan, onVerifier, onLivraisons }: any) {
   // Volume : campagne en cours (les avances en attente, elles, ne sont pas filtrées).
   const mine: Collection[] = (scopeSaison(data).collections || []).filter((c: Collection) => c.byStaffId === staffId);
   const today = mine.filter((c) => isToday(c.date));
@@ -386,6 +389,7 @@ function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock,
   }
   // Le pisteur/délégué accorde une avance sur le terrain, en face du planteur.
   if (onGrantLoan) cards.push({ testID: "quick-Accorder", icon: "piggy-bank", title: "Nouvelle avance", sub: "Accorder à un planteur", onPress: onGrantLoan });
+  if (onLivraisons) cards.push({ testID: "quick-Livraisons", icon: "truck", title: "Livraisons", sub: "Historique des pisteurs", onPress: onLivraisons });
   if (onDepense) cards.push({ testID: "quick-Dépenses", icon: "receipt", title: "Dépenses", sub: "Suivi des frais", onPress: onDepense });
   if (onPrets) cards.push({ testID: "quick-Prêts", icon: "piggy-bank", title: "Avances", sub: "Suivi & recouvrement", onPress: onPrets, badge: pending });
   return (
@@ -410,15 +414,17 @@ function CollectorTop({ data, staffId, isPisteur, onPeser, onPlanteurs, onStock,
  * marchandise n'est PAS dans son stock — il faut donc qu'il la voie.
  */
 function FileVerification({ data, onVerifier }: any) {
-  const file = aVerifier(data);
+  // Un chargement = une ligne, une vérification. Plus de file planteur par
+  // planteur : le magasinier pèse l'ensemble en une fois.
+  const file = livraisons(data, { statut: "en_attente" });
   if (file.length === 0) return null;
-  const total = file.reduce((s: number, c: Collection) => s + (Number(c.kg) || 0), 0);
+  const total = file.reduce((s: number, l: LivraisonGroupe) => s + l.kgDeclare, 0);
   return (
     <Card style={{ backgroundColor: "#FDF7EC", borderColor: "#EAD9BE", padding: 14, marginBottom: 14 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <Icon name="truck" size={17} color={C.due} />
         <Text style={{ fontWeight: "800", fontSize: 14, color: C.due, flex: 1 }}>
-          {file.length} poids de pisteur à vérifier
+          {file.length} livraison{file.length > 1 ? "s" : ""} à vérifier
         </Text>
         <Text style={{ fontWeight: "800", fontSize: 14, color: C.due }}>{fKg(total)}</Text>
       </View>
@@ -427,12 +433,12 @@ function FileVerification({ data, onVerifier }: any) {
         à la réception qui y entrera.
       </Text>
       <View style={{ gap: 7, marginBottom: 11 }}>
-        {file.slice(0, 4).map((c: Collection) => (
-          <View key={c.id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        {file.slice(0, 4).map((l: LivraisonGroupe) => (
+          <View key={l.id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Text style={{ fontSize: 12.5, color: C.ink, flex: 1 }}>
-              {nameOf(data, c.memberId)} · {(data.staff || []).find((x: any) => x.id === c.byStaffId)?.nom || "Pisteur"}
+              {staffNameOf(data, l.byStaffId)} · {l.collections.length} planteur{l.collections.length > 1 ? "s" : ""}
             </Text>
-            <Text style={{ fontSize: 12.5, fontWeight: "700", color: C.ink }}>{fKg(c.kg)}</Text>
+            <Text style={{ fontSize: 12.5, fontWeight: "700", color: C.ink }}>{fKg(l.kgDeclare)}</Text>
           </View>
         ))}
         {file.length > 4 ? <Text style={{ fontSize: 11.5, color: C.muted }}>et {file.length - 4} autre(s)…</Text> : null}
@@ -454,10 +460,9 @@ function FileVerification({ data, onVerifier }: any) {
 function SuiviVerification({ data, staffId, onLivrer }: any) {
   const enTournee = aLivrer(data, staffId);
   const attente = aVerifier(data, staffId);
-  const verifiees = (data.collections || [])
-    .filter((c: Collection) => c.byStaffId === staffId && estVerifiee(c))
-    .sort(byDateDesc)
-    .slice(0, 5);
+  // Sa différence se lit désormais sur la LIVRAISON globale, pas planteur par
+  // planteur : c'est un seul chargement, une seule vérification, un seul écart.
+  const verifiees = livraisons(data, { staffId, statut: "verifiee" }).slice(0, 5);
   if (enTournee.length === 0 && attente.length === 0 && verifiees.length === 0) return null;
   const enAttente = attente.reduce((s: number, c: Collection) => s + (Number(c.kg) || 0), 0);
   const aLivrerKg = enTournee.reduce((s: number, c: Collection) => s + (Number(c.kg) || 0), 0);
@@ -489,19 +494,19 @@ function SuiviVerification({ data, staffId, onLivrer }: any) {
       ) : null}
       {verifiees.length > 0 ? (
         <View style={{ gap: 6, marginTop: attente.length > 0 ? 9 : 0 }}>
-          {verifiees.map((c: Collection) => {
-            const e = ecartVerif(c);
-            return (
-              <View key={c.id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Icon name="check-circle" size={14} color={C.green} />
-                <Text style={{ fontSize: 12.5, color: C.ink, flex: 1 }}>{nameOf(data, c.memberId)}</Text>
-                <Text style={{ fontSize: 12.5, color: C.muted }}>{fKg(c.kg)} → </Text>
-                <Text style={{ fontSize: 12.5, fontWeight: "800", color: e < 0 ? C.loss : e > 0 ? C.due : C.green }}>
-                  {fKg(Number(c.verif?.kg) || 0)}
-                </Text>
+          {verifiees.map((l: LivraisonGroupe) => (
+            <View key={l.id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Icon name="check-circle" size={14} color={C.green} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12.5, color: C.ink }}>Livraison du {fDate(l.date)}</Text>
+                <Text style={{ fontSize: 11, color: C.muted }}>{l.collections.length} planteur{l.collections.length > 1 ? "s" : ""}</Text>
               </View>
-            );
-          })}
+              <Text style={{ fontSize: 12.5, color: C.muted }}>{fKg(l.kgDeclare)} → </Text>
+              <Text style={{ fontSize: 12.5, fontWeight: "800", color: l.deficit > 0 ? C.loss : l.excedent > 0 ? C.due : C.green }}>
+                {fKg(l.kgVerifie)}
+              </Text>
+            </View>
+          ))}
         </View>
       ) : null}
       {manquant > 0 ? (
@@ -530,14 +535,14 @@ function SuiviVerification({ data, staffId, onLivrer }: any) {
   );
 }
 
-export function CollectorHome({ data, staffId, isPisteur, onReceipt, onOpen, onNew, onPlanteurs, onStock, onDepense, onPrets, onVerifier, theme }: any) {
+export function CollectorHome({ data, staffId, isPisteur, onReceipt, onOpen, onNew, onPlanteurs, onStock, onDepense, onPrets, onVerifier, onLivraisons, theme }: any) {
   const mine: Collection[] = data.collections.filter((c: Collection) => c.byStaffId === staffId);
   const list = [...mine].sort(byDateDesc);
   const deps = (data.depenses || []).filter((x: any) => x.pisteurId === staffId).sort(byDateDesc);
   const depTot = deps.reduce((s: number, x: any) => s + x.amount, 0);
   return (
     <View>
-      <CollectorTop data={data} staffId={staffId} isPisteur={isPisteur} onPeser={onNew} onPlanteurs={onPlanteurs} onStock={onStock} onDepense={onDepense} onPrets={onPrets} onVerifier={onVerifier} />
+      <CollectorTop data={data} staffId={staffId} isPisteur={isPisteur} onPeser={onNew} onPlanteurs={onPlanteurs} onStock={onStock} onDepense={onDepense} onPrets={onPrets} onVerifier={onVerifier} onLivraisons={onLivraisons} />
       {onVerifier ? <FileVerification data={data} onVerifier={onVerifier} /> : null}
       <SectionTitle>Historique</SectionTitle>
       {list.length === 0 ? <Empty text="Aucune collecte enregistrée pour l'instant." /> : (
@@ -1110,6 +1115,118 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecid
   );
 }
 
+/**
+ * Historique des livraisons des pisteurs / délégués.
+ *
+ * La vérification n'efface plus rien : une fois le poids entré en stock,
+ * l'opération complète reste consultable — par le magasinier ET par le patron.
+ * On répond à : quel pisteur → quelle livraison → quel poids déclaré → quel
+ * poids vérifié → quel écart → quand.
+ */
+export function HistoriqueLivraisons({ data, onBack }: any) {
+  const [pisteur, setPisteur] = useState<string>("");
+  const [ouvert, setOuvert] = useState<string>("");
+  const toutes = livraisons(data);
+  const list = pisteur ? toutes.filter((l) => l.byStaffId === pisteur) : toutes;
+  const agents = (data.staff || []).filter((x: any) => x.role === "pisteur" && toutes.some((l) => l.byStaffId === x.id));
+  const totDeclare = list.reduce((s: number, l: LivraisonGroupe) => s + l.kgDeclare, 0);
+  const totVerifie = list.reduce((s: number, l: LivraisonGroupe) => s + l.kgVerifie, 0);
+  return (
+    <View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <Pressable onPress={onBack} hitSlop={8} style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" }}>
+          <Icon name="chevron-left" size={20} color={C.ink} />
+        </Pressable>
+        <Text style={{ flex: 1, fontSize: 18, fontWeight: "800", color: C.ink }}>Livraisons des pisteurs</Text>
+      </View>
+
+      <Card style={{ padding: 16, marginBottom: 14 }}>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <StatCell label="Livraisons" value={String(list.length)} color={C.teal} />
+          <StatCell label="Déclaré" value={fKg(totDeclare)} color={C.cocoaSoft} />
+          <StatCell label="Vérifié" value={fKg(totVerifie)} color={C.green} />
+        </View>
+      </Card>
+
+      {agents.length > 1 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }} contentContainerStyle={{ gap: 6, paddingRight: 8 }}>
+          {[{ id: "", nom: "Tous" }, ...agents].map((a: any) => (
+            <Pressable key={a.id || "tous"} onPress={() => setPisteur(a.id)} testID={`hist-pisteur-${a.id || "tous"}`} style={{ paddingVertical: 8, paddingHorizontal: 13, borderRadius: 20, backgroundColor: pisteur === a.id ? C.teal : "#F0EBE2", flexShrink: 0 }}>
+              <Text style={{ fontSize: 12.5, fontWeight: "700", color: pisteur === a.id ? "#fff" : C.muted }}>{a.nom}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : null}
+
+      {list.length === 0 ? <Empty text="Aucune livraison enregistrée pour l'instant." /> : (
+        <View style={{ gap: 9 }}>
+          {list.map((l: LivraisonGroupe) => {
+            const on = ouvert === l.id;
+            return (
+              <Card key={l.id} style={{ padding: 13 }}>
+                <Pressable onPress={() => setOuvert(on ? "" : l.id)}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: l.verifiee ? "#E9F3EC" : "#FBF3E3", alignItems: "center", justifyContent: "center" }}>
+                      <Icon name="truck" size={18} color={l.verifiee ? C.green : C.due} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: "800", fontSize: 14 }}>{staffNameOf(data, l.byStaffId)}</Text>
+                      <Text style={{ fontSize: 11.5, color: C.muted }}>{fDateTime(l.date)} · {l.collections.length} planteur{l.collections.length > 1 ? "s" : ""}</Text>
+                    </View>
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Text style={{ fontSize: 11, color: C.muted }}>{l.verifiee ? "Vérifiée" : "En attente"}</Text>
+                      <Text style={{ fontWeight: "800", fontSize: 14, color: l.verifiee ? C.green : C.due }}>{fKg(l.verifiee ? l.kgVerifie : l.kgDeclare)}</Text>
+                    </View>
+                    <Icon name={on ? "chevron-down" : "chevron-right"} size={17} color={C.muted} />
+                  </View>
+                </Pressable>
+
+                <View style={{ marginTop: 10, borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", paddingTop: 9 }}>
+                  <Row label="Poids déclaré global" value={fKg(l.kgDeclare)} />
+                  {l.verifiee ? (
+                    <>
+                      <View style={{ height: 5 }} />
+                      <Row label="Poids vérifié global" value={fKg(l.kgVerifie)} />
+                      <View style={{ height: 5 }} />
+                      <Row
+                        label={l.deficit > 0 ? "Déficit" : l.excedent > 0 ? "Excédent" : "Écart"}
+                        value={`${l.ecart > 0 ? "+" : ""}${fKg(l.ecart)}`}
+                        strong
+                        color={l.deficit > 0 ? C.loss : l.excedent > 0 ? C.due : C.green}
+                      />
+                      <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 7 }}>
+                        Vérifiée par {staffNameOf(data, l.verifPar || "")} le {fDateTime(l.verifDate || l.date)}{l.note ? ` · ${l.note}` : ""}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={{ fontSize: 11.5, color: C.due, marginTop: 7 }}>En attente de la vérification du magasinier — ce poids n&apos;est pas encore en stock.</Text>
+                  )}
+                </View>
+
+                {on ? (
+                  <View style={{ marginTop: 10, gap: 6 }}>
+                    <Text style={{ fontSize: 11.5, color: C.muted, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.4 }}>Détail des pesées</Text>
+                    {l.collections.map((c: Collection) => (
+                      <View key={c.id} style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FAF7F2", borderRadius: 9, paddingVertical: 8, paddingHorizontal: 11 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 12.5, color: C.ink }}>{nameOf(data, c.memberId)}</Text>
+                          <Text style={{ fontSize: 11, color: C.muted }}>{ticketOf(c)} · {crop(c.cropId || "cacao").nom} · {fDate(c.date)}</Text>
+                        </View>
+                        <Text style={{ fontSize: 12.5, fontWeight: "700" }}>{fKg(c.kg)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </Card>
+            );
+          })}
+        </View>
+      )}
+      <View style={{ height: 20 }} />
+    </View>
+  );
+}
+
 export function DepensesPatron({ data, onBack, onAdd }: any) {
   // Les frais de tournée d'un pisteur/délégué ne sont pas des dépenses de la
   // coopérative (invariant 24) : le serveur ne les envoie plus, et ce filtre
@@ -1175,7 +1292,7 @@ export function DepensesPatron({ data, onBack, onAdd }: any) {
   );
 }
 
-export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile, onAudit, onDepenses, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
+export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile, onAudit, onDepenses, onLivraisons, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
   const co = data.coop || {};
   const patron = (data.staff || []).find((s: Staff) => s.role === "patron");
   const completeness = coopCompleteness(co, patron);
@@ -1223,6 +1340,20 @@ export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile,
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: "800", fontSize: 14 }}>Journal d&apos;audit</Text>
               <Text style={{ fontSize: 12, color: C.muted }}>Traçabilité des opérations financières</Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={C.muted} />
+          </Card>
+        </Pressable>
+      ) : null}
+      {onLivraisons ? (
+        <Pressable onPress={onLivraisons} testID="coop-livraisons">
+          <Card style={{ padding: 14, marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#E9F3EC", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="truck" size={19} color={C.green} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "800", fontSize: 14 }}>Livraisons des pisteurs</Text>
+              <Text style={{ fontSize: 12, color: C.muted }}>Poids déclaré, poids vérifié et écart, par pisteur</Text>
             </View>
             <Icon name="chevron-right" size={18} color={C.muted} />
           </Card>
@@ -1496,9 +1627,11 @@ export function PlanteurPrets({ member, data, onNew }: any) {
         <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>Prélevé automatiquement sur vos prochaines livraisons.</Text>
       </Card>
       <SaveBtn color={C.green} icon={<Icon name="plus" size={18} color="#fff" />} onPress={onNew} style={{ marginBottom: 18 }}>Demander une avance</SaveBtn>
-      <SectionTitle>Mes demandes</SectionTitle>
-      {list.length === 0 ? <Empty text="Vous n'avez pas encore fait de demande d'avance." /> : (
-        <View style={{ gap: 8 }}>{list.map((l: any) => <LoanRow key={l.id} loan={l} />)}</View>
+      <SectionTitle>Mes avances</SectionTitle>
+      {/* Chaque avance garde son origine : celle du patron et celle d'un
+          pisteur/délégué sont deux créances distinctes, jamais regroupées. */}
+      {list.length === 0 ? <Empty text="Vous n'avez pas encore reçu ni demandé d'avance." /> : (
+        <View style={{ gap: 8 }}>{list.map((l: any) => <LoanRow key={l.id} loan={l} par={origineAvance(data, l)} />)}</View>
       )}
       <View style={{ height: 20 }} />
     </View>

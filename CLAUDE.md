@@ -217,6 +217,25 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     **définitive** — sinon il retirerait sa marchandise de la file du magasin
     après coup. `aVerifier` exige la livraison : une collecte encore en tournée
     n'alerte personne et n'entre dans aucune file.
+    **La vérification porte sur la LIVRAISON, jamais sur un planteur.** Le
+    pisteur pèse chaque planteur au bord-champ, mais il remet **un chargement** :
+    le magasinier le pèse **une seule fois**, en une ou plusieurs fournées de
+    sacs, comme il veut. `Livraison.id` (posé par `livrerCollections`) regroupe
+    les collectes remises ensemble ; `livraisons(data, …)` en donne la vue
+    (`kgDeclare`, `kgVerifie`, `ecart`, `deficit`, `excedent`). Le détail par
+    planteur reste conservé pour la traçabilité, mais n'est plus une étape.
+    `repartirVerif` impute le poids global constaté sur les collectes du
+    chargement : cette quote-part n'est PAS une mesure, c'est l'imputation de
+    l'unique mesure. Elle laisse intactes les deux formules existantes — le
+    stock reste `Σ verif.kg` (donc exactement le poids pesé, jamais le déclaré,
+    jamais les deux additionnés) et l'écart reste valorisé au `prixKg` figé de
+    chaque collecte, ce qui revient au prix moyen pondéré du chargement. La
+    somme des quotes-parts est **exacte** (résidu d'arrondi sur la dernière) :
+    sans cela le stock différerait du poids réellement pesé.
+    **La validation n'efface rien.** La livraison vérifiée reste consultable par
+    le magasinier ET le patron (`HistoriqueLivraisons`) : pisteur, date et
+    heure, poids déclaré, poids vérifié, écart, détail des planteurs. Stock
+    **et** traçabilité, pas stock seul.
     Le magasinier vérifie avec **la procédure de pesée habituelle**
     (`usePesee` / `PeseeCorps`, partagés avec `PeseeSheet`) : même pavé, même
     tare par sac, mêmes pesées multiples. Seul le paiement est absent — une
@@ -293,6 +312,26 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     Les dépenses du **magasinier** et du **patron**, elles, restent celles de la
     coopérative — ils sont salariés.
 
+25. **Avance du patron et avance du pisteur : deux créances indépendantes.**
+    Un même planteur peut porter les deux. Le **créancier** d'une avance est le
+    pisteur qui l'a signée (`origine === "pisteur"`, `decidedBy`), sinon la
+    **coopérative** — patron et magasinier agissent pour elle
+    (`creancierAvance`, `creancierAgent`, `peutRecouvrer`).
+    - Chacun ne recouvre **que la sienne** : le FIFO de `addCollection` est
+      filtré par créancier, et `_check_recouvrements` le refuse côté serveur.
+      Sans ce filtre, le recouvrement d'un pisteur s'imputait à l'avance du
+      patron (plus ancienne) : la sienne restait intacte.
+    - L'existence de l'autre ne doit **jamais** bloquer. Le refus global qui
+      régnait (`delta["loans"]["updated"]` interdit aux agents) rejetait **tout
+      le PUT** de la pesée — collecte et paiement du planteur compris.
+    - Un recouvrement ne change que `soldeRestant` (à la baisse) et `status`
+      (→ `rembourse` à 0). **Approuver ou refuser reste au patron.**
+    - Les montants ne sont jamais additionnés ni fusionnés : `PeseeSheet`
+      affiche les avances de l'agent (recouvrables) et celles d'un autre
+      créancier séparément, ces dernières pour information seulement.
+    - Le planteur voit l'**origine** de chaque avance (`origineAvance`) :
+      « Patron » ou « Pisteur / Délégué — Nom ». Jamais regroupées.
+
 ## 5. Feuille de route
 
 ### Fait (voir l'historique git)
@@ -337,6 +376,13 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
   compte et n'entament plus son mandat.
 - **Purge des mouvements** dans l'espace admin : repartir d'une campagne vierge
   sans ressaisir les collaborateurs ni les planteurs.
+- **Vérification globale par livraison.** Cf. invariant 20 : le magasinier pèse
+  le chargement en une fois, plus planteur par planteur. Arbitrage retenu :
+  imputer le poids global sur les collectes (`repartirVerif`) plutôt que créer
+  une entité `livraisons` — le stock et la caisse gardent leurs formules, les
+  livraisons antérieures restent lisibles, et la surface de changement reste
+  minimale.
+- **Avances indépendantes par créancier.** Cf. invariant 25.
 
 ### Reste à faire
 - **Base des villages.** `src/coop/geo/` ne contient que districts, régions et

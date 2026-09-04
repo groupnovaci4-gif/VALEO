@@ -219,7 +219,13 @@ export const MomoBadge = ({ operator }: { operator: string }) => {
   );
 };
 
-export const LoanRow = ({ loan, name }: { loan: Loan; name?: string }) => {
+/**
+ * `par` : origine de l'avance (« Patron », « Pisteur / Délégué — Nom »).
+ *
+ * Le planteur doit savoir QUI lui a accordé chaque avance : celle du patron et
+ * celle d'un pisteur sont deux créances distinctes, jamais regroupées.
+ */
+export const LoanRow = ({ loan, name, par }: { loan: Loan; name?: string; par?: string }) => {
   const st = STATUS[loan.status];
   return (
     <View style={[styles.card, { padding: 13 }]}>
@@ -228,6 +234,9 @@ export const LoanRow = ({ loan, name }: { loan: Loan; name?: string }) => {
         {name ? <Text style={{ fontSize: 13, fontWeight: "700" }}>{name}</Text> : null}
         <Text style={{ marginLeft: "auto", fontWeight: "800", fontSize: 15 }}>{fF(loan.amount)}</Text>
       </View>
+      {par ? (
+        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Avance faite par : <Text style={{ fontWeight: "700", color: C.ink }}>{par}</Text></Text>
+      ) : null}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
         <Text style={{ fontSize: 12, color: C.muted, flexShrink: 1 }}>{loan.motif} · {fDate(loan.date)}</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: st.bg, paddingVertical: 4, paddingHorizontal: 9, borderRadius: 20 }}>

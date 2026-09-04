@@ -607,6 +607,51 @@ def _check_depenses_privees(stored: dict, incoming: dict, deletions: dict, coop_
             raise Forbidden(refus)
 
 
+def _loan_creancier(row: dict) -> str:
+    """Créancier d'une avance : le pisteur qui l'a signée, sinon la coopérative."""
+    if row.get("origine") == "pisteur" and row.get("decidedBy"):
+        return row["decidedBy"]
+    return "coop"
+
+
+def _check_recouvrements(delta: dict, me_id: str, role: str, actor: str) -> None:
+    """Un agent ne modifie une avance QUE pour en recouvrer une part.
+
+    Les avances du patron et celles d'un pisteur/délégué sont deux créances
+    indépendantes sur un même planteur. Chacun ne recouvre que la sienne, mais
+    l'existence de l'autre ne doit jamais l'en empêcher : le refus global qui
+    régnait ici rejetait TOUT le PUT de la pesée (403), donc aussi la collecte
+    et le paiement du planteur — le travail entier de l'agent était perdu.
+
+    Approuver ou refuser une demande reste l'affaire du patron : ici, seul le
+    solde restant peut baisser, et le statut ne peut que passer à « rembourse ».
+    """
+    mien = me_id if role == "pisteur" else "coop"
+    for before, after in delta["loans"]["updated"]:
+        if _loan_creancier(before) != mien:
+            raise Forbidden(
+                f"{actor} : vous ne pouvez recouvrer qu'une avance dont vous êtes le créancier."
+            )
+        if before.get("status") != "approuve":
+            raise Forbidden(f"{actor} : seule une avance approuvée peut être recouvrée.")
+        interdits = _changed_keys(before, after) - {"soldeRestant", "status"}
+        if interdits:
+            raise Forbidden(
+                f"{actor} : un recouvrement ne change que le solde restant "
+                f"(champs refusés : {sorted(interdits)})."
+            )
+        try:
+            avant = float(before.get("soldeRestant") or 0)
+            apres = float(after.get("soldeRestant") or 0)
+        except (TypeError, ValueError):
+            raise Forbidden(f"{actor} : solde restant illisible.")
+        if apres < 0 or apres >= avant:
+            raise Forbidden(f"{actor} : un recouvrement ne peut que faire baisser le solde restant.")
+        attendu = "rembourse" if apres == 0 else "approuve"
+        if after.get("status") != attendu:
+            raise Forbidden(f"{actor} : le statut d'une avance recouvrée doit rester « {attendu} ».")
+
+
 def _check_livraisons(delta: dict, me_id: str, actor: str) -> None:
     """Contrôle les livraisons au magasin déclarées par un pisteur.
 
@@ -773,8 +818,9 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
             raise Forbidden(f"{actor} : une dépense enregistrée ne peut plus être modifiée.")
         if delta["sorties"]["updated"]:
             raise Forbidden(f"{actor} : une sortie de magasin enregistrée ne peut plus être modifiée.")
-        if delta["loans"]["updated"]:
-            raise Forbidden(f"{actor} : seul le patron approuve ou refuse une avance.")
+        # Une avance ne se décide pas ici (approbation/refus = patron), mais un
+        # agent doit pouvoir RECOUVRER la sienne au fil d'une pesée.
+        _check_recouvrements(delta, me_id, role, actor)
         # Origine attendue selon le métier : le pisteur collecte au bord-champ
         # (son poids devra être vérifié au magasin), le magasinier pèse au
         # magasin. Sans ce contrôle, un pisteur déclarerait « magasin » et son

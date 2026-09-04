@@ -24,7 +24,10 @@ import {
   Staff,
   makeTicket,
   migrate,
+  livraisonKey,
   nextTicketSeq,
+  peutRecouvrer,
+  repartirVerif,
   seed,
   ticketOf,
   uid,
@@ -284,8 +287,14 @@ export function useCoopData() {
       repayAudit = repayAmt;
       if (repayAmt > 0) {
         let left = repayAmt;
+        // Cloisonnement par créancier : un pisteur ne recouvre QUE les avances
+        // qu'il a lui-même accordées. Sans ce filtre, le FIFO par date imputait
+        // son recouvrement à l'avance du patron (plus ancienne) : son avance à
+        // lui restait intacte, et il semblait ne pas pouvoir la recouvrer.
+        const roleAgent = (d.staff || []).find((x) => x.id === rec.byStaffId)?.role;
         const active = loans
           .filter((l) => l.memberId === rec.memberId && l.status === "approuve" && l.soldeRestant > 0)
+          .filter((l) => peutRecouvrer(l, rec.byStaffId, roleAgent))
           .sort((a, b) => +new Date(a.date) - +new Date(b.date));
         const applied: Record<string, number> = {};
         for (const l of active) {
@@ -394,6 +403,9 @@ export function useCoopData() {
     setData((d) => {
       if (!d) return d;
       const date = new Date().toISOString();
+      // Un seul identifiant pour tout le chargement : c'est lui l'unité que le
+      // magasinier vérifiera, en UNE pesée globale.
+      const livId = uid();
       let n = 0;
       let kg = 0;
       const collections = d.collections.map((c) => {
@@ -401,7 +413,7 @@ export function useCoopData() {
         if (!cibles.has(c.id) || c.byStaffId !== byStaffId || (c.livraison && c.livraison.date)) return c;
         n += 1;
         kg += Number(c.kg) || 0;
-        return { ...c, livraison: { date, byStaffId } };
+        return { ...c, livraison: { id: livId, date, byStaffId } };
       });
       if (n === 0) return d;
       livrees = { n, kg };
@@ -420,19 +432,32 @@ export function useCoopData() {
    * remis au planteur) : la vérification s'ajoute à côté. C'est elle qui
    * décide du poids entrant en magasin.
    */
-  const verifyCollection = useCallback((collectionId: string, kg: number, byStaffId: string, note?: string) => {
-    let done: { memberId: string; declare: number } | null = null;
+  const verifyLivraison = useCallback((livId: string, kgGlobal: number, byStaffId: string, note?: string) => {
+    let done: { pisteurId: string; declare: number; n: number } | null = null;
     setData((d) => {
       if (!d) return d;
-      const cur = d.collections.find((c) => c.id === collectionId);
-      if (!cur || (cur.verif && cur.verif.byStaffId)) return d; // déjà vérifiée
-      done = { memberId: cur.memberId, declare: cur.kg };
-      const verif = { kg, byStaffId, date: new Date().toISOString(), note: note || "" };
-      return { ...d, collections: d.collections.map((c) => (c.id === collectionId ? { ...c, verif } : c)) };
+      const cible = d.collections.filter((c) => livraisonKey(c) === livId);
+      if (cible.length === 0 || cible.some((c) => c.verif && c.verif.byStaffId)) return d; // déjà vérifiée
+      // UNE pesée globale, répartie sur les collectes du chargement : le stock
+      // vaut exactement le poids constaté, et l'écart reste valorisé au prix
+      // figé de chaque collecte (cf. `repartirVerif`).
+      const parts = repartirVerif(cible, kgGlobal);
+      const quotePart = new Map(cible.map((c, i) => [c.id, parts[i]]));
+      const date = new Date().toISOString();
+      done = { pisteurId: cible[0].byStaffId, declare: cible.reduce((s, c) => s + (Number(c.kg) || 0), 0), n: cible.length };
+      const collections = d.collections.map((c) =>
+        quotePart.has(c.id)
+          ? { ...c, verif: { kg: quotePart.get(c.id)!, byStaffId, date, note: note || "" } }
+          : c,
+      );
+      return { ...d, collections };
     });
     if (done) {
       const info: any = done;
-      logAudit("verification_poids", { collectionId, memberId: info.memberId, declare: info.declare, verifie: kg, ecart: kg - info.declare, note: note || "" });
+      logAudit("verification_livraison", {
+        livraisonId: livId, pisteurId: info.pisteurId, collectes: info.n,
+        declare: info.declare, verifie: kgGlobal, ecart: kgGlobal - info.declare, note: note || "",
+      });
     }
   }, [logAudit]);
 
@@ -626,7 +651,7 @@ export function useCoopData() {
     livrerCollections,
     approveLoan,
     refuseLoan,
-    verifyCollection,
+    verifyLivraison,
     updateMember,
     deleteMember,
     updateStaff,

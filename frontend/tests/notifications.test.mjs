@@ -79,20 +79,21 @@ const LIVREE = { date: "2026-02-02T08:00:00.000Z", byStaffId: "pis" };
 test("une livraison à vérifier alerte le patron ET le magasinier", () => {
   const d = etat([col("c1", "pis", 1000, { origine: "bord_champ", livraison: LIVREE })]);
 
-  const pat = buildNotifications(d, SESSION.patron).items.find((i) => i.id === "vfc1");
+  // L'alerte porte désormais sur le CHARGEMENT, pas sur la collecte.
+  const pat = buildNotifications(d, SESSION.patron).items.find((i) => i.id.startsWith("vf"));
   assert.ok(pat, "le patron doit savoir qu'un poids attend une vérification");
   assert.equal(pat.kind, "action");
   assert.match(pat.sub, /Yao/, "l'alerte nomme le pisteur");
   assert.match(pat.sub, /1 000 kg/);
 
-  const mag = buildNotifications(d, SESSION.magasinier).items.find((i) => i.id === "vfc1");
+  const mag = buildNotifications(d, SESSION.magasinier).items.find((i) => i.id.startsWith("vf"));
   assert.ok(mag, "le magasinier doit savoir qu'il a une pesée à faire");
   assert.equal(mag.kind, "action");
 });
 
 test("l'alerte disparaît une fois la vérification faite", () => {
   const d = etat([col("c1", "pis", 1000, { origine: "bord_champ", livraison: LIVREE, verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
-  assert.equal(buildNotifications(d, SESSION.magasinier).items.some((i) => i.id === "vfc1"), false);
+  assert.equal(buildNotifications(d, SESSION.magasinier).items.some((i) => i.id.startsWith("vf")), false);
 });
 
 test("une collecte encore en tournée n'alerte personne", () => {
@@ -120,13 +121,13 @@ test("le pisteur n'est pas alerté de sa propre livraison", () => {
 
 test("le patron est informé d'un manquant et d'un poids plus", () => {
   const manque = etat([col("c1", "pis", 1000, { origine: "bord_champ", livraison: LIVREE, verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
-  const m = buildNotifications(manque, SESSION.patron).items.find((i) => i.id === "ecc1");
+  const m = buildNotifications(manque, SESSION.patron).items.find((i) => i.id.startsWith("ec"));
   assert.equal(m.title, "Manquant après vérification");
   assert.match(m.sub, /1 000 kg → 980 kg \(-20 kg\)/);
   assert.equal(m.kind, "info", "constat, pas action : la caisse est déjà ajustée");
 
   const plus = etat([col("c1", "pis", 980, { origine: "bord_champ", livraison: LIVREE, verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
-  const p = buildNotifications(plus, SESSION.patron).items.find((i) => i.id === "ecc1");
+  const p = buildNotifications(plus, SESSION.patron).items.find((i) => i.id.startsWith("ec"));
   assert.equal(p.title, "Poids plus constaté");
   assert.match(p.sub, /\(\+20 kg\)/);
 });
@@ -215,4 +216,21 @@ test("le pisteur n'est informé que des restes qu'il a lui-même soldés", () =>
   assert.match(soldes[0].sub, /Kouassi/);
   // Le patron, lui, voit les deux mouvements de caisse.
   assert.equal(buildNotifications(d, SESSION.patron).items.filter((i) => i.title.startsWith("Reste soldé")).length, 2);
+});
+
+test("un chargement de 3 planteurs ne déclenche QU'UNE alerte", () => {
+  // C'est tout l'objet de la vérification globale : le magasinier ne doit pas
+  // voir trois lignes à vérifier pour un seul camion.
+  const LIV = { id: "liv-1", date: "2026-02-02T08:00:00.000Z", byStaffId: "pis" };
+  const d = etat([
+    col("cA", "pis", 850, { origine: "bord_champ", livraison: LIV }),
+    col("cB", "pis", 1200, { origine: "bord_champ", memberId: "m2", livraison: LIV }),
+    col("cC", "pis", 1500, { origine: "bord_champ", livraison: LIV }),
+  ]);
+  for (const s of [SESSION.patron, SESSION.magasinier]) {
+    const vf = buildNotifications(d, s).items.filter((i) => i.id.startsWith("vf"));
+    assert.equal(vf.length, 1, "une seule livraison, une seule alerte");
+    assert.match(vf[0].sub, /3 planteurs/);
+    assert.match(vf[0].sub, /3 550 kg/, "le poids annoncé est le total du chargement");
+  }
 });
