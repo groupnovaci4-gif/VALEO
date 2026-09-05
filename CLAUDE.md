@@ -49,6 +49,10 @@ Fichiers clés du frontend (`frontend/src/coop/`) :
 Endpoints backend : `GET/PUT /api/state`, `POST /api/auth/coop/login`,
 `POST /api/auth/planteur/login`, `POST /api/auth/register`, `GET/POST /api/audit`,
 `/api/admin/*` (+ tableau de bord HTML admin intégré dans `server.py`).
+Côté administration : `GET/PUT /api/admin/state`, `POST /api/admin/set-secret`,
+`GET /api/admin/audit`, `POST /api/admin/purge-mouvements`, `POST
+/api/admin/login`, `POST /api/admin/change-password`. **Tous** exigent le jeton
+administrateur (`require_admin`) : aucun jeton d'application ne les atteint.
 Dont `POST /api/admin/purge-mouvements` : efface les **mouvements** d'une
 coopérative (`MOVEMENT_ARRAYS` + journal d'audit) en conservant les **acteurs**
 — coopératives, collaborateurs, planteurs, réglages et codes secrets. Réservé au
@@ -341,6 +345,41 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     - Le planteur voit l'**origine** de chaque avance (`origineAvance`) :
       « Patron » ou « Pisteur / Délégué — Nom ». Jamais regroupées.
 
+26. **L'espace Admin écrit dans la MÊME base, avec la même discipline.**
+    C'est une interface de contrôle, pas un écran de consultation : `GET
+    /api/admin/state` lit l'état réel, et `PUT /api/admin/state` passe par
+    `merge_admin_state`, calqué sur `merge_state` (invariant 3).
+    - Il remplaçait le document **entier** par la copie chargée dans le
+      navigateur : toute écriture faite depuis un téléphone entre l'affichage
+      de la page et l'enregistrement était **silencieusement détruite**. C'est
+      la perte de mise à jour que B2 avait corrigée côté application.
+    - Une absence n'est pas une suppression : seule la liste `deletions`
+      supprime. Le tableau de bord l'alimente à chaque « Supprimer ».
+    - Une ligne renvoyée **à l'identique** garde sa version stockée : un écran
+      périmé ne réécrit pas ce qu'il n'a pas modifié. Une ligne réellement
+      modifiée est **remplacée en entier** — l'admin voit la fiche complète,
+      donc retirer un champ (réactiver un compte) doit vraiment l'effacer, là
+      où un téléphone n'aurait pas le droit de le faire. Les compteurs (`seq`,
+      `memberSeq`) ne redescendent jamais.
+    - Les **barèmes** se posent sur `coops[].prices` / `commissions`, là où
+      l'application les lit. Les écrire dans les anciens champs globaux
+      `state.prixKg` / `commissionRate` n'avait aucun effet sur les téléphones
+      et débordait sur les autres coopératives. La **campagne** reste commune.
+    - **Les empreintes `pin` ne partent pas non plus vers l'admin** (invariant
+      5 : pour aucun rôle). Un booléen dérivé `aSecret` dit si le compte a un
+      code ; il est calculé à la lecture et **jamais stocké**. Le propriétaire
+      pose ou réinitialise un secret par `POST /api/admin/set-secret`, haché
+      côté serveur — un compte créé depuis l'admin n'avait sinon aucun moyen
+      de se connecter.
+    - **Désactivation** : `desactive: true` sur un `staff` ou un `member`
+      refuse la connexion (403) alors même que le secret est bon. Contrôlé
+      **à la connexion, côté serveur** ; le champ n'appartient à aucun
+      ensemble modifiable par l'application, donc aucun rôle ne peut lever sa
+      propre désactivation.
+    - `GET /api/admin/audit` lit le **même** journal que `/api/audit` : l'admin
+      n'a pas sa propre trace, il lit celle de l'application (acteur et
+      horodatage posés par le serveur).
+
 ## 5. Feuille de route
 
 ### Fait (voir l'historique git)
@@ -392,6 +431,10 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
   livraisons antérieures restent lisibles, et la surface de changement reste
   minimale.
 - **Avances indépendantes par créancier.** Cf. invariant 25.
+- **Espace Admin réellement synchronisé.** Cf. invariant 26 : fusion par
+  enregistrement au lieu du remplacement en bloc, barèmes écrits là où l'app
+  les lit, gestion des comptes (code secret, désactivation, suppression),
+  journal d'activité, et les empreintes ne quittent plus le serveur.
 
 ### Reste à faire
 - **Base des villages.** `src/coop/geo/` ne contient que districts, régions et

@@ -126,6 +126,13 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class AdminStateBody(BaseModel):
+    data: dict
+    # Suppressions explicites : sans elles, une ligne absente de la charge
+    # utile serait conservée (une absence n'est pas une suppression).
+    deletions: dict = {}
+
+
 class StateBody(BaseModel):
     data: dict
     # Suppressions explicites {entite: [id, ...]}. Sans cette liste, un
@@ -954,6 +961,12 @@ async def coop_login(body: CoopLoginBody):
     if not s or not verify_secret(body.secret, s.get("pin")):
         await note_login_failure(key)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects")
+    # Compte désactivé depuis l'espace d'administration : le secret est
+    # peut-être bon, l'accès ne l'est plus. Contrôlé ICI, côté serveur : une
+    # restriction d'interface n'empêcherait rien.
+    if s.get("desactive"):
+        await note_login_failure(key)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ce compte est désactivé. Contactez votre coopérative.")
     await note_login_success(key)
     claims = {"sub": s["id"], "coopId": s.get("coopId"), "role": s.get("role"), "side": "coop"}
     return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, s.get("coopId"), claims)}
@@ -972,6 +985,9 @@ async def planteur_login(body: PlanteurLoginBody):
     if not m or not verify_secret(body.pin, m.get("pin")):
         await note_login_failure(key)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects")
+    if m.get("desactive"):
+        await note_login_failure(key)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ce compte est désactivé. Contactez votre coopérative.")
     await note_login_success(key)
     claims = {"sub": m["id"], "coopId": m.get("coopId"), "side": "planteur"}
     return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, m.get("coopId"), claims)}
@@ -1060,13 +1076,151 @@ async def admin_change_password(body: ChangePwdRequest, _: dict = Depends(requir
 
 @app.get("/api/admin/state")
 async def admin_get_state(_: dict = Depends(require_admin)):
-    return await load_state()
+    """État complet, **sans les empreintes de codes secrets**.
+
+    Elles ne quittent le serveur pour personne (invariant 5) — le propriétaire
+    du projet compris : les envoyer au navigateur de l'admin les exposerait
+    dans une page web sans rien lui permettre de plus. Il pose ou réinitialise
+    un secret par `/api/admin/set-secret`, jamais en le lisant.
+    """
+    state = await load_state()
+    out = dict(state)
+    for e in ENTITY_ARRAYS:
+        rows = []
+        for x in (state.get(e) or []):
+            if not isinstance(x, dict):
+                rows.append(x)
+                continue
+            row = _strip_secrets(x)
+            if e in ("staff", "members"):
+                # Booléen DÉRIVÉ : dire si le compte a un code, sans livrer
+                # l'empreinte. Sans lui, l'admin ne pourrait plus distinguer un
+                # compte utilisable d'un compte qui n'a jamais reçu de secret.
+                row["aSecret"] = bool(x.get("pin"))
+            rows.append(row)
+        out[e] = rows
+    return out
+
+
+def merge_admin_state(stored: dict, incoming: dict, deletions: Optional[dict] = None) -> dict:
+    """Fusionne l'écriture de l'espace d'administration, enregistrement par
+    enregistrement — exactement la discipline de `merge_state` (invariant 3).
+
+    L'admin remplaçait le document ENTIER par la copie chargée dans son
+    navigateur : toute écriture faite depuis un téléphone entre l'affichage de
+    la page et l'enregistrement était **silencieusement détruite** (une pesée,
+    un paiement). C'est la perte de mise à jour que B2 avait corrigée côté
+    application, restée ouverte ici.
+
+    Règles :
+    - un enregistrement absent de la charge utile n'est PAS supprimé (seule la
+      liste `deletions` supprime) : ce qui est arrivé entre-temps survit ;
+    - un enregistrement renvoyé **à l'identique** garde sa version stockée : un
+      écran périmé ne réécrit pas ce qu'il n'a pas modifié ;
+    - un enregistrement réellement modifié par l'admin gagne, horodaté par le
+      SERVEUR pour que l'application le reprenne à sa prochaine synchro ;
+    - le `coopId` d'une ligne existante n'est jamais déplacé (isolation).
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    deletions = deletions or {}
+    out = dict(stored)
+
+    for e in ENTITY_ARRAYS:
+        merged = _rows_by_id(stored.get(e))
+        entrantes = _rows_by_id(incoming.get(e))
+        # `aSecret` est calculé à la lecture : il ne doit jamais être stocké,
+        # sinon il figerait une information dérivée dans la base.
+        for row in entrantes.values():
+            row.pop("aSecret", None)
+        for rid, row in entrantes.items():
+            before = merged.get(rid)
+            if before is None:
+                merged[rid] = {**row, "updatedAt": now}
+            elif _changed_keys(_strip_secrets(before), row):
+                # Remplacement COMPLET de l'enregistrement : contrairement à un
+                # téléphone, l'admin reçoit la fiche entière, donc retirer un
+                # champ (réactiver un compte en ôtant `desactive`) doit
+                # réellement l'effacer. Une fusion par étalement l'aurait gardé.
+                # Les seuls champs qu'il ne voit pas — les empreintes — sont
+                # reportés depuis le stocké pour ne pas être perdus.
+                secrets = {k: v for k, v in before.items() if k in SECRET_FIELDS}
+                merged[rid] = {**row, **secrets, "coopId": before.get("coopId", row.get("coopId")), "updatedAt": now}
+        for rid in deletions.get(e) or []:
+            merged.pop(rid, None)
+        out[e] = list(merged.values())
+
+    # Coopératives : même fusion par identifiant.
+    coops = {c.get("id"): c for c in (stored.get("coops") or []) if isinstance(c, dict)}
+    for c in incoming.get("coops") or []:
+        if not isinstance(c, dict) or not c.get("id"):
+            continue
+        before = coops.get(c["id"])
+        coops[c["id"]] = {**before, **c} if before else c
+    for rid in deletions.get("coops") or []:
+        coops.pop(rid, None)
+    out["coops"] = list(coops.values())
+
+    # Réglages généraux : l'admin fait foi, sauf les compteurs qui ne
+    # redescendent jamais (deux bordereaux au même numéro sinon).
+    for k in ("saison", "prixKg", "commissionRate", "coop", "priceHistory", "prices", "commissions"):
+        if k in incoming:
+            out[k] = incoming[k]
+    for k in ("seq", "memberSeq"):
+        try:
+            out[k] = max(int(stored.get(k, 1) or 1), int(incoming.get(k, 1) or 1))
+        except (TypeError, ValueError):
+            out[k] = stored.get(k, 1)
+    return out
 
 
 @app.put("/api/admin/state")
-async def admin_put_state(body: StateBody, _: dict = Depends(require_admin)):
-    await save_state(body.data)
+async def admin_put_state(body: AdminStateBody, _: dict = Depends(require_admin)):
+    stored = await load_state()
+    await save_state(merge_admin_state(stored, body.data, body.deletions))
     return {"ok": True}
+
+
+class AdminSecretBody(BaseModel):
+    kind: str          # "staff" | "members"
+    id: str
+    secret: str
+
+
+@app.post("/api/admin/set-secret")
+async def admin_set_secret(body: AdminSecretBody, _: dict = Depends(require_admin)):
+    """Pose ou réinitialise le code secret d'un collaborateur ou d'un planteur.
+
+    Un compte créé depuis l'admin n'avait aucun moyen d'obtenir un secret : il
+    ne pouvait donc jamais se connecter. Le hachage reste fait ici
+    (PBKDF2-HMAC-SHA256, invariant 19) — aucun secret en clair ne transite ni
+    n'est stocké, et l'empreinte ne repart jamais vers un client (invariant 5).
+    """
+    if body.kind not in ("staff", "members"):
+        raise HTTPException(status_code=400, detail="kind doit valoir « staff » ou « members »")
+    secret = (body.secret or "").strip()
+    if len(secret) < 4:
+        raise HTTPException(status_code=400, detail="Le code secret doit contenir au moins 4 caractères")
+    state = await load_state()
+    rows = state.get(body.kind) or []
+    cible = next((x for x in rows if isinstance(x, dict) and x.get("id") == body.id), None)
+    if cible is None:
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+    cible["pin"] = make_pin_record(secret)
+    cible["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    await save_state(state)
+    return {"ok": True}
+
+
+@app.get("/api/admin/audit")
+async def admin_audit(coopId: Optional[str] = None, _: dict = Depends(require_admin)):
+    """Journal d'activité, vu par le propriétaire du projet.
+
+    Même collection que `/api/audit` (acteur et horodatage posés par le
+    serveur) : l'admin n'a pas son propre journal, il lit celui de l'app.
+    """
+    filtre = {"coopId": coopId} if coopId else {}
+    cur = db.audit.find(filtre, {"_id": 0}).sort("at", -1).limit(300)
+    return await cur.to_list(length=300)
 
 
 class PurgeBody(BaseModel):
@@ -1262,33 +1416,55 @@ async function load(){
     render();
   }catch(e){ if((""+e).includes("401")) return; }
 }
-async function persist(){ await api("/api/admin/state",{method:"PUT",body:JSON.stringify({data:state})}); render(); }
+// Suppressions explicites : cote serveur, une ligne absente de la charge utile
+// est CONSERVEE (une absence n'est pas une suppression). Sans cette liste, un
+// « Supprimer » n'aurait aucun effet.
+let pendingDeletions={};
+function markDeleted(arr,id){ if(!id) return; (pendingDeletions[arr]=pendingDeletions[arr]||[]).push(id); }
+async function persist(){
+  const del=pendingDeletions; pendingDeletions={};
+  try{ await api("/api/admin/state",{method:"PUT",body:JSON.stringify({data:state,deletions:del})}); }
+  catch(e){ pendingDeletions=del; alert("Enregistrement refuse : "+e); throw e; }
+  await load();   // on repart de la verite du serveur, jamais de l'ecran
+}
 
 const name = id => (state.members.find(m=>m.id===id)||{}).nom || (state.staff.find(s=>s.id===id)||{}).nom || "—";
 
 const SCHEMAS = {
-  members:{title:"Planteurs",arr:"members",cols:["code","nom","village","tel","cropId"],fields:[
+  members:{title:"Planteurs",arr:"members",compte:true,cols:["code","nom","village","tel","cropId","_statut"],fields:[
     {k:"nom",l:"Nom & prénoms"},{k:"code",l:"Code"},{k:"village",l:"Localité"},{k:"idNumber",l:"Pièce d'identité"},
     {k:"superficie",l:"Superficie (ha)",t:"number"},{k:"cropId",l:"Culture",opt:["cacao","cafe","anacarde","hevea"]},{k:"tel",l:"Téléphone"}]},
-  staff:{title:"Équipe",arr:"staff",cols:["nom","role","fonction","tel"],fields:[
+  staff:{title:"Équipe",arr:"staff",compte:true,cols:["nom","role","fonction","tel","email","_statut"],fields:[
     {k:"nom",l:"Nom (affiché)"},{k:"prenoms",l:"Prénoms"},{k:"role",l:"Rôle",opt:["patron","commis","pisteur"]},
     {k:"fonction",l:"Fonction"},{k:"tel",l:"Téléphone"},{k:"email",l:"Email"},{k:"idNumber",l:"Pièce d'identité"}]},
-  collections:{title:"Collectes",arr:"collections",cols:["seq","_member","kg","net","paye","reste","method"],fields:[
+  collections:{title:"Collectes",arr:"collections",cols:["_date","seq","_member","_agent","kg","net","paye","reste","method"],fields:[
     {k:"memberId",l:"Planteur",ref:"members"},{k:"byStaffId",l:"Agent",ref:"staff"},{k:"kg",l:"Poids (kg)",t:"number"},
     {k:"prixKg",l:"Prix/kg",t:"number"},{k:"paye",l:"Payé",t:"number"},
     {k:"method",l:"Paiement",opt:["espece","momo"]}]},
-  loans:{title:"Avances",arr:"loans",cols:["_member","type","amount","status","soldeRestant"],fields:[
+  loans:{title:"Avances",arr:"loans",cols:["_date","_member","type","amount","status","soldeRestant","origine"],fields:[
     {k:"memberId",l:"Planteur",ref:"members"},{k:"type",l:"Type",opt:["intrant","argent"]},{k:"amount",l:"Montant",t:"number"},
     {k:"motif",l:"Motif"},{k:"status",l:"Statut",opt:["en_attente","approuve","refuse","rembourse"]},{k:"soldeRestant",l:"Solde restant",t:"number"}]},
-  mandats:{title:"Mandats",arr:"mandats",cols:["_pisteur","amount","note"],fields:[
+  mandats:{title:"Mandats",arr:"mandats",cols:["_date","_pisteur","amount","note"],fields:[
     {k:"pisteurId",l:"Pisteur",ref:"staff"},{k:"amount",l:"Montant",t:"number"},{k:"note",l:"Note"}]},
-  depenses:{title:"Dépenses",arr:"depenses",cols:["_pisteur","category","amount","note"],fields:[
+  depenses:{title:"Dépenses",arr:"depenses",cols:["_date","_pisteur","category","amount","note"],fields:[
     {k:"pisteurId",l:"Pisteur",ref:"staff"},{k:"category",l:"Catégorie"},{k:"amount",l:"Montant",t:"number"},{k:"note",l:"Note"}]},
-  sorties:{title:"Sorties magasin",arr:"sorties",cols:["cropId","kg","type","_agent","destinataire"],fields:[
+  sorties:{title:"Sorties magasin",arr:"sorties",cols:["_date","cropId","kg","type","_agent","destinataire"],fields:[
     {k:"cropId",l:"Produit",opt:["cacao","cafe","anacarde","hevea","palmier"]},{k:"kg",l:"Poids (kg)",t:"number"},
     {k:"type",l:"Motif",opt:["expedition","vente","transfert","perte"]},{k:"byStaffId",l:"Agent",ref:"staff"},
     {k:"destinataire",l:"Destinataire"},{k:"note",l:"Note"}]},
+  settlements:{title:"Restes payés",arr:"settlements",cols:["_date","_member","_agent","amount","method"],fields:[
+    {k:"memberId",l:"Planteur",ref:"members"},{k:"byStaffId",l:"Agent",ref:"staff"},
+    {k:"amount",l:"Montant",t:"number"},{k:"method",l:"Paiement",opt:["espece","momo"]}]},
 };
+
+// En-têtes lisibles : la table affichait les noms de champs bruts
+// (« SOLDERESTANT », « CROPID », « _AGENT »).
+const LABELS={_date:"Date",_member:"Planteur",_pisteur:"Pisteur",_agent:"Agent",_statut:"Statut",
+  code:"Code",nom:"Nom",village:"Localité",tel:"Téléphone",email:"E-mail",role:"Rôle",fonction:"Fonction",
+  cropId:"Produit",seq:"N°",kg:"Poids",net:"Net",paye:"Payé",reste:"Reste dû",method:"Paiement",
+  type:"Type",amount:"Montant",status:"Statut",soldeRestant:"Reste à recouvrer",origine:"Origine",
+  category:"Catégorie",note:"Note",destinataire:"Destinataire"};
+const fDate=v=>{ if(!v) return "—"; const d=new Date(v); return isNaN(d)?"—":d.toLocaleDateString("fr-FR")+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}); };
 
 function render(){
   const list = coopList();
@@ -1307,9 +1483,10 @@ function render(){
     <button class="ghost" onclick="backToCoops()">← Coopératives</button>
     <div style="display:flex;align-items:center;gap:8px"><span class="muted" style="font-size:13px">Coopérative :</span>
     <select onchange="enterCoop(this.value)" style="min-width:200px">${opts}</select></div></div>`;
-  const tabs = [["settings","Réglages"],...Object.entries(SCHEMAS).map(([k,s])=>[k,s.title])];
+  const tabs = [["settings","Réglages"],...Object.entries(SCHEMAS).map(([k,s])=>[k,s.title]),["activite","Activité"]];
   $("tabs").innerHTML = bar + tabs.map(([k,l])=>`<button class="tab ${current===k?'on':''}" onclick="go('${k}')">${l}</button>`).join("");
-  $("panel").innerHTML = current==="settings"? settingsPanel() : entityPanel(current);
+  if(current==="activite"){ $("panel").innerHTML = `<div class="card muted">Chargement du journal…</div>`; renderActivite(); }
+  else $("panel").innerHTML = current==="settings"? settingsPanel() : entityPanel(current);
 }
 function renderCoopsHome(list){
   $("sub").textContent = list.length+" coopérative"+(list.length>1?"s":"");
@@ -1327,9 +1504,40 @@ function renderCoopsHome(list){
   }).join("");
   $("panel").innerHTML = cards || `<div class="card muted">Aucune coopérative.</div>`;
 }
-function enterCoop(id){ currentCoop=id; if(current!=="settings"&&!SCHEMAS[current]) current="settings"; render(); }
+// Journal d'activite : la MEME collection que celle de l'application
+// (`/api/audit`), dont l'acteur et l'horodatage sont poses par le serveur.
+const AUDIT_LIB={pesee:"Pesée / paiement",solde:"Reste dû payé",avance_approuvee:"Avance accordée",
+  avance_refusee:"Avance refusée",livraison_magasin:"Livraison au magasin",
+  verification_livraison:"Vérification de livraison"};
+async function renderActivite(){
+  let items=[];
+  try{ items = await api("/api/admin/audit?coopId="+encodeURIComponent(currentCoop||"")); }
+  catch(e){ $("panel").innerHTML=`<div class="card muted">Journal indisponible : ${e}</div>`; return; }
+  const rows = items.map(e=>{
+    const m=e.meta||{};
+    const detail=[m.memberId?name(m.memberId):"", m.kg!=null?(m.kg+" kg"):"", m.amount!=null?fF(m.amount):"",
+      m.declare!=null?(m.declare+" kg → "+m.verifie+" kg"):"", m.note||""].filter(Boolean).join(" · ");
+    return `<tr><td>${fDate(e.at)}</td><td>${AUDIT_LIB[e.action]||e.action}</td>
+      <td>${name(e.actorId)||e.actorRole||"—"}</td><td>${detail||"—"}</td></tr>`;
+  }).join("");
+  $("panel").innerHTML = `<div class="card"><div class="toolbar"><h3 style="margin:0">Activité (${items.length})</h3>
+    <button class="ghost" onclick="renderActivite()">↻ Actualiser</button></div>
+    <p class="muted">Journal des opérations de l'application. L'acteur et l'horodatage sont posés par le serveur : ils ne sont pas modifiables depuis un téléphone.</p>
+    <div style="overflow:auto"><table><tr><th>Date</th><th>Opération</th><th>Par</th><th>Détail</th></tr>
+    ${rows||`<tr><td colspan="4" class="muted" style="padding:16px;text-align:center">Aucune opération enregistrée.</td></tr>`}</table></div></div>`;
+}
+function enterCoop(id){ currentCoop=id; if(current!=="settings"&&current!=="activite"&&!SCHEMAS[current]) current="settings"; render(); }
 function backToCoops(){ currentCoop=null; render(); }
 function go(k){ current=k; render(); }
+
+// Mêmes valeurs de repli que `DEFAULT_PRICES` / `DEFAULT_COMM` (frontend
+// `lib.ts`) : une coopérative neuve n'a pas encore de barème enregistré, et
+// l'application les dérive à la lecture (invariant 23).
+const FILIERES_PRIX=[["cacao","Cacao"],["cafe","Café"],["anacarde","Anacarde"],["hevea","Hévéa"]];
+const PRIX_DEFAUT={cacao:1800,cafe:1500,anacarde:500,hevea:400,palmier:100};
+const COM_DEFAUT={cacao:25,cafe:25,anacarde:20,hevea:15,palmier:10};
+const prixCoop=(co,id)=>((co&&co.prices&&co.prices[id]!=null)?co.prices[id]:(PRIX_DEFAUT[id]!=null?PRIX_DEFAUT[id]:0));
+const comCoop=(co,id)=>((co&&co.commissions&&co.commissions[id]!=null)?co.commissions[id]:(COM_DEFAUT[id]!=null?COM_DEFAUT[id]:0));
 
 const COOP_TYPES=["Société coopérative simplifiée (SCOOPS)","Coopérative avec conseil d'administration (COOP-CA)","Union de coopératives","Fédération / Confédération","Autre"];
 const FILIERES=[["cacao","Cacao"],["cafe","Café"],["anacarde","Anacarde"],["hevea","Hévéa"]];
@@ -1370,12 +1578,14 @@ function settingsPanel(){
     </div>
     <button class="green" style="margin-top:16px" onclick="saveSettings()">Enregistrer l'identité</button>
   </div>
-  <div class="card"><h3>Campagne & tarifs</h3>
-    <div class="row">
-      <div><label>Campagne</label><input id="s_saison" value="${esc(state.saison)}"/></div>
-      <div><label>Prix bord champ (F/kg)</label><input id="s_prix" type="number" value="${state.prixKg||0}"/></div>
-      <div><label>Commission pisteur (F/kg)</label><input id="s_com" type="number" value="${state.commissionRate||0}"/></div>
-    </div>
+  <div class="card"><h3>Campagne & barèmes</h3>
+    <p class="muted">Les barèmes sont propres à CETTE coopérative — ce sont ceux que lisent les téléphones.
+    La campagne, elle, est commune à toutes les coopératives.</p>
+    <div class="row"><div><label>Campagne (commune)</label><input id="s_saison" value="${esc(state.saison)}"/></div></div>
+    <div class="row">${FILIERES_PRIX.map(([id,l])=>`
+      <div><label>${l} — prix (F/kg)</label><input id="s_prix_${id}" type="number" value="${prixCoop(co,id)}"/></div>`).join("")}</div>
+    <div class="row">${FILIERES_PRIX.map(([id,l])=>`
+      <div><label>${l} — commission (F/kg)</label><input id="s_com_${id}" type="number" value="${comCoop(co,id)}"/></div>`).join("")}</div>
     <button class="green" style="margin-top:14px" onclick="saveSettings()">Enregistrer</button>
   </div>
   <div class="card"><h3>Sécurité — Mot de passe administrateur</h3>
@@ -1408,15 +1618,29 @@ async function changePassword(){
 }
 async function saveSettings(){
   const co=curCoopObj(); const g=id=>{const e=$(id);return e?e.value:undefined;};
-  const newPrix = +$("s_prix").value||0;
-  if(newPrix!==state.prixKg){ state.priceHistory=[...(state.priceHistory||[]),{date:new Date().toISOString(),prixKg:newPrix}]; }
+  // Les baremes se posent sur la FICHE COOP : c'est la que l'application les
+  // lit (`priceOf` / `commOf` via `coops[].prices`). Les ecrire dans les
+  // anciens champs globaux `state.prixKg` / `state.commissionRate` n'avait
+  // aucun effet sur les telephones — et debordait sur les autres cooperatives.
+  const prices={...(co.prices||{})}, commissions={...(co.commissions||{})};
+  FILIERES_PRIX.forEach(([id])=>{
+    const p=$("s_prix_"+id), c=$("s_com_"+id);
+    if(p) prices[id]=+p.value||0;
+    if(c) commissions[id]=+c.value||0;
+  });
+  const avant=(co.prices||{}).cacao;
+  if(prices.cacao!==avant){ state.priceHistory=[...(state.priceHistory||[]),{date:new Date().toISOString(),prixKg:prices.cacao}]; }
+  co.prices=prices; co.commissions=commissions;
+  // Miroir des anciens champs globaux, conserves pour l'espace admin et les
+  // etats anterieurs au multi-cooperative.
+  state.prixKg=prices.cacao; state.commissionRate=commissions.cacao;
   co.nom=g("s_nom"); co.sigle=g("s_sigle"); co.agrement=g("s_agr"); co.dateCreation=g("s_date"); co.type=g("s_type");
   co.description=g("s_desc"); co.region=g("s_region"); co.district=g("s_district"); co.departement=g("s_dept");
   co.commune=g("s_commune"); co.localite=g("s_loc"); co.adresse=g("s_adr"); co.tel=g("s_tel"); co.email=g("s_email");
   co.filieres=[...document.querySelectorAll("[data-fil]:checked")].map(e=>e.dataset.fil);
   // Coopérative héritée (mono) : garder l'ancien champ state.coop synchronisé.
   if(co.id==="__legacy__" && state.coop){ Object.assign(state.coop, co); delete state.coop.id; }
-  state.saison=g("s_saison"); state.prixKg=newPrix; state.commissionRate=+$("s_com").value||0;
+  state.saison=g("s_saison");
   await persist();
 }
 async function purgeMouvements(){
@@ -1441,6 +1665,10 @@ async function wipeAll(){
 }
 
 function cellVal(row,key){
+  if(key==="_date") return fDate(row.date||row.updatedAt);
+  if(key==="_statut") return row.desactive? '<span style="color:var(--loss);font-weight:700">Désactivé</span>'
+                                          : (row.aSecret? '<span style="color:var(--green)">Actif</span>'
+                                                        : '<span style="color:var(--due)">Sans code secret</span>');
   if(key==="_member") return name(row.memberId);
   if(key==="_pisteur") return name(row.pisteurId);
   if(key==="_agent") return name(row.byStaffId);
@@ -1449,14 +1677,38 @@ function cellVal(row,key){
 }
 function entityPanel(k){
   const sc=SCHEMAS[k]; const arr=state[sc.arr]||[];
-  const head = sc.cols.map(c=>`<th>${c.replace('_member','Planteur').replace('_pisteur','Pisteur')}</th>`).join("")+"<th></th>";
+  const head = sc.cols.map(c=>`<th>${LABELS[c]||c}</th>`).join("")+"<th></th>";
   const visible = arr.map((r,gi)=>[r,gi]).filter(([r])=>belongs(r));
   const rows = visible.map(([r,gi])=>`<tr>${sc.cols.map(c=>`<td>${cellVal(r,c)}</td>`).join("")}
     <td style="text-align:right;white-space:nowrap"><button class="ghost" onclick="openEdit('${k}',${gi})">Modifier</button>
+    ${sc.compte?`<button class="ghost" onclick="setSecret('${sc.arr}','${r.id}')">Code secret</button>
+    <button class="${r.desactive?'green':'danger'}" onclick="toggleActif('${k}',${gi})">${r.desactive?'Réactiver':'Désactiver'}</button>`:""}
     <button class="danger" onclick="del('${k}',${gi})">Suppr.</button></td></tr>`).join("");
   return `<div class="card"><div class="toolbar"><h3 style="margin:0">${sc.title} (${visible.length})</h3>
     <button class="primary" onclick="openEdit('${k}',-1)">+ Ajouter</button></div>
     <div style="overflow:auto"><table><tr>${head}</tr>${rows||`<tr><td colspan="9" class="muted" style="padding:16px;text-align:center">Aucune donnée</td></tr>`}</table></div></div>`;
+}
+
+// Pose ou reinitialise le code secret. Le hachage est fait par le SERVEUR :
+// aucun secret en clair n'est stocke, et l'empreinte ne revient jamais ici.
+async function setSecret(arr,id){
+  const v=prompt("Nouveau code secret (au moins 4 caracteres).\n\nPour un collaborateur ou un planteur, c'est un code a 6 chiffres.");
+  if(v==null) return;
+  try{
+    await api("/api/admin/set-secret",{method:"POST",body:JSON.stringify({kind:arr,id,secret:v.trim()})});
+    alert("Code secret enregistre. Le compte peut se connecter des maintenant.");
+    await load();
+  }catch(e){ alert("Echec : "+e); }
+}
+// Desactiver un compte : le secret reste valable, l'acces est refuse par le
+// SERVEUR a la connexion (jamais par une simple restriction d'interface).
+async function toggleActif(k,i){
+  const sc=SCHEMAS[k]; const row=state[sc.arr][i]; if(!row) return;
+  const off=!row.desactive;
+  if(!confirm((off?"Desactiver":"Reactiver")+" le compte de « "+(row.nom||row.code||row.id)+" » ?"+
+     (off?"\n\nIl ne pourra plus se connecter a l'application.":""))) return;
+  if(off) row.desactive=true; else delete row.desactive;
+  await persist();
 }
 
 let edCtx=null;
@@ -1505,7 +1757,12 @@ async function saveEditor(){
   document.getElementById("editor").close();
   await persist();
 }
-async function del(k,i){ const sc=SCHEMAS[k]; if(!confirm("Supprimer cet élément ?")) return; state[sc.arr].splice(i,1); await persist(); }
+async function del(k,i){
+  const sc=SCHEMAS[k]; const row=state[sc.arr][i]; if(!row) return;
+  const quoi=row.nom||row.code||row.id;
+  if(!confirm("Supprimer definitivement « "+quoi+" » ?\n\nCette suppression sera repercutee dans l'application.")) return;
+  markDeleted(sc.arr,row.id); state[sc.arr].splice(i,1); await persist();
+}
 
 if(token){ load(); }
 </script>
