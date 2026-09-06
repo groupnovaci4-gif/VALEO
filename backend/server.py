@@ -912,12 +912,27 @@ class RegisterBody(BaseModel):
 # ------------------------------- Public API ------------------------------- #
 @app.get("/")
 async def health_root():
-    return {"status": "ok", "service": "VALEO"}
+    return {"status": "ok", "service": "VALEO", "instance": _instance_id()}
+
+
+def _instance_id() -> str:
+    """Marqueur opaque de l'instance : « ce backend-ci, sur cette base-là ».
+
+    Deux URL qui renvoient le MÊME marqueur parlent à la même base ; deux
+    marqueurs différents = deux déploiements distincts, et c'est là qu'une
+    saisie faite sur le téléphone ne peut pas apparaître dans le tableau de
+    bord. Volontairement public et sans jeton (l'empreinte détaillée de
+    /api/diag, elle, en exige un) : on doit pouvoir comparer l'URL de
+    l'application et celle de l'admin en les ouvrant simplement dans un
+    navigateur. C'est un condensé : ni chaîne de connexion, ni hôte, ni nom de
+    base, ni secret n'en sortent.
+    """
+    return hashlib.sha256(f"{mongo_url}|{db.name}".encode()).hexdigest()[:12]
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "instance": _instance_id()}
 
 
 @app.get("/api/")
@@ -939,6 +954,7 @@ async def _empreinte() -> dict:
     doc = await db.appstate.find_one({"_id": STATE_ID}) or {}
     data = doc.get("data") or {}
     return {
+        "instance": _instance_id(),
         "base": db.name,
         "document": STATE_ID,
         "majAt": doc.get("updatedAt"),
@@ -1463,6 +1479,7 @@ function barreEmpreinte(){
   return `<div class="card" style="padding:12px 14px;margin-bottom:12px">
     <div class="muted" style="font-size:12px;margin-bottom:6px">Source de vérité de ce tableau de bord — à comparer avec l'écran « Connexion au serveur » de l'application</div>
     <div style="display:flex;flex-wrap:wrap;gap:18px;font-size:13px">
+      <span>Instance : <b>${esc(empreinte.instance||"—")}</b></span>
       <span>Base : <b>${esc(empreinte.base)}</b></span>
       <span>Coopératives : <b>${empreinte.coops}</b></span>
       <span>Planteurs : <b>${c.members||0}</b></span>

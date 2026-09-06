@@ -401,3 +401,38 @@ class TestEmpreinteDeLInstance:
             r = app_client.get("/api/diag", headers=_auth(t[role]))
             assert r.status_code == 200, role
             assert r.json()["base"], role
+
+
+class TestMarqueurDInstance:
+    """Comparer les deux URL SANS jeton : c'est ce que l'utilisateur peut faire.
+
+    L'empreinte détaillée de `/api/diag` exige une connexion ; or le symptôme
+    (« l'admin ne voit rien ») se constate d'abord depuis un navigateur, avant
+    même de savoir quel compte utiliser. `/health` porte donc un marqueur
+    opaque : deux URL qui renvoient le même marqueur sont sur la même base,
+    deux marqueurs différents désignent deux déploiements.
+    """
+
+    def test_health_porte_le_marqueur_sans_authentification(self, app_client):
+        r = app_client.get("/health")
+        assert r.status_code == 200
+        assert len(r.json()["instance"]) == 12
+
+    def test_la_racine_porte_le_meme_marqueur(self, app_client):
+        assert app_client.get("/").json()["instance"] == app_client.get("/health").json()["instance"]
+
+    def test_le_marqueur_public_recoupe_lempreinte_de_lapplication(self, app_client):
+        """Sans ce recoupement, on ne pourrait pas relier les deux écrans."""
+        t = _seed_coop(app_client)
+        adm = _admin(app_client)
+        public = app_client.get("/health").json()["instance"]
+        assert app_client.get("/api/diag", headers=_auth(t["patron"])).json()["instance"] == public
+        assert app_client.get("/api/admin/diag", headers=_auth(adm)).json()["instance"] == public
+
+    def test_le_marqueur_ne_livre_ni_hote_ni_nom_de_base(self, app_client):
+        """Il est public : il doit être un condensé, jamais la configuration."""
+        import os
+
+        brut = app_client.get("/health").text
+        assert "mongodb" not in brut and "mongo" not in brut.lower()
+        assert os.environ["DB_NAME"] not in brut

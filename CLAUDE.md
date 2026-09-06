@@ -392,6 +392,13 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       secret. L'écran « Connexion au serveur » de l'app et l'en-tête du
       tableau de bord l'affichent : deux empreintes différentes = deux
       instances, la cause est trouvée en deux secondes.
+    - `GET /health` (et `/`) porte en plus un **marqueur d'instance** public :
+      un condensé de la base réellement utilisée, sans jeton. C'est le seul
+      contrôle possible avant d'être connecté — on ouvre `<url-app>/health` et
+      `<url-admin>/health` dans un navigateur : marqueurs identiques = même
+      base, marqueurs différents = deux déploiements. Il se recoupe avec le
+      champ `instance` des deux empreintes. Comme elles, il ne livre ni hôte,
+      ni nom de base, ni chaîne de connexion.
     - **L'application DIT quand elle ne synchronise pas.** Elle est hors-ligne
       d'abord : sans serveur joignable elle continue de tourner sur son cache,
       tout paraît normal, et plus rien ne remonte. C'était totalement

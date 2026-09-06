@@ -1212,6 +1212,7 @@ export function DiagnosticSync({ backendUrl, etat, lastSyncAt, pending, onBack, 
           : emp === null ? <Text style={{ fontSize: 12.5, color: C.loss }}>Le serveur n&apos;a pas répondu.</Text>
           : (
             <>
+              <L k="Instance" v={emp.instance || "—"} />
               <L k="Base de données" v={emp.base} />
               <L k="Coopératives" v={String(emp.coops)} />
               <L k="Planteurs" v={String(emp.compte?.members ?? "—")} />
