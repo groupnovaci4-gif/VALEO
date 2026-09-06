@@ -925,6 +925,40 @@ async def root():
     return {"message": "VALEO API"}
 
 
+async def _empreinte() -> dict:
+    """Empreinte de l'instance : sur QUELLE base ce backend écrit-il vraiment ?
+
+    Sert à répondre en deux secondes à « le téléphone et le tableau de bord
+    sont-ils sur la même source de vérité ? ». On compare l'empreinte lue
+    depuis l'application et celle affichée dans l'admin : si elles diffèrent,
+    les deux ne parlent pas au même serveur (ou pas à la même base).
+
+    Aucun secret ici : ni chaîne de connexion, ni hôte, ni identifiant — le nom
+    de la base et des comptages, rien de plus.
+    """
+    doc = await db.appstate.find_one({"_id": STATE_ID}) or {}
+    data = doc.get("data") or {}
+    return {
+        "base": db.name,
+        "document": STATE_ID,
+        "majAt": doc.get("updatedAt"),
+        "coops": len(data.get("coops") or []),
+        "compte": {e: len(data.get(e) or []) for e in ENTITY_ARRAYS},
+    }
+
+
+@app.get("/api/diag")
+async def diag_utilisateur(me: dict = Depends(require_user)):
+    """Empreinte vue depuis l'application (jeton d'un compte de la coop)."""
+    return await _empreinte()
+
+
+@app.get("/api/admin/diag")
+async def diag_admin(_: dict = Depends(require_admin)):
+    """La MÊME empreinte, vue depuis le tableau de bord."""
+    return await _empreinte()
+
+
 @app.get("/api/state")
 async def get_state(me: dict = Depends(require_user)):
     state = await load_state()
@@ -1409,12 +1443,32 @@ async function api(path, opts={}){
   if(!r.ok) throw new Error(r.status);
   return r.json();
 }
+let empreinte=null;
 async function load(){
   try{
     state = await api("/api/admin/state");
+    try{ empreinte = await api("/api/admin/diag"); }catch(e){ empreinte=null; }
     $("loginView").classList.add("hide"); $("app").classList.remove("hide");
     render();
   }catch(e){ if((""+e).includes("401")) return; }
+}
+// Sur QUELLE base ce tableau de bord lit-il ? A comparer avec l'ecran
+// « Connexion au serveur » de l'application : si les deux empreintes
+// different, le telephone et l'admin ne parlent pas au meme serveur — la
+// seule cause possible a « rien ne remonte », le backend servant les deux
+// depuis un unique objet de base de donnees.
+function barreEmpreinte(){
+  if(!empreinte) return "";
+  const c=empreinte.compte||{};
+  return `<div class="card" style="padding:12px 14px;margin-bottom:12px">
+    <div class="muted" style="font-size:12px;margin-bottom:6px">Source de vérité de ce tableau de bord — à comparer avec l'écran « Connexion au serveur » de l'application</div>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;font-size:13px">
+      <span>Base : <b>${esc(empreinte.base)}</b></span>
+      <span>Coopératives : <b>${empreinte.coops}</b></span>
+      <span>Planteurs : <b>${c.members||0}</b></span>
+      <span>Collectes : <b>${c.collections||0}</b></span>
+      <span>Dernière écriture : <b>${fDate(empreinte.majAt)}</b></span>
+    </div></div>`;
 }
 // Suppressions explicites : cote serveur, une ligne absente de la charge utile
 // est CONSERVEE (une absence n'est pas une suppression). Sans cette liste, un
@@ -1484,14 +1538,14 @@ function render(){
     <div style="display:flex;align-items:center;gap:8px"><span class="muted" style="font-size:13px">Coopérative :</span>
     <select onchange="enterCoop(this.value)" style="min-width:200px">${opts}</select></div></div>`;
   const tabs = [["settings","Réglages"],...Object.entries(SCHEMAS).map(([k,s])=>[k,s.title]),["activite","Activité"]];
-  $("tabs").innerHTML = bar + tabs.map(([k,l])=>`<button class="tab ${current===k?'on':''}" onclick="go('${k}')">${l}</button>`).join("");
+  $("tabs").innerHTML = barreEmpreinte() + bar + tabs.map(([k,l])=>`<button class="tab ${current===k?'on':''}" onclick="go('${k}')">${l}</button>`).join("");
   if(current==="activite"){ $("panel").innerHTML = `<div class="card muted">Chargement du journal…</div>`; renderActivite(); }
   else $("panel").innerHTML = current==="settings"? settingsPanel() : entityPanel(current);
 }
 function renderCoopsHome(list){
   $("sub").textContent = list.length+" coopérative"+(list.length>1?"s":"");
   $("kpis").innerHTML = "";
-  $("tabs").innerHTML = `<div class="toolbar" style="margin-bottom:4px"><h3 style="margin:0">Coopératives</h3></div>`;
+  $("tabs").innerHTML = barreEmpreinte() + `<div class="toolbar" style="margin-bottom:4px"><h3 style="margin:0">Coopératives</h3></div>`;
   const cards = list.map(c=>{ const n=coopCounts(c.id);
     return `<div class="card" style="cursor:pointer" onclick="enterCoop('${c.id}')">
       <div class="toolbar"><h3 style="margin:0">${esc(c.nom||"Coopérative")}</h3><button class="primary" onclick="event.stopPropagation();enterCoop('${c.id}')">Ouvrir →</button></div>

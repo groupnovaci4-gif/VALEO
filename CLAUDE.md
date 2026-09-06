@@ -380,6 +380,29 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       n'a pas sa propre trace, il lit celle de l'application (acteur et
       horodatage posés par le serveur).
 
+27. **Une seule source de vérité, et elle se prouve.**
+    `/api/state` (application) et `/api/admin/state` (tableau de bord) lisent
+    le **même document** via le **même objet `db`** du même processus : sur un
+    backend donné, ils ne *peuvent pas* être sur deux bases. Une saisie qui ne
+    « remonte » pas signifie donc toujours que le téléphone et l'admin parlent
+    à **deux instances différentes** — jamais un défaut de code.
+    - `GET /api/diag` (jeton d'application) et `GET /api/admin/diag` (jeton
+      admin) renvoient la même **empreinte** : nom de la base, horodatage du
+      document, comptages par entité. Ni chaîne de connexion, ni hôte, ni
+      secret. L'écran « Connexion au serveur » de l'app et l'en-tête du
+      tableau de bord l'affichent : deux empreintes différentes = deux
+      instances, la cause est trouvée en deux secondes.
+    - **L'application DIT quand elle ne synchronise pas.** Elle est hors-ligne
+      d'abord : sans serveur joignable elle continue de tourner sur son cache,
+      tout paraît normal, et plus rien ne remonte. C'était totalement
+      silencieux (`syncError` n'était posé que sur un 403). `syncState` /
+      `lastSyncAt` / `pending` alimentent un bandeau permanent, sur tous les
+      rôles.
+    - `EXPO_PUBLIC_BACKEND_URL` est **figée au build** par Expo : changer la
+      variable côté serveur ne change rien à un APK déjà construit, il faut
+      reconstruire. Aucun `eas.json` ne la fixe dans le dépôt — elle dépend
+      entièrement de l'environnement au moment du build.
+
 ## 5. Feuille de route
 
 ### Fait (voir l'historique git)
@@ -431,6 +454,8 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
   livraisons antérieures restent lisibles, et la surface de changement reste
   minimale.
 - **Avances indépendantes par créancier.** Cf. invariant 25.
+- **Diagnostic de connexion.** Cf. invariant 27 : empreinte comparable des deux
+  côtés, et l'application ne tombe plus en panne de synchro en silence.
 - **Espace Admin réellement synchronisé.** Cf. invariant 26 : fusion par
   enregistrement au lieu du remplacement en bloc, barèmes écrits là où l'app
   les lit, gestion des comptes (code secret, désactivation, suppression),

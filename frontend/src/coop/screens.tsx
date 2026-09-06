@@ -1127,6 +1127,113 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecid
  * On répond à : quel pisteur → quelle livraison → quel poids déclaré → quel
  * poids vérifié → quel écart → quand.
  */
+/**
+ * Bandeau de synchronisation.
+ *
+ * L'application fonctionne hors-ligne d'abord : quand elle ne joint plus son
+ * serveur, elle continue de tourner sur son cache local, et TOUT paraît
+ * normal — sauf que plus rien ne remonte. C'était invisible : ni message, ni
+ * indicateur. Ce bandeau le dit, et ne disparaît pas tant que ce n'est pas
+ * réglé.
+ */
+export function BandeauSync({ etat, backendUrl, onDiag }: any) {
+  if (etat === "ok") return null;
+  const sansServeur = !backendUrl;
+  const rouge = sansServeur || etat === "hors_ligne";
+  const titre = sansServeur
+    ? "Aucun serveur configuré"
+    : etat === "hors_ligne"
+      ? "Serveur injoignable — rien ne remonte"
+      : etat === "refus"
+        ? "Dernière modification refusée par le serveur"
+        : "Pas encore synchronisé";
+  const detail = sansServeur
+    ? "Cette version de l'application n'a pas d'adresse de serveur. Vos saisies restent sur ce téléphone et n'arrivent dans aucun tableau de bord."
+    : etat === "hors_ligne"
+      ? "Vos saisies sont conservées sur ce téléphone et repartiront dès que le serveur répondra."
+      : "";
+  return (
+    <Pressable onPress={onDiag} testID="bandeau-sync">
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: rouge ? "#FBEFED" : "#FDF7EC",
+                     borderWidth: 1, borderColor: rouge ? "#EFD3CE" : "#EAD9BE", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+        <Icon name={rouge ? "alert-triangle" : "clock"} size={17} color={rouge ? C.loss : C.due} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontWeight: "800", fontSize: 13, color: rouge ? C.loss : C.due }}>{titre}</Text>
+          {detail ? <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 2, lineHeight: 16 }}>{detail}</Text> : null}
+        </View>
+        <Icon name="chevron-right" size={17} color={C.muted} />
+      </View>
+    </Pressable>
+  );
+}
+
+/**
+ * Diagnostic de connexion : à quel serveur ce téléphone parle-t-il, et sur
+ * quelle base ce serveur écrit-il ?
+ *
+ * L'empreinte affichée ici est la MÊME que celle du tableau de bord admin. Si
+ * les deux diffèrent, l'application et l'admin ne partagent pas leur source de
+ * vérité — c'est la seule explication possible à « rien ne remonte », le
+ * backend servant les deux depuis un unique objet de base de données.
+ */
+export function DiagnosticSync({ backendUrl, etat, lastSyncAt, pending, onBack, onDiag }: any) {
+  const [emp, setEmp] = useState<any | undefined>(undefined);
+  const recharger = React.useCallback(async () => { setEmp(undefined); setEmp((await onDiag()) || null); }, [onDiag]);
+  React.useEffect(() => { recharger(); }, [recharger]);
+  const L = ({ k, v, alerte }: any) => (
+    <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12, paddingVertical: 6, borderBottomWidth: 1, borderColor: C.line }}>
+      <Text style={{ fontSize: 12.5, color: C.muted, flexShrink: 0 }}>{k}</Text>
+      <Text style={{ fontSize: 12.5, fontWeight: "700", color: alerte ? C.loss : C.ink, flex: 1, textAlign: "right" }}>{v}</Text>
+    </View>
+  );
+  const etats: any = { ok: "Synchronisé", hors_ligne: "Serveur injoignable", refus: "Dernière écriture refusée", jamais: "Jamais synchronisé" };
+  return (
+    <View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <Pressable onPress={onBack} hitSlop={8} style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, alignItems: "center", justifyContent: "center" }}>
+          <Icon name="chevron-left" size={20} color={C.ink} />
+        </Pressable>
+        <Text style={{ flex: 1, fontSize: 18, fontWeight: "800", color: C.ink }}>Connexion au serveur</Text>
+      </View>
+
+      <Card style={{ padding: 14, marginBottom: 12 }}>
+        <SectionTitle noMargin>Ce téléphone</SectionTitle>
+        <View style={{ height: 8 }} />
+        <L k="Serveur configuré" v={backendUrl || "AUCUN"} alerte={!backendUrl} />
+        <L k="État" v={etats[etat] || etat} alerte={etat !== "ok"} />
+        <L k="Dernière synchro réussie" v={lastSyncAt ? fDateTime(lastSyncAt) : "jamais"} alerte={!lastSyncAt} />
+        <L k="Saisies en attente d'envoi" v={pending ? "oui" : "non"} alerte={!!pending} />
+      </Card>
+
+      <Card style={{ padding: 14, marginBottom: 12 }}>
+        <SectionTitle noMargin>Base atteinte par ce téléphone</SectionTitle>
+        <View style={{ height: 8 }} />
+        {emp === undefined ? <Text style={{ fontSize: 12.5, color: C.muted }}>Interrogation…</Text>
+          : emp === null ? <Text style={{ fontSize: 12.5, color: C.loss }}>Le serveur n&apos;a pas répondu.</Text>
+          : (
+            <>
+              <L k="Base de données" v={emp.base} />
+              <L k="Coopératives" v={String(emp.coops)} />
+              <L k="Planteurs" v={String(emp.compte?.members ?? "—")} />
+              <L k="Collectes" v={String(emp.compte?.collections ?? "—")} />
+              <L k="Dernière écriture" v={emp.majAt ? fDateTime(emp.majAt) : "—"} />
+            </>
+          )}
+        <GhostBtn onPress={recharger} style={{ marginTop: 10 }}>↻ Réinterroger</GhostBtn>
+      </Card>
+
+      <Card style={{ padding: 13, backgroundColor: "#EEF4FB", borderColor: "#D4E2F2" }}>
+        <Text style={{ fontSize: 12.5, color: C.muted, lineHeight: 18 }}>
+          Comparez ces chiffres avec ceux affichés en haut du tableau de bord d&apos;administration. S&apos;ils
+          diffèrent, l&apos;application et l&apos;admin ne parlent pas au même serveur : c&apos;est la seule cause
+          possible, le backend servant les deux depuis une base unique.
+        </Text>
+      </Card>
+      <View style={{ height: 20 }} />
+    </View>
+  );
+}
+
 export function HistoriqueLivraisons({ data, onBack }: any) {
   const [pisteur, setPisteur] = useState<string>("");
   const [ouvert, setOuvert] = useState<string>("");

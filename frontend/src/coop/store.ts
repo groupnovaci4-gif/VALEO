@@ -70,6 +70,12 @@ export function useCoopData() {
   const [authError, setAuthError] = useState(false);
   // Message d'erreur de synchronisation (écriture refusée par le serveur).
   const [syncError, setSyncError] = useState<string | null>(null);
+  // État de la synchronisation, VISIBLE par l'utilisateur. Sans lui, une
+  // application qui ne joint plus son serveur continue de fonctionner
+  // normalement sur son cache local : rien ne remonte, et personne ne le sait.
+  const [syncState, setSyncState] = useState<"jamais" | "ok" | "hors_ligne" | "refus">("jamais");
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
   const remoteApply = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dataRef = useRef<Data | null>(null);
@@ -118,7 +124,9 @@ export function useCoopData() {
       serverRef.current = fresh;
       remoteApply.current = true;
       setData(fresh);
+      setSyncState("ok"); setLastSyncAt(new Date().toISOString()); setPending(false);
     } else if (r && r.status === 401) { await clearAuth(); setAuthError(true); }
+    else if (!r) setSyncState("hors_ligne");
   }, [clearAuth]);
 
   // Pousse les changements locaux (horodatés + suppressions explicites).
@@ -134,11 +142,18 @@ export function useCoopData() {
       try { detail = (await r.json()).detail || detail; } catch {}
       dirty.current = false;
       setSyncError(detail);
+      setSyncState("refus"); setPending(false);
       await pull();
       return;
     }
-    if (r && r.ok) { serverRef.current = payload; dirty.current = false; }
+    if (r && r.ok) {
+      serverRef.current = payload; dirty.current = false;
+      setSyncState("ok"); setLastSyncAt(new Date().toISOString()); setPending(false);
+      return;
+    }
     // Réseau indisponible : `dirty` reste vrai, la prochaine occasion réessaiera.
+    // On le DIT, au lieu d'échouer en silence.
+    setSyncState("hors_ligne"); setPending(true);
   }, [clearAuth, pull]);
 
   useEffect(() => {
@@ -151,6 +166,7 @@ export function useCoopData() {
     }
     if (!tokenRef.current) return; // non authentifié : pas de sync
     dirty.current = true; // changement local à pousser
+    setPending(true);
     if (pushTimer.current) clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(() => { push(data); }, 700);
   }, [data, ready, push]);
@@ -591,6 +607,20 @@ export function useCoopData() {
   const replaceData = useCallback((d: Data) => setData(d), []);
   const clearSyncError = useCallback(() => setSyncError(null), []);
 
+  /**
+   * Empreinte de l'instance que ce téléphone joint réellement.
+   *
+   * À comparer avec celle affichée dans le tableau de bord : si les deux
+   * diffèrent, l'application et l'admin ne parlent pas au même serveur — c'est
+   * exactement ce qui fait qu'aucune saisie ne « remonte ».
+   */
+  const fetchDiag = useCallback(async (): Promise<any | null> => {
+    if (!BACKEND) return null;
+    const r = await apiFetch("/api/diag", {}, tokenRef.current || null);
+    if (!r || !r.ok) return null;
+    try { return await r.json(); } catch { return null; }
+  }, []);
+
   const setCollectionSignature = useCallback((id: string, signature: any) => {
     setData((d) => (d ? { ...d, collections: d.collections.map((c) => (c.id === id ? { ...c, signature } as any : c)) } : d));
   }, []);
@@ -638,6 +668,11 @@ export function useCoopData() {
     bootSession,
     authError,
     syncError,
+    syncState,
+    lastSyncAt,
+    pending,
+    backendUrl: BACKEND || null,
+    fetchDiag,
     clearSyncError,
     authLoginCoop,
     authLoginPlanteur,

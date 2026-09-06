@@ -344,3 +344,60 @@ class TestSecuriteAdmin:
 
     def test_le_mot_de_passe_admin_reste_exige(self, app_client):
         assert app_client.post("/api/admin/login", json={"password": "mauvais"}).status_code == 401
+
+
+# ------------------ Empreinte : app et admin, même source ? ---------------- #
+
+class TestEmpreinteDeLInstance:
+    """« Aucune donnée saisie sur le mobile ne remonte dans l'admin. »
+
+    Sur un backend donné, c'est structurellement impossible : `/api/state` et
+    `/api/admin/state` lisent le MÊME document via le MÊME objet `db`. La seule
+    cause possible est que le téléphone et le tableau de bord parlent à deux
+    instances différentes. L'empreinte rend la comparaison immédiate.
+    """
+
+    def test_lapplication_et_ladmin_lisent_la_meme_empreinte(self, app_client):
+        t = _seed_coop(app_client)
+        adm = _admin(app_client)
+        vue_app = app_client.get("/api/diag", headers=_auth(t["patron"]))
+        vue_adm = app_client.get("/api/admin/diag", headers=_auth(adm))
+        assert vue_app.status_code == 200, vue_app.text
+        assert vue_adm.status_code == 200, vue_adm.text
+        assert vue_app.json() == vue_adm.json(), "même instance, donc même empreinte"
+
+    def test_lempreinte_suit_les_ecritures_de_lapplication(self, app_client):
+        t = _seed_coop(app_client)
+        adm = _admin(app_client)
+        avant = app_client.get("/api/admin/diag", headers=_auth(adm)).json()
+
+        vue = _get_state(app_client, t["patron"])
+        vue["collections"].append(_collection("c-diag", "mb-1", t["patron_id"]))
+        assert _put(app_client, t["patron"], vue).status_code == 200
+
+        apres = app_client.get("/api/admin/diag", headers=_auth(adm)).json()
+        assert apres["compte"]["collections"] == avant["compte"]["collections"] + 1
+        assert apres["majAt"] != avant["majAt"], "l'horodatage du document bouge"
+
+    def test_lempreinte_ne_livre_aucun_secret(self, app_client):
+        t = _seed_coop(app_client)
+        brut = app_client.get("/api/diag", headers=_auth(t["pisteur"])).text
+        for interdit in ("mongodb://", "MONGO_URL", "JWT", "pin", "hash", "salt", "password"):
+            assert interdit not in brut, interdit
+
+    def test_lempreinte_exige_une_authentification(self, app_client):
+        _seed_coop(app_client)
+        assert app_client.get("/api/diag").status_code in (401, 403)
+        assert app_client.get("/api/admin/diag").status_code in (401, 403)
+
+    def test_un_jeton_dapplication_natteint_pas_lempreinte_admin(self, app_client):
+        t = _seed_coop(app_client)
+        assert app_client.get("/api/admin/diag", headers=_auth(t["patron"])).status_code in (401, 403)
+
+    def test_chaque_role_peut_diagnostiquer_sa_connexion(self, app_client):
+        """Le planteur aussi : c'est lui qui constate que rien ne part."""
+        t = _seed_coop(app_client)
+        for role in ("patron", "pisteur", "commis", "planteur"):
+            r = app_client.get("/api/diag", headers=_auth(t[role]))
+            assert r.status_code == 200, role
+            assert r.json()["base"], role
