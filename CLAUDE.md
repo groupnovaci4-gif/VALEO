@@ -112,7 +112,8 @@ et `LOGIN_MAX_FAILS` (optionnels). Migration Firebase (facultatives, cf. invaria
 `FIREBASE_SERVICE_ACCOUNT` **ou** `FIREBASE_SERVICE_ACCOUNT_FILE` **ou**
 `GOOGLE_APPLICATION_CREDENTIALS`, et `FIREBASE_CHECK_REVOKED`. Base de données
 (cf. invariant 29) : `DATA_BACKEND` (`mongo` par défaut, ou `firestore`) et
-`FIRESTORE_DATABASE`.
+`FIRESTORE_DATABASE`. Bascule (cf. invariant 32) : `BACKEND_DEPRECIE`
+(à poser sur l'ANCIEN déploiement) et `STARTUP_TIMEOUT_SECONDS`.
 Frontend : `EXPO_PUBLIC_BACKEND_URL` (base de l'API, lue dans `store.ts`) et
 `EXPO_PUBLIC_FIREBASE_API_KEY` (facultative).
 
@@ -565,6 +566,49 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       pouvoir comparer les empreintes. Une ligne discrète remplace l'alerte :
       ne jamais la re-supprimer.
 
+32. **Bascule : un ancien client écrit dans le vide sans le savoir.**
+    Phase 6 de la migration (cf. `docs/MIGRATION-FIREBASE.md`). C'est la seule
+    phase où l'on peut perdre des données.
+    - **Le danger** : `EXPO_PUBLIC_BACKEND_URL` est figée au build
+      (invariant 27), donc un APK déjà installé appellera l'ANCIENNE instance
+      pour toujours. Ses pesées y seront enregistrées, dans une base que
+      personne ne lit, et l'application affichera « Synchronisé ». Perte
+      silencieuse, et de son côté le pisteur ne voit rien.
+    - **Le remède** : `BACKEND_DEPRECIE` sur l'ancien déploiement. Le serveur
+      ajoute `X-Valeo-Deprecie` à **toutes** ses réponses, refus compris (un
+      jeton expiré doit prévenir aussi), et l'application l'affiche en rouge
+      avant tout le reste. L'ancien **continue de servir** : des agents sont
+      peut-être en tournée avec des pesées à envoyer.
+    - **C'est un EN-TÊTE, jamais un champ de l'état.** Un champ ajouté à
+      `/api/state` repartirait au serveur via `prepareSync` et serait lu comme
+      une modification interdite — 403 sur tout le PUT (invariant 23).
+    - **Un en-tête HTTP ne véhicule que du latin-1.** Un message en français
+      attrape un tiret cadratin ou une apostrophe courbe, et le serveur répond
+      alors **500 sur toutes les requêtes** : l'avertissement mettait à terre
+      l'instance qu'il devait annoter. `entete_transportable` assainit au
+      chargement (les accents passent) et le middleware ne peut jamais lever.
+    - **`expose_headers` est indispensable** : sans lui un navigateur masque
+      l'en-tête au JavaScript et le bandeau n'apparaît jamais sur le web. Le
+      harnais de test ne fait pas de CORS, d'où un contrôle sur la
+      configuration elle-même.
+    - **NE JAMAIS migrer par `/api/admin/state`** : il retire les empreintes
+      `pin` (invariant 5, et c'est correct). Les comptages concorderaient, les
+      données seraient là, et **plus personne ne pourrait se connecter** le
+      lendemain. Passer par `scripts/migrer_vers_firestore.py`, qui lit
+      MongoDB côté serveur.
+    - **Le dernier passage de migration se fait avec `--miroir`** : la
+      migration écrit et n'efface jamais, donc une fiche supprimée entre deux
+      passages survivrait dans Firestore et réapparaîtrait après la bascule.
+    - **`scripts/verifier_bascule.py`** rend le « ne coupez rien avant » 
+      exécutable : deux instances distinctes, comptages concordants, connexion
+      d'un compte réel, écriture d'essai relue puis retirée, et dépréciation
+      annoncée. Deux bases vides « concordent » : il refuse aussi ce cas.
+    - **Le point de non-retour n'est pas le déploiement, c'est la première
+      pesée enregistrée sur le nouveau.** Avant cela le retour est immédiat
+      (`DATA_BACKEND=mongo`) : MongoDB n'est jamais modifié. Après, les
+      écritures faites sur Firestore n'y sont pas, et aucun script ne fait le
+      chemin inverse.
+
 ## 5. Feuille de route
 
 ### Fait (voir l'historique git)
@@ -641,9 +685,14 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
   Le site construit a été piloté dans un navigateur, servi comme par Hosting,
   jusqu'à vérifier qu'une pesée arrive bien en base.
 
+- **Migration Firebase, phase 6 (outillage de bascule).** Cf. invariant 32 :
+  signal de dépréciation pour les APK figés, migration en miroir, et contrôle
+  de pré-bascule exécutable. La bascule elle-même reste une opération humaine.
+
 ### Reste à faire
-- **Migration Firebase, phase 6 (bascule).** Ne pas couper l'existant tant que
-  Firebase n'a pas tourné en parallèle.
+- **Exécuter la bascule.** Suivre la marche à suivre de
+  `docs/MIGRATION-FIREBASE.md` (§ Phase 6). Ne pas couper l'existant tant que
+  Firebase n'a pas tourné en parallèle, et garder une sauvegarde de MongoDB.
 - **Firestore : deux points à surveiller.** `priceHistory` vit dans le document
   `meta` (la limite de 1 Mio vaut aussi pour lui) ; les connexions balaient
   encore les collaborateurs de toutes les coopératives — un index serait le

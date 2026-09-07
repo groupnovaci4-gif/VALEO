@@ -10,6 +10,13 @@ levé d'exception, ce qui n'est pas la même chose.
 Il est **idempotent** : chaque ligne est écrite sous son propre identifiant.
 Le relancer après une interruption reprend là où on en était, sans doublon.
 
+Il faut d'ailleurs le relancer **juste avant la bascule** (phase 6) : pendant
+la marche en parallèle, les téléphones continuent d'écrire sur l'ancienne
+instance, et ces écritures-là doivent suivre. Attention : une ligne SUPPRIMÉE
+dans MongoDB entre deux passages resterait dans Firestore, puisque la
+migration n'efface rien. `--miroir` ferme cette porte — il retire de la cible
+ce qui n'existe plus à la source, et rien d'autre.
+
 Usage
 -----
     # Voir ce qui serait fait, sans rien écrire :
@@ -17,6 +24,9 @@ Usage
 
     # Écrire pour de bon :
     python scripts/migrer_vers_firestore.py --ecrire
+
+    # Dernier passage avant la bascule : refléter aussi les suppressions
+    python scripts/migrer_vers_firestore.py --ecrire --miroir
 
 Variables attendues : `MONGO_URL`, `DB_NAME` (la source) et de quoi joindre
 Firebase (`FIREBASE_SERVICE_ACCOUNT`, `FIREBASE_SERVICE_ACCOUNT_FILE` ou
@@ -83,7 +93,25 @@ def _sans_id(etat: dict) -> dict:
             for e in depot_module.TABLEAUX}
 
 
-async def migrer(ecrire: bool) -> int:
+async def _en_trop(cible, etat: dict) -> dict:
+    """Lignes présentes dans Firestore et ABSENTES de MongoDB.
+
+    C'est le point aveugle d'une migration répétée : elle écrit et ne supprime
+    jamais. Une fiche effacée à la source survivrait donc dans la cible — et
+    réapparaîtrait après la bascule.
+    """
+    presente = await cible.charger(_vide)
+    trop = {}
+    for e in depot_module.TABLEAUX:
+        source = {str(x["id"]) for x in (etat.get(e) or []) if isinstance(x, dict) and x.get("id")}
+        cible_ids = {str(x["id"]) for x in (presente.get(e) or []) if isinstance(x, dict) and x.get("id")}
+        restant = sorted(cible_ids - source)
+        if restant:
+            trop[e] = restant
+    return trop
+
+
+async def migrer(ecrire: bool, miroir: bool = False) -> int:
     etat, cfg, audit = await _source()
     compte = _compter(etat)
     orphelines = {e: n for e, n in _sans_id(etat).items() if n}
@@ -109,7 +137,23 @@ async def migrer(ecrire: bool) -> int:
 
     cible = _cible()
     print(f"\nÉcriture vers Firestore (base « {cible.nom} »)…")
-    # La référence du diff est vide : tout est écrit, rien n'est supprimé.
+
+    # Le dépôt sait déjà supprimer : il retire ce qui était dans la RÉFÉRENCE de
+    # lecture et n'est plus dans l'état enregistré (invariant 29). Il suffit donc
+    # de choisir cette référence.
+    #   * sans miroir : aucune lecture préalable ⇒ référence vide ⇒ on écrit
+    #     tout, on ne supprime rien ;
+    #   * avec miroir : on lit d'abord la cible ⇒ la référence contient ce
+    #     qu'elle porte aujourd'hui ⇒ ce qui a disparu de MongoDB disparaît.
+    trop = {}
+    if miroir:
+        trop = await _en_trop(cible, etat)     # lit la cible : pose la référence
+        if trop:
+            print("\nMiroir — lignes retirées de Firestore (absentes de MongoDB) :")
+            for e, ids in trop.items():
+                print(f"  {e:<12} {len(ids):>4}  ({', '.join(ids[:5])}{'…' if len(ids) > 5 else ''})")
+        else:
+            print("\nMiroir — rien à retirer : aucune ligne en trop dans la cible.")
     await cible.enregistrer(etat)
     if cfg:
         await cible.admin_config_poser(cfg)
@@ -156,4 +200,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Migre l'état VALEO de MongoDB vers Firestore.")
     ap.add_argument("--ecrire", action="store_true",
                     help="écrit réellement ; sans ce drapeau, simulation seule")
-    raise SystemExit(asyncio.run(migrer(ap.parse_args().ecrire)))
+    ap.add_argument("--miroir", action="store_true",
+                    help="retire aussi de Firestore les lignes absentes de MongoDB "
+                         "(dernier passage avant la bascule)")
+    args = ap.parse_args()
+    raise SystemExit(asyncio.run(migrer(args.ecrire, args.miroir)))

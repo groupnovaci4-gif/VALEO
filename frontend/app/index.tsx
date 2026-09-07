@@ -299,7 +299,7 @@ export default function App() {
           <PlanteurPrets member={me} data={data} onNew={() => setSheet("loan")} />
         </>
       );
-    else if (tab === "diagSync") body = <DiagnosticSync backendUrl={store.backendUrl} backendMode={store.backendMode} etat={store.syncState} lastSyncAt={store.lastSyncAt} pending={store.pending} onDiag={store.fetchDiag} onBack={() => setTab("poids")} />;
+    else if (tab === "diagSync") body = <DiagnosticSync backendUrl={store.backendUrl} backendMode={store.backendMode} deprecie={store.deprecie} etat={store.syncState} lastSyncAt={store.lastSyncAt} pending={store.pending} onDiag={store.fetchDiag} onBack={() => setTab("poids")} />;
     else body = <PlanteurMomo member={me} data={data} onLink={() => setSheet("linkMomo")} onUnlink={() => store.linkMemberMomo(me.id, null)} />;
   } else if (isCoop && role === "patron") {
     nav = (
@@ -348,7 +348,7 @@ export default function App() {
     else if (tab === "prets") body = <PatronPrets data={data} onApprove={(l: any) => setApproveLoanObj(l)} onRefuse={(id: string) => store.refuseLoan(id, session.staffId)} onNew={() => setSheet("loan")} onBack={() => setTab("bilan")} />;
     else if (tab === "depenses") body = <DepensesPatron data={data} onBack={() => setTab("coop")} onAdd={() => setSheet("depense")} />;
     else if (tab === "livraisons") body = <HistoriqueLivraisons data={data} onBack={() => setTab("coop")} />;
-    else if (tab === "diagSync") body = <DiagnosticSync backendUrl={store.backendUrl} backendMode={store.backendMode} etat={store.syncState} lastSyncAt={store.lastSyncAt} pending={store.pending} onDiag={store.fetchDiag} onBack={() => setTab("bilan")} />;
+    else if (tab === "diagSync") body = <DiagnosticSync backendUrl={store.backendUrl} backendMode={store.backendMode} deprecie={store.deprecie} etat={store.syncState} lastSyncAt={store.lastSyncAt} pending={store.pending} onDiag={store.fetchDiag} onBack={() => setTab("bilan")} />;
     else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onAudit={() => setSheet("audit")} onDepenses={() => setTab("depenses")} onLivraisons={() => setTab("livraisons")} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
   } else if (isCoop) {
     const isPisteur = role === "pisteur";
@@ -374,7 +374,7 @@ export default function App() {
     // Le magasinier retrouve à tout moment les livraisons de chaque pisteur,
     // vérifiées comprises : la validation n'efface plus rien.
     else if (tab === "livraisons") body = <HistoriqueLivraisons data={data} onBack={() => setTab(isPisteur ? "tournee" : "jour")} />;
-    else if (tab === "diagSync") body = <DiagnosticSync backendUrl={store.backendUrl} backendMode={store.backendMode} etat={store.syncState} lastSyncAt={store.lastSyncAt} pending={store.pending} onDiag={store.fetchDiag} onBack={() => setTab(isPisteur ? "tournee" : "jour")} />;
+    else if (tab === "diagSync") body = <DiagnosticSync backendUrl={store.backendUrl} backendMode={store.backendMode} deprecie={store.deprecie} etat={store.syncState} lastSyncAt={store.lastSyncAt} pending={store.pending} onDiag={store.fetchDiag} onBack={() => setTab(isPisteur ? "tournee" : "jour")} />;
     else if (isPisteur) body = (
       <>
         <PisteurHome theme={theme} data={data} staffId={session.staffId} onNew={() => setSheet("pesee")} onNewDepense={() => setSheet("depense")} onReceipt={setReceipt} onOpen={setOpenMember} onPlanteurs={() => setTab("planteurs")} onStock={() => setSheet("stock")} onGrantLoan={() => setSheet("grantLoan")} onPrets={() => setTab("prets")} onLivrer={() => setSheet("livraison")} />
@@ -414,7 +414,7 @@ export default function App() {
             joint plus son serveur doit le dire en permanence, sur tous les
             rôles, pas seulement au moment de l'erreur. */}
         {tab !== "diagSync" ? (
-          <BandeauSync etat={store.syncState} backendUrl={store.backendUrl} lastSyncAt={store.lastSyncAt} onDiag={() => setTab("diagSync")} />
+          <BandeauSync etat={store.syncState} backendUrl={store.backendUrl} lastSyncAt={store.lastSyncAt} deprecie={store.deprecie} onDiag={() => setTab("diagSync")} />
         ) : null}
         {body}
       </ScrollView>

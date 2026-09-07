@@ -77,6 +77,12 @@ export function identToSession(id: Identity): any {
     : { side: "coop", role: id.role, staffId: id.sub, coopId: id.coopId };
 }
 
+// Bascule (phase 6) : le serveur peut annoncer qu'il est hors service, avec
+// l'adresse du nouveau. On le lit dans un EN-TÊTE — jamais dans l'état, qui
+// repartirait au serveur et serait refusé (invariant 23).
+const ENTETE_DEPRECIE = "X-Valeo-Deprecie";
+let _deprecie: string | null = null;
+
 async function apiFetch(path: string, opts: any, token: string | null): Promise<Response | null> {
   // En mode même-origine, `BACKEND` est vide et le chemin reste relatif : ce
   // n'est PAS l'absence de serveur. Seul `joignable` en décide.
@@ -90,6 +96,11 @@ async function apiFetch(path: string, opts: any, token: string | null): Promise<
       signal: ctrl.signal,
     });
     clearTimeout(t);
+    // Un APK garde son URL de serveur pour toujours (elle est figée au build) :
+    // sans ce signal, il continuerait d'écrire sur l'ancienne instance en
+    // affichant « Synchronisé », et ses pesées seraient perdues en silence.
+    const avis = r.headers.get(ENTETE_DEPRECIE);
+    if (avis) _deprecie = avis;
     return r;
   } catch {
     clearTimeout(t);
@@ -110,6 +121,14 @@ export function useCoopData() {
   const [syncState, setSyncState] = useState<"jamais" | "ok" | "hors_ligne" | "refus">("jamais");
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Adresse du serveur qui remplace celui-ci, quand l'actuel se déclare hors
+  // service. Relevée à chaque synchronisation : une bascule décidée après
+  // l'ouverture de l'application doit être vue sans attendre un redémarrage.
+  const [deprecie, setDeprecie] = useState<string | null>(null);
+  // À relever après CHAQUE réponse du serveur, connexion comprise : c'est le
+  // matin, en ouvrant l'application, que l'agent doit apprendre qu'il envoie
+  // ses pesées vers un serveur que plus personne ne lit.
+  const noterAvis = useCallback(() => setDeprecie(_deprecie), []);
   const remoteApply = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dataRef = useRef<Data | null>(null);
@@ -161,6 +180,7 @@ export function useCoopData() {
         coopIdRef.current = ident.coopId;
         setBootSession(identToSession(ident));
         const r = await apiFetch("/api/state", {}, await jetonAppel());
+        noterAvis();
         remoteApply.current = true;
         if (r && r.ok) { const fresh = migrate(await r.json()); serverRef.current = fresh; setData(fresh); }
         else if (r && r.status === 401) { await clearAuth(); setBootSession(null); setData(seed()); }
@@ -170,7 +190,7 @@ export function useCoopData() {
       }
       setReady(true);
     })();
-  }, [clearAuth, jetonAppel]);
+  }, [clearAuth, jetonAppel, noterAvis]);
 
   // Tire la dernière version du backend et la prend comme nouvelle référence.
   const pull = useCallback(async () => {
@@ -182,9 +202,10 @@ export function useCoopData() {
       remoteApply.current = true;
       setData(fresh);
       setSyncState("ok"); setLastSyncAt(new Date().toISOString()); setPending(false);
+      noterAvis();
     } else if (r && r.status === 401) { await clearAuth(); setAuthError(true); }
     else if (!r) setSyncState("hors_ligne");
-  }, [clearAuth, jetonAppel]);
+  }, [clearAuth, jetonAppel, noterAvis]);
 
   // Pousse les changements locaux (horodatés + suppressions explicites).
   const push = useCallback(async (current: Data) => {
@@ -206,12 +227,13 @@ export function useCoopData() {
     if (r && r.ok) {
       serverRef.current = payload; dirty.current = false;
       setSyncState("ok"); setLastSyncAt(new Date().toISOString()); setPending(false);
+      noterAvis();
       return;
     }
     // Réseau indisponible : `dirty` reste vrai, la prochaine occasion réessaiera.
     // On le DIT, au lieu d'échouer en silence.
     setSyncState("hors_ligne"); setPending(true);
-  }, [clearAuth, jetonAppel, pull]);
+  }, [clearAuth, jetonAppel, noterAvis, pull]);
 
   useEffect(() => {
     if (!ready || !data) return;
@@ -257,8 +279,9 @@ export function useCoopData() {
     const fresh = migrate(res.state);
     serverRef.current = fresh;
     setData(fresh);
+    noterAvis();
     return identToSession(res.identity);
-  }, []);
+  }, [noterAvis]);
 
   // Vérifie une réponse de connexion et lève un message lisible par l'utilisateur.
   const assertLoginOk = async (r: Response | null) => {
@@ -738,6 +761,7 @@ export function useCoopData() {
     pending,
     backendUrl: SERVEUR.joignable ? SERVEUR.libelle : null,
     backendMode: SERVEUR.mode,
+    deprecie,
     fetchDiag,
     clearSyncError,
     authLoginCoop,

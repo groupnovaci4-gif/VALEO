@@ -1136,7 +1136,35 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecid
  * indicateur. Ce bandeau le dit, et ne disparaît pas tant que ce n'est pas
  * réglé.
  */
-export function BandeauSync({ etat, backendUrl, lastSyncAt, onDiag }: any) {
+export function BandeauSync({ etat, backendUrl, lastSyncAt, deprecie, onDiag }: any) {
+  // Bascule (phase 6) : ce serveur se déclare hors service. C'est le message le
+  // plus important de l'écran — l'application semble fonctionner, elle affiche
+  // « Synchronisé », et pourtant plus personne ne lit ce qu'elle enregistre.
+  // Il passe donc AVANT tout le reste, et ne disparaît pas quand la synchro
+  // « va bien » : justement, elle va bien, vers la mauvaise adresse.
+  if (deprecie) {
+    return (
+      <Pressable onPress={onDiag} testID="bandeau-sync">
+        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 9, backgroundColor: "#FBEFED",
+                       borderWidth: 1, borderColor: "#E4B7AF", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+          <Icon name="alert-triangle" size={17} color={C.loss} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13, fontWeight: "800", color: C.loss }}>
+              Cette version doit être mise à jour
+            </Text>
+            <Text style={{ fontSize: 11.5, color: C.muted, lineHeight: 16, marginTop: 3 }}>
+              Ce téléphone envoie ses saisies vers un serveur qui n&apos;est plus consulté.
+              Installez la nouvelle version de l&apos;application, sinon vos pesées
+              n&apos;arriveront dans aucun tableau de bord.
+            </Text>
+            <Text style={{ fontSize: 11, color: C.muted, marginTop: 4 }} numberOfLines={2}>
+              {deprecie}
+            </Text>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
   // Quand tout va bien, une alerte serait du bruit — mais renvoyer `null`
   // supprimait le SEUL accès à l'écran « Connexion au serveur ». Or c'est
   // précisément quand l'application se croit synchronisée qu'il faut pouvoir
@@ -1195,7 +1223,7 @@ export function BandeauSync({ etat, backendUrl, lastSyncAt, onDiag }: any) {
  * vérité — c'est la seule explication possible à « rien ne remonte », le
  * backend servant les deux depuis un unique objet de base de données.
  */
-export function DiagnosticSync({ backendUrl, backendMode, etat, lastSyncAt, pending, onBack, onDiag }: any) {
+export function DiagnosticSync({ backendUrl, backendMode, deprecie, etat, lastSyncAt, pending, onBack, onDiag }: any) {
   const [emp, setEmp] = useState<any | undefined>(undefined);
   const recharger = React.useCallback(async () => { setEmp(undefined); setEmp((await onDiag()) || null); }, [onDiag]);
   React.useEffect(() => { recharger(); }, [recharger]);
@@ -1219,6 +1247,7 @@ export function DiagnosticSync({ backendUrl, backendMode, etat, lastSyncAt, pend
         <SectionTitle noMargin>Ce téléphone</SectionTitle>
         <View style={{ height: 8 }} />
         <L k="Serveur" v={backendUrl || "AUCUN"} alerte={!backendUrl} />
+        {deprecie ? <L k="Serveur remplacé par" v={deprecie} alerte /> : null}
         {backendMode === "meme-origine" ? (
           <Text style={{ fontSize: 11.5, color: C.muted, paddingTop: 6, lineHeight: 16 }}>
             L&apos;API est servie par la même adresse que cette page (redirection Firebase

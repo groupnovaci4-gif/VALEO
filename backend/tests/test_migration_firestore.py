@@ -125,3 +125,61 @@ class TestMigration:
         relu = _migrer(etat, depot_module.DepotFirestore(fs, "test", "x"))
         assert relu["sorties"] == []
         assert fs.compte("sorties") == 0
+
+
+class TestMiroirAvantBascule:
+    """Phase 6 : le dernier passage doit aussi refléter les SUPPRESSIONS.
+
+    Pendant la marche en parallèle, les téléphones continuent d'écrire sur
+    l'ancienne instance : il faut donc relancer la migration juste avant de
+    basculer. Or elle écrit et n'efface jamais — une fiche supprimée entre deux
+    passages survivrait dans Firestore et **réapparaîtrait** après la bascule.
+    """
+
+    def _cible(self):
+        fs = FauxFirestore()
+        return fs, depot_module.DepotFirestore(fs, "test", "x")
+
+    def _migrer(self, etat, cible, miroir=False):
+        async def scenario():
+            if miroir:
+                await cible.charger(_vide)      # la référence = l'état actuel de la cible
+            await cible.enregistrer(etat)
+            return await cible.charger(_vide)
+        return asyncio.run(scenario())
+
+    def test_sans_miroir_une_ligne_supprimee_survit(self):
+        """Le comportement par défaut — volontaire, et c'est le piège."""
+        fs, cible = self._cible()
+        self._migrer(ETAT, cible)
+        allege = {**ETAT, "members": [m for m in ETAT["members"] if m["id"] == "m1"]}
+        relu = self._migrer(allege, cible)
+        assert len(relu["members"]) == 2, "sans miroir, rien n'est supprimé"
+
+    def test_avec_miroir_la_suppression_est_repercutee(self):
+        fs, cible = self._cible()
+        self._migrer(ETAT, cible)
+        assert fs.compte("members") == 2
+        allege = {**ETAT, "members": [m for m in ETAT["members"] if m["id"] == "m1"]}
+        relu = self._migrer(allege, cible, miroir=True)
+        assert [m["id"] for m in relu["members"]] == ["m1"]
+        assert fs.compte("members") == 1
+
+    def test_le_miroir_ne_touche_pas_a_ce_qui_existe_toujours(self):
+        """Le risque de la suppression : emporter ce qu'il fallait garder."""
+        fs, cible = self._cible()
+        self._migrer(ETAT, cible)
+        relu = self._migrer(ETAT, cible, miroir=True)
+        assert fs.compte("collections") == 120
+        assert len(relu["collections"]) == 120
+        assert fs.compte("staff") == 1 and fs.compte("coops") == 1
+
+    def test_le_miroir_prend_aussi_les_ecritures_de_la_derniere_minute(self):
+        """Une pesée faite pendant la marche en parallèle doit suivre."""
+        fs, cible = self._cible()
+        self._migrer(ETAT, cible)
+        tardive = {"id": "col-tardive", "coopId": "c1", "memberId": "m1", "kg": 90, "prixKg": 1800}
+        enrichi = {**ETAT, "collections": ETAT["collections"] + [tardive]}
+        relu = self._migrer(enrichi, cible, miroir=True)
+        assert any(c["id"] == "col-tardive" for c in relu["collections"])
+        assert len(relu["collections"]) == 121

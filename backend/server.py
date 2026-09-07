@@ -45,6 +45,8 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "720"))
 
 STATE_ID = "main"
+# En-tête par lequel un déploiement annonce qu'il est hors service (phase 6).
+ENTETE_DEPRECIE = "X-Valeo-Deprecie"
 
 # Où les octets sont rangés : MongoDB (défaut) ou Firestore. Le reste du
 # fichier — autorisation, fusion, périmètre — ignore complètement ce choix.
@@ -1447,7 +1449,59 @@ app.add_middleware(
     allow_origins=_cors_origins or ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    # Sans cette ligne, un navigateur ne LIT PAS l'en-tête de dépréciation :
+    # les en-têtes hors liste standard sont masqués au JavaScript.
+    expose_headers=[ENTETE_DEPRECIE],
 )
+
+
+# --------------------------------------------------------------------------- #
+# Bascule (phase 6) : dire aux anciens clients qu'ils écrivent dans le vide
+# --------------------------------------------------------------------------- #
+# `EXPO_PUBLIC_BACKEND_URL` est figée au build (invariant 27) : un APK déjà
+# installé continuera d'appeler CETTE instance après la bascule, quoi qu'il
+# arrive. Ses pesées seraient alors enregistrées ici, dans une base que plus
+# personne ne consulte — et personne ne s'en apercevrait, puisque l'application
+# afficherait « Synchronisé ».
+#
+# On pose donc `BACKEND_DEPRECIE` sur l'ANCIEN déploiement, avec l'adresse du
+# nouveau. Le serveur le signale dans un EN-TÊTE, jamais dans le corps de
+# `/api/state` : un champ ajouté à l'état repartirait au serveur via
+# `prepareSync` et serait lu comme une modification interdite (invariant 23).
+def entete_transportable(valeur: str) -> str:
+    """Rend une valeur d'en-tête HTTP transportable.
+
+    Un en-tête ne véhicule que du **latin-1** : un tiret cadratin, des
+    guillemets typographiques ou une apostrophe courbe — tout ce qu'un message
+    écrit en français attrape naturellement — font lever Starlette, et le
+    serveur répond alors **500 sur TOUTES les requêtes**. Un message
+    d'avertissement mettrait ainsi à terre l'instance qu'il devait seulement
+    annoter, au moment précis d'une bascule.
+
+    Les caractères courants sont donc remplacés par leur équivalent simple, et
+    le reste est filtré. Les accents, eux, passent : ils sont dans latin-1.
+    """
+    for typo, simple in (("\u2014", "-"), ("\u2013", "-"), ("\u2019", "'"),
+                         ("\u2018", "'"), ("\u201c", '"'), ("\u201d", '"'),
+                         ("\u00a0", " "), ("\u2026", "...")):
+        valeur = valeur.replace(typo, simple)
+    return valeur.encode("latin-1", "ignore").decode("latin-1").strip()
+
+
+BACKEND_DEPRECIE = entete_transportable((os.environ.get("BACKEND_DEPRECIE") or "").strip())
+
+
+@app.middleware("http")
+async def signaler_depreciation(request, call_next):
+    reponse = await call_next(request)
+    if BACKEND_DEPRECIE:
+        # Ceinture ET bretelles : cet avertissement ne doit JAMAIS pouvoir
+        # empêcher le serveur de répondre. Il annonce une panne, il n'en crée pas.
+        try:
+            reponse.headers[ENTETE_DEPRECIE] = BACKEND_DEPRECIE
+        except Exception:  # pragma: no cover - la valeur est déjà assainie
+            logger.warning("En-tête de dépréciation non transportable, ignoré.")
+    return reponse
 
 
 # Le démarrage doit rester court. Sur Cloud Run, une instance démarre à chaque

@@ -480,6 +480,136 @@ change pas depuis le serveur.
 
 ---
 
+## Phase 6 — La bascule
+
+C'est la phase où l'on peut perdre des données. Les cinq précédentes étaient
+réversibles : celle-ci décide de l'endroit où votre coopérative travaillera
+demain.
+
+### Le danger principal : les APK déjà installés
+
+`EXPO_PUBLIC_BACKEND_URL` est **figée au build** (invariant 27). Un téléphone
+qui a l'application aujourd'hui continuera d'appeler l'**ancienne** instance
+après la bascule, quoi que vous fassiez côté serveur. Ses pesées y seront bien
+enregistrées — dans une base que plus personne ne consulte — et l'application
+affichera **« Synchronisé »**.
+
+C'est la perte la plus vicieuse du projet : silencieuse, et du point de vue du
+pisteur tout va bien.
+
+**Le remède** : posez `BACKEND_DEPRECIE` sur l'ANCIEN déploiement.
+
+```
+BACKEND_DEPRECIE=https://valeo-backend.run.app - installez la nouvelle version
+```
+
+Le serveur ajoute alors un en-tête `X-Valeo-Deprecie` à **toutes** ses
+réponses, y compris les refus (un jeton expiré doit prévenir lui aussi).
+L'application l'affiche en rouge, avant tout le reste, sur tous les rôles :
+« Cette version doit être mise à jour ».
+
+L'ancien serveur **continue de fonctionner** : des agents sont peut-être encore
+en tournée avec des pesées à envoyer. Il prévient, il ne se saborde pas.
+
+Deux détails qui ont leur importance :
+
+* c'est un **en-tête**, jamais un champ de `/api/state`. `prepareSync` renvoie
+  toutes les lignes reçues : un champ ajouté à l'état repartirait au serveur et
+  serait lu comme une modification interdite — 403 sur tout le PUT
+  (invariant 23) ;
+* un en-tête HTTP ne véhicule que du **latin-1**. Un message écrit en français
+  attrape naturellement un tiret cadratin ou une apostrophe courbe, et Starlette
+  lève alors — le serveur répondant **500 sur toutes les requêtes**. Le message
+  est donc assaini au chargement (les accents, eux, passent). Défaut réel,
+  trouvé en exécutant, pas en relisant.
+
+### Ne migrez PAS par l'API d'administration
+
+Trouvé pendant la préparation de cette phase, et ça aurait bloqué toute la
+coopérative :
+
+`GET /api/admin/state` **retire les empreintes `pin`** — c'est l'invariant 5,
+et il est correct : les empreintes ne quittent jamais le serveur, pour aucun
+rôle, l'administrateur compris. Copier l'état d'une instance à l'autre par
+cette API transporte donc tout **sauf les codes secrets**. Les comptages
+concordent, les données sont là… et le lendemain **plus personne ne peut se
+connecter**.
+
+Utilisez `scripts/migrer_vers_firestore.py`, qui lit MongoDB directement,
+côté serveur, et transporte bien les empreintes (couvert par
+`test_les_empreintes_de_code_secret_suivent`).
+
+### Le contrôle de pré-bascule
+
+« Ne coupe pas l'ancien tant que le nouveau ne tourne pas parfaitement en
+parallèle » est un bon conseil, mais il ne se vérifie pas à l'œil.
+
+```bash
+cd backend
+python scripts/verifier_bascule.py \
+    --ancien https://ancienne-instance \
+    --nouveau https://valeo-backend.run.app \
+    --admin 'MOT-DE-PASSE-ADMIN' \
+    --compte patron@votrecoop.ci --secret 'SON-CODE'
+```
+
+Il interroge les **deux** déploiements et refuse la bascule (code de sortie 1)
+tant que :
+
+1. les deux marqueurs de `/health` ne **diffèrent** pas — s'ils sont identiques,
+   les deux URL désignent le même déploiement et il n'y a rien à basculer ;
+2. l'ancien ne contient pas réellement de données — deux bases vides
+   « concordent » parfaitement, et la comparaison ne veut alors rien dire ;
+3. les comptages par entité ne concordent pas des deux côtés ;
+4. un compte réel n'arrive pas à **se connecter** au nouveau — c'est ce
+   contrôle qui rattrape les codes secrets perdus ;
+5. une écriture d'essai n'est pas acceptée puis relue — une bascule vers un
+   serveur en lecture seule ne se verrait qu'au premier pisteur qui pèse.
+   L'essai est **retiré** derrière lui ;
+6. l'ancien n'annonce pas encore sa dépréciation.
+
+Renseignez `--compte` et `--secret` : sans eux, rien ne prouve que les codes
+secrets ont suivi, et le script vous le dit.
+
+### La marche à suivre
+
+1. **Déployer** le nouveau backend (phase 4) et le site (phase 5), sans rien
+   couper. Les deux instances tournent en parallèle.
+2. **Migrer** les données : `python scripts/migrer_vers_firestore.py --ecrire`.
+3. **Laisser tourner** en parallèle quelques jours. Les téléphones écrivent
+   encore sur l'ancien.
+4. **Vérifier** : `python scripts/verifier_bascule.py …` doit sortir en 0.
+5. **Dernier passage de migration**, juste avant de basculer :
+   ```bash
+   python scripts/migrer_vers_firestore.py --ecrire --miroir
+   ```
+   `--miroir` est indispensable ici. La migration écrit et n'efface jamais :
+   une fiche supprimée entre les deux passages survivrait dans Firestore et
+   **réapparaîtrait** après la bascule. Le miroir retire de la cible ce qui
+   n'existe plus à la source, et rien d'autre.
+6. **Poser `BACKEND_DEPRECIE`** sur l'ancien déploiement.
+7. **Reconstruire l'APK** avec la nouvelle URL (`npx eas build`) et le
+   distribuer. Le site web, lui, est déjà à la bonne adresse — il est en mode
+   même-origine (invariant 31).
+8. **Attendre** que les téléphones aient migré. L'écran « Connexion au
+   serveur » de chacun montre l'empreinte de l'instance qu'il atteint : c'est
+   la façon de savoir qui est passé.
+9. **Ne couper l'ancien qu'ensuite**, et pas avant d'avoir gardé une sauvegarde
+   de sa base.
+
+### Revenir en arrière
+
+Tant que vous n'avez pas coupé l'ancien, le retour est immédiat : remettez
+`DATA_BACKEND=mongo` et retirez `BACKEND_DEPRECIE`. MongoDB n'a jamais été
+modifié — ni par la migration, ni par le contrôle de pré-bascule.
+
+**Après** avoir laissé les téléphones écrire sur Firestore, ce n'est plus
+vrai : les écritures faites là-bas ne sont pas dans MongoDB, et aucun script ne
+fait le chemin inverse. Le point de non-retour n'est pas le déploiement, c'est
+**la première pesée enregistrée sur le nouveau**.
+
+---
+
 ## Phases suivantes — état
 
 | Phase | État | Remarque |
@@ -489,7 +619,7 @@ change pas depuis le serveur.
 | **3 — MongoDB → Firestore** | **livrée** | reste à basculer les données et `DATA_BACKEND` |
 | **4 — FastAPI → Cloud Run** | **livrée** | reste à construire l'image et à déployer |
 | **5 — Frontend + Hosting** | **livrée** | reste à construire et à déployer |
-| 6 — Bascule | à faire | ne pas couper l'existant avant que Firebase tourne en parallèle |
+| **6 — Bascule** | **outillée** | la procédure est à exécuter par vous, avec `verifier_bascule.py` |
 
 ### Note sur la phase 3 (conservée : c'est la décision qui a été prise)
 
