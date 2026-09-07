@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -19,10 +20,19 @@ import firebase_auth
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
-# MongoDB connection
-mongo_url = os.environ["MONGO_URL"]
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ["DB_NAME"]]
+# MongoDB : requis tant que c'est la base ; INUTILE sur Firestore.
+# Un déploiement Cloud Run + Firestore n'a aucune raison d'exiger une chaîne de
+# connexion MongoDB — la réclamer quand même empêcherait purement et simplement
+# le service de démarrer.
+DATA_BACKEND = os.environ.get("DATA_BACKEND", "mongo").lower()
+mongo_url = os.environ.get("MONGO_URL") or ""
+db_name = os.environ.get("DB_NAME") or ""
+if DATA_BACKEND != "firestore" and not (mongo_url and db_name):
+    raise RuntimeError("MONGO_URL et DB_NAME sont requis (ou DATA_BACKEND=firestore)")
+# Le client n'est créé QUE si l'on s'en sert : sur Firestore, il n'y a pas de
+# serveur MongoDB à joindre, et la connexion resterait pendante.
+client = AsyncIOMotorClient(mongo_url) if mongo_url else None
+db = client[db_name] if client is not None and db_name else None
 
 # Admin auth config (secrets must be provided via environment / deployment secrets)
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
@@ -38,7 +48,7 @@ STATE_ID = "main"
 
 # Où les octets sont rangés : MongoDB (défaut) ou Firestore. Le reste du
 # fichier — autorisation, fusion, périmètre — ignore complètement ce choix.
-depot = depot_module.choisir(lambda: db, f"{mongo_url}|{db.name}")
+depot = depot_module.choisir(lambda: db, f"{mongo_url}|{db_name}")
 
 app = FastAPI()
 bearer = HTTPBearer(auto_error=False)
@@ -1440,19 +1450,30 @@ app.add_middleware(
 )
 
 
+# Le démarrage doit rester court. Sur Cloud Run, une instance démarre à chaque
+# montée en charge — devant un pisteur qui attend sa synchronisation — et une
+# base injoignable fait patienter le pilote MongoDB 30 secondes avant
+# d'abandonner. « Best-effort » sans borne de temps n'est pas best-effort.
+DELAI_PREPARATION = float(os.environ.get("STARTUP_TIMEOUT_SECONDS", "5"))
+
+
 @app.on_event("startup")
 async def ensure_indexes():
-    # Best-effort : une base indisponible au démarrage ne doit pas empêcher le
-    # service de se lancer (l'absence d'index n'affecte que la purge).
+    # L'absence d'index n'affecte que la purge des compteurs de connexion : le
+    # service doit se lancer quand même, et vite.
     try:
-        await depot.preparer()
+        await asyncio.wait_for(depot.preparer(), timeout=DELAI_PREPARATION)
+    except asyncio.TimeoutError:  # pragma: no cover - dépend de l'infrastructure
+        logger.warning("Préparation de la base abandonnée après %.0f s : le service démarre "
+                       "quand même (index TTL non créé).", DELAI_PREPARATION)
     except Exception as exc:  # pragma: no cover - dépend de l'infrastructure
         logger.warning("Index TTL login_attempts non créé : %s", exc)
 
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    if client is not None:
+        client.close()
 
 
 ADMIN_HTML = r"""<!DOCTYPE html>

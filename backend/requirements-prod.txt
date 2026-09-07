@@ -1,0 +1,36 @@
+# Dépendances d'EXÉCUTION du backend VALEO — celles du conteneur Cloud Run.
+#
+# Pourquoi un second fichier plutôt que `requirements.txt` ?
+#
+# 1. `requirements.txt` contient `emergentintegrations==0.2.0`, hérité du
+#    builder d'origine et **absent de PyPI** : un `pip install -r
+#    requirements.txt` dans une image Docker échoue purement et simplement.
+# 2. Il embarque aussi pandas, numpy, boto3, jq, typer, passlib, python-jose…
+#    qu'aucun module du backend n'importe. Sur Cloud Run, chaque mégaoctet se
+#    paie deux fois : à la construction de l'image et au démarrage à froid,
+#    lequel intervient à chaque montée en charge — donc devant un pisteur qui
+#    attend sa synchronisation.
+#
+# `requirements.txt` reste le fichier de DÉVELOPPEMENT (pytest, black, mypy…) :
+# il n'est pas modifié, pour ne rien casser dans les habitudes de travail.
+# Un test (`test_deploiement.py`) vérifie que ce fichier-ci couvre bien tous
+# les imports réels — un oubli casserait la production sans casser les tests.
+
+fastapi==0.110.1
+uvicorn[standard]==0.25.0
+pydantic>=2.6.4
+python-dotenv>=1.0.1
+
+# Jetons : HS256 (VALEO) et RS256 (Firebase). `cryptography` est indispensable
+# à RS256 — sans elle, toute session Firebase serait rejetée.
+pyjwt>=2.10.1
+cryptography>=42.0.8
+
+# MongoDB : inutile avec DATA_BACKEND=firestore, mais gardé tant que les deux
+# bases coexistent (phase 6 : ne rien couper avant d'avoir tourné en parallèle).
+motor==3.3.1
+pymongo==4.6.3
+
+# Firebase : sessions par jeton personnalisé (phase 2) et Firestore (phase 3).
+firebase-admin>=6.5.0
+google-cloud-firestore>=2.16.0

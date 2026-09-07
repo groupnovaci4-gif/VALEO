@@ -1,0 +1,30 @@
+{
+  "_commentaire": [
+    "Firebase Hosting sert le frontend et RENVOIE les appels d'API vers le service",
+    "Cloud Run qui porte le backend FastAPI. Tout passe ainsi par une seule origine :",
+    "plus de question de CORS, et l'application n'a qu'une URL à connaître.",
+    "L'ordre des règles compte : la plus spécifique d'abord. La dernière (**) est le",
+    "repli SPA d'expo-router, elle attraperait tout si elle passait avant."
+  ],
+  "hosting": {
+    "public": "frontend/dist",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/api/**", "run": { "serviceId": "valeo-backend", "region": "europe-west1" } },
+      { "source": "/health", "run": { "serviceId": "valeo-backend", "region": "europe-west1" } },
+      { "source": "**", "destination": "/index.html" }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "Referrer-Policy", "value": "same-origin" }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

@@ -1,0 +1,54 @@
+# Construction et déploiement du backend VALEO sur Cloud Run.
+#
+#   gcloud builds submit --config backend/cloudbuild.yaml \
+#     --substitutions=_REGION=europe-west1
+#
+# Les SECRETS ne sont pas ici : ni ADMIN_PASSWORD, ni JWT_SECRET, ni compte de
+# service. Ils vivent dans Secret Manager et sont attachés au service (voir
+# docs/MIGRATION-FIREBASE.md). Un secret dans un fichier de build finit dans les
+# journaux de construction, qui sont conservés.
+substitutions:
+  _REGION: europe-west1
+  _SERVICE: valeo-backend
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/valeo/${_SERVICE}:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/valeo/${_SERVICE}:latest
+      - -f
+      - backend/Dockerfile
+      - backend
+
+  - name: gcr.io/cloud-builders/docker
+    args: [push, --all-tags, "${_REGION}-docker.pkg.dev/$PROJECT_ID/valeo/${_SERVICE}"]
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/valeo/${_SERVICE}:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      # L'application mobile n'a pas de jeton Google : l'accès HTTP doit être
+      # public. C'est le JWT de VALEO qui autorise, pas IAM.
+      - --allow-unauthenticated
+      - --set-env-vars=DATA_BACKEND=firestore
+      # Secret Manager, jamais des variables en clair.
+      - --set-secrets=ADMIN_PASSWORD=valeo-admin-password:latest,JWT_SECRET=valeo-jwt-secret:latest
+      # Une instance toujours chaude : sinon chaque démarrage à froid se paie
+      # devant un pisteur qui attend sa synchronisation en bout de piste.
+      - --min-instances=1
+      - --cpu=1
+      - --memory=512Mi
+      - --timeout=60s
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/valeo/${_SERVICE}
+options:
+  logging: CLOUD_LOGGING_ONLY

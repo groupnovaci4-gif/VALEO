@@ -1,0 +1,15 @@
+# Ne JAMAIS faire entrer un secret dans une image : elle est poussée dans un
+# registre, et tout ce qu'elle contient est lisible par qui peut la tirer.
+.env
+.env.*
+*.json.key
+*service-account*.json
+
+tests/
+scripts/
+pytest.ini
+requirements.txt
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/

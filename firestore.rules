@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Le backend est le SEUL écrivain (invariant 29, phase 3 de la migration).
+//
+// Il écrit avec l'Admin SDK, qui contourne ces règles par conception. Elles ne
+// s'appliquent donc qu'aux accès directs depuis un navigateur ou un téléphone
+// — et il ne doit pas y en avoir. Tout refuser est ici la règle CORRECTE, pas
+// une précaution paresseuse : c'est ce qui garantit qu'aucun accès direct ne
+// se glissera sans passer par `authorize_state_write`.
+//
+// Ne pas « ouvrir un peu pour tester » : la matrice de rôles de VALEO (qui pèse,
+// qui vérifie, qui recouvre quelle avance, à qui appartiennent quelles
+// dépenses) n'existe pas ici. Une lecture ouverte livrerait les données d'une
+// coopérative à une autre, et les empreintes de codes secrets avec.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

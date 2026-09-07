@@ -77,6 +77,28 @@ _tente = False
 CHECK_REVOKED = os.environ.get("FIREBASE_CHECK_REVOKED", "1") not in ("0", "false", "False", "")
 
 
+def _sur_google_cloud() -> bool:
+    """Tourne-t-on DANS Google Cloud (Cloud Run, Cloud Functions, GKE) ?
+
+    Là, le compte de service est **ambiant** : il vient du serveur de
+    métadonnées, sans fichier ni variable à fournir. Exiger malgré tout une clé
+    privée serait à la fois inutile et dangereux — on committerait un secret
+    pour obtenir ce que la plateforme donne gratuitement.
+
+    `K_SERVICE` est posé par Cloud Run et Cloud Functions, `GAE_ENV` par App
+    Engine. `FIREBASE_USE_ADC` force le mode pour les autres cas (GKE, VM).
+    """
+    return bool(os.environ.get("K_SERVICE") or os.environ.get("GAE_ENV")
+                or os.environ.get("FIREBASE_USE_ADC"))
+
+
+def _projet() -> Optional[str]:
+    for cle in ("FIREBASE_PROJECT_ID", "GOOGLE_CLOUD_PROJECT", "GCLOUD_PROJECT", "GCP_PROJECT"):
+        if os.environ.get(cle):
+            return os.environ[cle]
+    return None
+
+
 def _identifiants():
     """Lit le compte de service, sans jamais le journaliser."""
     brut = os.environ.get("FIREBASE_SERVICE_ACCOUNT")
@@ -85,7 +107,7 @@ def _identifiants():
     chemin = os.environ.get("FIREBASE_SERVICE_ACCOUNT_FILE")
     if chemin:
         return fb_credentials.Certificate(chemin)
-    if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+    if os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") or _sur_google_cloud():
         return fb_credentials.ApplicationDefault()
     return None
 
@@ -109,7 +131,8 @@ def _init():
             cred = _identifiants()
             if cred is None:
                 return None
-            _app = firebase_admin.initialize_app(cred, name="valeo")
+            options = {"projectId": _projet()} if _projet() else None
+            _app = firebase_admin.initialize_app(cred, options, name="valeo")
             logger.info("Authentification Firebase active.")
         except Exception as e:  # identifiants absents ou illisibles
             logger.warning("Firebase inactif (%s) : on garde le jeton VALEO seul.", type(e).__name__)

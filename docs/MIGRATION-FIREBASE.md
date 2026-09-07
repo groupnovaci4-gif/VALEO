@@ -272,6 +272,117 @@ grossir la collection sans fin.
 
 ---
 
+## Phase 4 — Le backend sur Cloud Run
+
+FastAPI est **conteneurisé tel quel**. Aucune ligne d'application ne change :
+même `server.py`, même matrice d'autorisation, mêmes invariants. Seul
+l'emballage est nouveau. Réécrire chaque endpoint en Cloud Functions aurait
+été beaucoup de travail pour un gain nul ici.
+
+### Trois défauts qui auraient bloqué le déploiement
+
+Ils ne cassaient aucun test — c'est précisément ce qui les rend dangereux.
+Chacun a désormais son test (`backend/tests/test_deploiement.py`).
+
+1. **`requirements.txt` ne s'installe pas.** Il contient
+   `emergentintegrations==0.2.0`, hérité du builder d'origine et **absent de
+   PyPI** : `pip install -r requirements.txt` échoue, donc l'image ne se
+   construit pas. Il embarque aussi pandas, numpy, boto3, jq, typer, passlib,
+   python-jose — qu'aucun module n'importe.
+   → `backend/requirements-prod.txt` ne déclare que le nécessaire. Un test
+   vérifie qu'il couvre **tous** les imports réels, et que les gros inutiles
+   restent dehors. `requirements.txt` n'est pas modifié : il reste le fichier
+   de développement.
+2. **Firestore réclamait MongoDB.** `os.environ["MONGO_URL"]` était lu au
+   chargement, donc un déploiement Cloud Run + Firestore refusait de démarrer
+   faute d'une base dont il n'a aucun usage.
+   → Avec `DATA_BACKEND=firestore`, MongoDB n'est plus exigé et aucun client
+   n'est créé.
+3. **Le démarrage attendait 30 secondes.** Si MongoDB n'était pas joignable, la
+   préparation des index patientait jusqu'au délai du pilote avant d'abandonner.
+   Sur Cloud Run une instance démarre à chaque montée en charge — devant un
+   pisteur qui attend sa synchronisation en bout de piste. *Mesuré : 30 s avant,
+   4 s après.*
+   → `STARTUP_TIMEOUT_SECONDS` (5 s par défaut) borne l'attente.
+
+S'y ajoute un quatrième point, propre à Cloud Run : le compte de service y est
+**ambiant** (serveur de métadonnées), sans fichier ni variable. Le code le
+détecte (`K_SERVICE`) et utilise les identifiants par défaut — inutile, et
+dangereux, d'y déposer une clé privée.
+
+### Fichiers
+
+| Fichier | Rôle |
+|---|---|
+| `backend/Dockerfile` | image mince, utilisateur non privilégié, écoute sur `$PORT` |
+| `backend/.dockerignore` | tient `.env`, tests et scripts hors de l'image |
+| `backend/requirements-prod.txt` | dépendances d'exécution, et elles seules |
+| `backend/cloudbuild.yaml` | construction + déploiement |
+| `firebase.json` | Hosting renvoie `/api/**` vers Cloud Run |
+| `firestore.rules` | **tout accès direct refusé** — le backend est seul écrivain |
+| `backend/tests/test_deploiement.py` | 17 tests : dépendances, conteneur, démarrage |
+
+### Déployer
+
+Une fois, pour préparer le terrain :
+
+```bash
+gcloud config set project VOTRE-PROJET
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com     artifactregistry.googleapis.com firestore.googleapis.com secretmanager.googleapis.com
+
+gcloud artifacts repositories create valeo     --repository-format=docker --location=europe-west1
+
+# Les secrets vivent dans Secret Manager, jamais dans une variable en clair
+# ni dans un fichier de build (les journaux de construction sont conservés).
+printf '%s' 'VOTRE-MOT-DE-PASSE-ADMIN' |     gcloud secrets create valeo-admin-password --data-file=-
+printf '%s' "$(openssl rand -hex 32)" |     gcloud secrets create valeo-jwt-secret --data-file=-
+```
+
+Puis, à chaque déploiement :
+
+```bash
+gcloud builds submit --config backend/cloudbuild.yaml
+```
+
+Et pour router le frontend et l'API sur une seule origine :
+
+```bash
+firebase deploy --only hosting,firestore:rules
+```
+
+### Vérifier que ça tourne
+
+```bash
+curl https://VOTRE-SERVICE.run.app/health
+```
+
+Doit répondre `{"status":"ok","instance":"…"}`. Ce marqueur est celui de
+l'invariant 27 : comparez-le avec celui affiché dans l'écran « Connexion au
+serveur » de l'application. Marqueurs identiques = même base ; différents =
+deux déploiements, et vous venez de trouver la cause en deux secondes.
+
+### Ce qu'il faut savoir avant de basculer
+
+* **`--min-instances=1`** est dans `cloudbuild.yaml`, délibérément. À zéro,
+  chaque première synchronisation après une accalmie paie un démarrage à
+  froid. Une instance chaude coûte quelques euros par mois ; un pisteur qui
+  attend en bout de piste coûte plus cher.
+* **`--allow-unauthenticated` est correct ici.** L'application mobile n'a pas
+  de jeton Google : c'est le JWT de VALEO qui autorise, pas IAM. Le service est
+  joignable, il n'est pas ouvert.
+* **Plusieurs instances en parallèle**, c'est nouveau. Sur Firestore, chaque
+  instance n'écrit que les enregistrements qu'elle a modifiés : deux
+  synchronisations simultanées sur deux coopératives — ou même sur deux pesées
+  d'une même coopérative — ne se recouvrent pas. C'est *meilleur* que le
+  document unique de MongoDB, où le dernier écrivain emportait tout. La
+  résolution reste celle de `merge_state` : le `updatedAt` le plus récent gagne.
+* **CORS** : `allow_credentials=false` et le jeton voyage dans l'en-tête
+  `Authorization`, pas dans un cookie. Une fois Hosting devant Cloud Run, tout
+  partage la même origine et la question ne se pose plus. `CORS_ORIGINS` reste
+  disponible pour restreindre.
+
+---
+
 ## Phases suivantes — état
 
 | Phase | État | Remarque |
@@ -279,7 +390,7 @@ grossir la collection sans fin.
 | 1 — Projet Firebase, outils | fait par vous | — |
 | **2 — Authentification** | **livrée** | reste à configurer et reconstruire l'APK |
 | **3 — MongoDB → Firestore** | **livrée** | reste à basculer les données et `DATA_BACKEND` |
-| 4 — FastAPI → Cloud Run | à faire | conteneuriser tel quel, la moindre réécriture |
+| **4 — FastAPI → Cloud Run** | **livrée** | reste à construire l'image et à déployer |
 | 5 — Frontend + Hosting | à faire | — |
 | 6 — Bascule | à faire | ne pas couper l'existant avant que Firebase tourne en parallèle |
 

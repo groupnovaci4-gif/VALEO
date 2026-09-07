@@ -506,6 +506,38 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       valide (`/`, `..`, préfixe `__`) : `_cle_doc` en dérive une clé sûre, et
       l'identifiant réel reste dans le champ `id`.
 
+30. **Déploiement Cloud Run : ce qui casse en production sans casser un test.**
+    Phase 4 de la migration (cf. `docs/MIGRATION-FIREBASE.md`). FastAPI est
+    conteneurisé **tel quel** — aucune ligne d'application ne change.
+    Couvert par `backend/tests/test_deploiement.py`, parce qu'aucun test
+    fonctionnel ne voyait ces trois défauts :
+    - **`requirements.txt` ne s'installe pas** : `emergentintegrations==0.2.0`
+      est absent de PyPI, donc l'image ne se construit pas. C'est
+      `requirements-prod.txt` qui part en image, et un test vérifie qu'il
+      couvre TOUS les imports réels. Ne pas revenir à `requirements.txt` dans
+      le `Dockerfile`, et ne pas y ajouter pandas/numpy/boto3 : chaque
+      mégaoctet se paie au démarrage à froid, devant un pisteur qui attend.
+      `cryptography` est **indispensable** (RS256 des jetons Firebase).
+    - **Firestore ne doit pas réclamer MongoDB** : avec
+      `DATA_BACKEND=firestore`, `MONGO_URL` n'est plus exigé et aucun client
+      Motor n'est créé.
+    - **Le démarrage est borné** (`STARTUP_TIMEOUT_SECONDS`, 5 s) : une base
+      injoignable faisait patienter 30 s le pilote MongoDB avant d'abandonner,
+      à *chaque* démarrage d'instance. « Best-effort » sans borne de temps
+      n'est pas best-effort.
+    - Sur Cloud Run le compte de service est **ambiant** (`K_SERVICE` le
+      signale) : ne jamais y déposer une clé privée.
+    - `$PORT` est **imposé** par Cloud Run, l'écoute est sur `0.0.0.0`, et le
+      conteneur ne tourne pas en root.
+    - `firestore.rules` **refuse tout accès direct** : c'est la règle correcte
+      (invariant 29), pas une précaution paresseuse — le backend écrit avec
+      l'Admin SDK, qui contourne ces règles. Ne pas « ouvrir un peu pour
+      tester » : la matrice de rôles n'existe pas là-bas.
+    - Les secrets vivent dans **Secret Manager**, jamais dans `cloudbuild.yaml`
+      (les journaux de construction sont conservés) ni dans l'image
+      (`.dockerignore` tient `.env` dehors : une image poussée dans un
+      registre est lisible par qui peut la tirer).
+
 ## 5. Feuille de route
 
 ### Fait (voir l'historique git)
@@ -574,10 +606,13 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
   par enregistrement, écriture différentielle et lecture bornée à la
   coopérative. Script de bascule `backend/scripts/migrer_vers_firestore.py`.
 
+- **Migration Firebase, phase 4 (Cloud Run).** Cf. invariant 30. FastAPI
+  conteneurisé tel quel ; trois défauts de déploiement corrigés au passage,
+  chacun invisible pour la suite fonctionnelle.
+
 ### Reste à faire
-- **Migration Firebase, phases 4 à 6.** Backend sur Cloud Run (conteneuriser
-  FastAPI tel quel), frontend + Hosting, bascule. Ne pas couper l'existant
-  tant que Firebase n'a pas tourné en parallèle.
+- **Migration Firebase, phases 5 et 6.** Frontend + Hosting, puis bascule. Ne
+  pas couper l'existant tant que Firebase n'a pas tourné en parallèle.
 - **Firestore : deux points à surveiller.** `priceHistory` vit dans le document
   `meta` (la limite de 1 Mio vaut aussi pour lui) ; les connexions balaient
   encore les collaborateurs de toutes les coopératives — un index serait le
