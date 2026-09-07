@@ -38,6 +38,8 @@ Fichiers clés du frontend (`frontend/src/coop/`) :
   (District → Région → Département → Village). Module **pur**. La base est
   **générée** (`yarn geo:build`) depuis `geo/ci-decoupage.csv` : voir
   `geo/README.md` pour charger une base officielle complète.
+- `firebase.ts` — session Firebase (échange et renouvellement du jeton), **en REST,
+  sans le SDK Firebase**. Module **pur**, testé par `yarn test`.
 - `store.ts` — hook d'état global + synchro (`push`/`pull`, `PUT /api/state` debouncé
   700 ms), création de collecte (`addCollection`), avances (`addLoan`/`approveLoan`/
   `refuseLoan`), soldes (`settleMemberDue`).
@@ -51,7 +53,7 @@ Endpoints backend : `GET/PUT /api/state`, `POST /api/auth/coop/login`,
 `/api/admin/*` (+ tableau de bord HTML admin intégré dans `server.py`).
 Côté administration : `GET/PUT /api/admin/state`, `POST /api/admin/set-secret`,
 `GET /api/admin/audit`, `POST /api/admin/purge-mouvements`, `POST
-/api/admin/login`, `POST /api/admin/change-password`. **Tous** exigent le jeton
+/api/admin/revoke`, `POST /api/admin/login`, `POST /api/admin/change-password`. **Tous** exigent le jeton
 administrateur (`require_admin`) : aucun jeton d'application ne les atteint.
 Dont `POST /api/admin/purge-mouvements` : efface les **mouvements** d'une
 coopérative (`MOVEMENT_ARRAYS` + journal d'audit) en conservant les **acteurs**
@@ -93,7 +95,11 @@ Backend (dossier `backend/`) :
 Variables d'environnement requises (backend, via `backend/.env`) :
 `MONGO_URL`, `DB_NAME`, `ADMIN_PASSWORD`, `JWT_SECRET` (obligatoires — le serveur refuse
 de démarrer sans `ADMIN_PASSWORD`/`JWT_SECRET`), `JWT_EXPIRE_MINUTES`, `CORS_ORIGINS`
-et `LOGIN_MAX_FAILS` (optionnels). Frontend : `EXPO_PUBLIC_BACKEND_URL` (base de l'API, lue dans `store.ts`).
+et `LOGIN_MAX_FAILS` (optionnels). Migration Firebase (facultatives, cf. invariant 28) :
+`FIREBASE_SERVICE_ACCOUNT` **ou** `FIREBASE_SERVICE_ACCOUNT_FILE` **ou**
+`GOOGLE_APPLICATION_CREDENTIALS`, et `FIREBASE_CHECK_REVOKED`.
+Frontend : `EXPO_PUBLIC_BACKEND_URL` (base de l'API, lue dans `store.ts`) et
+`EXPO_PUBLIC_FIREBASE_API_KEY` (facultative).
 
 ## 4. Invariants métier — NE JAMAIS CASSER
 
@@ -410,6 +416,47 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       reconstruire. Aucun `eas.json` ne la fixe dans le dépôt — elle dépend
       entièrement de l'environnement au moment du build.
 
+28. **Migration Firebase : Firebase s'AJOUTE, il ne remplace rien.**
+    Phase 2 de la migration (cf. `docs/MIGRATION-FIREBASE.md`). Mode retenu :
+    **jeton personnalisé** (`Custom Authentication`), jamais « E-mail /
+    Mot de passe » — aucun des trois circuits n'entre dans son moule (un
+    collaborateur se connecte par téléphone, un planteur par un code
+    `VAL-XXXX-YY`, le propriétaire sans identifiant), et le code à 6 chiffres
+    est haché **sur le téléphone** alors que ce fournisseur exige le clair.
+    - **La vérification du secret ne bouge pas.** Le serveur valide le `pin`
+      exactement comme avant, puis frappe le jeton. Firebase n'intervient
+      qu'après, pour la session. Aucune règle métier n'est déplacée.
+    - **Le jeton VALEO de 30 jours RESTE**, et c'est délibéré : un jeton
+      d'identité Firebase vit une heure et se renouvelle *par le réseau*. Un
+      pisteur passe des jours en tournée sans réseau — avec Firebase seul, il
+      serait déconnecté au bout d'une heure, loin de tout, ses pesées non
+      synchronisées. L'application présente le jeton Firebase quand il est
+      frais et **retombe sur le jeton VALEO** dès que le renouvellement échoue.
+      Ne jamais retirer ce repli sans avoir résolu le hors-ligne autrement.
+    - **Le serveur accepte les deux**, en aiguillant sur l'algorithme de
+      signature (`_algo_du_jeton`) : HS256 = VALEO, RS256 = Firebase. Chaque
+      vérificateur refuse ce qui n'est pas de son ressort, donc aucune
+      confusion d'algorithme n'est possible.
+    - **Les revendications du jeton Firebase sont celles du jeton VALEO**
+      (`coopId`, `role`, `side`) : toute la suite — isolation entre coops,
+      matrice de rôles, périmètre du planteur — s'applique sans changement.
+      Un jeton du projet Firebase **dépourvu** de ces revendications n'ouvre
+      rien : sinon, activer un jour un fournisseur externe ouvrirait
+      l'application entière. Le `uid` doit en outre correspondre aux
+      revendications, sans quoi l'un des deux ment.
+    - **Tout est inerte sans compte de service** : `disponible()` renvoie faux,
+      aucun jeton n'est frappé, le comportement est identique à aujourd'hui.
+      C'est ce qui permet de déployer le code avant de basculer. Une panne
+      Firebase ne doit **jamais** empêcher une connexion : un pisteur doit
+      pouvoir aller peser même si Google est injoignable.
+    - **Révocation** (`POST /api/admin/revoke`, bouton « Révoquer ») : coupe
+      les sessions Firebase **et** pose `desactive`. Dire la limite plutôt que
+      la masquer — un jeton VALEO déjà délivré reste valable jusqu'à son terme.
+    - Le **SDK Firebase JS n'est pas installé** : l'échange et le
+      renouvellement tiennent en deux requêtes REST (`firebase.ts`). Le SDK
+      pèse plusieurs centaines de kilo-octets et tire des dépendances natives,
+      pour des téléphones d'entrée de gamme. Ne pas l'ajouter sans raison.
+
 ## 5. Feuille de route
 
 ### Fait (voir l'historique git)
@@ -468,7 +515,19 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
   les lit, gestion des comptes (code secret, désactivation, suppression),
   journal d'activité, et les empreintes ne quittent plus le serveur.
 
+- **Migration Firebase, phase 2 (authentification).** Cf. invariant 28 et
+  `docs/MIGRATION-FIREBASE.md`. Arbitrage retenu : jeton personnalisé plutôt
+  que « E-mail / Mot de passe », et **coexistence** des deux jetons plutôt que
+  remplacement — le hors-ligne l'impose.
+
 ### Reste à faire
+- **Migration Firebase, phases 3 à 6.** Base (Firestore), backend (Cloud Run),
+  frontend, bascule. Deux avertissements dans `docs/MIGRATION-FIREBASE.md` :
+  (a) réécrire `authorize_state_write` en *Security Rules* rejouerait toute la
+  sécurité du produit dans un langage moins expressif — garder le backend seul
+  écrivain ; (b) VALEO stocke **un seul document** pour tout l'état, ce qui est
+  intransposable tel quel à Firestore (limite de 1 Mo, facturation à
+  l'opération) : la phase 3 est une refonte du modèle, pas un export/import.
 - **Base des villages.** `src/coop/geo/` ne contient que districts, régions et
   départements. Sous-préfectures et villages restent à importer depuis une base
   officielle (`node scripts/import-geo.mjs base.csv`) ; jusque-là le village est

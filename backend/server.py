@@ -13,6 +13,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 
+import firebase_auth
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
@@ -108,6 +110,14 @@ def issue_token() -> str:
 def require_admin(credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer)) -> dict:
     if not credentials or credentials.scheme.lower() != "bearer":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Non authentifié")
+    if _algo_du_jeton(credentials.credentials) == "RS256":
+        ident = firebase_auth.verifier(credentials.credentials)
+        # `coopId` doit être ABSENT : un jeton d'application, même de patron,
+        # n'atteint jamais l'espace d'administration (invariant : §2 du
+        # CLAUDE.md — tous les `/api/admin/*` exigent le jeton propriétaire).
+        if not ident or ident.get("sub") != firebase_auth.UID_ADMIN or ident.get("coopId"):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expirée")
+        return {"sub": firebase_auth.UID_ADMIN}
     try:
         payload = jwt.decode(
             credentials.credentials,
@@ -271,14 +281,52 @@ def burn_secret_time(secret: str) -> None:
                            "saltHex": "00" * 16, "verifierHex": "00" * 32, "version": 1})
 
 
+def avec_firebase(reponse: dict, identity: dict) -> dict:
+    """Ajoute le jeton personnalisé Firebase à une réponse de connexion.
+
+    Le jeton VALEO reste dans `token` et reste la session de référence : sans
+    lui, l'application ne survivrait pas à une tournée sans réseau (un jeton
+    Firebase expire en une heure et se renouvelle par le réseau). La clé
+    `firebase` n'apparaît que si le déploiement est configuré ; un client qui
+    l'ignore continue de fonctionner à l'identique.
+    """
+    jeton = firebase_auth.creer_jeton(identity)
+    return {**reponse, "firebase": jeton} if jeton else reponse
+
+
 def issue_user_token(identity: dict) -> str:
     now = datetime.now(timezone.utc)
     return jwt.encode({**identity, "iat": now, "exp": now + timedelta(days=30)}, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
+def _algo_du_jeton(tok: str) -> str:
+    """Lit l'en-tête du jeton pour savoir QUI l'a signé, sans lui faire confiance.
+
+    Un jeton VALEO est signé en HS256 (secret partagé), un jeton d'identité
+    Firebase en RS256 (clés de Google). L'en-tête n'est pas authentifié — il ne
+    sert qu'à choisir le vérificateur, et chacun refuse ce qui n'est pas de son
+    ressort : `jwt.decode(..., algorithms=["HS256"])` rejette un RS256, et
+    Firebase rejette tout ce qu'il n'a pas signé. Aucune confusion d'algorithme
+    n'est donc possible.
+    """
+    try:
+        return jwt.get_unverified_header(tok).get("alg") or ""
+    except Exception:
+        return ""
+
+
 def require_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer)) -> dict:
     if not credentials or credentials.scheme.lower() != "bearer":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Non authentifié")
+    if _algo_du_jeton(credentials.credentials) == "RS256":
+        # Session Firebase : courte et révocable. Les revendications sont celles
+        # que le serveur a posées à la connexion — même forme que le jeton
+        # VALEO, donc TOUTE la suite (isolation, matrice de rôles, périmètre du
+        # planteur) s'applique sans changement.
+        ident = firebase_auth.verifier(credentials.credentials)
+        if not ident or not ident.get("coopId") or ident.get("side") not in ("coop", "planteur"):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expirée")
+        return {"sub": ident["sub"], "coopId": ident["coopId"], "role": ident.get("role"), "side": ident["side"]}
     try:
         p = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"require": ["exp", "sub", "coopId", "side"]})
         if not p.get("coopId"):
@@ -955,6 +1003,7 @@ async def _empreinte() -> dict:
     data = doc.get("data") or {}
     return {
         "instance": _instance_id(),
+        "authFirebase": firebase_auth.disponible(),
         "base": db.name,
         "document": STATE_ID,
         "majAt": doc.get("updatedAt"),
@@ -1019,7 +1068,8 @@ async def coop_login(body: CoopLoginBody):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ce compte est désactivé. Contactez votre coopérative.")
     await note_login_success(key)
     claims = {"sub": s["id"], "coopId": s.get("coopId"), "role": s.get("role"), "side": "coop"}
-    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, s.get("coopId"), claims)}
+    return avec_firebase({"token": issue_user_token(claims), "identity": claims,
+                          "state": scope_state(state, s.get("coopId"), claims)}, claims)
 
 
 @app.post("/api/auth/planteur/login")
@@ -1040,7 +1090,8 @@ async def planteur_login(body: PlanteurLoginBody):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ce compte est désactivé. Contactez votre coopérative.")
     await note_login_success(key)
     claims = {"sub": m["id"], "coopId": m.get("coopId"), "side": "planteur"}
-    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, m.get("coopId"), claims)}
+    return avec_firebase({"token": issue_user_token(claims), "identity": claims,
+                          "state": scope_state(state, m.get("coopId"), claims)}, claims)
 
 
 @app.post("/api/auth/register")
@@ -1062,7 +1113,8 @@ async def register_coop(body: RegisterBody):
     state.setdefault("staff", []).append(patron)
     await save_state(state)
     claims = {"sub": staff_id, "coopId": coop_id, "role": "patron", "side": "coop"}
-    return {"token": issue_user_token(claims), "identity": claims, "state": scope_state(state, coop_id, claims)}
+    return avec_firebase({"token": issue_user_token(claims), "identity": claims,
+                          "state": scope_state(state, coop_id, claims)}, claims)
 
 
 class AuditBody(BaseModel):
@@ -1102,7 +1154,9 @@ async def admin_login(data: LoginRequest):
         await note_login_failure(key)
         raise HTTPException(status_code=401, detail="Mot de passe incorrect")
     await note_login_success(key)
-    return {"access_token": issue_token(), "token_type": "bearer", "expires_in": JWT_EXPIRE_MINUTES * 60}
+    rep = {"access_token": issue_token(), "token_type": "bearer", "expires_in": JWT_EXPIRE_MINUTES * 60}
+    jeton = firebase_auth.creer_jeton_admin()
+    return {**rep, "firebase": jeton} if jeton else rep
 
 
 @app.post("/api/admin/change-password")
@@ -1275,6 +1329,52 @@ async def admin_audit(coopId: Optional[str] = None, _: dict = Depends(require_ad
 
 class PurgeBody(BaseModel):
     coopId: str
+
+
+class RevokeBody(BaseModel):
+    coopId: str
+    id: str
+    side: str = "coop"
+
+
+@app.post("/api/admin/revoke")
+async def admin_revoke(body: RevokeBody, _: dict = Depends(require_admin)):
+    """Coupe immédiatement les sessions Firebase d'un compte (téléphone perdu).
+
+    C'est ce que le jeton VALEO ne sait pas faire : il dure 30 jours et rien ne
+    permet de l'annuler. Il faut donc être honnête sur la portée de ce bouton :
+
+    * les sessions **Firebase** du compte tombent tout de suite ;
+    * son jeton **VALEO**, lui, reste valable jusqu'à son expiration.
+
+    D'où `desactive` posé au passage : c'est lui qui referme la porte pour de
+    bon, puisque la connexion est refusée côté serveur quel que soit le jeton
+    présenté ensuite. Les deux se complètent — la révocation coupe le présent,
+    la désactivation empêche l'avenir.
+    """
+    coop_id, rid = (body.coopId or "").strip(), (body.id or "").strip()
+    if not coop_id or not rid:
+        raise HTTPException(status_code=400, detail="coopId et id requis")
+    if body.side not in ("coop", "planteur"):
+        raise HTTPException(status_code=400, detail="side invalide")
+
+    state = await load_state()
+    tableau = "staff" if body.side == "coop" else "members"
+    ligne = next((x for x in (state.get(tableau) or [])
+                  if x.get("id") == rid and (x.get("coopId") or "__legacy__") == coop_id), None)
+    if ligne is None:
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+
+    ligne["desactive"] = True
+    ligne["updatedAt"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    await save_state(state)
+    coupe = firebase_auth.revoquer({"sub": rid, "side": body.side})
+    await db.audit.insert_one({
+        "coopId": coop_id, "actorId": "owner", "actorRole": "admin", "side": "admin",
+        "action": "revocation_compte", "meta": {"id": rid, "side": body.side, "firebase": coupe},
+        "at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"ok": True, "desactive": True, "firebase": coupe}
 
 
 @app.post("/api/admin/purge-mouvements")
@@ -1753,7 +1853,8 @@ function entityPanel(k){
   const rows = visible.map(([r,gi])=>`<tr>${sc.cols.map(c=>`<td>${cellVal(r,c)}</td>`).join("")}
     <td style="text-align:right;white-space:nowrap"><button class="ghost" onclick="openEdit('${k}',${gi})">Modifier</button>
     ${sc.compte?`<button class="ghost" onclick="setSecret('${sc.arr}','${r.id}')">Code secret</button>
-    <button class="${r.desactive?'green':'danger'}" onclick="toggleActif('${k}',${gi})">${r.desactive?'Réactiver':'Désactiver'}</button>`:""}
+    <button class="${r.desactive?'green':'danger'}" onclick="toggleActif('${k}',${gi})">${r.desactive?'Réactiver':'Désactiver'}</button>
+    <button class="danger" onclick="revoquerCompte('${k}',${gi})" title="Téléphone perdu : couper les sessions en cours">Révoquer</button>`:""}
     <button class="danger" onclick="del('${k}',${gi})">Suppr.</button></td></tr>`).join("");
   return `<div class="card"><div class="toolbar"><h3 style="margin:0">${sc.title} (${visible.length})</h3>
     <button class="primary" onclick="openEdit('${k}',-1)">+ Ajouter</button></div>
@@ -1780,6 +1881,24 @@ async function toggleActif(k,i){
      (off?"\n\nIl ne pourra plus se connecter a l'application.":""))) return;
   if(off) row.desactive=true; else delete row.desactive;
   await persist();
+}
+// Telephone perdu ou vole : couper MAINTENANT, sans attendre l'expiration.
+// La desactivation seule ferme l'avenir (plus aucune connexion), mais un jeton
+// deja delivre reste valable jusqu'a son terme. La revocation coupe en plus
+// les sessions Firebase en cours. Les deux ensemble, c'est le seul moyen
+// aujourd'hui d'arreter un appareil qui n'est plus entre de bonnes mains.
+async function revoquerCompte(k,i){
+  const sc=SCHEMAS[k]; const row=state[sc.arr][i]; if(!row) return;
+  const qui=row.nom||row.code||row.id;
+  if(!confirm("Telephone perdu ?\n\nLes sessions en cours de « "+qui+" » sont coupees et le compte est desactive."+
+              "\n\nA savoir : un jeton VALEO deja delivre reste valable jusqu'a son expiration.")) return;
+  try{
+    const r=await api("/api/admin/revoke",{method:"POST",body:JSON.stringify(
+      {coopId:row.coopId||currentCoop||"__legacy__", id:row.id, side:(sc.arr==="members"?"planteur":"coop")})});
+    alert(r.firebase? "Sessions coupees et compte desactive."
+                    : "Compte desactive. Firebase n'est pas configure sur ce serveur : les sessions en cours ne sont pas coupees.");
+  }catch(e){ alert("Revocation refusee : "+e); return; }
+  await load();
 }
 
 let edCtx=null;

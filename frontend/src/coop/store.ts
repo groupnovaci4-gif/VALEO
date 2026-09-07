@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { storage } from "@/src/utils/storage";
 
+import { echanger, jetonUtilisable, doitRenouveler, renouveler, SessionFirebase } from "./firebase";
 import { loadCache, saveCache } from "./secureCache";
 import { prepareSync } from "./sync";
 import {
@@ -36,7 +37,30 @@ import {
 const KEY = "coop:data:v3";
 const TOKEN_KEY = "coop:jwt";
 const IDENT_KEY = "coop:identity";
+const FB_KEY = "coop:firebase";
 const BACKEND = process.env.EXPO_PUBLIC_BACKEND_URL;
+// Clé publique du projet Firebase (elle n'est pas un secret : elle identifie le
+// projet, elle n'autorise rien par elle-même). Absente ⇒ tout ce qui suit est
+// inerte et l'application fonctionne exactement comme avant.
+const FIREBASE_API_KEY = process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "";
+
+// Le stockage sécurisé n'accepte que des scalaires : la session Firebase y va
+// donc sérialisée. Une valeur illisible (format changé, cache abîmé) ne doit
+// jamais empêcher l'application de démarrer — on repart simplement sans
+// session Firebase, le jeton VALEO prend le relais.
+async function enregistrerSession(s: SessionFirebase): Promise<void> {
+  await storage.secureSet(FB_KEY, JSON.stringify(s));
+}
+
+function lireSession(brut: string | null): SessionFirebase | null {
+  if (!brut) return null;
+  try {
+    const s = JSON.parse(brut);
+    return s && s.idToken && s.refreshToken && typeof s.expireA === "number" ? s : null;
+  } catch {
+    return null;
+  }
+}
 
 export type Identity = { sub: string; coopId: string; role?: string; side: "coop" | "planteur" };
 export function identToSession(id: Identity): any {
@@ -85,11 +109,33 @@ export function useCoopData() {
   const dirty = useRef(false); // modifications locales non encore synchronisées
   const coopIdRef = useRef<string>("");
   const tokenRef = useRef<string>("");
+  // Session Firebase : courte (1 h) et révocable. Le jeton VALEO reste en
+  // filet — sans lui, une tournée sans réseau déconnecterait l'agent au bout
+  // d'une heure, au milieu de la brousse, avec ses pesées non synchronisées.
+  const fbRef = useRef<SessionFirebase | null>(null);
+
+  // Quel jeton présenter MAINTENANT ? Le jeton Firebase s'il est frais (ou
+  // renouvelable), le jeton VALEO sinon. Ne lève jamais : hors-ligne n'est pas
+  // une erreur ici, c'est le cas normal.
+  const jetonAppel = useCallback(async (): Promise<string> => {
+    const valeo = tokenRef.current;
+    if (!FIREBASE_API_KEY || !fbRef.current) return valeo;
+    if (doitRenouveler(fbRef.current)) {
+      const frais = await renouveler(fetch as any, FIREBASE_API_KEY, fbRef.current);
+      if (frais) {
+        fbRef.current = frais;
+        await enregistrerSession(frais);
+      }
+    }
+    return jetonUtilisable(fbRef.current) ? fbRef.current!.idToken : valeo;
+  }, []);
   const setCoopScope = useCallback((id: string) => { coopIdRef.current = id || ""; }, []);
   const cid = () => coopIdRef.current || undefined;
 
   const clearAuth = useCallback(async () => {
     tokenRef.current = "";
+    fbRef.current = null;
+    await storage.secureRemove(FB_KEY);
     await storage.secureRemove(TOKEN_KEY);
     await storage.secureRemove(IDENT_KEY);
     await storage.removeItem(KEY);
@@ -100,10 +146,11 @@ export function useCoopData() {
       const token = await storage.secureGet<string | null>(TOKEN_KEY, null);
       const ident = await storage.secureGet<any>(IDENT_KEY, null);
       tokenRef.current = token || "";
+      fbRef.current = lireSession(await storage.secureGet<string | null>(FB_KEY, null));
       if (token && ident && ident.coopId) {
         coopIdRef.current = ident.coopId;
         setBootSession(identToSession(ident));
-        const r = await apiFetch("/api/state", {}, token);
+        const r = await apiFetch("/api/state", {}, await jetonAppel());
         remoteApply.current = true;
         if (r && r.ok) { const fresh = migrate(await r.json()); serverRef.current = fresh; setData(fresh); }
         else if (r && r.status === 401) { await clearAuth(); setBootSession(null); setData(seed()); }
@@ -113,12 +160,12 @@ export function useCoopData() {
       }
       setReady(true);
     })();
-  }, [clearAuth]);
+  }, [clearAuth, jetonAppel]);
 
   // Tire la dernière version du backend et la prend comme nouvelle référence.
   const pull = useCallback(async () => {
     if (!tokenRef.current) return;
-    const r = await apiFetch("/api/state", {}, tokenRef.current);
+    const r = await apiFetch("/api/state", {}, await jetonAppel());
     if (r && r.ok) {
       const fresh = migrate(await r.json());
       serverRef.current = fresh;
@@ -127,13 +174,13 @@ export function useCoopData() {
       setSyncState("ok"); setLastSyncAt(new Date().toISOString()); setPending(false);
     } else if (r && r.status === 401) { await clearAuth(); setAuthError(true); }
     else if (!r) setSyncState("hors_ligne");
-  }, [clearAuth]);
+  }, [clearAuth, jetonAppel]);
 
   // Pousse les changements locaux (horodatés + suppressions explicites).
   const push = useCallback(async (current: Data) => {
     if (!tokenRef.current) return;
     const { data: payload, deletions } = prepareSync(current, serverRef.current);
-    const r = await apiFetch("/api/state", { method: "PUT", body: JSON.stringify({ data: payload, deletions }) }, tokenRef.current);
+    const r = await apiFetch("/api/state", { method: "PUT", body: JSON.stringify({ data: payload, deletions }) }, await jetonAppel());
     if (r && r.status === 401) { await clearAuth(); setAuthError(true); return; }
     if (r && r.status === 403) {
       // Le serveur a refusé une écriture que ce rôle n'a pas le droit de faire :
@@ -154,7 +201,7 @@ export function useCoopData() {
     // Réseau indisponible : `dirty` reste vrai, la prochaine occasion réessaiera.
     // On le DIT, au lieu d'échouer en silence.
     setSyncState("hors_ligne"); setPending(true);
-  }, [clearAuth, pull]);
+  }, [clearAuth, jetonAppel, pull]);
 
   useEffect(() => {
     if (!ready || !data) return;
@@ -184,6 +231,14 @@ export function useCoopData() {
   const applyAuth = useCallback(async (res: any) => {
     tokenRef.current = res.token;
     await storage.secureSet(TOKEN_KEY, res.token);
+    // Le serveur a validé le code secret comme avant ; il joint en plus un
+    // jeton personnalisé Firebase. L'échange peut échouer (réseau, projet non
+    // configuré) : ce n'est jamais bloquant, le jeton VALEO suffit.
+    fbRef.current = FIREBASE_API_KEY && res.firebase
+      ? await echanger(fetch as any, FIREBASE_API_KEY, res.firebase)
+      : null;
+    if (fbRef.current) await enregistrerSession(fbRef.current);
+    else await storage.secureRemove(FB_KEY);
     await storage.secureSet(IDENT_KEY, res.identity);
     coopIdRef.current = res.identity.coopId || "";
     remoteApply.current = true;
@@ -241,13 +296,13 @@ export function useCoopData() {
   // Journal d'audit : envoi best-effort (acteur/horodatage posés côté serveur).
   const logAudit = useCallback((action: string, meta: Record<string, any> = {}) => {
     if (!tokenRef.current) return;
-    apiFetch("/api/audit", { method: "POST", body: JSON.stringify({ action, meta }) }, tokenRef.current).catch(() => {});
-  }, []);
+    jetonAppel().then((j) => apiFetch("/api/audit", { method: "POST", body: JSON.stringify({ action, meta }) }, j)).catch(() => {});
+  }, [jetonAppel]);
   const fetchAudit = useCallback(async (): Promise<any[]> => {
     if (!tokenRef.current) return [];
-    const r = await apiFetch("/api/audit", {}, tokenRef.current);
+    const r = await apiFetch("/api/audit", {}, await jetonAppel());
     return r && r.ok ? await r.json() : [];
-  }, []);
+  }, [jetonAppel]);
 
 
   const addMember = useCallback((m: Partial<Member>) => {
@@ -616,10 +671,10 @@ export function useCoopData() {
    */
   const fetchDiag = useCallback(async (): Promise<any | null> => {
     if (!BACKEND) return null;
-    const r = await apiFetch("/api/diag", {}, tokenRef.current || null);
+    const r = await apiFetch("/api/diag", {}, (await jetonAppel()) || null);
     if (!r || !r.ok) return null;
     try { return await r.json(); } catch { return null; }
-  }, []);
+  }, [jetonAppel]);
 
   const setCollectionSignature = useCallback((id: string, signature: any) => {
     setData((d) => (d ? { ...d, collections: d.collections.map((c) => (c.id === id ? { ...c, signature } as any : c)) } : d));
