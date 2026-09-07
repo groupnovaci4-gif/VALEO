@@ -71,7 +71,9 @@ class TestVerrouillageParIdentifiant:
 def _expirer_verrou(app_client, key):
     """Ramène la fin du verrou dans le passé, plutôt que d'attendre une minute."""
     past = (datetime.now(timezone.utc) - timedelta(seconds=1)).isoformat()
-    asyncio.run(app_client.server.db.login_attempts.update_one({"_id": key}, {"$set": {"lockedUntil": past}}))
+    # Par le DÉPÔT, jamais par MongoDB en direct : le test doit valoir sur les
+    # deux bases (cf. la double exécution dans `conftest.py`).
+    asyncio.run(app_client.server.depot.login_poser(key, {"lockedUntil": past}))
 
 
 class TestFinDuVerrou:

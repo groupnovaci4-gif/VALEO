@@ -146,18 +146,144 @@ permet de déployer maintenant et de basculer quand vous voulez.
 
 ---
 
+## Phase 3 — La base : MongoDB → Firestore
+
+### Le choix : le backend reste le seul écrivain (option « a »)
+
+`authorize_state_write`, `merge_state` et `scope_state` **ne changent pas d'une
+ligne**. Le téléphone ne parle jamais directement à Firestore : il parle au
+backend, qui autorise puis écrit avec les droits d'administration.
+
+C'est le point où le plan initial proposait l'inverse — laisser le frontend
+écrire, sécurisé par les *Security Rules*. Pour VALEO ce serait le geste le
+plus risqué de toute la migration : la matrice de rôles est longue et subtile
+(qui pèse, avec quelle origine, qui vérifie, qui recouvre quelle avance, à qui
+appartiennent quelles dépenses), et elle est couverte par des centaines de
+tests. La réécrire en Security Rules, c'est la refaire dans un langage moins
+expressif et repartir de zéro sur la preuve. Une règle mal traduite, et une
+coopérative voit les données d'une autre.
+
+Ce qu'on y perd : la lecture temps réel côté client. Ce qu'on y gagne : ne pas
+rejouer toute la sécurité du produit. On pourra ouvrir l'accès direct plus
+tard, collection par collection, en lecture seule.
+
+### Ce qui change réellement : la forme du stockage
+
+MongoDB rangeait **tout l'état dans un seul document** `appstate`. Ce modèle
+est doublement intransposable :
+
+| | Limite Firestore | Conséquence |
+|---|---|---|
+| Taille | **1 Mio par document** | quelques milliers de pesées et la coopérative est bloquée |
+| Débit | ~1 écriture/seconde sur un même document | tout le trafic d'une coop sur un seul document |
+| Prix | facturé **à l'opération** | réécrire toute la base à chaque synchro |
+
+D'où deux décisions, l'une et l'autre vérifiées par des tests :
+
+1. **Un document par enregistrement**, une collection par entité
+   (`members/<id>`, `collections/<id>`…). Les champs qui ne sont pas des
+   tableaux (`seq`, `memberSeq`, `saison`, `priceHistory`) tiennent dans
+   `meta/etat`.
+2. **On n'écrit que ce qui a changé.** `charger()` retient une empreinte de
+   chaque ligne telle qu'elle a été lue ; `enregistrer()` compare et n'envoie
+   que les différences. *Une pesée = 2 écritures* (la collecte + l'horodatage),
+   pas une par ligne de la base. C'est mesuré par un test, pas supposé.
+3. **On ne lit que la coopérative du jeton.** `scope_state` et `merge_state`
+   filtraient déjà sur `coopId ==` : borner la lecture écarte exactement les
+   mêmes lignes, mais ne les facture pas. Les connexions et l'administration
+   lisent tout — chercher un collaborateur par téléphone se fait sur toutes
+   les coopératives.
+
+L'empreinte est prise **à la lecture**, sur le contenu d'origine : certains
+appels modifient une ligne sur place (`ligne["desactive"] = True`), et comparer
+des objets aurait laissé passer ces changements.
+
+### Le point délicat : une absence n'est pas une suppression
+
+C'est l'invariant 3, et l'écriture différentielle en est le principal danger.
+Un planteur ne renvoie que sa propre fiche ; un pisteur, que ce qu'il voit.
+Effacer les documents « manquants » viderait la coopérative à la première
+synchronisation d'un téléphone au périmètre réduit.
+
+La règle appliquée : **est supprimé ce qui était dans la référence de lecture
+et n'est plus dans l'état enregistré** — donc ce que `merge_state` a réellement
+retiré (`deletions`, purge, suppression admin), jamais ce qui n'a pas été
+envoyé. Ce qui n'a pas été lu n'est pas non plus dans la référence, donc ne
+peut pas être supprimé.
+
+### Comment on sait que rien n'a bougé
+
+**Toute la suite de sécurité tourne deux fois** : une fois sur MongoDB, une
+fois sur Firestore (`conftest.py` paramètre la fixture). Isolation entre
+coopératives, matrice de rôles, périmètre du planteur, fusion par
+enregistrement, idempotence, verrou anti-force-brute, synchronisation admin,
+authentification Firebase — tout doit tomber identique des deux côtés.
+
+| Fichier | Rôle |
+|---|---|
+| `backend/depot.py` | le port : `DepotMongo` et `DepotFirestore` |
+| `backend/tests/faux_firestore.py` | double en mémoire de l'API Firestore asynchrone |
+| `backend/tests/test_depot_firestore.py` | forme du stockage, coût des lectures et des écritures |
+| `backend/tests/test_migration_firestore.py` | le script de migration, y compris sa relance |
+| `backend/scripts/migrer_vers_firestore.py` | la bascule des données |
+
+### Basculer les données
+
+```bash
+cd backend
+python scripts/migrer_vers_firestore.py            # simulation : ne écrit rien
+python scripts/migrer_vers_firestore.py --ecrire   # bascule réelle
+```
+
+Le script **relit ce qu'il vient d'écrire et le compare ligne à ligne** à la
+source — pas seulement les comptages : un document tronqué compterait pour un.
+En cas d'écart il s'arrête avec un code d'erreur, et **MongoDB n'est jamais
+modifié**. Il est idempotent : le relancer après une interruption reprend sans
+créer de doublon.
+
+Sont migrés : l'état complet, le mot de passe administrateur, le journal
+d'audit. Ne le sont pas : les compteurs de tentatives de connexion, éphémères
+et reconstruits seuls.
+
+### Basculer le backend
+
+```
+DATA_BACKEND=firestore
+FIRESTORE_DATABASE=(default)     # si vous n'avez pas nommé la base autrement
+```
+
+Sans cette variable, **MongoDB reste la base** : ce code peut être déployé
+avant toute bascule sans rien changer.
+
+Une action à faire une fois dans la console : activer une **règle TTL** sur le
+champ `expiresAt` de la collection `login_attempts` (*Firestore → TTL*). Elle
+remplace l'index TTL de MongoDB et évite qu'un balayage d'identifiants fasse
+grossir la collection sans fin.
+
+### Ce qui reste à surveiller
+
+* `priceHistory` vit dans le document `meta` : s'il devait grossir beaucoup, il
+  faudrait en faire une collection à son tour (la limite de 1 Mio vaut aussi
+  pour lui).
+* Les connexions et l'espace d'administration lisent encore l'ensemble des
+  coopératives. C'est correct et peu fréquent, mais c'est le prochain endroit
+  où regarder si la facture surprend : une connexion pourrait viser un index
+  sur le téléphone plutôt que balayer les collaborateurs.
+
+---
+
 ## Phases suivantes — état
 
 | Phase | État | Remarque |
 |---|---|---|
 | 1 — Projet Firebase, outils | fait par vous | — |
 | **2 — Authentification** | **livrée** | reste à configurer et reconstruire l'APK |
-| 3 — MongoDB → Firestore | à faire | voir l'avertissement ci-dessous |
+| **3 — MongoDB → Firestore** | **livrée** | reste à basculer les données et `DATA_BACKEND` |
 | 4 — FastAPI → Cloud Run | à faire | conteneuriser tel quel, la moindre réécriture |
 | 5 — Frontend + Hosting | à faire | — |
 | 6 — Bascule | à faire | ne pas couper l'existant avant que Firebase tourne en parallèle |
 
-### Avertissement pour la phase 3
+### Note sur la phase 3 (conservée : c'est la décision qui a été prise)
 
 Le plan évoque de laisser le frontend parler **directement** à Firestore,
 sécurisé par les *Security Rules*. Pour VALEO, ce serait le point le plus

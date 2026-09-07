@@ -17,10 +17,14 @@ Côté session : `side = "coop"` (staff) ou `side = "planteur"`.
 
 ## 2. Architecture (importante — ne pas la deviner)
 
-- **Backend** : un seul fichier `backend/server.py` (FastAPI + MongoDB via `motor`).
-  Le backend stocke un unique document `appstate` contenant TOUTES les coops, mais
-  il n'est plus un simple coffre : il **autorise** chaque écriture selon le rôle du
-  jeton et **fusionne enregistrement par enregistrement** (voir §4).
+- **Backend** : `backend/server.py` (FastAPI) — toute la logique d'autorisation et
+  de fusion. Deux modules à côté, volontairement étroits :
+  `backend/depot.py` (où les octets sont rangés : **MongoDB ou Firestore**, cf.
+  invariant 29) et `backend/firebase_auth.py` (sessions Firebase, cf. invariant 28).
+  Le backend n'est pas un simple coffre : il **autorise** chaque écriture selon le
+  rôle du jeton et **fusionne enregistrement par enregistrement** (voir §4).
+  Sur MongoDB, tout l'état tient dans un document `appstate` ; sur Firestore,
+  **un document par enregistrement**.
 - **Frontend** : Expo SDK 54 / React Native (`react-native` 0.81), routing `expo-router`.
   Toute la logique de calcul d'argent est côté client (`lib.ts`) ; le serveur, lui,
   contrôle *qui a le droit d'écrire quoi*.
@@ -86,6 +90,10 @@ Backend (dossier `backend/`) :
   - `test_state_authorization.py` et `test_state_idempotence.py` tournent **en
     processus** (MongoDB simulée via `mongomock_motor`, cf. `tests/conftest.py`) :
     aucun serveur ni réseau requis. Ce sont eux qu'il faut étendre.
+  - ⚠️ La fixture `app_client` est **paramétrée** : chaque test tourne DEUX fois,
+    une fois sur MongoDB, une fois sur Firestore (double en mémoire,
+    `tests/faux_firestore.py`). Un test qui touche la base doit passer par
+    `server.depot`, jamais par `server.db` — sinon il ne vaut que sur MongoDB.
   - `test_valeo_api.py`, `test_multicoop_isolation.py`, `test_admin_change_password.py`
     sont des tests d'intégration qui frappent une instance déployée via
     `EXPO_PUBLIC_BACKEND_URL` : lance le backend avant, ou pointe la variable vers
@@ -97,7 +105,9 @@ Variables d'environnement requises (backend, via `backend/.env`) :
 de démarrer sans `ADMIN_PASSWORD`/`JWT_SECRET`), `JWT_EXPIRE_MINUTES`, `CORS_ORIGINS`
 et `LOGIN_MAX_FAILS` (optionnels). Migration Firebase (facultatives, cf. invariant 28) :
 `FIREBASE_SERVICE_ACCOUNT` **ou** `FIREBASE_SERVICE_ACCOUNT_FILE` **ou**
-`GOOGLE_APPLICATION_CREDENTIALS`, et `FIREBASE_CHECK_REVOKED`.
+`GOOGLE_APPLICATION_CREDENTIALS`, et `FIREBASE_CHECK_REVOKED`. Base de données
+(cf. invariant 29) : `DATA_BACKEND` (`mongo` par défaut, ou `firestore`) et
+`FIRESTORE_DATABASE`.
 Frontend : `EXPO_PUBLIC_BACKEND_URL` (base de l'API, lue dans `store.ts`) et
 `EXPO_PUBLIC_FIREBASE_API_KEY` (facultative).
 
@@ -457,6 +467,45 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       pèse plusieurs centaines de kilo-octets et tire des dépendances natives,
       pour des téléphones d'entrée de gamme. Ne pas l'ajouter sans raison.
 
+29. **Migration Firestore : le backend reste le SEUL écrivain.**
+    Phase 3 de la migration (cf. `docs/MIGRATION-FIREBASE.md`). `depot.py`
+    isole *où* les octets sont rangés ; `authorize_state_write`, `merge_state`
+    et `scope_state` **ne changent pas d'une ligne**.
+    - **Le téléphone ne parle jamais directement à Firestore.** Arbitrage
+      retenu contre les *Security Rules* : la matrice de rôles est longue et
+      subtile, couverte par des centaines de tests ; la réécrire dans un
+      langage moins expressif reviendrait à repartir de zéro sur la preuve, et
+      une seule règle mal traduite ferait voir à une coopérative les données
+      d'une autre. On y perd la lecture temps réel côté client ; on n'y rejoue
+      pas la sécurité du produit.
+    - **Un document par enregistrement.** L'unique document `appstate` est
+      intransposable : Firestore plafonne un document à 1 Mio, limite un même
+      document à ~1 écriture/seconde, et facture à l'opération. Une collection
+      par entité ; les champs non-tableaux (`seq`, `memberSeq`, `saison`,
+      `priceHistory`) dans `meta/etat`.
+    - **On n'écrit que ce qui a changé.** `charger()` retient une empreinte de
+      chaque ligne *telle qu'elle a été lue* (à la lecture, car des appels
+      modifient une ligne sur place — comparer des objets laisserait passer le
+      changement) ; `enregistrer()` n'envoie que les différences. Une pesée =
+      2 écritures, mesuré par un test.
+    - **Une absence n'est toujours PAS une suppression** (invariant 3) : est
+      supprimé ce qui était dans la référence de lecture et n'est plus dans
+      l'état enregistré — donc ce que `merge_state` a réellement retiré, jamais
+      ce que le client n'a pas envoyé. Ce qui n'a pas été lu ne peut pas être
+      supprimé. C'est LE danger de l'écriture différentielle.
+    - **On ne lit que la coopérative du jeton** (`load_state(coopId)`) : c'est
+      une optimisation de lecture, pas une règle — `scope_state` et
+      `merge_state` filtraient déjà sur `coopId ==`. Les connexions et
+      l'administration lisent tout (chercher un collaborateur par téléphone se
+      fait sur toutes les coopératives).
+    - **Toute la suite de sécurité tourne sur les DEUX bases.** C'est la seule
+      preuve acceptable que rien n'a bougé. Un test qui écrit dans
+      `server.db` en direct ne vaut que sur MongoDB : passer par `server.depot`.
+    - **`DATA_BACKEND=mongo` par défaut** : le code se déploie avant la bascule.
+    - Un identifiant fabriqué par un téléphone n'est pas un chemin Firestore
+      valide (`/`, `..`, préfixe `__`) : `_cle_doc` en dérive une clé sûre, et
+      l'identifiant réel reste dans le champ `id`.
+
 ## 5. Feuille de route
 
 ### Fait (voir l'historique git)
@@ -520,14 +569,19 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
   que « E-mail / Mot de passe », et **coexistence** des deux jetons plutôt que
   remplacement — le hors-ligne l'impose.
 
+- **Migration Firebase, phase 3 (Firestore).** Cf. invariant 29. Arbitrage
+  retenu : **backend seul écrivain** plutôt que *Security Rules*, un document
+  par enregistrement, écriture différentielle et lecture bornée à la
+  coopérative. Script de bascule `backend/scripts/migrer_vers_firestore.py`.
+
 ### Reste à faire
-- **Migration Firebase, phases 3 à 6.** Base (Firestore), backend (Cloud Run),
-  frontend, bascule. Deux avertissements dans `docs/MIGRATION-FIREBASE.md` :
-  (a) réécrire `authorize_state_write` en *Security Rules* rejouerait toute la
-  sécurité du produit dans un langage moins expressif — garder le backend seul
-  écrivain ; (b) VALEO stocke **un seul document** pour tout l'état, ce qui est
-  intransposable tel quel à Firestore (limite de 1 Mo, facturation à
-  l'opération) : la phase 3 est une refonte du modèle, pas un export/import.
+- **Migration Firebase, phases 4 à 6.** Backend sur Cloud Run (conteneuriser
+  FastAPI tel quel), frontend + Hosting, bascule. Ne pas couper l'existant
+  tant que Firebase n'a pas tourné en parallèle.
+- **Firestore : deux points à surveiller.** `priceHistory` vit dans le document
+  `meta` (la limite de 1 Mio vaut aussi pour lui) ; les connexions balaient
+  encore les collaborateurs de toutes les coopératives — un index serait le
+  prochain gain si la facture surprend.
 - **Base des villages.** `src/coop/geo/` ne contient que districts, régions et
   départements. Sous-préfectures et villages restent à importer depuis une base
   officielle (`node scripts/import-geo.mjs base.csv`) ; jusque-là le village est

@@ -36,21 +36,41 @@ def _load_server_module():
     return server
 
 
-@pytest.fixture()
-def app_client():
-    """TestClient FastAPI sur une base simulée, remise à zéro à chaque test."""
+@pytest.fixture(params=["mongo", "firestore"])
+def app_client(request):
+    """TestClient FastAPI sur une base simulée, remise à zéro à chaque test.
+
+    **Chaque test tourne deux fois** : une fois sur MongoDB (le dépôt
+    d'aujourd'hui), une fois sur Firestore (celui de la migration, phase 3).
+    C'est la seule façon de prouver — plutôt que d'affirmer — que le changement
+    de base ne déplace aucune règle : isolation entre coopératives, matrice de
+    rôles, périmètre du planteur et fusion par enregistrement doivent tomber
+    identiques des deux côtés.
+    """
     try:
         from fastapi.testclient import TestClient
         from mongomock_motor import AsyncMongoMockClient
     except Exception as exc:  # pragma: no cover - dépend de l'environnement
         pytest.skip(f"Dépendances de test absentes : {exc}")
 
+    import depot as depot_module
+
+    from tests.faux_firestore import FauxFirestore
+
     server = _load_server_module()
-    previous_db = server.db
+    previous_db, previous_depot = server.db, server.depot
     server.db = AsyncMongoMockClient()["valeo_test"]
+    if request.param == "firestore":
+        faux = FauxFirestore()
+        server.depot = depot_module.DepotFirestore(faux, "valeo_test_fs", "firestore|projet-test|(default)")
+    else:
+        faux = None
+        server.depot = depot_module.DepotMongo(lambda: server.db, "mongodb://test|valeo_test")
     try:
         with TestClient(server.app) as client:
             client.server = server
+            client.depot_nom = request.param
+            client.firestore = faux
             yield client
     finally:
-        server.db = previous_db
+        server.db, server.depot = previous_db, previous_depot

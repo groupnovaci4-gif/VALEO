@@ -15,6 +15,9 @@ motor==3.3.1
 # Migration Firebase (phase 2) : facultatif — sans compte de service, le module
 # `firebase_auth` reste inerte et le serveur se comporte comme avant.
 firebase-admin>=6.5.0
+# Firestore (phase 3) : facultatif — sans DATA_BACKEND=firestore, MongoDB reste
+# la base et rien de tout cela n'est chargé.
+google-cloud-firestore>=2.16.0
 pytest>=8.0.0
 pytest-xdist>=3.6.0
 black>=24.1.1

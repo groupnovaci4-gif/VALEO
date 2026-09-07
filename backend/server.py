@@ -13,6 +13,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 
+import depot as depot_module
 import firebase_auth
 
 ROOT_DIR = Path(__file__).parent
@@ -34,6 +35,10 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "720"))
 
 STATE_ID = "main"
+
+# Où les octets sont rangés : MongoDB (défaut) ou Firestore. Le reste du
+# fichier — autorisation, fusion, périmètre — ignore complètement ce choix.
+depot = depot_module.choisir(lambda: db, f"{mongo_url}|{db.name}")
 
 app = FastAPI()
 bearer = HTTPBearer(auto_error=False)
@@ -63,19 +68,24 @@ def empty_state() -> dict:
     }
 
 
-async def load_state() -> dict:
-    doc = await db.appstate.find_one({"_id": STATE_ID})
-    if doc and isinstance(doc.get("data"), dict):
-        return doc["data"]
-    return empty_state()
+async def load_state(coop_id: Optional[str] = None) -> dict:
+    """État complet, ou borné à une coopérative quand l'appelant le sait.
+
+    Le borner est une optimisation de LECTURE, pas une règle : `scope_state` et
+    `merge_state` filtrent déjà sur `coopId ==`, donc les lignes non lues sont
+    exactement celles qu'ils écartaient. Sur Firestore, qui facture à
+    l'opération, la différence est celle entre lire une coopérative et lire la
+    base entière à chaque synchronisation.
+
+    Les connexions et l'administration passent sans `coop_id` : chercher un
+    collaborateur par téléphone ou vérifier l'unicité d'un e-mail se fait sur
+    toutes les coopératives.
+    """
+    return await depot.charger(empty_state, coop_id)
 
 
 async def save_state(data: dict) -> None:
-    await db.appstate.update_one(
-        {"_id": STATE_ID},
-        {"$set": {"data": data, "updatedAt": datetime.now(timezone.utc).isoformat()}},
-        upsert=True,
-    )
+    await depot.enregistrer(data)
 
 
 import hashlib
@@ -90,7 +100,7 @@ def _hash_password(pw: str, salt: Optional[bytes] = None, iterations: int = 200_
 
 
 async def verify_admin_password(pw: str) -> bool:
-    cfg = await db.admin_config.find_one({"_id": "admin"})
+    cfg = await depot.admin_config()
     if cfg and cfg.get("pwd_hash") and cfg.get("pwd_salt"):
         _, dk_hex, _ = _hash_password(pw, bytes.fromhex(cfg["pwd_salt"]), cfg.get("iterations", 200_000))
         return _secrets.compare_digest(dk_hex, cfg["pwd_hash"])
@@ -219,8 +229,7 @@ LOGIN_RETENTION = timedelta(days=1)
 
 
 async def _login_state(key: str) -> dict:
-    doc = await db.login_attempts.find_one({"_id": key})
-    return doc or {}
+    return await depot.login_lire(key)
 
 
 async def guard_login(key: str) -> None:
@@ -257,11 +266,11 @@ async def note_login_failure(key: str) -> None:
             lockCount=lock_count + 1,
             lockedUntil=(now + timedelta(seconds=step)).isoformat(),
         )
-    await db.login_attempts.update_one({"_id": key}, {"$set": update}, upsert=True)
+    await depot.login_poser(key, update)
 
 
 async def note_login_success(key: str) -> None:
-    await db.login_attempts.delete_one({"_id": key})
+    await depot.login_effacer(key)
 
 
 def login_key(kind: str, identifier: str) -> str:
@@ -975,7 +984,7 @@ def _instance_id() -> str:
     navigateur. C'est un condensé : ni chaîne de connexion, ni hôte, ni nom de
     base, ni secret n'en sortent.
     """
-    return hashlib.sha256(f"{mongo_url}|{db.name}".encode()).hexdigest()[:12]
+    return hashlib.sha256(depot.origine.encode()).hexdigest()[:12]
 
 
 @app.get("/health")
@@ -999,14 +1008,13 @@ async def _empreinte() -> dict:
     Aucun secret ici : ni chaîne de connexion, ni hôte, ni identifiant — le nom
     de la base et des comptages, rien de plus.
     """
-    doc = await db.appstate.find_one({"_id": STATE_ID}) or {}
-    data = doc.get("data") or {}
+    data = await load_state()
     return {
         "instance": _instance_id(),
         "authFirebase": firebase_auth.disponible(),
-        "base": db.name,
+        "base": depot.nom,
         "document": STATE_ID,
-        "majAt": doc.get("updatedAt"),
+        "majAt": await depot.maj_at(),
         "coops": len(data.get("coops") or []),
         "compte": {e: len(data.get(e) or []) for e in ENTITY_ARRAYS},
     }
@@ -1026,7 +1034,7 @@ async def diag_admin(_: dict = Depends(require_admin)):
 
 @app.get("/api/state")
 async def get_state(me: dict = Depends(require_user)):
-    state = await load_state()
+    state = await load_state(me["coopId"])
     return scope_state(state, me["coopId"], me)
 
 
@@ -1035,7 +1043,7 @@ async def put_state(body: StateBody, me: dict = Depends(require_user)):
     # Sync offline-first : le serveur ne fusionne QUE la coopérative du jeton
     # (isolation stricte), après avoir vérifié que le rôle a le droit de faire
     # chacune des modifications reçues.
-    state = await load_state()
+    state = await load_state(me["coopId"])
     deletions = {e: list(body.deletions.get(e) or []) for e in ENTITY_ARRAYS} if body.deletions else {}
     authorize_state_write(state, body.data, me, deletions)
     merge_state(state, body.data, me["coopId"], deletions)
@@ -1134,14 +1142,13 @@ async def add_audit(body: AuditBody, me: dict = Depends(require_user)):
         "meta": body.meta or {},
         "at": datetime.now(timezone.utc).isoformat(),
     }
-    await db.audit.insert_one(entry)
+    await depot.audit_ajouter(entry)
     return {"ok": True}
 
 
 @app.get("/api/audit")
 async def list_audit(me: dict = Depends(require_user)):
-    cur = db.audit.find({"coopId": me["coopId"]}, {"_id": 0}).sort("at", -1).limit(300)
-    return await cur.to_list(length=300)
+    return await depot.audit_lister(me["coopId"])
 
 
 # ------------------------------- Admin API -------------------------------- #
@@ -1170,11 +1177,8 @@ async def admin_change_password(body: ChangePwdRequest, _: dict = Depends(requir
     if len(body.new or "") < 6:
         raise HTTPException(status_code=400, detail="Le nouveau mot de passe doit contenir au moins 6 caractères")
     salt_hex, hash_hex, iters = _hash_password(body.new)
-    await db.admin_config.update_one(
-        {"_id": "admin"},
-        {"$set": {"pwd_salt": salt_hex, "pwd_hash": hash_hex, "iterations": iters, "updatedAt": datetime.now(timezone.utc).isoformat()}},
-        upsert=True,
-    )
+    await depot.admin_config_poser({"pwd_salt": salt_hex, "pwd_hash": hash_hex, "iterations": iters,
+                                    "updatedAt": datetime.now(timezone.utc).isoformat()})
     return {"ok": True}
 
 
@@ -1322,9 +1326,7 @@ async def admin_audit(coopId: Optional[str] = None, _: dict = Depends(require_ad
     Même collection que `/api/audit` (acteur et horodatage posés par le
     serveur) : l'admin n'a pas son propre journal, il lit celui de l'app.
     """
-    filtre = {"coopId": coopId} if coopId else {}
-    cur = db.audit.find(filtre, {"_id": 0}).sort("at", -1).limit(300)
-    return await cur.to_list(length=300)
+    return await depot.audit_lister(coopId or None)
 
 
 class PurgeBody(BaseModel):
@@ -1369,7 +1371,7 @@ async def admin_revoke(body: RevokeBody, _: dict = Depends(require_admin)):
     ligne["updatedAt"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     await save_state(state)
     coupe = firebase_auth.revoquer({"sub": rid, "side": body.side})
-    await db.audit.insert_one({
+    await depot.audit_ajouter({
         "coopId": coop_id, "actorId": "owner", "actorRole": "admin", "side": "admin",
         "action": "revocation_compte", "meta": {"id": rid, "side": body.side, "firebase": coupe},
         "at": datetime.now(timezone.utc).isoformat(),
@@ -1416,9 +1418,7 @@ async def admin_purge_movements(body: PurgeBody, _: dict = Depends(require_admin
     # Les bordereaux repartent de 1 : `nextTicketSeq` se dérive des collectes
     # de chaque agent, il n'y a donc rien à remettre à zéro sur les fiches.
     await save_state(state)
-    audit_filter = {} if coop_id == "__legacy__" else {"coopId": coop_id}
-    res = await db.audit.delete_many(audit_filter)
-    removed["audit"] = getattr(res, "deleted_count", 0)
+    removed["audit"] = await depot.audit_effacer(None if coop_id == "__legacy__" else coop_id)
     return {"ok": True, "removed": removed}
 
 
@@ -1445,7 +1445,7 @@ async def ensure_indexes():
     # Best-effort : une base indisponible au démarrage ne doit pas empêcher le
     # service de se lancer (l'absence d'index n'affecte que la purge).
     try:
-        await db.login_attempts.create_index("expiresAt", expireAfterSeconds=0)
+        await depot.preparer()
     except Exception as exc:  # pragma: no cover - dépend de l'infrastructure
         logger.warning("Index TTL login_attempts non créé : %s", exc)
 
