@@ -1136,8 +1136,27 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecid
  * indicateur. Ce bandeau le dit, et ne disparaît pas tant que ce n'est pas
  * réglé.
  */
-export function BandeauSync({ etat, backendUrl, onDiag }: any) {
-  if (etat === "ok") return null;
+export function BandeauSync({ etat, backendUrl, lastSyncAt, onDiag }: any) {
+  // Quand tout va bien, une alerte serait du bruit — mais renvoyer `null`
+  // supprimait le SEUL accès à l'écran « Connexion au serveur ». Or c'est
+  // précisément quand l'application se croit synchronisée qu'il faut pouvoir
+  // comparer son empreinte avec celle du tableau de bord : une saisie qui ne
+  // « remonte » pas vient de deux instances différentes, pas d'une panne
+  // (invariant 27) — et dans ce cas l'application affiche « Synchronisé ».
+  // D'où une ligne discrète plutôt que rien du tout.
+  if (etat === "ok") {
+    return (
+      <Pressable onPress={onDiag} testID="bandeau-sync">
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 12, paddingHorizontal: 2 }}>
+          <Icon name="check-circle" size={13} color={C.muted} />
+          <Text style={{ flex: 1, fontSize: 11.5, color: C.muted }}>
+            Synchronisé{lastSyncAt ? ` · ${fDateTime(lastSyncAt)}` : ""}
+          </Text>
+          <Text style={{ fontSize: 11.5, color: C.muted }}>Connexion au serveur ›</Text>
+        </View>
+      </Pressable>
+    );
+  }
   const sansServeur = !backendUrl;
   const rouge = sansServeur || etat === "hors_ligne";
   const titre = sansServeur
@@ -1176,7 +1195,7 @@ export function BandeauSync({ etat, backendUrl, onDiag }: any) {
  * vérité — c'est la seule explication possible à « rien ne remonte », le
  * backend servant les deux depuis un unique objet de base de données.
  */
-export function DiagnosticSync({ backendUrl, etat, lastSyncAt, pending, onBack, onDiag }: any) {
+export function DiagnosticSync({ backendUrl, backendMode, etat, lastSyncAt, pending, onBack, onDiag }: any) {
   const [emp, setEmp] = useState<any | undefined>(undefined);
   const recharger = React.useCallback(async () => { setEmp(undefined); setEmp((await onDiag()) || null); }, [onDiag]);
   React.useEffect(() => { recharger(); }, [recharger]);
@@ -1199,7 +1218,13 @@ export function DiagnosticSync({ backendUrl, etat, lastSyncAt, pending, onBack, 
       <Card style={{ padding: 14, marginBottom: 12 }}>
         <SectionTitle noMargin>Ce téléphone</SectionTitle>
         <View style={{ height: 8 }} />
-        <L k="Serveur configuré" v={backendUrl || "AUCUN"} alerte={!backendUrl} />
+        <L k="Serveur" v={backendUrl || "AUCUN"} alerte={!backendUrl} />
+        {backendMode === "meme-origine" ? (
+          <Text style={{ fontSize: 11.5, color: C.muted, paddingTop: 6, lineHeight: 16 }}>
+            L&apos;API est servie par la même adresse que cette page (redirection Firebase
+            Hosting vers Cloud Run) : rien n&apos;est figé au moment de la construction.
+          </Text>
+        ) : null}
         <L k="État" v={etats[etat] || etat} alerte={etat !== "ok"} />
         <L k="Dernière synchro réussie" v={lastSyncAt ? fDateTime(lastSyncAt) : "jamais"} alerte={!lastSyncAt} />
         <L k="Saisies en attente d'envoi" v={pending ? "oui" : "non"} alerte={!!pending} />

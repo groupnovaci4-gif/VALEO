@@ -42,6 +42,8 @@ Fichiers clés du frontend (`frontend/src/coop/`) :
   (District → Région → Département → Village). Module **pur**. La base est
   **générée** (`yarn geo:build`) depuis `geo/ci-decoupage.csv` : voir
   `geo/README.md` pour charger une base officielle complète.
+- `backend.ts` — **où l'application va chercher son API** : URL absolue (mobile)
+  ou **même origine** (web servi par Hosting). Module **pur**, testé par `yarn test`.
 - `firebase.ts` — session Firebase (échange et renouvellement du jeton), **en REST,
   sans le SDK Firebase**. Module **pur**, testé par `yarn test`.
 - `store.ts` — hook d'état global + synchro (`push`/`pull`, `PUT /api/state` debouncé
@@ -78,6 +80,9 @@ Frontend (dossier `frontend/`) :
 - `yarn test` — tests des modules purs (`sync.ts`, `lib.ts`, `geo.ts`) avec le
   lanceur intégré de Node, après transpilation vers `.sync-build/`. Aucune
   dépendance de test.
+- `yarn build:web` — construit le site dans `frontend/dist` (SPA, `output: "single"`),
+  c'est ce que Firebase Hosting sert. Laisser `EXPO_PUBLIC_BACKEND_URL` **vide**
+  pour le web : l'API est à la même origine (invariant 31).
 - `yarn geo:build` — régénère la base des localités depuis
   `src/coop/geo/ci-decoupage.csv` (voir `src/coop/geo/README.md`).
 - `npx tsc --noEmit -p tsconfig.json` — vérification de types (doit rester à zéro erreur).
@@ -538,6 +543,28 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       (`.dockerignore` tient `.env` dehors : une image poussée dans un
       registre est lisible par qui peut la tirer).
 
+31. **Sur le web, l'API est à la MÊME ORIGINE ; sur mobile, elle est figée.**
+    Phase 5 de la migration (cf. `docs/MIGRATION-FIREBASE.md`). Firebase Hosting
+    renvoie `/api/**` vers Cloud Run : le site n'a donc **pas** besoin d'une URL
+    de backend, et ne doit pas en figer une.
+    - `resoudreBackend` (`backend.ts`, module pur) distingue trois cas, et le
+      troisième est le piège : une URL **absente** veut dire « le serveur est
+      ici » sur le web, et « aucun serveur » sur mobile. `store.ts` testait
+      `if (!BACKEND)` — en même-origine la base est **vide**, donc
+      l'application se serait crue hors-ligne à jamais sans rien envoyer.
+      C'est `SERVEUR.joignable` qui décide, jamais la longueur de l'URL.
+    - **Le frontend ne parle toujours pas à Firestore** (invariant 29) : il
+      appelle `/api/...`, le backend autorise. Rien à réécrire côté écrans.
+    - **Web : laisser `EXPO_PUBLIC_BACKEND_URL` vide. APK : y mettre l'URL
+      absolue du service Cloud Run**, et **reconstruire** à chaque changement
+      d'adresse (invariant 27 — Expo l'inline au build).
+    - **L'accès au diagnostic ne dépend pas d'une panne.** `BandeauSync`
+      renvoyait `null` quand la synchro allait bien, or c'est le SEUL accès à
+      « Connexion au serveur ». C'est justement quand l'application se croit
+      synchronisée — parce qu'elle parle à une autre instance — qu'il faut
+      pouvoir comparer les empreintes. Une ligne discrète remplace l'alerte :
+      ne jamais la re-supprimer.
+
 ## 5. Feuille de route
 
 ### Fait (voir l'historique git)
@@ -609,10 +636,14 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
 - **Migration Firebase, phase 4 (Cloud Run).** Cf. invariant 30. FastAPI
   conteneurisé tel quel ; trois défauts de déploiement corrigés au passage,
   chacun invisible pour la suite fonctionnelle.
+- **Migration Firebase, phase 5 (frontend + Hosting).** Cf. invariant 31.
+  Aucun écran modifié : seule la résolution de l'adresse du backend change.
+  Le site construit a été piloté dans un navigateur, servi comme par Hosting,
+  jusqu'à vérifier qu'une pesée arrive bien en base.
 
 ### Reste à faire
-- **Migration Firebase, phases 5 et 6.** Frontend + Hosting, puis bascule. Ne
-  pas couper l'existant tant que Firebase n'a pas tourné en parallèle.
+- **Migration Firebase, phase 6 (bascule).** Ne pas couper l'existant tant que
+  Firebase n'a pas tourné en parallèle.
 - **Firestore : deux points à surveiller.** `priceHistory` vit dans le document
   `meta` (la limite de 1 Mio vaut aussi pour lui) ; les connexions balaient
   encore les collaborateurs de toutes les coopératives — un index serait le

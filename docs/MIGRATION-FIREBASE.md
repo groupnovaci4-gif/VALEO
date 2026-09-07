@@ -383,6 +383,103 @@ deux déploiements, et vous venez de trouver la cause en deux secondes.
 
 ---
 
+## Phase 5 — Le frontend et Firebase Hosting
+
+### Ce qui NE change pas
+
+Le plan initial disait « remplace les appels à l'ancienne API par le SDK
+Firebase (Auth + Firestore) ». Avec l'option (a) — backend seul écrivain — il
+n'y a **rien à remplacer** : le frontend continue de parler à `/api/...`, et
+c'est le backend qui autorise. Aucun écran, aucune formule, aucune règle
+métier n'est touchée.
+
+### Ce qui change : l'API devient *même origine*
+
+Firebase Hosting renvoie `/api/**` vers Cloud Run (`firebase.json`). Sur le
+web, l'API est donc servie par **la même adresse que la page**. Deux
+conséquences, et un piège.
+
+**Conséquence 1 — plus d'URL figée au build.** `EXPO_PUBLIC_BACKEND_URL` est
+inlinée par Expo au moment de la construction (invariant 27) : sur un APK,
+c'est inévitable — un téléphone n'a pas d'origine. Sur le web servi par
+Hosting, la laisser **vide** est le bon réglage : les appels partent en
+chemin relatif, et changer d'adresse de backend ne demande plus de
+reconstruire le site.
+
+**Conséquence 2 — plus de CORS.** Une seule origine pour la page et l'API.
+
+**Le piège**, et c'est le vrai travail de cette phase : `store.ts` faisait
+
+```ts
+if (!BACKEND) return null;   // « pas d'URL » ⇒ « pas de serveur »
+```
+
+En mode même-origine, l'URL de base est **vide** — et l'application se serait
+crue définitivement hors-ligne, sans jamais rien envoyer. Le module
+`src/coop/backend.ts` (pur, testé) distingue les trois cas :
+
+| `EXPO_PUBLIC_BACKEND_URL` | Support | Mode | Joignable |
+|---|---|---|---|
+| une URL | mobile ou web | `absolu` | oui |
+| vide | **web** | `meme-origine` | **oui** — chemins relatifs |
+| vide | mobile | `aucun` | non — et l'application le DIT |
+
+### Un défaut trouvé au passage : le diagnostic devenait inaccessible
+
+`BandeauSync` renvoyait `null` quand la synchronisation allait bien — or
+c'était le **seul** accès à l'écran « Connexion au serveur ».
+
+C'est exactement le scénario qui vous avait occupé : l'application se croyait
+synchronisée (elle l'était, mais avec une *autre* instance), donc pas de
+bandeau, donc aucun moyen d'ouvrir l'écran qui aurait montré l'empreinte et
+réglé la question en dix secondes. L'invariant 27 parlait pourtant d'un
+« bandeau permanent, sur tous les rôles » : le code ne le tenait pas.
+
+Désormais, quand tout va bien, une ligne discrète remplace l'alerte :
+« ✓ Synchronisé · 07/09/2026 · 19:59 — Connexion au serveur › ». Pas de bruit,
+mais l'accès existe toujours.
+
+### Vérifié pour de vrai
+
+Le site a été **construit** (`expo export -p web`), servi par un serveur qui
+reproduit les règles de `firebase.json` à l'identique (statique, `/api/**`
+vers le backend, repli SPA en dernier), et piloté dans un navigateur :
+
+* la connexion appelle `http://…:8090/api/auth/coop/login` — **la même origine**,
+  aucune URL figée ;
+* aucun bandeau « pas de serveur » ne s'affiche à tort ;
+* l'écran de diagnostic s'ouvre alors que la synchro est **OK**, annonce le
+  mode « même origine » et lit l'empreinte de la base ;
+* une pesée saisie à l'écran **arrive dans la base** (0 → 1 collecte), par le
+  chemin même-origine.
+
+14 contrôles, aucune erreur JavaScript.
+
+### Construire et déployer
+
+```bash
+cd frontend
+yarn build:web            # produit frontend/dist (SPA, output "single")
+cd ..
+firebase deploy --only hosting
+```
+
+Avant le premier déploiement : `firebase use --add` pour rattacher le dossier
+à votre projet (cela crée `.firebaserc`, qui contient votre identifiant de
+projet — il n'est pas dans le dépôt).
+
+### Le web et l'APK ne se règlent pas pareil
+
+| | Web (Hosting) | APK (EAS Build) |
+|---|---|---|
+| `EXPO_PUBLIC_BACKEND_URL` | **vide** — même origine | l'URL absolue du service Cloud Run |
+| Changement d'adresse | rien à refaire, Hosting redirige | **reconstruire l'APK** |
+
+C'est le même invariant 27 vu des deux côtés : ce qui est figé au build ne se
+change pas depuis le serveur.
+
+---
+
 ## Phases suivantes — état
 
 | Phase | État | Remarque |
@@ -391,7 +488,7 @@ deux déploiements, et vous venez de trouver la cause en deux secondes.
 | **2 — Authentification** | **livrée** | reste à configurer et reconstruire l'APK |
 | **3 — MongoDB → Firestore** | **livrée** | reste à basculer les données et `DATA_BACKEND` |
 | **4 — FastAPI → Cloud Run** | **livrée** | reste à construire l'image et à déployer |
-| 5 — Frontend + Hosting | à faire | — |
+| **5 — Frontend + Hosting** | **livrée** | reste à construire et à déployer |
 | 6 — Bascule | à faire | ne pas couper l'existant avant que Firebase tourne en parallèle |
 
 ### Note sur la phase 3 (conservée : c'est la décision qui a été prise)

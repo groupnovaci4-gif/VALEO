@@ -9,8 +9,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build:web": "expo export -p web",
     "lint": "expo lint",
-    "test": "tsc src/coop/sync.ts src/coop/lib.ts src/coop/geo.ts src/coop/firebase.ts --outDir .sync-build --module commonjs --target es2020 --moduleResolution node --skipLibCheck --resolveJsonModule --esModuleInterop && node --test tests/*.test.mjs",
+    "test": "tsc src/coop/sync.ts src/coop/lib.ts src/coop/geo.ts src/coop/firebase.ts src/coop/backend.ts --outDir .sync-build --module commonjs --target es2020 --moduleResolution node --skipLibCheck --resolveJsonModule --esModuleInterop && node --test tests/*.test.mjs",
     "geo:build": "node scripts/import-geo.mjs",
     "brand:build": "node scripts/build-logo.mjs"
   },

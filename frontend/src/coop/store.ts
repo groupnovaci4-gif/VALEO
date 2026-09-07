@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { storage } from "@/src/utils/storage";
 
+import { resoudreBackend } from "./backend";
 import { echanger, jetonUtilisable, doitRenouveler, renouveler, SessionFirebase } from "./firebase";
 import { loadCache, saveCache } from "./secureCache";
 import { prepareSync } from "./sync";
@@ -38,7 +39,14 @@ const KEY = "coop:data:v3";
 const TOKEN_KEY = "coop:jwt";
 const IDENT_KEY = "coop:identity";
 const FB_KEY = "coop:firebase";
-const BACKEND = process.env.EXPO_PUBLIC_BACKEND_URL;
+// Sur le web servi par Firebase Hosting, l'API est à la MÊME ORIGINE : Hosting
+// renvoie `/api/**` vers Cloud Run. Une variable absente n'y veut donc pas dire
+// « pas de serveur » mais « le serveur est ici ». Sur mobile, elle veut bien
+// dire « aucun serveur », et l'application doit le dire (invariant 27).
+const SUR_LE_WEB = typeof window !== "undefined" && typeof window.location !== "undefined";
+const SERVEUR = resoudreBackend(process.env.EXPO_PUBLIC_BACKEND_URL, SUR_LE_WEB,
+                                SUR_LE_WEB ? window.location.origin : null);
+const BACKEND = SERVEUR.base;
 // Clé publique du projet Firebase (elle n'est pas un secret : elle identifie le
 // projet, elle n'autorise rien par elle-même). Absente ⇒ tout ce qui suit est
 // inerte et l'application fonctionne exactement comme avant.
@@ -70,7 +78,9 @@ export function identToSession(id: Identity): any {
 }
 
 async function apiFetch(path: string, opts: any, token: string | null): Promise<Response | null> {
-  if (!BACKEND) return null;
+  // En mode même-origine, `BACKEND` est vide et le chemin reste relatif : ce
+  // n'est PAS l'absence de serveur. Seul `joignable` en décide.
+  if (!SERVEUR.joignable) return null;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 8000);
   try {
@@ -670,7 +680,7 @@ export function useCoopData() {
    * exactement ce qui fait qu'aucune saisie ne « remonte ».
    */
   const fetchDiag = useCallback(async (): Promise<any | null> => {
-    if (!BACKEND) return null;
+    if (!SERVEUR.joignable) return null;
     const r = await apiFetch("/api/diag", {}, (await jetonAppel()) || null);
     if (!r || !r.ok) return null;
     try { return await r.json(); } catch { return null; }
@@ -726,7 +736,8 @@ export function useCoopData() {
     syncState,
     lastSyncAt,
     pending,
-    backendUrl: BACKEND || null,
+    backendUrl: SERVEUR.joignable ? SERVEUR.libelle : null,
+    backendMode: SERVEUR.mode,
     fetchDiag,
     clearSyncError,
     authLoginCoop,
