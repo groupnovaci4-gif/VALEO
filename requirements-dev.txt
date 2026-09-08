@@ -1,0 +1,38 @@
+# Dépendances de DÉVELOPPEMENT : exécution + tests + outils de style.
+#
+#     pip install -r requirements-dev.txt
+#
+# Pourquoi ce fichier plutôt que `requirements.txt` :
+#
+# 1. `requirements.txt` **ne s'installe pas**. Il contient
+#    `emergentintegrations==0.2.0`, hérité du builder d'origine et absent de
+#    PyPI : `pip install -r requirements.txt` échoue sur cette ligne, donc rien
+#    ne s'installe.
+# 2. Il lui manque `mongomock_motor`, dont TOUT le harnais de test dépend
+#    (`tests/conftest.py`). Sans lui, `pytest` ne rate pas : il **saute** les
+#    tests en silence, et l'on croit la suite verte alors qu'elle n'a rien
+#    vérifié. C'est exactement le genre de fausse assurance que ce projet
+#    combat ailleurs.
+#
+# `requirements.txt` est conservé tel quel (il documente l'héritage), mais
+# c'est ce fichier-ci qu'il faut installer pour travailler, et
+# `requirements-prod.txt` qui part dans l'image Cloud Run.
+
+-r requirements-prod.txt
+
+# --- Tests -----------------------------------------------------------------
+pytest>=8.0.0
+# `pytest.ini` impose `-n 2 --dist loadscope` : sans xdist, pytest refuse de
+# démarrer.
+pytest-xdist>=3.6.0
+# MongoDB simulée en mémoire : c'est elle qui permet de tout tester sans
+# serveur ni réseau.
+mongomock-motor>=0.0.21
+# Utilisé par les tests d'intégration qui frappent une instance déployée.
+requests>=2.31.0
+
+# --- Style et types --------------------------------------------------------
+black>=24.1.1
+isort>=5.13.2
+flake8>=7.0.0
+mypy>=1.8.0

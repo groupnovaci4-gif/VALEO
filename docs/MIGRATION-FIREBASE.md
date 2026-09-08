@@ -377,6 +377,7 @@ configuration, et ils ne se voient pas en relisant.
 
 ```bash
 cd backend
+pip install -r requirements-dev.txt                 # PAS requirements.txt
 python scripts/verifier_configuration.py            # cible : site web
 python scripts/verifier_configuration.py --cible apk
 ```

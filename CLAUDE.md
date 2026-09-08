@@ -95,8 +95,14 @@ Frontend (dossier `frontend/`) :
 
 Backend (dossier `backend/`) :
 - Lancer : `uvicorn server:app --reload` (ou `--host 0.0.0.0 --port 8000`).
+- Installer : `pip install -r requirements-dev.txt`. ⚠️ **PAS `requirements.txt`** :
+  il contient `emergentintegrations`, absent de PyPI — `pip` échoue sur cette ligne
+  et rien ne s'installe. Il lui manque en plus `mongomock_motor`, dont dépend tout
+  le harnais : sans lui `pytest` ne rate pas, il **saute** la suite en silence.
+  `requirements-prod.txt` (image Cloud Run) reste le sous-ensemble d'exécution.
 - Tests : `pytest` depuis `backend/`. ⚠️ `pytest.ini` impose `-n 2 --dist loadscope` :
-  **ne pas modifier `addopts`**.
+  **ne pas modifier `addopts`**. Vérifier le nombre de tests **passés**, pas seulement
+  l'absence d'échec : une suite entièrement « skipped » ne prouve rien.
   - `test_state_authorization.py` et `test_state_idempotence.py` tournent **en
     processus** (MongoDB simulée via `mongomock_motor`, cf. `tests/conftest.py`) :
     aucun serveur ni réseau requis. Ce sont eux qu'il faut étendre.

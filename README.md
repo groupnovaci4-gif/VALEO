@@ -47,6 +47,8 @@ npx tsc --noEmit -p tsconfig.json
 yarn build:web                  # site pour Firebase Hosting
 
 # Backend
-cd backend && pytest            # 461 tests, sur MongoDB ET Firestore
+cd backend
+pip install -r requirements-dev.txt   # ⚠️ PAS requirements.txt : il ne s'installe pas
+pytest                                # doit afficher ~489 passed, PAS « skipped »
 uvicorn server:app --reload
 ```

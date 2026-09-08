@@ -153,6 +153,37 @@ class TestVariablesDocumentees:
         assert "!**/.env.example" in ignore
 
 
+class TestDependancesDeDeveloppement:
+    """`requirements.txt` ne s'installe pas, et il manque de quoi tester.
+
+    Deux défauts distincts, tous deux invisibles jusqu'à ce qu'on essaie :
+
+    1. `emergentintegrations==0.2.0` est absent de PyPI : `pip install -r
+       requirements.txt` échoue sur cette ligne, donc RIEN ne s'installe ;
+    2. `mongomock_motor` n'y figure pas, alors que `tests/conftest.py` en
+       dépend entièrement. Sans lui, pytest ne rate pas — il **saute** les
+       tests. On lit « skipped » et l'on croit la suite verte.
+    """
+
+    def test_le_fichier_de_developpement_sinstalle(self):
+        assert "emergentintegrations" not in _paquets_declares("requirements-dev.txt")
+
+    def test_il_couvre_de_quoi_lancer_les_tests(self):
+        texte = (BACKEND / "requirements-dev.txt").read_text(encoding="utf-8")
+        # `-r requirements-prod.txt` en tête : les dépendances d'exécution
+        # viennent de là, sans être recopiées (donc sans pouvoir diverger).
+        assert "-r requirements-prod.txt" in texte
+        declares = _paquets_declares("requirements-dev.txt")
+        for indispensable in ("pytest", "pytest-xdist", "mongomock-motor"):
+            assert indispensable in declares, indispensable
+
+    def test_mongomock_est_declare_car_tout_le_harnais_en_depend(self):
+        """Le contrôle qui compte : sans lui, la suite entière saute."""
+        conftest = (BACKEND / "tests" / "conftest.py").read_text(encoding="utf-8")
+        assert "mongomock_motor" in conftest
+        assert "mongomock-motor" in _paquets_declares("requirements-dev.txt")
+
+
 class TestConteneur:
     def _dockerfile(self):
         return (BACKEND / "Dockerfile").read_text(encoding="utf-8")
