@@ -418,9 +418,35 @@ que cela se décide. Trois contraintes à faire coïncider :
    lecture traverse un continent, à chaque synchronisation de chaque téléphone.
 3. La latence jusqu'à la Côte d'Ivoire.
 
-`firebase.json` déclare aujourd'hui `europe-west1` dans ses deux renvois. Si
-vous déployez Cloud Run ailleurs, changez **les deux** — le contrôle de
-configuration refuse qu'ils divergent.
+**Décision prise : `europe-west1` pour tout** — Cloud Run *et* Firestore.
+
+Ce n'est pas un réflexe européen. Depuis Abidjan, le trafic part de toute façon
+vers l'Europe par les câbles sous-marins (SAT-3, WACS, MainOne, ACE) ; joindre
+`africa-south1` (Johannesburg) repasse souvent *par* l'Europe. L'Europe est donc
+en pratique plus proche de la Côte d'Ivoire que l'Afrique du Sud, et le choix
+coloque en prime Cloud Run avec la base — pas de traversée de continent à chaque
+synchronisation, pas de trafic inter-régions facturé.
+
+`firebase.json` et `cloudbuild.yaml` déclarent déjà `europe-west1`, et un test
+(`test_configuration.py`) refuse que les deux renvois de Hosting divergent. Si
+vous déployez Cloud Run ailleurs, changez **les deux**.
+
+⚠️ **Une base Firestore créée dans une autre région doit être recréée**, pas
+déplacée. Tant qu'elle est vide, l'opération est sans risque et sans perte :
+
+```bash
+# Ce qui existe, et où
+gcloud firestore databases list --format='table(name,locationId,type)'
+
+# Si la base par défaut n'est PAS en europe-west1 et qu'elle est VIDE :
+gcloud firestore databases delete --database='(default)'
+gcloud firestore databases create --database='(default)' \
+  --location=europe-west1 --type=firestore-native
+```
+
+Vérifier qu'elle est bien vide avant : la console Firebase → Firestore Database
+doit annoncer une base sans collection. Après la première pesée enregistrée,
+cette porte est fermée (cf. invariant 32, le point de non-retour).
 
 ### Déployer
 
