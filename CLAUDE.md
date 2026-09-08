@@ -121,6 +121,10 @@ et `LOGIN_MAX_FAILS` (optionnels). Migration Firebase (facultatives, cf. invaria
 (à poser sur l'ANCIEN déploiement) et `STARTUP_TIMEOUT_SECONDS`.
 Frontend : `EXPO_PUBLIC_BACKEND_URL` (base de l'API, lue dans `store.ts`) et
 `EXPO_PUBLIC_FIREBASE_API_KEY` (facultative).
+**Toutes** sont décrites dans `backend/.env.example` et `frontend/.env.example`
+(copier en `.env`). Un test refuse qu'une variable lue par le code n'y figure
+pas — sans quoi personne ne sait quoi renseigner. Avant tout déploiement :
+`python backend/scripts/verifier_configuration.py` (n'affiche aucun secret).
 
 ## 4. Invariants métier — NE JAMAIS CASSER
 

@@ -101,6 +101,58 @@ class TestDependancesDeProduction:
         assert "cryptography" in _paquets_declares("requirements-prod.txt")
 
 
+class TestVariablesDocumentees:
+    """Une variable lue par le code et documentée nulle part est un piège.
+
+    C'est ainsi qu'on déploie un backend qui refuse de démarrer sans que
+    personne sache quoi renseigner : le dépôt ne contenait aucun `.env.example`,
+    et les 18 variables du backend n'existaient que dans le code.
+    """
+
+    # Posées par la PLATEFORME (Cloud Run, App Engine), jamais par l'utilisateur.
+    FOURNIES_PAR_LA_PLATEFORME = {"K_SERVICE", "GAE_ENV"}
+
+    def _lues(self, fichiers, motif) -> set:
+        trouvees = set()
+        for nom in fichiers:
+            for m in re.finditer(motif, (BACKEND.parent / nom).read_text(encoding="utf-8")):
+                trouvees.add(m.group(1))
+        return trouvees
+
+    def _documentees(self, chemin: str) -> set:
+        texte = (BACKEND.parent / chemin).read_text(encoding="utf-8")
+        return set(re.findall(r"^#?\s*([A-Z][A-Z0-9_]+)=", texte, re.M))
+
+    def test_chaque_variable_du_backend_est_documentee(self):
+        lues = self._lues([f"backend/{n}" for n in MODULES],
+                          r'os\.environ(?:\.get)?[\[(]"([A-Z_]+)"')
+        manquantes = lues - self._documentees("backend/.env.example") - self.FOURNIES_PAR_LA_PLATEFORME
+        assert not manquantes, f"absentes de backend/.env.example : {sorted(manquantes)}"
+
+    def test_chaque_variable_du_frontend_est_documentee(self):
+        lues = set()
+        for dossier in ("frontend/src", "frontend/app"):
+            for f in (BACKEND.parent / dossier).rglob("*.ts*"):
+                lues |= set(re.findall(r"process\.env\.(EXPO_PUBLIC_[A-Z_]+)", f.read_text(encoding="utf-8")))
+        manquantes = lues - self._documentees("frontend/.env.example")
+        assert not manquantes, f"absentes de frontend/.env.example : {sorted(manquantes)}"
+
+    def test_les_modeles_ne_contiennent_aucune_valeur_reelle(self):
+        """Ils sont suivis par git : une valeur oubliée dedans est publiée."""
+        for chemin in ("backend/.env.example", "frontend/.env.example"):
+            texte = (BACKEND.parent / chemin).read_text(encoding="utf-8")
+            assert "mongodb+srv" not in texte
+            assert not re.search(r"^\s*(ADMIN_PASSWORD|JWT_SECRET)=.+$", texte, re.M), \
+                f"{chemin} porte un secret renseigné"
+            assert not re.search(r"AIzaSy[A-Za-z0-9_-]{10}", texte), f"{chemin} porte une clé réelle"
+
+    def test_les_modeles_sont_bien_suivis_par_git(self):
+        """`.gitignore` masque `.env*` : sans négation, les modèles n'arrivent
+        jamais chez celui qui clone — et il ne sait pas quoi renseigner."""
+        ignore = (BACKEND.parent / ".gitignore").read_text(encoding="utf-8")
+        assert "!**/.env.example" in ignore
+
+
 class TestConteneur:
     def _dockerfile(self):
         return (BACKEND / "Dockerfile").read_text(encoding="utf-8")

@@ -83,6 +83,10 @@ android-sdk/
 .env
 .env.*
 *.env
+# ...mais les MODÈLES sont suivis : ce sont eux qui documentent les variables
+# à renseigner, et ils ne contiennent aucune valeur réelle.
+!.env.example
+!**/.env.example
 credentials.json
 *.key
 .credentials

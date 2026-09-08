@@ -370,6 +370,57 @@ dangereux, d'y déposer une clé privée.
 | `firestore.rules` | **tout accès direct refusé** — le backend est seul écrivain |
 | `backend/tests/test_deploiement.py` | 17 tests : dépendances, conteneur, démarrage |
 
+### Avant de déployer : vérifier la configuration
+
+Le code est prêt ; ce qui fait rater un déploiement, ce sont les détails de
+configuration, et ils ne se voient pas en relisant.
+
+```bash
+cd backend
+python scripts/verifier_configuration.py            # cible : site web
+python scripts/verifier_configuration.py --cible apk
+```
+
+Il ne contacte rien et ne modifie rien : il lit la configuration locale et
+signale les incohérences. Il n'affiche **aucun secret** — le rapport peut être
+collé tel quel dans une demande d'aide.
+
+Ce qu'il rattrape, entre autres :
+
+* **`.firebaserc` et le compte de service qui désignent deux projets
+  différents.** Hosting se déploie alors chez l'un pendant que le backend écrit
+  chez l'autre, et l'on retombe très exactement sur « rien ne remonte dans le
+  tableau de bord » (invariant 27). C'est le défaut le plus difficile à voir :
+  tout fonctionne, mais à deux endroits.
+* `DATA_BACKEND=firestore` sans compte de service joignable — sauf sur Cloud
+  Run, où il est ambiant.
+* Les deux renvois de `firebase.json` qui ne visent pas la même région, ou le
+  repli SPA placé avant `/api/**` (l'application recevrait du HTML).
+* Les règles Firestore par défaut de `firebase init`, le SDK Firebase installé,
+  un `package-lock.json` là où le projet est sur yarn.
+* `EXPO_PUBLIC_BACKEND_URL` renseignée pour une cible web (elle doit rester
+  vide : même origine) ou vide pour un APK (il lui faut une URL absolue).
+
+Les variables elles-mêmes sont décrites dans `backend/.env.example` et
+`frontend/.env.example` : copiez-les en `.env` et renseignez-les. Un test
+vérifie que **toute** variable lue par le code y figure.
+
+### Choisir la région — pendant que la base est encore vide
+
+La localisation d'une base Firestore est **définitive** : on ne la déplace pas,
+on recrée la base. C'est donc maintenant, avant qu'il y ait la moindre donnée,
+que cela se décide. Trois contraintes à faire coïncider :
+
+1. Firebase Hosting ne sait renvoyer vers Cloud Run que dans un **jeu de
+   régions précis** — à vérifier dans la documentation Hosting avant de choisir.
+2. Cloud Run et Firestore devraient être dans la **même région** : sinon chaque
+   lecture traverse un continent, à chaque synchronisation de chaque téléphone.
+3. La latence jusqu'à la Côte d'Ivoire.
+
+`firebase.json` déclare aujourd'hui `europe-west1` dans ses deux renvois. Si
+vous déployez Cloud Run ailleurs, changez **les deux** — le contrôle de
+configuration refuse qu'ils divergent.
+
 ### Déployer
 
 Une fois, pour préparer le terrain :
