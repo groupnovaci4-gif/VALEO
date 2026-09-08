@@ -1,7 +1,15 @@
 # Construction et déploiement du backend VALEO sur Cloud Run.
 #
+#   gcloud builds submit --config backend/cloudbuild.yaml
+#
+# Pendant la mise au point, tant qu'aucun pisteur n'utilise le service, on
+# n'allume pas d'instance en permanence :
+#
 #   gcloud builds submit --config backend/cloudbuild.yaml \
-#     --substitutions=_REGION=europe-west1
+#     --substitutions=_MIN_INSTANCES=0
+#
+# Le jour de la mise en service, redéployer SANS cette substitution pour
+# revenir au défaut (voir _MIN_INSTANCES plus bas).
 #
 # Les SECRETS ne sont pas ici : ni ADMIN_PASSWORD, ni JWT_SECRET, ni compte de
 # service. Ils vivent dans Secret Manager et sont attachés au service (voir
@@ -10,6 +18,11 @@
 substitutions:
   _REGION: europe-west1
   _SERVICE: valeo-backend
+  # Instances gardées chaudes. Le défaut est 1, délibérément : à zéro, la
+  # première synchronisation après une accalmie paie un démarrage à froid,
+  # devant un pisteur qui attend en bout de piste. Le mettre à 0 le temps de
+  # la mise au point, quand personne n'utilise encore le service.
+  _MIN_INSTANCES: '1'
 
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -41,9 +54,9 @@ steps:
       - --set-env-vars=DATA_BACKEND=firestore
       # Secret Manager, jamais des variables en clair.
       - --set-secrets=ADMIN_PASSWORD=valeo-admin-password:latest,JWT_SECRET=valeo-jwt-secret:latest
-      # Une instance toujours chaude : sinon chaque démarrage à froid se paie
-      # devant un pisteur qui attend sa synchronisation en bout de piste.
-      - --min-instances=1
+      # Cf. _MIN_INSTANCES plus haut : une instance chaude par défaut, zéro
+      # pendant la mise au point.
+      - --min-instances=${_MIN_INSTANCES}
       - --cpu=1
       - --memory=512Mi
       - --timeout=60s

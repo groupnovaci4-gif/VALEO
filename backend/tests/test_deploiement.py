@@ -285,6 +285,27 @@ class TestConfigurationDeploiement:
         assert "--set-secrets=" in build, "les secrets passent par Secret Manager"
         assert not re.search(r"(ADMIN_PASSWORD|JWT_SECRET)=(?!valeo-)[^\s,:]+", build)
 
+    def test_les_instances_chaudes_sont_reglables_et_valent_1_par_defaut(self):
+        """Le coût se règle au déploiement, la valeur sûre reste le défaut.
+
+        Deux erreurs opposées, et le défaut du fichier tranche entre elles :
+        figer `--min-instances=0` fait payer un démarrage à froid au pisteur
+        qui synchronise en bout de piste ; figer `1` fait tourner une instance
+        24 h/24 pendant toute la mise au point, alors que personne ne s'en
+        sert. Une substitution laisse choisir au déploiement — et comme
+        l'oubli qui coûte de l'argent est plus facile à commettre que l'autre,
+        c'est la valeur de PRODUCTION qui est le défaut : la mise au point
+        passe `_MIN_INSTANCES=0` explicitement, et un redéploiement sans
+        substitution revient tout seul au bon réglage.
+        """
+        build = (BACKEND / "cloudbuild.yaml").read_text(encoding="utf-8")
+        assert "--min-instances=${_MIN_INSTANCES}" in build, \
+            "min-instances doit rester réglable au déploiement"
+        assert not re.search(r"--min-instances=\d", build), \
+            "valeur figée en dur : le réglage ne serait plus possible"
+        assert re.search(r"^\s+_MIN_INSTANCES:\s*'1'\s*$", build, re.M), \
+            "le défaut doit être 1 — la valeur de production, pas celle de test"
+
 
 class TestDemarrage:
     """Le serveur démarre-t-il vraiment dans les conditions de Cloud Run ?"""

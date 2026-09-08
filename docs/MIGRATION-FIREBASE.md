@@ -489,10 +489,24 @@ deux déploiements, et vous venez de trouver la cause en deux secondes.
 
 ### Ce qu'il faut savoir avant de basculer
 
-* **`--min-instances=1`** est dans `cloudbuild.yaml`, délibérément. À zéro,
-  chaque première synchronisation après une accalmie paie un démarrage à
-  froid. Une instance chaude coûte quelques euros par mois ; un pisteur qui
-  attend en bout de piste coûte plus cher.
+* **`--min-instances`** vaut **1 par défaut**, délibérément. À zéro, chaque
+  première synchronisation après une accalmie paie un démarrage à froid. Une
+  instance chaude coûte quelques euros par mois ; un pisteur qui attend en
+  bout de piste coûte plus cher.
+  C'est la substitution `_MIN_INSTANCES` de `cloudbuild.yaml`. **Tant que le
+  service n'est utilisé par personne** — mise au point, déploiements d'essai —
+  déployer avec `--substitutions=_MIN_INSTANCES=0` : rien ne tourne entre deux
+  requêtes, la facture Cloud Run tombe à presque rien, et le démarrage à froid
+  n'est subi que par vous. Le jour de la mise en service, redéployer **sans**
+  la substitution : le défaut du fichier reprend la main, il n'y a rien à
+  remettre en place ni à se rappeler d'annuler.
+* **Le plan Blaze est requis** pour tout ce qui suit : Cloud Run, Artifact
+  Registry, Secret Manager, et les renvois de Hosting vers Cloud Run. Le plan
+  Spark (gratuit) n'a pas de compte de facturation, et ces services y sont
+  simplement indisponibles. Blaze n'est pas un abonnement : les paliers
+  gratuits de Firestore et de Hosting sont conservés, on ne paie que
+  au-delà. Poser un **budget avec alerte** dans la console Google Cloud avant
+  de déployer coûte deux minutes et évite les surprises.
 * **`--allow-unauthenticated` est correct ici.** L'application mobile n'a pas
   de jeton Google : c'est le JWT de VALEO qui autorise, pas IAM. Le service est
   joignable, il n'est pas ouvert.
