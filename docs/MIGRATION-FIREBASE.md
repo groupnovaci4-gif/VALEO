@@ -1,8 +1,56 @@
 # Migration VALEO vers Firebase
 
-> État : **phase 2 livrée** (authentification). Phases 3 à 6 à venir.
+> État : **phases 2 à 6 livrées**, sur la branche **`develop`**.
 > Ce document dit ce qui est fait, ce qu'il reste à faire, et **ce que vous
 > devez faire vous-même** dans la console Firebase.
+
+---
+
+## ⚠️ Avant tout : travailler sur `develop`
+
+`main` est la branche par défaut du dépôt — **`git clone` y atterrit** — et elle
+a plusieurs dizaines de commits de retard. Elle ne contient ni `depot.py`, ni
+`firebase_auth.py`, ni le `Dockerfile`, ni la vérification des livraisons, ni
+l'espace admin synchronisé, ni le diagnostic de connexion.
+
+```bash
+git checkout develop
+git branch --show-current      # doit afficher : develop
+```
+
+Une modification écrite sur `main` est écrite contre du code qui n'existe plus.
+
+### Ce qui se passe si on relance `firebase init`
+
+Il écrase `firestore.rules` avec **des règles ouvertes à tout internet** :
+
+```
+allow read, write: if request.time < timestamp.date(2026, 10, 7);
+```
+
+N'importe qui connaissant l'identifiant du projet peut alors lire et effacer
+toute la base — planteurs, pesées, avances — jusqu'à cette date. Les règles de
+ce dépôt refusent tout accès direct, et c'est **correct** : le backend écrit
+avec l'Admin SDK, qui les contourne (invariant 29). Deux tests
+(`test_deploiement.py`) refusent désormais que les règles par défaut entrent
+dans le dépôt. Ne jamais faire `firebase deploy --only firestore:rules` avec
+les règles issues d'un `firebase init`.
+
+### Ce qui ne doit PAS entrer dans le frontend
+
+* **le paquet `firebase`** (SDK JS) : l'échange de jeton tient en deux requêtes
+  REST (`src/coop/firebase.ts`). Le SDK pèse plusieurs centaines de kilo-octets
+  pour des téléphones d'entrée de gamme, et surtout il ouvre la porte à un accès
+  direct à Firestore depuis l'application — exactement ce que l'invariant 29
+  exclut ;
+* **`npm install`** : le projet est sur **yarn** (`packageManager` dans
+  `package.json`). Un `package-lock.json` à côté de `yarn.lock`, ce sont deux
+  arbres de dépendances qui divergent ;
+* **tout code qui lit ou écrit Firestore depuis le téléphone**
+  (`getFirestore`, `setDoc`, `getDoc`…) : la matrice de rôles n'existe pas de
+  ce côté-là.
+
+Ces trois points sont tenus par des tests.
 
 ---
 

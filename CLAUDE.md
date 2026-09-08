@@ -1,6 +1,11 @@
 # CLAUDE.md — VALEO
 
 > Contexte projet pour Claude Code. Lis ce fichier avant toute modification.
+> ⚠️ **La branche de travail est `develop`.** `main` est la branche par défaut du
+> dépôt — donc celle où `git clone` atterrit — et elle a plusieurs dizaines de
+> commits de retard : ni `depot.py`, ni `firebase_auth.py`, ni la vérification
+> des livraisons, ni l'espace admin synchronisé. Vérifier
+> `git branch --show-current` avant d'écrire quoi que ce soit.
 > Réponds et commente le code **en français**. L'app cible des coopératives
 > agricoles de Côte d'Ivoire (cacao, café, anacarde, hévéa).
 

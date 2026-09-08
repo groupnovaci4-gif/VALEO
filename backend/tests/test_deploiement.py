@@ -153,6 +153,50 @@ class TestConfigurationDeploiement:
         assert "allow read, write: if false;" in regles
         assert "if true" not in regles
 
+    def test_les_regles_par_defaut_de_firebase_init_ne_sont_pas_la(self):
+        """`firebase init` écrit des règles OUVERTES À TOUT INTERNET.
+
+        Sa proposition par défaut est `allow read, write: if request.time <
+        timestamp.date(...)` : n'importe qui connaissant l'identifiant du projet
+        peut alors lire et effacer toute la base, jusqu'à la date indiquée. Le
+        fichier de ce dépôt doit rester celui qui refuse tout — un `firebase
+        init` relancé l'écrase sans prévenir.
+        """
+        regles = (RACINE / "firestore.rules").read_text(encoding="utf-8")
+        assert "request.time" not in regles, "règles par défaut de firebase init : la base serait ouverte"
+        assert "timestamp.date" not in regles
+
+    def test_les_index_firestore_sont_declares(self):
+        """Sans le fichier, `firebase deploy --only firestore` réclame."""
+        import json as _json
+
+        conf = _json.loads((RACINE / "firebase.json").read_text(encoding="utf-8"))
+        assert conf["firestore"]["indexes"] == "firestore.indexes.json"
+        _json.loads((RACINE / "firestore.indexes.json").read_text(encoding="utf-8"))
+
+    def test_le_frontend_reste_sur_yarn(self):
+        """Un `package-lock.json` à côté de `yarn.lock`, ce sont DEUX arbres de
+        dépendances qui divergent : l'un sert au développement, l'autre à la
+        construction, et le jour où ils ne coïncident plus le défaut n'est
+        reproductible nulle part. `package.json` fixe `packageManager: yarn`.
+        """
+        front = RACINE / "frontend"
+        conf = json.loads((front / "package.json").read_text(encoding="utf-8"))
+        assert conf.get("packageManager", "").startswith("yarn")
+        assert not (front / "package-lock.json").exists(), "installé avec npm : utiliser yarn"
+
+    def test_le_sdk_firebase_nest_pas_une_dependance(self):
+        """Invariant 28 : l'échange de jeton tient en deux requêtes REST.
+
+        Le SDK JS pèse plusieurs centaines de kilo-octets et tire des
+        dépendances natives, pour des téléphones d'entrée de gamme. Surtout, le
+        faire entrer ouvre la porte à un accès direct à Firestore depuis
+        l'application — exactement ce que l'invariant 29 exclut.
+        """
+        conf = json.loads((RACINE / "frontend" / "package.json").read_text(encoding="utf-8"))
+        deps = {**conf.get("dependencies", {}), **conf.get("devDependencies", {})}
+        assert "firebase" not in deps, "le SDK Firebase ne doit pas être installé"
+
     def test_aucun_secret_dans_la_configuration_de_build(self):
         build = (BACKEND / "cloudbuild.yaml").read_text(encoding="utf-8")
         assert "--set-secrets=" in build, "les secrets passent par Secret Manager"

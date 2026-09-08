@@ -1,0 +1,5 @@
+{
+  "_commentaire": "Aucun index composite n'est nécessaire : le backend est le seul à lire Firestore (invariant 29), et il n'utilise qu'une égalité sur `coopId`, que Firestore indexe seul. Ce fichier existe pour que `firebase deploy --only firestore` ne réclame rien.",
+  "indexes": [],
+  "fieldOverrides": []
+}

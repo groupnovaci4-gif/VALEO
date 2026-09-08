@@ -4,7 +4,13 @@
     "Cloud Run qui porte le backend FastAPI. Tout passe ainsi par une seule origine :",
     "plus de question de CORS, et l'application n'a qu'une URL à connaître.",
     "L'ordre des règles compte : la plus spécifique d'abord. La dernière (**) est le",
-    "repli SPA d'expo-router, elle attraperait tout si elle passait avant."
+    "repli SPA d'expo-router, elle attraperait tout si elle passait avant.",
+    "",
+    "RÉGION : les deux rewrites doivent nommer la région où Cloud Run est",
+    "réellement déployé, et Hosting ne sait renvoyer que vers un jeu de régions",
+    "précis — à vérifier avant de choisir. Idéalement la MÊME région que la base",
+    "Firestore, sinon chaque lecture traverse un continent. Attention : la",
+    "localisation d'une base Firestore est DÉFINITIVE, elle se décide une fois."
   ],
   "hosting": {
     "public": "frontend/dist",
@@ -25,6 +31,7 @@
     ]
   },
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }
