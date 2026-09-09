@@ -399,7 +399,79 @@ d'être dites :
 - **ISO-5 / ISO-6** — `scope_state` ne rend que la coopérative du jeton, et
   aucune empreinte `pin` n'en sort, sur les deux dépôts.
 
-## 5. Suite du travail
+## 5. Correctifs appliqués (sur autorisation explicite du 09/09)
+
+L'audit est passé en mode correctif à votre demande. Commit `afdcb77`.
+
+| # | Constat | État |
+|---|---|---|
+| B-01 | Écrasement entre coopératives sur Firestore | ✅ **corrigé** |
+| — | `uid()` à 36 bits non cryptographiques | ✅ **corrigé** |
+| É-7 | 12 tests rouges permanents | ✅ **corrigé** |
+| É-1 | Documentation fausse sur le hachage des PIN | ✅ **corrigé** |
+| É-4 | Identifiant de paquet `com.emergent.…` | ⏸️ **décision produit attendue** |
+| É-2 | Modules morts + permission Face ID inutilisée | ⏸️ **décision produit attendue** |
+| N1-5 | Quatre copies d'`expo-constants` | ⏸️ à traiter au premier build |
+
+### B-01 — cloisonnement de la clé de document
+
+`depot.py` : la clé Firestore se dérive désormais du couple **(coopérative,
+identifiant)** et non de l'identifiant seul (`_cle_ligne`). Deux corollaires
+qui ne se voient pas au premier regard :
+
+- `_index` s'indexe par **clé de document** et non par identifiant métier ;
+  sans cela le calcul des suppressions redevient ambigu dès que deux
+  coopératives partagent un identifiant ;
+- `charger` ne reprend plus `snap.id` comme identifiant métier. La clé ne lui
+  appartient plus : l'identifiant vit dans le champ `id`.
+
+**Aucune migration de données n'est requise** : la base Firestore est vide
+(constaté dans la console, et la répétition la laisse vide).
+
+### `uid()` — hygiène, pas correctif
+
+`lib.ts` passe par `crypto.getRandomValues` quand il existe, avec un repli
+sans dépendance (`lib.ts` doit rester sans import d'exécution). À dire
+clairement : **ce n'est pas ce qui corrige B-01**. Le cloisonnement l'est.
+Renforcer l'identifiant réduit la collision accidentelle ; il ne protège
+d'aucun écrasement délibéré, puisqu'un attaquant choisit ses identifiants.
+
+### É-7 — la suite est verte
+
+`504 passed, 30 skipped, 0 failed`. Les trois fichiers d'intégration se
+sautent sans instance configurée et **redeviennent actifs** dès
+`EXPO_PUBLIC_BACKEND_URL` posée — vérifié dans les deux sens, pour ne pas
+avoir remplacé un rouge permanent par un silence permanent.
+
+### Preuve des correctifs
+
+Chaque garde a été cassée pour vérifier qu'elle échoue :
+
+- sans le cloisonnement, les 4 contrôles de collision de
+  `test_isolation_coops.py` tombent côté Firestore et passent côté MongoDB —
+  soit exactement la divergence d'origine ;
+- avec l'ancien `uid()`, 2 des 5 contrôles de `tests/uid.test.mjs` tombent.
+
+**Un de mes propres tests était défaillant.** Une première version éprouvait
+`uid()` par collision sur 200 000 tirages. Avec l'ancien générateur (~36 bits),
+une collision n'a qu'environ **une chance sur quatre** de survenir : le test
+laissait donc passer trois fois sur quatre une implémentation cassée, en
+rassurant. Remplacé par un contrôle déterministe de l'usage effectif de
+`crypto.getRandomValues`.
+
+### Ce que ces correctifs NE couvrent pas
+
+- **`test_multicoop_isolation.py` ne tourne toujours pas** sans instance
+  déployée. Il est désormais sauté au lieu d'échouer, ce qui est honnête, mais
+  la couverture réelle vient de `test_isolation_coops.py`, en processus et sur
+  les deux dépôts.
+- **Rien n'a été éprouvé contre un vrai Firestore** depuis ce correctif. La
+  répétition (`scripts/repetition_firestore.py`) doit être rejouée par
+  l'opérateur avant toute bascule.
+- Les sections §5.7 à §5.13 de l'audit (règles métier, invariants de données,
+  offline, sécurité classée, APK) **ne sont pas faites**.
+
+## 6. Suite du travail
 
 Sections restant à établir : matrice de rôles et tests d'accès (§5.6),
 règles métier (§5.7), invariants de données (§5.8), scénarios de bout en bout
