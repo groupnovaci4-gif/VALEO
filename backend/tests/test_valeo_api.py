@@ -3,7 +3,23 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ["EXPO_PUBLIC_BACKEND_URL"].rstrip("/") if os.environ.get("EXPO_PUBLIC_BACKEND_URL") else "https://app-deploy-187.preview.emergentagent.com"
+# Test d'INTÉGRATION : il frappe une instance réellement déployée.
+#
+# Il pointait par défaut sur l'ancienne prévisualisation Emergent, qui ne sert
+# plus VALEO : la suite sortait donc TOUJOURS en échec, avec douze items
+# rouges permanents. Le danger n'était pas le rouge, c'était l'habitude — une
+# suite qui échoue toujours n'est plus lue, et la treizième ligne rouge, la
+# vraie régression, passe inaperçue.
+#
+# Sans instance configurée, ces tests se sautent donc explicitement. Le
+# comportement qu'ils couvraient est par ailleurs vérifié EN PROCESSUS par
+# tests/test_isolation_coops.py et tests/test_state_authorization.py, qui
+# eux tournent toujours, et sur les deux dépôts.
+BASE_URL = (os.environ.get("EXPO_PUBLIC_BACKEND_URL") or "").rstrip("/")
+pytestmark = pytest.mark.skipif(
+    not BASE_URL,
+    reason="intégration : poser EXPO_PUBLIC_BACKEND_URL sur une instance vivante",
+)
 ADMIN_PASSWORD = "admin123"
 
 

@@ -450,10 +450,21 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
 28. **Migration Firebase : Firebase s'AJOUTE, il ne remplace rien.**
     Phase 2 de la migration (cf. `docs/MIGRATION-FIREBASE.md`). Mode retenu :
     **jeton personnalisé** (`Custom Authentication`), jamais « E-mail /
-    Mot de passe » — aucun des trois circuits n'entre dans son moule (un
+    Mot de passe » — aucun des trois circuits n'entre dans son moule : un
     collaborateur se connecte par téléphone, un planteur par un code
-    `VAL-XXXX-YY`, le propriétaire sans identifiant), et le code à 6 chiffres
-    est haché **sur le téléphone** alors que ce fournisseur exige le clair.
+    `VAL-XXXX-YY`, le propriétaire sans aucun identifiant.
+    ⚠️ **Correction d'une affirmation qui a longtemps figuré ici** : il était
+    écrit que le code à 6 chiffres est « haché sur le téléphone ». C'est
+    FAUX. Le code part **en clair** dans le corps de la requête
+    (`auth.tsx` → `store.ts` → `server.py`, `verify_secret`), et c'est le
+    serveur qui dérive PBKDF2 avec le sel stocké. `pin.ts` ne hache qu'à la
+    **création** d'un code (`createPinRecord`). Le schéma réel est plus sain
+    que celui qu'on croyait — une empreinte transmise deviendrait
+    l'équivalent d'un mot de passe rejouable — mais deux décisions
+    s'appuyaient sur la croyance inverse. Le choix du jeton personnalisé
+    reste bon pour les trois raisons ci-dessus ; en revanche l'argument
+    « 15 000 itérations parce que le téléphone calcule » ne vaut que pour la
+    création : **à la connexion, c'est le serveur qui calcule**.
     - **La vérification du secret ne bouge pas.** Le serveur valide le `pin`
       exactement comme avant, puis frappe le jeton. Firebase n'intervient
       qu'après, pour la session. Aucune règle métier n'est déplacée.
@@ -526,6 +537,22 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     - Un identifiant fabriqué par un téléphone n'est pas un chemin Firestore
       valide (`/`, `..`, préfixe `__`) : `_cle_doc` en dérive une clé sûre, et
       l'identifiant réel reste dans le champ `id`.
+    - **La clé de document porte la COOPÉRATIVE, pas seulement l'identifiant**
+      (`_cle_ligne` = `_cle_doc("<coopId>~<id>")`). C'est ici que se joue
+      l'isolation côté stockage, et non plus seulement dans `scope_state`.
+      Avec l'identifiant seul dans des collections globales, la coopérative B
+      écrasait la ligne de A en réutilisant son `id` — et jusqu'à la fiche du
+      patron de A, empreinte `pin` comprise, qui ne pouvait alors plus se
+      connecter, le `PUT` répondant 200. Le mécanisme était vicieux : c'est
+      la lecture bornée (`charger(coop_id)`, une optimisation de coût) qui
+      rendait la destruction invisible — le serveur ne voyait pas qu'il
+      écrasait, puisqu'il n'avait pas lu la ligne écrasée. Les identifiants
+      venant des téléphones, ils ne peuvent pas servir de frontière de
+      sécurité : la portée est dans la clé.
+      Couvert par `tests/test_isolation_coops.py`, sur les deux dépôts.
+      Corollaire : `_index` s'indexe par clé de document, sans quoi le calcul
+      des suppressions redeviendrait ambigu ; et `charger` ne reprend JAMAIS
+      `snap.id` comme identifiant métier — celui-ci vit dans le champ `id`.
 
 30. **Déploiement Cloud Run : ce qui casse en production sans casser un test.**
     Phase 4 de la migration (cf. `docs/MIGRATION-FIREBASE.md`). FastAPI est

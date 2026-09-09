@@ -31,6 +31,27 @@ def _fs(app_client):
     return app_client.firestore
 
 
+def _doc(fs, collection, id_metier):
+    """Le document portant cet identifiant métier, quelle que soit sa clé.
+
+    La clé de document n'est PAS l'identifiant métier : elle porte aussi la
+    coopérative (`depot._cle_ligne`), sans quoi deux coopératives réutilisant
+    un même identifiant écriraient dans le même document — une coopérative
+    pouvait ainsi détruire les données d'une autre. L'identifiant métier reste
+    dans le champ `id` ; c'est par lui qu'on retrouve un document, jamais par
+    une clé qu'on reconstruirait à la main.
+    """
+    trouves = [d for d in fs.documents(collection).values()
+               if d.get("id") == id_metier]
+    assert len(trouves) <= 1, f"{id_metier} présent {len(trouves)} fois dans {collection}"
+    return trouves[0] if trouves else None
+
+
+def _cles_par_id(fs, collection):
+    """{identifiant métier -> clé de document}, pour comparer des ensembles."""
+    return {d.get("id"): cle for cle, d in fs.documents(collection).items()}
+
+
 class TestUnDocumentParEnregistrement:
     def test_chaque_ligne_a_son_document(self, app_client):
         fs = _fs(app_client)
@@ -60,7 +81,12 @@ class TestUnDocumentParEnregistrement:
     def test_le_document_porte_son_identifiant_metier(self, app_client):
         fs = _fs(app_client)
         _seed_coop(app_client)
-        assert fs.documents("members")["mb-1"]["id"] == "mb-1"
+        doc = _doc(fs, "members", "mb-1")
+        assert doc is not None and doc["id"] == "mb-1"
+        # Et la clé, elle, est cloisonnée : elle porte la coopérative.
+        cle = _cles_par_id(fs, "members")["mb-1"]
+        assert cle != "mb-1", "la clé de document ne doit pas être l'identifiant seul"
+        assert cle.endswith("~mb-1")
 
 
 class TestEcritureDifferentielle:
@@ -129,7 +155,7 @@ class TestEcritureDifferentielle:
         vue = _get_state(app_client, t["patron"])
         vue["collections"].append(_collection("col-a-jeter", "mb-1", t["patron_id"]))
         assert _put(app_client, t["patron"], vue).status_code == 200
-        assert "col-a-jeter" in fs.documents("collections")
+        assert _doc(fs, "collections", "col-a-jeter") is not None
 
         vue = _get_state(app_client, t["patron"])
         vue["collections"] = [c for c in vue["collections"] if c["id"] != "col-a-jeter"]
@@ -177,7 +203,7 @@ class TestFideliteDesDonnees:
         relu = next(x for x in _get_state(app_client, t["patron"])["members"] if x["id"] == "mb-1")
         assert relu["loc"] == m["loc"]
         assert relu["cultures"] == m["cultures"]
-        assert fs.documents("members")["mb-1"]["loc"]["village"]["nom"] == "Gomon"
+        assert _doc(fs, "members", "mb-1")["loc"]["village"]["nom"] == "Gomon"
 
     def test_un_identifiant_avec_une_barre_oblique_ne_casse_rien(self, app_client):
         """Les identifiants viennent des téléphones : rien ne les valide.
@@ -324,6 +350,9 @@ class TestCoutDeLecture:
 
         apres = set(fs.documents("collections"))
         assert avant.issubset(apres), "des collectes de la coop B ont disparu"
-        assert apres - avant == {"col-a"}
+        # Un seul document ajouté, et c'est bien celui de la collecte de A.
+        ajoutes = apres - avant
+        assert len(ajoutes) == 1
+        assert fs.documents("collections")[next(iter(ajoutes))]["id"] == "col-a"
         assert len([c for c in _get_state(app_client, b["token"])["collections"]
                     if c["id"].startswith("b")]) == 30
