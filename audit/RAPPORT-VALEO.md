@@ -577,7 +577,7 @@ depuis deux appareils, ou depuis l'application et le tableau de bord admin.
 
 | Gravité | Constat | État |
 |---|---|---|
-| 🔴 | **B-01** — une coopérative écrase les données d'une autre (Firestore) | ✅ corrigé |
+| 🔴 | **B-01** — une coopérative écrase les données d'une autre (Firestore) | ✅ **corrigé et vérifié contre la vraie base** |
 | 🟠 | **B-02** — aucune valeur contrôlée côté serveur | ✅ corrigé en partie |
 | 🟠 | **B-03** — perte silencieuse sur horloge en retard | ⏸️ décision produit |
 | 🟠 | `uid()` à 36 bits non cryptographiques | ✅ corrigé |
@@ -797,7 +797,11 @@ points ci-dessous ne sont pas réglés.
    *écraser* — c'est-à-dire le scénario même de B-01. Une section **6bis** a
    été ajoutée (collision d'identifiant sur un planteur, puis sur la fiche du
    patron avec reconnexion réelle), portant la répétition à **26 contrôles**.
-   À rejouer une fois pour clore le point.
+   **Rejouée le 09/09 : 26/26 contre `valeo-app-595db` en `europe-west1`**,
+   section 6bis comprise. B-01 n'est donc plus prouvé par un double en
+   mémoire mais par la base réelle : la coopérative B a effectivement tenté
+   d'écraser la fiche du patron de A, et celui-ci s'est reconnecté ensuite.
+   **Point clos.**
 3. 🟠 **Trancher B-03** (horloge en retard). Au minimum, afficher un
    avertissement de décalage — un pisteur qui perd sa journée sans le savoir
    est le pire scénario pour ce produit.
