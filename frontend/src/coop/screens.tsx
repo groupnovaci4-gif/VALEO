@@ -34,6 +34,7 @@ import {
   estPisteur,
   manquantVerif,
   memberStats,
+  messageHorloge,
   nameOf,
   Notif,
   poidsPlusVerif,
@@ -1136,7 +1137,7 @@ export function PatronPrets({ data, onApprove, onRefuse, onNew, onBack, canDecid
  * indicateur. Ce bandeau le dit, et ne disparaît pas tant que ce n'est pas
  * réglé.
  */
-export function BandeauSync({ etat, backendUrl, lastSyncAt, deprecie, onDiag }: any) {
+export function BandeauSync({ etat, backendUrl, lastSyncAt, deprecie, horloge, onDiag }: any) {
   // Bascule (phase 6) : ce serveur se déclare hors service. C'est le message le
   // plus important de l'écran — l'application semble fonctionner, elle affiche
   // « Synchronisé », et pourtant plus personne ne lit ce qu'elle enregistre.
@@ -1159,6 +1160,32 @@ export function BandeauSync({ etat, backendUrl, lastSyncAt, deprecie, onDiag }: 
             </Text>
             <Text style={{ fontSize: 11, color: C.muted, marginTop: 4 }} numberOfLines={2}>
               {deprecie}
+            </Text>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
+  // Horloge décalée : la synchro « va bien » et pourtant les modifications
+  // peuvent être ignorées. Le serveur garde la version au `updatedAt` le plus
+  // récent ; un téléphone qui retarde perd donc ses modifications SANS aucune
+  // erreur — la requête répond 200 et l'application affiche « Synchronisé ».
+  // Le serveur ne peut pas corriger l'horodatage sans casser le hors-ligne
+  // (un agent qui pèse le matin et synchronise le soir a légitimement un
+  // horodatage ancien) : il dit son heure, et c'est ici qu'on le signale.
+  const avisHorloge = messageHorloge(horloge);
+  if (avisHorloge) {
+    return (
+      <Pressable onPress={onDiag} testID="bandeau-sync">
+        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 9, backgroundColor: "#FDF4E3",
+                       borderWidth: 1, borderColor: "#E0C48A", borderRadius: 12, padding: 12, marginBottom: 12 }}>
+          <Icon name="alert-triangle" size={17} color={C.due} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13, fontWeight: "800", color: C.due }}>
+              Horloge du téléphone décalée
+            </Text>
+            <Text style={{ fontSize: 11.5, color: C.muted, lineHeight: 16, marginTop: 3 }}>
+              {avisHorloge}
             </Text>
           </View>
         </View>

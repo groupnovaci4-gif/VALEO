@@ -47,6 +47,10 @@ JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "720"))
 STATE_ID = "main"
 # En-tête par lequel un déploiement annonce qu'il est hors service (phase 6).
 ENTETE_DEPRECIE = "X-Valeo-Deprecie"
+# Heure du serveur, posée sur CHAQUE réponse. Elle permet à l'application de
+# mesurer le décalage de l'horloge du téléphone — décalage qui, lui, fait
+# perdre des écritures en silence (voir le middleware plus bas).
+ENTETE_HEURE = "X-Valeo-Heure"
 
 # Où les octets sont rangés : MongoDB (défaut) ou Firestore. Le reste du
 # fichier — autorisation, fusion, périmètre — ignore complètement ce choix.
@@ -1513,7 +1517,7 @@ app.add_middleware(
     allow_headers=["*"],
     # Sans cette ligne, un navigateur ne LIT PAS l'en-tête de dépréciation :
     # les en-têtes hors liste standard sont masqués au JavaScript.
-    expose_headers=[ENTETE_DEPRECIE],
+    expose_headers=[ENTETE_DEPRECIE, ENTETE_HEURE],
 )
 
 
@@ -1563,6 +1567,28 @@ async def signaler_depreciation(request, call_next):
             reponse.headers[ENTETE_DEPRECIE] = BACKEND_DEPRECIE
         except Exception:  # pragma: no cover - la valeur est déjà assainie
             logger.warning("En-tête de dépréciation non transportable, ignoré.")
+    # Heure du serveur, sur toutes les réponses, refus compris.
+    #
+    # POURQUOI. `prepareSync` horodate depuis l'horloge du TÉLÉPHONE, et
+    # `merge_state` garde la version au `updatedAt` le plus récent. Une horloge
+    # en AVANCE est ramenée au présent (`_normalize_ts`) ; une horloge en
+    # RETARD ne l'est pas — et ne peut pas l'être : un pisteur qui pèse à 8 h
+    # et synchronise à 18 h a légitimement un horodatage ancien. Ramener aussi
+    # le passé ferait gagner l'appareil qui synchronise en dernier et
+    # écraserait des écritures valides.
+    #
+    # Depuis l'horodatage seul, « ancien parce que hors ligne » et « ancien
+    # parce que l'horloge est fausse » sont indiscernables. Le serveur ne peut
+    # donc pas corriger — mais il peut DIRE l'heure, et laisser l'application
+    # constater l'écart. Une perte invisible devient un message actionnable.
+    #
+    # C'est un EN-TÊTE et jamais un champ de l'état : un champ ajouté à
+    # `/api/state` repartirait au serveur via `prepareSync` et serait lu comme
+    # une modification interdite — 403 sur tout le PUT (invariant 23).
+    try:
+        reponse.headers[ENTETE_HEURE] = datetime.now(timezone.utc).isoformat()
+    except Exception:  # pragma: no cover - une date ISO est toujours ASCII
+        logger.warning("En-tête d'heure non transportable, ignoré.")
     return reponse
 
 

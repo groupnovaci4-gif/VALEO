@@ -17,6 +17,7 @@ import {
   Depense,
   genMemberCode,
   Loan,
+  Horloge,
   Mandat,
   Member,
   Momo,
@@ -24,6 +25,7 @@ import {
   Settlement,
   Sortie,
   Staff,
+  ecartHorloge,
   makeTicket,
   migrate,
   livraisonKey,
@@ -82,6 +84,11 @@ export function identToSession(id: Identity): any {
 // repartirait au serveur et serait refusé (invariant 23).
 const ENTETE_DEPRECIE = "X-Valeo-Deprecie";
 let _deprecie: string | null = null;
+// Heure du serveur, posée sur chaque réponse. Elle sert à mesurer le décalage
+// de l'horloge locale — décalage qui, en retard, fait perdre des modifications
+// en silence (cf. `ecartHorloge` dans `lib.ts`).
+const ENTETE_HEURE = "X-Valeo-Heure";
+let _heureServeur: string | null = null;
 
 async function apiFetch(path: string, opts: any, token: string | null): Promise<Response | null> {
   // En mode même-origine, `BACKEND` est vide et le chemin reste relatif : ce
@@ -101,6 +108,8 @@ async function apiFetch(path: string, opts: any, token: string | null): Promise<
     // affichant « Synchronisé », et ses pesées seraient perdues en silence.
     const avis = r.headers.get(ENTETE_DEPRECIE);
     if (avis) _deprecie = avis;
+    const heure = r.headers.get(ENTETE_HEURE);
+    if (heure) _heureServeur = heure;
     return r;
   } catch {
     clearTimeout(t);
@@ -125,10 +134,16 @@ export function useCoopData() {
   // service. Relevée à chaque synchronisation : une bascule décidée après
   // l'ouverture de l'application doit être vue sans attendre un redémarrage.
   const [deprecie, setDeprecie] = useState<string | null>(null);
+  // Décalage de l'horloge du téléphone, relevé en même temps que l'avis de
+  // dépréciation : les deux se lisent sur les mêmes réponses.
+  const [horloge, setHorloge] = useState<Horloge | null>(null);
   // À relever après CHAQUE réponse du serveur, connexion comprise : c'est le
   // matin, en ouvrant l'application, que l'agent doit apprendre qu'il envoie
   // ses pesées vers un serveur que plus personne ne lit.
-  const noterAvis = useCallback(() => setDeprecie(_deprecie), []);
+  const noterAvis = useCallback(() => {
+    setDeprecie(_deprecie);
+    setHorloge(ecartHorloge(_heureServeur));
+  }, []);
   const remoteApply = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dataRef = useRef<Data | null>(null);
@@ -762,6 +777,7 @@ export function useCoopData() {
     backendUrl: SERVEUR.joignable ? SERVEUR.libelle : null,
     backendMode: SERVEUR.mode,
     deprecie,
+    horloge,
     fetchDiag,
     clearSyncError,
     authLoginCoop,

@@ -414,7 +414,7 @@ export default function App() {
             joint plus son serveur doit le dire en permanence, sur tous les
             rôles, pas seulement au moment de l'erreur. */}
         {tab !== "diagSync" ? (
-          <BandeauSync etat={store.syncState} backendUrl={store.backendUrl} lastSyncAt={store.lastSyncAt} deprecie={store.deprecie} onDiag={() => setTab("diagSync")} />
+          <BandeauSync etat={store.syncState} backendUrl={store.backendUrl} lastSyncAt={store.lastSyncAt} deprecie={store.deprecie} horloge={store.horloge} onDiag={() => setTab("diagSync")} />
         ) : null}
         {body}
       </ScrollView>

@@ -464,6 +464,28 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       variable côté serveur ne change rien à un APK déjà construit, il faut
       reconstruire. Aucun `eas.json` ne la fixe dans le dépôt — elle dépend
       entièrement de l'environnement au moment du build.
+    - **L'application DIT aussi quand son HORLOGE est fausse.** Deuxième perte
+      silencieuse, de même nature : `prepareSync` horodate depuis l'horloge du
+      téléphone et `merge_state` garde le `updatedAt` le plus récent. Une
+      horloge en avance est ramenée (`_normalize_ts`, 5 min de tolérance) ;
+      une horloge en **retard** ne l'est pas — et ne peut pas l'être, un agent
+      qui pèse le matin et synchronise le soir ayant légitimement un
+      horodatage ancien. Ramener aussi le passé ferait gagner l'appareil qui
+      synchronise en dernier et écraserait des écritures valides ; depuis
+      l'horodatage seul, « ancien parce que hors ligne » et « ancien parce que
+      l'horloge est fausse » sont indiscernables.
+      Mesuré : sur un téléphone qui retarde, les **modifications** sont
+      ignorées (livraison déclarée, vérification d'un poids, reste soldé) ;
+      les créations passent, ce qui rend le défaut partiel donc invisible.
+      Le serveur ne corrige pas, il **dit son heure** : en-tête
+      `X-Valeo-Heure` sur **toutes** les réponses, refus compris, exposé par
+      `expose_headers` (sans quoi un navigateur le masque au JavaScript).
+      `ecartHorloge` / `messageHorloge` (`lib.ts`, module pur) en tirent
+      l'avertissement, affiché par `BandeauSync`. Seuil : 3 minutes, sous les
+      5 min tolérées par le serveur.
+      **C'est un EN-TÊTE, jamais un champ de l'état** — un champ ajouté à
+      `/api/state` repartirait via `prepareSync` et vaudrait 403 sur tout le
+      PUT (invariant 23). Un test le vérifie.
 
 28. **Migration Firebase : Firebase s'AJOUTE, il ne remplace rien.**
     Phase 2 de la migration (cf. `docs/MIGRATION-FIREBASE.md`). Mode retenu :

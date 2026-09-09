@@ -579,7 +579,7 @@ depuis deux appareils, ou depuis l'application et le tableau de bord admin.
 |---|---|---|
 | 🔴 | **B-01** — une coopérative écrase les données d'une autre (Firestore) | ✅ **corrigé et vérifié contre la vraie base** |
 | 🟠 | **B-02** — aucune valeur contrôlée côté serveur | ✅ corrigé en partie |
-| 🟠 | **B-03** — perte silencieuse sur horloge en retard | ⏸️ décision produit |
+| 🟠 | **B-03** — perte silencieuse sur horloge en retard | ✅ **rendue visible** (avertissement) |
 | 🟠 | `uid()` à 36 bits non cryptographiques | ✅ corrigé |
 | 🟠 | 12 tests rouges permanents masquant les régressions | ✅ corrigé |
 | 🟡 | **B-04** — écrasement concurrent (patron seul) | ⏸️ à arbitrer |

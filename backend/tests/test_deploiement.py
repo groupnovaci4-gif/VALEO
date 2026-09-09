@@ -380,3 +380,67 @@ class TestDemarrage:
         src = (BACKEND / "server.py").read_text(encoding="utf-8")
         assert "asyncio.wait_for(depot.preparer()" in src
         assert "STARTUP_TIMEOUT_SECONDS" in src
+
+
+def server_heure(reponse):
+    """Valeur de l'en-tête d'heure, quelle que soit la casse."""
+    return reponse.headers.get("X-Valeo-Heure") or reponse.headers.get("x-valeo-heure")
+
+
+class TestHeureDuServeur:
+    """L'en-tête qui permet à un téléphone de mesurer son décalage (B-03).
+
+    `prepareSync` horodate depuis l'horloge du téléphone et `merge_state`
+    garde la version la plus récente. Un appareil en RETARD voit donc ses
+    modifications ignorées en silence : la requête répond 200, l'application
+    affiche « Synchronisé », et rien n'est enregistré.
+
+    Le serveur ne peut pas corriger l'horodatage sans casser le hors-ligne —
+    un agent qui pèse le matin et synchronise le soir a légitimement un
+    horodatage ancien, et ramener aussi le passé ferait gagner l'appareil qui
+    synchronise en dernier. Il dit donc son heure, et l'application constate.
+    """
+
+    def test_l_heure_est_posee_sur_toutes_les_reponses(self, app_client):
+        for chemin in ("/health", "/api/state", "/api/", "/"):
+            r = app_client.get(chemin)
+            assert server_heure(r), f"{chemin} ne porte pas l'heure du serveur"
+
+    def test_l_heure_est_posee_meme_sur_un_REFUS(self, app_client):
+        """Un jeton expiré doit renseigner l'horloge comme les autres."""
+        r = app_client.get("/api/state", headers={"Authorization": "Bearer faux"})
+        assert r.status_code == 401
+        assert server_heure(r), "un refus doit porter l'heure lui aussi"
+
+    def test_l_heure_est_lisible_et_datee_de_maintenant(self, app_client):
+        from datetime import datetime, timezone
+        valeur = server_heure(app_client.get("/health"))
+        lu = datetime.fromisoformat(valeur.replace("Z", "+00:00"))
+        assert lu.tzinfo is not None, "l'heure doit porter son fuseau"
+        ecart = abs((datetime.now(timezone.utc) - lu).total_seconds())
+        assert ecart < 60, f"heure serveur à {ecart} s de la nôtre"
+
+    def test_l_heure_ne_voyage_JAMAIS_dans_l_etat(self, app_client):
+        """Un champ ajouté à l'état repartirait au serveur et serait refusé.
+
+        C'est l'invariant 23 : `prepareSync` renvoie toutes les lignes, donc
+        un champ inconnu ajouté par le serveur reviendrait comme une
+        modification interdite — 403 sur tout le PUT. D'où un EN-TÊTE.
+        """
+        from tests.test_state_authorization import _get_state, _seed_coop
+        t = _seed_coop(app_client)
+        etat = _get_state(app_client, t["patron"])
+        for interdit in ("heure", "now", "serverTime", "heureServeur"):
+            assert interdit not in etat, f"« {interdit} » ne doit pas être dans l'état"
+
+    def test_l_entete_est_expose_au_javascript(self):
+        """Sans `expose_headers`, un navigateur masque l'en-tête au JS.
+
+        Le harnais de test ne fait pas de CORS : le contrôle porte donc sur la
+        configuration elle-même, comme pour l'en-tête de dépréciation.
+        """
+        source = (BACKEND / "server.py").read_text(encoding="utf-8")
+        bloc = re.search(r"expose_headers=\[([^\]]*)\]", source)
+        assert bloc, "expose_headers absent de la configuration CORS"
+        assert "ENTETE_HEURE" in bloc.group(1), \
+            "l'en-tête d'heure doit être exposé, sinon le web ne le lit jamais"

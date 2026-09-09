@@ -426,6 +426,65 @@ const _hasard = (): string => {
 
 export const uid = (): string => _hasard();
 
+/* ------------------------- Décalage de l'horloge -------------------------- */
+/**
+ * Écart entre l'horloge du téléphone et celle du serveur.
+ *
+ * POURQUOI ça compte. `prepareSync` horodate depuis l'horloge locale, et le
+ * serveur garde la version au `updatedAt` le plus récent. Une horloge en
+ * AVANCE est ramenée au présent côté serveur ; une horloge en RETARD ne l'est
+ * pas — et ne peut pas l'être, puisqu'un agent qui pèse le matin et
+ * synchronise le soir a légitimement un horodatage ancien.
+ *
+ * Conséquence mesurée : sur un téléphone qui retarde, les MODIFICATIONS
+ * d'enregistrements existants — déclaration de livraison, vérification d'un
+ * poids, solde d'un reste dû — sont ignorées en silence. La requête répond
+ * 200, l'application affiche « Synchronisé », et rien n'a été enregistré.
+ * Les créations, elles, passent : le défaut est partiel, donc invisible.
+ *
+ * Le serveur ne peut pas corriger sans casser le hors-ligne. Il dit son heure
+ * (en-tête `X-Valeo-Heure`) ; c'est ici qu'on en tire un avertissement.
+ */
+export type Horloge = {
+  /** Écart en millisecondes. Négatif = le téléphone RETARDE. */
+  ecartMs: number;
+  /** Faut-il prévenir l'utilisateur ? */
+  alerte: boolean;
+  /** Le retard est le sens dangereux : c'est lui qui fait perdre des écritures. */
+  enRetard: boolean;
+  /** Écart arrondi, en minutes, pour l'affichage. */
+  minutes: number;
+};
+
+// Le serveur tolère 5 minutes d'avance (`CLOCK_SKEW_TOLERANCE`). On alerte
+// au-delà de 3 minutes : assez large pour ne pas se déclencher sur une dérive
+// ordinaire, assez tôt pour prévenir avant que le seuil serveur soit franchi.
+export const SEUIL_HORLOGE_MS = 3 * 60 * 1000;
+
+export function ecartHorloge(heureServeur?: string | null, maintenant?: number): Horloge | null {
+  if (!heureServeur) return null;
+  const serveur = Date.parse(heureServeur);
+  if (!Number.isFinite(serveur)) return null;
+  const local = maintenant ?? Date.now();
+  const ecartMs = local - serveur;
+  const ampleur = Math.abs(ecartMs);
+  return {
+    ecartMs,
+    alerte: ampleur > SEUIL_HORLOGE_MS,
+    enRetard: ecartMs < 0,
+    minutes: Math.round(ampleur / 60000),
+  };
+}
+
+/** Message à afficher, ou `null` si l'horloge est correcte. */
+export function messageHorloge(h: Horloge | null): string | null {
+  if (!h || !h.alerte) return null;
+  const duree = h.minutes >= 120 ? `${Math.round(h.minutes / 60)} h` : `${h.minutes} min`;
+  return h.enRetard
+    ? `L'horloge de ce téléphone retarde de ${duree}. Vos modifications risquent de ne pas être enregistrées. Corrigez la date et l'heure dans les réglages.`
+    : `L'horloge de ce téléphone avance de ${duree}. Corrigez la date et l'heure dans les réglages.`;
+}
+
 // Formate un numéro CI en international pour wa.me (indicatif 225).
 export const waNumber = (tel?: string): string | null => {
   if (!tel) return null;
