@@ -280,6 +280,47 @@ class TestConfigurationDeploiement:
         deps = {**conf.get("dependencies", {}), **conf.get("devDependencies", {})}
         assert "firebase" not in deps, "le SDK Firebase ne doit pas être installé"
 
+    def test_une_cle_de_compte_de_service_ne_peut_pas_partir_dans_git(self):
+        """Invariant 30 : ne jamais déposer de clé privée là où elle se publie.
+
+        Une clé de compte de service donne TOUS les droits sur le projet,
+        Firestore compris, en contournant `firestore.rules` par conception
+        (c'est l'Admin SDK). Poussée sur un dépôt, elle vaut la base entière.
+
+        Le `.gitignore` couvrait `credentials.json`, `*.key` et `*.pem` — mais
+        pas le nom que Google donne réellement au fichier téléchargé,
+        « <projet>-firebase-adminsdk-xxxxx-yyyyyyyy.json ». Un `git add .`
+        distrait suffisait.
+
+        Le test interroge `git check-ignore`, donc le vrai moteur de git : un
+        motif qui a l'air juste mais ne correspond à rien (les globs ne
+        connaissent pas l'optionnalité, `?` vaut exactement un caractère) est
+        attrapé ici, pas en relisant le fichier.
+        """
+        pieges = [
+            "valeo-firebase-adminsdk-a1b2c-3d4e5f6789.json",  # le nom de Google
+            "backend/secrets/peu-importe-le-nom.json",
+            "secrets/cle.json",
+            "service-account.json",
+            "service_account.json",
+            "cle-service.json",
+        ]
+        legitimes = ["firebase.json", "package.json", "firestore.indexes.json",
+                     "backend/.env.example"]
+        try:
+            def ignore(chemin):
+                r = subprocess.run(["git", "check-ignore", "-q", chemin],
+                                   cwd=RACINE, capture_output=True, timeout=15)
+                if r.returncode not in (0, 1):
+                    pytest.skip("git indisponible ou hors dépôt")
+                return r.returncode == 0
+            for chemin in pieges:
+                assert ignore(chemin), f"{chemin} partirait dans git"
+            for chemin in legitimes:
+                assert not ignore(chemin), f"{chemin} est ignoré a tort"
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pytest.skip("git indisponible")
+
     def test_aucun_secret_dans_la_configuration_de_build(self):
         build = (BACKEND / "cloudbuild.yaml").read_text(encoding="utf-8")
         assert "--set-secrets=" in build, "les secrets passent par Secret Manager"

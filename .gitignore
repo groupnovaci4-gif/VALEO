@@ -90,3 +90,22 @@ android-sdk/
 credentials.json
 *.key
 .credentials
+
+# Comptes de service Google / Firebase.
+# Un tel fichier est une CLÉ PRIVÉE : il donne tous les droits sur le projet,
+# Firestore compris, sans passer par aucune règle. Google nomme le fichier
+# téléchargé « <projet>-firebase-adminsdk-xxxxx-yyyyyyyy.json », un nom
+# qu'aucun motif ci-dessus n'attrape — d'où ces lignes.
+#
+# La garde qui compte est le DOSSIER : elle ne dépend d'aucune convention de
+# nommage, et c'est là que la marche à suivre demande de déposer la clé.
+secrets/
+#
+# Les motifs de nom ne sont qu'un filet de sécurité, pour le cas où le fichier
+# atterrit ailleurs. Le premier est le nom que Google donne réellement au
+# fichier téléchargé ; les autres sont les noms que l'on se donne à soi-même.
+*firebase-adminsdk*.json
+*service-account*.json
+*service_account*.json
+*serviceaccount*.json
+cle-service*.json
