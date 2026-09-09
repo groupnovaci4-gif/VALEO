@@ -261,6 +261,52 @@ async def _scenario(r: Rapport, api, marque: str, client_fs, collections) -> Non
         r.exige("B ne voit que sa propre coopérative",
                 {c["id"] for c in (vueB.get("coops") or [])} == {b["identity"]["coopId"]})
 
+    r.titre("6bis. Une coopérative ne peut pas ÉCRASER l'autre")
+    # La section 6 prouve que B ne VOIT pas les données de A. Elle ne prouve
+    # PAS que B ne peut pas les DÉTRUIRE — et c'était précisément la faille :
+    # la clé de document Firestore était l'identifiant métier seul, dans des
+    # collections globales, donc B écrasait la ligne de A en réutilisant son
+    # `id`. Jusqu'à la fiche du patron de A, empreinte `pin` comprise, qui ne
+    # pouvait alors plus se connecter — le `PUT` répondant 200.
+    #
+    # Ce contrôle-ci est le SEUL du script à éprouver le correctif contre un
+    # vrai Firestore : partout ailleurs la preuve vient du double en mémoire,
+    # qui ne connaît pas la façon dont Firestore adresse ses documents.
+    if rep.status_code == 200:
+        vueB = (await api.get("/api/state",
+                              headers={"Authorization": f"Bearer {b['token']}"})).json()
+        vueB.setdefault("members", []).append({
+            "id": f"mem-{marque}", "coopId": b["identity"]["coopId"],
+            "code": "PL-B-0001", "nom": "PLANTEUR DE B", "village": "Ailleurs",
+            "tel": "0700000002", "cropId": "cacao"})
+        r_ecr = await api.put("/api/state",
+                              headers={"Authorization": f"Bearer {b['token']}"},
+                              json={"data": vueB})
+        chezA = [m for m in (await api.get("/api/state", headers=entete)).json().get("members") or []
+                 if m["id"] == f"mem-{marque}"]
+        r.exige("le planteur de A survit à un identifiant identique chez B",
+                len(chezA) == 1 and chezA[0].get("nom") == "Planteur d'essai",
+                _sauf_si(len(chezA) == 1 and chezA[0].get("nom") == "Planteur d'essai",
+                         f"PUT de B = {r_ecr.status_code} ; chez A : "
+                         f"{[m.get('nom') for m in chezA] or 'FICHE DÉTRUITE'}"))
+
+        # Le cas le plus grave : écraser un `staff` efface son empreinte, donc
+        # sa connexion. On le vérifie en se reconnectant réellement.
+        vueB = (await api.get("/api/state",
+                              headers={"Authorization": f"Bearer {b['token']}"})).json()
+        vueB.setdefault("staff", []).append({
+            "id": staffA, "coopId": b["identity"]["coopId"], "role": "pisteur",
+            "nom": "ECRASEUR", "tel": "0700000009"})
+        await api.put("/api/state",
+                      headers={"Authorization": f"Bearer {b['token']}"},
+                      json={"data": vueB})
+        rc = await api.post("/api/auth/coop/login",
+                            json={"identifier": emailA, "secret": motA})
+        r.exige("le patron de A peut toujours se connecter", rc.status_code == 200,
+                _sauf_si(rc.status_code == 200,
+                         f"HTTP {rc.status_code} — son empreinte a été écrasée "
+                         "depuis une autre coopérative"))
+
     r.titre("7. L'écriture est différentielle (invariant 29)")
     # On compte les DOCUMENTS Firestore, pas les lignes de l'état renvoyé :
     # c'est la seule mesure qui dise quelque chose sur la facture. Un dépôt

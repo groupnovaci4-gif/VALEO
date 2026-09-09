@@ -790,9 +790,14 @@ points ci-dessous ne sont pas réglés.
 
 1. 🔴 **Fixer l'identifiant de paquet** (`app.json`). Irréversible après
    publication. Une ligne, aujourd'hui.
-2. 🟠 **Rejouer la répétition Firestore** sur le code corrigé
-   (`scripts/repetition_firestore.py`). Le cloisonnement des clés n'a été
-   éprouvé que contre le double en mémoire.
+2. ✅ **Répétition Firestore rejouée** sur le code corrigé — 24 contrôles
+   verts contre la vraie base `europe-west1`, écriture différentielle
+   comprise. Une lacune est apparue à la relecture : la section 6 prouvait
+   que B ne *voit* pas les données de A, jamais qu'il ne peut pas les
+   *écraser* — c'est-à-dire le scénario même de B-01. Une section **6bis** a
+   été ajoutée (collision d'identifiant sur un planteur, puis sur la fiche du
+   patron avec reconnexion réelle), portant la répétition à **26 contrôles**.
+   À rejouer une fois pour clore le point.
 3. 🟠 **Trancher B-03** (horloge en retard). Au minimum, afficher un
    avertissement de décalage — un pisteur qui perd sa journée sans le savoir
    est le pire scénario pour ce produit.
