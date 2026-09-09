@@ -413,7 +413,7 @@ L'audit est passé en mode correctif à votre demande. Commit `afdcb77`.
 | — | `uid()` à 36 bits non cryptographiques | ✅ **corrigé** |
 | É-7 | 12 tests rouges permanents | ✅ **corrigé** |
 | É-1 | Documentation fausse sur le hachage des PIN | ✅ **corrigé** |
-| É-4 | Identifiant de paquet `com.emergent.…` | ⏸️ **décision produit attendue** |
+| É-4 | Identifiant de paquet `com.emergent.…` | ✅ **corrigé** — `com.valeoscoop.valeo` |
 | É-2 | Modules morts + permission Face ID inutilisée | ✅ **permission retirée** (module conservé) |
 | N1-5 | Quatre copies d'`expo-constants` | ⏸️ à traiter au premier build |
 
@@ -788,8 +788,13 @@ points ci-dessous ne sont pas réglés.
 
 ### Corrections requises, par ordre
 
-1. 🔴 **Fixer l'identifiant de paquet** (`app.json`). Irréversible après
-   publication. Une ligne, aujourd'hui.
+1. ✅ **Identifiant de paquet fixé** : `com.valeoscoop.valeo`, dérivé du
+   domaine `valeo-scoop.com`. Le tiret est retiré parce qu'un segment de
+   paquet Android doit être un identifiant Java valide — `com.valeo-scoop.*`
+   aurait fait échouer la construction. `slug` et `scheme` passent à `valeo`.
+   Verrouillé par `TestIdentiteDeLApplication`, qui refuse aussi bien un
+   retour au constructeur précédent qu'un `com.valeo.*` — espace de noms
+   d'un équipementier automobile coté, qui n'est pas le vôtre.
 2. ✅ **Répétition Firestore rejouée** sur le code corrigé — 24 contrôles
    verts contre la vraie base `europe-west1`, écriture différentielle
    comprise. Une lacune est apparue à la relecture : la section 6 prouvait

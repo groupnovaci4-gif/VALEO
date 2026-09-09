@@ -444,3 +444,53 @@ class TestHeureDuServeur:
         assert bloc, "expose_headers absent de la configuration CORS"
         assert "ENTETE_HEURE" in bloc.group(1), \
             "l'en-tête d'heure doit être exposé, sinon le web ne le lit jamais"
+
+
+class TestIdentiteDeLApplication:
+    """L'identifiant de paquet est DÉFINITIF une fois publié.
+
+    Google Play et l'App Store en font la clé d'identité de l'application : il
+    ne se change pas après publication, il faut republier une application
+    distincte et perdre installations et avis.
+
+    Le dépôt a longtemps porté `com.emergent.appdeploy.tyyn4z`, hérité du
+    constructeur précédent — l'application se serait donc publiée sous
+    l'espace de noms d'un tiers. Corrigé en `com.valeoscoop.valeo`, dérivé du
+    domaine réel (`valeo-scoop.com`), le tiret retiré parce qu'un segment de
+    paquet Android doit être un identifiant Java valide.
+    """
+
+    def _expo(self):
+        return json.loads((RACINE / "frontend" / "app.json").read_text(encoding="utf-8"))["expo"]
+
+    def test_les_deux_plateformes_portent_le_MEME_identifiant(self):
+        e = self._expo()
+        assert e["android"]["package"] == e["ios"]["bundleIdentifier"], \
+            "Android et iOS doivent porter le même identifiant"
+
+    def test_l_identifiant_est_valide_pour_Android(self):
+        """Segments = identifiants Java. Un tiret fait échouer la construction."""
+        paquet = self._expo()["android"]["package"]
+        segments = paquet.split(".")
+        assert len(segments) >= 2, f"au moins deux segments : {paquet}"
+        for s in segments:
+            assert re.fullmatch(r"[a-zA-Z][a-zA-Z0-9_]*", s), \
+                f"segment invalide « {s} » dans {paquet} (ni tiret, ni chiffre en tête)"
+
+    def test_l_identifiant_n_appartient_a_personne_d_autre(self):
+        """Ni le constructeur précédent, ni un espace de noms d'emprunt."""
+        e = self._expo()
+        valeurs = [e["android"]["package"], e["ios"]["bundleIdentifier"],
+                   e.get("slug", ""), e.get("scheme", "")]
+        interdits = ("emergent", "example", "expo.dev", "anonymous",
+                     "com.valeo.", "changeme", "yourcompany")
+        for v in valeurs:
+            for mot in interdits:
+                assert mot not in v, (
+                    f"« {mot} » dans « {v} » : cet identifiant n'est pas le vôtre. "
+                    "Il est DÉFINITIF une fois publié.")
+
+    def test_slug_et_scheme_ne_sont_plus_les_valeurs_par_defaut(self):
+        e = self._expo()
+        assert e.get("slug") != "frontend", "slug laissé au défaut d'Expo"
+        assert e.get("scheme") != "frontend", "scheme laissé au défaut d'Expo"

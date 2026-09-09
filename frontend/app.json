@@ -1,16 +1,16 @@
 {
   "expo": {
     "name": "VALEO",
-    "slug": "frontend",
+    "slug": "valeo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "valeo",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.appdeploy.tyyn4z",
+      "bundleIdentifier": "com.valeoscoop.valeo",
       "infoPlist": {
         "NSCameraUsageDescription": "Prendre la photo d'un planteur ou membre",
         "NSPhotoLibraryUsageDescription": "Choisir une photo depuis votre galerie"
@@ -22,7 +22,7 @@
         "backgroundColor": "#FFFFFF"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.emergent.appdeploy.tyyn4z",
+      "package": "com.valeoscoop.valeo",
       "allowBackup": false,
       "usesCleartextTraffic": false,
       "permissions": [
