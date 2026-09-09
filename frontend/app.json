@@ -13,8 +13,7 @@
       "bundleIdentifier": "com.emergent.appdeploy.tyyn4z",
       "infoPlist": {
         "NSCameraUsageDescription": "Prendre la photo d'un planteur ou membre",
-        "NSPhotoLibraryUsageDescription": "Choisir une photo depuis votre galerie",
-        "NSFaceIDUsageDescription": "Se reconnecter à VALEO avec Face ID"
+        "NSPhotoLibraryUsageDescription": "Choisir une photo depuis votre galerie"
       }
     },
     "android": {
@@ -46,13 +45,7 @@
           "backgroundColor": "#FFFFFF"
         }
       ],
-      "expo-secure-store",
-      [
-        "expo-local-authentication",
-        {
-          "faceIDPermission": "Utiliser Face ID pour vous reconnecter à VALEO"
-        }
-      ]
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

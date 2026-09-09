@@ -397,7 +397,34 @@ export type Session =
   | { side: "planteur"; memberId: string; coopId?: string }
   | { side: "coop"; role: string; staffId: string; coopId?: string };
 
-export const uid = () => Math.random().toString(36).slice(2, 9);
+// Identifiant d'enregistrement. Fabriqué par le téléphone, il voyage jusqu'au
+// serveur et devient une CLÉ DE STOCKAGE : deux enregistrements qui le
+// partagent n'en font plus qu'un. L'ancienne version tirait 7 caractères de
+// `Math.random()` — environ 36 bits, d'un générateur non cryptographique et
+// prédictible — ce qui était trop peu pour ce rôle.
+//
+// `lib.ts` doit rester SANS import d'exécution (il est compilé seul et
+// exécuté par Node pour les tests) : on passe donc par le `crypto` global
+// quand il existe, avec un repli qui ne dépend de rien.
+let _suite = 0;
+
+const _hasard = (): string => {
+  const g = globalThis as any;
+  if (typeof g?.crypto?.getRandomValues === "function") {
+    const octets = new Uint8Array(12); // 96 bits
+    g.crypto.getRandomValues(octets);
+    return Array.from(octets, (o: number) => o.toString(16).padStart(2, "0")).join("");
+  }
+  // Repli sans `crypto` : plusieurs tirages, l'horloge, et un compteur de
+  // processus. Le compteur est ce qui garantit que deux appels successifs ne
+  // peuvent pas coïncider, même si `Math.random()` se comporte mal au
+  // démarrage — cas connu sur des appareils fraîchement allumés.
+  _suite = (_suite + 1) >>> 0;
+  const tirage = () => Math.random().toString(36).slice(2, 10);
+  return `${Date.now().toString(36)}${_suite.toString(36)}${tirage()}${tirage()}`;
+};
+
+export const uid = (): string => _hasard();
 
 // Formate un numéro CI en international pour wa.me (indicatif 225).
 export const waNumber = (tel?: string): string | null => {

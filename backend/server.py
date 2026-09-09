@@ -583,6 +583,65 @@ IMMUTABLE_FIELDS = {"id", "coopId"}
 COOP_SETTINGS_KEYS = ("prices", "commissions")
 
 
+# Champs qui ne peuvent JAMAIS être négatifs : un poids ou une somme d'argent
+# négative n'existe pas dans le métier. Ce sont les invariants 8 et 16, qui
+# n'étaient jusqu'ici appliqués que dans `lib.ts` — donc côté client, donc pas
+# du tout face à un appareil modifié.
+CHAMPS_POSITIFS = {
+    "collections": ("kg", "sacs", "prixKg", "commissionRate", "brut", "net",
+                    "paye", "reste", "resteSolde", "oldRegle"),
+    "loans": ("amount", "soldeRestant"),
+    "settlements": ("amount",),
+    "mandats": ("amount",),
+    "depenses": ("amount",),
+    "sorties": ("kg",),
+}
+# Invariant 15 : quatre statuts, pas un de plus. Une orthographe inventée
+# traverserait tous les filtres métier sans jamais lever d'erreur — l'avance
+# deviendrait invisible au recouvrement comme au tableau de bord.
+STATUTS_AVANCE = {"en_attente", "approuve", "refuse", "rembourse"}
+
+
+def _valider_valeurs(incoming: dict) -> None:
+    """Refuse les valeurs qu'aucun enregistrement légitime ne porte.
+
+    Ce n'est PAS une règle d'autorisation : c'est une règle de validité, donc
+    elle vaut pour tous les rôles, **patron compris**. Sa souveraineté porte
+    sur ce qu'il a le droit de décider, pas sur la possibilité d'écrire un
+    poids négatif — que rien, dans le métier, ne peut produire.
+
+    Volontairement étroite. Elle refuse ce qui est impossible (négatif, statut
+    hors énumération), jamais ce qui est seulement invraisemblable : contrôler
+    `brut == kg × prixKg` casserait les retenues et la tare, et exiger qu'un
+    `memberId` existe déjà rejetterait une pesée arrivée avant la fiche du
+    planteur qui l'accompagne — un cas normal en hors-ligne d'abord.
+    """
+    for entite, champs in CHAMPS_POSITIFS.items():
+        for row in incoming.get(entite) or []:
+            if not isinstance(row, dict):
+                continue
+            for champ in champs:
+                valeur = row.get(champ)
+                if valeur is None or isinstance(valeur, bool):
+                    continue
+                try:
+                    nombre = float(valeur)
+                except (TypeError, ValueError):
+                    raise Forbidden(
+                        f"« {champ} » doit être un nombre (reçu : {valeur!r}).")
+                if nombre != nombre or nombre in (float("inf"), float("-inf")):
+                    raise Forbidden(f"« {champ} » n'est pas un nombre exploitable.")
+                if nombre < 0:
+                    raise Forbidden(
+                        f"« {champ} » ne peut pas être négatif (reçu : {valeur!r}).")
+    for row in incoming.get("loans") or []:
+        if isinstance(row, dict) and row.get("status") is not None \
+                and row["status"] not in STATUTS_AVANCE:
+            raise Forbidden(
+                f"Statut d'avance inconnu : {row['status']!r} "
+                f"(attendu : {sorted(STATUTS_AVANCE)}).")
+
+
 class Forbidden(HTTPException):
     def __init__(self, message: str):
         super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail=message)
@@ -832,6 +891,9 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
     """
     coop_id = me["coopId"]
     side, role, me_id = me.get("side"), me.get("role"), me.get("sub")
+    # Validité des valeurs AVANT tout le reste, et avant le retour anticipé du
+    # patron : un poids ou une somme négative n'est pas une question de droit.
+    _valider_valeurs(incoming)
     # Seule limite au pouvoir du patron : les dépenses personnelles d'un
     # pisteur / délégué, qu'il ne voit même pas (invariant 24).
     _check_depenses_privees(stored, incoming, deletions, coop_id, me)

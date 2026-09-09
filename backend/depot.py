@@ -69,13 +69,45 @@ def _empreinte_ligne(row: dict) -> str:
     return hashlib.sha1(json.dumps(row, sort_keys=True, default=str).encode()).hexdigest()
 
 
+def _portee(entite: str, row: dict) -> str:
+    """La coopérative à laquelle appartient une ligne.
+
+    Pour `coops`, la ligne EST la coopérative : sa portée est son propre `id`.
+    Pour tout le reste, c'est `coopId`, que `merge_state` a déjà forcé depuis
+    le jeton (`server.py:522`) — la portée n'est donc jamais celle que le
+    client prétend, mais celle que le serveur a imposée.
+    """
+    if entite == "coops":
+        return str(row.get("id") or "")
+    return str(row.get("coopId") or "")
+
+
+def _cle_ligne(entite: str, row: dict) -> str:
+    """Clé de document Firestore d'une ligne : (coopérative, identifiant).
+
+    C'est ici que se joue l'isolation entre coopératives côté stockage.
+    Prendre l'identifiant métier SEUL comme clé, avec des collections
+    globales, laissait une coopérative écraser la ligne d'une autre en
+    réutilisant son `id` — et le serveur ne pouvait pas s'en apercevoir,
+    puisque `charger(coop_id)` ne lit justement PAS les lignes des autres.
+    Les identifiants venant des téléphones (`lib.ts`, 7 caractères), ils ne
+    peuvent pas servir de frontière : la portée est donc dans la clé.
+    """
+    return _cle_doc(f"{_portee(entite, row)}~{row.get('id')}")
+
+
 def _index(state: dict) -> dict:
-    """Empreinte de tout l'état : une par ligne, une pour les scalaires."""
+    """Empreinte de tout l'état, indexée par CLÉ DE DOCUMENT.
+
+    Indexer par identifiant métier seul ne permettait pas de calculer les
+    suppressions sans ambiguïté dès lors que deux coopératives peuvent porter
+    le même identifiant.
+    """
     idx = {e: {} for e in TABLEAUX}
     for e in TABLEAUX:
         for row in state.get(e) or []:
             if isinstance(row, dict) and row.get("id"):
-                idx[e][str(row["id"])] = _empreinte_ligne(row)
+                idx[e][_cle_ligne(e, row)] = _empreinte_ligne(row)
     return idx
 
 
@@ -246,19 +278,25 @@ class DepotFirestore:
             lignes = []
             if coop_id and e == "coops":
                 # Une lecture d'un document, pas un balayage de collection.
-                snap = await self._client.collection("coops").document(_cle_doc(coop_id)).get()
+                # La clé est cloisonnée : elle se dérive comme à l'écriture,
+                # sinon on lirait un document qui n'existe pas.
+                cle = _cle_ligne("coops", {"id": coop_id})
+                snap = await self._client.collection("coops").document(cle).get()
                 if getattr(snap, "exists", False):
                     row = snap.to_dict() or {}
-                    row.setdefault("id", snap.id)
-                    lignes.append(row)
+                    if row.get("id"):
+                        lignes.append(row)
             else:
                 source = self._client.collection(e)
                 if coop_id:
                     source = source.where(filter=_filtre_coop(coop_id))
                 async for snap in source.stream():
                     row = snap.to_dict() or {}
-                    row.setdefault("id", snap.id)
-                    lignes.append(row)
+                    # L'identifiant métier vit dans le CHAMP `id`, jamais dans
+                    # la clé : celle-ci porte désormais aussi la coopérative,
+                    # et la reprendre comme identifiant corromprait la ligne.
+                    if row.get("id"):
+                        lignes.append(row)
             state[e] = lignes
         meta = await self._client.collection("meta").document(META_DOC).get()
         if getattr(meta, "exists", False):
@@ -276,18 +314,21 @@ class DepotFirestore:
 
         for e in TABLEAUX:
             avant, apres = base.get(e) or {}, courant[e]
-            lignes = {str(r["id"]): r for r in (data.get(e) or [])
+            # Indexées par clé de document, comme `courant` : deux
+            # coopératives peuvent porter le même identifiant métier.
+            lignes = {_cle_ligne(e, r): r for r in (data.get(e) or [])
                       if isinstance(r, dict) and r.get("id")}
-            for rid, emp in apres.items():
-                if avant.get(rid) != emp:
-                    operations.append(("set", e, rid, lignes[rid]))
+            for cle, emp in apres.items():
+                if avant.get(cle) != emp:
+                    operations.append(("set", e, cle, lignes[cle]))
             # Une ligne présente à la lecture et absente à l'écriture a été
             # réellement supprimée (`deletions`, purge, suppression admin) :
             # `merge_state` garde tout le reste, une absence n'y est jamais
-            # une suppression.
-            for rid in avant:
-                if rid not in apres:
-                    operations.append(("delete", e, rid, None))
+            # une suppression. La clé portant la coopérative, on ne peut pas
+            # supprimer la ligne d'une autre.
+            for cle in avant:
+                if cle not in apres:
+                    operations.append(("delete", e, cle, None))
 
         # Le document `meta` porte les champs qui ne sont pas des tableaux et
         # l'horodatage lu par l'empreinte de diagnostic (`/api/diag`). Il est
@@ -300,8 +341,10 @@ class DepotFirestore:
 
         for i in range(0, len(operations), self.TAILLE_LOT):
             lot = self._client.batch()
-            for genre, coll, rid, charge in operations[i:i + self.TAILLE_LOT]:
-                ref = self._client.collection(coll).document(_cle_doc(rid))
+            for genre, coll, cle, charge in operations[i:i + self.TAILLE_LOT]:
+                # `cle` est déjà une clé de document sûre et cloisonnée
+                # (`_cle_ligne`), sauf pour `meta` dont le nom est constant.
+                ref = self._client.collection(coll).document(cle)
                 if genre == "delete":
                     lot.delete(ref)
                 elif genre == "fusion":
