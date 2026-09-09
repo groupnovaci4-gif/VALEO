@@ -121,19 +121,25 @@ def _pesee(coop_id, staff_id, member_id, suffixe):
     }
 
 
-def verifier(r: Rapport, forcer: bool, garder: bool) -> int:
-    """Déroule la répétition. Renvoie le nombre de documents laissés derrière."""
-    from fastapi.testclient import TestClient
+async def _derouler(r: Rapport, forcer: bool, garder: bool, server) -> int:
+    """Toute la répétition, sur UNE SEULE boucle d'événements.
 
-    import server
+    Ce point n'est pas cosmétique. Le vrai client Firestore repose sur gRPC,
+    qui rattache ses appels à la boucle qui l'a utilisé en premier et rejette
+    ensuite les autres (« attached to a different loop »). Une première version
+    ouvrait sa propre boucle pour compter les documents pendant que
+    `TestClient` en gérait une autre pour l'application : la répétition
+    s'arrêtait à la troisième étape. Le double en mémoire n'a ni gRPC ni
+    boucle, donc ne pouvait pas le montrer.
 
-    collections = list(getattr(server.depot_module, "TABLEAUX", [])) + list(AUXILIAIRES)
+    D'où `httpx` + `ASGITransport` plutôt que `TestClient` : tout est `await`
+    dans la même boucle, ce qui est aussi la situation réelle sous uvicorn.
+    """
+    import httpx
+
+    collections = list(server.depot_module.TABLEAUX) + list(AUXILIAIRES)
     depot = server.depot
     client_fs = getattr(depot, "_client", None)
-    boucle = asyncio.new_event_loop()
-
-    def sync(coro):
-        return boucle.run_until_complete(coro)
 
     r.titre("1. Le dépôt actif")
     # `isinstance`, pas le nom de la classe : une sous-classe est un dépôt
@@ -148,7 +154,7 @@ def verifier(r: Rapport, forcer: bool, garder: bool) -> int:
             depot.origine)
 
     r.titre("2. La base de départ")
-    avant = sync(_compter(client_fs, collections))
+    avant = await _compter(client_fs, collections)
     vide = not avant
     if not r.exige("la base est vide", vide or forcer,
                    _sauf_si(vide or forcer,
@@ -158,117 +164,133 @@ def verifier(r: Rapport, forcer: bool, garder: bool) -> int:
     if not vide:
         r.surveille("base non vide, mais --forcer donné", False, f"{avant}")
 
-    r.titre("3. Créer une coopérative et s'y connecter")
     marque = uuid.uuid4().hex[:8]
-    with TestClient(server.app) as api:
-        emailA, motA = f"patron-{marque}@essai.ci", _secret("a")
-        rep = api.post("/api/auth/register",
-                       json={"email": emailA, "password": motA, "nom": "Patron A"})
-        if not r.exige("POST /api/auth/register aboutit", rep.status_code == 200,
-                       _sauf_si(rep.status_code == 200,
-                                f"HTTP {rep.status_code} — {rep.text[:200]}")):
-            return sync(_vider(client_fs, collections)) if not garder else 0
-        a = rep.json()
-        jetonA, idA = a["token"], a["identity"]["coopId"]
-        staffA = a["identity"]["sub"]
-
-        # `CoopLoginBody` attend `identifier` + `secret`, pas `email` +
-        # `password` : la première version renvoyait 422 et le contrôle du
-        # mauvais secret passait alors pour la mauvaise raison (422 != 200).
-        rep = api.post("/api/auth/coop/login",
-                       json={"identifier": emailA, "secret": motA})
-        r.exige("le patron se reconnecte avec son secret", rep.status_code == 200,
-                _sauf_si(rep.status_code == 200,
-                         f"HTTP {rep.status_code} — {rep.text[:200]}"))
-        # 401 précisément : n'importe quel code non-200 passerait, y compris
-        # une charge utile malformée, ce qui ne prouverait rien.
-        faux = api.post("/api/auth/coop/login",
-                        json={"identifier": emailA, "secret": "mauvais-code"})
-        r.exige("un mauvais secret est refusé par un 401", faux.status_code == 401,
-                _sauf_si(faux.status_code == 401, f"HTTP {faux.status_code}"))
-
-        r.titre("4. Une pesée fait l'aller-retour")
-        entete = {"Authorization": f"Bearer {jetonA}"}
-        etat = api.get("/api/state", headers=entete).json()
-        etat.setdefault("members", []).append({
-            "id": f"mem-{marque}", "coopId": idA, "code": "PL-2026-0001",
-            "nom": "Planteur d'essai", "village": "Essai", "tel": "0700000001",
-            "cropId": "cacao", "superficie": 3,
-        })
-        etat.setdefault("collections", []).append(
-            _pesee(idA, staffA, f"mem-{marque}", marque))
-        rep = api.put("/api/state", headers=entete, json={"data": etat})
-        r.exige("PUT /api/state est accepté", rep.status_code == 200,
-                _sauf_si(rep.status_code == 200,
-                         f"HTTP {rep.status_code} — {rep.text[:200]}"))
-
-        relu = api.get("/api/state", headers=entete).json()
-        cols = {c["id"]: c for c in (relu.get("collections") or [])}
-        col = cols.get(f"col-{marque}")
-        r.exige("la pesée est relue depuis Firestore", col is not None)
-        if col:
-            r.exige("le poids traverse intact", col.get("kg") == 125, f"kg = {col.get('kg')!r}")
-            r.exige("le prix figé traverse intact", col.get("prixKg") == 1800,
-                    f"prixKg = {col.get('prixKg')!r} (invariant 6)")
-            r.exige("le reste dû traverse intact", col.get("reste") == 21400,
-                    f"reste = {col.get('reste')!r}")
-            r.exige("les types restent numériques",
-                    all(isinstance(col.get(k), int) for k in ("kg", "prixKg", "reste")),
-                    "un nombre revenu en texte fausserait tous les calculs")
-        r.exige("le planteur créé est relu",
-                any(m["id"] == f"mem-{marque}" for m in (relu.get("members") or [])))
-
-        r.titre("5. Les empreintes ne sortent pas (invariant 5)")
-        sans_pin = all("pin" not in s for s in (relu.get("staff") or []))
-        r.exige("aucun `pin` dans l'état renvoyé au patron", sans_pin,
-                "une empreinte qui sort est une empreinte qu'on attaque hors ligne")
-
-        r.titre("6. Isolation entre coopératives (invariant 1)")
-        emailB, motB = f"patron-{marque}-b@essai.ci", _secret("b")
-        rep = api.post("/api/auth/register",
-                       json={"email": emailB, "password": motB, "nom": "Patron B"})
-        r.exige("une seconde coopérative se crée", rep.status_code == 200)
-        if rep.status_code == 200:
-            b = rep.json()
-            vueB = api.get("/api/state",
-                           headers={"Authorization": f"Bearer {b['token']}"}).json()
-            idsB = {c["id"] for c in (vueB.get("collections") or [])}
-            memB = {m["id"] for m in (vueB.get("members") or [])}
-            r.exige("B ne voit AUCUNE collecte de A", f"col-{marque}" not in idsB,
-                    "c'est la garantie la plus importante du produit")
-            r.exige("B ne voit AUCUN planteur de A", f"mem-{marque}" not in memB)
-            r.exige("B ne voit que sa propre coopérative",
-                    {c["id"] for c in (vueB.get("coops") or [])} == {b["identity"]["coopId"]})
-
-        r.titre("7. L'écriture est différentielle (invariant 29)")
-        avant_ops = sync(_compter(client_fs, collections))
-        etat2 = api.get("/api/state", headers=entete).json()
-        etat2["collections"].append(_pesee(idA, staffA, f"mem-{marque}", marque + "b"))
-        api.put("/api/state", headers=entete, json={"data": etat2})
-        apres_ops = sync(_compter(client_fs, collections))
-        ajout = apres_ops.get("collections", 0) - avant_ops.get("collections", 0)
-        r.exige("une seconde pesée n'ajoute qu'un document", ajout == 1,
-                _sauf_si(ajout == 1, f"{ajout} documents ajoutés — Firestore se "
-                                     "facture à l'opération"))
-
-        r.titre("8. Le marqueur d'instance (invariant 27)")
-        sante = api.get("/health")
-        r.exige("/health répond", sante.status_code == 200)
-        if sante.status_code == 200:
-            marqueur = (sante.json() or {}).get("instance")
-            r.exige("un marqueur d'instance est publié", bool(marqueur),
-                    "c'est le seul contrôle possible avant d'être connecté")
+    transport = httpx.ASGITransport(app=server.app)
+    async with server.app.router.lifespan_context(server.app):
+        async with httpx.AsyncClient(transport=transport,
+                                     base_url="http://valeo", timeout=60) as api:
+            await _scenario(r, api, marque, client_fs, collections)
 
     r.titre("9. Nettoyage")
     if garder:
         r.surveille("la base est laissée en l'état", False,
                     "--garder demandé : pensez à vider avant la migration")
         return -1
-    efface = sync(_vider(client_fs, collections))
-    reste = sync(_compter(client_fs, collections))
+    efface = await _vider(client_fs, collections)
+    reste = await _compter(client_fs, collections)
     r.exige("tout ce qui a été créé est effacé", not reste,
             f"{efface} documents retirés" if not reste else f"il reste {reste}")
     return efface
+
+
+async def _scenario(r: Rapport, api, marque: str, client_fs, collections) -> None:
+    """Le parcours métier, du compte créé à l'écriture différentielle."""
+    r.titre("3. Créer une coopérative et s'y connecter")
+    emailA, motA = f"patron-{marque}@essai.ci", _secret("a")
+    rep = await api.post("/api/auth/register",
+                         json={"email": emailA, "password": motA, "nom": "Patron A"})
+    if not r.exige("POST /api/auth/register aboutit", rep.status_code == 200,
+                   _sauf_si(rep.status_code == 200,
+                            f"HTTP {rep.status_code} — {rep.text[:200]}")):
+        return
+    a = rep.json()
+    jetonA, idA, staffA = a["token"], a["identity"]["coopId"], a["identity"]["sub"]
+
+    # `CoopLoginBody` attend `identifier` + `secret`, pas `email` + `password` :
+    # la première version renvoyait 422 et le contrôle du mauvais secret passait
+    # alors pour la mauvaise raison (422 != 200).
+    rep = await api.post("/api/auth/coop/login",
+                         json={"identifier": emailA, "secret": motA})
+    r.exige("le patron se reconnecte avec son secret", rep.status_code == 200,
+            _sauf_si(rep.status_code == 200, f"HTTP {rep.status_code} — {rep.text[:200]}"))
+    # 401 précisément : n'importe quel code non-200 passerait, y compris une
+    # charge utile malformée, ce qui ne prouverait rien.
+    faux = await api.post("/api/auth/coop/login",
+                          json={"identifier": emailA, "secret": "mauvais-code"})
+    r.exige("un mauvais secret est refusé par un 401", faux.status_code == 401,
+            _sauf_si(faux.status_code == 401, f"HTTP {faux.status_code}"))
+
+    r.titre("4. Une pesée fait l'aller-retour")
+    entete = {"Authorization": f"Bearer {jetonA}"}
+    etat = (await api.get("/api/state", headers=entete)).json()
+    etat.setdefault("members", []).append({
+        "id": f"mem-{marque}", "coopId": idA, "code": "PL-2026-0001",
+        "nom": "Planteur d'essai", "village": "Essai", "tel": "0700000001",
+        "cropId": "cacao", "superficie": 3,
+    })
+    etat.setdefault("collections", []).append(_pesee(idA, staffA, f"mem-{marque}", marque))
+    rep = await api.put("/api/state", headers=entete, json={"data": etat})
+    r.exige("PUT /api/state est accepté", rep.status_code == 200,
+            _sauf_si(rep.status_code == 200, f"HTTP {rep.status_code} — {rep.text[:200]}"))
+
+    relu = (await api.get("/api/state", headers=entete)).json()
+    col = {c["id"]: c for c in (relu.get("collections") or [])}.get(f"col-{marque}")
+    r.exige("la pesée est relue depuis Firestore", col is not None)
+    if col:
+        r.exige("le poids traverse intact", col.get("kg") == 125, f"kg = {col.get('kg')!r}")
+        r.exige("le prix figé traverse intact", col.get("prixKg") == 1800,
+                f"prixKg = {col.get('prixKg')!r} (invariant 6)")
+        r.exige("le reste dû traverse intact", col.get("reste") == 21400,
+                f"reste = {col.get('reste')!r}")
+        r.exige("les types restent numériques",
+                all(isinstance(col.get(k), int) for k in ("kg", "prixKg", "reste")),
+                "un nombre revenu en texte fausserait tous les calculs")
+    r.exige("le planteur créé est relu",
+            any(m["id"] == f"mem-{marque}" for m in (relu.get("members") or [])))
+
+    r.titre("5. Les empreintes ne sortent pas (invariant 5)")
+    r.exige("aucun `pin` dans l'état renvoyé au patron",
+            all("pin" not in s for s in (relu.get("staff") or [])),
+            "une empreinte qui sort est une empreinte qu'on attaque hors ligne")
+
+    r.titre("6. Isolation entre coopératives (invariant 1)")
+    emailB, motB = f"patron-{marque}-b@essai.ci", _secret("b")
+    rep = await api.post("/api/auth/register",
+                         json={"email": emailB, "password": motB, "nom": "Patron B"})
+    r.exige("une seconde coopérative se crée", rep.status_code == 200,
+            _sauf_si(rep.status_code == 200, f"HTTP {rep.status_code}"))
+    if rep.status_code == 200:
+        b = rep.json()
+        vueB = (await api.get("/api/state",
+                              headers={"Authorization": f"Bearer {b['token']}"})).json()
+        r.exige("B ne voit AUCUNE collecte de A",
+                f"col-{marque}" not in {c["id"] for c in (vueB.get("collections") or [])},
+                "c'est la garantie la plus importante du produit")
+        r.exige("B ne voit AUCUN planteur de A",
+                f"mem-{marque}" not in {m["id"] for m in (vueB.get("members") or [])})
+        r.exige("B ne voit que sa propre coopérative",
+                {c["id"] for c in (vueB.get("coops") or [])} == {b["identity"]["coopId"]})
+
+    r.titre("7. L'écriture est différentielle (invariant 29)")
+    # On compte les DOCUMENTS Firestore, pas les lignes de l'état renvoyé :
+    # c'est la seule mesure qui dise quelque chose sur la facture. Un dépôt
+    # qui réécrirait tout à chaque enregistrement renverrait le même état.
+    avant_docs = await _compter(client_fs, collections)
+    etat2 = (await api.get("/api/state", headers=entete)).json()
+    etat2["collections"].append(_pesee(idA, staffA, f"mem-{marque}", marque + "b"))
+    await api.put("/api/state", headers=entete, json={"data": etat2})
+    apres_docs = await _compter(client_fs, collections)
+    ajout = apres_docs.get("collections", 0) - avant_docs.get("collections", 0)
+    r.exige("une seconde pesée n'ajoute qu'un document", ajout == 1,
+            _sauf_si(ajout == 1, f"{ajout} documents ajoutés — Firestore se "
+                                 "facture à l'opération"))
+    inchanges = {c: n for c, n in avant_docs.items()
+                 if c not in ("collections", "meta") and apres_docs.get(c) != n}
+    r.exige("aucune autre collection n'a bougé", not inchanges,
+            _sauf_si(not inchanges, f"{inchanges}"))
+
+    r.titre("8. Le marqueur d'instance (invariant 27)")
+    sante = await api.get("/health")
+    r.exige("/health répond", sante.status_code == 200,
+            _sauf_si(sante.status_code == 200, f"HTTP {sante.status_code}"))
+    if sante.status_code == 200:
+        r.exige("un marqueur d'instance est publié", bool((sante.json() or {}).get("instance")),
+                "c'est le seul contrôle possible avant d'être connecté")
+
+
+def verifier(r: Rapport, forcer: bool, garder: bool) -> int:
+    import server
+    return asyncio.run(_derouler(r, forcer, garder, server))
 
 
 def main(argv=None) -> int:
