@@ -1,12 +1,16 @@
 # Audit pré-déploiement VALEO
 
-> **Document en cours de rédaction.** Ceci est le **point de contrôle 1** :
-> cartographie du dépôt et contrôles de niveau 1. Les sections 4 à 12 du
-> livrable demandé (bugs, régressions, sécurité classée, Go/No-Go) ne sont pas
-> encore établies — les écrire maintenant reviendrait à conclure avant d'avoir
-> regardé.
+> **Rapport complet.** Audit mené en trois passes, avec correctifs appliqués
+> sur autorisation explicite après la deuxième.
 >
-> Révision auditée : `60e70e0`, branche `audit/pre-deploy`.
+> **Décision : 🟠 GO AVEC CORRECTIONS** (§14) — go pour le déploiement d'essai
+> et les tests terrain, pas pour une mise en production auprès de vraies
+> coopératives.
+>
+> Révision de départ : `60e70e0`. Branche `audit/pre-deploy`.
+> Trois axes du périmètre demandé restent **non couverts** et sont signalés
+> comme tels : le parcours de régression de bout en bout (§13), la revue du
+> tableau de bord HTML admin, et l'analyse des dépendances transitives.
 
 ---
 
@@ -471,7 +475,343 @@ rassurant. Remplacé par un contrôle déterministe de l'usage effectif de
 - Les sections §5.7 à §5.13 de l'audit (règles métier, invariants de données,
   offline, sécurité classée, APK) **ne sont pas faites**.
 
-## 6. Suite du travail
+## 6. Règles métier et valeurs (§5.7 / §5.8)
+
+Sondes : `audit/verifier_regles_metier.py`, deux dépôts.
+
+`CLAUDE.md` §2 énonce le partage : « toute la logique de calcul d'argent est
+côté client ; le serveur contrôle *qui a le droit d'écrire quoi* ». Pris au
+mot, cela veut dire qu'un appareil modifié écrit ce qu'il veut. C'était le cas.
+
+### B-02 🟠 — Aucune valeur n'était contrôlée par le serveur — **corrigé en partie**
+
+Avant correctif, **4 règles sur 12** seulement étaient appliquées côté serveur.
+Un agent muni d'un jeton légitime enregistrait, avec un `200` en retour :
+−500 kg, un paiement négatif, un prix de 9 000 000 F/kg, une avance au statut
+`"valide"`, un montant d'avance négatif. Le patron, souverain
+(`server.py:838`, retour anticipé), n'était limité par rien.
+
+Corrigé (`_valider_valeurs`) : refus de tout champ de poids ou d'argent
+**négatif** (invariants 8 et 16) et de tout statut d'avance hors des quatre
+valeurs (invariant 15), **pour tous les rôles, patron compris** — c'est une
+règle de validité, pas d'autorisation. On passe à **7/12**.
+
+### Ce qui reste volontairement côté client
+
+| Règle | Pourquoi elle n'est PAS appliquée au serveur |
+|---|---|
+| `brut == kg × prixKg` | Les retenues et la tare par sac rendent l'égalité fausse sur une pesée légitime |
+| `memberId` doit exister | En hors-ligne d'abord, une pesée arrive légitimement **avant** la fiche du planteur |
+| Dates vraisemblables | Une horloge déréglée n'invalide pas la pesée réelle |
+| `paye <= net` | Impossible d'établir qu'un dépassement est toujours illégitime |
+
+Ce sont des **arbitrages**, pas des oublis : les serrer sans mesurer ce qu'ils
+rejettent d'un usage réel casserait des flux normaux. Consigné en
+invariant 19bis.
+
+## 7. Hors-ligne et synchronisation (§5.10)
+
+Sondes : `audit/verifier_synchro.py`. **5 vertes sur 7.**
+
+Ce qui tient : une horloge en avance est ramenée au présent (`_normalize_ts`,
+tolérance 5 min) sans figer l'enregistrement ; une création passe quelle que
+soit l'horloge ; une absence n'efface rien (invariant 3) ; une pesée rejouée
+n'est enregistrée qu'une fois (invariant 11).
+
+### B-03 🟠 — Une horloge en RETARD perd des modifications, en silence
+
+`prepareSync` (`sync.ts:47`) pose `new Date().toISOString()` : l'horodatage qui
+arbitre les conflits vient de **l'horloge du téléphone**. `_normalize_ts`
+(`server.py:472`) ramène une horloge en **avance** — mais ne fait rien d'une
+horloge en **retard**.
+
+Conséquence mesurée : un téléphone dont l'horloge retarde de plusieurs mois
+voit ses **modifications** d'enregistrements existants silencieusement
+ignorées. Le `PUT` répond `200`, l'application affiche « Synchronisé », et rien
+n'a été enregistré.
+
+Les créations passent (`merge_state` crée sans comparer d'horodatage) : c'est
+donc un défaut **partiel**, ce qui le rend plus difficile à voir. Les cas
+touchés sont des modifications qui comptent : la **déclaration de livraison**
+d'un pisteur (`livraison` posé sur une collecte existante), la
+**vérification** du magasinier (`verif`), le **solde d'un reste dû**
+(`resteSolde`).
+
+C'est exactement le mode de défaillance que l'invariant 27 combat — l'appareil
+croit avoir synchronisé — mais la cause n'est pas le réseau, c'est l'horloge,
+et le bandeau de synchro ne peut pas la voir.
+
+**Pourquoi je ne l'ai PAS corrigé.** Ramener aussi les horodatages du passé
+serait pire : un pisteur qui pèse à 8 h et synchronise à 18 h a légitimement un
+horodatage ancien. Le ramener au présent ferait gagner l'appareil qui
+synchronise en dernier, et écraserait des écritures valides. Depuis
+l'horodatage seul, « ancien parce que hors ligne » et « ancien parce que
+l'horloge est fausse » sont indiscernables.
+
+**Recommandation** — rendre le décalage visible plutôt que de le deviner :
+le serveur expose son heure (`/health` porte déjà un marqueur ; y ajouter
+`now` ne touche pas `/api/state`, donc aucun risque au titre de l'invariant 23),
+l'application compare à son horloge et affiche un avertissement au-delà d'un
+seuil. Décision produit : je ne l'ai pas prise.
+
+### B-04 🟡 — Deux modifications concurrentes : la plus récente emporte tout
+
+Deux appareils partis de la même copie modifient des champs **différents** du
+même enregistrement. Le second écrase le premier : mesuré, le `village` posé
+par A disparaît quand B enregistre un changement de téléphone.
+
+C'est le comportement documenté (« le `updatedAt` le plus récent gagne »,
+invariant 3), mais la formule « la fusion est **champ par champ** » du même
+invariant prête à confusion : elle décrit la préservation des champs que le
+client ne reçoit pas (les `pin`), **pas** une fusion de modifications
+concurrentes. La résolution est bien du dernier-écrivain-gagne par
+enregistrement.
+
+Portée réelle limitée : pour les rôles restreints, la liste de champs
+autorisés transforme ce cas en **403** plutôt qu'en écrasement silencieux — un
+champ modifié hors de la liste est refusé. Seul le **patron**, souverain,
+écrase en silence. Le cas se présente donc quand le même patron travaille
+depuis deux appareils, ou depuis l'application et le tableau de bord admin.
+
+## 8. Sécurité (§5.11)
+
+| Gravité | Constat | État |
+|---|---|---|
+| 🔴 | **B-01** — une coopérative écrase les données d'une autre (Firestore) | ✅ corrigé |
+| 🟠 | **B-02** — aucune valeur contrôlée côté serveur | ✅ corrigé en partie |
+| 🟠 | **B-03** — perte silencieuse sur horloge en retard | ⏸️ décision produit |
+| 🟠 | `uid()` à 36 bits non cryptographiques | ✅ corrigé |
+| 🟠 | 12 tests rouges permanents masquant les régressions | ✅ corrigé |
+| 🟡 | **B-04** — écrasement concurrent (patron seul) | ⏸️ à arbitrer |
+| 🟡 | Jeton de 30 jours non révocable ; durée non configurable | ⏸️ connu, documenté |
+| 🟡 | Permission Face ID déclarée pour un module mort | ⏸️ décision produit |
+
+### Ce qui a été vérifié et tient
+
+- **Aucun secret versionné.** `git ls-files` ne remonte ni `.env`, ni clé, ni
+  compte de service. `admin123` n'apparaît que dans les valeurs par défaut du
+  harnais de test (`tests/conftest.py:26`), jamais dans du code de production.
+- **Aucune route de données sans garde.** Les 21 routes ont été énumérées :
+  toutes celles qui lisent ou écrivent portent `Depends(require_user)` ou
+  `Depends(require_admin)`. Les seules routes ouvertes sont les trois
+  connexions, l'inscription, `/health`, `/` et la page HTML admin.
+- **Vérification du jeton stricte** (`server.py:352`) : algorithme épinglé
+  (`algorithms=[JWT_ALGORITHM]`, donc pas de confusion RS256/HS256) et
+  revendications obligatoires (`exp`, `sub`, `coopId`, `side`).
+- **Empreintes `pin`** : ne sortent ni vers l'application, ni vers l'admin.
+  Vérifié par sonde sur les deux dépôts (ISO-6).
+- **Anti-force-brute** sur les trois circuits de connexion, verrou par
+  identifiant tenté et non par IP, avec temps de calcul constant pour un compte
+  inconnu (`burn_secret_time`).
+
+### Ce que cet audit n'a PAS regardé
+
+Pas de revue du tableau de bord HTML admin (injection dans le rendu), pas de
+test de charge, pas d'analyse des dépendances transitives (`yarn audit` non
+exécuté : le réseau sortant est filtré dans l'environnement d'audit), pas de
+revue du chiffrement du cache local au-delà de la lecture de `secureCache.ts`.
+
+## 9. État réel de l'intégration Firebase (§5.12)
+
+| Composant | Réalité aujourd'hui |
+|---|---|
+| Base de données | **MongoDB** (`DATA_BACKEND=mongo` par défaut, `server.py:47`) |
+| Firestore | Code prêt et éprouvé, base créée et **vide**, `europe-west1` — non branché |
+| Firebase Auth | Code prêt, **inerte** sans compte de service (`firebase_auth.disponible()`) |
+| Sessions applicatives | **Jeton VALEO HS256**, 30 jours. Firebase s'ajouterait, ne remplace pas |
+| SDK Firebase JS | **Non installé**, délibérément (REST, `firebase.ts`) |
+| Hosting | Configuré (`firebase.json`), **non déployé** |
+| Cloud Run | Configuré (`cloudbuild.yaml`), **non déployé** — exige le plan Blaze |
+| Règles Firestore | `allow read, write: if false` — correct, le backend est seul écrivain |
+
+Autrement dit : **rien n'est encore branché sur Firebase**. Tout le code des
+six phases existe, il est testé, et la répétition contre le vrai Firestore
+passe — mais l'application en production tourne toujours sur MongoDB et sur
+le jeton VALEO. C'est la position la plus sûre pour cette étape.
+
+## 10. MongoDB : conserver ou repartir vierge ? (§5.2)
+
+**Recommandation ferme : repartir sur une base vierge.**
+
+Précision de méthode : je n'ai **aucun accès** à votre base MongoDB. « Données
+de test uniquement » est un fait que **vous confirmez**, pas une constatation
+technique de cet audit. La recommandation en dépend entièrement.
+
+Cela posé, six raisons, dont deux qui ne relèvent pas du confort :
+
+1. **La migration transporte les empreintes `pin`.** C'est justement ce qui la
+   rend délicate (invariant 32 : ne jamais passer par `/api/admin/state`, qui
+   les retire). Sur des données sans valeur, on prend ce risque pour rien.
+2. **Les identifiants des données de test sont issus de l'ancien `uid()`** —
+   7 caractères. Ils resteront tels quels après migration. Repartir vierge fait
+   naître toutes les données avec des identifiants solides.
+3. Une base vierge permet de **vérifier la bascule pour de vrai** :
+   `verifier_bascule.py` refuse deux bases vides, donc vous éprouverez le
+   circuit complet en créant vos vraies coopératives.
+4. Les données de test portent des **noms d'essai** qui traîneront dans les
+   bilans et les exports.
+5. Un passage de migration en moins, c'est une occasion d'erreur en moins.
+6. MongoDB n'est jamais modifié par la migration : garder l'instance quelques
+   semaines vous laisse un filet, sans rien coûter.
+
+**Transition propre, sans casser le code ni perdre de fonctionnalité** —
+aucune modification n'est nécessaire :
+
+1. `DATA_BACKEND=firestore` sur le nouveau déploiement. Rien d'autre à changer :
+   `depot.py` est un port, `authorize_state_write`, `merge_state` et
+   `scope_state` ne bougent pas.
+2. **Ne pas exécuter** `migrer_vers_firestore.py`.
+3. Créer les vraies coopératives par `POST /api/auth/register`, puis les
+   collaborateurs et planteurs depuis l'application ou l'espace admin (le
+   secret se pose par `POST /api/admin/set-secret`, haché côté serveur).
+4. Garder MongoDB en l'état, sans le supprimer, jusqu'à ce que la production
+   Firestore ait tourné plusieurs semaines.
+5. Le retour arrière reste immédiat tant qu'aucune vraie pesée n'est
+   enregistrée sur Firestore (invariant 32).
+
+## 11. Plan Blaze : quand ? (§ demandé)
+
+**Recommandation : maintenant, mais avec un budget posé — et pas avant d'avoir
+rejoué la répétition Firestore sur le code corrigé.**
+
+Raisonnement : les trois étapes qui restent (Cloud Run, Hosting, APK de test)
+exigent toutes Blaze, et l'audit n'a plus rien à trouver sans un déploiement
+réel. Continuer sans Blaze, c'est s'arrêter.
+
+Le coût est maîtrisable : `_MIN_INSTANCES=0` pendant la mise au point ramène
+Cloud Run à presque rien, et Firestore comme Hosting restent dans leurs paliers
+gratuits pour quelques coopératives. Posez un budget avec alertes **avant** le
+premier déploiement — en sachant qu'un budget Google **n'arrête rien**, il
+prévient seulement.
+
+## 12. APK Android (§5.13)
+
+**État actuel** : projet Expo « managed » (SDK 54) — ni dossier `android/`, ni
+`ios/`. **`eas.json` est absent**, donc aucune construction n'est configurée.
+`google-services.json` n'est pas nécessaire : le SDK Firebase n'est pas
+installé, tout passe en REST.
+
+🔴 **À régler AVANT le premier APK** : `app.json:14` et `:24` portent
+`com.emergent.appdeploy.tyyn4z`, hérité du constructeur précédent. **Cet
+identifiant est définitif une fois publié** sur Google Play — il ne se change
+pas, il faut republier une application distincte et perdre installations et
+avis. C'est une ligne aujourd'hui, plus rien après.
+
+**Procédure, étape par étape :**
+
+```bash
+# 1. Choisir l'identité de l'application (À FAIRE D'ABORD)
+#    app.json : "package" et "bundleIdentifier" -> com.votredomaine.valeo
+#                "slug" et "scheme"             -> valeo
+
+# 2. Outillage
+npm install -g eas-cli
+eas login                       # compte Expo
+
+# 3. Configurer la construction (crée eas.json)
+cd frontend
+eas build:configure -p android
+```
+
+`eas.json` doit contenir un profil produisant un **APK** (installable
+directement) et non un AAB :
+
+```json
+{
+  "build": {
+    "preview":    { "android": { "buildType": "apk" },
+                    "env": { "EXPO_PUBLIC_BACKEND_URL": "https://<cloud-run>" } },
+    "production": { "android": { "buildType": "app-bundle" } }
+  }
+}
+```
+
+```bash
+# 4. Construire (sur les serveurs Expo, ~15 min)
+eas build -p android --profile preview
+```
+
+**Points d'attention :**
+
+- **`EXPO_PUBLIC_BACKEND_URL` est figée AU BUILD** (invariant 27). Pour un APK,
+  y mettre l'**URL absolue** de Cloud Run — un téléphone n'a pas d'origine.
+  Changer d'adresse impose de **reconstruire**.
+- **Signature** : EAS génère et conserve un magasin de clés à la première
+  construction. Le sauvegarder (`eas credentials`) : le perdre interdit toute
+  mise à jour de l'application sur Play.
+- **APK vs AAB** : l'APK s'installe directement sur un téléphone (tests avec
+  vos partenaires) ; **Google Play exige un AAB** (profil `production`).
+- **Récupération** : le lien de téléchargement s'affiche en fin de
+  construction et reste disponible sur `expo.dev` → votre projet → Builds.
+- **Installation** : transférer l'APK sur le téléphone, autoriser
+  « Installer des applications inconnues » pour l'application qui l'ouvre.
+- **Résoudre d'abord les 4 copies d'`expo-constants`** (cf. N1-5) : un module
+  natif dupliqué fait échouer une construction native.
+
+## 13. Régression de bout en bout (§5.9)
+
+**Non exécutée comme scénario unique.** Le parcours complet que vous décrivez
+— créer un planteur → collecte → bordereau → paiement partiel → dette →
+nouvelle collecte → remboursement → soldes finaux — n'a pas été rejoué de bout
+en bout par cet audit.
+
+Ce qui existe : les 552 tests du dépôt couvrent ces mécanismes **par
+morceaux**, et les 159 tests frontend couvrent les formules d'argent
+(`memberStats`, `pisteurStats`, `outstandingReste`, recouvrement FIFO,
+`stockStats`, livraisons). C'est solide, mais ce n'est pas la même chose qu'un
+enchaînement réel où les soldes doivent se recouper à la fin.
+
+**C'est le manque le plus important de cet audit**, et il se comble mieux par
+les tests physiques avec vos partenaires que par un script.
+
+## 14. Décision — 🟠 **GO AVEC CORRECTIONS**
+
+### Note globale : **74 / 100**
+
+Décomposition, pour que le chiffre veuille dire quelque chose :
+
+| Axe | Note | Motif |
+|---|---|---|
+| Architecture | 17/20 | Séparation nette, ports bien posés, invariants écrits et tenus |
+| Sécurité | 14/20 | Un critique trouvé et corrigé ; il n'aurait pas dû exister |
+| Qualité / tests | 17/20 | Discipline rare ; mais la garantie n°1 reposait sur un test qui ne tournait pas |
+| Robustesse hors-ligne | 12/20 | Perte silencieuse sur horloge décalée, non corrigée |
+| Préparation production | 14/20 | Identité applicative non fixée, pas d'`eas.json`, rien de déployé |
+
+### GO pour quoi
+
+**Oui** pour l'étape suivante : déployer sur Cloud Run, construire un APK et
+faire tester par vos partenaires sur le terrain.
+
+**Non** pour une mise en production auprès de vraies coopératives, tant que les
+points ci-dessous ne sont pas réglés.
+
+### Corrections requises, par ordre
+
+1. 🔴 **Fixer l'identifiant de paquet** (`app.json`). Irréversible après
+   publication. Une ligne, aujourd'hui.
+2. 🟠 **Rejouer la répétition Firestore** sur le code corrigé
+   (`scripts/repetition_firestore.py`). Le cloisonnement des clés n'a été
+   éprouvé que contre le double en mémoire.
+3. 🟠 **Trancher B-03** (horloge en retard). Au minimum, afficher un
+   avertissement de décalage — un pisteur qui perd sa journée sans le savoir
+   est le pire scénario pour ce produit.
+4. 🟠 **Rejouer le parcours de bout en bout** (§13), en priorité pendant les
+   tests physiques, en vérifiant que les soldes se recoupent.
+5. 🟡 Décider du sort de `biometric.ts` et de la permission Face ID.
+6. 🟡 Résoudre les 4 copies d'`expo-constants` avant le premier build.
+7. 🟡 Arbitrer B-04 (écrasement concurrent côté patron).
+
+### Ce qui rend ce GO possible
+
+Le dépôt est dans un état inhabituellement bon : les invariants sont écrits,
+les arbitrages sont documentés avec leurs raisons, et la suite de tests est
+sérieuse. Le défaut critique trouvé (B-01) n'était pas un défaut de
+négligence — il venait d'une optimisation légitime dont personne n'avait vu
+la conséquence, et il ne concernait qu'une bascule pas encore faite. C'est
+précisément ce qu'un audit avant déploiement doit attraper.
+
+## 15. Suite du travail
 
 Sections restant à établir : matrice de rôles et tests d'accès (§5.6),
 règles métier (§5.7), invariants de données (§5.8), scénarios de bout en bout
