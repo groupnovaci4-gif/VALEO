@@ -285,6 +285,27 @@ def main(argv=None) -> int:
         print("Le but est justement de ne PAS passer par un double.", file=sys.stderr)
         return 2
 
+    # Une machine porte souvent plusieurs Python (celui du système, celui de
+    # python.org, celui qu'installe Homebrew en dépendance de gcloud...). Les
+    # dépendances sont dans UN seul d'entre eux, et « No module named fastapi »
+    # ne dit pas lequel manque — d'où ce message, qui nomme le coupable.
+    manquants = []
+    for module in ("fastapi", "firebase_admin", "google.cloud.firestore"):
+        try:
+            __import__(module)
+        except ImportError:
+            manquants.append(module)
+    if manquants:
+        print(f"Modules absents pour CET interpréteur : {', '.join(manquants)}",
+              file=sys.stderr)
+        print(f"  interpréteur : {sys.executable}", file=sys.stderr)
+        print("Les dépendances ont probablement été installées pour un autre Python.",
+              file=sys.stderr)
+        print("  `which -a python3` liste ceux que vous avez ;", file=sys.stderr)
+        print("  relancez avec le chemin complet de celui qui a servi à "
+              "`pip3 install -r requirements-dev.txt`.", file=sys.stderr)
+        return 2
+
     r = Rapport()
     try:
         verifier(r, a.forcer, a.garder)
