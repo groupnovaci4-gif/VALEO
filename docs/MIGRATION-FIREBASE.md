@@ -448,6 +448,38 @@ Vérifier qu'elle est bien vide avant : la console Firebase → Firestore Databa
 doit annoncer une base sans collection. Après la première pesée enregistrée,
 cette porte est fermée (cf. invariant 32, le point de non-retour).
 
+### Répéter contre le vrai Firestore, avant de déployer
+
+Toute la suite de sécurité tourne contre un double en mémoire
+(`tests/faux_firestore.py`). C'est rigoureux, mais un double ne connaît ni la
+conversion des types au passage du réseau, ni les identifiants de document que
+Firestore refuse, ni les index qu'il réclame. Ces défauts-là n'apparaissent
+qu'en production — donc, sans répétition, pendant la bascule.
+
+`scripts/repetition_firestore.py` fait tourner le VRAI backend, en processus,
+branché sur la vraie base. Aucune ligne d'application n'est simulée. Il ne
+demande **ni Cloud Run, ni plan Blaze** : Firestore fonctionne sur le plan
+gratuit, ce qui permet de tout éprouver avant d'engager la moindre dépense.
+
+```bash
+cd backend
+set -a; source .env; set +a
+DATA_BACKEND=firestore FIREBASE_SERVICE_ACCOUNT_FILE=secrets/cle-service.json \
+    python3 scripts/repetition_firestore.py
+```
+
+Il crée une coopérative, s'y connecte, envoie une pesée, la relit, vérifie que
+les montants et les types ont traversé intacts, crée une SECONDE coopérative
+pour éprouver l'isolation, contrôle qu'aucune empreinte `pin` ne sort, mesure
+que l'écriture reste différentielle, puis **efface tout ce qu'il a créé**.
+
+Il refuse de tourner si la base n'est pas vide (`--forcer` pour passer outre,
+`--garder` pour inspecter le résultat dans la console au lieu de nettoyer).
+
+La clé de compte de service se dépose dans `backend/secrets/`, un dossier
+ignoré par git en entier : c'est une clé privée qui donne tous les droits sur
+le projet, en contournant `firestore.rules` par conception (Admin SDK).
+
 ### Déployer
 
 Une fois, pour préparer le terrain :
