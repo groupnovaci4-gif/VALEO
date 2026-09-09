@@ -272,7 +272,134 @@ n'est plus lue, et la 13ᵉ ligne rouge — une vraie régression — passe inap
 
 ---
 
-## 4. Suite du travail
+## 4. Isolation entre coopératives (§5.6) — **un blocage**
+
+Sondes exécutées : `audit/verifier_isolation.py`, jouées sur les **deux dépôts**
+(MongoDB simulée par `mongomock_motor`, Firestore par le double du projet
+`tests/faux_firestore.py`). Aucune base réelle touchée.
+
+```
+ok    ISO-2  B voit bien SA fiche, pas celle de A
+ok    ISO-3  un coopId falsifié n'atterrit pas chez la cible
+ok    ISO-4  B ne peut pas supprimer une fiche de A par `deletions`
+ok    ISO-5  B ne voit aucune autre coopérative
+ok    ISO-6  aucune empreinte `pin` dans l'état rendu
+KO    ISO-1  la fiche de A survit à un id identique chez B   -> mongo ok / firestore ÉCHEC
+KO    ISO-7  le patron B n'écrase pas la fiche du patron A   -> mongo ok / firestore ÉCHEC
+KO    ISO-8  le patron A peut toujours se connecter          -> mongo ok / firestore ÉCHEC
+```
+
+### B-01 🔴 CRITIQUE — Sur Firestore, une coopérative peut écraser et détruire les données d'une autre
+
+**Ce qui se passe.** Le patron de la coopérative B envoie un enregistrement
+dont l'`id` est celui d'un enregistrement de la coopérative A. Sur MongoDB, il
+ne se passe rien : la fiche de A est intacte. **Sur Firestore, la fiche de A
+est écrasée par celle de B.**
+
+Poussé jusqu'au bout (ISO-7 / ISO-8) : le patron B envoie une fiche `staff`
+portant l'identifiant du patron A. Résultat sur Firestore — la fiche du patron
+A est remplacée (`nom` = « ECRASEUR », `role` = « pisteur », **empreinte `pin`
+perdue**), et **le patron A ne peut plus se connecter : HTTP 401**. La
+coopérative A perd l'accès à ses propres données, provoqué depuis un autre
+compte, sans aucune erreur côté serveur (le `PUT` répond 200).
+
+**Cause racine.** `backend/depot.py:303` :
+
+```python
+ref = self._client.collection(coll).document(_cle_doc(rid))
+```
+
+La clé de document Firestore **est l'identifiant métier**, et les collections
+(`members`, `staff`, `collections`, `loans`…) sont **globales, non cloisonnées
+par coopérative**. L'enchaînement est le suivant :
+
+1. `server.py:1057` — `load_state(me["coopId"])` borne la lecture à la coop B.
+   La ligne de A n'est donc **pas** dans la référence de lecture.
+2. `server.py:522` — `merge_state` ne trouve pas l'`id` parmi les lignes de B :
+   il **crée** la ligne, avec `coopId` forcé à B (l'anti-IDOR fonctionne).
+3. `depot.py:275-283` — `enregistrer` compare à la référence de lecture, voit
+   une empreinte nouvelle, et émet un `set` sur le document **de même clé**.
+4. Ce document est celui de A. Il est remplacé.
+
+Le paradoxe mérite d'être noté : **c'est la lecture bornée à la coopérative —
+une optimisation de coût — qui rend la destruction invisible**. Le serveur ne
+peut pas voir qu'il écrase, puisqu'il n'a pas lu la ligne qu'il écrase.
+
+**Portée.** Le mécanisme est le même pour les neuf tableaux d'entités
+(`depot.py:272-283` boucle sur `TABLEAUX`). Démontré sur `members` et `staff` ;
+`collections`, `loans`, `settlements` et `sorties` suivent la même voie —
+c'est-à-dire l'argent.
+
+**Exploitabilité.** `frontend/src/coop/lib.ts:400` :
+
+```js
+export const uid = () => Math.random().toString(36).slice(2, 9);
+```
+
+Sept caractères base36, soit environ **36 bits**, tirés de `Math.random()` —
+un générateur pseudo-aléatoire **non cryptographique** et prédictible à partir
+de quelques sorties. Ces identifiants deviennent, sur Firestore, un **espace de
+noms global qui sert de frontière de sécurité**. 36 bits non cryptographiques
+ne sont pas une frontière de sécurité.
+
+Deux voies distinctes :
+- **malveillante** : un titulaire de n'importe quel compte peut énumérer. Les
+  identifiants de coopérative et de collaborateur créés par `/api/auth/register`
+  sont, eux, solides (`server.py:1127-1128`, `secrets.token_hex(6)` = 48 bits
+  cryptographiques) ; mais tout ce que le téléphone fabrique — planteurs,
+  collectes, avances, soldes — passe par `uid()` ;
+- **accidentelle** : moins probable, mais non nulle sur la durée, et une
+  collision accidentelle détruit silencieusement une fiche.
+
+**Pourquoi la suite de tests ne l'a pas vu.** `CLAUDE.md` (invariant 29) pose
+que « toute la suite de sécurité tourne sur les DEUX bases », ce qui est vrai —
+mais une suite ne prouve que les scénarios qu'elle couvre. Vérifié : **aucun
+test du dépôt ne fait écrire deux coopératives sur un même identifiant**
+(recherche sur `backend/tests/`). Et le seul fichier consacré à l'isolation
+multi-coopératives, `test_multicoop_isolation.py`, fait partie des trois
+suites d'intégration qui pointent sur l'URL Emergent morte (cf. É-7) : **il ne
+s'exécute jamais**. La garantie la plus importante du produit repose donc sur
+un test qui ne tourne pas.
+
+**Impact.** Perte de données entre locataires et prise de contrôle de compte,
+uniquement **après** la bascule sur Firestore. Aujourd'hui, sur MongoDB,
+l'application n'est pas affectée. C'est un **bloquant de migration**, pas un
+incident en cours.
+
+**Recommandations** (aucune appliquée — audit en lecture seule) :
+
+1. **Cloisonner la clé de document par coopérative.** Le correctif minimal est
+   de dériver la clé de `(coopId, id)` plutôt que de `id` seul, dans
+   `_cle_doc` / `depot.py:303`. L'identifiant métier reste dans le champ `id`,
+   donc rien ne change pour `charger`, `merge_state` ni `scope_state`.
+   Attention au repli `row.setdefault("id", snap.id)` (`depot.py:252`), qui
+   doit continuer de rendre l'identifiant métier et non la clé.
+   La forme idiomatique Firestore serait `coops/{coopId}/members/{id}`, plus
+   propre mais plus invasive.
+2. **Renforcer `uid()`** vers un tirage cryptographique (`expo-crypto`).
+   Nécessaire dans tous les cas, mais **ce n'est pas un correctif** : ça réduit
+   la collision accidentelle, pas l'écrasement délibéré. Le cloisonnement est
+   le correctif ; `uid()` est de l'hygiène.
+3. **Ajouter les sondes ISO-1/7/8 à la suite du projet**, sur les deux dépôts,
+   pour que la divergence ne puisse pas revenir.
+4. **Remettre `test_multicoop_isolation.py` en état de tourner** (cf. É-7).
+
+### Ce qui, en revanche, tient bien
+
+Les quatre autres sondes passent identiquement des deux côtés, et méritent
+d'être dites :
+
+- **ISO-3** — un `coopId` falsifié dans la charge utile ne va nulle part :
+  `merge_state` force `"coopId": coop_id` depuis le jeton
+  (`server.py:522` et `:531`). L'anti-IDOR fonctionne exactement comme annoncé.
+- **ISO-4** — `deletions` ne porte que sur les lignes de la coopérative du
+  jeton (`server.py:532-533` : `merged.pop`, où `merged` est déjà filtré).
+  Sonde jouée avec un identifiant **neuf**, créé par A seul : une première
+  version héritait du résultat d'ISO-1 et ne prouvait rien.
+- **ISO-5 / ISO-6** — `scope_state` ne rend que la coopérative du jeton, et
+  aucune empreinte `pin` n'en sort, sur les deux dépôts.
+
+## 5. Suite du travail
 
 Sections restant à établir : matrice de rôles et tests d'accès (§5.6),
 règles métier (§5.7), invariants de données (§5.8), scénarios de bout en bout
