@@ -476,6 +476,17 @@ que l'écriture reste différentielle, puis **efface tout ce qu'il a créé**.
 Il refuse de tourner si la base n'est pas vide (`--forcer` pour passer outre,
 `--garder` pour inspecter le résultat dans la console au lieu de nettoyer).
 
+**La lenteur observée ici est un artefact du montage, pas une prévision.**
+Mesuré depuis la Côte d'Ivoire, chaque requête prend 2 à 3,5 secondes : le
+backend tourne sur le poste de l'opérateur, et un seul `GET /api/state`
+déclenche une dizaine d'interrogations de Firestore qui traversent chacune
+l'Atlantique. En production, le backend est sur Cloud Run **dans la même
+région que la base** : ces allers-retours deviennent internes au centre de
+données, et il ne reste qu'un trajet Abidjan ↔ Europe, celui du téléphone.
+C'est exactement ce que la colocalisation achète — et la raison de ne pas
+conclure de cette répétition que « Firestore est lent ». Refaire la mesure
+après le déploiement, sur `/health` puis sur `/api/state`.
+
 La clé de compte de service se dépose dans `backend/secrets/`, un dossier
 ignoré par git en entier : c'est une clé privée qui donne tous les droits sur
 le projet, en contournant `firestore.rules` par conception (Admin SDK).
