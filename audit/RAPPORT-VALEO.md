@@ -414,7 +414,7 @@ L'audit est passé en mode correctif à votre demande. Commit `afdcb77`.
 | É-7 | 12 tests rouges permanents | ✅ **corrigé** |
 | É-1 | Documentation fausse sur le hachage des PIN | ✅ **corrigé** |
 | É-4 | Identifiant de paquet `com.emergent.…` | ⏸️ **décision produit attendue** |
-| É-2 | Modules morts + permission Face ID inutilisée | ⏸️ **décision produit attendue** |
+| É-2 | Modules morts + permission Face ID inutilisée | ✅ **permission retirée** (module conservé) |
 | N1-5 | Quatre copies d'`expo-constants` | ⏸️ à traiter au premier build |
 
 ### B-01 — cloisonnement de la clé de document
