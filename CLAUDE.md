@@ -244,6 +244,24 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     jamais supprimer ces champs texte. Une valeur non retrouvée dans la base
     est conservée telle quelle (`villageLibre`), jamais effacée.
 19. **Secrets** hachés en **PBKDF2-HMAC-SHA256** (jamais en clair). Ne pas régresser.
+19bis. **Une valeur impossible est refusée par le SERVEUR** (`_valider_valeurs`).
+    Le calcul d'argent vit dans `lib.ts`, côté client : c'est un choix assumé,
+    mais un calcul côté client ne protège que des erreurs de saisie — face à un
+    appareil modifié, il ne protège de rien. Un agent muni d'un jeton
+    légitime pouvait enregistrer −500 kg, un paiement négatif ou un statut
+    d'avance inventé, et le serveur répondait 200.
+    Sont refusés : tout champ de poids ou d'argent **négatif** (invariants 8 et
+    16) et tout `status` d'avance hors des quatre valeurs (invariant 15). Le
+    contrôle vaut pour **tous les rôles, patron compris** — c'est une règle de
+    validité, pas d'autorisation : sa souveraineté porte sur ce qu'il décide,
+    pas sur la possibilité d'écrire un poids négatif.
+    **Volontairement étroit.** Restent côté client, sciemment : `brut == kg ×
+    prixKg` (les retenues et la tare le rendent faux), l'existence du
+    `memberId` (une pesée peut légitimement arriver avant la fiche du planteur
+    en hors-ligne d'abord), la vraisemblance des dates (une horloge déréglée
+    n'invalide pas la pesée) et `paye <= net`. Ne pas les ajouter sans avoir
+    mesuré ce qu'ils rejettent d'un usage réel.
+    Couvert par `tests/test_valeurs_valides.py`.
 20. **Livraison au magasin, origine figée, vérification définitive.**
     Le flux du pisteur est : ramassage bord-champ → **livraison au magasin**
     (`Collection.livraison`, déclarée par lui) → alerte du patron ET du
