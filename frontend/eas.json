@@ -1,0 +1,46 @@
+{
+  "_commentaire": [
+    "Construction EAS. Deux profils, et la différence n'est pas cosmétique :",
+    "",
+    "  preview    -> APK, installable directement sur un téléphone. C'est ce",
+    "                qu'on donne aux partenaires pour les tests terrain.",
+    "  production -> AAB (app-bundle), le SEUL format que Google Play accepte.",
+    "                Un AAB ne s'installe PAS à la main sur un téléphone.",
+    "",
+    "EXPO_PUBLIC_BACKEND_URL est FIGÉE AU BUILD (invariant 27) : Expo l'inline",
+    "dans le paquet. La changer côté serveur ne change rien à un APK déjà",
+    "installé — il faut reconstruire. Un téléphone n'ayant pas d'origine, il",
+    "lui faut l'URL ABSOLUE du service Cloud Run (invariant 31) ; la laisser",
+    "vide signifierait « aucun serveur » et l'application ne synchroniserait",
+    "jamais, sans jamais le dire autrement que par son bandeau.",
+    "",
+    "Le site web, lui, garde la variable VIDE : Firebase Hosting renvoie",
+    "/api/** vers Cloud Run, donc l'API est à la même origine."
+  ],
+  "cli": {
+    "version": ">= 5.9.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": { "buildType": "apk" }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://REMPLACER-PAR-URL-CLOUD-RUN"
+      }
+    },
+    "production": {
+      "android": { "buildType": "app-bundle" },
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://REMPLACER-PAR-URL-CLOUD-RUN"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

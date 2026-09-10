@@ -494,3 +494,40 @@ class TestIdentiteDeLApplication:
         e = self._expo()
         assert e.get("slug") != "frontend", "slug laissé au défaut d'Expo"
         assert e.get("scheme") != "frontend", "scheme laissé au défaut d'Expo"
+
+
+class TestConstructionEAS:
+    """`eas.json` décide APK ou AAB — et les deux ne s'échangent pas.
+
+    Un AAB ne s'installe PAS à la main sur un téléphone : c'est le format que
+    Google Play réclame, et lui seul. Un APK, à l'inverse, est refusé à la
+    publication sur Play. Se tromper de profil ne provoque aucune erreur à la
+    construction : on s'en aperçoit un quart d'heure plus tard, un fichier
+    inutilisable à la main.
+    """
+
+    def _eas(self):
+        chemin = RACINE / "frontend" / "eas.json"
+        assert chemin.exists(), "eas.json absent : `npx eas build` n'a rien à lire"
+        return json.loads(chemin.read_text(encoding="utf-8"))
+
+    def test_le_profil_de_test_produit_un_APK_installable(self):
+        preview = self._eas()["build"]["preview"]
+        assert preview["android"]["buildType"] == "apk", (
+            "le profil `preview` sert aux tests terrain : il DOIT produire un "
+            "APK, un AAB ne s'installe pas sur un téléphone")
+
+    def test_le_profil_de_publication_produit_un_AAB(self):
+        prod = self._eas()["build"]["production"]
+        assert prod["android"]["buildType"] == "app-bundle", (
+            "Google Play n'accepte que l'AAB ; un APK y serait refusé")
+
+    def test_l_adresse_du_backend_est_ABSOLUE_pour_un_telephone(self):
+        """Un téléphone n'a pas d'origine : une URL relative ou vide = aucun
+        serveur (invariant 31). Le gabarit doit donc porter une URL absolue,
+        placeholder compris — sinon on construit un APK muet sans le voir."""
+        for nom in ("preview", "production"):
+            url = self._eas()["build"][nom].get("env", {}).get("EXPO_PUBLIC_BACKEND_URL")
+            assert url, f"profil « {nom} » : aucune adresse de backend"
+            assert url.startswith("https://"), \
+                f"profil « {nom} » : « {url} » n'est pas une URL absolue en https"
