@@ -201,6 +201,48 @@ function encoderPNG(rgb, largeur, hauteur) {
 }
 
 
+/* ---------------------------- Recadrage ---------------------------------- */
+
+/**
+ * Réduit l'image à la boîte englobante de ce qui n'est pas transparent.
+ *
+ * Un logo exporté depuis un outil de dessin porte presque toujours une marge
+ * transparente — ici 322 px en haut et 328 en bas sur 2472, soit plus d'un
+ * quart de la hauteur. Réduire l'image ENTIÈRE dans une icône reviendrait à
+ * réduire aussi ce vide : le motif visible serait d'autant plus petit, sans
+ * raison. On recadre donc avant de réduire.
+ *
+ * `seuil` ignore les pixels quasi transparents (anticrénelage des bords).
+ */
+export function recadrerSurContenu(rgba, largeur, hauteur, seuil = 8) {
+  let x0 = largeur, y0 = hauteur, x1 = -1, y1 = -1;
+  for (let y = 0; y < hauteur; y++) {
+    for (let x = 0; x < largeur; x++) {
+      if (rgba[(y * largeur + x) * 4 + 3] > seuil) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+  }
+  // Image entièrement transparente : on la rend telle quelle plutôt que de
+  // fabriquer une boîte vide qui ferait planter la suite.
+  if (x1 < x0 || y1 < y0) return { rgba, largeur, hauteur, recadre: false };
+
+  const nl = x1 - x0 + 1;
+  const nh = y1 - y0 + 1;
+  if (nl === largeur && nh === hauteur) return { rgba, largeur, hauteur, recadre: false };
+
+  const out = Buffer.alloc(nl * nh * 4);
+  for (let y = 0; y < nh; y++) {
+    const src = ((y + y0) * largeur + x0) * 4;
+    rgba.copy(out, y * nl * 4, src, src + nl * 4);
+  }
+  return { rgba: out, largeur: nl, hauteur: nh, recadre: true };
+}
+
+
 /* --------------------------- Décodage complet ---------------------------- */
 
 /** PNG -> { rgba, largeur, hauteur }. Refuse explicitement ce qu'il ne sait pas lire. */

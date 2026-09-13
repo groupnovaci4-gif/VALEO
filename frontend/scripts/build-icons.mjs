@@ -25,7 +25,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { decoderPNG, encoderPNG, reduireSurBlanc } from "./png.mjs";
+import { decoderPNG, encoderPNG, recadrerSurContenu, reduireSurBlanc } from "./png.mjs";
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const RACINE = resolve(ICI, "..");
@@ -67,10 +67,16 @@ const source = resolve(RACINE, args.find((a) => !a.startsWith("--")) || "assets/
 const sortieDir = resolve(RACINE, "assets/images");
 
 const buf = readFileSync(source);
-const { rgba, largeur, hauteur } = decoderPNG(buf);
+const brut = decoderPNG(buf);
+// Recadré sur le motif : la marge transparente d'un export ne doit pas manger
+// la place utile d'une icône (voir `recadrerSurContenu`).
+const { rgba, largeur, hauteur, recadre } = recadrerSurContenu(brut.rgba, brut.largeur, brut.hauteur);
 
 const ko = (n) => `${(n / 1024).toFixed(0)} Ko`;
-console.log(`Source : ${source.replace(RACINE + "/", "")} — ${largeur}×${hauteur} (${ko(buf.length)})\n`);
+console.log(`Source : ${source.replace(RACINE + "/", "")} — ${brut.largeur}×${brut.hauteur} (${ko(buf.length)})`);
+console.log(recadre
+  ? `Recadré sur le motif : ${largeur}×${hauteur} (marge transparente retirée)\n`
+  : `Aucune marge transparente à retirer\n`);
 
 for (const c of CIBLES) {
   const { toile, nl, nh } = poser(rgba, largeur, hauteur, c.cote, c.occupation);

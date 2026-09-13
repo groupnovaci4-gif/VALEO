@@ -17,7 +17,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { decoderPNG, encoderPNG, reduireSurBlanc } from "./png.mjs";
+import { decoderPNG, encoderPNG, recadrerSurContenu, reduireSurBlanc } from "./png.mjs";
 
 const ICI = dirname(fileURLToPath(import.meta.url));
 const RACINE = resolve(ICI, "..");
@@ -31,7 +31,13 @@ const source = resolve(RACINE, args.find((a) => !a.startsWith("--") && a !== Str
 const sortie = resolve(RACINE, "src/coop/logo-print.ts");
 
 const buf = readFileSync(source);
-const { rgba, largeur, hauteur, ihdr } = decoderPNG(buf);
+const brut = decoderPNG(buf);
+// Recadré sur le motif avant réduction : la marge transparente d'un export
+// devient du BLANC une fois aplatie, et le reçu affiche la vignette dans une
+// boîte de taille fixe (62 px). Sans recadrage, ce vide mange la place du
+// logo — sur du papier, à cette taille, ça se voit.
+const { rgba, largeur, hauteur } = recadrerSurContenu(brut.rgba, brut.largeur, brut.hauteur);
+const ihdr = brut.ihdr;
 
 const nl = Math.min(LARGEUR_CIBLE, largeur);
 const nh = Math.max(1, Math.round((hauteur * nl) / largeur));
@@ -46,7 +52,7 @@ writeFileSync(
 // Après avoir remplacé le logo source, relancer la commande pour que les reçus
 // portent la nouvelle identité.
 //
-// Source : ${largeur}×${hauteur} → ${nl}×${nh}, composité sur blanc (papier).
+// Source : ${brut.largeur}×${brut.hauteur} → recadrée ${largeur}×${hauteur} → ${nl}×${nh}, composité sur blanc (papier).
 export const VALEO_LOGO_PRINT =
   "${dataUri}";
 `,
@@ -55,6 +61,6 @@ export const VALEO_LOGO_PRINT =
 
 const ko = (n) => `${(n / 1024).toFixed(0)} Ko`;
 console.log(`Logo imprimable généré : ${nl}×${nh}`);
-console.log(`  source   ${ko(buf.length)}  (${largeur}×${hauteur}, type couleur ${ihdr.couleur})`);
+console.log(`  source   ${ko(buf.length)}  (${brut.largeur}×${brut.hauteur}, type couleur ${ihdr.couleur}) → recadrée ${largeur}×${hauteur}`);
 console.log(`  vignette ${ko(png.length)}  → data-URI ${ko(dataUri.length)}`);
 console.log(`  écrit dans src/coop/logo-print.ts`);

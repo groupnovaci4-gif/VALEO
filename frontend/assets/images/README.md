@@ -3,11 +3,26 @@
 ## Source unique
 
 Le code n'utilise **qu'un seul** fichier de logo, déclaré dans
-`src/coop/brand.ts` :
+`src/coop/brand.ts`. **Tout le reste en dérive** — les quatre icônes système
+comme la vignette des reçus — via deux commandes :
+
+```bash
+cd frontend
+yarn brand:build   # vignette des reçus imprimés
+yarn brand:icons   # icônes système (app.json)
+```
 
 | Fichier | Utilisé par | Format attendu |
 |---|---|---|
-| `valeo-logo.png` | `brand.ts` → écran de connexion | Logo **complet** (écusson + nom + signature), carré, fond transparent, ≥ 1024 × 1024 |
+| `valeo-logo.png` | `brand.ts` → écran de connexion, en-têtes de reçus | Logo **complet** (écusson + nom + signature), fond **transparent**, ≥ 1024 px de côté |
+
+Le fond transparent n'est pas cosmétique : l'écran de connexion a un fond crème
+(`C.bg`, `#F7F3EC`). Un logo sur fond blanc y dessinerait un carré visible
+autour de l'écusson. Les icônes système, elles, sont aplaties sur blanc de
+toute façon.
+
+L'image n'a pas besoin d'être carrée : le recadrage et le centrage sont faits
+par les scripts.
 
 Remplacer ce fichier met à jour l'application partout où le code affiche le
 logo. Aucun autre `require` de logo n'existe dans les écrans — ne pas en
@@ -32,32 +47,49 @@ réencode le PNG lui-même (`scripts/build-logo.mjs`). Il refuse explicitement
 les PNG entrelacés ou en 16 bits par canal — réexporter le logo sans
 entrelacement, en 8 bits, si le message apparaît.
 
-## Icônes système (lues par Expo, pas par le code)
+## Icônes système — GÉNÉRÉES
 
-Déclarées dans `app.json`. Elles ne suivent PAS `brand.ts` : Expo les lit au
-moment du build, il faut donc fournir chaque fichier.
+```bash
+cd frontend
+yarn brand:icons
+```
 
-| Fichier | Rôle | Taille | Contrainte |
+Déclarées dans `app.json`, ces quatre images sont lues par **Expo au moment du
+build** : elles ne suivent donc pas `brand.ts`. Les refaire à la main à chaque
+changement d'identité est exactement ce qui avait produit une icône Android
+aux lettres tronquées — d'où un script.
+
+| Fichier | Rôle | Taille | Part occupée par le logo |
 |---|---|---|---|
-| `icon.png` | Icône iOS et web | 1024 × 1024 | Carré plein, **sans transparence** (iOS l'affiche en noir sinon) |
-| `adaptive-icon.png` | Icône Android | 1024 × 1024 | ⚠️ voir ci-dessous |
-| `splash-image.png` | Écran de démarrage | 1024 × 1024 | Affiché à 240 pt de large (`app.json`), fond blanc |
-| `favicon.png` | Onglet navigateur | 96 × 96 | Doit rester lisible à 16 px : l'écusson seul, sans texte |
+| `icon.png` | iOS et web | 1024 × 1024 | 92 % |
+| `adaptive-icon.png` | Android | 1024 × 1024 | **66 %** — zone sûre du masque |
+| `splash-image.png` | Écran de démarrage | 1024 × 1024 | 80 % |
+| `favicon.png` | Onglet navigateur | 96 × 96 | 100 % |
 
-### ⚠️ Le piège de l'icône Android
+Toutes sont produites **entièrement opaques**, aplaties sur blanc : iOS peint
+un canal alpha en NOIR, ce qui donnerait une icône au fond noir.
 
-`adaptive-icon.png` est **recadré en cercle** par Android (le système applique
-un masque, et seuls les ~66 % centraux sont garantis visibles). Un logo en
-écusson avec un bandeau de texte en bas y perd son nom : le bandeau tombe hors
-du cercle.
+Le script **recadre d'abord sur le motif** (`recadrerSurContenu`). Un logo
+exporté depuis un outil de dessin porte presque toujours une marge
+transparente — le logo actuel en a 322 px en haut et 328 en bas sur 2472, soit
+plus d'un quart de la hauteur. Sans recadrage, réduire l'image entière
+réduirait aussi ce vide, et le motif visible serait d'autant plus petit.
 
-Il faut donc pour ce fichier **une version dédiée** : l'emblème seul (le
-cercle, le planteur, la cabosse, les feuilles), **sans** le bandeau « VALEO »
-ni la signature, centré, avec de la marge autour.
+### Le piège de l'icône Android, et comment il est évité
 
-C'est exactement le défaut de la version actuelle : `adaptive-icon.png` est un
-recadrage du logo complet, et les lettres tronquées du nom apparaissent en bas
-de l'icône.
+Android applique un **masque** à `adaptive-icon.png` — cercle, goutte ou carré
+arrondi selon le constructeur — et ne garantit que les **~66 % centraux**. Un
+écusson qui remplit le carré y perd son pourtour, et un bandeau de texte en bas
+disparaît purement et simplement.
+
+Le script réduit donc le logo dans cette zone sûre : rien ne peut être rogné,
+quel que soit le masque. C'est pour cela que l'icône Android paraît plus petite
+que les autres — ce n'est pas un défaut de cadrage, c'est la contrainte.
+
+**Le nom reste illisible à 48 dp**, et c'est normal : aucun logo en écusson
+complet ne porte son texte à cette taille. Si vous voulez un nom lisible sur
+l'icône, il faut fournir un fichier dédié (l'emblème seul, sans bandeau) —
+**pas** agrandir le logo, ce qui le ferait rogner par le masque.
 
 ## À vérifier après remplacement
 
