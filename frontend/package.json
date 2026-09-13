@@ -3,17 +3,18 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "preinstall": "./scripts/cmd-guard.js --preinstall",
-    "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
+    "brand:build": "node scripts/build-logo.mjs",
+    "brand:icons": "node scripts/build-icons.mjs",
     "build:web": "expo export -p web",
-    "lint": "expo lint",
-    "test": "tsc src/coop/sync.ts src/coop/lib.ts src/coop/geo.ts src/coop/firebase.ts src/coop/backend.ts --outDir .sync-build --module commonjs --target es2020 --moduleResolution node --skipLibCheck --resolveJsonModule --esModuleInterop && node --test tests/*.test.mjs",
     "geo:build": "node scripts/import-geo.mjs",
-    "brand:build": "node scripts/build-logo.mjs"
+    "ios": "expo start --ios",
+    "lint": "expo lint",
+    "preinstall": "./scripts/cmd-guard.js --preinstall",
+    "reset-project": "node ./scripts/reset-project.js",
+    "start": "expo start",
+    "test": "tsc src/coop/sync.ts src/coop/lib.ts src/coop/geo.ts src/coop/firebase.ts src/coop/backend.ts --outDir .sync-build --module commonjs --target es2020 --moduleResolution node --skipLibCheck --resolveJsonModule --esModuleInterop && node --test tests/*.test.mjs",
+    "web": "expo start --web"
   },
   "dependencies": {
     "@expo/metro-runtime": "6.1.2",
