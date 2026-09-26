@@ -36,7 +36,7 @@
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://REMPLACER-PAR-URL-RENDER"
+        "EXPO_PUBLIC_BACKEND_URL": "https://valeo-backend-test.onrender.com"
       }
     },
     "preview": {
