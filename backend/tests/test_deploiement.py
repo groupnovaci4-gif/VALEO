@@ -546,6 +546,41 @@ class TestConstructionEAS:
                 f"profil « {obligatoire} » : aucune adresse de backend"
         assert vus >= 2
 
+    def test_aucune_cle_hors_schema_a_la_racine(self):
+        """`eas-cli` refuse toute clé inconnue à la racine, et RIEN d'autre ne
+        le voit.
+
+        Ce fichier portait un bloc `_commentaire` expliquant les profils.
+        `eas-cli` 24.8.0 répond :
+
+            eas.json is not valid.
+            - "_commentaire" is not allowed
+
+        La construction échoue avant même de démarrer. Or `tsc`, `eslint`,
+        `yarn test` et `pytest` passaient tous au vert : le fichier reste du
+        JSON parfaitement valide, c'est le SCHÉMA d'EAS qui le rejette. Le
+        défaut ne se découvrait donc qu'en lançant un build — quinze minutes
+        d'attente pour une erreur d'une ligne.
+
+        La documentation des profils vit désormais dans `eas.README.md`.
+        """
+        permises = {"cli", "build", "submit"}
+        trouvees = set(self._eas())
+        assert trouvees <= permises, (
+            f"clés interdites à la racine d'eas.json : {sorted(trouvees - permises)} — "
+            "`eas build` refusera de démarrer. Documenter dans eas.README.md.")
+
+    def test_les_profils_sont_expliques_hors_du_fichier(self):
+        """Puisqu'on ne peut plus commenter `eas.json`, l'explication doit
+        exister ailleurs — sinon le prochain lecteur remettra un commentaire
+        dedans et rejouera la panne."""
+        doc = RACINE / "frontend" / "eas.README.md"
+        assert doc.exists(), "eas.README.md absent : les profils ne sont documentés nulle part"
+        texte = doc.read_text(encoding="utf-8")
+        assert "_commentaire" in texte, "le piège des clés hors schéma doit y être écrit"
+        for profil in self._eas()["build"]:
+            assert profil in texte, f"profil « {profil} » non documenté dans eas.README.md"
+
     def test_le_profil_des_tests_terrain_produit_aussi_un_APK(self):
         """`terrain` pointe sur l'instance gratuite (cf. render.yaml) : c'est un
         APK à installer à la main, jamais un AAB."""
