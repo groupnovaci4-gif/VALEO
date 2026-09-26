@@ -1,0 +1,89 @@
+# ---------------------------------------------------------------------------
+# VALEO — backend sur Render, POUR LES TESTS TERRAIN UNIQUEMENT.
+# ---------------------------------------------------------------------------
+# Pourquoi ce fichier existe : Cloud Run exige un compte de facturation Google,
+# donc une carte bancaire acceptée par Google (ni prépayée, ni Payoneer, ni
+# adossée à Wave / Orange Money). Tant que cette carte manque, ce blueprint
+# permet de construire un APK testable sur le terrain sans attendre.
+#
+# CE N'EST PAS LA PRODUCTION. Cf. `docs/DEPLOIEMENT-SANS-CARTE.md` :
+#   * instance gratuite qui s'endort au bout de 15 min d'inactivité — le
+#     premier appel suivant met 30 à 60 s, et l'application n'a AUCUNE
+#     connexion hors-ligne : l'agent attend devant son téléphone ;
+#   * 512 Mio de mémoire, 0,1 vCPU partagé ;
+#   * DONNÉES DE TEST UNIQUEMENT. Les données réelles d'une coopérative vont
+#     sur Cloud Run, avec les sauvegardes et les alertes de budget qui vont
+#     avec.
+# La cible reste `backend/cloudbuild.yaml`. Ce fichier-ci se supprime le jour
+# où Cloud Run tourne.
+#
+# ⚠️ L'URL du service est FIGÉE DANS L'APK au build (invariant 27) : un APK
+# construit contre Render appellera Render pour toujours. C'est un APK
+# JETABLE — il faudra reconstruire pour Cloud Run, et poser `BACKEND_DEPRECIE`
+# ici au moment de la bascule (invariant 32) pour que les téléphones restés
+# sur l'ancienne adresse le DISENT au lieu d'écrire dans le vide.
+
+services:
+  - type: web
+    name: valeo-backend-test
+    runtime: docker
+
+    # LA LIGNE LA PLUS IMPORTANTE DU FICHIER.
+    # Render déploie la branche par défaut du dépôt s'il n'en lit pas une, or
+    # celle-ci est `main`, et `main` a des dizaines de commits de retard : ni
+    # `depot.py`, ni `firebase_auth.py`, ni la vérification des livraisons.
+    # Le service démarrerait, `/health` répondrait 200, et on testerait un
+    # backend qui ne sait pas parler à Firestore. Une erreur invisible.
+    branch: develop
+
+    # Frankfort : la région gratuite la plus proche de la base Firestore
+    # (europe-west1). Chaque lecture de `/api/state` traverse ce lien.
+    region: frankfurt
+    plan: free
+
+    # Le contexte de construction est `backend/`, pas la racine : le
+    # `Dockerfile` fait `COPY requirements-prod.txt ./` en chemins relatifs.
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+
+    # `/health` ne touche pas la base et ne demande aucun jeton : il répond
+    # même si Firestore est injoignable. C'est exactement ce qu'il faut pour un
+    # contrôle de vivacité — un contrôle qui dépendrait de la base ferait
+    # échouer le déploiement pour une panne extérieure.
+    healthCheckPath: /health
+
+    envVars:
+      # === Base de données =================================================
+      # Firestore, pas MongoDB, et c'est délibéré : c'est le chemin de code qui
+      # tournera en production. Tester sur MongoDB pour déployer sur Firestore
+      # ne prouverait rien — l'audit a trouvé une faille (B-01) qui n'existait
+      # QUE sur Firestore. Bonus : les données saisies pendant les tests sont
+      # déjà dans la bonne base quand Cloud Run prend le relais.
+      - key: DATA_BACKEND
+        value: firestore
+      - key: FIRESTORE_DATABASE
+        value: "(default)"
+
+      # === Secrets ==========================================================
+      # `sync: false` = Render demande la valeur dans son tableau de bord et ne
+      # la stocke JAMAIS dans le dépôt. Même règle que `cloudbuild.yaml`, pour
+      # la même raison (invariant 30) : ce fichier est versionné et lisible par
+      # quiconque accède au dépôt. Une valeur écrite ici est une valeur
+      # publiée.
+      #
+      # ADMIN_PASSWORD : un mot de passe fort et NOUVEAU. Pas `admin123`, et
+      # pas celui de la production non plus.
+      - key: ADMIN_PASSWORD
+        sync: false
+      # JWT_SECRET : `openssl rand -hex 32`. Différent de la production — sinon
+      # un jeton frappé par l'instance de test ouvre la vraie.
+      - key: JWT_SECRET
+        sync: false
+      # FIREBASE_SERVICE_ACCOUNT : le JSON du compte de service, SUR UNE SEULE
+      # LIGNE. C'est une clé privée : elle donne tous les droits sur Firestore
+      # en contournant `firestore.rules` par conception (Admin SDK). D'où un
+      # compte de service DÉDIÉ, limité à `roles/datastore.user`, à supprimer
+      # après les tests — jamais le compte par défaut, qui est Éditeur du
+      # projet entier.
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false

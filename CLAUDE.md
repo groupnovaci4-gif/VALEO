@@ -838,3 +838,21 @@ Backend et frontend doivent être **déployés ensemble**. Un ancien client n'ho
 ses écritures : le serveur les ignorerait silencieusement (le stocké gagne en l'absence
 d'horodatage). Inversement, un nouveau client sur un ancien backend verrait ses
 `deletions` ignorées.
+
+**Tests terrain sans carte bancaire.** Cloud Run exige un compte de facturation
+Google, donc une carte que Google accepte — ni prépayée, ni Payoneer, ni adossée
+à Wave / Orange Money. Tant qu'elle manque, `render.yaml` déploie le backend sur
+une instance gratuite pour construire un APK testable : voir
+`docs/DEPLOIEMENT-SANS-CARTE.md`. Trois choses à ne pas perdre de vue :
+- c'est un chemin **de secours, jetable**, en **données de test uniquement** ;
+  la cible reste `backend/cloudbuild.yaml` ;
+- il tourne sur **Firestore**, pas MongoDB : tester sur l'autre base ne
+  prouverait rien (B-01 n'existait que sur Firestore), et les données de test
+  sont ainsi déjà dans la base de destination ;
+- le profil EAS s'appelle **`terrain`**, séparé de `preview` exprès —
+  l'adresse est figée dans le paquet au build (invariant 27), et une URL
+  d'essai collée dans `preview` livrerait un APK « partenaires » parlant à un
+  serveur de test sans que rien ne le signale. Un test le refuse.
+À la bascule, ne pas oublier `BACKEND_DEPRECIE` sur l'instance de test
+(invariant 32) : sans lui, un APK `terrain` déjà installé écrit dans une base
+que plus personne ne lit, en affichant « Synchronisé ».

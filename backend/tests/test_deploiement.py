@@ -525,9 +525,140 @@ class TestConstructionEAS:
     def test_l_adresse_du_backend_est_ABSOLUE_pour_un_telephone(self):
         """Un téléphone n'a pas d'origine : une URL relative ou vide = aucun
         serveur (invariant 31). Le gabarit doit donc porter une URL absolue,
-        placeholder compris — sinon on construit un APK muet sans le voir."""
-        for nom in ("preview", "production"):
-            url = self._eas()["build"][nom].get("env", {}).get("EXPO_PUBLIC_BACKEND_URL")
-            assert url, f"profil « {nom} » : aucune adresse de backend"
+        placeholder compris — sinon on construit un APK muet sans le voir.
+
+        Le contrôle porte sur TOUS les profils qui déclarent la variable, pas
+        sur une liste écrite à la main : un profil ajouté plus tard serait
+        sinon le seul à ne pas être vérifié.
+        """
+        profils = self._eas()["build"]
+        vus = 0
+        for nom, profil in profils.items():
+            url = profil.get("env", {}).get("EXPO_PUBLIC_BACKEND_URL")
+            if url is None:
+                continue
+            vus += 1
+            assert url, f"profil « {nom} » : adresse de backend vide"
             assert url.startswith("https://"), \
                 f"profil « {nom} » : « {url} » n'est pas une URL absolue en https"
+        for obligatoire in ("preview", "production"):
+            assert profils[obligatoire].get("env", {}).get("EXPO_PUBLIC_BACKEND_URL"), \
+                f"profil « {obligatoire} » : aucune adresse de backend"
+        assert vus >= 2
+
+    def test_le_profil_des_tests_terrain_produit_aussi_un_APK(self):
+        """`terrain` pointe sur l'instance gratuite (cf. render.yaml) : c'est un
+        APK à installer à la main, jamais un AAB."""
+        terrain = self._eas()["build"]["terrain"]
+        assert terrain["android"]["buildType"] == "apk"
+        assert terrain.get("env", {}).get("EXPO_PUBLIC_BACKEND_URL")
+
+    def test_l_adresse_de_test_ne_fuit_PAS_dans_les_profils_livrables(self):
+        """La raison d'être du profil `terrain` séparé.
+
+        L'adresse est figée dans le paquet au build (invariant 27). Si l'URL de
+        l'instance d'essai était collée dans `preview` ou `production`, on
+        livrerait un APK « partenaires » — ou une publication Play — parlant à
+        un serveur de test gratuit qui s'endort, avec des données de test. Rien
+        à la construction ne le signalerait : l'APK se construit, s'installe et
+        affiche « Synchronisé ».
+        """
+        profils = self._eas()["build"]
+        essai = (profils["terrain"]["env"]["EXPO_PUBLIC_BACKEND_URL"] or "").lower()
+        for nom in ("preview", "production"):
+            url = (profils[nom]["env"]["EXPO_PUBLIC_BACKEND_URL"] or "").lower()
+            assert url != essai, \
+                f"profil « {nom} » : porte l'adresse de l'instance de test"
+            for marqueur in ("render.com", "onrender.com", "hf.space", "ngrok"):
+                assert marqueur not in url, \
+                    f"profil « {nom} » : « {url} » est un hébergeur d'essai, pas la production"
+
+
+class TestBlueprintRender:
+    """`render.yaml` déploie le backend sur une instance gratuite, sans carte
+    bancaire, le temps que Cloud Run soit payable.
+
+    C'est un chemin de SECOURS pour les tests terrain, et il porte ses propres
+    pièges — ceux-là mêmes qu'aucun test fonctionnel ne verrait.
+    """
+
+    def _render(self) -> str:
+        chemin = RACINE / "render.yaml"
+        assert chemin.exists(), "render.yaml absent : le blueprint de secours a disparu"
+        return chemin.read_text(encoding="utf-8")
+
+    def _variables(self) -> dict:
+        """Les `envVars` du blueprint : nom -> `value: …` ou `sync: false`.
+
+        Lu en texte, comme `cloudbuild.yaml` l'est déjà : le dépôt n'embarque
+        aucun analyseur YAML, et en ajouter un pour trois lignes serait une
+        dépendance de plus à installer avant de pouvoir tester.
+        """
+        paires = re.findall(
+            r"^\s*-\s*key:\s*(\S+)\s*\n\s*(value:.*|sync:\s*\S+)\s*$",
+            self._render(), re.M)
+        return {nom: reste.strip() for nom, reste in paires}
+
+    def test_la_branche_deployee_est_develop_et_pas_main(self):
+        """LE piège de ce fichier.
+
+        Render déploie la branche par défaut du dépôt quand on ne lui en donne
+        pas : ici `main`, qui a des dizaines de commits de retard et ne contient
+        ni `depot.py` ni `firebase_auth.py`. Le service démarrerait, `/health`
+        répondrait 200, et l'on testerait pendant des jours un backend
+        incapable de parler à Firestore.
+        """
+        assert re.search(r"^\s*branch:\s*develop\s*$", self._render(), re.M), \
+            "render.yaml doit épingler `branch: develop` — sinon Render déploie `main`"
+
+    def test_le_service_est_un_conteneur_construit_depuis_le_Dockerfile_reel(self):
+        """Pas un second Dockerfile recopié : le même, sinon il divergerait."""
+        texte = self._render()
+        assert re.search(r"^\s*runtime:\s*docker\s*$", texte, re.M)
+        chemin = re.search(r"^\s*dockerfilePath:\s*(\S+)\s*$", texte, re.M)
+        contexte = re.search(r"^\s*dockerContext:\s*(\S+)\s*$", texte, re.M)
+        assert chemin and contexte, "dockerfilePath et dockerContext sont requis"
+        assert (RACINE / chemin.group(1).lstrip("./")).exists(), \
+            f"dockerfilePath pointe sur un fichier absent : {chemin.group(1)}"
+        # Le Dockerfile fait `COPY requirements-prod.txt ./` : le contexte de
+        # construction doit être `backend/`, pas la racine du dépôt.
+        dossier = RACINE / contexte.group(1).lstrip("./")
+        assert (dossier / "requirements-prod.txt").exists(), \
+            "dockerContext ne contient pas requirements-prod.txt : la construction échouera"
+
+    def test_le_controle_de_vivacite_ne_depend_pas_de_la_base(self):
+        """`/health` ne lit pas Firestore et n'exige aucun jeton. Un contrôle
+        posé sur une route qui interroge la base ferait échouer le déploiement
+        pour une panne extérieure."""
+        assert re.search(r"^\s*healthCheckPath:\s*/health\s*$", self._render(), re.M)
+
+    def test_les_tests_terrain_tournent_sur_FIRESTORE(self):
+        """Tester sur MongoDB pour déployer sur Firestore ne prouve rien :
+        l'audit a trouvé une destruction croisée entre coopératives (B-01) qui
+        n'existait QUE sur Firestore. Et les données saisies pendant les tests
+        sont alors déjà dans la base de destination."""
+        variables = self._variables()
+        assert variables.get("DATA_BACKEND") == "value: firestore", variables
+        assert "MONGO_URL" not in variables, \
+            "invariant 30 : avec Firestore, MongoDB n'est pas requis"
+
+    def test_aucun_secret_n_est_ecrit_dans_le_blueprint(self):
+        """Même règle que `cloudbuild.yaml`, même raison (invariant 30) : ce
+        fichier est versionné. `sync: false` dit à Render de réclamer la valeur
+        dans son tableau de bord et de ne jamais la stocker dans le dépôt."""
+        variables = self._variables()
+        for secret in ("ADMIN_PASSWORD", "JWT_SECRET", "FIREBASE_SERVICE_ACCOUNT"):
+            assert secret in variables, f"{secret} n'est pas déclaré : le service ne démarrera pas"
+            assert variables[secret] == "sync: false", \
+                f"{secret} porte une valeur dans render.yaml — c'est un secret publié"
+        texte = self._render()
+        assert "BEGIN PRIVATE KEY" not in texte, "une clé privée est dans le dépôt"
+        assert not re.search(r"^\s*value:\s*.*(private_key|admin123)", texte, re.M)
+
+    def test_le_blueprint_se_dit_jetable(self):
+        """Un fichier de déploiement sans avertissement finit par servir en
+        production. Celui-ci doit porter, écrit noir sur blanc, qu'il est
+        réservé aux tests et que la cible reste Cloud Run."""
+        texte = self._render()
+        assert "cloudbuild.yaml" in texte, "le blueprint doit renvoyer vers la cible réelle"
+        assert "DONNÉES DE TEST UNIQUEMENT" in texte
