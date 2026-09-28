@@ -326,6 +326,32 @@ class TestConfigurationDeploiement:
         assert "--set-secrets=" in build, "les secrets passent par Secret Manager"
         assert not re.search(r"(ADMIN_PASSWORD|JWT_SECRET)=(?!valeo-)[^\s,:]+", build)
 
+    def test_aucune_substitution_indisponible_en_build_manuel(self):
+        """`$SHORT_SHA` et consorts ne valent RIEN quand on lance le build à la
+        main — et c'est la seule façon documentée de déployer ici.
+
+        Cloud Build ne renseigne `COMMIT_SHA`, `SHORT_SHA`, `BRANCH_NAME`,
+        `TAG_NAME`, `REVISION_ID` et `REPO_NAME` que pour un build DÉCLENCHÉ
+        par un dépôt. Avec `gcloud builds submit`, elles sont vides :
+        l'étiquette de l'image devient `valeo-backend:`, et Docker refuse la
+        référence. Le tout PREMIER déploiement échouait donc, après plusieurs
+        minutes d'attente, sur une erreur qui ne parle pas d'elle-même.
+
+        Aucun test fonctionnel ne pouvait le voir : le fichier est un YAML
+        parfaitement valide, et rien ne s'exécute avant Cloud Build.
+        """
+        build = (BACKEND / "cloudbuild.yaml").read_text(encoding="utf-8")
+        # Seules les lignes actives comptent : les commentaires ont le droit de
+        # nommer le piège, c'est même souhaitable.
+        actives = "\n".join(l for l in build.splitlines()
+                            if not l.lstrip().startswith("#"))
+        for variable in ("SHORT_SHA", "COMMIT_SHA", "BRANCH_NAME",
+                         "TAG_NAME", "REVISION_ID", "REPO_NAME"):
+            assert f"${variable}" not in actives and f"${{{variable}}}" not in actives, (
+                f"cloudbuild.yaml utilise ${variable}, vide en build manuel : "
+                "l'étiquette d'image sera invalide")
+        assert "${_TAG}" in actives, "l'étiquette doit venir d'une substitution à nous"
+
     def test_les_instances_chaudes_sont_reglables_et_valent_1_par_defaut(self):
         """Le coût se règle au déploiement, la valeur sûre reste le défaut.
 

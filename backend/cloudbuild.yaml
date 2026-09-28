@@ -18,6 +18,15 @@
 substitutions:
   _REGION: europe-west1
   _SERVICE: valeo-backend
+  # Étiquette de l'image. **Surtout pas `$SHORT_SHA`** : Cloud Build ne
+  # renseigne cette variable que pour un build DÉCLENCHÉ par un dépôt. Lancée
+  # à la main — c'est-à-dire exactement de la façon documentée trois lignes
+  # plus haut — elle est vide, l'étiquette devient `valeo-backend:` et Docker
+  # refuse la référence. Le tout premier déploiement échouait donc, et aucun
+  # test fonctionnel ne pouvait le voir.
+  # Passer le condensé git en substitution pour tracer ce qui est déployé :
+  #   --substitutions=_TAG=$(git rev-parse --short HEAD)
+  _TAG: manuel
   # Instances gardées chaudes. Le défaut est 1, délibérément : à zéro, la
   # première synchronisation après une accalmie paie un démarrage à froid,
   # devant un pisteur qui attend en bout de piste. Le mettre à 0 le temps de
@@ -29,7 +38,7 @@ steps:
     args:
       - build
       - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/valeo/${_SERVICE}:$SHORT_SHA
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/valeo/${_SERVICE}:${_TAG}
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/valeo/${_SERVICE}:latest
       - -f
@@ -45,7 +54,7 @@ steps:
       - run
       - deploy
       - ${_SERVICE}
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/valeo/${_SERVICE}:$SHORT_SHA
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/valeo/${_SERVICE}:${_TAG}
       - --region=${_REGION}
       - --platform=managed
       # L'application mobile n'a pas de jeton Google : l'accès HTTP doit être
