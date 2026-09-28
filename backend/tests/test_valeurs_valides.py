@@ -23,6 +23,8 @@ Le contrôle vaut pour TOUS les rôles, **patron compris** : sa souveraineté
 porte sur ce qu'il a le droit de décider, pas sur la possibilité d'écrire un
 poids négatif. C'est une règle de validité, pas d'autorisation.
 """
+from datetime import datetime, timezone
+
 import pytest
 
 from tests.test_state_authorization import (_collection, _get_state, _put,
@@ -84,6 +86,11 @@ class TestValeursNegatives:
                         kg="beaucoup") == 403
 
 
+def _maintenant() -> str:
+    """Horodatage d'une ligne modifiée, comme `prepareSync` le pose."""
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 class TestExpeditionVersUsine:
     """Les champs de l'expédition usine sont des VALEURS, pas des libellés.
 
@@ -117,6 +124,64 @@ class TestExpeditionVersUsine:
             "transport": 60000, "fraisRoute": 15000,
         }]
         assert _put(app_client, t["patron"], vue).status_code == 200
+
+    def _expedier(self, app_client, token, coop_id, staff_id):
+        vue = _get_state(app_client, token)
+        vue["sorties"] = list(vue.get("sorties") or []) + [{
+            "id": "srt-usine", "coopId": coop_id, "cropId": "cacao", "kg": 1000,
+            "type": "expedition", "date": "2026-03-01T08:00:00.000Z",
+            "byStaffId": staff_id, "note": "", "destinataire": "Usine",
+        }]
+        assert _put(app_client, token, vue).status_code == 200
+
+    def test_le_patron_complete_le_resultat_APRES_l_expedition(self, app_client):
+        """L'usine ne pèse et ne fixe son prix qu'à la réception.
+
+        Sans ce chemin, le bénéfice (invariant 13bis) ne serait jamais
+        renseignable : on expédierait sans jamais savoir ce que ça a rapporté.
+        """
+        t = _seed_coop(app_client)
+        vue0 = _get_state(app_client, t["patron"])
+        self._expedier(app_client, t["patron"], vue0["coops"][0]["id"], t["patron_id"])
+
+        vue = _get_state(app_client, t["patron"])
+        for s in vue["sorties"]:
+            if s["id"] == "srt-usine":
+                s.update({"kgUsine": 980, "prixUsine": 1500, "prixRevient": 1000,
+                          "transport": 60000, "fraisRoute": 15000,
+                          # Ré-horodatage : `merge_state` garde la version dont
+                          # l'`updatedAt` est le plus récent (invariant 3).
+                          # Sans cela le serveur répond 200 et conserve
+                          # l'ancienne ligne — le PUT paraît réussir et rien ne
+                          # change. C'est `prepareSync` qui s'en charge dans
+                          # l'application ; le test doit faire pareil.
+                          # L'heure RÉELLE, pas une date choisie : le serveur
+                          # estampille à la création, et un horodatage figé
+                          # dans le passé perdrait l'arbitrage.
+                          "updatedAt": _maintenant()})
+        assert _put(app_client, t["patron"], vue).status_code == 200
+
+        relu = next(s for s in _get_state(app_client, t["patron"])["sorties"]
+                    if s["id"] == "srt-usine")
+        assert relu["kgUsine"] == 980 and relu["prixUsine"] == 1500
+        assert relu["kg"] == 1000, "le poids expédié reste celui d'origine"
+
+    def test_un_agent_ne_peut_PAS_completer_une_expedition(self, app_client):
+        """Une sortie enregistrée reste définitive pour un agent.
+
+        Le magasinier voit le stock de la coopérative, mais renseigner le prix
+        d'achat de l'usine est une décision du patron : c'est lui qui négocie.
+        """
+        t = _seed_coop(app_client)
+        vue0 = _get_state(app_client, t["patron"])
+        self._expedier(app_client, t["patron"], vue0["coops"][0]["id"], t["patron_id"])
+
+        vue = _get_state(app_client, t["commis"])
+        for s in vue["sorties"]:
+            if s["id"] == "srt-usine":
+                s.update({"kgUsine": 980, "prixUsine": 9999,
+                          "updatedAt": _maintenant()})
+        assert _put(app_client, t["commis"], vue).status_code == 403
 
     def test_une_sortie_ordinaire_sans_ces_champs_passe(self, app_client):
         """Une perte ou un transfert n'a rien à voir avec l'usine."""

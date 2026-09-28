@@ -372,6 +372,28 @@ export function useCoopData() {
     logAudit("sortie_stock", { cropId: x.cropId, kg: x.kg, type: x.type, destinataire: x.destinataire || "" });
   }, [logAudit]);
 
+  /**
+   * Complète une expédition avec le RÉSULTAT DE L'USINE, appris après coup.
+   *
+   * Une sortie enregistrée reste définitive dans tout le reste (produit, poids,
+   * motif, date) : le serveur refuse qu'un agent la modifie, et le patron seul
+   * y touche. Ce que l'on ajoute ici n'existait pas à l'expédition — l'usine ne
+   * pèse et ne fixe son prix qu'à la réception. Sans ce chemin, le bénéfice
+   * (invariant 13bis) ne serait jamais renseignable.
+   *
+   * Seuls les cinq champs du résultat sont écrits : rien d'autre ne bouge.
+   */
+  const majResultatUsine = useCallback((id: string, x: Partial<Sortie>) => {
+    const champs = ["kgUsine", "prixUsine", "prixRevient", "transport", "fraisRoute"] as const;
+    const patch: Partial<Sortie> = {};
+    champs.forEach((k) => { if (x[k] != null) (patch as any)[k] = x[k]; });
+    setData((d) => (d ? {
+      ...d,
+      sorties: (d.sorties || []).map((s) => (s.id === id ? { ...s, ...patch } : s)),
+    } : d));
+    logAudit("resultat_usine", { sortieId: id, kgUsine: x.kgUsine, prixUsine: x.prixUsine });
+  }, [logAudit]);
+
   const addDepense = useCallback((x: Partial<Depense>) => {
     setData((d) => (d ? { ...d, depenses: [...d.depenses, { id: uid(), coopId: cid(), saison: d.saison, date: new Date().toISOString(), ...x } as Depense] } : d));
   }, []);
@@ -789,6 +811,7 @@ export function useCoopData() {
     addMandat,
     addDepense,
     addSortie,
+    majResultatUsine,
     addCollection,
     settleMemberDue,
     addLoan,

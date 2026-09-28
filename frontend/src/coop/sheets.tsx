@@ -13,6 +13,7 @@ import {
   Culture,
   DEPCATS,
   Data,
+  Sortie,
   Member,
   OPERATORS,
   coopCompleteness,
@@ -1660,7 +1661,87 @@ export function SortieSheet({ data, staffId, scope, role, onClose, onSave }: { d
   );
 }
 
-export function StockSheet({ data, staffId, scope, role, onClose, onNewSortie }: { data: Data; staffId?: string; scope?: "all" | "mine"; role?: string; onClose: () => void; onNewSortie?: () => void }) {
+/**
+ * Saisie du RÉSULTAT DE L'USINE sur une expédition déjà enregistrée.
+ *
+ * Feuille distincte de `SortieSheet`, et c'est délibéré : l'expédition est
+ * définitive (produit, poids, motif, date), seul son résultat s'apprend plus
+ * tard. Deux formulaires qui modifieraient les mêmes champs finiraient par
+ * diverger, et celui-ci ne doit toucher à rien d'autre.
+ */
+export function ResultatUsineSheet({ data, sortie, onClose, onSave }: { data: Data; sortie: Sortie; onClose: () => void; onSave: (x: any) => void }) {
+  const [prixRevient, setPrixRevient] = useState(String(sortie.prixRevient ?? priceOf(data, sortie.cropId) ?? ""));
+  const [transport, setTransport] = useState(String(sortie.transport ?? ""));
+  const [fraisRoute, setFraisRoute] = useState(String(sortie.fraisRoute ?? ""));
+  const [kgUsine, setKgUsine] = useState(String(sortie.kgUsine ?? ""));
+  const [prixUsine, setPrixUsine] = useState(String(sortie.prixUsine ?? ""));
+
+  const apercu = beneficeSortie({
+    ...sortie,
+    kgUsine: Number(kgUsine) || 0, prixUsine: Number(prixUsine) || 0,
+    prixRevient: Number(prixRevient) || 0, transport: Number(transport) || 0,
+    fraisRoute: Number(fraisRoute) || 0,
+  });
+  const valid = (Number(kgUsine) || 0) > 0 && (Number(prixUsine) || 0) > 0;
+
+  return (
+    <Sheet title="Résultat de l'usine" onClose={onClose}>
+      <Card style={{ padding: 13, marginBottom: 14 }}>
+        <Row label="Expédié le" value={fDateTime(sortie.date)} />
+        <View style={{ height: 6 }} />
+        <Row label="Poids livré" value={fKg(sortie.kg)} strong />
+        {sortie.destinataire ? (<><View style={{ height: 6 }} /><Row label="Destinataire" value={sortie.destinataire} /></>) : null}
+      </Card>
+
+      <Field label="Poids constaté à l'usine (kg)">
+        <TInput value={kgUsine} onChangeText={(x) => setKgUsine(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={`Livré : ${group(sortie.kg)}`} />
+        {valid && apercu.freinte !== 0 ? (
+          <Text style={{ fontSize: 12, color: apercu.freinte > 0 ? C.loss : C.green, marginTop: 6 }}>
+            {apercu.freinte > 0 ? `Freinte : ${fKg(apercu.freinte)} perdus en route.` : `Gain de poids : ${fKg(-apercu.freinte)}.`}
+          </Text>
+        ) : null}
+      </Field>
+      <Field label="Prix d'achat de l'usine (F/kg)">
+        <TInput value={prixUsine} onChangeText={(x) => setPrixUsine(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="0" />
+      </Field>
+      <Field label="Prix de revient (F/kg)">
+        <TInput value={prixRevient} onChangeText={(x) => setPrixRevient(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Prix d'achat de la coopérative" />
+      </Field>
+      <Field label="Transport (F)">
+        <TInput value={transport} onChangeText={(x) => setTransport(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="0" />
+      </Field>
+      <Field label="Frais de route (F)">
+        <TInput value={fraisRoute} onChangeText={(x) => setFraisRoute(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Péages, escorte, manutention…" />
+      </Field>
+
+      {valid ? (
+        <Card style={{ padding: 14, marginBottom: 14 }}>
+          <Row label="Recette usine" value={fF(apercu.recette)} />
+          <View style={{ height: 6 }} />
+          <Row label="− Achat de la marchandise" value={fF(apercu.achat)} />
+          {apercu.transport > 0 ? (<><View style={{ height: 6 }} /><Row label="− Transport" value={fF(apercu.transport)} /></>) : null}
+          {apercu.fraisRoute > 0 ? (<><View style={{ height: 6 }} /><Row label="− Frais de route" value={fF(apercu.fraisRoute)} /></>) : null}
+          <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 10 }} />
+          <Row label={apercu.benefice >= 0 ? "Bénéfice" : "PERTE"} value={fF(Math.abs(apercu.benefice))} strong color={apercu.benefice >= 0 ? C.green : C.loss} />
+        </Card>
+      ) : null}
+
+      <SaveBtn
+        disabled={!valid}
+        color={C.teal}
+        onPress={() => onSave({
+          kgUsine: Number(kgUsine) || 0, prixUsine: Number(prixUsine) || 0,
+          prixRevient: Number(prixRevient) || 0,
+          transport: Number(transport) || 0, fraisRoute: Number(fraisRoute) || 0,
+        })}
+      >
+        Enregistrer le résultat
+      </SaveBtn>
+    </Sheet>
+  );
+}
+
+export function StockSheet({ data, staffId, scope, role, onClose, onNewSortie, onResultatUsine }: { data: Data; staffId?: string; scope?: "all" | "mine"; role?: string; onClose: () => void; onNewSortie?: () => void; onResultatUsine?: (s: Sortie) => void }) {
   const insets = useSafeAreaInsets();
   // Campagne en cours : le stock d'une campagne close n'a plus de sens ici.
   const campagne = scopeSaison(data);
@@ -1740,18 +1821,55 @@ export function StockSheet({ data, staffId, scope, role, onClose, onNewSortie }:
               <Card style={{ padding: 20 }}><Text style={{ textAlign: "center", color: C.muted }}>Aucune sortie enregistrée.</Text></Card>
             ) : (
               <View style={{ gap: 8 }}>
-                {mouvements.map((x) => (
-                  <Card key={x.id} style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#F7EDE7", alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ fontSize: 16 }}>{sortieType(x.type).emoji}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: "700", fontSize: 13.5 }}>{sortieType(x.type).nom} · {crop(x.cropId).nom}</Text>
-                      <Text style={{ fontSize: 11.5, color: C.muted }}>{fDateTime(x.date)} · {agent(x.byStaffId)}{x.destinataire ? ` · ${x.destinataire}` : ""}{x.note ? ` · ${x.note}` : ""}</Text>
-                    </View>
-                    <Text style={{ fontWeight: "800", fontSize: 13.5, color: C.rust }}>− {fKg(x.kg)}</Text>
-                  </Card>
-                ))}
+                {mouvements.map((x) => {
+                  // Seules vente et expédition ont un résultat d'usine, et seul
+                  // le patron le renseigne : le serveur refuse cette écriture
+                  // aux agents (invariant 13bis).
+                  const res = beneficeSortie(x);
+                  const completable = !!onResultatUsine && (x.type === "expedition" || x.type === "vente");
+                  const corps = (
+                    <>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 11 }}>
+                        <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#F7EDE7", alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ fontSize: 16 }}>{sortieType(x.type).emoji}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontWeight: "700", fontSize: 13.5 }}>{sortieType(x.type).nom} · {crop(x.cropId).nom}</Text>
+                          <Text style={{ fontSize: 11.5, color: C.muted }}>{fDateTime(x.date)} · {agent(x.byStaffId)}{x.destinataire ? ` · ${x.destinataire}` : ""}{x.note ? ` · ${x.note}` : ""}</Text>
+                        </View>
+                        <Text style={{ fontWeight: "800", fontSize: 13.5, color: C.rust }}>− {fKg(x.kg)}</Text>
+                      </View>
+                      {completable || res.renseigne ? (
+                        <View style={{ marginTop: 9, borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", paddingTop: 9 }}>
+                          {res.renseigne ? (
+                            <>
+                              <Row label={`Usine · ${fKg(x.kgUsine || 0)}`} value={fF(res.recette)} />
+                              <View style={{ height: 5 }} />
+                              <Row label={res.benefice >= 0 ? "Bénéfice" : "PERTE"} value={fF(Math.abs(res.benefice))} strong color={res.benefice >= 0 ? C.green : C.loss} />
+                              {res.freinte !== 0 ? (
+                                <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>
+                                  {res.freinte > 0 ? `Freinte : ${fKg(res.freinte)}.` : `Gain de poids : ${fKg(-res.freinte)}.`}
+                                  {completable ? " Toucher pour corriger." : ""}
+                                </Text>
+                              ) : null}
+                            </>
+                          ) : (
+                            <Text style={{ fontSize: 12, color: C.teal, fontWeight: "700" }}>
+                              Résultat de l&apos;usine non renseigné — toucher pour l&apos;ajouter
+                            </Text>
+                          )}
+                        </View>
+                      ) : null}
+                    </>
+                  );
+                  return completable ? (
+                    <Pressable key={x.id} testID={`sortie-resultat-${x.id}`} onPress={() => onResultatUsine!(x)}>
+                      <Card style={{ padding: 12 }}>{corps}</Card>
+                    </Pressable>
+                  ) : (
+                    <Card key={x.id} style={{ padding: 12 }}>{corps}</Card>
+                  );
+                })}
               </View>
             )}
             <View style={{ height: 16 }} />

@@ -21,6 +21,7 @@ import {
   AuditSheet,
   SettlementReceipt,
   SortieSheet,
+  ResultatUsineSheet,
   StockSheet,
   Bordereau,
   LivraisonSheet,
@@ -114,6 +115,8 @@ export default function App() {
   const [editMember, setEditMember] = useState<any>(null);
   const [editCollab, setEditCollab] = useState<any>(null);
   const [resetTarget, setResetTarget] = useState<{ kind: "member" | "staff"; id: string; name: string } | null>(null);
+  // Expédition dont on complète le résultat d'usine, appris après coup.
+  const [sortieUsine, setSortieUsine] = useState<any>(null);
   const [showNotif, setShowNotif] = useState(false);
   const [settlementReceipt, setSettlementReceipt] = useState<any>(null);
   const [confirm, setConfirm] = useState<{ msg: string; onYes: () => void; yesLabel?: string; yesColor?: string } | null>(null);
@@ -438,9 +441,10 @@ export default function App() {
           comme le patron. Le pisteur, lui, suit ce qu'il a collecté et pas encore remis. */}
       {/* Le pisteur ne dispose que de la livraison au magasin ; les autres
           rôles gardent les motifs de sortie habituels. */}
-      {sheet === "stock" ? <StockSheet data={data} staffId={staffId} scope={stockScope} role={role} onClose={() => setSheet(null)} onNewSortie={isCoop ? () => setSheet(role === "pisteur" ? "livraison" : "sortie") : undefined} /> : null}
+      {sheet === "stock" ? <StockSheet data={data} staffId={staffId} scope={stockScope} role={role} onClose={() => setSheet(null)} onNewSortie={isCoop ? () => setSheet(role === "pisteur" ? "livraison" : "sortie") : undefined} onResultatUsine={role === "patron" ? (s: any) => setSortieUsine(s) : undefined} /> : null}
       {sheet === "livraison" && role === "pisteur" ? <LivraisonSheet data={data} staffId={staffId} onClose={() => setSheet("stock")} onSave={(ids: string[]) => { store.livrerCollections(ids, staffId); setSheet("stock"); setNotice("Livraison enregistrée. Le magasinier doit maintenant vérifier le poids."); }} /> : null}
       {sheet === "sortie" && role !== "pisteur" ? <SortieSheet data={data} staffId={staffId} scope={stockScope} role={role} onClose={() => setSheet("stock")} onSave={(x: any) => { store.addSortie(x); setSheet("stock"); setNotice("Sortie enregistrée. Le stock a été mis à jour."); }} /> : null}
+      {sortieUsine ? <ResultatUsineSheet data={data} sortie={sortieUsine} onClose={() => setSortieUsine(null)} onSave={(x: any) => { store.majResultatUsine(sortieUsine.id, x); setSortieUsine(null); setNotice("Résultat de l'usine enregistré."); }} /> : null}
       {sheet === "linkMomo" && session.side === "planteur" ? <LinkMomoSheet title="Lier mon Mobile Money" onClose={() => setSheet(null)} onSave={(mm: any) => { store.linkMemberMomo(session.memberId, mm); setSheet(null); }} /> : null}
       {sheet === "coopMomo" ? <LinkMomoSheet title="Ajouter un compte coop" withLabel onClose={() => setSheet(null)} onSave={(mm: any) => { store.addCoopMomo(mm); setSheet(null); }} /> : null}
       {sheet === "depense" ? <DepenseSheet onClose={() => setSheet(null)} onSave={(x: any) => { store.addDepense({ pisteurId: staffId, ...x }); setSheet(null); }} /> : null}
