@@ -324,7 +324,68 @@ export type Loan = Synced & Campagne & {
 };
 export type Settlement = Synced & Campagne & { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; ticket?: string; clientOpId?: string; refs?: { seq: number; ticket?: string; amount: number }[] };
 export type Mandat = Synced & Campagne & { id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string };
-export type Depense = Synced & Campagne & { id: string; coopId?: string; pisteurId: string; category: string; amount: number; date: string; note: string };
+export type Depense = Synced & Campagne & {
+  id: string; coopId?: string;
+  /** Auteur de la dépense. Pour un pisteur, elle reste PRIVÉE (invariant 24). */
+  pisteurId: string;
+  category: string; amount: number; date: string; note: string;
+  // --- Champs comptables, tous facultatifs : une dépense saisie par un
+  // pisteur sur le terrain n'en a aucun, et rien d'existant ne casse.
+  /** À qui l'argent est allé : fournisseur, bailleur, salarié… */
+  beneficiaire?: string;
+  /** Espèces, Mobile Money, virement, chèque… */
+  mode?: string;
+  /** N° de pièce, de reçu, de facture. */
+  reference?: string;
+};
+
+/**
+ * **Enveloppe financière d'une campagne** — ce que le comptable met à
+ * disposition pour acheter du produit.
+ *
+ * ⚠️ À ne pas confondre avec `Mandat`, et c'est pourquoi le nom diffère :
+ * un `Mandat` est l'argent **confié à un pisteur** ; un `Budget` est
+ * l'enveloppe **de la coopérative** dont les mandats sont tirés. Réutiliser le
+ * mot « mandat » pour les deux ferait porter un seul terme à deux montants qui
+ * ne se comparent pas — la manière la plus sûre de corrompre un livre de
+ * comptes.
+ */
+export type Budget = Synced & Campagne & {
+  id: string; coopId?: string;
+  libelle: string;
+  montant: number;
+  /** Période couverte, au format ISO. */
+  debut: string;
+  fin: string;
+  note: string;
+  /** Clôturé : plus aucun mandat ne s'y impute. L'enregistrement reste. */
+  cloture?: boolean;
+  byStaffId: string;
+  date: string;
+};
+
+/**
+ * **Règlement d'une dette de la coopérative envers un collaborateur.**
+ *
+ * Ce que la coopérative doit à un agent (commission, excédent de poids acquis,
+ * argent avancé de sa poche) se calcule ; ce qu'elle lui a versé s'enregistre.
+ * Le reste dû est la différence — jamais un champ stocké, qui dériverait.
+ *
+ * Un règlement ne se supprime pas : c'est une écriture financière.
+ */
+export type Reglement = Synced & Campagne & {
+  id: string; coopId?: string;
+  /** Le collaborateur payé. */
+  staffId: string;
+  amount: number;
+  date: string;
+  /** Qui a payé. */
+  byStaffId: string;
+  method: string;
+  reference?: string;
+  note: string;
+  clientOpId?: string;
+};
 // Sortie de magasin : expédition, vente, transfert ou perte. C'est la
 // contrepartie des collectes dans le calcul du stock réel.
 export type Sortie = Synced & Campagne & {
@@ -411,6 +472,10 @@ export type Data = {
   depenses: Depense[];
   settlements: Settlement[];
   sorties: Sortie[];
+  // Comptabilité. Facultatifs : un état chargé depuis un appareil antérieur au
+  // module financier n'en a aucun, et tout doit continuer de fonctionner.
+  budgets?: Budget[];
+  reglements?: Reglement[];
   priceHistory: PriceHistory[];
 };
 export type Session =
@@ -821,6 +886,8 @@ export function prixMoyenLivraison(l: LivraisonGroupe): number {
 export type LigneArdoise = {
   livraisonId: string;
   date: string;
+  /** Campagne du chargement : l'excédent est ACQUIS dans celle-ci. */
+  saison?: string;
   /** Kilos manquants constatés sur ce chargement. */
   deficit: number;
   /** Kilos excédentaires constatés. */
@@ -895,6 +962,7 @@ export function ardoiseKg(data: Data, pisteurId: string): ArdoiseKg {
       return {
         id,
         date: dates[dates.length - 1],
+        saison: g[0].saison,
         ecart: kgVerifie - kgDeclare,
         // Prix moyen pondéré figé du chargement : chaque collecte garde son
         // `prixKg` gelé, l'écart porte sur l'ensemble (invariant 20).
@@ -919,8 +987,8 @@ export function ardoiseKg(data: Data, pisteurId: string): ArdoiseKg {
     acquisKg += acquis;
     acquisValeur += valeurAcquise;
     lignes.push({
-      livraisonId: g.id, date: g.date, deficit, excedent, rembourse, acquis,
-      valeurAcquise, detteApres: dette,
+      livraisonId: g.id, date: g.date, saison: g.saison, deficit, excedent,
+      rembourse, acquis, valeurAcquise, detteApres: dette,
     });
   });
 
@@ -1281,11 +1349,21 @@ export function pisteurStats(pid: string, data: Data, complet?: Data) {
   // d'une campagne à l'autre (invariant 14). `data` est souvent déjà restreint
   // à la campagne par l'écran appelant ; `complet` rétablit la vue entière.
   const ardoise = ardoiseKg(complet || data, pid);
+  // La DETTE en kilos traverse les campagnes ; l'excédent ACQUIS, lui,
+  // appartient à la campagne où il a été constaté. Sans cette distinction, un
+  // excédent gagné l'an dernier — et déjà réglé — regonflerait le dû de cette
+  // année à chaque ouverture de l'écran.
+  const acquisSaison = ardoise.lignes
+    .filter((l) => inSaison(l, data.saison))
+    .reduce((s, l) => s + l.valeurAcquise, 0);
+  const acquisKgSaison = ardoise.lignes
+    .filter((l) => inSaison(l, data.saison))
+    .reduce((s, l) => s + l.acquis, 0);
 
   const commissionBase = cols.reduce((s, c) => s + Math.round(c.kg * collectionComm(data, c)), 0);
   // L'excédent de poids est versé sur la COMMISSION, jamais dans la caisse :
   // c'est le fruit de la tournée de l'agent, pas de l'argent du mandat.
-  const commission = commissionBase + ardoise.acquisValeur;
+  const commission = commissionBase + acquisSaison;
 
   // Poids réellement remis au magasin (après vérification).
   const poidsRemis = cols.reduce((s, c) => s + (estVerifiee(c) ? Number(c.verif!.kg) || 0 : 0), 0);
@@ -1304,9 +1382,214 @@ export function pisteurStats(pid: string, data: Data, complet?: Data) {
   return {
     poids, poidsRemis, achats, achatsPesees, soldes, mandat, depenses,
     commissionBase, commission, solde, aRendre, aVerser,
-    detteKg: ardoise.detteKg, acquisKg: ardoise.acquisKg, poidsPlus: ardoise.acquisValeur,
+    detteKg: ardoise.detteKg, acquisKg: acquisKgSaison, poidsPlus: acquisSaison,
     ardoise, count: cols.length,
   };
+}
+
+/* ========================================================================== *
+ *                          COMPTABILITÉ / FINANCES                           *
+ * ========================================================================== *
+ * Tout ce qui suit est DÉRIVÉ des écritures déjà existantes. Rien n'y est
+ * stocké en double : un solde recopié quelque part finirait par mentir, et
+ * c'est exactement ce qu'un livre de comptes ne doit jamais faire.
+ * Les opérations de terrain alimentent la comptabilité ; la comptabilité ne
+ * ressaisit rien.
+ */
+
+/** Statut d'une dette de la coopérative envers un collaborateur. */
+export type StatutDette = "a_payer" | "partiel" | "paye";
+
+/**
+ * **Ce que la coopérative doit à un collaborateur, et ce qu'elle a versé.**
+ *
+ * Trois composantes, volontairement affichées séparément — les confondre est
+ * la première cause de litige avec un pisteur :
+ * - sa **commission** sur les kilos collectés (barème figé, invariant 6) ;
+ * - son **gain sur excédent de poids**, acquis à la vérification
+ *   (invariant 10bis) ;
+ * - l'**argent qu'il a avancé de sa poche**, quand ses achats ont dépassé son
+ *   mandat (invariant 10).
+ *
+ * `reste` n'est PAS borné à zéro : un montant négatif signale un trop-versé,
+ * et le masquer reviendrait à cacher une erreur de caisse — même raison qu'un
+ * stock négatif (invariant 13).
+ */
+export function situationAgent(data: Data, staffId: string, complet?: Data) {
+  const st = pisteurStats(staffId, data, complet);
+  // Les règlements suivent la campagne, comme la commission qu'ils soldent.
+  const regle = (data.reglements || [])
+    .filter((r) => r.staffId === staffId)
+    .reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const totalDu = st.aVerser;
+  const reste = totalDu - regle;
+  const statut: StatutDette = reste <= 0 ? "paye" : regle > 0 ? "partiel" : "a_payer";
+  return {
+    staffId,
+    commission: st.commissionBase,
+    gainExcedent: st.poidsPlus,
+    avancePerso: Math.max(0, -st.solde),
+    /** Argent du mandat qu'il détient encore et doit rendre. */
+    aRendre: st.aRendre,
+    detteKg: st.detteKg,
+    totalDu, regle, reste, statut,
+  };
+}
+
+/** Collaborateurs à qui la coopérative doit quelque chose, les plus gros d'abord. */
+export function dettesAgents(data: Data, complet?: Data) {
+  return (data.staff || [])
+    .filter((s) => s.role === "pisteur" || s.role === "commis")
+    .map((s) => ({ staff: s, ...situationAgent(data, s.id, complet) }))
+    .filter((x) => x.totalDu > 0 || x.regle > 0)
+    .sort((a, b) => b.reste - a.reste);
+}
+
+/**
+ * **Trésorerie de la coopérative.**
+ *
+ * `disponible` est la seule ligne qui compte au quotidien : ce qui reste après
+ * avoir honoré tous les engagements déjà pris.
+ *
+ * Les **dépenses privées d'un pisteur n'y entrent pas** (invariant 24) : c'est
+ * un prestataire autonome sur ses frais, et les compter ici ferait payer deux
+ * fois la coopérative.
+ */
+export function tresorerie(data: Data, complet?: Data) {
+  const budgets = (data.budgets || []);
+  const enveloppe = budgets.reduce((s, b) => s + (Number(b.montant) || 0), 0);
+  const attribue = (data.mandats || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
+
+  // Dépenses de la COOPÉRATIVE : celles du patron et du magasinier, jamais
+  // celles d'un pisteur (invariant 24).
+  const agents = new Map((data.staff || []).map((s) => [s.id, s.role]));
+  const depenses = (data.depenses || [])
+    .filter((d) => agents.get(d.pisteurId) !== "pisteur")
+    .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+
+  const dettes = dettesAgents(data, complet);
+  const commissions = dettes.reduce((s, d) => s + d.commission + d.gainExcedent, 0);
+  const avances = dettes.reduce((s, d) => s + d.avancePerso, 0);
+  const duAgents = dettes.reduce((s, d) => s + Math.max(0, d.reste), 0);
+  const regle = dettes.reduce((s, d) => s + d.regle, 0);
+
+  // Ce que les agents ont réellement dépensé pour acheter du produit.
+  const achats = (data.collections || []).reduce((s, c) => s + (Number(c.paye) || 0), 0)
+    + (data.settlements || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+
+  return {
+    enveloppe,
+    attribue,
+    /** Enveloppe non encore confiée à un agent. */
+    nonAttribue: enveloppe - attribue,
+    achats,
+    depenses,
+    commissions,
+    avances,
+    /** Ce qui reste à verser aux agents. */
+    duAgents,
+    regle,
+    /** Ce dont la coopérative dispose réellement, engagements déduits. */
+    disponible: enveloppe - attribue - depenses - duAgents,
+    dettes,
+  };
+}
+
+/** Une écriture du journal financier. Dérivée, jamais stockée. */
+export type EcritureFin = {
+  id: string;
+  date: string;
+  type: "BUDGET" | "MANDAT" | "ACHAT" | "AVANCE_PERSO" | "EXCEDENT_POIDS"
+      | "COMMISSION" | "DEPENSE" | "REGLEMENT";
+  libelle: string;
+  /** Positif : entre dans la trésorerie. Négatif : en sort ou l'engage. */
+  montant: number;
+  /** Qui a effectué l'opération. */
+  parStaffId?: string;
+  /** À qui elle profite. */
+  pourStaffId?: string;
+  reference?: string;
+  note?: string;
+};
+
+/**
+ * **Journal financier.** Une lecture, pas un registre.
+ *
+ * Chaque ligne est reconstruite à partir de l'écriture métier qui l'a
+ * provoquée — budget, mandat, pesée, dépense, règlement. Tenir un second
+ * registre alimenté à la main aurait garanti l'écart entre les deux, et le
+ * jour où ils divergent, personne ne sait lequel croire.
+ *
+ * Corollaire : rien ne se supprime ici, parce qu'il n'y a rien à supprimer.
+ * Corriger une opération, c'est corriger l'écriture d'origine — qui porte son
+ * propre historique et son journal d'audit côté serveur.
+ */
+export function journalFinancier(data: Data): EcritureFin[] {
+  const out: EcritureFin[] = [];
+  const nom = (id?: string) => (id ? staffNameOf(data, id) : "");
+
+  (data.budgets || []).forEach((b) => out.push({
+    id: `bud-${b.id}`, date: b.date, type: "BUDGET",
+    libelle: `Enveloppe « ${b.libelle} »`, montant: Number(b.montant) || 0,
+    parStaffId: b.byStaffId, note: b.note,
+  }));
+
+  (data.mandats || []).forEach((m) => out.push({
+    id: `man-${m.id}`, date: m.date, type: "MANDAT",
+    libelle: `Fonds confiés à ${nom(m.pisteurId)}`, montant: -(Number(m.amount) || 0),
+    pourStaffId: m.pisteurId, note: m.note,
+  }));
+
+  (data.collections || []).filter((c) => (Number(c.paye) || 0) > 0).forEach((c) => out.push({
+    id: `col-${c.id}`, date: c.date, type: "ACHAT",
+    libelle: `Achat ${fKg(c.kg)} — ${(data.members || []).find((m) => m.id === c.memberId)?.nom || "—"}`,
+    montant: -(Number(c.paye) || 0), parStaffId: c.byStaffId, reference: c.ticket,
+  }));
+
+  const agents = new Map((data.staff || []).map((s) => [s.id, s.role]));
+  (data.depenses || []).filter((d) => agents.get(d.pisteurId) !== "pisteur").forEach((d) => out.push({
+    id: `dep-${d.id}`, date: d.date, type: "DEPENSE",
+    libelle: `${d.category}${d.beneficiaire ? ` — ${d.beneficiaire}` : ""}`,
+    montant: -(Number(d.amount) || 0), parStaffId: d.pisteurId,
+    reference: d.reference, note: d.note,
+  }));
+
+  (data.reglements || []).forEach((r) => out.push({
+    id: `reg-${r.id}`, date: r.date, type: "REGLEMENT",
+    libelle: `Règlement à ${nom(r.staffId)}`, montant: -(Number(r.amount) || 0),
+    parStaffId: r.byStaffId, pourStaffId: r.staffId, reference: r.reference, note: r.note,
+  }));
+
+  return out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+
+/**
+ * **Alertes financières.** Ce que le comptable doit voir sans le chercher.
+ *
+ * Chacune correspond à une situation qui coûte de l'argent ou bloque un agent,
+ * et qu'aucun écran ne signale autrement.
+ */
+export function alertesFin(data: Data, complet?: Data) {
+  const tr = tresorerie(data, complet);
+  const out: { niveau: "info" | "attention" | "grave"; texte: string }[] = [];
+
+  if (tr.enveloppe > 0 && tr.nonAttribue < 0)
+    out.push({ niveau: "grave", texte: `Mandats confiés au-delà de l'enveloppe : ${fF(-tr.nonAttribue)} de trop.` });
+  if (tr.enveloppe > 0 && tr.nonAttribue >= 0 && tr.nonAttribue < tr.enveloppe * 0.1)
+    out.push({ niveau: "attention", texte: `Enveloppe presque épuisée : ${fF(tr.nonAttribue)} restants.` });
+  if (tr.disponible < 0)
+    out.push({ niveau: "grave", texte: `Trésorerie négative : ${fF(-tr.disponible)} d'engagements non couverts.` });
+
+  tr.dettes.forEach((d) => {
+    if (d.avancePerso > 0)
+      out.push({ niveau: "attention", texte: `${d.staff.nom} a avancé ${fF(d.avancePerso)} de sa poche.` });
+    if (d.detteKg > 0)
+      out.push({ niveau: "info", texte: `${d.staff.nom} doit encore ${fKg(d.detteKg)} au magasin.` });
+  });
+  if (tr.duAgents > 0)
+    out.push({ niveau: "attention", texte: `${fF(tr.duAgents)} restent à verser aux collaborateurs.` });
+
+  return out;
 }
 
 /**

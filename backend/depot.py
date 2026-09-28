@@ -52,7 +52,7 @@ from typing import Optional
 # Tableaux d'entités : une collection Firestore chacun. Doit rester aligné sur
 # `ENTITY_ARRAYS` de `server.py` (+ `coops`, qui a le même traitement).
 TABLEAUX = ["coops", "staff", "members", "collections", "loans", "mandats",
-            "depenses", "settlements", "sorties"]
+            "depenses", "settlements", "sorties", "budgets", "reglements"]
 # Champs de l'état qui ne sont pas des tableaux d'enregistrements.
 SCALAIRES = ["seq", "memberSeq", "saison", "priceHistory"]
 

@@ -80,6 +80,8 @@ def empty_state() -> dict:
         "loans": [],
         "mandats": [],
         "depenses": [],
+        "budgets": [],
+        "reglements": [],
         "priceHistory": [],
     }
 
@@ -183,12 +185,14 @@ class ChangePwdRequest(BaseModel):
 
 
 # --------------------------- Auth utilisateurs (coop/planteur) --------------------------- #
-ENTITY_ARRAYS = ["staff", "members", "collections", "loans", "mandats", "depenses", "settlements", "sorties"]
+ENTITY_ARRAYS = ["staff", "members", "collections", "loans", "mandats", "depenses", "settlements",
+                 "sorties", "budgets", "reglements"]
 
 # Mouvements : tout ce qui s'enregistre au fil d'une campagne. Les **acteurs**
 # (coopératives, collaborateurs, planteurs) n'en font pas partie — c'est ce qui
 # permet de repartir d'une base propre sans avoir à ressaisir les fiches.
-MOVEMENT_ARRAYS = ["collections", "loans", "mandats", "depenses", "settlements", "sorties"]
+MOVEMENT_ARRAYS = ["collections", "loans", "mandats", "depenses", "settlements", "sorties",
+                   "budgets", "reglements"]
 
 
 def _norm_phone(p: Optional[str]) -> str:
@@ -604,6 +608,8 @@ CHAMPS_POSITIFS = {
     # être négatif : un « prix » ou un « frais » négatif inverserait le
     # bénéfice sans que rien ne le signale.
     "sorties": ("kg", "kgUsine", "prixUsine", "prixRevient", "transport", "fraisRoute"),
+    "budgets": ("montant",),
+    "reglements": ("amount",),
 }
 # Invariant 15 : quatre statuts, pas un de plus. Une orthographe inventée
 # traverserait tous les filtres métier sans jamais lever d'erreur — l'avance
@@ -922,7 +928,8 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
     if side == "planteur":
         actor = "Planteur"
         _check_coop_settings_untouched(visible, incoming, coop_id, actor)
-        _deny_touching(delta, ["staff", "mandats", "depenses", "settlements", "sorties"], actor)
+        _deny_touching(delta, ["staff", "mandats", "depenses", "settlements", "sorties",
+                               "budgets", "reglements"], actor)
         # Aucune création ni suppression de planteur, de collecte ou de solde.
         for e in ("members", "collections"):
             if (delta[e]["created"] or delta[e]["deleted"]):
@@ -938,11 +945,47 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
         _check_updates(delta, "collections", PLANTEUR_COLLECTION_FIELDS, lambda r: r.get("memberId") == me_id, actor)
         return
 
+    if side == "coop" and role == "comptable":
+        actor = "Comptable"
+        _check_coop_settings_untouched(visible, incoming, coop_id, actor)
+        # IL FINANCE, IL NE PÈSE PAS. C'est la raison d'être du rôle : lui
+        # laisser toucher une pesée, une livraison ou un solde lui permettrait
+        # de corriger un chiffre financier en modifiant le terrain — exactement
+        # ce que la séparation entre opérations et comptabilité interdit.
+        _deny_touching(delta, ["collections", "settlements", "sorties", "loans", "members"], actor)
+        # Les collaborateurs restent du ressort du patron.
+        for quoi in ("created", "updated", "deleted"):
+            if delta["staff"][quoi]:
+                raise Forbidden(f"{actor} : seul le patron gère les collaborateurs.")
+        # Une écriture financière ne se supprime pas. Corriger, c'est écrire
+        # une opération de correction — jamais effacer la précédente.
+        for e in ("budgets", "mandats", "depenses", "reglements"):
+            if delta[e]["deleted"]:
+                raise Forbidden(f"{actor} : une écriture financière ne se supprime pas.")
+        # …et ne se récrit pas non plus. Seule l'ENVELOPPE reste ajustable :
+        # c'est une prévision, pas un mouvement d'argent.
+        for e, quoi in (("mandats", "un mandat confié"), ("depenses", "une dépense enregistrée"),
+                        ("reglements", "un règlement effectué")):
+            if delta[e]["updated"]:
+                raise Forbidden(f"{actor} : {quoi} est définitif.")
+        for row in delta["reglements"]["created"]:
+            if row.get("byStaffId") != me_id:
+                raise Forbidden(f"{actor} : un règlement doit être enregistré à votre nom.")
+            if not row.get("staffId"):
+                raise Forbidden(f"{actor} : un règlement doit désigner son bénéficiaire.")
+        for row in delta["depenses"]["created"]:
+            if row.get("pisteurId") != me_id:
+                raise Forbidden(f"{actor} : une dépense doit être enregistrée à votre nom.")
+        for row in delta["budgets"]["created"] + delta["budgets"]["updated"]:
+            if row.get("byStaffId") != me_id:
+                raise Forbidden(f"{actor} : une enveloppe doit être enregistrée à votre nom.")
+        return
+
     if side == "coop" and role in ("commis", "pisteur"):
         actor = "Magasinier" if role == "commis" else "Pisteur / Délégué"
         _check_coop_settings_untouched(visible, incoming, coop_id, actor)
         # Les mandats sont confiés par le patron ; l'équipe ne se les attribue pas.
-        _deny_touching(delta, ["mandats"], actor)
+        _deny_touching(delta, ["mandats", "budgets", "reglements"], actor)
         # Collaborateurs : création/suppression réservées au patron.
         if delta["staff"]["created"] or delta["staff"]["deleted"]:
             raise Forbidden(f"{actor} : seul le patron crée ou supprime un collaborateur.")

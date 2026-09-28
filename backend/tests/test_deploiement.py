@@ -635,6 +635,46 @@ class TestConstructionEAS:
                     f"profil « {nom} » : « {url} » est un hébergeur d'essai, pas la production"
 
 
+class TestEntitesSynchronisees:
+    """Trois listes d'entités doivent bouger ENSEMBLE, dans trois fichiers.
+
+    `ENTITY_ARRAYS` (server.py), `TABLEAUX` (depot.py) et `ENTITIES`
+    (sync.ts). En ajouter une seule à deux d'entre elles produit un défaut
+    sournois : sur MongoDB tout fonctionne (l'état entier tient dans un
+    document), et sur Firestore la nouvelle entité n'est **jamais lue ni
+    écrite** — le PUT répond 200 et les données disparaissent.
+
+    C'est arrivé en ajoutant `budgets` et `reglements` : quatre tests ont
+    échoué, tous en `[firestore]`, aucun en `[mongo]`.
+    """
+
+    def _liste(self, fichier: str, nom: str) -> set:
+        texte = (BACKEND / fichier).read_text(encoding="utf-8")
+        m = re.search(rf"^{nom} = \[(.*?)\]", texte, re.S | re.M)
+        assert m, f"{nom} introuvable dans {fichier}"
+        return set(re.findall(r'"([a-zA-Z]+)"', m.group(1)))
+
+    def test_le_depot_connait_toutes_les_entites_du_serveur(self):
+        serveur = self._liste("server.py", "ENTITY_ARRAYS")
+        depot = self._liste("depot.py", "TABLEAUX")
+        manquantes = serveur - depot
+        assert not manquantes, (
+            f"absentes de TABLEAUX (depot.py) : {sorted(manquantes)} — sur "
+            "Firestore elles ne seraient ni lues ni écrites, en silence")
+
+    def test_le_frontend_synchronise_les_memes_entites(self):
+        serveur = self._liste("server.py", "ENTITY_ARRAYS")
+        texte = (RACINE / "frontend" / "src" / "coop" / "sync.ts").read_text(encoding="utf-8")
+        m = re.search(r"export const ENTITIES = \[(.*?)\] as const;", texte, re.S)
+        assert m, "ENTITIES introuvable dans sync.ts"
+        front = set(re.findall(r'"([a-zA-Z]+)"', m.group(1)))
+        assert serveur == front, (
+            "ENTITY_ARRAYS et ENTITIES divergent : "
+            f"serveur seul {sorted(serveur - front)}, frontend seul {sorted(front - serveur)}. "
+            "Une entité absente de `sync.ts` n'est jamais envoyée ; absente du "
+            "serveur, elle vaut 403 sur tout le PUT (invariant 23).")
+
+
 class TestBlueprintRender:
     """`render.yaml` déploie le backend sur une instance gratuite, sans carte
     bancaire, le temps que Cloud Run soit payable.

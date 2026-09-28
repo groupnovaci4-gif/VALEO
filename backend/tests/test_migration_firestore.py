@@ -32,6 +32,12 @@ ETAT = {
     "collections": [{"id": f"col{i}", "coopId": "c1", "memberId": "m1", "kg": 100 + i,
                      "prixKg": 1800, "retenues": []} for i in range(120)],
     "loans": [], "mandats": [], "depenses": [], "settlements": [], "sorties": [],
+    # Comptabilité : migrées comme le reste, et pas au format des autres — une
+    # enveloppe porte `montant`, un règlement `amount`.
+    "budgets": [{"id": "b1", "coopId": "c1", "libelle": "Campagne cacao",
+                 "montant": 10_000_000, "debut": "2026-10-01", "fin": "2026-12-31"}],
+    "reglements": [{"id": "r1", "coopId": "c1", "staffId": "s1", "amount": 275_000,
+                    "byStaffId": "s9", "method": "espece"}],
     "seq": 42, "memberSeq": 7, "saison": "2025-2026", "priceHistory": [{"at": "2026-01-01", "prixKg": 1750}],
 }
 
@@ -50,7 +56,10 @@ class TestMigration:
         cible = depot_module.DepotFirestore(fs, "test", "firestore|test|(default)")
         relu = _migrer(ETAT, cible)
         for e in depot_module.TABLEAUX:
-            avant = {str(x["id"]): x for x in ETAT[e]}
+            # `.get` et non `[…]` : un état MongoDB antérieur au module
+            # comptable n'a ni `budgets` ni `reglements`, et la migration doit
+            # le traverser sans broncher — c'est le cas RÉEL de la bascule.
+            avant = {str(x["id"]): x for x in (ETAT.get(e) or [])}
             apres = {str(x["id"]): x for x in relu[e]}
             assert set(avant) == set(apres), e
             for rid in avant:
