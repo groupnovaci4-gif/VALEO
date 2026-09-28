@@ -19,13 +19,13 @@
       "distribution": "internal",
       "android": { "buildType": "apk" },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://REMPLACER-PAR-URL-CLOUD-RUN"
+        "EXPO_PUBLIC_BACKEND_URL": "https://valeo-backend-xpnthz33nq-ew.a.run.app"
       }
     },
     "production": {
       "android": { "buildType": "app-bundle" },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://REMPLACER-PAR-URL-CLOUD-RUN"
+        "EXPO_PUBLIC_BACKEND_URL": "https://valeo-backend-xpnthz33nq-ew.a.run.app"
       }
     }
   },
