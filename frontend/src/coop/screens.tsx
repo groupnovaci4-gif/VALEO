@@ -22,6 +22,7 @@ import {
   fFull,
   fKg,
   ROLES,
+  pese,
   tresorerie,
   alertesFin,
   journalFinancier,
@@ -955,7 +956,7 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
       <GhostBtn onPress={onBack} style={{ marginBottom: 12 }}>← Retour</GhostBtn>
       <Card style={{ padding: 16, marginBottom: 14 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 }}>
-          <PhotoAvatar photo={pisteur.photo} size={48} editable onChange={onSetPhoto} fallbackIcon="truck" fallbackColor={C.teal} />
+          <PhotoAvatar photo={pisteur.photo} size={48} editable={!!onSetPhoto} onChange={onSetPhoto} fallbackIcon="truck" fallbackColor={C.teal} />
           <View style={{ flexShrink: 1 }}><Text style={{ fontWeight: "800", fontSize: 17 }}>{pisteur.nom}</Text><Text style={{ fontSize: 12.5, color: C.muted }}>Pisteur / Délégué · suivi de collecte{pisteur.tel ? ` · ${pisteur.tel}` : ""}</Text></View>
         </View>
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 8 }}>
@@ -1004,7 +1005,7 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
       ) : null}
       {onResetPin ? <ResetPinButton onPress={() => onResetPin(pisteur)} /> : null}
       {onEdit ? <StaffLoginCard staff={pisteur} /> : null}
-      <SaveBtn color={C.lime} icon={<Icon name="wallet" size={17} color="#fff" />} onPress={onNewMandat} style={{ marginBottom: 18 }}>Donner un mandat</SaveBtn>
+      {onNewMandat ? <SaveBtn color={C.lime} icon={<Icon name="wallet" size={17} color="#fff" />} onPress={onNewMandat} style={{ marginBottom: 18 }}>Donner un mandat</SaveBtn> : null}
 
       <SectionTitle>Mandats donnés</SectionTitle>
       {mandats.length === 0 ? <Empty text="Aucun mandat confié à ce pisteur." /> : (
@@ -1040,27 +1041,55 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
   );
 }
 
+/**
+ * **Tous les collaborateurs de la coopérative**, le patron excepté.
+ *
+ * Le filtre énumérait autrefois les rôles autorisés (`"pisteur" || "commis"`).
+ * Un comptable créé était donc enregistré, synchronisé, capable de se
+ * connecter — et **invisible** ici : le patron en concluait qu'il n'avait pas
+ * été enregistré. Le défaut était muet, et c'est ce qui le rendait grave.
+ * On exclut donc ce qu'on ne veut pas voir (le patron lui-même), jamais
+ * l'inverse : un rôle ajouté demain apparaît, au lieu de disparaître.
+ *
+ * `onAdd` absent = lecture seule (le comptable consulte l'équipe, il ne la
+ * recrute pas). Le bouton n'est alors pas affiché du tout, plutôt qu'affiché
+ * et inerte.
+ */
 export function Collaborateurs({ data, onOpen, onAdd }: any) {
-  const collabs: Staff[] = data.staff.filter((s: Staff) => s.role === "pisteur" || s.role === "commis");
+  const collabs: Staff[] = (data.staff || []).filter((s: Staff) => s.role !== "patron");
   return (
     <View>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <SectionTitle noMargin>Mes collaborateurs</SectionTitle>
-        <GhostBtn onPress={onAdd} testID="add-collab">+ Ajouter</GhostBtn>
+        <SectionTitle noMargin>{onAdd ? "Mes collaborateurs" : "L'équipe"}</SectionTitle>
+        {onAdd ? <GhostBtn onPress={onAdd} testID="add-collab">+ Ajouter</GhostBtn> : null}
       </View>
-      <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>Créez et gérez vos pisteurs/délégués et magasiniers. Touchez un Pisteur / Délégué pour lui confier un mandat.</Text>
-      {collabs.length === 0 ? <Empty text="Aucun collaborateur. Touchez « Ajouter » pour créer un Pisteur / Délégué ou un Magasinier." /> : (
+      <Text style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>
+        {onAdd
+          ? "Créez et gérez vos pisteurs/délégués, magasiniers et comptables. Touchez un Pisteur / Délégué pour lui confier un mandat."
+          : "Les collaborateurs de la coopérative. Consultation seulement."}
+      </Text>
+      {collabs.length === 0 ? (
+        <Empty text={onAdd ? "Aucun collaborateur. Touchez « Ajouter » pour créer un Pisteur / Délégué, un Magasinier ou un Comptable." : "Aucun collaborateur."} />
+      ) : (
         <View style={{ gap: 9 }}>
           {collabs.map((s) => {
             const isP = s.role === "pisteur";
-            const st = pisteurStats(s.id, scopeSaison(data), data);
+            const role = ROLES[s.role];
+            // Un comptable n'a ni poids ni caisse : lui calculer des statistiques
+            // de tournée afficherait « 0 kg » comme si c'était un résultat.
+            const st = pese(s.role) ? pisteurStats(s.id, scopeSaison(data), data) : null;
+            const detail = st
+              ? `${fKg(st.poids)}${isP ? ` · solde ${fF(st.solde)}` : " pesés"}`
+              : role?.sub || "";
             return (
-              <Pressable key={s.id} onPress={() => onOpen(s.id)} testID={`collab-${s.id}`}>
+              <Pressable key={s.id} onPress={() => onOpen && onOpen(s.id)} testID={`collab-${s.id}`}>
                 <Card style={{ padding: 13, flexDirection: "row", alignItems: "center", gap: 11 }}>
-                  <PhotoAvatar photo={s.photo} size={44} fallbackIcon={isP ? "truck" : "scale"} fallbackColor={C.teal} />
+                  <PhotoAvatar photo={s.photo} size={44} fallbackIcon={role?.icon || "user"} fallbackColor={C.teal} />
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontWeight: "700", fontSize: 15 }}>{s.nom}</Text>
-                    <Text style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{isP ? "Pisteur / Délégué" : "Magasinier"} · {fKg(st.poids)}{isP ? ` · solde ${fF(st.solde)}` : " pesés"}</Text>
+                    <Text style={{ fontSize: 12, color: C.muted, marginTop: 1 }} numberOfLines={1}>
+                      {role?.label || s.role}{detail ? ` · ${detail}` : ""}
+                    </Text>
                   </View>
                   <Icon name="chevron-right" size={18} color={C.muted} />
                 </Card>
@@ -1074,23 +1103,38 @@ export function Collaborateurs({ data, onOpen, onAdd }: any) {
   );
 }
 
+/**
+ * Fiche d'un collaborateur qui n'est pas pisteur — magasinier ou comptable.
+ *
+ * Le titre et les statistiques se dérivent du RÔLE : l'écran affichait
+ * « Magasinier » en dur, si bien qu'un comptable ouvert ici se présentait sous
+ * un métier qui n'est pas le sien, avec un tableau de pesées à zéro.
+ */
 export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhoto, onEdit, onDelete, onResetPin }: any) {
   const cols = (data.collections || []).filter((c: Collection) => c.byStaffId === staff.id).sort(byDateDesc);
   const poids = cols.reduce((s: number, c: Collection) => s + c.kg, 0);
   const valeur = cols.reduce((s: number, c: Collection) => s + c.net, 0);
+  const role = ROLES[staff.role];
+  const peseur = pese(staff.role);
   return (
     <View>
       <GhostBtn onPress={onBack} style={{ marginBottom: 12 }}>← Retour</GhostBtn>
       <Card style={{ padding: 16, marginBottom: 14 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 }}>
-          <PhotoAvatar photo={staff.photo} size={48} editable onChange={onSetPhoto} fallbackIcon="scale" fallbackColor={C.teal} />
-          <View style={{ flexShrink: 1 }}><Text style={{ fontWeight: "800", fontSize: 17 }}>{staff.nom}</Text><Text style={{ fontSize: 12.5, color: C.muted }}>Magasinier{staff.tel ? ` · ${staff.tel}` : ""}</Text></View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: peseur ? 14 : 0 }}>
+          <PhotoAvatar photo={staff.photo} size={48} editable={!!onSetPhoto} onChange={onSetPhoto} fallbackIcon={role?.icon || "user"} fallbackColor={C.teal} />
+          <View style={{ flexShrink: 1 }}><Text style={{ fontWeight: "800", fontSize: 17 }}>{staff.nom}</Text><Text style={{ fontSize: 12.5, color: C.muted }}>{role?.label || staff.role}{staff.tel ? ` · ${staff.tel}` : ""}</Text></View>
         </View>
-        <View style={{ flexDirection: "row", gap: 9 }}>
-          <StatCell label="Poids pesé" value={fKg(poids)} color={C.teal} />
-          <StatCell label="Pesées" value={String(cols.length)} color={C.cocoaSoft} />
-          <StatCell label="Valeur" value={fF(valeur)} color={C.gold} strong />
-        </View>
+        {peseur ? (
+          <View style={{ flexDirection: "row", gap: 9 }}>
+            <StatCell label="Poids pesé" value={fKg(poids)} color={C.teal} />
+            <StatCell label="Pesées" value={String(cols.length)} color={C.cocoaSoft} />
+            <StatCell label="Valeur" value={fF(valeur)} color={C.gold} strong />
+          </View>
+        ) : (
+          <Text style={{ fontSize: 12.5, color: C.muted, marginTop: 10, lineHeight: 18 }}>
+            {`${role?.sub || ""} Il ne pèse pas et n'intervient sur aucune opération de terrain.`}
+          </Text>
+        )}
       </Card>
       {onEdit ? (
         <View style={{ flexDirection: "row", gap: 9, marginBottom: 14 }}>
@@ -1104,14 +1148,18 @@ export function CommisDetail({ staff, data, onBack, onReceipt, onOpen, onSetPhot
       ) : null}
       {onResetPin ? <ResetPinButton onPress={() => onResetPin(staff)} /> : null}
       {onEdit ? <StaffLoginCard staff={staff} /> : null}
-      <SectionTitle>Pesées</SectionTitle>
-      {cols.length === 0 ? <Empty text="Ce magasinier n'a pas encore enregistré de pesée." /> : (
-        <View style={{ gap: 8 }}>
-          {cols.map((c: Collection) => (
-            <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} col={c} data={data} sub={`${fKg(c.kg)} · ${fDate(c.date)}`} onOpen={() => onOpen(c.memberId)} onReceipt={() => onReceipt(c)} />
-          ))}
-        </View>
-      )}
+      {peseur ? (
+        <>
+          <SectionTitle>Pesées</SectionTitle>
+          {cols.length === 0 ? <Empty text="Ce magasinier n'a pas encore enregistré de pesée." /> : (
+            <View style={{ gap: 8 }}>
+              {cols.map((c: Collection) => (
+                <CollectionRow key={c.id} title={nameOf(data, c.memberId)} cropId={c.cropId} col={c} data={data} sub={`${fKg(c.kg)} · ${fDate(c.date)}`} onOpen={() => onOpen && onOpen(c.memberId)} onReceipt={() => onReceipt && onReceipt(c)} />
+              ))}
+            </View>
+          )}
+        </>
+      ) : null}
       <View style={{ height: 20 }} />
     </View>
   );

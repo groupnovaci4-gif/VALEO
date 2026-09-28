@@ -392,8 +392,17 @@ export default function App() {
         onFab={() => setSheet("depense")}
       />
     );
+    // Consultation seulement : ni création, ni modification, ni suppression.
+    // Les fonctions d'écriture ne sont simplement pas passées — un bouton
+    // affiché puis inerte serait pire que pas de bouton du tout.
+    const vuCollab = openCollab ? data.staff.find((s) => s.id === openCollab) : null;
     if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onSettlementReceipt={setSettlementReceipt} />;
-    // Consultation seulement : ni création de planteur, ni de collaborateur.
+    else if (tab === "collaborateurs" && vuCollab)
+      body = vuCollab.role === "pisteur"
+        // Il attribue les fonds : le mandat lui est ouvert ici comme depuis
+        // l'espace financier. Tout le reste de la fiche reste en lecture.
+        ? <PisteurRecon pisteur={vuCollab} data={data} onBack={() => setOpenCollab(null)} onReceipt={setReceipt} onOpen={setOpenMember} onNewMandat={() => setSheet("mandat")} />
+        : <CommisDetail staff={vuCollab} data={data} onBack={() => setOpenCollab(null)} onReceipt={setReceipt} onOpen={setOpenMember} />;
     else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onVillageRecap={doVillageRecap} />;
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} />;
     else if (tab === "diagSync") body = <DiagnosticSync backendUrl={store.backendUrl} backendMode={store.backendMode} deprecie={store.deprecie} etat={store.syncState} lastSyncAt={store.lastSyncAt} pending={store.pending} onDiag={store.fetchDiag} onBack={() => setTab("finances")} />;

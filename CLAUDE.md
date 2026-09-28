@@ -312,6 +312,20 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     - **Patron et comptable partagent le MÊME écran** (`EspaceFinances`) : le
       cahier des charges exige qu'ils voient la même situation, et deux écrans
       nourris par les mêmes fonctions auraient divergé au premier correctif.
+    - **Un écran ne doit JAMAIS énumérer les rôles qu'il accepte.** Défaut
+      observé sur le terrain : « Mes collaborateurs » filtrait
+      `role === "pisteur" || role === "commis"`. Un comptable créé était
+      enregistré, synchronisé, capable de se connecter — et **invisible** dans
+      l'équipe. Le patron en concluait, très raisonnablement, qu'il n'avait pas
+      été enregistré. Une liste blanche de rôles échoue en SILENCE quand un
+      rôle s'ajoute ; une liste noire (`role !== "patron"`) fait apparaître le
+      nouveau venu. Même règle pour le menu « Rôle » du tableau de bord admin,
+      où l'omission était pire que cosmétique : l'éditeur ne coche l'option que
+      si elle figure dans la liste, donc un comptable s'y affichait sur la
+      première option et l'enregistrer le **promouvait patron**. Un test lie
+      désormais ce menu à `authorize_state_write` elle-même. Ce qui dépend du
+      rôle passe par `ROLES`, `pese()` ou `peutSolder()` (lib.ts), jamais par
+      une comparaison recopiée.
     - Ajouter une entité impose de compléter **trois** listes : `ENTITY_ARRAYS`
       (server.py), `TABLEAUX` (depot.py) et `ENTITIES` (sync.ts). En oublier
       une donne un défaut invisible sur MongoDB et destructeur sur Firestore —

@@ -232,3 +232,103 @@ test("une coopérative sans comptabilité ne casse pas", () => {
   assert.deepEqual(journalFinancier(d), []);
   assert.deepEqual(alertesFin(d), []);
 });
+
+/* ================= §9 — LES CHIFFRES DE LA SPÉCIFICATION ================= */
+
+const { buildNotifications, pese, peutSolder, pisteurStats } =
+  await import("../.sync-build/lib.js");
+
+/**
+ * Le cas chiffré demandé, reproduit à l'unité près.
+ *
+ * Enveloppe 10 000 000 · mandat pisteur 2 000 000 · excédent 20 kg à 1 800 F
+ * · argent avancé 200 000 · commission 125 000 → total dû 361 000.
+ */
+function casChiffre() {
+  const c = (id, kg, prix, paye, livId, jour) => ({
+    ...col(id, kg, paye, livId, jour), prixKg: prix,
+    commissionRate: 100, brut: kg * prix, net: kg * prix, reste: kg * prix - paye,
+  });
+  let d = base();
+  d.budgets = [{
+    id: "b1", coopId: "co1", saison: SAISON, libelle: "Campagne", montant: 10_000_000,
+    debut: "2026-10-01", fin: "2026-12-31", note: "", byStaffId: "cpt",
+    date: "2026-10-01T08:00:00.000Z",
+  }];
+  d.mandats = [{
+    id: "m1", coopId: "co1", saison: SAISON, pisteurId: "pis",
+    amount: 2_000_000, date: "2026-10-02T08:00:00.000Z", note: "",
+  }];
+  // 1 000 kg à 1 800 F = 1 800 000, puis 250 kg à 1 600 F = 400 000.
+  d.collections = [c("c1", 1000, 1800, 1_800_000, "liv-1", 3)];
+  d = verifier(d, "liv-1", 1020, 4);              // 20 kg d'excédent
+  d.collections = [...d.collections, c("c2", 250, 1600, 400_000, null, 5)];
+  return d;
+}
+
+test("§9 — VALEO produit exactement les chiffres de la spécification", () => {
+  const s = situationAgent(casChiffre(), "pis");
+  assert.equal(s.gainExcedent, 36_000, "20 kg × 1 800 F, au prix FIGÉ du chargement");
+  assert.equal(s.avancePerso, 200_000, "2 200 000 d'achats pour 2 000 000 de mandat");
+  assert.equal(s.commission, 125_000, "1 250 kg × 100 F/kg");
+  assert.equal(s.totalDu, 361_000, "125 000 + 36 000 + 200 000");
+  assert.equal(s.statut, "a_payer");
+});
+
+test("§9 — le solde du mandat se lit bien avant le second achat", () => {
+  // La spécification annonce « solde 100 000 » ET « argent personnel 200 000 » :
+  // ce sont deux MOMENTS, jamais le même. Tant qu'il reste du mandat, la caisse
+  // est positive ; le dépassement la rend négative, et c'est alors une dette de
+  // la coopérative, plus un solde à rendre.
+  const d = casChiffre();
+  const avant = { ...d, collections: d.collections.filter((x) => x.id === "c1") };
+  const s1 = pisteurStats("pis", avant, avant);
+  assert.equal(s1.solde, 200_000, "2 000 000 − 1 800 000");
+  assert.equal(s1.aRendre, 200_000, "il détient encore cet argent");
+
+  const s2 = pisteurStats("pis", d, d);
+  assert.equal(s2.solde, -200_000);
+  assert.equal(s2.aRendre, 0, "il n'a plus rien à rendre : il a avancé");
+});
+
+test("§9 — l'enveloppe reste cohérente une fois l'agent payé", () => {
+  const d = casChiffre();
+  const t = tresorerie(d);
+  assert.equal(t.enveloppe, 10_000_000);
+  assert.equal(t.attribue, 2_000_000);
+  assert.equal(t.duAgents, 361_000);
+  assert.equal(t.disponible, 10_000_000 - 2_000_000 - 361_000);
+});
+
+/* ===================== PÉRIMÈTRE DU RÔLE À L'ÉCRAN ======================= */
+
+test("le comptable n'est pas un rôle de terrain", () => {
+  // C'est cette règle qui décide de l'affichage : l'énumérer à la main dans un
+  // écran est exactement ce qui a rendu le comptable invisible dans l'équipe.
+  assert.equal(pese("pisteur"), true);
+  assert.equal(pese("commis"), true);
+  assert.equal(pese("patron"), true);
+  assert.equal(pese("comptable"), false);
+  assert.equal(pese(undefined), false, "un rôle absent ne pèse pas");
+});
+
+test("le comptable ne reçoit AUCUNE alerte de reste à payer", () => {
+  // Le serveur lui refuse `settlements` : une cloche qui lui réclame de solder
+  // un planteur lui demanderait un geste impossible (invariant 21).
+  const d = { ...base(), collections: [col("c1", 100, 50_000, null, 3)] };
+  const bell = (role) => buildNotifications(d, { side: "coop", role, staffId: "x" });
+
+  const patron = bell("patron").items.filter((n) => n.id.startsWith("rd"));
+  assert.ok(patron.length > 0, "le patron, lui, doit être alerté");
+  assert.equal(bell("comptable").items.filter((n) => n.id.startsWith("rd")).length, 0);
+  assert.equal(peutSolder("comptable"), false);
+  assert.equal(peutSolder("commis"), true);
+});
+
+test("le comptable garde l'information financière qu'il a le droit de lire", () => {
+  // Ne rien lui montrer serait l'autre excès : il suit les achats et les
+  // règlements. Seule l'ACTION qu'il ne peut pas faire disparaît.
+  const d = { ...base(), collections: [col("c1", 100, 100_000, null, 3)] };
+  const items = buildNotifications(d, { side: "coop", role: "comptable", staffId: "x" }).items;
+  assert.ok(items.some((n) => n.id.startsWith("pp")), "les pesées payées restent lisibles");
+});

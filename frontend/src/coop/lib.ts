@@ -82,8 +82,27 @@ export const ROLES: Record<string, { label: string; sub: string; icon: string }>
   comptable: { label: "Comptable", sub: "Enveloppes, mandats, dépenses et règlements", icon: "wallet" },
 };
 
-/** Rôles qui pèsent du produit. Le comptable n'en est pas, par construction. */
+/**
+ * **Rôles qui pèsent du produit.** Le comptable n'en est pas, par construction.
+ *
+ * À lire partout où un écran veut savoir si un collaborateur a une activité de
+ * terrain — jamais en réécrivant la liste sur place. Une liste de rôles
+ * recopiée dans un écran échoue en silence le jour où un rôle s'ajoute : c'est
+ * exactement ce qui a rendu le comptable invisible dans « Mes collaborateurs »
+ * alors qu'il était bel et bien enregistré.
+ */
 export const ROLES_TERRAIN = ["patron", "commis", "pisteur"];
+
+/** Ce collaborateur pèse-t-il ? Sert à ne pas lui afficher un tableau de bord vide. */
+export const pese = (role?: string) => ROLES_TERRAIN.includes(role || "");
+
+/**
+ * **Qui peut solder un reste dû à un planteur.** Le comptable ne le peut pas :
+ * le serveur lui refuse `settlements` (invariant 13ter). Lui afficher l'alerte
+ * lui donnerait une tâche qu'il ne peut pas accomplir — le défaut même que
+ * l'invariant 21 corrige pour le pisteur.
+ */
+export const peutSolder = (role?: string) => role === "patron" || role === "commis" || role === "pisteur";
 
 // Motifs de sortie du magasin. Sans eux, le « stock » ne pouvait que monter :
 // il additionnait les entrées sans jamais rien retrancher.
@@ -1658,7 +1677,13 @@ export function buildNotifications(data: Data, session: any): { items: Notif[]; 
     // autre agent. Le patron et le magasinier, eux, voient tout (invariant 21).
     const agentCloisonne = isCoop && !isPatron && session.role === "pisteur" ? session.staffId : undefined;
     const colsVues = collectesPourRestes(data, agentCloisonne);
+    // Le comptable n'est alerté d'AUCUN reste à payer : il ne peut pas solder
+    // (le serveur lui refuse `settlements`). Une cloche qui réclame un geste
+    // interdit n'est pas une information, c'est une impasse — même raison que
+    // le cloisonnement du pisteur ci-dessus.
+    const alerterRestes = peutSolder(session.role);
     (data.members || []).forEach((m) => {
+      if (!alerterRestes) return;
       const st = memberStats(m.id, colsVues);
       if (st.reste > 0) {
         const lastC = colsVues.filter((c) => c.memberId === m.id && outstandingReste(c) > 0).sort(byDateDesc)[0];

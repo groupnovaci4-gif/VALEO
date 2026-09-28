@@ -287,3 +287,120 @@ class TestPerimetreDuComptable:
         jeton = _seed_comptable(app_client, t)
         lues = _get_state(app_client, jeton)["collections"]
         assert any(c["id"] == "col-lu" for c in lues)
+
+
+class TestPersistanceDuComptable:
+    """Le cycle complet : création, relecture, reconnexion, liste du patron.
+
+    Le défaut signalé sur le terrain — « le comptable ne reste pas enregistré »
+    — ne venait PAS d'ici : ces contrôles passent, et c'est ce qui permet de
+    dire où il venait vraiment (l'écran « Mes collaborateurs » filtrait le rôle
+    à l'affichage). Les garder est ce qui distingue « invisible » de « perdu »
+    la prochaine fois : sans eux, les deux hypothèses se ressemblent.
+    """
+
+    def test_le_patron_le_retrouve_apres_rechargement(self, app_client):
+        t = _seed_coop(app_client)
+        _seed_comptable(app_client, t)
+        # Relecture complète, comme au redémarrage de l'application.
+        vue = _get_state(app_client, t["patron"])
+        compta = [s for s in vue["staff"] if s.get("role") == "comptable"]
+        assert len(compta) == 1, "le comptable doit figurer dans l'équipe du patron"
+        assert compta[0]["nom"] == "Aminata"
+        assert compta[0]["coopId"] == vue["coops"][0]["id"], "rattaché à SA coopérative"
+        assert "pin" not in compta[0], "l'empreinte ne quitte jamais le serveur"
+
+    def test_il_se_reconnecte_et_garde_son_role(self, app_client):
+        t = _seed_coop(app_client)
+        _seed_comptable(app_client, t)
+        for _ in range(2):  # déconnexion / reconnexion
+            r = app_client.post("/api/auth/coop/login",
+                                json={"identifier": "0700000004", "secret": "444444"})
+            assert r.status_code == 200, r.text
+            ident = r.json()["identity"]
+            assert ident["role"] == "comptable"
+            assert ident["side"] == "coop"
+            assert ident["coopId"], "la coopérative voyage dans le jeton"
+
+    def test_une_ecriture_du_comptable_survit_a_une_synchro_du_patron(self, app_client):
+        # Perte de mise à jour : le patron renvoie sa vue, plus ancienne. Le
+        # comptable ne doit pas en disparaître (invariant 3).
+        t = _seed_coop(app_client)
+        avant = _get_state(app_client, t["patron"])
+        jeton = _seed_comptable(app_client, t)
+        vue = _get_state(app_client, jeton)
+        vue["budgets"] = [_budget(_coop_id(app_client, jeton), "st-compta")]
+        assert _put(app_client, jeton, vue).status_code == 200
+        assert _put(app_client, t["patron"], avant).status_code == 200
+        apres = _get_state(app_client, t["patron"])
+        assert any(s.get("role") == "comptable" for s in apres["staff"])
+        assert len(apres["budgets"]) == 1, "l'enveloppe survit à la synchro du patron"
+
+
+class TestRolesConnusDuTableauDeBord:
+    """Le menu « Rôle » de l'espace admin doit connaître TOUS les rôles.
+
+    Défaut trouvé à l'audit, et le plus dangereux des deux : le menu
+    n'énumérait que `patron / commis / pisteur`. Le rendu ne coche l'option que
+    si elle figure dans la liste (`o===val`) — un comptable ouvert dans
+    l'éditeur s'affichait donc sur la PREMIÈRE option, `patron`, et
+    l'enregistrer le **promouvait patron** en silence. Élévation de privilège
+    par l'interface d'administration, sans le moindre message.
+
+    Ce test lie le menu à la matrice d'autorisation elle-même, plutôt qu'à une
+    liste recopiée : ajouter un rôle au serveur sans l'ajouter au menu échoue
+    désormais ici.
+    """
+
+    @staticmethod
+    def _roles_du_serveur():
+        import inspect
+        import re
+
+        import server
+        src = inspect.getsource(server.authorize_state_write)
+        roles = set(re.findall(r'role == "([a-z]+)"', src))
+        for groupe in re.findall(r'role in \(([^)]*)\)', src):
+            roles |= set(re.findall(r'"([a-z]+)"', groupe))
+        return roles
+
+    @staticmethod
+    def _roles_du_menu():
+        import pathlib
+        import re
+
+        src = pathlib.Path(__file__).resolve().parent.parent / "server.py"
+        m = re.search(r'\{k:"role",l:"Rôle",opt:\[([^\]]*)\]\}', src.read_text(encoding="utf-8"))
+        assert m, "le champ « Rôle » du tableau de bord est introuvable"
+        return set(re.findall(r'"([a-z]+)"', m.group(1)))
+
+    def test_le_menu_couvre_toute_la_matrice_dautorisation(self):
+        serveur = self._roles_du_serveur()
+        assert "comptable" in serveur, "garde-fou : la matrice doit connaître le comptable"
+        manquants = serveur - self._roles_du_menu()
+        assert not manquants, (
+            f"rôles absents du menu de l'admin : {sorted(manquants)}. "
+            "L'éditeur retomberait sur la première option et changerait le rôle "
+            "à l'enregistrement."
+        )
+
+    def test_le_menu_ninvente_aucun_role(self):
+        # L'inverse est tout aussi grave : un rôle proposé par l'admin mais
+        # inconnu de `authorize_state_write` produirait un compte capable de se
+        # connecter et incapable d'écrire quoi que ce soit (« Rôle inconnu »).
+        inventes = self._roles_du_menu() - self._roles_du_serveur()
+        assert not inventes, f"rôles proposés mais non autorisés : {sorted(inventes)}"
+
+    def test_un_comptable_edite_depuis_ladmin_garde_son_role(self, app_client):
+        # Le scénario complet du défaut : l'admin ouvre la fiche et enregistre.
+        from tests.test_admin_sync import _admin, _admin_get, _admin_put
+        t = _seed_coop(app_client)
+        _seed_comptable(app_client, t)
+        jeton = _admin(app_client)
+        etat = _admin_get(app_client, jeton)
+        cible = next(s for s in etat["staff"] if s.get("role") == "comptable")
+        cible["fonction"] = "Chef comptable"          # une modification réelle
+        assert _admin_put(app_client, jeton, etat, {}).status_code == 200
+        garde = next(s for s in _admin_get(app_client, jeton)["staff"] if s["id"] == cible["id"])
+        assert garde["role"] == "comptable", "l'édition admin ne doit pas changer le rôle"
+        assert garde["fonction"] == "Chef comptable"

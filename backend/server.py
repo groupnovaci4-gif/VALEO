@@ -1817,7 +1817,7 @@ const SCHEMAS = {
     {k:"nom",l:"Nom & prénoms"},{k:"code",l:"Code"},{k:"village",l:"Localité"},{k:"idNumber",l:"Pièce d'identité"},
     {k:"superficie",l:"Superficie (ha)",t:"number"},{k:"cropId",l:"Culture",opt:["cacao","cafe","anacarde","hevea"]},{k:"tel",l:"Téléphone"}]},
   staff:{title:"Équipe",arr:"staff",compte:true,cols:["nom","role","fonction","tel","email","_statut"],fields:[
-    {k:"nom",l:"Nom (affiché)"},{k:"prenoms",l:"Prénoms"},{k:"role",l:"Rôle",opt:["patron","commis","pisteur"]},
+    {k:"nom",l:"Nom (affiché)"},{k:"prenoms",l:"Prénoms"},{k:"role",l:"Rôle",opt:["patron","commis","pisteur","comptable"]},
     {k:"fonction",l:"Fonction"},{k:"tel",l:"Téléphone"},{k:"email",l:"Email"},{k:"idNumber",l:"Pièce d'identité"}]},
   collections:{title:"Collectes",arr:"collections",cols:["_date","seq","_member","_agent","kg","net","paye","reste","method"],fields:[
     {k:"memberId",l:"Planteur",ref:"members"},{k:"byStaffId",l:"Agent",ref:"staff"},{k:"kg",l:"Poids (kg)",t:"number"},
@@ -2041,7 +2041,7 @@ async function purgeMouvements(){
 }
 async function wipeAll(){
   if(!confirm("Confirmer : vider toute la base de données ?")) return;
-  state={saison:state.saison,prixKg:state.prixKg,seq:1,memberSeq:1,commissionRate:state.commissionRate,coop:{nom:(state.coop&&state.coop.nom)||"Coopérative",momo:[]},coops:[],staff:[],members:[],collections:[],loans:[],mandats:[],depenses:[],settlements:[],sorties:[],priceHistory:[]};
+  state={saison:state.saison,prixKg:state.prixKg,seq:1,memberSeq:1,commissionRate:state.commissionRate,coop:{nom:(state.coop&&state.coop.nom)||"Coopérative",momo:[]},coops:[],staff:[],members:[],collections:[],loans:[],mandats:[],depenses:[],settlements:[],sorties:[],budgets:[],reglements:[],priceHistory:[]};
   currentCoop=null;
   await persist();
 }

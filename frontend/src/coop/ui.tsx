@@ -100,15 +100,23 @@ export const SaveBtn = ({
 }) => {
   const [busy, setBusy] = useState(false);
   const mounted = React.useRef(true);
+  // Le verrou est une RÉFÉRENCE, pas l'état React : `busy` ne change qu'au
+  // rendu suivant, si bien que deux appuis dans la même frame le lisaient tous
+  // les deux à `false`. Sur « Confirmer le paiement », cela enregistrait deux
+  // règlements — un double versement, que rien n'aurait ensuite signalé
+  // puisque chaque écriture est individuellement valide.
+  const enCours = React.useRef(false);
   React.useEffect(() => () => { mounted.current = false; }, []);
   const handle = async () => {
-    if (busy || disabled) return;
+    if (enCours.current || disabled) return;
+    enCours.current = true;
     setBusy(true);
     try {
       await Promise.resolve(onPress());
     } catch (e) {
       console.log("SaveBtn onPress error", e);
     } finally {
+      enCours.current = false;
       if (mounted.current) setBusy(false);
     }
   };

@@ -756,7 +756,7 @@ export function CollaborateurSheet({ onClose, onSave, initial }: any) {
       {pin && pin2 && pin !== pin2 ? <Text style={{ color: C.loss, fontSize: 12, marginTop: -6, marginBottom: 10 }}>Les deux codes ne correspondent pas.</Text> : null}
       {initial ? <Text style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>Laissez vide pour conserver le code actuel.</Text> : null}
       <View style={{ backgroundColor: "#EAF3EF", borderWidth: 1, borderColor: "#CFE6E0", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Le collaborateur se connecte depuis l'espace coopérative avec son <Text style={{ fontWeight: "700" }}>nom, son téléphone</Text> et son <Text style={{ fontWeight: "700" }}>code secret</Text>. Un Pisteur / Délégué reçoit un mandat ; un Magasinier pèse et voit tous les planteurs.</Text>
+        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Le collaborateur se connecte depuis l'espace coopérative avec son <Text style={{ fontWeight: "700" }}>nom, son téléphone</Text> et son <Text style={{ fontWeight: "700" }}>code secret</Text>. Un Pisteur / Délégué reçoit un mandat ; un Magasinier pèse et voit tous les planteurs ; un Comptable gère les enveloppes, les mandats et les règlements, et ne pèse jamais.</Text>
       </View>
       <SaveBtn disabled={!valid} color={C.teal} onPress={save}>{initial ? "Enregistrer" : "Créer le collaborateur"}</SaveBtn>
     </Sheet>
