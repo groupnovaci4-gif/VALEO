@@ -187,9 +187,17 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     du POIDS (invariant 10bis).
     - `solde > 0` : de l'argent du mandat qu'il détient encore et doit rendre
       (`aRendre`) ;
-    - `solde < 0` : il a avancé sa poche ou acheté à crédit aux planteurs.
-      Cette avance **lui est due**, et se règle avec sa commission
+    - `solde < 0` : il a **décaissé plus que son mandat**. Cette avance lui est
+      due et se règle avec sa commission
       (`aVerser = commission + max(0, −solde)`).
+    ⚠️ **Acheter à crédit ne rend PAS le solde négatif**, et la nuance compte.
+    `achats` ne somme que l'argent réellement sorti (`Σ c.paye` + les restes
+    qu'il a soldés). Un achat à crédit laisse un `reste` dû au **planteur** :
+    rien n'est sorti de la caisse de l'agent, ce n'est donc pas lui qui a
+    avancé. Le crédit ne devient une avance de sa poche qu'au moment où il le
+    **solde** avec son propre argent. Trois choses distinctes, et la caisse
+    n'en mélange plus aucune : l'argent dans `solde`, la marchandise dans
+    `detteKg` (invariant 10bis), ce que le planteur attend dans les restes dus.
 10bis. **Un manquant se rembourse en POIDS, un excédent se verse en COMMISSION.**
     Le mandat est confié pour rapporter un **poids** équivalent, pas pour
     rendre une somme. C'est la règle du métier, et elle commande les deux
