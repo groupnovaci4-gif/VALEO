@@ -15,6 +15,8 @@ import {
   DEFAULT_COMM,
   DEFAULT_PRICES,
   Depense,
+  Budget,
+  Reglement,
   genMemberCode,
   Loan,
   Horloge,
@@ -392,6 +394,34 @@ export function useCoopData() {
       sorties: (d.sorties || []).map((s) => (s.id === id ? { ...s, ...patch } : s)),
     } : d));
     logAudit("resultat_usine", { sortieId: id, kgUsine: x.kgUsine, prixUsine: x.prixUsine });
+  }, [logAudit]);
+
+  // --- Comptabilité --------------------------------------------------------
+  // Le comptable enregistre ; il ne recalcule rien. Les soldes se dérivent des
+  // écritures (`tresorerie`, `situationAgent`), ils ne sont jamais stockés.
+
+  /** Enveloppe financière d'une campagne. Ajustable, jamais supprimée. */
+  const addBudget = useCallback((x: Partial<Budget>) => {
+    setData((d) => (d ? { ...d, budgets: [...(d.budgets || []), { id: uid(), coopId: cid(), saison: d.saison, date: new Date().toISOString(), ...x } as Budget] } : d));
+    logAudit("budget_cree", { libelle: x.libelle, montant: x.montant });
+  }, [logAudit]);
+
+  /**
+   * Ajuste une enveloppe — montant, période, clôture.
+   *
+   * Seule écriture financière modifiable, et c'est assumé : une enveloppe est
+   * une PRÉVISION, pas un mouvement d'argent. Un mandat, une dépense ou un
+   * règlement, eux, sont définitifs — le serveur les refuse en modification.
+   */
+  const majBudget = useCallback((id: string, x: Partial<Budget>) => {
+    setData((d) => (d ? { ...d, budgets: (d.budgets || []).map((b) => (b.id === id ? { ...b, ...x } : b)) } : d));
+    logAudit("budget_ajuste", { budgetId: id, montant: x.montant, cloture: x.cloture });
+  }, [logAudit]);
+
+  /** Règlement de ce que la coopérative doit à un collaborateur. */
+  const addReglement = useCallback((x: Partial<Reglement>) => {
+    setData((d) => (d ? { ...d, reglements: [...(d.reglements || []), { id: uid(), coopId: cid(), saison: d.saison, date: new Date().toISOString(), ...x } as Reglement] } : d));
+    logAudit("reglement_agent", { staffId: x.staffId, amount: x.amount, method: x.method });
   }, [logAudit]);
 
   const addDepense = useCallback((x: Partial<Depense>) => {
@@ -812,6 +842,9 @@ export function useCoopData() {
     addDepense,
     addSortie,
     majResultatUsine,
+    addBudget,
+    majBudget,
+    addReglement,
     addCollection,
     settleMemberDue,
     addLoan,

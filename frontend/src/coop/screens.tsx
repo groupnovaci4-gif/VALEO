@@ -21,6 +21,10 @@ import {
   fF,
   fFull,
   fKg,
+  ROLES,
+  tresorerie,
+  alertesFin,
+  journalFinancier,
   group,
   isToday,
   memberCultures,
@@ -319,6 +323,202 @@ function buildActivity(data: Data): Ev[] {
   );
   (data.settlements || []).forEach((s: any) => evs.push({ id: "s" + s.id, date: s.date, icon: "banknote", tint: C.green, title: `Reste soldé${s.viaPesee ? " (à la pesée)" : ""} — ${nameOf(data, s.memberId)}`, sub: `${fF(s.amount)} · ${s.method === "momo" ? "Mobile Money" : "espèces"}` }));
   return evs.sort(byDateDesc);
+}
+
+/**
+ * **Espace financier** — partagé par le COMPTABLE et le PATRON.
+ *
+ * Un seul écran, délibérément : le cahier des charges demande que les deux
+ * voient la même situation. Deux écrans nourris par les mêmes fonctions
+ * auraient fini par diverger à la première retouche, et le jour où deux
+ * chiffres se contredisent, personne ne sait lequel croire.
+ *
+ * Tout est en cartes, pas en tableaux : VALEO se tient à une main, sur un
+ * téléphone d'entrée de gamme, souvent en plein soleil.
+ */
+export function EspaceFinances({ data, complet, role, onNewBudget, onAjusterBudget, onRegler, onNewDepense, onNewMandat }: any) {
+  const [seg, setSeg] = useState("enveloppes");
+  const tr = tresorerie(data, complet);
+  const alertes = alertesFin(data, complet);
+  const journal = journalFinancier(data);
+  const theme = role === "patron" ? C.lime : C.teal;
+  const peutEcrire = role === "comptable" || role === "patron";
+
+  const segs: [string, string][] = [
+    ["enveloppes", "Enveloppes"],
+    ["dus", `Sommes dues${tr.dettes.length ? ` (${tr.dettes.length})` : ""}`],
+    ["journal", "Journal"],
+  ];
+
+  return (
+    <View>
+      {/* La ligne qui compte : ce dont la coopérative dispose vraiment. */}
+      <Card style={{ padding: 16, marginBottom: 12 }}>
+        <Text style={{ fontSize: 12, color: C.muted, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>Solde disponible</Text>
+        <Text style={{ fontSize: 30, fontWeight: "900", color: tr.disponible >= 0 ? C.green : C.loss, marginTop: 2 }}>
+          {fFull(tr.disponible)}
+        </Text>
+        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Enveloppes, moins les fonds confiés, les dépenses et ce qui reste dû.</Text>
+        <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 12 }} />
+        <Row label="Enveloppes de campagne" value={fF(tr.enveloppe)} />
+        <View style={{ height: 6 }} />
+        <Row label="− Fonds confiés aux agents" value={fF(tr.attribue)} />
+        <View style={{ height: 6 }} />
+        <Row label="− Dépenses de fonctionnement" value={fF(tr.depenses)} />
+        <View style={{ height: 6 }} />
+        <Row label="− Reste dû aux collaborateurs" value={fF(tr.duAgents)} />
+      </Card>
+
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+        <StatCell label="Non confié" value={fF(tr.nonAttribue)} color={tr.nonAttribue >= 0 ? C.teal : C.loss} />
+        <StatCell label="Achats financés" value={fF(tr.achats)} color={C.cocoaSoft} />
+        <StatCell label="Déjà réglé" value={fF(tr.regle)} color={C.green} />
+      </View>
+
+      {alertes.length > 0 ? (
+        <Card style={{ padding: 13, marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: C.muted, marginBottom: 8, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>Alertes</Text>
+          {alertes.map((a: any, i: number) => (
+            <View key={i} style={{ flexDirection: "row", gap: 8, alignItems: "flex-start", marginTop: i ? 7 : 0 }}>
+              <Icon name={a.niveau === "grave" ? "alert-triangle" : a.niveau === "attention" ? "alert-circle" : "info"} size={15}
+                color={a.niveau === "grave" ? C.loss : a.niveau === "attention" ? C.due : C.muted} />
+              <Text style={{ flex: 1, fontSize: 12.5, color: a.niveau === "grave" ? C.loss : C.ink }}>{a.texte}</Text>
+            </View>
+          ))}
+        </Card>
+      ) : null}
+
+      {peutEcrire ? (
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+          {onNewBudget ? (
+            <SaveBtn color={theme} icon={<Icon name="wallet" size={16} color="#fff" />} onPress={onNewBudget} style={{ flex: 1 }}>Enveloppe</SaveBtn>
+          ) : null}
+          {onNewMandat ? (
+            <SaveBtn color={C.gold} icon={<Icon name="send" size={16} color="#fff" />} onPress={onNewMandat} style={{ flex: 1 }}>Mandat</SaveBtn>
+          ) : null}
+          {onNewDepense ? (
+            <SaveBtn color={C.rust} icon={<Icon name="receipt" size={16} color="#fff" />} onPress={onNewDepense} style={{ flex: 1 }}>Dépense</SaveBtn>
+          ) : null}
+        </View>
+      ) : null}
+
+      <Segments segs={segs} seg={seg} setSeg={setSeg} theme={theme} />
+
+      {seg === "enveloppes" ? (
+        (data.budgets || []).length === 0
+          ? <Empty text="Aucune enveloppe. Créez-en une pour financer les achats de la campagne." />
+          : (
+            <View style={{ gap: 8 }}>
+              {[...(data.budgets || [])].sort((a: any, b: any) => (a.date < b.date ? 1 : -1)).map((b: any) => {
+                // L'enveloppe est une prévision : ce qui en sort réellement,
+                // ce sont les mandats confiés. On les rapproche ici.
+                const part = tr.enveloppe > 0 ? tr.attribue / tr.enveloppe : 0;
+                return (
+                  <Pressable key={b.id} onPress={peutEcrire && onAjusterBudget ? () => onAjusterBudget(b) : undefined}>
+                    <Card style={{ padding: 13 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontWeight: "800", fontSize: 14.5 }}>{b.libelle}</Text>
+                          <Text style={{ fontSize: 11.5, color: C.muted }}>{fDate(b.debut)} → {fDate(b.fin)}{b.note ? ` · ${b.note}` : ""}</Text>
+                        </View>
+                        <Text style={{ fontWeight: "900", fontSize: 15 }}>{fF(b.montant)}</Text>
+                      </View>
+                      {b.cloture ? (
+                        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Clôturée — aucun nouveau mandat ne s&apos;y impute.</Text>
+                      ) : (
+                        <View style={{ marginTop: 9 }}>
+                          <View style={{ height: 6, borderRadius: 3, backgroundColor: "#EFE7DF", overflow: "hidden" }}>
+                            <View style={{ width: `${Math.min(100, Math.max(0, part * 100))}%`, height: 6, backgroundColor: part > 1 ? C.loss : theme }} />
+                          </View>
+                          <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 5 }}>
+                            {fF(tr.attribue)} confiés · {fF(tr.nonAttribue)} disponibles
+                            {peutEcrire && onAjusterBudget ? " · toucher pour ajuster" : ""}
+                          </Text>
+                        </View>
+                      )}
+                    </Card>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )
+      ) : null}
+
+      {seg === "dus" ? (
+        tr.dettes.length === 0
+          ? <Empty text="La coopérative ne doit rien à ses collaborateurs." />
+          : (
+            <View style={{ gap: 8 }}>
+              {tr.dettes.map((d: any) => (
+                <Card key={d.staffId} style={{ padding: 13 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 9 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: "800", fontSize: 14.5 }}>{d.staff.nom}</Text>
+                      <Text style={{ fontSize: 11.5, color: C.muted }}>{ROLES[d.staff.role]?.label || d.staff.role}</Text>
+                    </View>
+                    <View style={{ backgroundColor: d.statut === "paye" ? "#F0F6F2" : d.statut === "partiel" ? "#FBF3E3" : "#FBECE8", paddingVertical: 4, paddingHorizontal: 9, borderRadius: 20 }}>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: d.statut === "paye" ? C.green : d.statut === "partiel" ? C.gold : C.loss }}>
+                        {d.statut === "paye" ? "Payé" : d.statut === "partiel" ? "Partiellement payé" : "À payer"}
+                      </Text>
+                    </View>
+                  </View>
+                  {/* Les trois composantes, séparées : les confondre est la
+                      première cause de litige avec un pisteur. */}
+                  <Row label="Commission" value={fF(d.commission)} />
+                  <View style={{ height: 5 }} />
+                  <Row label="Gain sur excédent de poids" value={fF(d.gainExcedent)} />
+                  <View style={{ height: 5 }} />
+                  <Row label="Argent avancé de sa poche" value={fF(d.avancePerso)} />
+                  <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 9 }} />
+                  <Row label="Total dû" value={fF(d.totalDu)} strong />
+                  {d.regle > 0 ? (<><View style={{ height: 5 }} /><Row label="− Déjà réglé" value={fF(d.regle)} /></>) : null}
+                  <View style={{ height: 5 }} />
+                  <Row label={d.reste >= 0 ? "RESTE À PAYER" : "TROP-VERSÉ"} value={fF(Math.abs(d.reste))} strong color={d.reste > 0 ? C.loss : C.green} />
+                  {d.detteKg > 0 ? (
+                    <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 7 }}>
+                      Doit aussi {fKg(d.detteKg)} au magasin — cela se rembourse en marchandise, pas en argent.
+                    </Text>
+                  ) : null}
+                  {d.aRendre > 0 ? (
+                    <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 5 }}>
+                      Détient encore {fF(d.aRendre)} du mandat, à rendre.
+                    </Text>
+                  ) : null}
+                  {peutEcrire && onRegler && d.reste > 0 ? (
+                    <SaveBtn color={C.green} icon={<Icon name="check-circle" size={16} color="#fff" />} onPress={() => onRegler(d)} style={{ marginTop: 11 }}>
+                      Effectuer le paiement
+                    </SaveBtn>
+                  ) : null}
+                </Card>
+              ))}
+            </View>
+          )
+      ) : null}
+
+      {seg === "journal" ? (
+        journal.length === 0
+          ? <Empty text="Aucun mouvement financier enregistré." />
+          : (
+            <View style={{ gap: 7 }}>
+              {journal.slice(0, 200).map((e: any) => (
+                <Card key={e.id} style={{ padding: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: "700", fontSize: 13.5 }}>{e.libelle}</Text>
+                    <Text style={{ fontSize: 11.5, color: C.muted }}>
+                      {fDateTime(e.date)} · {e.type}{e.reference ? ` · ${e.reference}` : ""}
+                    </Text>
+                  </View>
+                  <Text style={{ fontWeight: "800", fontSize: 13.5, color: e.montant >= 0 ? C.green : C.rust }}>
+                    {e.montant >= 0 ? "+" : "−"} {fF(Math.abs(e.montant))}
+                  </Text>
+                </Card>
+              ))}
+            </View>
+          )
+      ) : null}
+      <View style={{ height: 18 }} />
+    </View>
+  );
 }
 
 export function ActivityLog({ data, onBack }: any) {
@@ -1512,7 +1712,7 @@ export function DepensesPatron({ data, onBack, onAdd }: any) {
   );
 }
 
-export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile, onAudit, onDepenses, onLivraisons, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
+export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile, onAudit, onFinances, onDepenses, onLivraisons, onOpenPrets, pendingLoans, onRecap, onExport, onRestore }: any) {
   const co = data.coop || {};
   const patron = (data.staff || []).find((s: Staff) => s.role === "patron");
   const completeness = coopCompleteness(co, patron);
@@ -1579,6 +1779,23 @@ export function CoopAccount({ data, onAddMomo, onDelMomo, onSettings, onProfile,
           </Card>
         </Pressable>
       ) : null}
+      {/* Vision financière : le patron lit EXACTEMENT ce que lit le comptable.
+          Un second écran pour lui aurait divergé au premier correctif. */}
+      {onFinances ? (
+        <Pressable onPress={onFinances} testID="coop-finances">
+          <Card style={{ padding: 14, marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 11, backgroundColor: "#EAF3EF", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="trending-up" size={19} color={C.teal} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: "800", fontSize: 14.5 }}>Finances</Text>
+              <Text style={{ fontSize: 11.5, color: C.muted }}>Trésorerie, enveloppes, sommes dues et journal</Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={C.muted} />
+          </Card>
+        </Pressable>
+      ) : null}
+
       {onDepenses ? (
         <Pressable onPress={onDepenses} testID="coop-depenses">
           <Card style={{ padding: 14, marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 11 }}>

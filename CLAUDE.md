@@ -273,6 +273,53 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       pour tous les rôles, patron compris (invariant 19bis) — un prix ou des
       frais négatifs inverseraient le bénéfice sans que rien ne le signale.
 
+13ter. **Comptabilité : elle LIT les opérations, elle ne les ressaisit pas.**
+    Rôle `"comptable"`, créé par le patron comme tout collaborateur — donc avec
+    le **même circuit de connexion** (téléphone + code à 6 chiffres). VALEO n'a
+    **pas** de connexion par e-mail et mot de passe ; lui en inventer une
+    l'aurait privé du verrou anti-force-brute (invariant 17) et de la
+    révocation (invariant 26).
+    - **Il finance, il ne pèse pas**, et c'est toute la raison d'être du rôle.
+      Un comptable qui pourrait modifier une pesée corrigerait ses chiffres
+      **en changeant le terrain** : la fraude la plus difficile à détecter,
+      puisqu'elle laisse des comptes équilibrés devant un stock faux. Le
+      serveur lui refuse `collections`, `settlements`, `sorties`, `loans`,
+      `members`, `staff` et les barèmes. Appliqué sur la donnée, pas à l'écran
+      — sa branche de `authorize_state_write`, et le
+      `raise Forbidden("Rôle inconnu")` final qui refuse par défaut.
+    - **Rien n'est stocké en double.** `tresorerie`, `situationAgent`,
+      `dettesAgents`, `journalFinancier` et `alertesFin` (`lib.ts`, module pur)
+      DÉRIVENT tout des écritures existantes. Le journal financier est une
+      lecture, pas un registre : tenir un second livre alimenté à la main
+      aurait garanti l'écart, et le jour où les deux divergent personne ne sait
+      lequel croire. Corollaire : rien ne s'y supprime, puisqu'il n'y a rien à
+      supprimer — corriger, c'est corriger l'écriture d'origine.
+    - **`Budget` n'est PAS un `Mandat`.** Un `Mandat` est l'argent confié à UN
+      pisteur ; un `Budget` est l'enveloppe de la coopérative dont les mandats
+      sont tirés. Faire porter un seul mot à deux montants qui ne se comparent
+      pas est la manière la plus sûre de corrompre un livre de comptes.
+    - **Une écriture financière ne se récrit pas.** `mandats`, `depenses` et
+      `reglements` sont définitifs et non supprimables. Seule l'**enveloppe**
+      reste ajustable : c'est une prévision, pas un mouvement d'argent.
+    - **Ce que la coopérative doit à un agent se calcule** (commission + gain
+      sur excédent + argent avancé de sa poche) ; ce qu'elle a versé
+      s'enregistre (`reglements`). Le reste dû est la différence, **jamais un
+      champ stocké**, et il n'est pas borné à zéro : un trop-versé s'affiche en
+      négatif plutôt que de se cacher (même raison qu'un stock négatif).
+    - **Les dépenses privées d'un pisteur n'entrent pas dans la trésorerie**
+      (invariant 24) : `scope_state` ne les transmet même pas au comptable, et
+      les compter les ferait payer deux fois.
+    - **Patron et comptable partagent le MÊME écran** (`EspaceFinances`) : le
+      cahier des charges exige qu'ils voient la même situation, et deux écrans
+      nourris par les mêmes fonctions auraient divergé au premier correctif.
+    - Ajouter une entité impose de compléter **trois** listes : `ENTITY_ARRAYS`
+      (server.py), `TABLEAUX` (depot.py) et `ENTITIES` (sync.ts). En oublier
+      une donne un défaut invisible sur MongoDB et destructeur sur Firestore —
+      l'entité n'y est ni lue ni écrite, le PUT répond 200 et les données
+      disparaissent. Un test verrouille les trois ensemble.
+    Couvert par `backend/tests/test_comptable.py` (sur les deux dépôts) et
+    `frontend/tests/finances.test.mjs`, qui rejoue le scénario complet.
+
 14. **Campagnes : la production est cloisonnée, les dettes sont reportées.**
     `scopeSaison(data)` filtre collectes, mandats, dépenses, soldes et sorties sur la campagne
     active — à utiliser pour les volumes, le stock, la caisse et la commission.

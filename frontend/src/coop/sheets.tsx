@@ -563,10 +563,16 @@ export function LoanApproveSheet({ loan, memberName, onClose, onApprove }: any) 
   );
 }
 
-export function DepenseSheet({ onClose, onSave }: any) {
+export function DepenseSheet({ onClose, onSave, comptable }: any) {
   const [category, setCategory] = useState("transport");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  // Champs comptables : demandés au COMPTABLE, pas à un pisteur en tournée.
+  // Lui réclamer une référence de pièce au bord d'un champ n'aurait aucun sens
+  // et ferait abandonner la saisie.
+  const [beneficiaire, setBeneficiaire] = useState("");
+  const [mode, setMode] = useState("espece");
+  const [reference, setReference] = useState("");
   const valid = Number(amount) > 0;
   return (
     <Sheet title="Nouvelle dépense" onClose={onClose}>
@@ -576,8 +582,142 @@ export function DepenseSheet({ onClose, onSave }: any) {
         </View>
       </Field>
       <Field label="Montant (F)"><TInput value={amount} onChangeText={(t) => setAmount(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ex. 15000" /></Field>
+      {comptable ? (
+        <>
+          <Field label="Bénéficiaire / fournisseur (facultatif)">
+            <TInput value={beneficiaire} onChangeText={setBeneficiaire} placeholder="Ex. Transporteur Koné" />
+          </Field>
+          <Field label="Mode de paiement">
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
+              {[["espece", "Espèces"], ["momo", "Mobile Money"], ["virement", "Virement"], ["cheque", "Chèque"]].map(([id, nom]) => (
+                <Chip key={id} label={nom} active={mode === id} onPress={() => setMode(id)} />
+              ))}
+            </View>
+          </Field>
+          <Field label="Référence de pièce (facultatif)">
+            <TInput value={reference} onChangeText={setReference} placeholder="N° de reçu, de facture…" />
+          </Field>
+        </>
+      ) : null}
       <Field label="Note (facultatif)"><TInput value={note} onChangeText={setNote} placeholder="Ex. Location tricycle" /></Field>
-      <SaveBtn disabled={!valid} color={C.teal} onPress={() => onSave({ category, amount: Number(amount), note: note.trim() })}>Enregistrer la dépense</SaveBtn>
+      <SaveBtn disabled={!valid} color={C.teal} onPress={() => onSave({
+        category, amount: Number(amount), note: note.trim(),
+        ...(comptable ? { beneficiaire: beneficiaire.trim(), mode, reference: reference.trim() } : {}),
+      })}>Enregistrer la dépense</SaveBtn>
+    </Sheet>
+  );
+}
+
+/**
+ * Enveloppe financière d'une campagne.
+ *
+ * Modifiable après coup — c'est la seule écriture financière qui le soit, et
+ * c'est assumé : une enveloppe est une PRÉVISION, pas un mouvement d'argent.
+ * Un mandat, une dépense ou un règlement, eux, sont définitifs.
+ */
+export function BudgetSheet({ initial, onClose, onSave }: any) {
+  const [libelle, setLibelle] = useState(initial?.libelle || "");
+  const [montant, setMontant] = useState(String(initial?.montant ?? ""));
+  const [debut, setDebut] = useState(initial?.debut || "");
+  const [fin, setFin] = useState(initial?.fin || "");
+  const [note, setNote] = useState(initial?.note || "");
+  const [cloture, setCloture] = useState(!!initial?.cloture);
+  const valid = libelle.trim().length > 0 && Number(montant) > 0;
+
+  return (
+    <Sheet title={initial ? "Ajuster l'enveloppe" : "Nouvelle enveloppe"} onClose={onClose}>
+      <Field label="Libellé">
+        <TInput value={libelle} onChangeText={setLibelle} placeholder="Ex. Campagne cacao 2026-2027" />
+      </Field>
+      <Field label="Montant (F)">
+        <TInput value={montant} onChangeText={(x) => setMontant(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ex. 50000000" />
+      </Field>
+      <Field label="Début de période">
+        <TInput value={debut} onChangeText={setDebut} placeholder="AAAA-MM-JJ" autoCapitalize="none" />
+      </Field>
+      <Field label="Fin de période">
+        <TInput value={fin} onChangeText={setFin} placeholder="AAAA-MM-JJ" autoCapitalize="none" />
+      </Field>
+      <Field label="Description (facultatif)">
+        <TInput value={note} onChangeText={setNote} placeholder="Ex. Achats cacao et anacarde" />
+      </Field>
+      {initial ? (
+        <Pressable onPress={() => setCloture(!cloture)} testID="budget-cloture"
+          style={{ flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: cloture ? C.rust : C.line, backgroundColor: cloture ? "#FBECE8" : "#fff", borderRadius: 12, padding: 12, marginBottom: 14 }}>
+          <Icon name={cloture ? "check-circle" : "circle"} size={18} color={cloture ? C.rust : C.muted} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: "700", fontSize: 14 }}>Clôturer l&apos;enveloppe</Text>
+            <Text style={{ fontSize: 11.5, color: C.muted }}>Elle reste consultable ; plus aucun mandat ne s&apos;y impute.</Text>
+          </View>
+        </Pressable>
+      ) : null}
+      <SaveBtn disabled={!valid} color={C.teal} onPress={() => onSave({
+        libelle: libelle.trim(), montant: Number(montant),
+        debut: debut.trim(), fin: fin.trim(), note: note.trim(),
+        ...(initial ? { cloture } : {}),
+      })}>
+        {initial ? "Enregistrer l'ajustement" : "Créer l'enveloppe"}
+      </SaveBtn>
+    </Sheet>
+  );
+}
+
+/**
+ * Règlement de ce que la coopérative doit à un collaborateur.
+ *
+ * Le détail de la dette est affiché avant de payer, et le montant est
+ * pré-rempli au reste dû : c'est le moment où une erreur coûte cher, et où
+ * l'agent regarde par-dessus l'épaule.
+ */
+export function ReglementSheet({ dette, onClose, onSave }: any) {
+  const [amount, setAmount] = useState(String(Math.max(0, dette?.reste || 0)));
+  const [method, setMethod] = useState("espece");
+  const [reference, setReference] = useState("");
+  const [note, setNote] = useState("");
+  const n = Number(amount) || 0;
+  const trop = n > (dette?.reste || 0);
+  const valid = n > 0;
+
+  return (
+    <Sheet title={`Paiement — ${dette?.staff?.nom || ""}`} onClose={onClose}>
+      <Card style={{ padding: 13, marginBottom: 14 }}>
+        <Row label="Commission" value={fF(dette?.commission || 0)} />
+        <View style={{ height: 5 }} />
+        <Row label="Gain sur excédent de poids" value={fF(dette?.gainExcedent || 0)} />
+        <View style={{ height: 5 }} />
+        <Row label="Argent avancé de sa poche" value={fF(dette?.avancePerso || 0)} />
+        <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 9 }} />
+        <Row label="Total dû" value={fF(dette?.totalDu || 0)} strong />
+        {dette?.regle > 0 ? (<><View style={{ height: 5 }} /><Row label="− Déjà réglé" value={fF(dette.regle)} /></>) : null}
+        <View style={{ height: 5 }} />
+        <Row label="RESTE À PAYER" value={fF(Math.max(0, dette?.reste || 0))} strong color={C.loss} />
+      </Card>
+
+      <Field label="Montant versé (F)">
+        <TInput value={amount} onChangeText={(x) => setAmount(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="0" />
+        {trop ? (
+          <Text style={{ fontSize: 12, color: C.due, marginTop: 6 }}>
+            Au-delà du reste dû : le trop-versé restera visible, il ne sera pas masqué.
+          </Text>
+        ) : null}
+      </Field>
+      <Field label="Mode de paiement">
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
+          {[["espece", "Espèces"], ["momo", "Mobile Money"], ["virement", "Virement"], ["cheque", "Chèque"]].map(([id, nom]) => (
+            <Chip key={id} label={nom} active={method === id} onPress={() => setMethod(id)} />
+          ))}
+        </View>
+      </Field>
+      <Field label="Référence (facultatif)">
+        <TInput value={reference} onChangeText={setReference} placeholder="N° de reçu, de transfert…" />
+      </Field>
+      <Field label="Note (facultatif)"><TInput value={note} onChangeText={setNote} placeholder="" /></Field>
+      <SaveBtn disabled={!valid} color={C.green} onPress={() => onSave({
+        staffId: dette.staffId, amount: n, method,
+        reference: reference.trim(), note: note.trim(),
+      })}>
+        Confirmer le paiement de {fF(n)}
+      </SaveBtn>
     </Sheet>
   );
 }
@@ -602,6 +742,9 @@ export function CollaborateurSheet({ onClose, onSave, initial }: any) {
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Toggle active={role === "pisteur"} onPress={() => setRole("pisteur")} color={C.teal}>Pisteur / Délégué</Toggle>
           <Toggle active={role === "commis"} onPress={() => setRole("commis")} color={C.teal}>Magasinier</Toggle>
+          {/* Le comptable finance et ne pese pas : le serveur le lui interdit
+              sur la donnee, pas seulement a l ecran. */}
+          <Toggle active={role === "comptable"} onPress={() => setRole("comptable")} color={C.teal}>Comptable</Toggle>
         </View>
       </Field>
       <Field label="Nom & prénoms"><TInput value={nom} onChangeText={setNom} placeholder="Ex. Bakary Coulibaly" /></Field>

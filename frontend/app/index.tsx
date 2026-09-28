@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { AppState, Modal, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { C, Session, buildNotifications, fF, fKg, makeTicket, nextTicketSeq, scopeData, uid } from "@/src/coop/lib";
+import { C, Session, buildNotifications, fF, fKg, makeTicket, nextTicketSeq, scopeData, scopeSaison, uid } from "@/src/coop/lib";
 import { Icon } from "@/src/coop/Icon";
 import { Login, TopBar } from "@/src/coop/auth";
 import {
@@ -22,6 +22,8 @@ import {
   SettlementReceipt,
   SortieSheet,
   ResultatUsineSheet,
+  BudgetSheet,
+  ReglementSheet,
   StockSheet,
   Bordereau,
   LivraisonSheet,
@@ -35,6 +37,7 @@ import {
   DiagnosticSync,
   HistoriqueLivraisons,
   Collaborateurs,
+  EspaceFinances,
   CollectorHome,
   CocoaHero,
   CommisDetail,
@@ -117,6 +120,9 @@ export default function App() {
   const [resetTarget, setResetTarget] = useState<{ kind: "member" | "staff"; id: string; name: string } | null>(null);
   // Expédition dont on complète le résultat d'usine, appris après coup.
   const [sortieUsine, setSortieUsine] = useState<any>(null);
+  // Comptabilité : enveloppe en cours d'ajustement, dette en cours de règlement.
+  const [editBudget, setEditBudget] = useState<any>(null);
+  const [regleTarget, setRegleTarget] = useState<any>(null);
   const [showNotif, setShowNotif] = useState(false);
   const [settlementReceipt, setSettlementReceipt] = useState<any>(null);
   const [confirm, setConfirm] = useState<{ msg: string; onYes: () => void; yesLabel?: string; yesColor?: string } | null>(null);
@@ -133,7 +139,7 @@ export default function App() {
 
   const pickSession = (s: Session) => {
     setSession(s);
-    setTab(s.side === "planteur" ? "poids" : (s as any).role === "patron" ? "bilan" : (s as any).role === "commis" ? "jour" : "tournee");
+    setTab(s.side === "planteur" ? "poids" : (s as any).role === "patron" ? "bilan" : (s as any).role === "comptable" ? "finances" : (s as any).role === "commis" ? "jour" : "tournee");
   };
 
   // Restauration de session au démarrage à partir du jeton stocké (SecureStore).
@@ -351,8 +357,58 @@ export default function App() {
     else if (tab === "prets") body = <PatronPrets data={data} onApprove={(l: any) => setApproveLoanObj(l)} onRefuse={(id: string) => store.refuseLoan(id, session.staffId)} onNew={() => setSheet("loan")} onBack={() => setTab("bilan")} />;
     else if (tab === "depenses") body = <DepensesPatron data={data} onBack={() => setTab("coop")} onAdd={() => setSheet("depense")} />;
     else if (tab === "livraisons") body = <HistoriqueLivraisons data={data} onBack={() => setTab("coop")} />;
+    else if (tab === "finances") body = (
+      <>
+        <Pressable onPress={() => setTab("coop")} style={{ flexDirection: "row", alignItems: "center", gap: 5, alignSelf: "flex-start", backgroundColor: "#fff", borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingVertical: 7, paddingHorizontal: 12, marginBottom: 12 }}>
+          <Icon name="arrow-left" size={15} color={C.cocoa} /><Text style={{ color: C.cocoa, fontWeight: "600", fontSize: 13 }}>Coop</Text>
+        </Pressable>
+        {/* Même composant, mêmes fonctions, mêmes chiffres que le comptable. */}
+        <EspaceFinances
+          data={scopeSaison(data)}
+          complet={data}
+          role="patron"
+          onNewBudget={() => { setEditBudget(null); setSheet("budget"); }}
+          onAjusterBudget={(b: any) => { setEditBudget(b); setSheet("budget"); }}
+          onRegler={(d: any) => setRegleTarget(d)}
+          onNewDepense={() => setSheet("depense")}
+          onNewMandat={() => setSheet("mandat")}
+        />
+      </>
+    );
     else if (tab === "diagSync") body = <DiagnosticSync backendUrl={store.backendUrl} backendMode={store.backendMode} deprecie={store.deprecie} etat={store.syncState} lastSyncAt={store.lastSyncAt} pending={store.pending} onDiag={store.fetchDiag} onBack={() => setTab("bilan")} />;
-    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onAudit={() => setSheet("audit")} onDepenses={() => setTab("depenses")} onLivraisons={() => setTab("livraisons")} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
+    else body = <CoopAccount data={data} onAddMomo={() => setSheet("coopMomo")} onDelMomo={store.delCoopMomo} onSettings={() => setSheet("settings")} onProfile={() => setSheet("coopProfile")} onAudit={() => setSheet("audit")} onFinances={() => setTab("finances")} onDepenses={() => setTab("depenses")} onLivraisons={() => setTab("livraisons")} onOpenPrets={() => setTab("prets")} pendingLoans={pendingLoans} onRecap={doRecap} onExport={doExport} onRestore={doRestore} />;
+  } else if (isCoop && role === "comptable") {
+    // Aucun bouton de pesée : il finance, il ne pèse pas. Le serveur le refuse
+    // sur la donnée ; lui proposer le geste à l'écran serait lui mentir.
+    nav = (
+      <NavBar
+        theme={C.teal}
+        active={tab}
+        fabIcon="receipt"
+        fabColor={C.rust}
+        left={[{ id: "finances", icon: "trending-up", label: "Finances" }, { id: "planteurs", icon: "users", label: "Planteurs" }]}
+        right={[{ id: "collaborateurs", icon: "briefcase", label: "Équipe" }]}
+        onTab={(t) => { setTab(t); setOpenMember(null); setOpenCollab(null); }}
+        onFab={() => setSheet("depense")}
+      />
+    );
+    if (openMemberObj) body = <MemberDetail member={openMemberObj} data={data} onBack={() => setOpenMember(null)} onReceipt={setReceipt} onSettlementReceipt={setSettlementReceipt} />;
+    // Consultation seulement : ni création de planteur, ni de collaborateur.
+    else if (tab === "planteurs") body = <Members data={data} onOpen={setOpenMember} onVillageRecap={doVillageRecap} />;
+    else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} />;
+    else if (tab === "diagSync") body = <DiagnosticSync backendUrl={store.backendUrl} backendMode={store.backendMode} deprecie={store.deprecie} etat={store.syncState} lastSyncAt={store.lastSyncAt} pending={store.pending} onDiag={store.fetchDiag} onBack={() => setTab("finances")} />;
+    else body = (
+      <EspaceFinances
+        data={scopeSaison(data)}
+        complet={data}
+        role="comptable"
+        onNewBudget={() => { setEditBudget(null); setSheet("budget"); }}
+        onAjusterBudget={(b: any) => { setEditBudget(b); setSheet("budget"); }}
+        onRegler={(d: any) => setRegleTarget(d)}
+        onNewDepense={() => setSheet("depense")}
+        onNewMandat={() => setSheet("mandat")}
+      />
+    );
   } else if (isCoop) {
     const isPisteur = role === "pisteur";
     nav = (
@@ -445,9 +501,11 @@ export default function App() {
       {sheet === "livraison" && role === "pisteur" ? <LivraisonSheet data={data} staffId={staffId} onClose={() => setSheet("stock")} onSave={(ids: string[]) => { store.livrerCollections(ids, staffId); setSheet("stock"); setNotice("Livraison enregistrée. Le magasinier doit maintenant vérifier le poids."); }} /> : null}
       {sheet === "sortie" && role !== "pisteur" ? <SortieSheet data={data} staffId={staffId} scope={stockScope} role={role} onClose={() => setSheet("stock")} onSave={(x: any) => { store.addSortie(x); setSheet("stock"); setNotice("Sortie enregistrée. Le stock a été mis à jour."); }} /> : null}
       {sortieUsine ? <ResultatUsineSheet data={data} sortie={sortieUsine} onClose={() => setSortieUsine(null)} onSave={(x: any) => { store.majResultatUsine(sortieUsine.id, x); setSortieUsine(null); setNotice("Résultat de l'usine enregistré."); }} /> : null}
+      {sheet === "budget" && (role === "comptable" || role === "patron") ? <BudgetSheet initial={editBudget} onClose={() => { setSheet(null); setEditBudget(null); }} onSave={(x: any) => { if (editBudget) store.majBudget(editBudget.id, x); else store.addBudget({ ...x, byStaffId: staffId }); setSheet(null); setEditBudget(null); setNotice(editBudget ? "Enveloppe ajustée." : "Enveloppe créée."); }} /> : null}
+      {regleTarget ? <ReglementSheet dette={regleTarget} onClose={() => setRegleTarget(null)} onSave={(x: any) => { store.addReglement({ ...x, byStaffId: staffId }); setRegleTarget(null); setNotice(`Paiement de ${fF(x.amount)} enregistré.`); }} /> : null}
       {sheet === "linkMomo" && session.side === "planteur" ? <LinkMomoSheet title="Lier mon Mobile Money" onClose={() => setSheet(null)} onSave={(mm: any) => { store.linkMemberMomo(session.memberId, mm); setSheet(null); }} /> : null}
       {sheet === "coopMomo" ? <LinkMomoSheet title="Ajouter un compte coop" withLabel onClose={() => setSheet(null)} onSave={(mm: any) => { store.addCoopMomo(mm); setSheet(null); }} /> : null}
-      {sheet === "depense" ? <DepenseSheet onClose={() => setSheet(null)} onSave={(x: any) => { store.addDepense({ pisteurId: staffId, ...x }); setSheet(null); }} /> : null}
+      {sheet === "depense" ? <DepenseSheet comptable={role === "comptable"} onClose={() => setSheet(null)} onSave={(x: any) => { store.addDepense({ pisteurId: staffId, ...x }); setSheet(null); }} /> : null}
       {sheet === "mandat" ? <MandatSheet data={data} pisteurId={openCollab} onClose={() => setSheet(null)} onSave={(x: any) => { store.addMandat(x); setSheet(null); }} /> : null}
       {sheet === "collab" ? <CollaborateurSheet initial={editCollab} onClose={() => { setSheet(null); setEditCollab(null); }} onSave={(s: any) => { if (editCollab) store.updateStaff(editCollab.id, s); else { store.addStaff(s); setTab("collaborateurs"); } setSheet(null); setEditCollab(null); }} /> : null}
       {approveLoanObj ? <LoanApproveSheet loan={approveLoanObj} memberName={data.members.find((m) => m.id === approveLoanObj.memberId)?.nom || "—"} onClose={() => setApproveLoanObj(null)} onApprove={(granted: number, mode: string) => { store.approveLoan(approveLoanObj.id, granted, mode, staffId); setApproveLoanObj(null); }} /> : null}

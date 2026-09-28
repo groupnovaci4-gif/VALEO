@@ -77,7 +77,13 @@ export const ROLES: Record<string, { label: string; sub: string; icon: string }>
   patron: { label: "Patron / Acheteur", sub: "Gère la coopérative, approuve les avances", icon: "shield-check" },
   commis: { label: "Magasinier", sub: "Pèse, stocke et délivre les bordereaux", icon: "package" },
   pisteur: { label: "Pisteur / Délégué", sub: "Collecte en tournée dans les villages", icon: "truck" },
+  // Il finance, il ne pèse pas : c'est toute la raison d'être du rôle, et le
+  // serveur l'applique sur la donnée, pas seulement à l'écran.
+  comptable: { label: "Comptable", sub: "Enveloppes, mandats, dépenses et règlements", icon: "wallet" },
 };
+
+/** Rôles qui pèsent du produit. Le comptable n'en est pas, par construction. */
+export const ROLES_TERRAIN = ["patron", "commis", "pisteur"];
 
 // Motifs de sortie du magasin. Sans eux, le « stock » ne pouvait que monter :
 // il additionnait les entrées sans jamais rien retrancher.
