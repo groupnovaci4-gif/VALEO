@@ -294,10 +294,42 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       aurait garanti l'écart, et le jour où les deux divergent personne ne sait
       lequel croire. Corollaire : rien ne s'y supprime, puisqu'il n'y a rien à
       supprimer — corriger, c'est corriger l'écriture d'origine.
-    - **`Budget` n'est PAS un `Mandat`.** Un `Mandat` est l'argent confié à UN
-      pisteur ; un `Budget` est l'enveloppe de la coopérative dont les mandats
-      sont tirés. Faire porter un seul mot à deux montants qui ne se comparent
-      pas est la manière la plus sûre de corrompre un livre de comptes.
+    - **La chaîne financière a QUATRE crans, et chacun borne le suivant.**
+
+          Budget d'achat (PATRON)        ← l'argent de la coopérative
+            └─ Allocation (PATRON)       ← ce qu'il met à la main d'un comptable
+                 └─ Enveloppe (COMPTABLE) ← ce qu'il affecte à un usage
+                      └─ Mandat (COMPTABLE) ← ce qu'il confie à un pisteur
+
+      Chaque mot désigne un montant différent : les confondre est la manière
+      la plus sûre de corrompre un livre de comptes.
+      **Le cran de l'allocation manquait**, et son absence rendait tout le
+      reste décoratif : le comptable ouvrait lui-même l'enveloppe sur laquelle
+      ses propres mandats étaient plafonnés. Un plafond qui s'appuie sur une
+      valeur que l'intéressé saisit lui-même ne plafonne rien. Le comptable ne
+      possède pas les fonds : il gère, dans une limite posée par le patron.
+      Trois bornes, appliquées côté serveur :
+      - `Σ allocations ≤ Σ budgets` (`_check_allocations_dans_budget`) — la
+        seule qui s'applique au PATRON, de même nature que l'invariant 19bis :
+        allouer plus qu'on n'engage n'est pas une décision, c'est une
+        incohérence comptable. Il la lève en augmentant le budget ;
+      - `Σ enveloppes(C) + Σ dépenses(C) ≤ Σ allocations(C)`
+        (`_check_engagements_du_comptable`). Les dépenses comptent parce
+        qu'elles sortent RÉELLEMENT de l'argent, là où une enveloppe n'est
+        encore qu'une affectation ;
+      - `Σ mandats(E) ≤ E.montant` (`_check_mandats_dans_enveloppes`), plus un
+        contrôle du total : sans lui, la borne se contournerait en omettant
+        simplement `enveloppeId`.
+      Le patron n'est soumis qu'à la première : les autres sont la discipline
+      du comptable, pas une limite à sa souveraineté (invariant 2).
+      Les contrôles lisent l'état **entrant**, budgets et allocations compris :
+      un comptable revenu du terrain qui envoie l'enveloppe et le mandat dans
+      la même synchronisation doit passer.
+      `Mandat.enveloppeId` est **facultatif** : les mandats confiés avant la
+      hiérarchie n'en ont pas, et les effacer réécrirait l'histoire.
+      Côté client, `tresorerie`, `fondsComptable` et `soldeEnveloppe`
+      (`lib.ts`) lisent les mêmes bornes — l'écran les affiche AVANT le refus,
+      plutôt que de laisser découvrir la limite au moment du 403.
     - **Une écriture financière ne se récrit pas.** `mandats`, `depenses` et
       `reglements` sont définitifs et non supprimables. Seule l'**enveloppe**
       reste ajustable : c'est une prévision, pas un mouvement d'argent.
@@ -345,6 +377,12 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       désormais ce menu à `authorize_state_write` elle-même. Ce qui dépend du
       rôle passe par `ROLES`, `pese()` ou `peutSolder()` (lib.ts), jamais par
       une comparaison recopiée.
+    - **Une entité financière nouvelle doit être REFUSÉE à tous les autres
+      rôles, explicitement.** `_deny_touching` énumère ce qui est interdit :
+      ajouter `allocations` et `enveloppes` sans compléter la liste du pisteur
+      et du magasinier laissait un agent de terrain s'allouer des fonds et
+      ouvrir sa propre enveloppe — le plafond n'existait alors plus pour
+      personne. Trouvé par un test, pas à la lecture.
     - Ajouter une entité impose de compléter **trois** listes : `ENTITY_ARRAYS`
       (server.py), `TABLEAUX` (depot.py) et `ENTITIES` (sync.ts). En oublier
       une donne un défaut invisible sur MongoDB et destructeur sur Firestore —
@@ -355,7 +393,7 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
 
 14. **Campagnes : la production est cloisonnée, les dettes sont reportées.**
     `scopeSaison(data)` filtre collectes, mandats, dépenses, soldes, sorties,
-    **enveloppes et règlements** sur la campagne
+    **budgets, allocations, enveloppes et règlements** sur la campagne
     active — à utiliser pour les volumes, le stock, la caisse et la commission.
     Le **reste dû** et les **avances à recouvrer** ne sont JAMAIS filtrés : ils suivent
     le planteur d'une campagne à l'autre. Les historiques et journaux non plus.

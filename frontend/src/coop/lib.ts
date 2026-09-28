@@ -348,7 +348,13 @@ export type Loan = Synced & Campagne & {
   decidedAt?: string | null;
 };
 export type Settlement = Synced & Campagne & { id: string; coopId?: string; memberId: string; byStaffId: string; amount: number; method: string; date: string; viaPesee?: boolean; seq?: number; ticket?: string; clientOpId?: string; refs?: { seq: number; ticket?: string; amount: number }[] };
-export type Mandat = Synced & Campagne & { id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string };
+export type Mandat = Synced & Campagne & {
+  id: string; coopId?: string; pisteurId: string; amount: number; date: string; note: string;
+  /** Enveloppe du comptable sur laquelle ce mandat est tiré.
+   *  FACULTATIF : les mandats confiés avant la hiérarchie financière n'en ont
+   *  pas, et les effacer réécrirait l'histoire. Ils restent imputés au total. */
+  enveloppeId?: string;
+};
 export type Depense = Synced & Campagne & {
   id: string; coopId?: string;
   /** Auteur de la dépense. Pour un pisteur, elle reste PRIVÉE (invariant 24). */
@@ -364,16 +370,33 @@ export type Depense = Synced & Campagne & {
   reference?: string;
 };
 
-/**
- * **Enveloppe financière d'une campagne** — ce que le comptable met à
- * disposition pour acheter du produit.
+/* -------------------------------------------------------------------------- *
+ *                        LA CHAÎNE FINANCIÈRE, EN QUATRE CRANS                *
+ * -------------------------------------------------------------------------- *
+ *   Budget d'achat (PATRON)                       ← l'argent de la coopérative
+ *     └─ Allocation à un comptable (PATRON)       ← ce qu'il met à sa main
+ *          └─ Enveloppe (COMPTABLE)               ← ce qu'il affecte à un usage
+ *               └─ Mandat (COMPTABLE)             ← ce qu'il confie à un pisteur
+ *                    └─ Achats du pisteur
  *
- * ⚠️ À ne pas confondre avec `Mandat`, et c'est pourquoi le nom diffère :
- * un `Mandat` est l'argent **confié à un pisteur** ; un `Budget` est
- * l'enveloppe **de la coopérative** dont les mandats sont tirés. Réutiliser le
- * mot « mandat » pour les deux ferait porter un seul terme à deux montants qui
- * ne se comparent pas — la manière la plus sûre de corrompre un livre de
- * comptes.
+ * Chaque cran est **borné par celui du dessus**, côté serveur. Sans cette
+ * chaîne, le comptable créait sa propre enveloppe : il ne fabriquait pas
+ * d'argent au sens comptable, mais rien ne le bornait — un plafond qui ne
+ * s'appuie que sur une valeur que l'intéressé saisit lui-même ne plafonne rien.
+ * Quatre crans et non trois parce que chacun répond à une question distincte :
+ * combien la coopérative engage, à QUI elle en confie la gestion, POUR QUOI, et
+ * à quel pisteur.
+ */
+
+/**
+ * **Budget d'achat de la coopérative** — l'argent que le PATRON engage pour la
+ * campagne. C'est le sommet de la chaîne : rien, en dessous, ne peut le
+ * dépasser.
+ *
+ * ⚠️ À ne pas confondre avec `Mandat` ni `Enveloppe` : un `Mandat` est l'argent
+ * confié à UN pisteur, une `Enveloppe` est ce qu'un comptable affecte à un
+ * usage. Faire porter un seul mot à des montants qui ne se comparent pas est la
+ * manière la plus sûre de corrompre un livre de comptes.
  */
 export type Budget = Synced & Campagne & {
   id: string; coopId?: string;
@@ -383,7 +406,47 @@ export type Budget = Synced & Campagne & {
   debut: string;
   fin: string;
   note: string;
-  /** Clôturé : plus aucun mandat ne s'y impute. L'enregistrement reste. */
+  /** Produits concernés (`cropId`). Vide = tous. Indicatif : la chaîne
+   *  financière ne se cloisonne pas par produit, seule la campagne le fait. */
+  cropIds?: string[];
+  /** Clôturé : plus aucune allocation ne s'y impute. L'enregistrement reste. */
+  cloture?: boolean;
+  byStaffId: string;
+  date: string;
+};
+
+/**
+ * **Allocation du budget à un comptable** — décidée par le PATRON, et par lui
+ * seul. C'est le cran qui manquait, et son absence rendait tout le reste
+ * décoratif : le comptable ouvrait son enveloppe au montant de son choix.
+ *
+ * Elle n'est pas un mouvement d'argent mais une **autorisation d'engager**. Le
+ * comptable ne détient pas de caisse ; il engage la coopérative dans une limite
+ * que le patron a posée.
+ */
+export type Allocation = Synced & Campagne & {
+  id: string; coopId?: string;
+  /** Le comptable à qui le patron confie la gestion de ces fonds. */
+  comptableId: string;
+  amount: number;
+  note: string;
+  /** Le patron qui l'a décidée. */
+  byStaffId: string;
+  date: string;
+};
+
+/**
+ * **Enveloppe d'un comptable** — la part de SON allocation qu'il affecte à un
+ * usage (« Achat cacao », « Campagne anacarde »…). Les mandats en sont tirés.
+ */
+export type Enveloppe = Synced & Campagne & {
+  id: string; coopId?: string;
+  /** Le comptable qui l'ouvre. Elle s'impute sur SES allocations. */
+  comptableId: string;
+  libelle: string;
+  montant: number;
+  note: string;
+  /** Clôturée : plus aucun mandat ne s'y impute. L'enregistrement reste. */
   cloture?: boolean;
   byStaffId: string;
   date: string;
@@ -500,6 +563,8 @@ export type Data = {
   // Comptabilité. Facultatifs : un état chargé depuis un appareil antérieur au
   // module financier n'en a aucun, et tout doit continuer de fonctionner.
   budgets?: Budget[];
+  allocations?: Allocation[];
+  enveloppes?: Enveloppe[];
   reglements?: Reglement[];
   priceHistory: PriceHistory[];
 };
@@ -770,6 +835,8 @@ export function scopeSaison(data: Data, saison?: string): Data {
     // pas. Ce que la campagne ne cloisonne PAS reste inchangé : la dette en
     // kilos et les avances suivent l'agent (invariants 10bis et 14).
     budgets: (data.budgets || []).filter((x) => inSaison(x, s)),
+    allocations: (data.allocations || []).filter((x) => inSaison(x, s)),
+    enveloppes: (data.enveloppes || []).filter((x) => inSaison(x, s)),
     reglements: (data.reglements || []).filter((x) => inSaison(x, s)),
   };
 }
@@ -1492,6 +1559,8 @@ export function dettesAgents(data: Data, complet?: Data) {
 export function tresorerie(data: Data, complet?: Data) {
   const budgets = (data.budgets || []);
   const enveloppe = budgets.reduce((s, b) => s + (Number(b.montant) || 0), 0);
+  const alloue = (data.allocations || []).reduce((s, a) => s + (Number(a.amount) || 0), 0);
+  const engage = (data.enveloppes || []).reduce((s, e) => s + (Number(e.montant) || 0), 0);
   const attribue = (data.mandats || []).reduce((s, m) => s + (Number(m.amount) || 0), 0);
 
   // Dépenses de la COOPÉRATIVE : celles du patron et du magasinier, jamais
@@ -1512,10 +1581,18 @@ export function tresorerie(data: Data, complet?: Data) {
     + (data.settlements || []).reduce((s, x) => s + (Number(x.amount) || 0), 0);
 
   return {
+    /** Cran 1 — budget d'achat engagé par le patron. */
     enveloppe,
+    /** Cran 2 — ce que le patron a mis à la main de ses comptables. */
+    alloue,
+    /** Budget encore à allouer. */
+    nonAlloue: enveloppe - alloue,
+    /** Cran 3 — ce que les comptables ont affecté à un usage. */
+    engage,
+    /** Cran 4 — ce qui est confié aux pisteurs. */
     attribue,
-    /** Enveloppe non encore confiée à un agent. */
-    nonAttribue: enveloppe - attribue,
+    /** Enveloppes ouvertes, pas encore confiées à un agent. */
+    nonAttribue: engage - attribue,
     achats,
     depenses,
     commissions,
@@ -1523,18 +1600,67 @@ export function tresorerie(data: Data, complet?: Data) {
     /** Ce qui reste à verser aux agents. */
     duAgents,
     regle,
-    /** Ce dont la coopérative dispose réellement, engagements déduits. */
+    /** Ce dont la coopérative dispose réellement, engagements déduits.
+     *  On retranche ce qui est CONFIÉ (les mandats), pas ce qui est seulement
+     *  alloué ou affecté : une allocation est une autorisation d'engager, pas
+     *  une sortie d'argent. La compter ici ferait disparaître deux fois la
+     *  même somme. */
     disponible: enveloppe - attribue - depenses - duAgents,
     dettes,
   };
+}
+
+/**
+ * **Fonds d'un comptable** — ce que le patron lui a alloué, ce qu'il en a
+ * engagé, ce qu'il lui reste.
+ *
+ * C'est la règle que le serveur applique, et le seul endroit où elle vit :
+ * `engage + depenses ≤ alloue`. Les dépenses comptent parce qu'elles sortent
+ * réellement de l'argent de la coopérative, là où une enveloppe n'est encore
+ * qu'une affectation.
+ */
+export function fondsComptable(data: Data, comptableId: string) {
+  const alloue = (data.allocations || [])
+    .filter((a) => a.comptableId === comptableId)
+    .reduce((s, a) => s + (Number(a.amount) || 0), 0);
+  const mesEnveloppes = (data.enveloppes || []).filter((e) => e.comptableId === comptableId);
+  const engage = mesEnveloppes.reduce((s, e) => s + (Number(e.montant) || 0), 0);
+  const depenses = (data.depenses || [])
+    .filter((d) => d.pisteurId === comptableId)
+    .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  return {
+    alloue,
+    engage,
+    depenses,
+    /** Ce qu'il peut encore affecter ou dépenser. Jamais borné à zéro : un
+     *  dépassement hérité doit rester visible plutôt que d'être masqué. */
+    disponible: alloue - engage - depenses,
+    enveloppes: mesEnveloppes,
+  };
+}
+
+/**
+ * **Solde d'une enveloppe** — ce qu'elle porte, ce qui en est déjà confié.
+ *
+ * Un mandat SANS `enveloppeId` (confié avant la hiérarchie) n'est imputé à
+ * aucune enveloppe en particulier : l'effacer de l'histoire serait pire que
+ * de le laisser hors imputation. Il reste compté dans `tresorerie.attribue`.
+ */
+export function soldeEnveloppe(data: Data, enveloppeId: string) {
+  const env = (data.enveloppes || []).find((e) => e.id === enveloppeId);
+  const montant = Number(env?.montant) || 0;
+  const attribue = (data.mandats || [])
+    .filter((m) => m.enveloppeId === enveloppeId)
+    .reduce((s, m) => s + (Number(m.amount) || 0), 0);
+  return { enveloppe: env, montant, attribue, disponible: montant - attribue };
 }
 
 /** Une écriture du journal financier. Dérivée, jamais stockée. */
 export type EcritureFin = {
   id: string;
   date: string;
-  type: "BUDGET" | "MANDAT" | "ACHAT" | "AVANCE_PERSO" | "EXCEDENT_POIDS"
-      | "COMMISSION" | "DEPENSE" | "REGLEMENT";
+  type: "BUDGET" | "ALLOCATION" | "ENVELOPPE" | "MANDAT" | "ACHAT" | "AVANCE_PERSO"
+      | "EXCEDENT_POIDS" | "COMMISSION" | "DEPENSE" | "REGLEMENT";
   libelle: string;
   /** Positif : entre dans la trésorerie. Négatif : en sort ou l'engage. */
   montant: number;
@@ -1564,8 +1690,24 @@ export function journalFinancier(data: Data): EcritureFin[] {
 
   (data.budgets || []).forEach((b) => out.push({
     id: `bud-${b.id}`, date: b.date, type: "BUDGET",
-    libelle: `Enveloppe « ${b.libelle} »`, montant: Number(b.montant) || 0,
+    libelle: `Budget d'achat « ${b.libelle} »`, montant: Number(b.montant) || 0,
     parStaffId: b.byStaffId, note: b.note,
+  }));
+
+  // Une allocation N'EST PAS une sortie d'argent : c'est une autorisation
+  // d'engager, donnée par le patron. Elle figure au journal à zéro pour rester
+  // traçable sans fausser aucun total — la compter en négatif ferait
+  // disparaître deux fois la même somme (une fois ici, une fois au mandat).
+  (data.allocations || []).forEach((a) => out.push({
+    id: `all-${a.id}`, date: a.date, type: "ALLOCATION",
+    libelle: `Fonds mis à la main de ${nom(a.comptableId)} — ${fF(Number(a.amount) || 0)}`,
+    montant: 0, parStaffId: a.byStaffId, pourStaffId: a.comptableId, note: a.note,
+  }));
+
+  (data.enveloppes || []).forEach((e) => out.push({
+    id: `env-${e.id}`, date: e.date, type: "ENVELOPPE",
+    libelle: `Enveloppe « ${e.libelle} » — ${fF(Number(e.montant) || 0)}`,
+    montant: 0, parStaffId: e.byStaffId, note: e.note,
   }));
 
   (data.mandats || []).forEach((m) => out.push({
@@ -1607,10 +1749,22 @@ export function alertesFin(data: Data, complet?: Data) {
   const tr = tresorerie(data, complet);
   const out: { niveau: "info" | "attention" | "grave"; texte: string }[] = [];
 
+  if (tr.enveloppe > 0 && tr.nonAlloue < 0)
+    out.push({ niveau: "grave", texte: `Alloué aux comptables au-delà du budget : ${fF(-tr.nonAlloue)} de trop.` });
   if (tr.enveloppe > 0 && tr.nonAttribue < 0)
-    out.push({ niveau: "grave", texte: `Mandats confiés au-delà de l'enveloppe : ${fF(-tr.nonAttribue)} de trop.` });
-  if (tr.enveloppe > 0 && tr.nonAttribue >= 0 && tr.nonAttribue < tr.enveloppe * 0.1)
-    out.push({ niveau: "attention", texte: `Enveloppe presque épuisée : ${fF(tr.nonAttribue)} restants.` });
+    out.push({ niveau: "grave", texte: `Mandats confiés au-delà des enveloppes : ${fF(-tr.nonAttribue)} de trop.` });
+  if (tr.enveloppe > 0 && tr.nonAlloue >= 0 && tr.nonAlloue < tr.enveloppe * 0.1)
+    out.push({ niveau: "attention", texte: `Budget presque entièrement alloué : ${fF(tr.nonAlloue)} restants.` });
+  if (tr.engage > 0 && tr.nonAttribue >= 0 && tr.nonAttribue < tr.engage * 0.1)
+    out.push({ niveau: "attention", texte: `Enveloppes presque épuisées : ${fF(tr.nonAttribue)} restants.` });
+  // Un comptable qui a engagé au-delà de son allocation : hérité, ou saisi hors
+  // ligne pendant qu'une allocation était réduite. Le serveur refuse désormais
+  // l'écriture ; l'alerte sert à voir ce qui a déjà passé.
+  (data.staff || []).filter((x) => x.role === "comptable").forEach((c) => {
+    const f = fondsComptable(data, c.id);
+    if (f.alloue > 0 && f.disponible < 0)
+      out.push({ niveau: "grave", texte: `${c.nom} a engagé ${fF(-f.disponible)} au-delà de son allocation.` });
+  });
   if (tr.disponible < 0)
     out.push({ niveau: "grave", texte: `Trésorerie négative : ${fF(-tr.disponible)} d'engagements non couverts.` });
 

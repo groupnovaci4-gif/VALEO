@@ -24,6 +24,8 @@ import {
   ROLES,
   pese,
   tresorerie,
+  fondsComptable,
+  soldeEnveloppe,
   alertesFin,
   journalFinancier,
   group,
@@ -337,7 +339,7 @@ function buildActivity(data: Data): Ev[] {
  * Tout est en cartes, pas en tableaux : VALEO se tient à une main, sur un
  * téléphone d'entrée de gamme, souvent en plein soleil.
  */
-export function EspaceFinances({ data, complet, role, onNewBudget, onAjusterBudget, onRegler, onNewDepense, onNewMandat }: any) {
+export function EspaceFinances({ data, complet, role, staffId, onNewBudget, onAjusterBudget, onAllouer, onNewEnveloppe, onAjusterEnveloppe, onRegler, onNewDepense, onNewMandat }: any) {
   const [seg, setSeg] = useState("enveloppes");
   const tr = tresorerie(data, complet);
   const alertes = alertesFin(data, complet);
@@ -359,9 +361,15 @@ export function EspaceFinances({ data, complet, role, onNewBudget, onAjusterBudg
         <Text style={{ fontSize: 30, fontWeight: "900", color: tr.disponible >= 0 ? C.green : C.loss, marginTop: 2 }}>
           {fFull(tr.disponible)}
         </Text>
-        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Enveloppes, moins les fonds confiés, les dépenses et ce qui reste dû.</Text>
+        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Budget d&apos;achat, moins les fonds confiés, les dépenses et ce qui reste dû.</Text>
         <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 12 }} />
-        <Row label="Enveloppes de campagne" value={fF(tr.enveloppe)} />
+        {/* Les quatre crans de la chaîne, dans l'ordre. Les voir à la suite est
+            ce qui permet de savoir OÙ l'argent est bloqué. */}
+        <Row label="Budget d'achat (patron)" value={fF(tr.enveloppe)} />
+        <View style={{ height: 6 }} />
+        <Row label="· dont alloué aux comptables" value={fF(tr.alloue)} />
+        <View style={{ height: 6 }} />
+        <Row label="· dont affecté en enveloppes" value={fF(tr.engage)} />
         <View style={{ height: 6 }} />
         <Row label="− Fonds confiés aux agents" value={fF(tr.attribue)} />
         <View style={{ height: 6 }} />
@@ -371,7 +379,7 @@ export function EspaceFinances({ data, complet, role, onNewBudget, onAjusterBudg
       </Card>
 
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
-        <StatCell label="Non confié" value={fF(tr.nonAttribue)} color={tr.nonAttribue >= 0 ? C.teal : C.loss} />
+        <StatCell label="Non alloué" value={fF(tr.nonAlloue)} color={tr.nonAlloue >= 0 ? C.teal : C.loss} />
         <StatCell label="Achats financés" value={fF(tr.achats)} color={C.cocoaSoft} />
         <StatCell label="Déjà réglé" value={fF(tr.regle)} color={C.green} />
       </View>
@@ -389,16 +397,45 @@ export function EspaceFinances({ data, complet, role, onNewBudget, onAjusterBudg
         </Card>
       ) : null}
 
+      {/* Le comptable voit ce qui lui est alloué : sans ce chiffre, il découvre
+          sa limite au moment du refus. */}
+      {role === "comptable" && staffId ? (() => {
+        const f = fondsComptable(data, staffId);
+        return (
+          <Card style={{ padding: 13, marginBottom: 12 }}>
+            <Text style={{ fontSize: 12, color: C.muted, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Mes fonds</Text>
+            <Row label="Alloué par le patron" value={fF(f.alloue)} />
+            <View style={{ height: 6 }} />
+            <Row label="− Affecté en enveloppes" value={fF(f.engage)} />
+            <View style={{ height: 6 }} />
+            <Row label="− Dépenses engagées" value={fF(f.depenses)} />
+            <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 9 }} />
+            <Row label="Disponible" value={fF(f.disponible)} strong />
+            {f.alloue <= 0 ? (
+              <Text style={{ fontSize: 12, color: C.loss, marginTop: 8, lineHeight: 17 }}>
+                Le patron ne vous a alloué aucun fonds pour cette campagne. Vous ne pouvez encore rien engager.
+              </Text>
+            ) : null}
+          </Card>
+        );
+      })() : null}
+
       {peutEcrire ? (
-        <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
           {onNewBudget ? (
-            <SaveBtn color={theme} icon={<Icon name="wallet" size={16} color="#fff" />} onPress={onNewBudget} style={{ flex: 1 }}>Enveloppe</SaveBtn>
+            <SaveBtn color={theme} icon={<Icon name="wallet" size={16} color="#fff" />} onPress={onNewBudget} style={{ flexGrow: 1, flexBasis: "45%" }}>Budget d&apos;achat</SaveBtn>
+          ) : null}
+          {onAllouer ? (
+            <SaveBtn color={C.lime} icon={<Icon name="users" size={16} color="#fff" />} onPress={onAllouer} style={{ flexGrow: 1, flexBasis: "45%" }}>Allouer</SaveBtn>
+          ) : null}
+          {onNewEnveloppe ? (
+            <SaveBtn color={theme} icon={<Icon name="wallet" size={16} color="#fff" />} onPress={onNewEnveloppe} style={{ flexGrow: 1, flexBasis: "45%" }}>Enveloppe</SaveBtn>
           ) : null}
           {onNewMandat ? (
-            <SaveBtn color={C.gold} icon={<Icon name="send" size={16} color="#fff" />} onPress={onNewMandat} style={{ flex: 1 }}>Mandat</SaveBtn>
+            <SaveBtn color={C.gold} icon={<Icon name="send" size={16} color="#fff" />} onPress={onNewMandat} style={{ flexGrow: 1, flexBasis: "45%" }}>Mandat</SaveBtn>
           ) : null}
           {onNewDepense ? (
-            <SaveBtn color={C.rust} icon={<Icon name="receipt" size={16} color="#fff" />} onPress={onNewDepense} style={{ flex: 1 }}>Dépense</SaveBtn>
+            <SaveBtn color={C.rust} icon={<Icon name="receipt" size={16} color="#fff" />} onPress={onNewDepense} style={{ flexGrow: 1, flexBasis: "45%" }}>Dépense</SaveBtn>
           ) : null}
         </View>
       ) : null}
@@ -406,43 +443,112 @@ export function EspaceFinances({ data, complet, role, onNewBudget, onAjusterBudg
       <Segments segs={segs} seg={seg} setSeg={setSeg} theme={theme} />
 
       {seg === "enveloppes" ? (
-        (data.budgets || []).length === 0
-          ? <Empty text="Aucune enveloppe. Créez-en une pour financer les achats de la campagne." />
-          : (
-            <View style={{ gap: 8 }}>
-              {[...(data.budgets || [])].sort((a: any, b: any) => (a.date < b.date ? 1 : -1)).map((b: any) => {
-                // L'enveloppe est une prévision : ce qui en sort réellement,
-                // ce sont les mandats confiés. On les rapproche ici.
-                const part = tr.enveloppe > 0 ? tr.attribue / tr.enveloppe : 0;
-                return (
-                  <Pressable key={b.id} onPress={peutEcrire && onAjusterBudget ? () => onAjusterBudget(b) : undefined}>
-                    <Card style={{ padding: 13 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontWeight: "800", fontSize: 14.5 }}>{b.libelle}</Text>
-                          <Text style={{ fontSize: 11.5, color: C.muted }}>{fDate(b.debut)} → {fDate(b.fin)}{b.note ? ` · ${b.note}` : ""}</Text>
-                        </View>
-                        <Text style={{ fontWeight: "900", fontSize: 15 }}>{fF(b.montant)}</Text>
+        <View style={{ gap: 8 }}>
+          {/* Cran 1 — le budget d'achat du patron. */}
+          <Text style={{ fontSize: 11.5, color: C.muted, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>Budget d&apos;achat</Text>
+          {(data.budgets || []).length === 0 ? (
+            <Empty text={role === "patron"
+              ? "Aucun budget d'achat. Créez-en un : rien ne peut être alloué ni engagé sans lui."
+              : "Le patron n'a pas encore ouvert de budget d'achat pour cette campagne."} />
+          ) : (
+            [...(data.budgets || [])].sort((a: any, b: any) => (a.date < b.date ? 1 : -1)).map((b: any) => {
+              const part = b.montant > 0 ? tr.alloue / b.montant : 0;
+              return (
+                <Pressable key={b.id} onPress={role === "patron" && onAjusterBudget ? () => onAjusterBudget(b) : undefined}>
+                  <Card style={{ padding: 13 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontWeight: "800", fontSize: 14.5 }}>{b.libelle}</Text>
+                        <Text style={{ fontSize: 11.5, color: C.muted }}>{fDate(b.debut)} → {fDate(b.fin)}{b.note ? ` · ${b.note}` : ""}</Text>
                       </View>
-                      {b.cloture ? (
-                        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Clôturée — aucun nouveau mandat ne s&apos;y impute.</Text>
-                      ) : (
-                        <View style={{ marginTop: 9 }}>
-                          <View style={{ height: 6, borderRadius: 3, backgroundColor: "#EFE7DF", overflow: "hidden" }}>
-                            <View style={{ width: `${Math.min(100, Math.max(0, part * 100))}%`, height: 6, backgroundColor: part > 1 ? C.loss : theme }} />
-                          </View>
-                          <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 5 }}>
-                            {fF(tr.attribue)} confiés · {fF(tr.nonAttribue)} disponibles
-                            {peutEcrire && onAjusterBudget ? " · toucher pour ajuster" : ""}
-                          </Text>
+                      <Text style={{ fontWeight: "900", fontSize: 15 }}>{fF(b.montant)}</Text>
+                    </View>
+                    {b.cloture ? (
+                      <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Clôturé — aucune nouvelle allocation ne s&apos;y impute.</Text>
+                    ) : (
+                      <View style={{ marginTop: 9 }}>
+                        <View style={{ height: 6, borderRadius: 3, backgroundColor: "#EFE7DF", overflow: "hidden" }}>
+                          <View style={{ width: `${Math.min(100, Math.max(0, part * 100))}%`, height: 6, backgroundColor: part > 1 ? C.loss : theme }} />
                         </View>
-                      )}
-                    </Card>
-                  </Pressable>
+                        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 5 }}>
+                          {fF(tr.alloue)} alloués · {fF(tr.nonAlloue)} à allouer
+                          {role === "patron" && onAjusterBudget ? " · toucher pour ajuster" : ""}
+                        </Text>
+                      </View>
+                    )}
+                  </Card>
+                </Pressable>
+              );
+            })
+          )}
+
+          {/* Cran 2 — ce que le patron a mis à la main de chaque comptable. */}
+          {(data.allocations || []).length > 0 ? (
+            <>
+              <Text style={{ fontSize: 11.5, color: C.muted, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 8 }}>Fonds alloués aux comptables</Text>
+              {(data.staff || []).filter((x: any) => x.role === "comptable").map((c: any) => {
+                const f = fondsComptable(data, c.id);
+                if (f.alloue <= 0) return null;
+                return (
+                  <Card key={c.id} style={{ padding: 13 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontWeight: "800", fontSize: 14.5 }}>{c.nom}</Text>
+                        <Text style={{ fontSize: 11.5, color: C.muted }}>
+                          {`${fF(f.engage)} affectés · ${fF(f.depenses)} dépensés · ${fF(f.disponible)} disponibles`}
+                        </Text>
+                      </View>
+                      <Text style={{ fontWeight: "900", fontSize: 15, color: f.disponible < 0 ? C.loss : C.ink }}>{fF(f.alloue)}</Text>
+                    </View>
+                  </Card>
                 );
               })}
-            </View>
-          )
+            </>
+          ) : null}
+
+          {/* Cran 3 — les enveloppes, et ce qui en est déjà confié. */}
+          <Text style={{ fontSize: 11.5, color: C.muted, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 8 }}>Enveloppes</Text>
+          {(data.enveloppes || []).length === 0 ? (
+            <Empty text={role === "comptable"
+              ? "Aucune enveloppe. Ouvrez-en une sur vos fonds alloués pour pouvoir confier des mandats."
+              : "Aucune enveloppe ouverte par un comptable."} />
+          ) : (
+            [...(data.enveloppes || [])].sort((a: any, b: any) => (a.date < b.date ? 1 : -1)).map((e: any) => {
+              const sd = soldeEnveloppe(data, e.id);
+              const part = e.montant > 0 ? sd.attribue / e.montant : 0;
+              const mienne = role === "comptable" && staffId === e.comptableId;
+              return (
+                <Pressable key={e.id} onPress={mienne && onAjusterEnveloppe ? () => onAjusterEnveloppe(e) : undefined}>
+                  <Card style={{ padding: 13 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontWeight: "800", fontSize: 14.5 }}>{e.libelle}</Text>
+                        <Text style={{ fontSize: 11.5, color: C.muted }}>
+                          {staffNameOf(data, e.comptableId)}{e.note ? ` · ${e.note}` : ""}
+                        </Text>
+                      </View>
+                      <Text style={{ fontWeight: "900", fontSize: 15 }}>{fF(e.montant)}</Text>
+                    </View>
+                    {e.cloture ? (
+                      <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Clôturée — aucun nouveau mandat ne s&apos;y impute.</Text>
+                    ) : (
+                      <View style={{ marginTop: 9 }}>
+                        <View style={{ height: 6, borderRadius: 3, backgroundColor: "#EFE7DF", overflow: "hidden" }}>
+                          <View style={{ width: `${Math.min(100, Math.max(0, part * 100))}%`, height: 6, backgroundColor: part > 1 ? C.loss : theme }} />
+                        </View>
+                        <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 5 }}>
+                          {fF(sd.attribue)} confiés · {fF(sd.disponible)} disponibles
+                          {mienne && onAjusterEnveloppe ? " · toucher pour ajuster" : ""}
+                        </Text>
+                      </View>
+                    )}
+                  </Card>
+                </Pressable>
+              );
+            })
+          )}
+          <View style={{ height: 8 }} />
+        </View>
       ) : null}
 
       {seg === "dus" ? (

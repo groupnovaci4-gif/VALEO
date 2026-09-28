@@ -6,7 +6,7 @@ import type { Data } from "./lib";
 
 // Tableaux d'enregistrements fusionnés un par un par le backend.
 export const ENTITIES = ["staff", "members", "collections", "loans", "mandats", "depenses", "settlements",
-  "sorties", "budgets", "reglements"] as const;
+  "sorties", "budgets", "allocations", "enveloppes", "reglements"] as const;
 export type Entity = (typeof ENTITIES)[number];
 export type Deletions = Partial<Record<Entity, string[]>>;
 

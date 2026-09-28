@@ -45,7 +45,8 @@ def _coop_id(client, token):
     return _get_state(client, token)["coops"][0]["id"]
 
 
-def _budget(coop_id, staff_id, montant=10_000_000):
+def _budget(coop_id, staff_id="st-patron", montant=10_000_000):
+    """Budget d'achat de la coopérative. Créé par le PATRON, et par lui seul."""
     return {
         "id": "bud-1", "coopId": coop_id, "libelle": "Campagne cacao",
         "montant": montant, "debut": "2026-10-01", "fin": "2026-12-31",
@@ -53,13 +54,40 @@ def _budget(coop_id, staff_id, montant=10_000_000):
     }
 
 
-def _avec_enveloppe(vue, coop_id, montant=10_000_000):
-    """Ouvre une enveloppe dans la vue : un mandat en exige une (plafond).
+def _allocation(coop_id, comptable="st-compta", montant=10_000_000, par="st-patron"):
+    """Part du budget mise à la main d'un comptable. Décision du PATRON."""
+    return {
+        "id": f"all-{comptable}", "coopId": coop_id, "comptableId": comptable,
+        "amount": montant, "note": "", "byStaffId": par,
+        "date": "2026-10-01T09:00:00.000Z",
+    }
 
-    C'est une règle métier, pas une commodité de test : confier des fonds que
-    la campagne n'a pas budgétés est précisément ce que le plafond refuse.
+
+def _enveloppe(coop_id, comptable="st-compta", montant=10_000_000, ident="env-1"):
+    """Enveloppe ouverte par le COMPTABLE sur ses fonds alloués."""
+    return {
+        "id": ident, "coopId": coop_id, "comptableId": comptable,
+        "libelle": "Achat cacao", "montant": montant, "note": "",
+        "byStaffId": comptable, "date": "2026-10-01T10:00:00.000Z",
+    }
+
+
+def _financer(client, tokens, coop_id, budget=10_000_000, alloue=None):
+    """Le PATRON ouvre le budget d'achat et en alloue la part du comptable.
+
+    Le haut de la chaîne lui appartient : sans cette étape le comptable ne peut
+    rien engager, et c'est précisément la règle — il gère des fonds mis à sa
+    disposition, il n'en crée pas.
     """
-    vue["budgets"] = list(vue.get("budgets") or []) + [_budget(coop_id, "st-compta", montant)]
+    vue = _get_state(client, tokens["patron"])
+    vue["budgets"] = [_budget(coop_id, montant=budget)]
+    vue["allocations"] = [_allocation(coop_id, montant=budget if alloue is None else alloue)]
+    assert _put(client, tokens["patron"], vue).status_code == 200
+
+
+def _avec_enveloppe(vue, coop_id, montant=10_000_000):
+    """Ouvre l'enveloppe du comptable dans la vue : un mandat en exige une."""
+    vue["enveloppes"] = list(vue.get("enveloppes") or []) + [_enveloppe(coop_id, montant=montant)]
     return vue
 
 
@@ -75,16 +103,19 @@ class TestCeQueLeComptablePeutFaire:
     def test_il_cree_une_enveloppe_de_campagne(self, app_client):
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)          # le patron ouvre et alloue
         vue = _get_state(app_client, jeton)
-        vue["budgets"] = [_budget(_coop_id(app_client, jeton), "st-compta")]
+        vue["enveloppes"] = [_enveloppe(cid)]
         assert _put(app_client, jeton, vue).status_code == 200
-        relu = _get_state(app_client, jeton)["budgets"]
+        relu = _get_state(app_client, jeton)["enveloppes"]
         assert len(relu) == 1 and relu[0]["montant"] == 10_000_000
 
     def test_il_confie_un_mandat_a_un_pisteur(self, app_client):
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
         cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)
         vue = _avec_enveloppe(_get_state(app_client, jeton), cid)
         vue["mandats"] = [{
             "id": "man-1", "coopId": cid,
@@ -96,9 +127,11 @@ class TestCeQueLeComptablePeutFaire:
     def test_il_enregistre_une_depense_de_la_cooperative(self, app_client):
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)     # une dépense s'impute sur ses fonds
         vue = _get_state(app_client, jeton)
         vue["depenses"] = list(vue.get("depenses") or []) + [{
-            "id": "dep-1", "coopId": _coop_id(app_client, jeton),
+            "id": "dep-1", "coopId": cid,
             "pisteurId": "st-compta", "category": "Transport", "amount": 75_000,
             "date": "2026-11-01T08:00:00.000Z", "note": "Camion Abidjan",
             "beneficiaire": "Transporteur Koné", "mode": "espece",
@@ -176,13 +209,16 @@ class TestCeQueLeComptableNePeutPasFaire:
         vue["coops"][0]["updatedAt"] = "2026-12-01T08:00:00.000Z"
         assert _put(app_client, jeton, vue).status_code == 403
 
-    @pytest.mark.parametrize("entite", ["budgets", "mandats", "depenses", "reglements"])
+    @pytest.mark.parametrize("entite", ["enveloppes", "mandats", "depenses", "reglements"])
     def test_il_ne_supprime_aucune_ecriture_financiere(self, app_client, entite):
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
         cid = _coop_id(app_client, jeton)
+        # Marge au-dessus de l'enveloppe : une dépense s'impute sur les mêmes
+        # fonds alloués, elle a donc besoin de place.
+        _financer(app_client, t, cid, budget=20_000_000, alloue=20_000_000)
         lignes = {
-            "budgets": _budget(cid, "st-compta"),
+            "enveloppes": _enveloppe(cid),
             "mandats": {"id": "man-1", "coopId": cid, "pisteurId": "st-pisteur",
                         "amount": 500_000, "date": "2026-10-02T08:00:00.000Z", "note": ""},
             "depenses": {"id": "dep-1", "coopId": cid, "pisteurId": "st-compta",
@@ -191,7 +227,7 @@ class TestCeQueLeComptableNePeutPasFaire:
             "reglements": _reglement(cid, "st-compta", "st-pisteur"),
         }
         vue = _get_state(app_client, jeton)
-        if entite != "budgets":
+        if entite != "enveloppes":
             _avec_enveloppe(vue, cid)      # un mandat exige une enveloppe
         vue[entite] = list(vue.get(entite) or []) + [lignes[entite]]
         assert _put(app_client, jeton, vue).status_code == 200
@@ -209,6 +245,9 @@ class TestCeQueLeComptableNePeutPasFaire:
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
         cid = _coop_id(app_client, jeton)
+        # Marge au-dessus de l'enveloppe : une dépense s'impute sur les mêmes
+        # fonds alloués, elle a donc besoin de place.
+        _financer(app_client, t, cid, budget=20_000_000, alloue=20_000_000)
         lignes = {
             "mandats": {"id": "m9", "coopId": cid, "pisteurId": "st-pisteur",
                         "amount": 500_000, "date": "2026-10-02T08:00:00.000Z", "note": ""},
@@ -218,7 +257,7 @@ class TestCeQueLeComptableNePeutPasFaire:
             "reglements": _reglement(cid, "st-compta", "st-pisteur"),
         }
         vue = _get_state(app_client, jeton)
-        if entite != "budgets":
+        if entite != "enveloppes":
             _avec_enveloppe(vue, cid)      # un mandat exige une enveloppe
         vue[entite] = list(vue.get(entite) or []) + [lignes[entite]]
         assert _put(app_client, jeton, vue).status_code == 200
@@ -248,14 +287,18 @@ class TestCeQueLeComptableNePeutPasFaire:
 
 class TestLesAutresRolesNeTouchentPasAuxFinances:
     @pytest.mark.parametrize("qui", ["pisteur", "commis"])
-    @pytest.mark.parametrize("entite", ["budgets", "reglements"])
-    def test_un_agent_de_terrain_ne_cree_ni_enveloppe_ni_reglement(
+    @pytest.mark.parametrize("entite", ["budgets", "allocations", "enveloppes", "reglements"])
+    def test_un_agent_de_terrain_ne_touche_a_aucun_cran_financier(
             self, app_client, qui, entite):
-        """Sans quoi un agent se paierait lui-même."""
+        """Sans quoi un agent se financerait, ou se paierait, lui-même."""
         t = _seed_coop(app_client)
         cid = _coop_id(app_client, t["patron"])
-        ligne = (_budget(cid, "st-pisteur") if entite == "budgets"
-                 else _reglement(cid, "st-pisteur", "st-pisteur"))
+        ligne = {
+            "budgets": _budget(cid, "st-pisteur"),
+            "allocations": _allocation(cid, comptable="st-pisteur", par="st-pisteur"),
+            "enveloppes": _enveloppe(cid, comptable="st-pisteur"),
+            "reglements": _reglement(cid, "st-pisteur", "st-pisteur"),
+        }[entite]
         vue = _get_state(app_client, t[qui])
         vue[entite] = list(vue.get(entite) or []) + [ligne]
         assert _put(app_client, t[qui], vue).status_code == 403
@@ -343,13 +386,16 @@ class TestPersistanceDuComptable:
         t = _seed_coop(app_client)
         avant = _get_state(app_client, t["patron"])
         jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)
         vue = _get_state(app_client, jeton)
-        vue["budgets"] = [_budget(_coop_id(app_client, jeton), "st-compta")]
+        vue["enveloppes"] = [_enveloppe(cid)]
         assert _put(app_client, jeton, vue).status_code == 200
         assert _put(app_client, t["patron"], avant).status_code == 200
         apres = _get_state(app_client, t["patron"])
         assert any(s.get("role") == "comptable" for s in apres["staff"])
-        assert len(apres["budgets"]) == 1, "l'enveloppe survit à la synchro du patron"
+        assert len(apres["enveloppes"]) == 1, "l'enveloppe survit à la synchro du patron"
+        assert len(apres["allocations"]) == 1, "l'allocation aussi"
 
 
 class TestRolesConnusDuTableauDeBord:
@@ -431,18 +477,20 @@ class TestPlafondDeLEnveloppe:
     """
 
     @staticmethod
-    def _mandat(coop_id, montant, ident="man-x"):
+    def _mandat(coop_id, montant, ident="man-x", env="env-1"):
         return {
             "id": ident, "coopId": coop_id, "pisteurId": "st-pist",
-            "amount": montant, "date": "2026-10-02T08:00:00.000Z", "note": "",
+            "amount": montant, "enveloppeId": env,
+            "date": "2026-10-02T08:00:00.000Z", "note": "",
         }
 
     def test_un_mandat_dans_lenveloppe_passe(self, app_client):
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
         cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)
         vue = _get_state(app_client, jeton)
-        vue["budgets"] = [_budget(cid, "st-compta", 10_000_000)]
+        vue["enveloppes"] = [_enveloppe(cid, montant=10_000_000)]
         vue["mandats"] = list(vue.get("mandats") or []) + [self._mandat(cid, 2_000_000)]
         assert _put(app_client, jeton, vue).status_code == 200
 
@@ -450,8 +498,9 @@ class TestPlafondDeLEnveloppe:
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
         cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)
         vue = _get_state(app_client, jeton)
-        vue["budgets"] = [_budget(cid, "st-compta", 1_000_000)]
+        vue["enveloppes"] = [_enveloppe(cid, montant=1_000_000)]
         vue["mandats"] = list(vue.get("mandats") or []) + [self._mandat(cid, 1_500_000)]
         r = _put(app_client, jeton, vue)
         assert r.status_code == 403, r.text
@@ -463,6 +512,7 @@ class TestPlafondDeLEnveloppe:
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
         cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)
         vue = _get_state(app_client, jeton)
         vue["mandats"] = list(vue.get("mandats") or []) + [self._mandat(cid, 500_000)]
         r = _put(app_client, jeton, vue)
@@ -475,8 +525,9 @@ class TestPlafondDeLEnveloppe:
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
         cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)
         vue = _get_state(app_client, jeton)
-        vue["budgets"] = [_budget(cid, "st-compta", 1_000_000)]
+        vue["enveloppes"] = [_enveloppe(cid, montant=1_000_000)]
         vue["mandats"] = [self._mandat(cid, 400_000, "m1"), self._mandat(cid, 400_000, "m2")]
         assert _put(app_client, jeton, vue).status_code == 200
         vue2 = _get_state(app_client, jeton)
@@ -490,8 +541,9 @@ class TestPlafondDeLEnveloppe:
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
         cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)
         vue = _get_state(app_client, jeton)
-        vue["budgets"] = [_budget(cid, "st-compta", 5_000_000)]
+        vue["enveloppes"] = [_enveloppe(cid, montant=5_000_000)]
         vue["mandats"] = [self._mandat(cid, 4_000_000)]
         assert _put(app_client, jeton, vue).status_code == 200
 
@@ -502,26 +554,109 @@ class TestPlafondDeLEnveloppe:
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
         cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)
         vue = _get_state(app_client, jeton)
-        vue["budgets"] = [_budget(cid, "st-compta", 1_000_000)]
+        vue["enveloppes"] = [_enveloppe(cid, montant=1_000_000)]
         assert _put(app_client, jeton, vue).status_code == 200
         vue2 = _get_state(app_client, jeton)
-        vue2["budgets"][0]["montant"] = 3_000_000
+        vue2["enveloppes"][0]["montant"] = 3_000_000
         vue2["mandats"] = [self._mandat(cid, 2_000_000)]
         assert _put(app_client, jeton, vue2).status_code == 200
 
-    def test_le_patron_reste_souverain(self, app_client):
-        # Invariant 2 : le plafond est une discipline comptable, pas une
-        # limite au pouvoir du patron — qui relèverait l'enveloppe aussitôt.
+    def test_le_patron_reste_souverain_sur_le_bas_de_la_chaine(self, app_client):
+        # Invariant 2 : les bornes du bas sont une discipline du comptable, pas
+        # une limite au pouvoir du patron — qui relèverait l'enveloppe aussitôt.
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
         cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)
         vue = _get_state(app_client, jeton)
-        vue["budgets"] = [_budget(cid, "st-compta", 1_000_000)]
+        vue["enveloppes"] = [_enveloppe(cid, montant=1_000_000)]
         assert _put(app_client, jeton, vue).status_code == 200
         vp = _get_state(app_client, t["patron"])
         vp["mandats"] = [self._mandat(cid, 9_000_000)]
         assert _put(app_client, t["patron"], vp).status_code == 200
+
+    def test_le_patron_lui_meme_n_alloue_pas_au_dela_de_son_budget(self, app_client):
+        # La seule borne qui le concerne : allouer plus qu'on n'engage n'est pas
+        # une décision, c'est une incohérence comptable.
+        t = _seed_coop(app_client)
+        _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, t["patron"])
+        vp = _get_state(app_client, t["patron"])
+        vp["budgets"] = [_budget(cid, montant=5_000_000)]
+        vp["allocations"] = [_allocation(cid, montant=8_000_000)]
+        r = _put(app_client, t["patron"], vp)
+        assert r.status_code == 403, r.text
+        assert "budget d" in r.text.lower()
+
+    def test_sans_budget_aucune_allocation(self, app_client):
+        t = _seed_coop(app_client)
+        _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, t["patron"])
+        vp = _get_state(app_client, t["patron"])
+        vp["allocations"] = [_allocation(cid, montant=1_000_000)]
+        r = _put(app_client, t["patron"], vp)
+        assert r.status_code == 403
+        assert "aucun budget" in r.text.lower()
+
+    def test_le_comptable_ne_se_finance_pas_lui_meme(self, app_client):
+        """Le cœur de la correction : le haut de la chaîne lui échappe."""
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+
+        vue = _get_state(app_client, jeton)
+        vue["budgets"] = [_budget(cid, "st-compta")]
+        r = _put(app_client, jeton, vue)
+        assert r.status_code == 403, "le budget d'achat appartient au patron"
+        assert "patron" in r.text.lower()
+
+        vue = _get_state(app_client, jeton)
+        vue["allocations"] = [_allocation(cid, par="st-compta")]
+        r = _put(app_client, jeton, vue)
+        assert r.status_code == 403, "s'allouer des fonds à soi-même est refusé"
+
+    def test_il_n_ouvre_pas_une_enveloppe_sur_les_fonds_d_un_autre(self, app_client):
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid)
+        vue = _get_state(app_client, jeton)
+        # Enveloppe ouverte au nom d'un AUTRE comptable : elle s'imputerait sur
+        # une allocation qui n'est pas la sienne.
+        vue["enveloppes"] = [_enveloppe(cid, comptable="st-autre")]
+        assert _put(app_client, jeton, vue).status_code == 403
+
+    def test_il_n_engage_pas_au_dela_de_son_allocation(self, app_client):
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid, budget=50_000_000, alloue=20_000_000)
+        vue = _get_state(app_client, jeton)
+        vue["enveloppes"] = [_enveloppe(cid, montant=25_000_000)]
+        r = _put(app_client, jeton, vue)
+        assert r.status_code == 403, r.text
+        assert "alloué" in r.text.lower()
+
+    def test_ses_depenses_comptent_dans_ses_fonds(self, app_client):
+        # Une dépense sort réellement de l'argent : elle s'ajoute aux enveloppes
+        # pour mesurer ce qui reste à sa main.
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        _financer(app_client, t, cid, budget=1_000_000, alloue=1_000_000)
+        vue = _get_state(app_client, jeton)
+        vue["enveloppes"] = [_enveloppe(cid, montant=1_000_000)]
+        assert _put(app_client, jeton, vue).status_code == 200
+        vue = _get_state(app_client, jeton)
+        vue["depenses"] = [{
+            "id": "dep-z", "coopId": cid, "pisteurId": "st-compta",
+            "category": "Transport", "amount": 50_000,
+            "date": "2026-11-01T08:00:00.000Z", "note": "",
+        }]
+        r = _put(app_client, jeton, vue)
+        assert r.status_code == 403, "l'enveloppe consomme déjà tout son alloué"
 
     def test_une_enveloppe_de_campagne_close_ne_finance_pas_la_suivante(self, app_client):
         # Même cloisonnement que côté client : l'enveloppe suit la campagne.

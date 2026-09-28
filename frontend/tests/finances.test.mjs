@@ -36,7 +36,8 @@ const col = (id, kg, paye, livId, jour, extra = {}) => ({
 const base = (extra = {}) => ({
   saison: SAISON, staff: STAFF, members: [{ id: "mA", nom: "Kouassi" }],
   collections: [], sorties: [], loans: [], mandats: [], depenses: [],
-  settlements: [], budgets: [], reglements: [], priceHistory: [],
+  settlements: [], budgets: [], allocations: [], enveloppes: [], reglements: [],
+  priceHistory: [],
   coop: { nom: "C", momo: [] }, ...extra,
 });
 
@@ -60,17 +61,30 @@ function verifier(data, livId, kgGlobal, jour) {
 function scenario() {
   let d = base();
 
-  // 1. Le comptable crée une enveloppe de 10 000 000.
+  // 1a. Le PATRON engage le budget d'achat de la coopérative.
   d.budgets = [{
     id: "b1", coopId: "co1", saison: SAISON, libelle: "Campagne cacao",
     montant: 10_000_000, debut: "2026-10-01", fin: "2026-12-31",
-    note: "", byStaffId: "cpt", date: "2026-10-01T08:00:00.000Z",
+    note: "", byStaffId: "pat", date: "2026-10-01T08:00:00.000Z",
+  }];
+  // 1b. Il en met la totalité à la main du comptable.
+  d.allocations = [{
+    id: "a1", coopId: "co1", saison: SAISON, comptableId: "cpt",
+    amount: 10_000_000, note: "", byStaffId: "pat",
+    date: "2026-10-01T09:00:00.000Z",
+  }];
+  // 1c. Le comptable ouvre son enveloppe sur ces fonds.
+  d.enveloppes = [{
+    id: "e1", coopId: "co1", saison: SAISON, comptableId: "cpt",
+    libelle: "Achat cacao", montant: 10_000_000, note: "",
+    byStaffId: "cpt", date: "2026-10-01T10:00:00.000Z",
   }];
 
-  // 2. Il attribue 2 000 000 au pisteur Jean.
+  // 2. Il attribue 2 000 000 au pisteur Jean, tirés de son enveloppe.
   d.mandats = [{
     id: "m1", coopId: "co1", saison: SAISON, pisteurId: "pis",
-    amount: 2_000_000, date: "2026-10-02T08:00:00.000Z", note: "",
+    amount: 2_000_000, enveloppeId: "e1",
+    date: "2026-10-02T08:00:00.000Z", note: "",
   }];
 
   // 3. Jean achète pour 1 900 000 (1 900 kg à 1 000 F).
@@ -126,8 +140,10 @@ test("13-14. comptable et patron lisent EXACTEMENT les mêmes chiffres", () => {
   // Une seule source de vérité : la fonction ne connaît pas le lecteur.
   const d = scenario();
   const t = tresorerie(d);
-  assert.equal(t.enveloppe, 10_000_000);
-  assert.equal(t.attribue, 2_000_000);
+  assert.equal(t.enveloppe, 10_000_000, "budget d'achat du patron");
+  assert.equal(t.alloue, 10_000_000, "mis à la main du comptable");
+  assert.equal(t.engage, 10_000_000, "affecté par le comptable");
+  assert.equal(t.attribue, 2_000_000, "confié au pisteur");
   assert.equal(t.nonAttribue, 8_000_000);
   assert.equal(t.duAgents, 275_000);
   assert.equal(t.disponible, 10_000_000 - 2_000_000 - 75_000 - 275_000);
@@ -204,12 +220,18 @@ test("les alertes signalent l'argent avancé et l'enveloppe qui s'épuise", () =
   const serre = { ...scenario() };
   serre.mandats = [{ ...serre.mandats[0], amount: 9_500_000 }];
   const a2 = alertesFin(serre);
-  assert.ok(a2.some((x) => /épuisée/i.test(x.texte)), "enveloppe presque vide");
+  assert.ok(a2.some((x) => /épuisée/i.test(x.texte)), "enveloppes presque vides");
 
   const depasse = { ...scenario() };
   depasse.mandats = [{ ...depasse.mandats[0], amount: 12_000_000 }];
   assert.ok(alertesFin(depasse).some((x) => x.niveau === "grave"),
-    "confier plus que l'enveloppe est grave");
+    "confier plus que les enveloppes est grave");
+
+  // Le cran nouveau : allouer plus que le budget du patron.
+  const trop = { ...scenario() };
+  trop.allocations = [{ ...trop.allocations[0], amount: 12_000_000 }];
+  assert.ok(alertesFin(trop).some((x) => /au-delà du budget/i.test(x.texte)),
+    "allouer plus que le budget doit alerter");
 });
 
 test("dettesAgents ne retient que ceux à qui la coopérative doit quelque chose", () => {
@@ -252,12 +274,20 @@ function casChiffre() {
   let d = base();
   d.budgets = [{
     id: "b1", coopId: "co1", saison: SAISON, libelle: "Campagne", montant: 10_000_000,
-    debut: "2026-10-01", fin: "2026-12-31", note: "", byStaffId: "cpt",
+    debut: "2026-10-01", fin: "2026-12-31", note: "", byStaffId: "pat",
     date: "2026-10-01T08:00:00.000Z",
   }];
+  d.allocations = [{
+    id: "a1", coopId: "co1", saison: SAISON, comptableId: "cpt", amount: 10_000_000,
+    note: "", byStaffId: "pat", date: "2026-10-01T09:00:00.000Z",
+  }];
+  d.enveloppes = [{
+    id: "e1", coopId: "co1", saison: SAISON, comptableId: "cpt", libelle: "Achat",
+    montant: 10_000_000, note: "", byStaffId: "cpt", date: "2026-10-01T10:00:00.000Z",
+  }];
   d.mandats = [{
-    id: "m1", coopId: "co1", saison: SAISON, pisteurId: "pis",
-    amount: 2_000_000, date: "2026-10-02T08:00:00.000Z", note: "",
+    id: "m1", coopId: "co1", saison: SAISON, pisteurId: "pis", amount: 2_000_000,
+    enveloppeId: "e1", date: "2026-10-02T08:00:00.000Z", note: "",
   }];
   // 1 000 kg à 1 800 F = 1 800 000, puis 250 kg à 1 600 F = 400 000.
   d.collections = [c("c1", 1000, 1800, 1_800_000, "liv-1", 3)];
@@ -372,4 +402,144 @@ test("un enregistrement SANS campagne reste compté (données antérieures)", ()
   const { saison, ...sansSaison } = d.budgets[0];
   d.budgets = [sansSaison];
   assert.equal(tresorerie(scopeSaison(d), d).enveloppe, 10_000_000);
+});
+
+/* ============ LA CHAÎNE FINANCIÈRE COMPLÈTE (§16 et §17) ================= */
+
+const { fondsComptable, soldeEnveloppe } = await import("../.sync-build/lib.js");
+
+/** Les chiffres exacts du scénario demandé. */
+function chaine() {
+  const d = base();
+  // Étape 1 — le PATRON engage 50 000 000.
+  d.budgets = [{
+    id: "b1", coopId: "co1", saison: SAISON, libelle: "Achat campagne",
+    montant: 50_000_000, debut: "2026-10-01", fin: "2027-03-31", note: "",
+    byStaffId: "pat", date: "2026-10-01T08:00:00.000Z",
+  }];
+  // Étape 2 — il en alloue 20 000 000 au comptable.
+  d.allocations = [{
+    id: "a1", coopId: "co1", saison: SAISON, comptableId: "cpt",
+    amount: 20_000_000, note: "", byStaffId: "pat",
+    date: "2026-10-02T08:00:00.000Z",
+  }];
+  // Étape 3 — le COMPTABLE ouvre une enveloppe de 10 000 000.
+  d.enveloppes = [{
+    id: "e1", coopId: "co1", saison: SAISON, comptableId: "cpt",
+    libelle: "Achat Cacao", montant: 10_000_000, note: "",
+    byStaffId: "cpt", date: "2026-10-03T08:00:00.000Z",
+  }];
+  // Étape 4 — il confie 3 000 000 au pisteur A, tirés de cette enveloppe.
+  d.mandats = [{
+    id: "m1", coopId: "co1", saison: SAISON, pisteurId: "pis",
+    amount: 3_000_000, enveloppeId: "e1",
+    date: "2026-10-04T08:00:00.000Z", note: "",
+  }];
+  // Étape 5 — une dépense de transport de 100 000.
+  d.depenses = [{
+    id: "d1", coopId: "co1", saison: SAISON, pisteurId: "cpt",
+    category: "Transport", amount: 100_000, date: "2026-10-05T08:00:00.000Z",
+    note: "", beneficiaire: "Transporteur", mode: "espece",
+  }];
+  return d;
+}
+
+test("§16 — les quatre crans de la chaîne portent les bons montants", () => {
+  const t = tresorerie(chaine());
+  assert.equal(t.enveloppe, 50_000_000, "budget d'achat du patron");
+  assert.equal(t.alloue, 20_000_000, "mis à la main du comptable");
+  assert.equal(t.nonAlloue, 30_000_000, "ce que le patron garde à allouer");
+  assert.equal(t.engage, 10_000_000, "affecté en enveloppes");
+  assert.equal(t.attribue, 3_000_000, "confié au pisteur");
+});
+
+test("§16 — le comptable voit ses fonds, pas ceux de la coopérative", () => {
+  const f = fondsComptable(chaine(), "cpt");
+  assert.equal(f.alloue, 20_000_000);
+  assert.equal(f.engage, 10_000_000);
+  assert.equal(f.depenses, 100_000);
+  assert.equal(f.disponible, 9_900_000, "20 000 000 − 10 000 000 − 100 000");
+});
+
+test("§16 — l'enveloppe connaît ce qui en est déjà confié", () => {
+  const sd = soldeEnveloppe(chaine(), "e1");
+  assert.equal(sd.montant, 10_000_000);
+  assert.equal(sd.attribue, 3_000_000);
+  assert.equal(sd.disponible, 7_000_000);
+});
+
+test("§16 — plusieurs mandats se cumulent sur la même enveloppe", () => {
+  const d = chaine();
+  d.mandats = [
+    ...d.mandats,
+    { id: "m2", coopId: "co1", saison: SAISON, pisteurId: "pis", amount: 2_000_000, enveloppeId: "e1", date: "2026-10-05T08:00:00.000Z", note: "" },
+    { id: "m3", coopId: "co1", saison: SAISON, pisteurId: "pis", amount: 1_500_000, enveloppeId: "e1", date: "2026-10-06T08:00:00.000Z", note: "" },
+  ];
+  const sd = soldeEnveloppe(d, "e1");
+  assert.equal(sd.attribue, 6_500_000, "3 000 000 + 2 000 000 + 1 500 000");
+  assert.equal(sd.disponible, 3_500_000);
+});
+
+test("§16 — aucune opération ne crée d'argent", () => {
+  // Le test qui compte : la somme de ce qui est engagé ne dépasse JAMAIS le
+  // cran du dessus, à aucun niveau.
+  const d = chaine();
+  const t = tresorerie(d);
+  const f = fondsComptable(d, "cpt");
+  assert.ok(t.alloue <= t.enveloppe, "alloué ≤ budget");
+  assert.ok(f.engage + f.depenses <= f.alloue, "engagé ≤ alloué");
+  assert.ok(soldeEnveloppe(d, "e1").attribue <= soldeEnveloppe(d, "e1").montant,
+    "confié ≤ enveloppe");
+});
+
+test("§17 — l'écran voit le dépassement avant que le serveur le refuse", () => {
+  // Les bornes que les feuilles de saisie lisent. Le serveur les applique de
+  // son côté (test_comptable.py) ; ici on vérifie que le chiffre affiché est
+  // bien celui qui décide.
+  const d = chaine();
+
+  // Enveloppe de 25 000 000 sur 20 000 000 alloués : il manque 5 100 000
+  // (les 100 000 de dépense comptent aussi).
+  const f = fondsComptable(d, "cpt");
+  assert.ok(25_000_000 > f.disponible + 10_000_000,
+    "une enveloppe de 25 000 000 dépasse les fonds alloués");
+
+  // Mandat de 15 000 000 sur une enveloppe qui n'en porte que 10 000 000.
+  assert.ok(15_000_000 > soldeEnveloppe(d, "e1").disponible,
+    "un mandat de 15 000 000 dépasse l'enveloppe");
+});
+
+test("§17 — sans allocation, le comptable ne peut rien engager", () => {
+  const d = chaine();
+  d.allocations = [];
+  const f = fondsComptable(d, "cpt");
+  assert.equal(f.alloue, 0);
+  assert.ok(f.disponible < 0 || f.alloue === 0,
+    "rien à sa main : l'écran doit le dire avant tout refus");
+});
+
+test("le journal porte les deux nouveaux crans, sans fausser aucun total", () => {
+  const j = journalFinancier(chaine());
+  const types = j.map((x) => x.type);
+  assert.ok(types.includes("ALLOCATION"));
+  assert.ok(types.includes("ENVELOPPE"));
+  // Ni l'une ni l'autre n'est un mouvement d'argent : les compter en négatif
+  // ferait disparaître deux fois la même somme (ici, puis au mandat).
+  assert.equal(j.find((x) => x.type === "ALLOCATION").montant, 0);
+  assert.equal(j.find((x) => x.type === "ENVELOPPE").montant, 0);
+  assert.ok(j.find((x) => x.type === "BUDGET").montant > 0);
+  assert.ok(j.find((x) => x.type === "MANDAT").montant < 0);
+});
+
+test("un état antérieur à la hiérarchie continue de répondre", () => {
+  // Un téléphone qui n'a jamais vu `allocations` ni `enveloppes`.
+  const d = base();
+  delete d.allocations;
+  delete d.enveloppes;
+  const t = tresorerie(d);
+  assert.equal(t.alloue, 0);
+  assert.equal(t.engage, 0);
+  assert.equal(fondsComptable(d, "cpt").alloue, 0);
+  assert.deepEqual(soldeEnveloppe(d, "inconnue").enveloppe, undefined);
+  assert.deepEqual(alertesFin(d), []);
 });

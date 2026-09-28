@@ -23,6 +23,8 @@ import {
   SortieSheet,
   ResultatUsineSheet,
   BudgetSheet,
+  AllocationSheet,
+  EnveloppeSheet,
   ReglementSheet,
   StockSheet,
   Bordereau,
@@ -123,6 +125,7 @@ export default function App() {
   // Comptabilité : enveloppe en cours d'ajustement, dette en cours de règlement.
   const [editBudget, setEditBudget] = useState<any>(null);
   const [regleTarget, setRegleTarget] = useState<any>(null);
+  const [editEnveloppe, setEditEnveloppe] = useState<any>(null);
   const [showNotif, setShowNotif] = useState(false);
   const [settlementReceipt, setSettlementReceipt] = useState<any>(null);
   const [confirm, setConfirm] = useState<{ msg: string; onYes: () => void; yesLabel?: string; yesColor?: string } | null>(null);
@@ -363,12 +366,17 @@ export default function App() {
           <Icon name="arrow-left" size={15} color={C.cocoa} /><Text style={{ color: C.cocoa, fontWeight: "600", fontSize: 13 }}>Coop</Text>
         </Pressable>
         {/* Même composant, mêmes fonctions, mêmes chiffres que le comptable. */}
+        {/* Le patron tient le HAUT de la chaîne : le budget d'achat, et ce
+            qu'il en alloue à ses comptables. Il ne crée pas d'enveloppe —
+            c'est l'acte du comptable, sur les fonds reçus. */}
         <EspaceFinances
           data={scopeSaison(data)}
           complet={data}
           role="patron"
+          staffId={staffIdNow}
           onNewBudget={() => { setEditBudget(null); setSheet("budget"); }}
           onAjusterBudget={(b: any) => { setEditBudget(b); setSheet("budget"); }}
+          onAllouer={() => setSheet("allocation")}
           onRegler={(d: any) => setRegleTarget(d)}
           onNewDepense={() => setSheet("depense")}
           onNewMandat={() => setSheet("mandat")}
@@ -407,12 +415,15 @@ export default function App() {
     else if (tab === "collaborateurs") body = <Collaborateurs data={data} onOpen={setOpenCollab} />;
     else if (tab === "diagSync") body = <DiagnosticSync backendUrl={store.backendUrl} backendMode={store.backendMode} deprecie={store.deprecie} etat={store.syncState} lastSyncAt={store.lastSyncAt} pending={store.pending} onDiag={store.fetchDiag} onBack={() => setTab("finances")} />;
     else body = (
+      /* Il gère les fonds reçus : ni budget d'achat, ni allocation — le
+         serveur les lui refuse, et lui proposer le geste serait lui mentir. */
       <EspaceFinances
         data={scopeSaison(data)}
         complet={data}
         role="comptable"
-        onNewBudget={() => { setEditBudget(null); setSheet("budget"); }}
-        onAjusterBudget={(b: any) => { setEditBudget(b); setSheet("budget"); }}
+        staffId={staffIdNow}
+        onNewEnveloppe={() => { setEditEnveloppe(null); setSheet("enveloppe"); }}
+        onAjusterEnveloppe={(e: any) => { setEditEnveloppe(e); setSheet("enveloppe"); }}
         onRegler={(d: any) => setRegleTarget(d)}
         onNewDepense={() => setSheet("depense")}
         onNewMandat={() => setSheet("mandat")}
@@ -510,7 +521,11 @@ export default function App() {
       {sheet === "livraison" && role === "pisteur" ? <LivraisonSheet data={data} staffId={staffId} onClose={() => setSheet("stock")} onSave={(ids: string[]) => { store.livrerCollections(ids, staffId); setSheet("stock"); setNotice("Livraison enregistrée. Le magasinier doit maintenant vérifier le poids."); }} /> : null}
       {sheet === "sortie" && role !== "pisteur" ? <SortieSheet data={data} staffId={staffId} scope={stockScope} role={role} onClose={() => setSheet("stock")} onSave={(x: any) => { store.addSortie(x); setSheet("stock"); setNotice("Sortie enregistrée. Le stock a été mis à jour."); }} /> : null}
       {sortieUsine ? <ResultatUsineSheet data={data} sortie={sortieUsine} onClose={() => setSortieUsine(null)} onSave={(x: any) => { store.majResultatUsine(sortieUsine.id, x); setSortieUsine(null); setNotice("Résultat de l'usine enregistré."); }} /> : null}
-      {sheet === "budget" && (role === "comptable" || role === "patron") ? <BudgetSheet initial={editBudget} onClose={() => { setSheet(null); setEditBudget(null); }} onSave={(x: any) => { if (editBudget) store.majBudget(editBudget.id, x); else store.addBudget({ ...x, byStaffId: staffId }); setSheet(null); setEditBudget(null); setNotice(editBudget ? "Enveloppe ajustée." : "Enveloppe créée."); }} /> : null}
+      {/* Le budget d'achat et l'allocation sont au PATRON : le serveur les
+          refuse au comptable, l'écran ne les lui propose donc pas. */}
+      {sheet === "allocation" && role === "patron" ? <AllocationSheet data={scopeSaison(data)} onClose={() => setSheet(null)} onSave={(x: any) => { store.addAllocation({ ...x, byStaffId: staffId }); setSheet(null); setNotice(`${fF(x.amount)} alloués.`); }} /> : null}
+      {sheet === "enveloppe" && role === "comptable" ? <EnveloppeSheet data={scopeSaison(data)} comptableId={staffId} initial={editEnveloppe} onClose={() => { setSheet(null); setEditEnveloppe(null); }} onSave={(x: any) => { if (editEnveloppe) store.majEnveloppe(editEnveloppe.id, x); else store.addEnveloppe({ ...x, byStaffId: staffId }); setSheet(null); setEditEnveloppe(null); setNotice(editEnveloppe ? "Enveloppe ajustée." : "Enveloppe ouverte."); }} /> : null}
+      {sheet === "budget" && role === "patron" ? <BudgetSheet initial={editBudget} onClose={() => { setSheet(null); setEditBudget(null); }} onSave={(x: any) => { if (editBudget) store.majBudget(editBudget.id, x); else store.addBudget({ ...x, byStaffId: staffId }); setSheet(null); setEditBudget(null); setNotice(editBudget ? "Enveloppe ajustée." : "Enveloppe créée."); }} /> : null}
       {regleTarget ? <ReglementSheet dette={regleTarget} onClose={() => setRegleTarget(null)} onSave={(x: any) => { store.addReglement({ ...x, byStaffId: staffId }); setRegleTarget(null); setNotice(`Paiement de ${fF(x.amount)} enregistré.`); }} /> : null}
       {sheet === "linkMomo" && session.side === "planteur" ? <LinkMomoSheet title="Lier mon Mobile Money" onClose={() => setSheet(null)} onSave={(mm: any) => { store.linkMemberMomo(session.memberId, mm); setSheet(null); }} /> : null}
       {sheet === "coopMomo" ? <LinkMomoSheet title="Ajouter un compte coop" withLabel onClose={() => setSheet(null)} onSave={(mm: any) => { store.addCoopMomo(mm); setSheet(null); }} /> : null}

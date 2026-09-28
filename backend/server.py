@@ -186,13 +186,13 @@ class ChangePwdRequest(BaseModel):
 
 # --------------------------- Auth utilisateurs (coop/planteur) --------------------------- #
 ENTITY_ARRAYS = ["staff", "members", "collections", "loans", "mandats", "depenses", "settlements",
-                 "sorties", "budgets", "reglements"]
+                 "sorties", "budgets", "allocations", "enveloppes", "reglements"]
 
 # Mouvements : tout ce qui s'enregistre au fil d'une campagne. Les **acteurs**
 # (coopératives, collaborateurs, planteurs) n'en font pas partie — c'est ce qui
 # permet de repartir d'une base propre sans avoir à ressaisir les fiches.
 MOVEMENT_ARRAYS = ["collections", "loans", "mandats", "depenses", "settlements", "sorties",
-                   "budgets", "reglements"]
+                   "budgets", "allocations", "enveloppes", "reglements"]
 
 
 def _norm_phone(p: Optional[str]) -> str:
@@ -609,6 +609,8 @@ CHAMPS_POSITIFS = {
     # bénéfice sans que rien ne le signale.
     "sorties": ("kg", "kgUsine", "prixUsine", "prixRevient", "transport", "fraisRoute"),
     "budgets": ("montant",),
+    "allocations": ("amount",),
+    "enveloppes": ("montant",),
     "reglements": ("amount",),
 }
 # Invariant 15 : quatre statuts, pas un de plus. Une orthographe inventée
@@ -918,46 +920,126 @@ def _somme(rows, coop_id: str, saison: Optional[str], champ: str) -> int:
     return total
 
 
-def _check_enveloppe_respectee(incoming: dict, delta: dict, coop_id: str, actor: str) -> None:
-    """Un mandat ne peut pas dépasser l'enveloppe de la campagne.
+def _check_allocations_dans_budget(incoming: dict, delta: dict, coop_id: str,
+                                   actor: str) -> None:
+    """Cran 1 → 2 : le patron n'alloue pas au-delà de son budget d'achat.
 
-    Arbitrage explicite, et il tient en une phrase : **on bloque là où l'argent
-    n'est pas encore sorti**.
-    - *Confier un mandat* est une décision, prise au bureau, connecté, les
-      chiffres sous les yeux. La refuser ne perd rien : elle n'a pas eu lieu.
-    - *Acheter au-delà de son mandat* est un fait ACCOMPLI — le pisteur a le
-      planteur devant lui, les sacs sont pesés, l'argent est sorti de sa poche.
-      Refuser la saisie n'annulerait pas l'achat, elle en supprimerait la
-      **trace**. C'est pourquoi ce dépassement-là reste signalé et jamais
-      bloqué (invariant 10 : l'avance lui est due).
-
-    Le contrôle porte sur l'état ENTRANT, budgets compris : un comptable hors
-    ligne qui crée l'enveloppe et le mandat dans la même synchronisation doit
-    passer. Corollaire assumé : il peut lever la limite en **ajustant
-    l'enveloppe**. C'est le but — le dépassement silencieux devient un acte
-    délibéré, à son nom et horodaté, au lieu d'un débordement que personne ne
-    décide.
-
-    Ne s'applique qu'au COMPTABLE : le patron est souverain sur sa coopérative
-    (invariant 2), et il ajusterait l'enveloppe dans la seconde.
+    Seule borne qui s'applique au PATRON, et de même nature que l'invariant
+    19bis : allouer plus que ce qu'on engage n'est pas une décision, c'est une
+    incohérence de livre de comptes. Il la lève en augmentant le budget — un
+    acte visible et horodaté, au lieu d'un débordement que personne ne décide.
     """
-    nouveaux = delta["mandats"]["created"]
-    if not nouveaux:
+    if not (delta["allocations"]["created"] or delta["allocations"]["updated"]):
         return
     saison = incoming.get("saison")
-    enveloppe = _somme(incoming.get("budgets"), coop_id, saison, "montant")
-    if enveloppe <= 0:
+    budget = _somme(incoming.get("budgets"), coop_id, saison, "montant")
+    if budget <= 0:
+        raise Forbidden(
+            f"{actor} : aucun budget d'achat n'est ouvert pour cette campagne. "
+            "Créez-le avant d'allouer des fonds à un comptable.")
+    alloue = _somme(incoming.get("allocations"), coop_id, saison, "amount")
+    if alloue > budget:
+        raise Forbidden(
+            f"{actor} : ces allocations dépassent le budget d'achat de "
+            f"{alloue - budget} F. Augmentez le budget, ou réduisez l'allocation.")
+
+
+def _check_engagements_du_comptable(incoming: dict, delta: dict, coop_id: str,
+                                    me_id: str, actor: str) -> None:
+    """Cran 2 → 3 : un comptable n'engage pas au-delà de ce qui lui est alloué.
+
+    **C'est le cran qui manquait**, et son absence rendait tout le reste
+    décoratif : le comptable ouvrait lui-même l'enveloppe sur laquelle ses
+    mandats étaient plafonnés. Un plafond qui s'appuie sur une valeur que
+    l'intéressé saisit lui-même ne plafonne rien.
+
+    Les **dépenses comptent** avec les enveloppes : elles sortent réellement de
+    l'argent, là où une enveloppe n'est encore qu'une affectation.
+    """
+    if not (delta["enveloppes"]["created"] or delta["enveloppes"]["updated"]
+            or delta["depenses"]["created"]):
+        return
+    saison = incoming.get("saison")
+    for comptable_id in _comptables_concernes(incoming, delta, coop_id, me_id):
+        def mien(rows, cle):
+            return [r for r in (rows or [])
+                    if isinstance(r, dict) and r.get(cle) == comptable_id]
+        alloue = _somme(mien(incoming.get("allocations"), "comptableId"), coop_id, saison, "amount")
+        engage = _somme(mien(incoming.get("enveloppes"), "comptableId"), coop_id, saison, "montant")
+        depense = _somme(mien(incoming.get("depenses"), "pisteurId"), coop_id, saison, "amount")
+        if alloue <= 0:
+            raise Forbidden(
+                f"{actor} : aucun fonds ne vous a été alloué pour cette campagne. "
+                "Le patron doit d'abord vous allouer une part du budget d'achat.")
+        if engage + depense > alloue:
+            raise Forbidden(
+                f"{actor} : vos enveloppes et dépenses dépassent de "
+                f"{engage + depense - alloue} F les fonds qui vous sont alloués.")
+
+
+def _check_mandats_dans_enveloppes(incoming: dict, delta: dict, coop_id: str,
+                                   actor: str) -> None:
+    """Cran 3 → 4 : un mandat ne dépasse pas l'enveloppe sur laquelle il est tiré.
+
+    On bloque ici parce que l'argent n'est PAS encore sorti : confier un mandat
+    est une décision prise au bureau, connecté. *Acheter* au-delà de son mandat,
+    en revanche, est un fait accompli sur le terrain — le refuser supprimerait
+    la trace de l'achat, pas l'achat (invariant 13ter).
+    """
+    if not delta["mandats"]["created"]:
+        return
+    saison = incoming.get("saison")
+    enveloppes = {
+        r["id"]: r for r in (incoming.get("enveloppes") or [])
+        if isinstance(r, dict) and r.get("id") and r.get("coopId") == coop_id
+        and (not saison or not r.get("saison") or r.get("saison") == saison)
+    }
+    if not enveloppes:
         raise Forbidden(
             f"{actor} : aucune enveloppe n'est ouverte pour cette campagne. "
-            "Créez-la avant de confier un mandat."
-        )
-    attribue = _somme(incoming.get("mandats"), coop_id, saison, "amount")
-    if attribue > enveloppe:
-        depassement = attribue - enveloppe
+            "Créez-la avant de confier un mandat.")
+    for env_id, env in enveloppes.items():
+        tires = [m for m in (incoming.get("mandats") or [])
+                 if isinstance(m, dict) and m.get("enveloppeId") == env_id]
+        attribue = _somme(tires, coop_id, saison, "amount")
+        montant = int(float(env.get("montant") or 0))
+        if attribue > montant:
+            raise Forbidden(
+                f"{actor} : ce mandat dépasse l'enveloppe « {env.get('libelle') or env_id} » "
+                f"de {attribue - montant} F. Réduisez le mandat, ou ajustez l'enveloppe.")
+    # Un mandat SANS enveloppe déclarée reste possible (les mandats confiés
+    # avant la hiérarchie n'en ont pas), mais le total confié ne peut pas
+    # dépasser le total engagé : sinon la borne se contournerait en omettant
+    # simplement le champ.
+    total_engage = _somme(incoming.get("enveloppes"), coop_id, saison, "montant")
+    total_confie = _somme(incoming.get("mandats"), coop_id, saison, "amount")
+    if total_confie > total_engage:
         raise Forbidden(
-            f"{actor} : ce mandat dépasse l'enveloppe de la campagne de "
-            f"{depassement} F. Ajustez l'enveloppe, ou réduisez le mandat."
-        )
+            f"{actor} : les mandats confiés dépassent vos enveloppes de "
+            f"{total_confie - total_engage} F.")
+
+
+def _comptables_concernes(incoming: dict, delta: dict, coop_id: str, me_id: str) -> set:
+    """Comptables dont les engagements sont touchés par cette écriture.
+
+    On ne recalcule que ce qui bouge : un patron qui corrige une fiche planteur
+    n'a pas à faire revérifier les fonds de toute l'équipe.
+    """
+    vus = set()
+    for row in delta["enveloppes"]["created"]:
+        if row.get("comptableId"):
+            vus.add(row["comptableId"])
+    for _avant, apres in delta["enveloppes"]["updated"]:
+        if apres.get("comptableId"):
+            vus.add(apres["comptableId"])
+    roles = {
+        r.get("id"): r.get("role") for r in (incoming.get("staff") or [])
+        if isinstance(r, dict)
+    }
+    for row in delta["depenses"]["created"]:
+        if roles.get(row.get("pisteurId")) == "comptable":
+            vus.add(row["pisteurId"])
+    return vus
 
 
 def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dict) -> None:
@@ -974,8 +1056,18 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
     # Seule limite au pouvoir du patron : les dépenses personnelles d'un
     # pisteur / délégué, qu'il ne voit même pas (invariant 24).
     _check_depenses_privees(stored, incoming, deletions, coop_id, me)
+
+    visible = scope_state(stored, coop_id, me)
+    delta = _diff_entities(visible, incoming, coop_id, deletions)
+
     if side == "coop" and role == "patron":
-        return  # souverain sur sa propre coopérative (isolation déjà garantie).
+        # Souverain sur sa coopérative (isolation déjà garantie) — à une borne
+        # près, de même nature que l'invariant 19bis : allouer à un comptable
+        # plus que le budget d'achat engagé n'est pas une décision, c'est une
+        # incohérence de livre de comptes. Il lève la limite en augmentant le
+        # budget, ce qui est un acte visible et horodaté.
+        _check_allocations_dans_budget(incoming, delta, coop_id, "Patron")
+        return
 
     # Seul le patron définit ou réinitialise un code secret : personne d'autre
     # ne doit pouvoir en poser un (ni en effacer un en envoyant `pin: null`).
@@ -984,14 +1076,11 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
             if isinstance(row, dict) and "pin" in row:
                 raise Forbidden("Seul le patron peut définir ou réinitialiser un code secret.")
 
-    visible = scope_state(stored, coop_id, me)
-    delta = _diff_entities(visible, incoming, coop_id, deletions)
-
     if side == "planteur":
         actor = "Planteur"
         _check_coop_settings_untouched(visible, incoming, coop_id, actor)
         _deny_touching(delta, ["staff", "mandats", "depenses", "settlements", "sorties",
-                               "budgets", "reglements"], actor)
+                               "budgets", "allocations", "enveloppes", "reglements"], actor)
         # Aucune création ni suppression de planteur, de collecte ou de solde.
         for e in ("members", "collections"):
             if (delta[e]["created"] or delta[e]["deleted"]):
@@ -1019,9 +1108,20 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
         for quoi in ("created", "updated", "deleted"):
             if delta["staff"][quoi]:
                 raise Forbidden(f"{actor} : seul le patron gère les collaborateurs.")
+        # LE HAUT DE LA CHAÎNE APPARTIENT AU PATRON. Le budget d'achat est
+        # l'argent de la coopérative ; l'allocation est la décision de le
+        # confier. Laisser le comptable toucher l'un ou l'autre reviendrait à
+        # le laisser fixer sa propre limite — c'est-à-dire à n'en avoir aucune.
+        for quoi in ("created", "updated", "deleted"):
+            if delta["budgets"][quoi]:
+                raise Forbidden(
+                    f"{actor} : le budget d'achat de la coopérative appartient au patron.")
+            if delta["allocations"][quoi]:
+                raise Forbidden(
+                    f"{actor} : seul le patron alloue des fonds à un comptable.")
         # Une écriture financière ne se supprime pas. Corriger, c'est écrire
         # une opération de correction — jamais effacer la précédente.
-        for e in ("budgets", "mandats", "depenses", "reglements"):
+        for e in ("enveloppes", "mandats", "depenses", "reglements"):
             if delta[e]["deleted"]:
                 raise Forbidden(f"{actor} : une écriture financière ne se supprime pas.")
         # …et ne se récrit pas non plus. Seule l'ENVELOPPE reste ajustable :
@@ -1043,18 +1143,26 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
         # AttributeError — donc un 500 — dès qu'un comptable ajustait une
         # enveloppe, c'est-à-dire sur la seule écriture que ce rôle a le droit
         # de modifier. Aucun test ne passait par là.
-        enveloppes = list(delta["budgets"]["created"]) + [apres for _avant, apres in delta["budgets"]["updated"]]
-        for row in enveloppes:
-            if row.get("byStaffId") != me_id:
-                raise Forbidden(f"{actor} : une enveloppe doit être enregistrée à votre nom.")
-        _check_enveloppe_respectee(incoming, delta, coop_id, actor)
+        # ⚠️ `delta[...]["updated"]` est une liste de COUPLES (avant, après),
+        # pas de lignes : les additionner aux créations faisait lever un
+        # AttributeError — donc un 500 — dès qu'un comptable ajustait une
+        # enveloppe, c'est-à-dire sur la seule écriture que ce rôle a le droit
+        # de modifier.
+        touchees = list(delta["enveloppes"]["created"]) + [ap for _av, ap in delta["enveloppes"]["updated"]]
+        for row in touchees:
+            if row.get("byStaffId") != me_id or row.get("comptableId") != me_id:
+                raise Forbidden(
+                    f"{actor} : une enveloppe s'ouvre à votre nom, sur VOS fonds alloués.")
+        _check_engagements_du_comptable(incoming, delta, coop_id, me_id, actor)
+        _check_mandats_dans_enveloppes(incoming, delta, coop_id, actor)
         return
 
     if side == "coop" and role in ("commis", "pisteur"):
         actor = "Magasinier" if role == "commis" else "Pisteur / Délégué"
         _check_coop_settings_untouched(visible, incoming, coop_id, actor)
         # Les mandats sont confiés par le patron ; l'équipe ne se les attribue pas.
-        _deny_touching(delta, ["mandats", "budgets", "reglements"], actor)
+        _deny_touching(delta, ["mandats", "budgets", "allocations", "enveloppes",
+                               "reglements"], actor)
         # Collaborateurs : création/suppression réservées au patron.
         if delta["staff"]["created"] or delta["staff"]["deleted"]:
             raise Forbidden(f"{actor} : seul le patron crée ou supprime un collaborateur.")

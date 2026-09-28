@@ -45,6 +45,8 @@ import {
   totalSuperficie,
   waNumber,
   tresorerie,
+  fondsComptable,
+  soldeEnveloppe,
 } from "./lib";
 import { Localisation, libelleLocalite, rapprocherTexte } from "./geo";
 import { Icon } from "./Icon";
@@ -616,6 +618,11 @@ export function DepenseSheet({ onClose, onSave, comptable }: any) {
  * c'est assumé : une enveloppe est une PRÉVISION, pas un mouvement d'argent.
  * Un mandat, une dépense ou un règlement, eux, sont définitifs.
  */
+/**
+ * **Budget d'achat de la coopérative** — sommet de la chaîne, saisi par le
+ * PATRON. Tout ce qui est en dessous (allocations, enveloppes, mandats) y est
+ * borné par le serveur.
+ */
 export function BudgetSheet({ initial, onClose, onSave }: any) {
   const [libelle, setLibelle] = useState(initial?.libelle || "");
   const [montant, setMontant] = useState(String(initial?.montant ?? ""));
@@ -626,7 +633,7 @@ export function BudgetSheet({ initial, onClose, onSave }: any) {
   const valid = libelle.trim().length > 0 && Number(montant) > 0;
 
   return (
-    <Sheet title={initial ? "Ajuster l'enveloppe" : "Nouvelle enveloppe"} onClose={onClose}>
+    <Sheet title={initial ? "Ajuster le budget d'achat" : "Budget d'achat de la campagne"} onClose={onClose}>
       <Field label="Libellé">
         <TInput value={libelle} onChangeText={setLibelle} placeholder="Ex. Campagne cacao 2026-2027" />
       </Field>
@@ -647,8 +654,8 @@ export function BudgetSheet({ initial, onClose, onSave }: any) {
           style={{ flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: cloture ? C.rust : C.line, backgroundColor: cloture ? "#FBECE8" : "#fff", borderRadius: 12, padding: 12, marginBottom: 14 }}>
           <Icon name={cloture ? "check-circle" : "circle"} size={18} color={cloture ? C.rust : C.muted} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: "700", fontSize: 14 }}>Clôturer l&apos;enveloppe</Text>
-            <Text style={{ fontSize: 11.5, color: C.muted }}>Elle reste consultable ; plus aucun mandat ne s&apos;y impute.</Text>
+            <Text style={{ fontWeight: "700", fontSize: 14 }}>Clôturer le budget</Text>
+            <Text style={{ fontSize: 11.5, color: C.muted }}>Il reste consultable ; plus aucune allocation ne s&apos;y impute.</Text>
           </View>
         </Pressable>
       ) : null}
@@ -657,7 +664,132 @@ export function BudgetSheet({ initial, onClose, onSave }: any) {
         debut: debut.trim(), fin: fin.trim(), note: note.trim(),
         ...(initial ? { cloture } : {}),
       })}>
-        {initial ? "Enregistrer l'ajustement" : "Créer l'enveloppe"}
+        {initial ? "Enregistrer l'ajustement" : "Ouvrir le budget d'achat"}
+      </SaveBtn>
+    </Sheet>
+  );
+}
+
+/**
+ * **Allocation de fonds à un comptable** — saisie par le PATRON.
+ *
+ * C'est le cran qui manquait à la chaîne, et son absence rendait tout le reste
+ * décoratif : le comptable ouvrait lui-même l'enveloppe sur laquelle ses
+ * mandats étaient plafonnés. Ici le patron décide **jusqu'où** son comptable
+ * peut engager la coopérative. L'écran affiche le budget encore à allouer ; le
+ * serveur refuse de le dépasser, pour le patron comme pour le comptable.
+ */
+export function AllocationSheet({ data, onClose, onSave }: { data: Data; onClose: () => void; onSave: (x: any) => void }) {
+  const comptables = (data.staff || []).filter((x) => x.role === "comptable");
+  const [cid, setCid] = useState(comptables[0]?.id || "");
+  const [montant, setMontant] = useState("");
+  const [note, setNote] = useState("");
+  const tr = tresorerie(data);
+  const n = Number(montant) || 0;
+  const sansBudget = tr.enveloppe <= 0;
+  const depasse = !sansBudget && n > tr.nonAlloue;
+  const dejaAlloue = cid ? fondsComptable(data, cid).alloue : 0;
+  const valid = !!cid && n > 0 && !sansBudget && !depasse;
+
+  return (
+    <Sheet title="Allouer des fonds à un comptable" onClose={onClose}>
+      {comptables.length === 0 ? (
+        <Text style={{ fontSize: 13, color: C.loss, lineHeight: 19, marginBottom: 14 }}>
+          Aucun comptable dans l&apos;équipe. Créez-en un depuis « Équipe » avant d&apos;allouer des fonds.
+        </Text>
+      ) : (
+        <>
+          <Field label="Comptable">
+            <Select value={cid} onChange={setCid} options={comptables.map((x) => ({ value: x.id, label: x.nom }))} />
+            {dejaAlloue > 0 ? (
+              <Text style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>
+                {`Déjà à sa main : ${fF(dejaAlloue)}.`}
+              </Text>
+            ) : null}
+          </Field>
+          <Field label="Montant à mettre à sa main (F)">
+            <TInput value={montant} onChangeText={(x) => setMontant(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ex. 20000000" />
+            {sansBudget ? (
+              <Text style={{ fontSize: 12, color: C.loss, marginTop: 6, lineHeight: 17 }}>
+                Aucun budget d&apos;achat n&apos;est ouvert pour cette campagne. Créez-le d&apos;abord.
+              </Text>
+            ) : (
+              <Text style={{ fontSize: 12, color: depasse ? C.loss : C.muted, marginTop: 6, lineHeight: 17 }}>
+                {depasse
+                  ? `Dépasse le budget d'achat de ${fF(n - tr.nonAlloue)}. Reste à allouer : ${fF(tr.nonAlloue)}.`
+                  : `Reste à allouer sur le budget d'achat : ${fF(tr.nonAlloue)}.`}
+              </Text>
+            )}
+          </Field>
+          <Field label="Note (facultatif)"><TInput value={note} onChangeText={setNote} placeholder="Ex. campagne cacao" /></Field>
+          <View style={{ backgroundColor: "#EAF3EF", borderWidth: 1, borderColor: "#CFE6E0", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+            <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>
+              Ce n&apos;est pas un versement : c&apos;est la limite dans laquelle le comptable peut ouvrir des enveloppes, confier des mandats et engager des dépenses. Vous pouvez la relever à tout moment.
+            </Text>
+          </View>
+          <SaveBtn disabled={!valid} color={C.lime} onPress={() => onSave({ comptableId: cid, amount: n, note: note.trim() })}>
+            Allouer {fF(n)}
+          </SaveBtn>
+        </>
+      )}
+    </Sheet>
+  );
+}
+
+/**
+ * **Enveloppe du comptable** — une affectation prise sur SES fonds alloués.
+ *
+ * L'écran affiche ce qui reste à sa main. Le serveur applique la même borne :
+ * `enveloppes + dépenses ≤ alloué`.
+ */
+export function EnveloppeSheet({ data, comptableId, initial, onClose, onSave }: any) {
+  const [libelle, setLibelle] = useState(initial?.libelle || "");
+  const [montant, setMontant] = useState(String(initial?.montant ?? ""));
+  const [note, setNote] = useState(initial?.note || "");
+  const [cloture, setCloture] = useState(!!initial?.cloture);
+  const f = fondsComptable(data, comptableId);
+  const n = Number(montant) || 0;
+  // En ajustement, l'enveloppe en cours ne se compte pas deux fois.
+  const marge = f.disponible + (initial ? Number(initial.montant) || 0 : 0);
+  const sansFonds = f.alloue <= 0;
+  const depasse = !sansFonds && n > marge;
+  const valid = libelle.trim().length > 0 && n > 0 && !sansFonds && !depasse;
+
+  return (
+    <Sheet title={initial ? "Ajuster l'enveloppe" : "Nouvelle enveloppe"} onClose={onClose}>
+      <Field label="Libellé">
+        <TInput value={libelle} onChangeText={setLibelle} placeholder="Ex. Achat cacao" />
+      </Field>
+      <Field label="Montant (F)">
+        <TInput value={montant} onChangeText={(x) => setMontant(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ex. 10000000" />
+        {sansFonds ? (
+          <Text style={{ fontSize: 12, color: C.loss, marginTop: 6, lineHeight: 17 }}>
+            Aucun fonds ne vous a été alloué pour cette campagne. Le patron doit d&apos;abord vous allouer une part du budget d&apos;achat.
+          </Text>
+        ) : (
+          <Text style={{ fontSize: 12, color: depasse ? C.loss : C.muted, marginTop: 6, lineHeight: 17 }}>
+            {depasse
+              ? `Dépasse vos fonds de ${fF(n - marge)}. Disponible : ${fF(marge)}.`
+              : `Disponible sur vos fonds alloués : ${fF(marge)}.`}
+          </Text>
+        )}
+      </Field>
+      <Field label="Note (facultatif)"><TInput value={note} onChangeText={setNote} placeholder="Ex. zone de Daloa" /></Field>
+      {initial ? (
+        <Pressable onPress={() => setCloture(!cloture)} testID="enveloppe-cloture"
+          style={{ flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: cloture ? C.rust : C.line, backgroundColor: cloture ? "#FBECE8" : "#fff", borderRadius: 12, padding: 12, marginBottom: 14 }}>
+          <Icon name={cloture ? "check-circle" : "circle"} size={18} color={cloture ? C.rust : C.muted} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: "700", fontSize: 14 }}>Clôturer l&apos;enveloppe</Text>
+            <Text style={{ fontSize: 11.5, color: C.muted }}>Elle reste consultable ; plus aucun mandat ne s&apos;y impute.</Text>
+          </View>
+        </Pressable>
+      ) : null}
+      <SaveBtn disabled={!valid} color={C.teal} onPress={() => onSave({
+        libelle: libelle.trim(), montant: n, note: note.trim(),
+        ...(initial ? { cloture } : { comptableId }),
+      })}>
+        {initial ? "Enregistrer l'ajustement" : "Ouvrir l'enveloppe"}
       </SaveBtn>
     </Sheet>
   );
@@ -792,41 +924,51 @@ export function ResetPinSheet({ name, onClose, onSave }: any) {
  */
 export function MandatSheet({ data, pisteurId, role, onClose, onSave }: { data: Data; pisteurId?: string | null; role?: string; onClose: () => void; onSave: (x: any) => void }) {
   const pisteurs = data.staff.filter((s) => s.role === "pisteur");
+  const ouvertes = (data.enveloppes || []).filter((e) => !e.cloture);
   const [pid, setPid] = useState(pisteurId || pisteurs[0]?.id || "");
+  const [envId, setEnvId] = useState(ouvertes[0]?.id || "");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
-  const tr = tresorerie(data);
   const n = Number(amount) || 0;
-  // Un mandat suppose une enveloppe ouverte : confier des fonds que la
-  // campagne n'a pas budgétés est exactement ce que le plafond refuse.
-  const sansEnveloppe = tr.enveloppe <= 0;
-  const depasse = !sansEnveloppe && n > tr.nonAttribue;
+  // Un mandat se tire sur UNE enveloppe : c'est elle qui le plafonne, pas le
+  // total de la coopérative. Confier plus qu'elle ne porte est refusé par le
+  // serveur, et le solde s'affiche ici pour qu'on ne le découvre pas au refus.
+  const solde = envId ? soldeEnveloppe(data, envId) : null;
+  const dispo = solde ? solde.disponible : 0;
+  const sansEnveloppe = ouvertes.length === 0;
+  const depasse = !sansEnveloppe && n > dispo;
   const bloquant = role === "comptable";
-  const valid = !!pid && n > 0 && !(bloquant && (sansEnveloppe || depasse));
+  const valid = !!pid && n > 0 && (bloquant ? !!envId && !sansEnveloppe && !depasse : true);
   return (
     <Sheet title="Donner un mandat" onClose={onClose}>
       <Field label="Pisteur">
         <Select value={pid} onChange={setPid} options={pisteurs.map((s) => ({ value: s.id, label: s.nom }))} />
       </Field>
+      {sansEnveloppe ? (
+        <Text style={{ fontSize: 12.5, color: C.loss, lineHeight: 18, marginBottom: 14 }}>
+          Aucune enveloppe ouverte pour cette campagne. Ouvrez-en une avant de confier un mandat.
+        </Text>
+      ) : (
+        <Field label="Enveloppe">
+          <Select value={envId} onChange={setEnvId}
+            options={ouvertes.map((e) => ({ value: e.id, label: `${e.libelle} — ${fF(soldeEnveloppe(data, e.id).disponible)} dispo.` }))} />
+        </Field>
+      )}
       <Field label="Montant du mandat (F)">
         <TInput value={amount} onChangeText={(t) => setAmount(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ex. 1000000" />
-        {sansEnveloppe ? (
-          <Text style={{ fontSize: 12, color: C.loss, marginTop: 6, lineHeight: 17 }}>
-            Aucune enveloppe n&apos;est ouverte pour cette campagne. Créez-la d&apos;abord.
-          </Text>
-        ) : (
+        {!sansEnveloppe ? (
           <Text style={{ fontSize: 12, color: depasse ? C.loss : C.muted, marginTop: 6, lineHeight: 17 }}>
             {depasse
-              ? `Dépasse l'enveloppe de ${fF(n - tr.nonAttribue)}. Reste à confier : ${fF(tr.nonAttribue)}.`
-              : `Reste à confier sur l'enveloppe : ${fF(tr.nonAttribue)}.`}
+              ? `Dépasse l'enveloppe de ${fF(n - dispo)}. Reste à confier : ${fF(dispo)}.`
+              : `Reste à confier sur cette enveloppe : ${fF(dispo)}.`}
           </Text>
-        )}
+        ) : null}
       </Field>
       <Field label="Note (facultatif)"><TInput value={note} onChangeText={setNote} placeholder="Ex. zone / campagne" /></Field>
       <View style={{ backgroundColor: "#FBF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
         <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Le mandat est l&apos;avance confiée au pisteur pour aller acheter le cacao. Il sera justifié par les achats, les dépenses et le solde en caisse.</Text>
       </View>
-      <SaveBtn disabled={!valid} color={C.lime} onPress={() => onSave({ pisteurId: pid, amount: n, note: note.trim() })}>Confier le mandat</SaveBtn>
+      <SaveBtn disabled={!valid} color={C.lime} onPress={() => onSave({ pisteurId: pid, amount: n, note: note.trim(), ...(envId ? { enveloppeId: envId } : {}) })}>Confier le mandat</SaveBtn>
     </Sheet>
   );
 }

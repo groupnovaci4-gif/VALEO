@@ -16,6 +16,8 @@ import {
   DEFAULT_PRICES,
   Depense,
   Budget,
+  Allocation,
+  Enveloppe,
   Reglement,
   genMemberCode,
   Loan,
@@ -416,6 +418,28 @@ export function useCoopData() {
   const majBudget = useCallback((id: string, x: Partial<Budget>) => {
     setData((d) => (d ? { ...d, budgets: (d.budgets || []).map((b) => (b.id === id ? { ...b, ...x } : b)) } : d));
     logAudit("budget_ajuste", { budgetId: id, montant: x.montant, cloture: x.cloture });
+  }, [logAudit]);
+
+  /**
+   * **Allocation de fonds à un comptable.** Décision du PATRON : c'est le cran
+   * qui borne tout ce que le comptable engagera ensuite.
+   */
+  const addAllocation = useCallback((x: Partial<Allocation>) => {
+    setData((d) => (d ? { ...d, allocations: [...(d.allocations || []), { id: uid(), coopId: cid(), saison: d.saison, date: new Date().toISOString(), ...x } as Allocation] } : d));
+    logAudit("allocation_comptable", { comptableId: x.comptableId, amount: x.amount });
+  }, [logAudit]);
+
+  /** Enveloppe ouverte par le comptable sur SES fonds alloués. */
+  const addEnveloppe = useCallback((x: Partial<Enveloppe>) => {
+    setData((d) => (d ? { ...d, enveloppes: [...(d.enveloppes || []), { id: uid(), coopId: cid(), saison: d.saison, date: new Date().toISOString(), ...x } as Enveloppe] } : d));
+    logAudit("enveloppe_creee", { libelle: x.libelle, montant: x.montant });
+  }, [logAudit]);
+
+  /** Ajuste une enveloppe — montant, clôture. Seule écriture financière du
+   *  comptable qui reste modifiable : c'est une affectation, pas un mouvement. */
+  const majEnveloppe = useCallback((id: string, x: Partial<Enveloppe>) => {
+    setData((d) => (d ? { ...d, enveloppes: (d.enveloppes || []).map((e) => (e.id === id ? { ...e, ...x } : e)) } : d));
+    logAudit("enveloppe_ajustee", { enveloppeId: id, montant: x.montant, cloture: x.cloture });
   }, [logAudit]);
 
   /** Règlement de ce que la coopérative doit à un collaborateur. */
@@ -844,6 +868,9 @@ export function useCoopData() {
     majResultatUsine,
     addBudget,
     majBudget,
+    addAllocation,
+    addEnveloppe,
+    majEnveloppe,
     addReglement,
     addCollection,
     settleMemberDue,
