@@ -598,7 +598,12 @@ CHAMPS_POSITIFS = {
     "settlements": ("amount",),
     "mandats": ("amount",),
     "depenses": ("amount",),
-    "sorties": ("kg",),
+    # `kg` est le poids qui quitte le magasin ; les suivants ne concernent que
+    # l'expédition vers l'usine (poids constaté là-bas, prix d'achat de
+    # l'usine, prix de revient figé, transport, frais de route). Aucun ne peut
+    # être négatif : un « prix » ou un « frais » négatif inverserait le
+    # bénéfice sans que rien ne le signale.
+    "sorties": ("kg", "kgUsine", "prixUsine", "prixRevient", "transport", "fraisRoute"),
 }
 # Invariant 15 : quatre statuts, pas un de plus. Une orthographe inventée
 # traverserait tous les filtres métier sans jamais lever d'erreur — l'avance

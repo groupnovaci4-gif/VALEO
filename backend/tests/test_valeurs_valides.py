@@ -84,6 +84,52 @@ class TestValeursNegatives:
                         kg="beaucoup") == 403
 
 
+class TestExpeditionVersUsine:
+    """Les champs de l'expédition usine sont des VALEURS, pas des libellés.
+
+    Le bénéfice se calcule côté client à partir de ces nombres. Un prix ou des
+    frais négatifs l'inverseraient sans que rien ne le signale : un chargement
+    vendu à perte s'afficherait bénéficiaire. Le serveur les refuse, pour tous
+    les rôles, patron compris (invariant 19bis).
+    """
+
+    @pytest.mark.parametrize("champ", ["kgUsine", "prixUsine", "prixRevient",
+                                       "transport", "fraisRoute"])
+    def test_une_valeur_negative_est_refusee(self, app_client, champ):
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["patron"])
+        vue["sorties"] = list(vue.get("sorties") or []) + [{
+            "id": f"srt-{champ}", "coopId": vue["coops"][0]["id"], "cropId": "cacao",
+            "kg": 1000, "type": "expedition", "date": "2026-03-01T08:00:00.000Z",
+            "byStaffId": t["patron_id"], "note": "", champ: -1,
+        }]
+        assert _put(app_client, t["patron"], vue).status_code == 403, \
+            f"« {champ} » négatif accepté"
+
+    def test_une_expedition_complete_et_valide_passe(self, app_client):
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["patron"])
+        vue["sorties"] = list(vue.get("sorties") or []) + [{
+            "id": "srt-ok", "coopId": vue["coops"][0]["id"], "cropId": "cacao",
+            "kg": 1000, "type": "expedition", "date": "2026-03-01T08:00:00.000Z",
+            "byStaffId": t["patron_id"], "note": "", "destinataire": "Usine",
+            "kgUsine": 980, "prixUsine": 1500, "prixRevient": 1000,
+            "transport": 60000, "fraisRoute": 15000,
+        }]
+        assert _put(app_client, t["patron"], vue).status_code == 200
+
+    def test_une_sortie_ordinaire_sans_ces_champs_passe(self, app_client):
+        """Une perte ou un transfert n'a rien à voir avec l'usine."""
+        t = _seed_coop(app_client)
+        vue = _get_state(app_client, t["patron"])
+        vue["sorties"] = list(vue.get("sorties") or []) + [{
+            "id": "srt-perte", "coopId": vue["coops"][0]["id"], "cropId": "cacao",
+            "kg": 12, "type": "perte", "date": "2026-03-01T08:00:00.000Z",
+            "byStaffId": t["patron_id"], "note": "sac éventré",
+        }]
+        assert _put(app_client, t["patron"], vue).status_code == 200
+
+
 class TestStatutsDAvance:
     @pytest.mark.parametrize("statut", ["valide", "APPROUVE", "approuvé", "pending", ""])
     def test_un_statut_hors_enumeration_est_refuse(self, app_client, statut):

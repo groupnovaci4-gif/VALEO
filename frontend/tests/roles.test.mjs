@@ -195,70 +195,76 @@ test("les dettes ne sont pas cloisonnées par campagne", () => {
 
 /* ------------- Écart de vérification à la charge du pisteur --------------- */
 
-test("le manquant après vérification est déduit de la caisse du pisteur", () => {
-  // Le pisteur a reçu 2 000 000 F de mandat et payé 1 000 kg × 1 800 = 1 800 000 F
-  // au planteur. Le magasin n'a reçu que 980 kg : 20 kg × 1 800 = 36 000 F sont
-  // sortis du mandat sans contrepartie — c'est son manquant.
+test("le manquant devient une dette en KILOS, et sort de la caisse", () => {
+  // Le pisteur a reçu 2 000 000 F de mandat et payé 1 000 kg × 1 800 au
+  // planteur. Le magasin n'a reçu que 980 kg. Le mandat est confié pour
+  // rapporter un POIDS : il doit donc 20 kg, et non 36 000 F. Sa caisse ne dit
+  // plus qu'une chose — l'argent du mandat qui n'a pas servi à acheter.
   const d = base([colPisteur("c1", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
   d.mandats = [{ id: "m1", pisteurId: "pis", amount: 2000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
   const st = pisteurStats("pis", d);
-  assert.equal(st.manquant, 36000);
+  assert.equal(st.detteKg, 20, "20 kg à combler en marchandise");
   assert.equal(st.achats, 1800000, "le montant réglé au planteur ne change pas");
-  assert.equal(st.solde, 2000000 - 1800000 - 36000, "le manquant sort de sa caisse");
-  assert.equal(st.solde, 164000);
+  assert.equal(st.solde, 2000000 - 1800000, "l'écart n'entre plus dans la caisse");
+  assert.equal(st.solde, 200000);
 });
 
 test("sans écart, la caisse est inchangée", () => {
   const d = base([colPisteur("c1", 1000, { verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
   d.mandats = [{ id: "m1", pisteurId: "pis", amount: 2000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
   const st = pisteurStats("pis", d);
-  assert.equal(st.manquant, 0);
+  assert.equal(st.detteKg, 0);
   assert.equal(st.solde, 200000);
 });
 
-test("tant que le poids n'est pas vérifié, aucun manquant n'est imputé", () => {
+test("tant que le poids n'est pas vérifié, aucune dette n'est imputée", () => {
   // On ne peut pas reprocher un écart qui n'a pas encore été constaté.
   const d = base([colPisteur("c1", 1000)]);
   d.mandats = [{ id: "m1", pisteurId: "pis", amount: 2000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
   const st = pisteurStats("pis", d);
-  assert.equal(st.manquant, 0);
+  assert.equal(st.detteKg, 0);
   assert.equal(st.solde, 200000);
 });
 
-test("le manquant est valorisé au prix figé sur la collecte", () => {
-  // Le prix courant a changé depuis la pesée : c'est le prix payé qui compte.
+test("un manquant ne se valorise plus en argent : il se compte en kilos", () => {
+  // Le prix n'entre plus dans le manquant. Quel que soit le barème, la dette
+  // est la même : le poids qui n'est pas arrivé au magasin.
   const d = base([colPisteur("c1", 100, { prixKg: 1500, paye: 150000, verif: { kg: 90, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
   d.prices = { cacao: 1800 };
-  assert.equal(pisteurStats("pis", d).manquant, 15000, "10 kg × 1 500, pas × 1 800");
+  const st = pisteurStats("pis", d);
+  assert.equal(st.detteKg, 10, "10 kg, et pas 15 000 F");
+  assert.equal(st.solde, -150000, "la caisse ne reflète que le mandat et les achats");
 });
 
-test("le « poids plus » revient au pisteur et abonde sa caisse", () => {
+test("le « poids plus » revient au pisteur et abonde sa COMMISSION", () => {
   // Le mandat est confié pour acheter un poids donné : la coopérative n'attend
   // en retour que le poids correspondant au mandat. Ce qui arrive en plus est
   // le fruit de la tournée de l'agent et lui est versé.
   const d = base([colPisteur("c1", 980, { paye: 1764000, verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } })]);
   d.mandats = [{ id: "m1", pisteurId: "pis", amount: 2000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
   const st = pisteurStats("pis", d);
-  assert.equal(st.poidsPlus, 36000, "20 kg de plus × 1 800");
-  assert.equal(st.manquant, 0);
+  assert.equal(st.acquisKg, 20, "20 kg de plus lui restent acquis");
+  assert.equal(st.poidsPlus, 36000, "20 kg × 1 800, au prix figé");
+  assert.equal(st.detteKg, 0);
   assert.equal(st.achats, 1764000, "le montant réglé au planteur ne change pas");
-  assert.equal(st.solde, 2000000 - 1764000 + 36000, "le poids plus s'ajoute à sa caisse");
-  assert.equal(st.solde, 272000);
+  assert.equal(st.solde, 2000000 - 1764000, "la caisse ignore l'excédent");
+  assert.equal(st.commission, st.commissionBase + 36000, "il est versé avec la commission");
 });
 
-test("manquant et poids plus restent lisibles séparément", () => {
+test("un excédent postérieur COMBLE le manquant, en kilos", () => {
   const d = base([
     colPisteur("c1", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } }),
     colPisteur("c2", 500, { paye: 900000, verif: { kg: 520, byStaffId: "mag", date: "2026-02-03T10:00:00.000Z" } }),
   ]);
   d.mandats = [{ id: "m1", pisteurId: "pis", amount: 3000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
   const st = pisteurStats("pis", d);
-  assert.equal(st.manquant, 36000, "chaque écart garde son montant propre…");
-  assert.equal(st.poidsPlus, 36000);
-  // …mais dans la caisse, les deux se compensent : ce sont deux vrais
-  // mouvements d'argent, en sens inverse.
+  // 20 kg manquants le 02, 20 kg en trop le 03 : le second comble le premier.
+  // Rien ne lui est acquis, rien ne lui est réclamé.
+  assert.equal(st.detteKg, 0, "la dette est comblée en marchandise");
+  assert.equal(st.acquisKg, 0, "l'excédent a servi à combler, pas à enrichir");
+  assert.equal(st.poidsPlus, 0);
   assert.equal(st.achats, 2700000);
-  assert.equal(st.solde, 300000, "3 000 000 − 2 700 000 − 36 000 + 36 000");
+  assert.equal(st.solde, 300000, "3 000 000 − 2 700 000, sans aucun écart");
 });
 
 test("le poids plus est valorisé au prix figé sur la collecte", () => {
@@ -273,14 +279,14 @@ test("tant que le poids n'est pas vérifié, aucun poids plus n'est versé", () 
   assert.equal(poidsPlusVerif(colPisteur("c2", 1000)), 0);
 });
 
-test("le manquant d'un pisteur ne touche pas la caisse d'un autre", () => {
+test("la dette d'un pisteur ne touche pas celle d'un autre", () => {
   const d = base([
     colPisteur("c1", 1000, { verif: { kg: 980, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } }),
     col("c2", "pis2", 1000, { origine: "bord_champ", verif: { kg: 1000, byStaffId: "mag", date: "2026-02-02T10:00:00.000Z" } }),
   ]);
   d.staff = [...STAFF, { id: "pis2", nom: "Konan", role: "pisteur" }];
-  assert.equal(pisteurStats("pis", d).manquant, 36000);
-  assert.equal(pisteurStats("pis2", d).manquant, 0);
+  assert.equal(pisteurStats("pis", d).detteKg, 20);
+  assert.equal(pisteurStats("pis2", d).detteKg, 0);
 });
 
 test("le poids remis distingue le collecté du reçu", () => {

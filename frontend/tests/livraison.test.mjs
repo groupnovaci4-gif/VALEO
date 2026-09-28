@@ -194,37 +194,43 @@ test("vérifier la livraison d'un pisteur ne touche pas celle de l'autre", () =>
 
 /* ------------- L'écart global se règle sur la caisse du pisteur ----------- */
 
-test("le déficit global est imputé à la caisse du pisteur, au prix figé", () => {
-  // 30 kg manquants × 1 800 F = 54 000 F, quelle que soit la répartition.
+test("le déficit global devient une dette en KILOS, hors caisse", () => {
+  // 30 kg manquants sur le chargement : c'est un poids à combler, pas une
+  // somme à rendre. La caisse n'en porte plus la trace.
   const d = verifier(CHARGEMENT(), "liv-1", 3520);
   d.mandats = [{ id: "m1", pisteurId: "pis", amount: 10000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
   const st = pisteurStats("pis", d);
-  assert.equal(st.manquant, 54000);
-  assert.equal(st.poidsPlus, 0);
+  assert.equal(st.detteKg, 30, "quelle que soit la répartition sur les collectes");
+  assert.equal(st.acquisKg, 0);
   assert.equal(st.poidsRemis, 3520);
-  assert.equal(st.solde, 10000000 - 3550 * 1800 - 54000);
+  assert.equal(st.solde, 10000000 - 3550 * 1800, "l'écart n'entre pas dans la caisse");
 });
 
-test("l'excédent global revient au pisteur, au prix figé", () => {
+test("l'excédent global revient au pisteur, en commission, au prix figé", () => {
   const d = verifier(CHARGEMENT(), "liv-1", 3580);
   d.mandats = [{ id: "m1", pisteurId: "pis", amount: 10000000, date: "2026-02-01T08:00:00.000Z", note: "" }];
   const st = pisteurStats("pis", d);
+  assert.equal(st.acquisKg, 30);
   assert.equal(st.poidsPlus, 54000, "30 kg × 1 800");
-  assert.equal(st.manquant, 0);
-  assert.equal(st.solde, 10000000 - 3550 * 1800 + 54000);
+  assert.equal(st.detteKg, 0);
+  assert.equal(st.solde, 10000000 - 3550 * 1800, "la caisse ignore l'excédent");
+  assert.equal(st.commission, st.commissionBase + 54000, "il est versé avec la commission");
 });
 
-test("l'écart est valorisé au prix moyen pondéré quand les prix diffèrent", () => {
+test("l'excédent est valorisé au prix moyen pondéré quand les prix diffèrent", () => {
   // Deux produits au même chargement : 100 kg à 1 800 et 100 kg à 800.
-  // Prix moyen pondéré = 1 300. Un déficit de 10 kg vaut donc 13 000 F.
+  // Prix moyen pondéré = 1 300. Un excédent de 10 kg vaut donc 13 000 F.
   const d = base([
     col("c1", "mA", 100, "pis", "liv-1"),
     col("c2", "mB", 100, "pis", "liv-1", { prixKg: 800, cropId: "hevea", net: 80000, paye: 80000, brut: 80000 }),
   ]);
-  const apres = verifier(d, "liv-1", 190);
+  const apres = verifier(d, "liv-1", 210);
   const st = pisteurStats("pis", apres);
-  assert.equal(livraisons(apres)[0].deficit, 10);
-  assert.equal(st.manquant, 13000);
+  assert.equal(livraisons(apres)[0].excedent, 10);
+  assert.equal(st.poidsPlus, 13000);
+  // Le déficit, lui, ne se valorise plus du tout : il se compte en kilos.
+  const manque = verifier(d, "liv-1", 190);
+  assert.equal(pisteurStats("pis", manque).detteKg, 10);
 });
 
 /* ---------------- Régression : les livraisons anciennes ------------------- */
@@ -250,23 +256,24 @@ test("une pesée au magasin n'est jamais une livraison", () => {
 
 /* ------------ L'argent tombe juste : pas de franc perdu ------------------- */
 
-test("le manquant total vaut exactement l'écart global au prix figé", () => {
-  // Les montants sont sommés collecte par collecte : si la répartition n'était
-  // pas en kilos entiers, la somme des arrondis s'écartait de quelques francs
-  // du montant réel de l'écart.
+test("la dette en kilos vaut exactement l'écart global du chargement", () => {
+  // La répartition se fait en kilos entiers avec résidu d'arrondi sur la
+  // dernière collecte : la somme doit redonner l'écart au kilo près, sinon la
+  // dette dériverait à chaque chargement.
   for (const [global, ecart] of [[3520, 30], [3000, 550], [3549, 1], [1, 3549]]) {
     const d = verifier(CHARGEMENT(), "liv-1", global);
     const st = pisteurStats("pis", d);
-    assert.equal(st.manquant, ecart * 1800, `déficit de ${ecart} kg`);
-    assert.equal(st.poidsPlus, 0);
+    assert.equal(st.detteKg, ecart, `déficit de ${ecart} kg`);
+    assert.equal(st.acquisKg, 0);
   }
 });
 
 test("le poids plus total vaut exactement l'excédent global", () => {
   for (const [global, ecart] of [[3580, 30], [4000, 450], [3551, 1]]) {
     const st = pisteurStats("pis", verifier(CHARGEMENT(), "liv-1", global));
-    assert.equal(st.poidsPlus, ecart * 1800, `excédent de ${ecart} kg`);
-    assert.equal(st.manquant, 0);
+    assert.equal(st.acquisKg, ecart, `excédent de ${ecart} kg`);
+    assert.equal(st.poidsPlus, ecart * 1800, "valorisé au prix figé");
+    assert.equal(st.detteKg, 0);
   }
 });
 

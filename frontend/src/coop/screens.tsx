@@ -609,7 +609,7 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
   // La caisse se justifie campagne par campagne : mandats reçus, achats payés
   // et dépenses de la campagne en cours.
   const campagne = scopeSaison(data);
-  const st = pisteurStats(staffId, campagne);
+  const st = pisteurStats(staffId, campagne, data);
   const mandats = (campagne.mandats || []).filter((m: any) => m.pisteurId === staffId).sort(byDateDesc);
   const deps = (campagne.depenses || []).filter((x: any) => x.pisteurId === staffId).sort(byDateDesc);
   const cols = (campagne.collections || []).filter((c: Collection) => c.byStaffId === staffId).sort(byDateDesc);
@@ -639,24 +639,43 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
         ) : null}
         {/* Les frais de tournée n'apparaissent pas ici : ils sont personnels
             au pisteur/délégué, couverts par sa commission (invariant 24). */}
-        {/* Marchandise payée au bord-champ mais jamais arrivée au magasin :
-            l'argent est sorti du mandat sans contrepartie. */}
-        {st.manquant > 0 ? (
-          <>
-            <View style={{ height: 6 }} />
-            <Row label="− Manquant après vérification" value={fF(st.manquant)} />
-          </>
-        ) : null}
-        {/* Poids arrivé au magasin au-delà du poids déclaré : il vous revient. */}
-        {st.poidsPlus > 0 ? (
-          <>
-            <View style={{ height: 6 }} />
-            <Row label="+ Poids plus" value={fF(st.poidsPlus)} />
-          </>
-        ) : null}
+        {/* Les écarts de vérification n'entrent PLUS dans la caisse : le
+            manquant est une dette en KILOS, l'excédent une prime versée avec
+            la commission. La caisse ne dit qu'une chose : l'argent du mandat
+            qui n'a pas servi à acheter. */}
         <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 10 }} />
-        <Row label="Solde en caisse à justifier" value={fF(st.solde)} strong color={st.solde >= 0 ? C.green : C.loss} />
+        <Row
+          label={st.solde >= 0 ? "Solde en caisse à justifier" : "Avancé de votre poche (vous est dû)"}
+          value={fF(Math.abs(st.solde))}
+          strong
+          color={st.solde >= 0 ? C.green : C.loss}
+        />
       </Card>
+
+      {/* L'ardoise en kilos : ce qui se rembourse en poids, pas en argent. */}
+      {st.detteKg > 0 || st.acquisKg > 0 ? (
+        <Card style={{ padding: 14, marginBottom: 14 }}>
+          <Text style={{ fontSize: 12, color: C.muted, marginBottom: 8, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>Poids</Text>
+          {st.detteKg > 0 ? (
+            <>
+              <Row label="Poids à combler" value={fKg(st.detteKg)} strong color={C.loss} />
+              <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>
+                Votre mandat a payé ce poids et le magasin ne l&apos;a pas reçu. Il se rembourse
+                en marchandise : votre prochain excédent le comblera d&apos;abord.
+              </Text>
+            </>
+          ) : null}
+          {st.acquisKg > 0 ? (
+            <>
+              {st.detteKg > 0 ? <View style={{ height: 10 }} /> : null}
+              <Row label="Poids plus acquis" value={fKg(st.acquisKg)} strong color={C.green} />
+              <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>
+                Versé avec votre commission : {fF(st.poidsPlus)}.
+              </Text>
+            </>
+          ) : null}
+        </Card>
+      ) : null}
 
       <Segments segs={segs} seg={seg} setSeg={setSeg} theme={theme} />
 
@@ -728,7 +747,7 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
   // Même périmètre que l'écran du pisteur : la justification de caisse porte
   // sur la campagne en cours.
   const campagne = scopeSaison(data);
-  const st = pisteurStats(pisteur.id, campagne);
+  const st = pisteurStats(pisteur.id, campagne, data);
   const mandats = (campagne.mandats || []).filter((m: any) => m.pisteurId === pisteur.id).sort(byDateDesc);
   const cols = (campagne.collections || []).filter((c: Collection) => c.byStaffId === pisteur.id).sort(byDateDesc);
   return (
@@ -749,19 +768,27 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
           <StatCell label="Commission" value={fF(st.commission)} color={C.green} />
           <StatCell label="À justifier" value={fF(st.solde)} color={st.solde >= 0 ? C.green : C.loss} strong />
         </View>
-        {/* Écarts constatés à la vérification, déjà pris dans le solde :
-            le manquant est à sa charge, le poids plus lui revient. */}
-        {st.manquant > 0 || st.poidsPlus > 0 ? (
+        {/* Écarts de vérification : hors caisse, et en KILOS. Le manquant se
+            rembourse en marchandise, l'excédent se verse en commission. */}
+        {st.detteKg > 0 || st.acquisKg > 0 || st.solde < 0 ? (
           <View style={{ marginTop: 10, borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", paddingTop: 10 }}>
-            {st.manquant > 0 ? (
-              <Row label="Manquant après vérification (à sa charge)" value={fF(st.manquant)} strong />
+            {st.detteKg > 0 ? (
+              <Row label="Poids à combler (dette en marchandise)" value={fKg(st.detteKg)} strong />
             ) : null}
-            {st.poidsPlus > 0 ? (
+            {st.acquisKg > 0 ? (
               <>
-                {st.manquant > 0 ? <View style={{ height: 6 }} /> : null}
-                <Row label="Poids plus (lui revient)" value={fF(st.poidsPlus)} strong />
+                {st.detteKg > 0 ? <View style={{ height: 6 }} /> : null}
+                <Row label={`Poids plus acquis · ${fKg(st.acquisKg)}`} value={fF(st.poidsPlus)} strong />
               </>
             ) : null}
+            {st.solde < 0 ? (
+              <>
+                <View style={{ height: 6 }} />
+                <Row label="A avancé de sa poche (à lui rembourser)" value={fF(-st.solde)} strong />
+              </>
+            ) : null}
+            <View style={{ height: 6 }} />
+            <Row label="TOTAL À LUI VERSER" value={fF(st.aVerser)} strong />
           </View>
         ) : null}
       </Card>
@@ -826,7 +853,7 @@ export function Collaborateurs({ data, onOpen, onAdd }: any) {
         <View style={{ gap: 9 }}>
           {collabs.map((s) => {
             const isP = s.role === "pisteur";
-            const st = pisteurStats(s.id, scopeSaison(data));
+            const st = pisteurStats(s.id, scopeSaison(data), data);
             return (
               <Pressable key={s.id} onPress={() => onOpen(s.id)} testID={`collab-${s.id}`}>
                 <Card style={{ padding: 13, flexDirection: "row", alignItems: "center", gap: 11 }}>

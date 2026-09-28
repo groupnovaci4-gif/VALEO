@@ -181,19 +181,45 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     est un prestataire rémunéré à la commission (invariant 24). Les soldes
     vivent dans `settlements`, jamais dans `collection.paye` : les oublier fait
     apparaître un manquant fictif.
-    Les deux écarts de vérification sont de **vrais mouvements d'argent**,
-    symétriques, valorisés au `prixKg` **figé sur la collecte** et imputés
-    seulement **après** vérification (on ne règle pas un écart non constaté) :
-    - **manquant** (`manquantVerif` = `max(0, kg − verif.kg) × prixKg`) —
-      marchandise réglée au bord-champ jamais arrivée au magasin : de l'argent
-      du mandat sorti sans contrepartie, **à la charge de l'agent** ;
-    - **poids plus** (`poidsPlusVerif` = `max(0, verif.kg − kg) × prixKg`) — ce
-      qui arrive au magasin au-delà du poids déclaré : **il revient à l'agent**.
-      C'est la pratique du métier : le mandat est confié pour acheter un poids
-      donné, et l'acheteur n'attend en retour que le poids correspondant au
-      mandat octroyé ; le surplus est le fruit de la tournée et lui est versé.
-    Chaque écart garde son montant propre à l'affichage ; dans la caisse, les
-    deux se compensent naturellement puisqu'ils vont en sens inverse.
+    **La caisse ne porte AUCUN écart de vérification** : `solde = mandat −
+    achats`, et rien d'autre. Elle ne dit qu'une chose, et la dit exactement :
+    l'argent du mandat qui n'a pas servi à acheter. Les écarts, eux, relèvent
+    du POIDS (invariant 10bis).
+    - `solde > 0` : de l'argent du mandat qu'il détient encore et doit rendre
+      (`aRendre`) ;
+    - `solde < 0` : il a avancé sa poche ou acheté à crédit aux planteurs.
+      Cette avance **lui est due**, et se règle avec sa commission
+      (`aVerser = commission + max(0, −solde)`).
+10bis. **Un manquant se rembourse en POIDS, un excédent se verse en COMMISSION.**
+    Le mandat est confié pour rapporter un **poids** équivalent, pas pour
+    rendre une somme. C'est la règle du métier, et elle commande les deux
+    écarts de vérification — qui ne sont donc plus des mouvements d'argent.
+    - **Déficit** → `detteKg` augmente. L'agent doit **combler ce poids**. Rien
+      n'est prélevé sur sa caisse : la coopérative attend de la marchandise.
+    - **Excédent** → il **comble d'abord la dette**, kilo pour kilo. Seul le
+      reliquat lui est acquis, valorisé au **prix moyen pondéré figé** du
+      chargement, et **versé avec sa commission** — jamais dans la caisse.
+    `ardoiseKg(data, pisteurId)` (`lib.ts`, module pur) tient cette ardoise.
+    Trois pièges, chacun couvert par un test :
+    - **l'ordre commande** : les chargements se dépouillent du plus ancien au
+      plus récent, à la date de VÉRIFICATION. Un excédent ne peut effacer
+      qu'une dette déjà née ; l'inverse enrichirait l'agent d'un manquant à
+      venir ;
+    - **jamais filtrée par campagne** (invariant 14) : une dette suit l'agent
+      d'une campagne à l'autre, comme une avance. `pisteurStats(pid, data,
+      complet)` prend l'état COMPLET en troisième argument, les écrans lui
+      passant d'ordinaire une vue déjà restreinte par `scopeSaison` — sans
+      quoi la dette de la campagne close disparaîtrait en silence, au bénéfice
+      de l'agent ;
+    - **une collecte vérifiée SANS livraison déclarée compte quand même**. Les
+      enregistrements antérieurs au circuit de livraison n'ont pas de
+      `livraison` (invariant 20) : les écarter ferait disparaître un déficit
+      réel. L'ardoise les groupe par chargement quand il existe, et une par
+      une sinon.
+    `manquantVerif` / `poidsPlusVerif` valorisent toujours un écart en francs,
+    mais **ne servent plus à la caisse** : seul l'affichage s'en sert.
+    Couvert par `tests/ardoise.test.mjs`.
+
 11. **Idempotence de la pesée.** Une saisie porte un `clientOpId` ; le serveur ignore
     une seconde création portant le même. Ne jamais créer une écriture financière sans.
 12. **Numéro de bordereau par agent.** Format `P-<trigramme>-0000` : le trigramme est
@@ -216,6 +242,29 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
       c'est-à-dire ses collectes bord-champ non vérifiées, au poids déclaré. La
       vérification transfère le poids de sa charge vers le magasin.
     - **planteur** : rien (mouvement interne).
+13bis. **Une expédition vers l'usine porte son propre résultat.**
+    Le patron expédie `kg` du magasin ; l'usine en constate `kgUsine`, à son
+    prix `prixUsine`. `beneficeSortie` (`lib.ts`, module pur) :
+
+        bénéfice = kgUsine × prixUsine
+                 − (kg × prixRevient + transport + fraisRoute)
+
+    - **Deux poids distincts, et c'est le cœur de l'affaire.** L'écart —
+      freinte, humidité, tare — est une perte sèche qui n'apparaît nulle part
+      ailleurs. `freinte = kg − kgUsine`, négative en cas de gain de poids.
+    - **`prixRevient` est FIGÉ sur l'enregistrement** (invariant 6),
+      pré-rempli au barème de la campagne. Sans ce gel, un changement de
+      barème réécrirait les bénéfices déjà constatés.
+    - **Le bénéfice peut être négatif et s'affiche tel quel.** Masquer une
+      expédition à perte reviendrait à la cacher au patron — même raison
+      qu'un stock négatif (invariant 13).
+    - Tous ces champs sont **facultatifs** : une perte ou un transfert n'en a
+      aucun, et l'usine ne rend son verdict qu'à la réception.
+      `beneficeSortie(...).renseigne` distingue les deux cas.
+    - Aucune de ces valeurs ne peut être **négative** : le serveur les refuse
+      pour tous les rôles, patron compris (invariant 19bis) — un prix ou des
+      frais négatifs inverseraient le bénéfice sans que rien ne le signale.
+
 14. **Campagnes : la production est cloisonnée, les dettes sont reportées.**
     `scopeSaison(data)` filtre collectes, mandats, dépenses, soldes et sorties sur la campagne
     active — à utiliser pour les volumes, le stock, la caisse et la commission.

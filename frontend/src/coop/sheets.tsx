@@ -37,7 +37,7 @@ import {
   scopeSaison,
   SORTIE_TYPES,
   sortieType,
-  stockDispo,
+  stockDispo, beneficeSortie,
   stockStats,
   ticketNo,
   ticketOf,
@@ -1523,11 +1523,28 @@ export function SortieSheet({ data, staffId, scope, role, onClose, onSave }: { d
   const [kg, setKg] = useState("");
   const [destinataire, setDestinataire] = useState("");
   const [note, setNote] = useState("");
+  // Expédition vers l'usine : ce qu'elle coûte, ce qu'elle rapporte.
+  // Le prix de revient est pré-rempli au barème de la campagne mais FIGÉ sur
+  // l'enregistrement (invariant 6) : un changement de barème ne doit pas
+  // réécrire un bénéfice déjà constaté.
+  const [prixRevient, setPrixRevient] = useState(String(priceOf(data, cropId) || ""));
+  const [transport, setTransport] = useState("");
+  const [fraisRoute, setFraisRoute] = useState("");
+  const [kgUsine, setKgUsine] = useState("");
+  const [prixUsine, setPrixUsine] = useState("");
 
   const max = stockDispo(data, cropId, { scope, staffId });
   const n = Number(kg) || 0;
   const trop = n > max;
   const valid = n > 0 && !trop;
+  // Vente et expédition sortent vers un acheteur : ce sont les seules à porter
+  // un résultat. Une perte ou un transfert interne n'en ont pas.
+  const versUsine = type === "expedition" || type === "vente";
+  const apercu = beneficeSortie({
+    kg: n, kgUsine: Number(kgUsine) || 0, prixUsine: Number(prixUsine) || 0,
+    prixRevient: Number(prixRevient) || 0, transport: Number(transport) || 0,
+    fraisRoute: Number(fraisRoute) || 0,
+  } as any);
 
   if (dispo.length === 0)
     return (
@@ -1543,7 +1560,7 @@ export function SortieSheet({ data, staffId, scope, role, onClose, onSave }: { d
       <Field label="Produit">
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
           {dispo.map((r) => (
-            <Chip key={r.cropId} label={`${crop(r.cropId).nom} · ${fKg(r.stock)}`} emoji={crop(r.cropId).emoji} active={cropId === r.cropId} onPress={() => { setCropId(r.cropId); setKg(""); }} />
+            <Chip key={r.cropId} label={`${crop(r.cropId).nom} · ${fKg(r.stock)}`} emoji={crop(r.cropId).emoji} active={cropId === r.cropId} onPress={() => { setCropId(r.cropId); setKg(""); setPrixRevient(String(priceOf(data, r.cropId) || "")); }} />
           ))}
         </View>
         <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>Stock disponible : <Text style={{ fontWeight: "800", color: C.green }}>{fKg(max)}</Text></Text>
@@ -1575,10 +1592,67 @@ export function SortieSheet({ data, staffId, scope, role, onClose, onSave }: { d
         <TInput value={destinataire} onChangeText={setDestinataire} placeholder={type === "perte" ? "Ex. humidité" : "Ex. SACO Abidjan"} />
       </Field>
       <Field label="Note (facultatif)"><TInput value={note} onChangeText={setNote} placeholder="N° de camion, bon de livraison…" /></Field>
+
+      {versUsine ? (
+        <>
+          <SectionTitle>Résultat de l&apos;expédition</SectionTitle>
+          <Text style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>
+            Facultatif. Si l&apos;usine n&apos;a pas encore rendu son verdict, laissez le
+            poids et le prix vides : le reste sera enregistré quand même.
+          </Text>
+          <Field label="Prix de revient (F/kg)">
+            <TInput value={prixRevient} onChangeText={(x) => setPrixRevient(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Prix d'achat de la coopérative" />
+          </Field>
+          <Field label="Transport (F)">
+            <TInput value={transport} onChangeText={(x) => setTransport(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="0" />
+          </Field>
+          <Field label="Frais de route (F)">
+            <TInput value={fraisRoute} onChangeText={(x) => setFraisRoute(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Péages, escorte, manutention…" />
+          </Field>
+          <Field label="Poids constaté à l'usine (kg)">
+            <TInput value={kgUsine} onChangeText={(x) => setKgUsine(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Laisser vide tant qu'il n'est pas connu" />
+            {apercu.renseigne && apercu.freinte !== 0 ? (
+              <Text style={{ fontSize: 12, color: apercu.freinte > 0 ? C.loss : C.green, marginTop: 6 }}>
+                {apercu.freinte > 0 ? `Freinte : ${fKg(apercu.freinte)} perdus en route.` : `Gain de poids : ${fKg(-apercu.freinte)}.`}
+              </Text>
+            ) : null}
+          </Field>
+          <Field label="Prix d'achat de l'usine (F/kg)">
+            <TInput value={prixUsine} onChangeText={(x) => setPrixUsine(x.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="0" />
+          </Field>
+          {apercu.renseigne ? (
+            <Card style={{ padding: 14, marginBottom: 14 }}>
+              <Row label="Recette usine" value={fF(apercu.recette)} />
+              <View style={{ height: 6 }} />
+              <Row label="− Achat de la marchandise" value={fF(apercu.achat)} />
+              {apercu.transport > 0 ? (<><View style={{ height: 6 }} /><Row label="− Transport" value={fF(apercu.transport)} /></>) : null}
+              {apercu.fraisRoute > 0 ? (<><View style={{ height: 6 }} /><Row label="− Frais de route" value={fF(apercu.fraisRoute)} /></>) : null}
+              <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 10 }} />
+              <Row
+                label={apercu.benefice >= 0 ? "Bénéfice" : "PERTE"}
+                value={fF(Math.abs(apercu.benefice))}
+                strong
+                color={apercu.benefice >= 0 ? C.green : C.loss}
+              />
+            </Card>
+          ) : null}
+        </>
+      ) : null}
+
       <SaveBtn
         disabled={!valid}
         color={C.rust}
-        onPress={() => onSave({ cropId, type, kg: n, destinataire: destinataire.trim(), note: note.trim(), byStaffId: staffId, clientOpId })}
+        onPress={() => onSave({
+          cropId, type, kg: n, destinataire: destinataire.trim(), note: note.trim(),
+          byStaffId: staffId, clientOpId,
+          ...(versUsine ? {
+            prixRevient: Number(prixRevient) || 0,
+            transport: Number(transport) || 0,
+            fraisRoute: Number(fraisRoute) || 0,
+            ...(kgUsine ? { kgUsine: Number(kgUsine) } : {}),
+            ...(prixUsine ? { prixUsine: Number(prixUsine) } : {}),
+          } : {}),
+        })}
       >
         Enregistrer la sortie
       </SaveBtn>

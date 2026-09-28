@@ -331,6 +331,7 @@ export type Sortie = Synced & Campagne & {
   id: string;
   coopId?: string;
   cropId: string;
+  /** Poids qui quitte le magasin. Pour une expédition, le poids LIVRÉ. */
   kg: number;
   type: string;
   date: string;
@@ -338,6 +339,25 @@ export type Sortie = Synced & Campagne & {
   destinataire?: string;
   note: string;
   clientOpId?: string;
+  // --- Expédition vers l'usine (patron) -----------------------------------
+  // Tous facultatifs : une sortie ordinaire (perte, transfert) n'en a aucun,
+  // et une expédition se renseigne en deux temps — on expédie d'abord, on
+  // apprend le poids et le prix de l'usine ensuite.
+  /** Poids constaté à l'usine. Diffère de `kg` : freinte, humidité, tare. */
+  kgUsine?: number;
+  /** Prix d'achat de l'usine, par kilo. */
+  prixUsine?: number;
+  /**
+   * Prix de revient coopératif, par kilo, **figé à l'enregistrement** — comme
+   * `prixKg` l'est sur une collecte (invariant 6). Pré-rempli au barème de la
+   * campagne, modifiable. Sans ce gel, un changement de barème réécrirait les
+   * bénéfices déjà constatés.
+   */
+  prixRevient?: number;
+  /** Frais de transport de ce chargement. */
+  transport?: number;
+  /** Frais de route (péages, escortes, manutention…). */
+  fraisRoute?: number;
 };
 export type CoopMomo = { id: string; operator: string; number: string; label?: string };
 export type PriceHistory = { date: string; prixKg: number };
@@ -783,6 +803,131 @@ export const poidsPlusVerif = (c: Collection): number =>
   Math.round(Math.max(0, ecartVerif(c)) * (Number(c.prixKg) || 0));
 
 /**
+ * Prix moyen pondéré, figé, d'un chargement.
+ *
+ * L'écart d'une livraison porte sur le chargement entier, mais chaque collecte
+ * a son propre `prixKg` gelé. Le prix qui vaut pour l'écart est donc la
+ * moyenne pondérée par les poids — exactement ce que produisait la
+ * valorisation collecte par collecte (invariant 20).
+ */
+export function prixMoyenLivraison(l: LivraisonGroupe): number {
+  const kg = l.collections.reduce((s, c) => s + (Number(c.kg) || 0), 0);
+  if (kg <= 0) return 0;
+  const val = l.collections.reduce((s, c) => s + (Number(c.kg) || 0) * (Number(c.prixKg) || 0), 0);
+  return val / kg;
+}
+
+/** Une livraison vérifiée, vue depuis l'ardoise de l'agent. */
+export type LigneArdoise = {
+  livraisonId: string;
+  date: string;
+  /** Kilos manquants constatés sur ce chargement. */
+  deficit: number;
+  /** Kilos excédentaires constatés. */
+  excedent: number;
+  /** Part de l'excédent absorbée par la dette antérieure. */
+  rembourse: number;
+  /** Part de l'excédent qui reste acquise à l'agent. */
+  acquis: number;
+  /** Valeur de cette part, au prix moyen pondéré figé du chargement. */
+  valeurAcquise: number;
+  /** Dette restante après ce chargement. */
+  detteApres: number;
+};
+
+export type ArdoiseKg = {
+  /** Kilos que l'agent doit encore à la coopérative. */
+  detteKg: number;
+  /** Kilos excédentaires nets, définitivement acquis à l'agent. */
+  acquisKg: number;
+  /** Leur valeur en francs, à verser avec sa commission. */
+  acquisValeur: number;
+  lignes: LigneArdoise[];
+};
+
+/**
+ * **L'ardoise en KILOS d'un pisteur.** Le manquant ne se rembourse pas en
+ * argent, il se rembourse en poids.
+ *
+ * Le mandat est confié pour rapporter un poids équivalent. Un agent qui ramène
+ * moins que ce que son mandat a payé doit **combler ce poids**, pas verser la
+ * différence : c'est la pratique du métier, et c'est pourquoi l'excédent lui
+ * est symétriquement remboursé.
+ *
+ * Mécanique, chargement par chargement, **du plus ancien au plus récent** —
+ * l'ordre compte, un excédent ne peut effacer qu'une dette déjà née :
+ * - un déficit **augmente** la dette ;
+ * - un excédent **comble d'abord** la dette, et seul le reliquat est acquis à
+ *   l'agent, valorisé au prix moyen pondéré figé du chargement.
+ *
+ * ⚠️ **Jamais filtrée par campagne** (invariant 14) : une dette suit l'agent
+ * d'une campagne à l'autre, au même titre qu'une avance ou un reste dû.
+ * Lui passer un état déjà restreint par `scopeSaison` effacerait les dettes de
+ * la campagne précédente — silencieusement, et au bénéfice de l'agent.
+ */
+export function ardoiseKg(data: Data, pisteurId: string): ArdoiseKg {
+  // Toutes les collectes bord-champ VÉRIFIÉES de l'agent — pas seulement
+  // celles rattachées à une livraison déclarée. Une collecte antérieure au
+  // circuit de livraison n'a pas de `livraison` (invariant 20) : l'écarter
+  // ferait disparaître un déficit réel, en silence et au bénéfice de l'agent.
+  const cols = (data.collections || []).filter(
+    (c) => estBordChamp(c, data) && c.byStaffId === pisteurId && estVerifiee(c),
+  );
+
+  // Groupées par chargement quand il y en a un, sinon collecte par collecte.
+  const parCle = new Map<string, Collection[]>();
+  cols.forEach((c) => {
+    const k = livraisonKey(c) || `seule:${c.id}`;
+    const l = parCle.get(k);
+    if (l) l.push(c);
+    else parCle.set(k, [c]);
+  });
+
+  // Du plus ancien au plus récent : l'ordre commande, un excédent ne peut
+  // effacer qu'une dette DÉJÀ née. La date qui fait foi est celle de la
+  // vérification, moment où l'écart est constaté.
+  const groupes = [...parCle.entries()]
+    .map(([id, g]) => {
+      const kgDeclare = g.reduce((s, c) => s + (Number(c.kg) || 0), 0);
+      const kgVerifie = g.reduce((s, c) => s + (Number(c.verif!.kg) || 0), 0);
+      const valeur = g.reduce((s, c) => s + (Number(c.kg) || 0) * (Number(c.prixKg) || 0), 0);
+      const dates = g.map((c) => String(c.verif!.date || c.date)).sort();
+      return {
+        id,
+        date: dates[dates.length - 1],
+        ecart: kgVerifie - kgDeclare,
+        // Prix moyen pondéré figé du chargement : chaque collecte garde son
+        // `prixKg` gelé, l'écart porte sur l'ensemble (invariant 20).
+        prix: kgDeclare > 0 ? valeur / kgDeclare : 0,
+      };
+    })
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+  let dette = 0;
+  let acquisKg = 0;
+  let acquisValeur = 0;
+  const lignes: LigneArdoise[] = [];
+
+  groupes.forEach((g) => {
+    const deficit = Math.max(0, -g.ecart);
+    const excedent = Math.max(0, g.ecart);
+    dette += deficit;
+    const rembourse = Math.min(dette, excedent);
+    dette -= rembourse;
+    const acquis = excedent - rembourse;
+    const valeurAcquise = Math.round(acquis * g.prix);
+    acquisKg += acquis;
+    acquisValeur += valeurAcquise;
+    lignes.push({
+      livraisonId: g.id, date: g.date, deficit, excedent, rembourse, acquis,
+      valeurAcquise, detteApres: dette,
+    });
+  });
+
+  return { detteKg: dette, acquisKg, acquisValeur, lignes };
+}
+
+/**
  * Collectes bord-champ **livrées** au magasin et en attente de vérification.
  *
  * La livraison est la condition : une collecte encore en tournée n'a rien à
@@ -1115,7 +1260,7 @@ export const stockDispo = (data: Data, cropId: string, opts?: { scope?: "all" | 
   return r ? r.stock : 0;
 };
 
-export function pisteurStats(pid: string, data: Data) {
+export function pisteurStats(pid: string, data: Data, complet?: Data) {
   const cols = (data.collections || []).filter((c) => c.byStaffId === pid);
   const poids = cols.reduce((s, c) => s + c.kg, 0);
   // Payé sur les pesées du jour…
@@ -1129,26 +1274,70 @@ export function pisteurStats(pid: string, data: Data) {
   // Frais de tournée : ils ne servent QU'À l'agent, pour son propre suivi.
   // Le pisteur/délégué est un prestataire rémunéré à la commission : il est
   // autonome sur ses dépenses, qui n'entament donc pas le mandat de la
-  // coopérative (invariant 24). Elles restent renvoyées ici parce que son
-  // écran les lui affiche, mais elles ne pèsent plus sur `solde`.
+  // coopérative (invariant 24).
   const depenses = (data.depenses || []).filter((x) => x.pisteurId === pid).reduce((s, x) => s + x.amount, 0);
-  const commission = cols.reduce((s, c) => s + Math.round(c.kg * collectionComm(data, c)), 0);
-  // Manquant : marchandise payée au bord-champ mais jamais entrée au magasin.
-  // C'est de l'argent du mandat sorti sans contrepartie, donc à la charge de
-  // l'agent — au même titre qu'un billet manquant dans sa sacoche.
-  const manquant = cols.reduce((s, c) => s + manquantVerif(c), 0);
-  // « Poids plus » : ce qui est arrivé au magasin au-delà du poids déclaré.
-  // Il revient à l'agent (cf. `poidsPlusVerif`).
-  const poidsPlus = cols.reduce((s, c) => s + poidsPlusVerif(c), 0);
-  // Poids réellement remis au magasin (après vérification), pour distinguer ce
-  // qu'il a collecté de ce que la coopérative a effectivement reçu.
+
+  // L'ardoise se lit sur l'état COMPLET : une dette en kilos suit l'agent
+  // d'une campagne à l'autre (invariant 14). `data` est souvent déjà restreint
+  // à la campagne par l'écran appelant ; `complet` rétablit la vue entière.
+  const ardoise = ardoiseKg(complet || data, pid);
+
+  const commissionBase = cols.reduce((s, c) => s + Math.round(c.kg * collectionComm(data, c)), 0);
+  // L'excédent de poids est versé sur la COMMISSION, jamais dans la caisse :
+  // c'est le fruit de la tournée de l'agent, pas de l'argent du mandat.
+  const commission = commissionBase + ardoise.acquisValeur;
+
+  // Poids réellement remis au magasin (après vérification).
   const poidsRemis = cols.reduce((s, c) => s + (estVerifiee(c) ? Number(c.verif!.kg) || 0 : 0), 0);
-  // Le manquant ampute la caisse de l'agent, le poids plus l'abonde : les deux
-  // écarts de vérification sont de vrais mouvements d'argent le concernant.
-  // Ses dépenses, elles, n'entrent pas : le mandat est confié pour ACHETER du
-  // cacao, et sa commission couvre ses frais (invariant 24).
-  const solde = mandat - achats - manquant + poidsPlus;
-  return { poids, poidsRemis, achats, achatsPesees, soldes, mandat, depenses, commission, manquant, poidsPlus, solde, count: cols.length };
+
+  // La caisse ne porte plus AUCUN écart de vérification : le manquant est une
+  // dette en kilos (`detteKg`), l'excédent une prime versée en commission.
+  // Elle ne dit donc qu'une chose, et la dit exactement : l'argent du mandat
+  // qui n'a pas servi à acheter.
+  const solde = mandat - achats;
+  // Solde positif : de l'argent du mandat qu'il détient encore et doit rendre.
+  const aRendre = Math.max(0, solde);
+  // Solde négatif : il a avancé sa poche ou acheté à crédit. Cette avance lui
+  // est due, et se règle AVEC sa commission.
+  const aVerser = commission + Math.max(0, -solde);
+
+  return {
+    poids, poidsRemis, achats, achatsPesees, soldes, mandat, depenses,
+    commissionBase, commission, solde, aRendre, aVerser,
+    detteKg: ardoise.detteKg, acquisKg: ardoise.acquisKg, poidsPlus: ardoise.acquisValeur,
+    ardoise, count: cols.length,
+  };
+}
+
+/**
+ * Bénéfice d'une expédition vers l'usine.
+ *
+ *   bénéfice = (poids usine × prix usine) − (poids livré × prix de revient)
+ *              − transport − frais de route
+ *
+ * Deux poids distincts, et c'est le cœur de l'affaire : le magasin expédie
+ * `kg`, l'usine en constate `kgUsine`. L'écart — freinte, humidité, tare — est
+ * une perte sèche pour la coopérative, et n'apparaît nulle part ailleurs.
+ *
+ * Le bénéfice **peut être négatif** et s'affiche alors tel quel. Le masquer
+ * reviendrait à cacher une expédition à perte, exactement ce qu'on veut voir.
+ */
+export function beneficeSortie(s: Sortie) {
+  const kg = Number(s.kg) || 0;
+  const kgUsine = Number(s.kgUsine) || 0;
+  const recette = Math.round(kgUsine * (Number(s.prixUsine) || 0));
+  const achat = Math.round(kg * (Number(s.prixRevient) || 0));
+  const transport = Number(s.transport) || 0;
+  const fraisRoute = Number(s.fraisRoute) || 0;
+  const cout = achat + transport + fraisRoute;
+  return {
+    recette, achat, transport, fraisRoute, cout,
+    benefice: recette - cout,
+    /** Poids perdu en route : livré moins constaté. Négatif = gain de poids. */
+    freinte: kg - kgUsine,
+    /** Une expédition dont l'usine n'a pas encore rendu son verdict. */
+    renseigne: !!(s.kgUsine != null && s.prixUsine != null),
+  };
 }
 
 /* ------------------------------ Notifications ---------------------------- */
