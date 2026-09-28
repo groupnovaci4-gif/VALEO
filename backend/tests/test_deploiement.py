@@ -763,3 +763,55 @@ class TestBlueprintRender:
         texte = self._render()
         assert "cloudbuild.yaml" in texte, "le blueprint doit renvoyer vers la cible réelle"
         assert "DONNÉES DE TEST UNIQUEMENT" in texte
+
+
+class TestDepuisOuLanceLeBuild:
+    """`cloudbuild.yaml` se lance depuis la RACINE du dépôt, pas depuis backend/.
+
+    Défaut observé en vrai : le premier redéploiement du module comptabilité a
+    échoué à l'étape 0 parce que la commande avait été lancée depuis `backend/`.
+    Les chemins de l'étape Docker (`-f backend/Dockerfile`, contexte `backend`)
+    sont relatifs à la racine de l'archive envoyée : depuis `backend/`, cette
+    racine EST le dossier backend, et `backend/Dockerfile` n'y existe pas.
+
+    Le message d'erreur de Cloud Build ne dit pas cela — il dit seulement
+    « build step 0 failed ». D'où ce test : il lie les chemins du fichier à
+    l'invocation que son en-tête documente, pour que l'un ne puisse plus
+    changer sans l'autre.
+    """
+
+    @staticmethod
+    def _cloudbuild():
+        import pathlib
+        return (pathlib.Path(__file__).resolve().parent.parent / "cloudbuild.yaml").read_text(encoding="utf-8")
+
+    def test_les_chemins_docker_partent_de_la_racine(self):
+        import re
+        texte = self._cloudbuild()
+        # L'argument -f et le contexte, tels qu'ils sont écrits dans le YAML.
+        dockerfile = re.search(r"-\s*(backend/Dockerfile|Dockerfile)\s*$", texte, re.M)
+        assert dockerfile, "l'étape Docker doit nommer son Dockerfile explicitement"
+        assert dockerfile.group(1) == "backend/Dockerfile", (
+            "le chemin doit partir de la racine du dépôt : sinon la commande "
+            "documentée (`gcloud builds submit --config backend/cloudbuild.yaml`) "
+            "échoue à l'étape 0.")
+        assert re.search(r"^\s*-\s*backend\s*$", texte, re.M), (
+            "le contexte de build doit être `backend`, relatif à la racine")
+
+    def test_len_tete_documente_la_commande_qui_marche(self):
+        texte = self._cloudbuild()
+        assert "gcloud builds submit --config backend/cloudbuild.yaml" in texte, (
+            "l'en-tête doit porter la commande exacte, chemin compris : c'est "
+            "elle qu'on recopie, et une commande approximative coûte un build.")
+
+    def test_le_dockerfile_ne_copie_que_ce_qui_existe(self):
+        import pathlib
+        import re
+        racine = pathlib.Path(__file__).resolve().parent.parent
+        dockerfile = (racine / "Dockerfile").read_text(encoding="utf-8")
+        for ligne in re.findall(r"^COPY\s+(.+?)\s+\./?\s*$", dockerfile, re.M):
+            for fichier in ligne.split():
+                assert (racine / fichier).exists(), (
+                    f"le Dockerfile copie « {fichier} », absent de backend/ : "
+                    "l'image ne se construira pas, et aucun test fonctionnel "
+                    "ne le verrait.")
