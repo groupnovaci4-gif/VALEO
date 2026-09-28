@@ -898,6 +898,68 @@ def _check_coop_settings_untouched(visible: dict, incoming: dict, coop_id: str, 
         raise Forbidden(f"{actor} : seul le patron peut modifier l'historique des prix.")
 
 
+def _somme(rows, coop_id: str, saison: Optional[str], champ: str) -> int:
+    """Total d'un champ monétaire sur une campagne, pour une coopérative.
+
+    Même règle de campagne que `inSaison` côté client : une ligne SANS campagne
+    compte toujours — les écritures antérieures à ce champ ne doivent pas
+    disparaître des comptes.
+    """
+    total = 0
+    for r in rows or []:
+        if not isinstance(r, dict) or r.get("coopId") != coop_id:
+            continue
+        if saison and r.get("saison") and r.get("saison") != saison:
+            continue
+        try:
+            total += int(float(r.get(champ) or 0))
+        except (TypeError, ValueError):
+            continue
+    return total
+
+
+def _check_enveloppe_respectee(incoming: dict, delta: dict, coop_id: str, actor: str) -> None:
+    """Un mandat ne peut pas dépasser l'enveloppe de la campagne.
+
+    Arbitrage explicite, et il tient en une phrase : **on bloque là où l'argent
+    n'est pas encore sorti**.
+    - *Confier un mandat* est une décision, prise au bureau, connecté, les
+      chiffres sous les yeux. La refuser ne perd rien : elle n'a pas eu lieu.
+    - *Acheter au-delà de son mandat* est un fait ACCOMPLI — le pisteur a le
+      planteur devant lui, les sacs sont pesés, l'argent est sorti de sa poche.
+      Refuser la saisie n'annulerait pas l'achat, elle en supprimerait la
+      **trace**. C'est pourquoi ce dépassement-là reste signalé et jamais
+      bloqué (invariant 10 : l'avance lui est due).
+
+    Le contrôle porte sur l'état ENTRANT, budgets compris : un comptable hors
+    ligne qui crée l'enveloppe et le mandat dans la même synchronisation doit
+    passer. Corollaire assumé : il peut lever la limite en **ajustant
+    l'enveloppe**. C'est le but — le dépassement silencieux devient un acte
+    délibéré, à son nom et horodaté, au lieu d'un débordement que personne ne
+    décide.
+
+    Ne s'applique qu'au COMPTABLE : le patron est souverain sur sa coopérative
+    (invariant 2), et il ajusterait l'enveloppe dans la seconde.
+    """
+    nouveaux = delta["mandats"]["created"]
+    if not nouveaux:
+        return
+    saison = incoming.get("saison")
+    enveloppe = _somme(incoming.get("budgets"), coop_id, saison, "montant")
+    if enveloppe <= 0:
+        raise Forbidden(
+            f"{actor} : aucune enveloppe n'est ouverte pour cette campagne. "
+            "Créez-la avant de confier un mandat."
+        )
+    attribue = _somme(incoming.get("mandats"), coop_id, saison, "amount")
+    if attribue > enveloppe:
+        depassement = attribue - enveloppe
+        raise Forbidden(
+            f"{actor} : ce mandat dépasse l'enveloppe de la campagne de "
+            f"{depassement} F. Ajustez l'enveloppe, ou réduisez le mandat."
+        )
+
+
 def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dict) -> None:
     """Refuse (403) toute écriture que le rôle du jeton n'autorise pas.
 
@@ -976,9 +1038,16 @@ def authorize_state_write(stored: dict, incoming: dict, me: dict, deletions: dic
         for row in delta["depenses"]["created"]:
             if row.get("pisteurId") != me_id:
                 raise Forbidden(f"{actor} : une dépense doit être enregistrée à votre nom.")
-        for row in delta["budgets"]["created"] + delta["budgets"]["updated"]:
+        # ⚠️ `delta[...]["updated"]` est une liste de COUPLES (avant, après),
+        # pas de lignes : les additionner aux créations faisait lever un
+        # AttributeError — donc un 500 — dès qu'un comptable ajustait une
+        # enveloppe, c'est-à-dire sur la seule écriture que ce rôle a le droit
+        # de modifier. Aucun test ne passait par là.
+        enveloppes = list(delta["budgets"]["created"]) + [apres for _avant, apres in delta["budgets"]["updated"]]
+        for row in enveloppes:
             if row.get("byStaffId") != me_id:
                 raise Forbidden(f"{actor} : une enveloppe doit être enregistrée à votre nom.")
+        _check_enveloppe_respectee(incoming, delta, coop_id, actor)
         return
 
     if side == "coop" and role in ("commis", "pisteur"):

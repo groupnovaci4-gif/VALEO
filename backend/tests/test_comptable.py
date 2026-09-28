@@ -53,6 +53,16 @@ def _budget(coop_id, staff_id, montant=10_000_000):
     }
 
 
+def _avec_enveloppe(vue, coop_id, montant=10_000_000):
+    """Ouvre une enveloppe dans la vue : un mandat en exige une (plafond).
+
+    C'est une règle métier, pas une commodité de test : confier des fonds que
+    la campagne n'a pas budgétés est précisément ce que le plafond refuse.
+    """
+    vue["budgets"] = list(vue.get("budgets") or []) + [_budget(coop_id, "st-compta", montant)]
+    return vue
+
+
 def _reglement(coop_id, staff_id, beneficiaire, amount=100_000):
     return {
         "id": "reg-1", "coopId": coop_id, "staffId": beneficiaire,
@@ -74,9 +84,10 @@ class TestCeQueLeComptablePeutFaire:
     def test_il_confie_un_mandat_a_un_pisteur(self, app_client):
         t = _seed_coop(app_client)
         jeton = _seed_comptable(app_client, t)
-        vue = _get_state(app_client, jeton)
+        cid = _coop_id(app_client, jeton)
+        vue = _avec_enveloppe(_get_state(app_client, jeton), cid)
         vue["mandats"] = [{
-            "id": "man-1", "coopId": _coop_id(app_client, jeton),
+            "id": "man-1", "coopId": cid,
             "pisteurId": "st-pisteur", "amount": 2_000_000,
             "date": "2026-10-02T08:00:00.000Z", "note": "",
         }]
@@ -180,6 +191,8 @@ class TestCeQueLeComptableNePeutPasFaire:
             "reglements": _reglement(cid, "st-compta", "st-pisteur"),
         }
         vue = _get_state(app_client, jeton)
+        if entite != "budgets":
+            _avec_enveloppe(vue, cid)      # un mandat exige une enveloppe
         vue[entite] = list(vue.get(entite) or []) + [lignes[entite]]
         assert _put(app_client, jeton, vue).status_code == 200
 
@@ -205,6 +218,8 @@ class TestCeQueLeComptableNePeutPasFaire:
             "reglements": _reglement(cid, "st-compta", "st-pisteur"),
         }
         vue = _get_state(app_client, jeton)
+        if entite != "budgets":
+            _avec_enveloppe(vue, cid)      # un mandat exige une enveloppe
         vue[entite] = list(vue.get(entite) or []) + [lignes[entite]]
         assert _put(app_client, jeton, vue).status_code == 200
 
@@ -404,3 +419,119 @@ class TestRolesConnusDuTableauDeBord:
         garde = next(s for s in _admin_get(app_client, jeton)["staff"] if s["id"] == cible["id"])
         assert garde["role"] == "comptable", "l'édition admin ne doit pas changer le rôle"
         assert garde["fonction"] == "Chef comptable"
+
+
+class TestPlafondDeLEnveloppe:
+    """Un mandat ne peut pas dépasser l'enveloppe de la campagne.
+
+    On bloque là où l'argent n'est PAS encore sorti. Confier un mandat est une
+    décision prise au bureau : la refuser ne perd rien. Acheter au-delà de son
+    mandat est un fait accompli sur le terrain : le refuser supprimerait la
+    trace de l'achat, pas l'achat — d'où l'asymétrie, délibérée.
+    """
+
+    @staticmethod
+    def _mandat(coop_id, montant, ident="man-x"):
+        return {
+            "id": ident, "coopId": coop_id, "pisteurId": "st-pist",
+            "amount": montant, "date": "2026-10-02T08:00:00.000Z", "note": "",
+        }
+
+    def test_un_mandat_dans_lenveloppe_passe(self, app_client):
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        vue = _get_state(app_client, jeton)
+        vue["budgets"] = [_budget(cid, "st-compta", 10_000_000)]
+        vue["mandats"] = list(vue.get("mandats") or []) + [self._mandat(cid, 2_000_000)]
+        assert _put(app_client, jeton, vue).status_code == 200
+
+    def test_un_mandat_au_dela_de_lenveloppe_est_refuse(self, app_client):
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        vue = _get_state(app_client, jeton)
+        vue["budgets"] = [_budget(cid, "st-compta", 1_000_000)]
+        vue["mandats"] = list(vue.get("mandats") or []) + [self._mandat(cid, 1_500_000)]
+        r = _put(app_client, jeton, vue)
+        assert r.status_code == 403, r.text
+        assert "enveloppe" in r.text.lower()
+        # Et rien n'est passé : le refus porte sur tout le PUT.
+        assert not _get_state(app_client, jeton).get("mandats")
+
+    def test_sans_enveloppe_aucun_mandat(self, app_client):
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        vue = _get_state(app_client, jeton)
+        vue["mandats"] = list(vue.get("mandats") or []) + [self._mandat(cid, 500_000)]
+        r = _put(app_client, jeton, vue)
+        assert r.status_code == 403
+        assert "aucune enveloppe" in r.text.lower()
+
+    def test_le_cumul_compte_pas_seulement_le_dernier(self, app_client):
+        # Trois mandats de 400 000 sur une enveloppe de 1 000 000 : le
+        # troisième doit tomber, même s'il est petit.
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        vue = _get_state(app_client, jeton)
+        vue["budgets"] = [_budget(cid, "st-compta", 1_000_000)]
+        vue["mandats"] = [self._mandat(cid, 400_000, "m1"), self._mandat(cid, 400_000, "m2")]
+        assert _put(app_client, jeton, vue).status_code == 200
+        vue2 = _get_state(app_client, jeton)
+        vue2["mandats"] = list(vue2["mandats"]) + [self._mandat(cid, 400_000, "m3")]
+        assert _put(app_client, jeton, vue2).status_code == 403
+
+    def test_le_comptable_hors_ligne_envoie_enveloppe_et_mandat_ensemble(self, app_client):
+        # Le contrôle lit l'état ENTRANT : une enveloppe créée dans la même
+        # synchronisation doit compter, sinon un comptable revenu du terrain
+        # verrait tout son lot refusé.
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        vue = _get_state(app_client, jeton)
+        vue["budgets"] = [_budget(cid, "st-compta", 5_000_000)]
+        vue["mandats"] = [self._mandat(cid, 4_000_000)]
+        assert _put(app_client, jeton, vue).status_code == 200
+
+    def test_ajuster_lenveloppe_debloque_le_mandat(self, app_client):
+        # C'est le but du plafond : rendre le dépassement DÉLIBÉRÉ et tracé,
+        # pas l'interdire absolument. Le comptable relève l'enveloppe, à son
+        # nom — un acte visible dans le journal.
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        vue = _get_state(app_client, jeton)
+        vue["budgets"] = [_budget(cid, "st-compta", 1_000_000)]
+        assert _put(app_client, jeton, vue).status_code == 200
+        vue2 = _get_state(app_client, jeton)
+        vue2["budgets"][0]["montant"] = 3_000_000
+        vue2["mandats"] = [self._mandat(cid, 2_000_000)]
+        assert _put(app_client, jeton, vue2).status_code == 200
+
+    def test_le_patron_reste_souverain(self, app_client):
+        # Invariant 2 : le plafond est une discipline comptable, pas une
+        # limite au pouvoir du patron — qui relèverait l'enveloppe aussitôt.
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        vue = _get_state(app_client, jeton)
+        vue["budgets"] = [_budget(cid, "st-compta", 1_000_000)]
+        assert _put(app_client, jeton, vue).status_code == 200
+        vp = _get_state(app_client, t["patron"])
+        vp["mandats"] = [self._mandat(cid, 9_000_000)]
+        assert _put(app_client, t["patron"], vp).status_code == 200
+
+    def test_une_enveloppe_de_campagne_close_ne_finance_pas_la_suivante(self, app_client):
+        # Même cloisonnement que côté client : l'enveloppe suit la campagne.
+        t = _seed_coop(app_client)
+        jeton = _seed_comptable(app_client, t)
+        cid = _coop_id(app_client, jeton)
+        vue = _get_state(app_client, jeton)
+        ancienne = _budget(cid, "st-compta", 10_000_000)
+        ancienne["saison"] = "Campagne 2020-2021"
+        vue["budgets"] = [ancienne]
+        vue["mandats"] = [self._mandat(cid, 2_000_000)]
+        r = _put(app_client, jeton, vue)
+        assert r.status_code == 403, "une enveloppe close ne doit rien financer"

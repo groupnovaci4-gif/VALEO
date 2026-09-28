@@ -44,6 +44,7 @@ import {
   ticketOf,
   totalSuperficie,
   waNumber,
+  tresorerie,
 } from "./lib";
 import { Localisation, libelleLocalite, rapprocherTexte } from "./geo";
 import { Icon } from "./Icon";
@@ -781,23 +782,51 @@ export function ResetPinSheet({ name, onClose, onSave }: any) {
   );
 }
 
-export function MandatSheet({ data, pisteurId, onClose, onSave }: { data: Data; pisteurId?: string | null; onClose: () => void; onSave: (x: any) => void }) {
+/**
+ * **Confier un mandat**, dans la limite de l'enveloppe de la campagne.
+ *
+ * Le plafond est appliqué par le SERVEUR pour le comptable — ici on ne fait
+ * que le rendre lisible avant le refus. Pour le patron, souverain sur sa
+ * coopérative (invariant 2), la ligne reste un avertissement : il ajusterait
+ * l'enveloppe dans la seconde, et lui refuser la saisie n'aurait rien protégé.
+ */
+export function MandatSheet({ data, pisteurId, role, onClose, onSave }: { data: Data; pisteurId?: string | null; role?: string; onClose: () => void; onSave: (x: any) => void }) {
   const pisteurs = data.staff.filter((s) => s.role === "pisteur");
   const [pid, setPid] = useState(pisteurId || pisteurs[0]?.id || "");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
-  const valid = pid && Number(amount) > 0;
+  const tr = tresorerie(data);
+  const n = Number(amount) || 0;
+  // Un mandat suppose une enveloppe ouverte : confier des fonds que la
+  // campagne n'a pas budgétés est exactement ce que le plafond refuse.
+  const sansEnveloppe = tr.enveloppe <= 0;
+  const depasse = !sansEnveloppe && n > tr.nonAttribue;
+  const bloquant = role === "comptable";
+  const valid = !!pid && n > 0 && !(bloquant && (sansEnveloppe || depasse));
   return (
     <Sheet title="Donner un mandat" onClose={onClose}>
       <Field label="Pisteur">
         <Select value={pid} onChange={setPid} options={pisteurs.map((s) => ({ value: s.id, label: s.nom }))} />
       </Field>
-      <Field label="Montant du mandat (F)"><TInput value={amount} onChangeText={(t) => setAmount(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ex. 1000000" /></Field>
+      <Field label="Montant du mandat (F)">
+        <TInput value={amount} onChangeText={(t) => setAmount(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ex. 1000000" />
+        {sansEnveloppe ? (
+          <Text style={{ fontSize: 12, color: C.loss, marginTop: 6, lineHeight: 17 }}>
+            Aucune enveloppe n&apos;est ouverte pour cette campagne. Créez-la d&apos;abord.
+          </Text>
+        ) : (
+          <Text style={{ fontSize: 12, color: depasse ? C.loss : C.muted, marginTop: 6, lineHeight: 17 }}>
+            {depasse
+              ? `Dépasse l'enveloppe de ${fF(n - tr.nonAttribue)}. Reste à confier : ${fF(tr.nonAttribue)}.`
+              : `Reste à confier sur l'enveloppe : ${fF(tr.nonAttribue)}.`}
+          </Text>
+        )}
+      </Field>
       <Field label="Note (facultatif)"><TInput value={note} onChangeText={setNote} placeholder="Ex. zone / campagne" /></Field>
       <View style={{ backgroundColor: "#FBF7EC", borderWidth: 1, borderColor: "#EAD9BE", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Le mandat est l'avance confiée au pisteur pour aller acheter le cacao. Il sera justifié par les achats, les dépenses et le solde en caisse.</Text>
+        <Text style={{ fontSize: 12, color: C.muted, lineHeight: 18 }}>Le mandat est l&apos;avance confiée au pisteur pour aller acheter le cacao. Il sera justifié par les achats, les dépenses et le solde en caisse.</Text>
       </View>
-      <SaveBtn disabled={!valid} color={C.lime} onPress={() => onSave({ pisteurId: pid, amount: Number(amount), note: note.trim() })}>Confier le mandat</SaveBtn>
+      <SaveBtn disabled={!valid} color={C.lime} onPress={() => onSave({ pisteurId: pid, amount: n, note: note.trim() })}>Confier le mandat</SaveBtn>
     </Sheet>
   );
 }

@@ -762,6 +762,15 @@ export function scopeSaison(data: Data, saison?: string): Data {
     depenses: (data.depenses || []).filter((x) => inSaison(x, s)),
     settlements: (data.settlements || []).filter((x) => inSaison(x, s)),
     sorties: (data.sorties || []).filter((x) => inSaison(x, s)),
+    // Les écritures comptables suivent la campagne comme le reste de la
+    // production. Les avoir oubliées ici faisait deux dégâts silencieux :
+    // l'enveloppe d'une campagne close gonflait les fonds disponibles de la
+    // suivante, et — bien pire — un règlement de l'an dernier venait solder
+    // la dette de cette année, faisant apparaître PAYÉ un agent qui ne l'est
+    // pas. Ce que la campagne ne cloisonne PAS reste inchangé : la dette en
+    // kilos et les avances suivent l'agent (invariants 10bis et 14).
+    budgets: (data.budgets || []).filter((x) => inSaison(x, s)),
+    reglements: (data.reglements || []).filter((x) => inSaison(x, s)),
   };
 }
 

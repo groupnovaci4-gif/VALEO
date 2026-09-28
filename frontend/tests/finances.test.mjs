@@ -332,3 +332,44 @@ test("le comptable garde l'information financière qu'il a le droit de lire", ()
   const items = buildNotifications(d, { side: "coop", role: "comptable", staffId: "x" }).items;
   assert.ok(items.some((n) => n.id.startsWith("pp")), "les pesées payées restent lisibles");
 });
+
+/* ================== CLOISONNEMENT PAR CAMPAGNE (inv. 14) ================== */
+
+const { scopeSaison } = await import("../.sync-build/lib.js");
+
+test("une enveloppe de la campagne PRÉCÉDENTE ne gonfle pas celle en cours", () => {
+  const d = scenario();
+  d.budgets = [...d.budgets, {
+    id: "b0", coopId: "co1", saison: "Campagne 2025-2026", libelle: "Ancienne",
+    montant: 7_000_000, debut: "2025-10-01", fin: "2025-12-31", note: "",
+    byStaffId: "cpt", date: "2025-10-01T08:00:00.000Z",
+  }];
+  // L'écran passe TOUJOURS une vue restreinte à la campagne active.
+  const t = tresorerie(scopeSaison(d), d);
+  assert.equal(t.enveloppe, 10_000_000,
+    "seule l'enveloppe de la campagne en cours compte");
+});
+
+test("un règlement de la campagne PRÉCÉDENTE ne solde pas la dette en cours", () => {
+  // Le plus grave des deux : le pisteur apparaîtrait payé alors qu'il ne l'est
+  // pas, parce qu'on lui aurait compté un versement de l'an dernier.
+  const d = scenario();
+  d.reglements = [{
+    id: "r0", coopId: "co1", saison: "Campagne 2025-2026", staffId: "pis",
+    amount: 275_000, date: "2025-11-05T08:00:00.000Z", byStaffId: "cpt",
+    method: "espece", note: "",
+  }];
+  const s = situationAgent(scopeSaison(d), "pis", d);
+  assert.equal(s.regle, 0, "rien n'a été versé sur CETTE campagne");
+  assert.equal(s.statut, "a_payer");
+  assert.equal(s.reste, 275_000);
+});
+
+test("un enregistrement SANS campagne reste compté (données antérieures)", () => {
+  // `inSaison` laisse passer ce qui n'a pas de campagne : les écritures créées
+  // avant ce champ ne doivent pas disparaître des comptes.
+  const d = scenario();
+  const { saison, ...sansSaison } = d.budgets[0];
+  d.budgets = [sansSaison];
+  assert.equal(tresorerie(scopeSaison(d), d).enveloppe, 10_000_000);
+});

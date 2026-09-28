@@ -301,6 +301,25 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     - **Une écriture financière ne se récrit pas.** `mandats`, `depenses` et
       `reglements` sont définitifs et non supprimables. Seule l'**enveloppe**
       reste ajustable : c'est une prévision, pas un mouvement d'argent.
+    - **On bloque là où l'argent n'est PAS encore sorti.** C'est toute
+      l'asymétrie du module, et elle est délibérée.
+      *Confier un mandat* au-delà de l'enveloppe est **refusé par le serveur**
+      (`_check_enveloppe_respectee`) : c'est une décision prise au bureau,
+      connecté, les chiffres sous les yeux — la refuser ne perd rien, elle n'a
+      pas eu lieu. Un mandat exige donc une enveloppe ouverte.
+      *Acheter au-delà de son mandat* est au contraire un fait **accompli** :
+      le pisteur a le planteur devant lui, les sacs sont pesés, l'argent est
+      sorti de sa poche. Refuser la saisie n'annulerait pas l'achat, elle en
+      supprimerait la **trace** — et un téléphone hors ligne depuis des jours
+      raisonnerait de surcroît sur une enveloppe périmée, le refus emportant
+      tout le PUT (invariant 23). Ce dépassement-là reste signalé, jamais
+      bloqué (invariant 10 : l'avance lui est due).
+      Le contrôle lit l'état **entrant**, enveloppes comprises : un comptable
+      revenu du terrain qui envoie l'enveloppe et le mandat dans la même
+      synchronisation passe. Corollaire assumé : il lève la limite en
+      **ajustant l'enveloppe** — c'est le but, le dépassement silencieux
+      devient un acte délibéré, à son nom et horodaté. Le **patron** n'y est
+      pas soumis (invariant 2) ; l'écran l'en avertit, sans l'empêcher.
     - **Ce que la coopérative doit à un agent se calcule** (commission + gain
       sur excédent + argent avancé de sa poche) ; ce qu'elle a versé
       s'enregistre (`reglements`). Le reste dû est la différence, **jamais un
@@ -335,7 +354,8 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     `frontend/tests/finances.test.mjs`, qui rejoue le scénario complet.
 
 14. **Campagnes : la production est cloisonnée, les dettes sont reportées.**
-    `scopeSaison(data)` filtre collectes, mandats, dépenses, soldes et sorties sur la campagne
+    `scopeSaison(data)` filtre collectes, mandats, dépenses, soldes, sorties,
+    **enveloppes et règlements** sur la campagne
     active — à utiliser pour les volumes, le stock, la caisse et la commission.
     Le **reste dû** et les **avances à recouvrer** ne sont JAMAIS filtrés : ils suivent
     le planteur d'une campagne à l'autre. Les historiques et journaux non plus.
