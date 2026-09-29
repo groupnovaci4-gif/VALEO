@@ -121,11 +121,22 @@ test("9-10. le dépassement du mandat devient une dette de la coopérative", () 
 
 test("la situation du pisteur se décompose en trois lignes lisibles", () => {
   const s = situationAgent(scenario(), "pis");
-  assert.equal(s.commission, (1900 + 300) * 25, "55 000 de commission");
+  // La commission se gagne sur le poids VÉRIFIÉ : 1 920 kg entrés en magasin.
+  // Les 300 kg du second achat ne sont pas encore vérifiés — leur commission
+  // est due, mais pas encore acquise.
+  assert.equal(s.commission, 1920 * 25, "48 000, sur le poids entré en magasin");
   assert.equal(s.gainExcedent, 20_000);
   assert.equal(s.avancePerso, 200_000);
-  assert.equal(s.totalDu, 275_000, "et leur somme, sans rien mélanger");
+  assert.equal(s.totalDu, 268_000, "et leur somme, sans rien mélanger");
   assert.equal(s.statut, "a_payer");
+});
+
+test("la commission des kilos NON ENCORE vérifiés est annoncée à part", () => {
+  // Sans cette ligne, le pisteur en tournée croirait sa commission perdue :
+  // elle vaut zéro tant que le magasinier n'a pas pesé.
+  const st = pisteurStats("pis", scenario(), scenario());
+  assert.equal(st.commissionBase, 1920 * 25, "acquis : le poids constaté");
+  assert.equal(st.commissionEnAttente, 300 * 25, "en attente de vérification");
 });
 
 test("12. la dépense diminue bien la trésorerie", () => {
@@ -145,9 +156,9 @@ test("13-14. comptable et patron lisent EXACTEMENT les mêmes chiffres", () => {
   assert.equal(t.engage, 10_000_000, "affecté par le comptable");
   assert.equal(t.attribue, 2_000_000, "confié au pisteur");
   assert.equal(t.nonAttribue, 8_000_000);
-  assert.equal(t.duAgents, 275_000);
-  assert.equal(t.disponible, 10_000_000 - 2_000_000 - 75_000 - 275_000);
-  assert.equal(t.disponible, 7_650_000);
+  assert.equal(t.duAgents, 268_000);
+  assert.equal(t.disponible, 10_000_000 - 2_000_000 - 75_000 - 268_000);
+  assert.equal(t.disponible, 7_657_000);
 });
 
 test("15-16. le règlement fait passer la dette de « à payer » à « payé »", () => {
@@ -160,10 +171,10 @@ test("15-16. le règlement fait passer la dette de « à payer » à « payé »
   }] };
   const sp = situationAgent(partiel, "pis");
   assert.equal(sp.statut, "partiel");
-  assert.equal(sp.reste, 175_000);
+  assert.equal(sp.reste, 168_000);
 
   const solde = { ...d, reglements: [...partiel.reglements, {
-    id: "r2", coopId: "co1", saison: SAISON, staffId: "pis", amount: 175_000,
+    id: "r2", coopId: "co1", saison: SAISON, staffId: "pis", amount: 168_000,
     date: "2026-11-06T08:00:00.000Z", byStaffId: "cpt", method: "espece", note: "",
   }] };
   const ss = situationAgent(solde, "pis");
@@ -179,12 +190,12 @@ test("un trop-versé s'affiche en négatif, il ne se masque pas", () => {
   }] };
   // Borner à zéro cacherait une erreur de caisse — même raison qu'un stock
   // négatif reste affiché.
-  assert.equal(situationAgent(d, "pis").reste, -125_000);
+  assert.equal(situationAgent(d, "pis").reste, -132_000);
 });
 
 test("17. le journal conserve toutes les opérations, du plus récent au plus ancien", () => {
   const d = { ...scenario(), reglements: [{
-    id: "r1", coopId: "co1", saison: SAISON, staffId: "pis", amount: 275_000,
+    id: "r1", coopId: "co1", saison: SAISON, staffId: "pis", amount: 268_000,
     date: "2026-11-05T08:00:00.000Z", byStaffId: "cpt", method: "espece", note: "",
   }] };
   const j = journalFinancier(d);
@@ -289,10 +300,13 @@ function casChiffre() {
     id: "m1", coopId: "co1", saison: SAISON, pisteurId: "pis", amount: 2_000_000,
     enveloppeId: "e1", date: "2026-10-02T08:00:00.000Z", note: "",
   }];
-  // 1 000 kg à 1 800 F = 1 800 000, puis 250 kg à 1 600 F = 400 000.
-  d.collections = [c("c1", 1000, 1800, 1_800_000, "liv-1", 3)];
-  d = verifier(d, "liv-1", 1020, 4);              // 20 kg d'excédent
-  d.collections = [...d.collections, c("c2", 250, 1600, 400_000, null, 5)];
+  // 980 kg déclarés à 1 800 F (1 800 000 versés), puis 250 kg à 1 600 F
+  // (400 000 versés). Le magasin constate 1 000 kg sur le premier chargement
+  // et 250 sur le second : 1 250 kg vérifiés en tout, base de la commission.
+  d.collections = [c("c1", 980, 1800, 1_800_000, "liv-1", 3)];
+  d = verifier(d, "liv-1", 1000, 4);              // 20 kg d'excédent
+  d.collections = [...d.collections, c("c2", 250, 1600, 400_000, "liv-2", 5)];
+  d = verifier(d, "liv-2", 250, 6);               // vérifiée sans écart
   return d;
 }
 
@@ -300,7 +314,7 @@ test("§9 — VALEO produit exactement les chiffres de la spécification", () =>
   const s = situationAgent(casChiffre(), "pis");
   assert.equal(s.gainExcedent, 36_000, "20 kg × 1 800 F, au prix FIGÉ du chargement");
   assert.equal(s.avancePerso, 200_000, "2 200 000 d'achats pour 2 000 000 de mandat");
-  assert.equal(s.commission, 125_000, "1 250 kg × 100 F/kg");
+  assert.equal(s.commission, 125_000, "1 250 kg VÉRIFIÉS × 100 F/kg");
   assert.equal(s.totalDu, 361_000, "125 000 + 36 000 + 200 000");
   assert.equal(s.statut, "a_payer");
 });
@@ -386,13 +400,13 @@ test("un règlement de la campagne PRÉCÉDENTE ne solde pas la dette en cours",
   const d = scenario();
   d.reglements = [{
     id: "r0", coopId: "co1", saison: "Campagne 2025-2026", staffId: "pis",
-    amount: 275_000, date: "2025-11-05T08:00:00.000Z", byStaffId: "cpt",
+    amount: 268_000, date: "2025-11-05T08:00:00.000Z", byStaffId: "cpt",
     method: "espece", note: "",
   }];
   const s = situationAgent(scopeSaison(d), "pis", d);
   assert.equal(s.regle, 0, "rien n'a été versé sur CETTE campagne");
   assert.equal(s.statut, "a_payer");
-  assert.equal(s.reste, 275_000);
+  assert.equal(s.reste, 268_000);
 });
 
 test("un enregistrement SANS campagne reste compté (données antérieures)", () => {

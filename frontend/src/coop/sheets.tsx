@@ -818,7 +818,7 @@ export function ReglementSheet({ dette, onClose, onSave }: any) {
         <View style={{ height: 5 }} />
         <Row label="Gain sur excédent de poids" value={fF(dette?.gainExcedent || 0)} />
         <View style={{ height: 5 }} />
-        <Row label="Argent avancé de sa poche" value={fF(dette?.avancePerso || 0)} />
+        <Row label="Décaissé au-delà du mandat" value={fF(dette?.avancePerso || 0)} />
         <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 9 }} />
         <Row label="Total dû" value={fF(dette?.totalDu || 0)} strong />
         {dette?.regle > 0 ? (<><View style={{ height: 5 }} /><Row label="− Déjà réglé" value={fF(dette.regle)} /></>) : null}

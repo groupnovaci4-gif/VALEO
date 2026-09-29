@@ -198,6 +198,35 @@ Ces règles sont correctes aujourd'hui. Toute modif doit les préserver, et idé
     **solde** avec son propre argent. Trois choses distinctes, et la caisse
     n'en mélange plus aucune : l'argent dans `solde`, la marchandise dans
     `detteKg` (invariant 10bis), ce que le planteur attend dans les restes dus.
+10ter. **La commission se gagne sur le poids qui entre en MAGASIN.**
+    `commissionBase = Σ kgEnStock(c) × commission figée`. Payer sur le poids
+    DÉCLARÉ au bord-champ rémunérait de la marchandise que la coopérative n'a
+    pas reçue, et retirait au magasinier toute portée : son constat ne changeait
+    plus rien pour personne.
+    - La règle passe par `kgEnStock` (invariant 13), **jamais par une seconde
+      version écrite sur place** : pesée au magasin = le poids pesé, il n'y a
+      pas de second pesage ; collecte bord-champ vérifiée = le poids constaté ;
+      bord-champ pas encore vérifiée = rien. Le magasinier et le patron gardent
+      donc exactement la commission qu'ils avaient.
+    - Conséquence assumée : pendant sa tournée, la commission d'un pisteur vaut
+      zéro. `commissionEnAttente` l'annonce à part, sinon il la croirait perdue.
+    - Corollaire : un manquant la réduit, un excédent l'augmente — en plus de
+      l'excédent acquis (invariant 10bis), qui reste valorisé au prix figé.
+10quater. **Un achat à crédit est une DETTE ENVERS LE PLANTEUR, jamais un
+    apport personnel du pisteur.** Il n'engage pas son argent : quand les fonds
+    du mandat ne suffisent plus, il achète à crédit et le `reste` dû au planteur
+    porte l'écart. `pisteurStats.detteProducteurs` (somme des `outstandingReste`
+    de SES pesées, lue sur l'état complet — un reste suit le planteur d'une
+    campagne à l'autre) le fait apparaître sur son point financier, là où il
+    n'existait que dans la fiche du planteur.
+    L'écran ne dit plus « de sa poche » ni « argent personnel » — un test le
+    vérifie sur la source, commentaires exclus. Mais `avancePerso` continue
+    d'être **calculé**, et s'affiche quand il n'est pas nul sous le nom
+    « Décaissé au-delà du mandat » : le mettre à zéro d'autorité ferait
+    disparaître de l'argent réellement sorti, ce qu'un livre de comptes ne doit
+    jamais faire. Dans le modèle, cette ligne doit rester une anomalie.
+    Couvert par `tests/ardoise.test.mjs`.
+
 10bis. **Un manquant se rembourse en POIDS, un excédent se verse en COMMISSION.**
     Le mandat est confié pour rapporter un **poids** équivalent, pas pour
     rendre une somme. C'est la règle du métier, et elle commande les deux

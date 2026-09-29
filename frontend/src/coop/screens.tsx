@@ -575,7 +575,23 @@ export function EspaceFinances({ data, complet, role, staffId, onNewBudget, onAj
                   <View style={{ height: 5 }} />
                   <Row label="Gain sur excédent de poids" value={fF(d.gainExcedent)} />
                   <View style={{ height: 5 }} />
-                  <Row label="Argent avancé de sa poche" value={fF(d.avancePerso)} />
+                  {/* Dans le modèle VALEO, un pisteur à court de fonds achète à
+                      CRÉDIT — il ne puise pas dans sa poche. Cette ligne reste
+                      donc une anomalie, affichée seulement si elle n'est pas
+                      nulle : la masquer ferait disparaître de l'argent
+                      réellement sorti. */}
+                  {d.avancePerso > 0 ? (
+                    <>
+                      <Row label="Décaissé au-delà du mandat" value={fF(d.avancePerso)} />
+                      <View style={{ height: 5 }} />
+                    </>
+                  ) : null}
+                  {d.detteProducteurs > 0 ? (
+                    <>
+                      <Row label="Dû aux planteurs (achats à crédit)" value={fF(d.detteProducteurs)} />
+                      <View style={{ height: 5 }} />
+                    </>
+                  ) : null}
                   <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 9 }} />
                   <Row label="Total dû" value={fF(d.totalDu)} strong />
                   {d.regle > 0 ? (<><View style={{ height: 5 }} /><Row label="− Déjà réglé" value={fF(d.regle)} /></>) : null}
@@ -952,11 +968,33 @@ export function PisteurHome({ theme, data, staffId, onNew, onNewDepense, onRecei
             qui n'a pas servi à acheter. */}
         <View style={{ borderTopWidth: 1, borderColor: C.line, borderStyle: "dashed", marginVertical: 10 }} />
         <Row
-          label={st.solde >= 0 ? "Solde en caisse à justifier" : "Avancé de votre poche (vous est dû)"}
+          label={st.solde >= 0 ? "Solde en caisse à justifier" : "Décaissé au-delà du mandat (vous est dû)"}
           value={fF(Math.abs(st.solde))}
           strong
           color={st.solde >= 0 ? C.green : C.loss}
         />
+        {/* Les achats à crédit : la marchandise est chez la coopérative,
+            l'argent n'est pas encore sorti. Ce n'est ni un manquant, ni une
+            avance de sa poche — c'est une dette envers le planteur, et elle
+            n'apparaissait nulle part sur son point financier. */}
+        {st.detteProducteurs > 0 ? (
+          <>
+            <View style={{ height: 8 }} />
+            <Row label="Dû aux planteurs (achats à crédit)" value={fF(st.detteProducteurs)} color={C.due} />
+            <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 16 }}>
+              Marchandise déjà reçue, pas encore payée. À solder avec le planteur.
+            </Text>
+          </>
+        ) : null}
+        {st.commissionEnAttente > 0 ? (
+          <>
+            <View style={{ height: 8 }} />
+            <Row label="Commission en attente de vérification" value={fF(st.commissionEnAttente)} color={C.muted} />
+            <Text style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 16 }}>
+              Elle vous sera acquise dès que le magasinier aura pesé votre livraison.
+            </Text>
+          </>
+        ) : null}
       </Card>
 
       {/* L'ardoise en kilos : ce qui se rembourse en poids, pas en argent. */}
@@ -1091,7 +1129,7 @@ export function PisteurRecon({ pisteur, data, onBack, onNewMandat, onReceipt, on
             {st.solde < 0 ? (
               <>
                 <View style={{ height: 6 }} />
-                <Row label="A avancé de sa poche (à lui rembourser)" value={fF(-st.solde)} strong />
+                <Row label="Décaissé au-delà du mandat (à lui rembourser)" value={fF(-st.solde)} strong />
               </>
             ) : null}
             <View style={{ height: 6 }} />

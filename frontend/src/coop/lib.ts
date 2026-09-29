@@ -1461,7 +1461,21 @@ export function pisteurStats(pid: string, data: Data, complet?: Data) {
     .filter((l) => inSaison(l, data.saison))
     .reduce((s, l) => s + l.acquis, 0);
 
-  const commissionBase = cols.reduce((s, c) => s + Math.round(c.kg * collectionComm(data, c)), 0);
+  // **La commission se gagne sur le poids qui entre en MAGASIN**, jamais sur le
+  // poids déclaré au bord-champ. Payer sur le déclaré reviendrait à rémunérer
+  // de la marchandise que la coopérative n'a pas reçue — et à retirer au
+  // magasinier toute portée : son constat ne changerait plus rien.
+  // `kgEnStock` porte déjà exactement cette règle et la porte pour tous les
+  // rôles : pesée au magasin = le poids pesé (il n'y a pas de second pesage) ;
+  // collecte bord-champ vérifiée = le poids constaté ; bord-champ non encore
+  // vérifiée = rien. En écrire une seconde version ici l'aurait fait diverger
+  // de celle du stock au premier correctif.
+  const commissionBase = cols.reduce((s, c) => s + Math.round(kgEnStock(c, data) * collectionComm(data, c)), 0);
+  // Ce qui est collecté mais pas encore vérifié : dû dès que le magasinier
+  // aura pesé. L'afficher à part évite que le pisteur croie sa commission
+  // perdue pendant sa tournée.
+  const commissionEnAttente = cols.reduce(
+    (s, c) => s + (estBordChamp(c, data) && !estVerifiee(c) ? Math.round((Number(c.kg) || 0) * collectionComm(data, c)) : 0), 0);
   // L'excédent de poids est versé sur la COMMISSION, jamais dans la caisse :
   // c'est le fruit de la tournée de l'agent, pas de l'argent du mandat.
   const commission = commissionBase + acquisSaison;
@@ -1480,10 +1494,21 @@ export function pisteurStats(pid: string, data: Data, complet?: Data) {
   // est due, et se règle AVEC sa commission.
   const aVerser = commission + Math.max(0, -solde);
 
+  // **Ce que le pisteur doit encore aux PLANTEURS.** Un achat à crédit laisse
+  // un reste dû : la marchandise est chez la coopérative, l'argent n'est pas
+  // encore sorti. Ce n'est ni un apport de sa poche, ni un manquant — c'est
+  // une dette envers le producteur, et elle doit se lire sur son point
+  // financier plutôt que de n'exister que dans la fiche du planteur.
+  // Lue sur l'état COMPLET : un reste dû suit le planteur d'une campagne à
+  // l'autre (invariant 14), le filtrer par campagne l'effacerait.
+  const detteProducteurs = restesAgent(complet || data, pid)
+    .reduce((s, c) => s + outstandingReste(c), 0);
+
   return {
     poids, poidsRemis, achats, achatsPesees, soldes, mandat, depenses,
-    commissionBase, commission, solde, aRendre, aVerser,
+    commissionBase, commissionEnAttente, commission, solde, aRendre, aVerser,
     detteKg: ardoise.detteKg, acquisKg: acquisKgSaison, poidsPlus: acquisSaison,
+    detteProducteurs,
     ardoise, count: cols.length,
   };
 }
@@ -1528,7 +1553,18 @@ export function situationAgent(data: Data, staffId: string, complet?: Data) {
   return {
     staffId,
     commission: st.commissionBase,
+    /** Commission des kilos collectés mais pas encore pesés au magasin. */
+    commissionEnAttente: st.commissionEnAttente,
     gainExcedent: st.poidsPlus,
+    /** Ce qu'il doit encore aux PLANTEURS : ses achats à crédit. Ce n'est
+     *  pas une somme qui lui est due — c'est une somme qu'il doit régler. */
+    detteProducteurs: st.detteProducteurs,
+    /** Argent décaissé AU-DELÀ du mandat. Dans le modèle VALEO, un pisteur à
+     *  court de fonds achète à crédit (`detteProducteurs`) plutôt que de
+     *  puiser dans sa poche : cette ligne ne devrait donc rester qu'une
+     *  anomalie. On la calcule tout de même, et on l'affiche quand elle n'est
+     *  pas nulle — la mettre à zéro d'autorité ferait disparaître de l'argent
+     *  réellement sorti, ce qu'un livre de comptes ne doit jamais faire. */
     avancePerso: Math.max(0, -st.solde),
     /** Argent du mandat qu'il détient encore et doit rendre. */
     aRendre: st.aRendre,

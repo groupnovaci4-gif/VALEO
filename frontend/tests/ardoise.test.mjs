@@ -11,6 +11,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import fs from "node:fs";
+
 const {
   ardoiseKg, pisteurStats, livraisonKey, repartirVerif, beneficeSortie, prixMoyenLivraison, livraisons,
 } = await import("../.sync-build/lib.js");
@@ -96,8 +98,10 @@ test("l'excédent acquis va dans la COMMISSION, jamais dans la caisse", () => {
 
   const st = pisteurStats("pis", d);
   assert.equal(st.solde, 0, "la caisse ignore l'excédent");
-  assert.equal(st.commissionBase, 1000 * 25, "la commission de base reste celle des kilos collectés");
-  assert.equal(st.commission, 1000 * 25 + 50 * 1000, "l'excédent s'y ajoute");
+  // La commission se gagne sur le poids VÉRIFIÉ : les 1 050 kg entrés en
+  // magasin, pas les 1 000 déclarés au bord-champ.
+  assert.equal(st.commissionBase, 1050 * 25, "commission sur le poids entré en magasin");
+  assert.equal(st.commission, 1050 * 25 + 50 * 1000, "l'excédent s'y ajoute");
   assert.equal(st.aVerser, st.commission, "rien d'autre ne lui est dû");
 });
 
@@ -205,4 +209,105 @@ test("une expédition à PERTE affiche un bénéfice négatif, jamais zéro", ()
 test("tant que l'usine n'a pas répondu, l'expédition est marquée non renseignée", () => {
   assert.equal(beneficeSortie(sortie()).renseigne, false);
   assert.equal(beneficeSortie(sortie({ kgUsine: 980, prixUsine: 1500 })).renseigne, true);
+});
+
+/* ============ POINT FINANCIER DU PISTEUR — les tests demandés ============= */
+
+test("Test 1 — la commission ne porte QUE sur le poids vérifié", () => {
+  // Poids brut 10 300, poids constaté au magasin 10 050, barème 25 F/kg.
+  let d = base([col("c1", 10_300, "liv-1", 1)]);
+  d = verifier(d, "liv-1", 10_050, 2);
+  const st = pisteurStats("pis", d);
+  assert.equal(st.commissionBase, 10_050 * 25, "251 250 F, sur le constaté");
+  assert.notEqual(st.commissionBase, 10_300 * 25, "jamais sur le brut");
+  assert.equal(st.poids, 10_300, "le brut reste lisible, il ne paie pas");
+  assert.equal(st.poidsRemis, 10_050);
+});
+
+test("Test 1bis — un manquant réduit la commission, un excédent l'augmente", () => {
+  // C'est la conséquence directe, et c'est ce qui donne sa portée au constat
+  // du magasinier : sans elle, peser ne changerait rien pour personne.
+  let manque = base([col("c1", 1000, "liv-1", 1)]);
+  manque = verifier(manque, "liv-1", 900, 2);
+  assert.equal(pisteurStats("pis", manque).commissionBase, 900 * 25);
+
+  let plus = base([col("c2", 1000, "liv-2", 1)]);
+  plus = verifier(plus, "liv-2", 1100, 2);
+  assert.equal(pisteurStats("pis", plus).commissionBase, 1100 * 25);
+});
+
+test("Test 1ter — tant que le magasin n'a pas pesé, la commission ATTEND", () => {
+  const d = base([col("c1", 1000, "liv-1", 1)]);   // livrée, pas vérifiée
+  const st = pisteurStats("pis", d);
+  assert.equal(st.commissionBase, 0, "rien n'est acquis sans constat");
+  assert.equal(st.commissionEnAttente, 1000 * 25, "mais c'est annoncé");
+});
+
+test("Test 3 — aucun excédent quand le constaté est inférieur ou égal", () => {
+  let egal = base([col("c1", 1000, "liv-1", 1)]);
+  egal = verifier(egal, "liv-1", 1000, 2);
+  const a = pisteurStats("pis", egal);
+  assert.equal(a.acquisKg, 0, "aucun poids + inventé");
+  assert.equal(a.poidsPlus, 0);
+  assert.equal(a.detteKg, 0);
+
+  let moins = base([col("c2", 1000, "liv-2", 1)]);
+  moins = verifier(moins, "liv-2", 940, 2);
+  const b = pisteurStats("pis", moins);
+  assert.equal(b.acquisKg, 0, "un manquant ne produit pas d'excédent");
+  assert.equal(b.detteKg, 60, "il produit une dette en kilos");
+});
+
+test("Test 4 — un achat à crédit devient une dette envers le planteur", () => {
+  // 500 kg à 1 800 F = 900 000 ; le pisteur verse 600 000 sur-le-champ.
+  // Les 300 000 restants sont dus au producteur, pas avancés de sa poche.
+  let d = base([col("c1", 500, "liv-1", 1, {
+    prixKg: 1800, brut: 900_000, net: 900_000, paye: 600_000, reste: 300_000,
+  })]);
+  d = verifier(d, "liv-1", 500, 2);
+  const st = pisteurStats("pis", d, d);
+  assert.equal(st.detteProducteurs, 300_000, "la dette est visible sur SON point financier");
+  assert.equal(st.achats, 600_000, "seul l'argent réellement sorti entame le mandat");
+});
+
+test("Test 5 — acheter à crédit ne crée AUCUN apport personnel", () => {
+  // Mandat 600 000, achat de 900 000 dont 600 000 payés : il a tout dépensé,
+  // rien avancé. Le solde est nul, pas négatif.
+  let d = base([col("c1", 500, "liv-1", 1, {
+    prixKg: 1800, brut: 900_000, net: 900_000, paye: 600_000, reste: 300_000,
+  })], { mandats: [{ id: "m1", pisteurId: "pis", amount: 600_000, date: "2026-02-01" }] });
+  d = verifier(d, "liv-1", 500, 2);
+  const st = pisteurStats("pis", d, d);
+  assert.equal(st.solde, 0, "le crédit ne rend pas le solde négatif");
+  assert.equal(Math.max(0, -st.solde), 0, "donc aucun montant « avancé de sa poche »");
+  assert.equal(st.detteProducteurs, 300_000, "c'est une dette producteur, et rien d'autre");
+});
+
+test("Test 5bis — l'écran ne parle plus de poche ni d'argent personnel", () => {
+  // Règle de vocabulaire, vérifiée sur la source : le modèle métier dit que le
+  // pisteur n'engage pas son argent, l'interface ne doit donc plus l'affirmer.
+  // On ne regarde que ce qui ATTEINT l'écran : les commentaires ont le droit
+  // d'expliquer la règle en la nommant, et le test ne doit pas interdire de
+  // documenter ce qu'il fait respecter.
+  const sansCommentaires = (t) => t
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .split("\n").map((l) => l.replace(/\/\/.*$/, "")).join("\n");
+  for (const f of ["src/coop/screens.tsx", "src/coop/sheets.tsx"]) {
+    const texte = sansCommentaires(fs.readFileSync(new URL(`../${f}`, import.meta.url), "utf8"));
+    assert.ok(!/de sa poche|de votre poche|[Aa]rgent personnel/.test(texte),
+      `« ${f} » affiche encore « poche » ou « argent personnel »`);
+  }
+});
+
+test("Test 6 — la règle reste générique quel que soit le produit", () => {
+  // Le barème est FIGÉ par collecte (invariant 6) : deux produits, deux taux,
+  // et la commission suit chacun sur son propre poids vérifié.
+  let d = base([
+    col("cacao", 1000, "liv-1", 1, { cropId: "cacao", prixKg: 1800, commissionRate: 25 }),
+    col("anac", 2000, "liv-2", 1, { cropId: "anacarde", prixKg: 900, commissionRate: 15 }),
+  ]);
+  d = verifier(d, "liv-1", 1010, 2);
+  d = verifier(d, "liv-2", 1980, 2);
+  const st = pisteurStats("pis", d);
+  assert.equal(st.commissionBase, 1010 * 25 + 1980 * 15, "chaque produit à son taux figé");
 });
