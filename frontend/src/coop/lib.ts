@@ -29,7 +29,19 @@ export const CROPS: Crop[] = [
   { id: "palmier", nom: "Palmier à huile", emoji: "🌴" },
 ];
 export const crop = (id: string): Crop => CROPS.find((c) => c.id === id) || CROPS[0];
-export const DEFAULT_PRICES: Record<string, number> = { cacao: 1800, cafe: 1500, anacarde: 500, hevea: 400, palmier: 100 };
+/**
+ * **Barème de repli — prix bord-champ en vigueur, campagne 2026-2027.**
+ *
+ * Ce n'est qu'un POINT DE DÉPART : dès qu'une coopérative enregistre ses
+ * propres prix (`coops[].prices`), ce tableau ne la concerne plus. Il sert à
+ * une coopérative neuve, et à dériver un prix à la lecture pour une fiche
+ * antérieure aux barèmes par filière (invariant 23).
+ *
+ * ⚠️ Il ne réécrit JAMAIS un prix déjà figé sur une collecte (invariant 6) :
+ * une pesée faite à 1 800 F reste à 1 800 F, reçus, commissions et excédents
+ * compris. Changer ce tableau n'a d'effet que sur les pesées à VENIR.
+ */
+export const DEFAULT_PRICES: Record<string, number> = { cacao: 1200, cafe: 1300, anacarde: 500, hevea: 400, palmier: 100 };
 export const DEFAULT_COMM: Record<string, number> = { cacao: 25, cafe: 25, anacarde: 20, hevea: 15, palmier: 10 };
 export const priceOf = (data: any, cropId: string): number => (data?.prices && data.prices[cropId] != null ? data.prices[cropId] : DEFAULT_PRICES[cropId] ?? data?.prixKg ?? 0);
 export const commOf = (data: any, cropId: string): number => (data?.commissions && data.commissions[cropId] != null ? data.commissions[cropId] : DEFAULT_COMM[cropId] ?? data?.commissionRate ?? 0);
@@ -676,7 +688,7 @@ export const waNumber = (tel?: string): string | null => {
 export function seed(): Data {
   return {
     saison: "Campagne 2025-2026",
-    prixKg: 1800,
+    prixKg: DEFAULT_PRICES.cacao,
     seq: 1,
     memberSeq: 1,
     commissionRate: 25,
@@ -705,7 +717,7 @@ export function migrate(d: any): Data {
   if (!Array.isArray(out.staff)) out.staff = [];
   if (!Array.isArray(out.members)) out.members = [];
   if (typeof out.commissionRate !== "number") out.commissionRate = 25;
-  if (typeof out.prixKg !== "number") out.prixKg = 1800;
+  if (typeof out.prixKg !== "number") out.prixKg = DEFAULT_PRICES.cacao;
   if (!out.saison) out.saison = "Campagne 2025-2026";
   if (!out.coop) out.coop = { nom: "Coopérative", momo: [] };
   if (!Array.isArray(out.coop.momo)) out.coop.momo = [];

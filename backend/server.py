@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 def empty_state() -> dict:
     return {
         "saison": "Campagne 2025-2026",
-        "prixKg": 1800,
+        "prixKg": 1200,   # bord-champ cacao, campagne 2026-2027 (cf. DEFAULT_PRICES)
         "seq": 1,
         "memberSeq": 1,
         "commissionRate": 25,
@@ -2093,7 +2093,7 @@ function go(k){ current=k; render(); }
 // `lib.ts`) : une coopérative neuve n'a pas encore de barème enregistré, et
 // l'application les dérive à la lecture (invariant 23).
 const FILIERES_PRIX=[["cacao","Cacao"],["cafe","Café"],["anacarde","Anacarde"],["hevea","Hévéa"]];
-const PRIX_DEFAUT={cacao:1800,cafe:1500,anacarde:500,hevea:400,palmier:100};
+const PRIX_DEFAUT={cacao:1200,cafe:1300,anacarde:500,hevea:400,palmier:100};
 const COM_DEFAUT={cacao:25,cafe:25,anacarde:20,hevea:15,palmier:10};
 const prixCoop=(co,id)=>((co&&co.prices&&co.prices[id]!=null)?co.prices[id]:(PRIX_DEFAUT[id]!=null?PRIX_DEFAUT[id]:0));
 const comCoop=(co,id)=>((co&&co.commissions&&co.commissions[id]!=null)?co.commissions[id]:(COM_DEFAUT[id]!=null?COM_DEFAUT[id]:0));

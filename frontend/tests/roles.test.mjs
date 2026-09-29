@@ -8,6 +8,7 @@ const {
   ecartVerif, aVerifier, restesAgent, resteAgentTotal, avancesInfo, memberCultures,
   pisteurStats, manquantVerif, poidsPlusVerif,
   aLivrer, estLivree, statutLivraison, estPisteur, priceOf, commOf,
+  DEFAULT_PRICES, DEFAULT_COMM,
 } = await import("../.sync-build/lib.js");
 const { prepareSync } = await import("../.sync-build/sync.js");
 
@@ -488,11 +489,15 @@ test("migrate n'invente pas les barèmes d'une coopérative qui n'en a pas", () 
 
 test("les barèmes se dérivent quand même à la lecture", () => {
   // La complétion était inutile : `priceOf` / `commOf` retombent déjà sur les
-  // barèmes par défaut. L'écran de réglages du patron affiche donc 1 800 F.
+  // barèmes par défaut, que l'écran de réglages du patron affiche.
+  // On compare au TABLEAU, jamais à un montant recopié : un barème change
+  // d'une campagne à l'autre, et un test qui fige le chiffre tombe à chaque
+  // fois sans rien prouver de plus.
   const d = migrate(etatNeuf());
-  assert.equal(priceOf(d, "cacao"), 1800);
-  assert.equal(commOf(d, "cacao"), 25);
-  assert.equal(priceOf(d, "anacarde"), 500);
+  assert.equal(priceOf(d, "cacao"), DEFAULT_PRICES.cacao);
+  assert.equal(commOf(d, "cacao"), DEFAULT_COMM.cacao);
+  assert.equal(priceOf(d, "anacarde"), DEFAULT_PRICES.anacarde);
+  assert.ok(DEFAULT_PRICES.cacao > 0, "un repli nul paierait le planteur zéro");
 });
 
 test("aucune modification de la coop ne part à la synchro", () => {

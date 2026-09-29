@@ -815,3 +815,70 @@ class TestDepuisOuLanceLeBuild:
                     f"le Dockerfile copie « {fichier} », absent de backend/ : "
                     "l'image ne se construira pas, et aucun test fonctionnel "
                     "ne le verrait.")
+
+
+class TestBaremesDeRepli:
+    """Le barème de repli existe en DEUX exemplaires, qui doivent concorder.
+
+    `DEFAULT_PRICES` / `DEFAULT_COMM` (frontend `lib.ts`) et `PRIX_DEFAUT` /
+    `COM_DEFAUT` (tableau de bord admin, dans `server.py`) sont deux copies de
+    la même table. Le commentaire du second dit « mêmes valeurs » — un
+    commentaire ne l'a jamais garanti.
+
+    Si elles divergent, le défaut est particulièrement vicieux : une
+    coopérative neuve verrait un prix sur le téléphone et un autre dans
+    l'espace d'administration, tous deux « justes » selon leur source, et rien
+    ne signalerait l'écart. C'est exactement la classe de bug déjà rencontrée
+    deux fois sur ce projet (les trois listes d'entités, le menu des rôles).
+    """
+
+    @staticmethod
+    def _table(texte, nom, ouvrant="{", fermant="}"):
+        import re
+        m = re.search(re.escape(nom) + r"\s*[:=][^{]*\{([^}]*)\}", texte)
+        assert m, f"table « {nom} » introuvable"
+        return {
+            cle.strip().strip('"\''): int(val)
+            for cle, val in re.findall(r"(\w+)\s*:\s*(\d+)", m.group(1))
+        }
+
+    def _cotes(self):
+        import pathlib
+        racine = pathlib.Path(__file__).resolve().parent.parent.parent
+        lib = (racine / "frontend" / "src" / "coop" / "lib.ts").read_text(encoding="utf-8")
+        srv = (racine / "backend" / "server.py").read_text(encoding="utf-8")
+        return lib, srv
+
+    def test_les_prix_de_repli_concordent(self):
+        lib, srv = self._cotes()
+        assert self._table(lib, "DEFAULT_PRICES") == self._table(srv, "PRIX_DEFAUT"), (
+            "le barème du téléphone et celui de l'espace admin ont divergé : "
+            "une coopérative neuve verrait deux prix différents, sans alerte.")
+
+    def test_les_commissions_de_repli_concordent(self):
+        lib, srv = self._cotes()
+        assert self._table(lib, "DEFAULT_COMM") == self._table(srv, "COM_DEFAUT")
+
+    def test_chaque_culture_a_un_prix_et_une_commission(self):
+        # Une culture ajoutée à `CROPS` sans barème retomberait sur 0 : la pesée
+        # serait enregistrée à prix nul, et le planteur payé zéro franc.
+        import re
+        lib, _ = self._cotes()
+        m = re.search(r"export const CROPS: Crop\[\] = \[(.*?)\];", lib, re.S)
+        assert m, "liste CROPS introuvable"
+        cultures = set(re.findall(r'id:\s*"(\w+)"', m.group(1)))
+        prix = self._table(lib, "DEFAULT_PRICES")
+        comm = self._table(lib, "DEFAULT_COMM")
+        assert cultures <= set(prix), f"sans prix de repli : {sorted(cultures - set(prix))}"
+        assert cultures <= set(comm), f"sans commission de repli : {sorted(cultures - set(comm))}"
+        assert all(v > 0 for v in prix.values()), "un prix de repli nul paierait le planteur zéro"
+
+    def test_l_etat_vide_du_serveur_suit_le_bareme_cacao(self):
+        # `empty_state()["prixKg"]` est le repli historique, lu par les fiches
+        # antérieures aux barèmes par filière. Le laisser derrière ferait payer
+        # une coopérative neuve au prix de la campagne précédente.
+        import re
+        lib, srv = self._cotes()
+        m = re.search(r'"prixKg":\s*(\d+)', srv)
+        assert m, "prixKg de empty_state introuvable"
+        assert int(m.group(1)) == self._table(lib, "DEFAULT_PRICES")["cacao"]
