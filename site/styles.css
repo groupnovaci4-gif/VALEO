@@ -48,6 +48,11 @@ header {
 nav { margin-left: auto; display: flex; align-items: center; gap: 22px; }
 nav a { color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 600; }
 nav a:hover { color: var(--teal); }
+/* `nav a` est PLUS SPÉCIFIQUE que `.btn-primary` et l'emportait : le libellé du
+   bouton sortait en brun sur fond vert, illisible. Défaut invisible à la
+   lecture du code, vu seulement en regardant la page rendue. */
+nav a.btn-primary { color: #fff; }
+nav a.btn-ghost { color: var(--ink); }
 .nav-links { display: flex; gap: 22px; }
 
 /* ----------------------------- Boutons ----------------------------------- */

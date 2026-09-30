@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VALEO — Maquette du site</title>
+<style>
+:root{--teal:#0E8E80;--teal-dark:#0A6F64;--green:#1E7A4D;--green-dark:#155C39;
+--gold:#B98328;--rust:#A9502A;--due:#B8791E;--loss:#B23B2E;
+--bg:#F7F3EC;--card:#fff;--ink:#241C15;--muted:#7A6E62;--line:#EAE2D5}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:#2B2620;color:var(--ink);
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* ===================== BARRE D'OUTIL DE MAQUETTE ===================== */
+#outil{position:sticky;top:0;z-index:100;background:#1C1814;color:#EDE6DA;
+border-bottom:1px solid #3A332B;padding:9px 14px;display:flex;flex-wrap:wrap;
+gap:8px;align-items:center;font-size:13.5px}
+#outil .t{font-weight:700;letter-spacing:.4px;margin-right:6px;color:#BFB4A4}
+#outil button{background:#2E2823;color:#EDE6DA;border:1px solid #453D33;
+border-radius:8px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;
+font-family:inherit}
+#outil button:hover{border-color:var(--teal)}
+#outil button[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
+#outil .esp{margin-left:auto;color:#8A8074;font-size:12.5px}
+
+/* ============================ CADRE DU SITE ========================== */
+#scene{padding:22px 14px 60px;display:flex;justify-content:center}
+#cadre{background:var(--bg);width:100%;max-width:1100px;border-radius:14px;
+overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45);transition:max-width .25s ease}
+body[data-vue="tel"] #cadre{max-width:400px}
+#cadre .zone{max-width:1040px;margin:0 auto;padding:0 20px}
+
+/* ============================== EN-TÊTE ============================== */
+.tete{background:rgba(247,243,236,.96);border-bottom:1px solid var(--line);
+position:sticky;top:0;z-index:5}
+.bar{display:flex;align-items:center;gap:16px;padding:12px 0}
+.marque{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.marque img{height:34px;width:auto;display:block}
+.marque b{font-size:19px;letter-spacing:.5px}
+.menu{margin-left:auto;display:flex;align-items:center;gap:20px}
+.liens{display:flex;gap:20px}
+.menu a{color:var(--muted);text-decoration:none;font-size:15px;font-weight:600}
+.menu a:hover{color:var(--teal)}
+/* Le bouton garde SA couleur : `.menu a` est plus spécifique que `.btn-p`,
+   et l'emportait — le libellé sortait en brun sur fond vert, illisible. */
+.menu a.btn-p{color:#fff}
+.menu a.btn-g{color:var(--ink)}
+body[data-vue="tel"] .liens{display:none}
+
+/* ============================== BOUTONS ============================== */
+.btn{display:inline-block;text-decoration:none;font-weight:700;font-size:15.5px;
+padding:12px 22px;border-radius:12px;border:1px solid transparent;cursor:pointer;
+font-family:inherit}
+.btn-p{background:var(--teal);color:#fff}
+.btn-p:hover{background:var(--teal-dark)}
+.btn-g{background:#fff;color:var(--ink);border-color:var(--line)}
+.btn-g:hover{border-color:var(--teal);color:var(--teal)}
+
+/* =============================== HÉROS =============================== */
+.heros{padding:62px 0 46px}
+.heros h1{font-size:44px;line-height:1.12;margin:0 0 18px;letter-spacing:-.5px;max-width:17ch}
+.heros h1 em{font-style:normal;color:var(--teal)}
+.lede{font-size:19.5px;color:var(--muted);max-width:56ch;margin:0 0 26px}
+.cta{display:flex;flex-wrap:wrap;gap:12px}
+.note{margin-top:18px;font-size:14.5px;color:var(--muted)}
+body[data-vue="tel"] .heros{padding:38px 0 30px}
+body[data-vue="tel"] .heros h1{font-size:31px;max-width:none}
+body[data-vue="tel"] .lede{font-size:17.5px}
+body[data-vue="tel"] .cta .btn{flex:1 1 100%;text-align:center}
+
+/* ============================= SECTIONS ============================== */
+.sec{padding:54px 0;border-top:1px solid var(--line)}
+.sec h2{font-size:30px;margin:0 0 12px;letter-spacing:-.3px}
+.sec .intro{font-size:18px;color:var(--muted);max-width:62ch;margin:0 0 30px}
+body[data-vue="tel"] .sec{padding:40px 0}
+body[data-vue="tel"] .sec h2{font-size:24px}
+.grille{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(255px,1fr))}
+body[data-vue="tel"] .grille{grid-template-columns:1fr}
+.fiche{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+.fiche h3{margin:0 0 8px;font-size:18px}
+.fiche p{margin:0;color:var(--muted);font-size:15.5px}
+.etiq{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.6px;
+text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+
+/* ============================== ÉTAPES =============================== */
+.flux{display:grid;gap:12px}
+.pas{display:flex;gap:16px;align-items:flex-start;background:var(--card);
+border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.pas .n{flex:0 0 34px;height:34px;border-radius:50%;background:var(--teal);color:#fff;
+font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center}
+.pas h3{margin:4px 0 6px;font-size:17.5px}
+.pas p{margin:0;color:var(--muted);font-size:15.5px}
+
+/* ======================= EXPLORATEUR DE RÔLES ======================== */
+.onglets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.onglets button{background:#fff;border:1px solid var(--line);border-radius:999px;
+padding:9px 17px;font-weight:700;font-size:14.5px;cursor:pointer;color:var(--muted);
+font-family:inherit}
+.onglets button[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:#fff}
+.duo{display:grid;grid-template-columns:300px 1fr;gap:30px;align-items:start}
+body[data-vue="tel"] .duo{grid-template-columns:1fr}
+
+/* --- cadre de téléphone dessiné en CSS, pas une photo --- */
+.tel{background:#1C1814;border-radius:30px;padding:9px;box-shadow:0 12px 34px rgba(0,0,0,.22)}
+.ecran{background:var(--bg);border-radius:23px;overflow:hidden;height:520px;
+display:flex;flex-direction:column;position:relative}
+.ecran .haut{background:var(--teal);color:#fff;padding:13px 15px 15px}
+.ecran .haut .p{font-size:11.5px;opacity:.85;letter-spacing:.3px}
+.ecran .haut .g{font-size:17px;font-weight:800;margin-top:2px}
+.ecran .corps{flex:1;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:9px}
+.mini{background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+.mini .lib{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.mini .val{font-size:17px;font-weight:800;margin-top:1px}
+.mini .sous{font-size:11.5px;color:var(--muted);margin-top:2px}
+.deux{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.ligne{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0}
+.ligne span:last-child{font-weight:700}
+.ecran .pied{border-top:1px solid var(--line);background:#fff;display:flex;
+padding:8px 6px;gap:2px}
+.ecran .pied div{flex:1;text-align:center;font-size:10px;color:var(--muted);font-weight:600}
+.ecran .pied div.on{color:var(--teal)}
+.ecran .pied div b{display:block;font-size:15px;line-height:1.2}
+.fab{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);
+width:46px;height:46px;border-radius:50%;background:var(--green);color:#fff;
+display:flex;align-items:center;justify-content:center;font-size:19px;
+box-shadow:0 5px 16px rgba(30,122,77,.4)}
+
+/* --- le texte à côté du téléphone --- */
+.expl h3{margin:0 0 6px;font-size:21px}
+.expl .res{color:var(--muted);margin:0 0 16px;font-size:16.5px}
+.expl ul{margin:0;padding-left:20px}
+.expl li{margin-bottom:7px;font-size:15.5px}
+.expl .interdit{background:#FBECE8;border:1px solid #EAD7D2;border-radius:12px;
+padding:13px 16px;margin-top:16px;font-size:14.5px}
+.expl .interdit b{color:var(--loss)}
+
+/* ============================= FILIÈRES ============================== */
+.fil{display:flex;flex-wrap:wrap;gap:10px}
+.fil span{background:var(--card);border:1px solid var(--line);border-radius:999px;
+padding:9px 18px;font-weight:600;font-size:15px}
+
+/* ============================== CONTACT ============================== */
+.boite{background:var(--green-dark);color:#fff;border-radius:20px;padding:36px 28px}
+.boite h2{margin:0 0 10px;font-size:27px;color:#fff}
+.boite p{color:#D6E6DC;margin:0 0 22px;max-width:54ch}
+.boite .btn-p{background:#fff;color:var(--green-dark)}
+
+/* =============================== PIED ================================ */
+.bas{padding:34px 0 46px;color:var(--muted);font-size:14.5px}
+.bas a{color:var(--muted);cursor:pointer}
+.fl{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center}
+.fl .d{margin-left:auto}
+
+/* ============================= DOCUMENT ============================== */
+#conf{display:none;padding:38px 0 20px;max-width:74ch}
+body[data-page="conf"] #conf{display:block}
+body[data-page="conf"] #accueil{display:none}
+#conf h1{font-size:33px;margin:0 0 6px}
+#conf .maj{color:var(--muted);font-size:15px;margin:0 0 30px}
+#conf h2{font-size:21px;margin:32px 0 10px}
+#conf h3{font-size:17px;margin:22px 0 6px}
+#conf p,#conf li{color:#3C332A}
+#conf ul{padding-left:22px}
+#conf li{margin-bottom:7px}
+#conf table{width:100%;border-collapse:collapse;margin:16px 0;font-size:15px}
+#conf th,#conf td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+#conf th{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+#conf .enc{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--teal);
+border-radius:12px;padding:16px 20px;margin:20px 0}
+</style>
+</head>
+<body data-vue="bureau" data-page="accueil">
+
+<div id="outil">
+  <span class="t">MAQUETTE VALEO</span>
+  <button id="b-acc" aria-pressed="true" onclick="page('accueil')">Accueil</button>
+  <button id="b-conf" aria-pressed="false" onclick="page('conf')">Politique de confidentialité</button>
+  <button id="b-bur" aria-pressed="true" onclick="vue('bureau')">Ordinateur</button>
+  <button id="b-tel" aria-pressed="false" onclick="vue('tel')">Téléphone</button>
+  <span class="esp">valeo-scoop.com · fichier autonome, aucun accès réseau</span>
+</div>
+
+<div id="scene"><div id="cadre">
+
+  <div class="tete"><div class="zone bar">
+    <a class="marque" href="#" onclick="page('accueil');return false">
+      <img src="data:image/png;base64,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" alt="VALEO"><b>VALEO</b>
+    </a>
+    <nav class="menu">
+      <span class="liens">
+        <a href="#fonctionnement">Fonctionnement</a>
+        <a href="#roles">Rôles</a>
+        <a href="#garanties">Garanties</a>
+      </span>
+      <a class="btn btn-p" href="#contact">Démonstration</a>
+    </nav>
+  </div></div>
+
+  <div id="accueil">
+
+    <div class="zone heros">
+      <h1>La gestion de votre coopérative, <em>même sans réseau</em>.</h1>
+      <p class="lede">VALEO suit le cacao depuis la pesée au bord du champ jusqu'à
+        l'expédition à l'usine : poids, paiements, mandats, commissions et
+        comptabilité. Le pisteur travaille en brousse sans connexion ; tout se
+        synchronise au retour.</p>
+      <div class="cta">
+        <a class="btn btn-p" href="#contact">Demander une démonstration</a>
+        <a class="btn btn-g" href="#fonctionnement">Comment ça marche</a>
+      </div>
+      <p class="note">Cacao · Café · Anacarde · Hévéa · Palmier à huile</p>
+    </div>
+
+    <div class="sec"><div class="zone">
+      <h2>Trois problèmes que le carnet ne règle pas</h2>
+      <p class="intro">Ce ne sont pas des problèmes d'organisation : ce sont des
+        problèmes d'information. Ils disparaissent dès que chaque poids et chaque
+        franc portent une trace.</p>
+      <div class="grille">
+        <div class="fiche"><span class="etiq">Le poids</span>
+          <h3>Ce qui part du champ n'est pas ce qui arrive au magasin</h3>
+          <p>L'écart se découvre en fin de campagne, quand plus personne ne se
+            souvient du chargement. VALEO le constate à la réception, chargement
+            par chargement.</p></div>
+        <div class="fiche"><span class="etiq">L'argent</span>
+          <h3>La caisse d'un pisteur se justifie de mémoire</h3>
+          <p>Mandat reçu, achats payés, restes dus aux planteurs, commission :
+            quatre choses différentes, souvent mélangées en un seul chiffre.
+            VALEO les tient séparées.</p></div>
+        <div class="fiche"><span class="etiq">La preuve</span>
+          <h3>Le planteur n'a rien en main</h3>
+          <p>Sans bordereau, une contestation oppose deux souvenirs. Chaque pesée
+            produit un reçu numéroté, remis au planteur sur-le-champ.</p></div>
+      </div>
+    </div></div>
+
+    <div class="sec" id="fonctionnement"><div class="zone">
+      <h2>Du champ à l'usine, en six étapes</h2>
+      <p class="intro">Chaque étape est enregistrée par la personne qui la fait,
+        sous son nom, avec l'heure. Rien n'est ressaisi deux fois.</p>
+      <div class="flux">
+        <div class="pas"><div class="n">1</div><div>
+          <h3>Le pisteur pèse au bord du champ</h3>
+          <p>Poids net après tare des sacs, prix du jour, paiement total ou partiel.
+             Le planteur repart avec son bordereau. Aucune connexion requise.</p></div></div>
+        <div class="pas"><div class="n">2</div><div>
+          <h3>Il livre son chargement au magasin</h3>
+          <p>La livraison est déclarée et signée de son nom. Le patron et le
+             magasinier sont prévenus qu'un poids attend d'être vérifié.</p></div></div>
+        <div class="pas"><div class="n">3</div><div>
+          <h3>Le magasinier constate le poids réel</h3>
+          <p>Il pèse le chargement une seule fois. C'est ce poids-là qui entre en
+             stock, et lui seul.</p></div></div>
+        <div class="pas"><div class="n">4</div><div>
+          <h3>L'écart est réglé, dans le bon sens</h3>
+          <p>Un manquant devient une dette en kilos, remboursée en marchandise.
+             Un excédent revient au pisteur, versé avec sa commission.</p></div></div>
+        <div class="pas"><div class="n">5</div><div>
+          <h3>Le patron expédie à l'usine</h3>
+          <p>Poids livré, poids constaté là-bas, prix d'achat de l'usine : le
+             bénéfice de l'expédition se lit directement, freinte comprise.</p></div></div>
+        <div class="pas"><div class="n">6</div><div>
+          <h3>La comptabilité suit, sans ressaisie</h3>
+          <p>Budget d'achat, fonds confiés, mandats, dépenses, sommes dues aux
+             agents : tout se déduit des opérations déjà enregistrées.</p></div></div>
+      </div>
+    </div></div>
+
+    <div class="sec" id="roles"><div class="zone">
+      <h2>Un métier, un écran</h2>
+      <p class="intro">Touchez un rôle pour voir son écran. Personne ne voit ce qui
+        ne le regarde pas, et personne n'a de bouton qu'il n'a pas le droit
+        d'utiliser — c'est appliqué sur les données, pas seulement à l'affichage.</p>
+      <div class="onglets" id="ong"></div>
+      <div class="duo">
+        <div class="tel"><div class="ecran" id="ecran"></div></div>
+        <div class="expl" id="expl"></div>
+      </div>
+    </div></div>
+
+    <div class="sec" id="garanties"><div class="zone">
+      <h2>Ce qui est garanti</h2>
+      <p class="intro">Une application de gestion manipule l'argent de gens qui
+        n'ont pas de marge d'erreur. Voici ce sur quoi elle ne transige pas.</p>
+      <div class="grille">
+        <div class="fiche"><h3>Elle fonctionne sans réseau</h3>
+          <p>Chaque téléphone garde ses données en local et se synchronise quand le
+             réseau revient. Une tournée de plusieurs jours hors couverture ne perd rien.</p></div>
+        <div class="fiche"><h3>Elle dit quand elle ne synchronise pas</h3>
+          <p>Un bandeau permanent annonce l'état réel. Une application qui se tait
+             pendant que les données s'accumulent est plus dangereuse qu'une panne visible.</p></div>
+        <div class="fiche"><h3>Les prix sont figés à la pesée</h3>
+          <p>Changer le barème en cours de campagne ne réécrit aucun reçu déjà
+             remis à un planteur.</p></div>
+        <div class="fiche"><h3>Chaque coopérative est isolée</h3>
+          <p>Aucune coopérative ne peut voir ni modifier les données d'une autre.
+             C'est la garantie la plus étroitement vérifiée du produit.</p></div>
+        <div class="fiche"><h3>Les codes secrets ne sont jamais lisibles</h3>
+          <p>Ils sont dérivés par PBKDF2 et ne quittent jamais le serveur — ni vers
+             l'application, ni vers l'administration.</p></div>
+        <div class="fiche"><h3>Rien ne s'efface en silence</h3>
+          <p>Les pesées, avances et soldes sont horodatés côté serveur dans un
+             journal d'audit. Corriger, c'est écrire une correction.</p></div>
+      </div>
+    </div></div>
+
+    <div class="sec"><div class="zone">
+      <h2>Filières prises en charge</h2>
+      <p class="intro">Chaque filière a son prix et sa commission, réglés par la coopérative.</p>
+      <div class="fil"><span>Cacao</span><span>Café</span><span>Anacarde</span><span>Hévéa</span><span>Palmier à huile</span></div>
+    </div></div>
+
+    <div class="sec" id="contact"><div class="zone"><div class="boite">
+      <h2>Voir VALEO sur vos propres chiffres</h2>
+      <p>Nous installons l'application avec vous, sur une campagne d'essai, et nous
+         formons vos pisteurs et votre magasinier. Écrivez-nous en indiquant votre
+         coopérative, votre région et vos filières.</p>
+      <div class="cta"><a class="btn btn-p" href="mailto:contact@valeo-scoop.com">contact@valeo-scoop.com</a></div>
+    </div></div></div>
+
+  </div>
+
+  <div class="zone" id="conf">
+    <h1>Politique de confidentialité</h1>
+    <p class="maj">Dernière mise à jour : 30 septembre 2026</p>
+    <p>VALEO est une application de gestion destinée aux coopératives agricoles.
+      Elle traite des données qui concernent des personnes réelles — planteurs,
+      pisteurs, magasiniers — et des sommes d'argent qui leur sont dues. Cette page
+      dit exactement ce qui est collecté, pourquoi, où c'est conservé et qui peut y accéder.</p>
+    <div class="enc"><strong>En résumé.</strong> VALEO ne collecte aucune position
+      GPS, ne contient aucune publicité, aucun outil de mesure d'audience et aucun
+      traceur. Aucune donnée n'est vendue ni cédée à un tiers. Les données d'une
+      coopérative ne sont accessibles qu'à cette coopérative.</div>
+
+    <h2>1. Qui est responsable du traitement</h2>
+    <p>VALEO, éditeur de l'application, joignable à contact@valeo-scoop.com.</p>
+    <p>Chaque coopérative utilisatrice décide des données qu'elle enregistre sur ses
+      membres et son personnel : elle est responsable de leur exactitude et de
+      l'information des personnes concernées. VALEO fournit l'outil et l'hébergement.</p>
+
+    <h2>2. Données collectées</h2>
+    <h3>Collaborateurs</h3>
+    <table>
+      <tr><th>Donnée</th><th>Pourquoi</th></tr>
+      <tr><td>Nom et prénoms</td><td>Identifier l'auteur de chaque opération</td></tr>
+      <tr><td>Numéro de téléphone</td><td>Sert d'identifiant de connexion</td></tr>
+      <tr><td>Adresse e-mail (responsable)</td><td>Création du compte et connexion</td></tr>
+      <tr><td>Code secret à 6 chiffres</td><td>Connexion. <strong>Jamais conservé en clair</strong></td></tr>
+    </table>
+    <h3>Planteurs</h3>
+    <table>
+      <tr><th>Donnée</th><th>Pourquoi</th></tr>
+      <tr><td>Nom, code d'adhérent</td><td>Rattacher les livraisons et les paiements</td></tr>
+      <tr><td>Localité</td><td>Choisie dans une liste. <strong>Ce n'est pas une position GPS</strong></td></tr>
+      <tr><td>Numéro Mobile Money</td><td>Facultatif — paiement des livraisons</td></tr>
+      <tr><td>Photo, signature</td><td>Facultatifs — preuve de réception d'un paiement</td></tr>
+    </table>
+    <h3>Ce que VALEO ne collecte pas</h3>
+    <ul>
+      <li>Aucune <strong>position GPS</strong> : l'application ne demande pas l'accès à la localisation.</li>
+      <li>Aucun <strong>identifiant publicitaire</strong>, aucune publicité.</li>
+      <li>Aucun <strong>outil de mesure d'audience</strong> ni suivi du comportement.</li>
+      <li>Aucun accès aux contacts, aux SMS ni à l'historique d'appels.</li>
+    </ul>
+
+    <h2>3. Qui accède à quoi</h2>
+    <ul>
+      <li>Le <strong>planteur</strong> ne voit que ses propres livraisons et avances.</li>
+      <li>Le <strong>pisteur</strong> ne voit que les opérations qu'il a engagées.</li>
+      <li>Le <strong>magasinier</strong> voit le magasin et les livraisons à vérifier.</li>
+      <li>Le <strong>comptable</strong> voit les finances, jamais les pesées en écriture.</li>
+      <li>Le <strong>responsable</strong> voit l'ensemble de <em>sa</em> coopérative.</li>
+    </ul>
+    <p><strong>Les coopératives sont cloisonnées entre elles.</strong></p>
+
+    <h2>4. Hébergement</h2>
+    <p>Google Cloud Platform, région <strong>europe-west1 (Belgique)</strong>, en
+      Union européenne. Échanges chiffrés (HTTPS). La copie locale sur chaque
+      appareil est <strong>chiffrée</strong>, la clé étant gardée dans le coffre du
+      système (Keychain, Keystore).</p>
+
+    <h2>5. Sécurité</h2>
+    <ul>
+      <li>Codes et mots de passe dérivés par <strong>PBKDF2-HMAC-SHA256</strong>, jamais en clair.</li>
+      <li>Après 5 échecs sur un identifiant, l'accès est bloqué temporairement.</li>
+      <li>Le serveur autorise chaque écriture selon le rôle : une application
+          modifiée ne contourne pas ces règles.</li>
+    </ul>
+
+    <h2>6. Vos droits</h2>
+    <p>Accès, rectification, suppression, opposition. Adressez-vous d'abord au
+      responsable de votre coopérative ; puis, si cela n'aboutit pas, à
+      contact@valeo-scoop.com — réponse sous 30 jours.</p>
+    <p>En Côte d'Ivoire, vous pouvez saisir l'ARTCI. Dans l'Union européenne,
+      l'autorité de protection des données de votre pays.</p>
+
+    <h2>7. Durée de conservation</h2>
+    <p>Tant que la coopérative utilise VALEO. Les écritures financières sont
+      conservées pour la durée des obligations comptables applicables — un registre
+      dont on peut effacer une ligne ne prouve rien.</p>
+    <p style="margin-top:34px"><a class="btn btn-g" href="#" onclick="page('accueil');return false">Retour au site</a></p>
+  </div>
+
+  <div class="bas"><div class="zone fl">
+    <span>© 2026 VALEO</span>
+    <a onclick="page('conf')">Politique de confidentialité</a>
+    <a href="mailto:contact@valeo-scoop.com">Nous écrire</a>
+    <span class="d">Abidjan, Côte d'Ivoire</span>
+  </div></div>
+
+</div></div>
+
+<script>
+/* ------------------------- outils de maquette ------------------------- */
+function vue(v){
+  document.body.dataset.vue = v;
+  document.getElementById('b-bur').setAttribute('aria-pressed', v==='bureau');
+  document.getElementById('b-tel').setAttribute('aria-pressed', v==='tel');
+}
+function page(p){
+  document.body.dataset.page = p;
+  document.getElementById('b-acc').setAttribute('aria-pressed', p==='accueil');
+  document.getElementById('b-conf').setAttribute('aria-pressed', p==='conf');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* --------- explorateur de rôles : écrans schématiques, pas des photos ---------
+   Les libellés et les chiffres sont ceux de l'application réelle. */
+var ROLES = [
+ {id:'patron', nom:'Patron', titre:'Il pilote',
+  res:"Souverain sur sa seule coopérative : barèmes, équipe, avances, stock, expéditions, budget d'achat.",
+  peut:["Peser au magasin et éditer un bordereau",
+        "Créer pisteurs, magasiniers et comptables",
+        "Approuver ou refuser une demande d'avance",
+        "Fixer prix et commissions par filière",
+        "Expédier à l'usine et constater le bénéfice"],
+  interdit:"Il ne peut pas enregistrer un poids ou un montant négatif, ni toucher aux frais personnels d'un pisteur.",
+  ecran:{haut:'Tableau de bord', sous:'Coopérative KOUASSI · Campagne 2026-2027',
+   blocs:[{t:'kpi2', a:['Collecté', '12 480 kg'], b:['Stock magasin','8 120 kg']},
+          {t:'kpi', lib:'Valeur de la campagne', val:'14 976 000 F', sous:'Cacao à 1 200 F/kg'},
+          {t:'lignes', titre:'À traiter', l:[['Livraisons à vérifier','3'],['Demandes d’avance','2'],['Restes dus aux planteurs','410 000 F']]}],
+   pied:[['Bilan','1'],['Planteurs','2'],['Équipe','3'],['Coop','4']], actif:0, fab:'+'}},
+
+ {id:'pisteur', nom:'Pisteur / Délégué', titre:'Il collecte',
+  res:"Il pèse au bord du champ, avance de l'argent au planteur, puis livre son chargement au magasin.",
+  peut:["Peser hors connexion, des jours durant",
+        "Recruter un planteur sur le terrain",
+        "Accorder une avance sur-le-champ",
+        "Déclarer sa livraison au magasin",
+        "Suivre sa caisse et sa commission"],
+  interdit:"Il ne vérifie jamais un poids, ne vend rien, n'expédie rien, et ne voit aucune opération d'un autre pisteur.",
+  ecran:{haut:'Ma tournée', sous:'Jean · Campagne 2026-2027',
+   blocs:[{t:'kpi2', a:['Mandat reçu','2 000 000 F'], b:['Solde en caisse','100 000 F']},
+          {t:'kpi2', a:['Commission acquise','48 000 F'], b:['En attente','7 500 F']},
+          {t:'lignes', titre:'Justification de caisse', l:[['Mandat reçu','2 000 000'],['− Achats payés','1 900 000'],['Dû aux planteurs','200 000']]}],
+   pied:[['Ma tournée','1'],['Planteurs','2']], actif:0, fab:'⚖'}},
+
+ {id:'magasinier', nom:'Magasinier', titre:'Il vérifie et stocke',
+  res:"Il pèse le chargement une seule fois. C'est ce poids-là qui entre en stock — jamais le poids déclaré.",
+  peut:["Peser au magasin, à son nom",
+        "Vérifier les chargements ramenés par les pisteurs",
+        "Tenir le stock réel, entrées moins sorties",
+        "Solder un reste dû à un planteur"],
+  interdit:"Il ne vérifie jamais sa propre pesée, ne décide d'aucune avance, et ne change aucun barème.",
+  ecran:{haut:'Mes pesées', sous:'Bakary · magasin',
+   blocs:[{t:'kpi2', a:['Stock magasin','8 120 kg'], b:['En attente','1 000 kg']},
+          {t:'lignes', titre:'Livraisons à vérifier', l:[['Jean · 3 planteurs','1 000 kg'],['Paul · 2 planteurs','640 kg'],['Jean · 5 planteurs','1 480 kg']]},
+          {t:'kpi', lib:'Dernier écart constaté', val:'+ 20 kg', sous:'Jean · 1 000 déclarés, 1 020 reçus'}],
+   pied:[['Mes pesées','1'],['Planteurs','2']], actif:0, fab:'⚖'}},
+
+ {id:'comptable', nom:'Comptable', titre:'Il finance',
+  res:"Il gère les fonds que le patron lui a alloués. Il ne pèse jamais — c'est ce qui rend ses chiffres vérifiables.",
+  peut:["Ouvrir des enveloppes sur ses fonds alloués",
+        "Confier des mandats aux pisteurs",
+        "Enregistrer les dépenses de la coopérative",
+        "Payer ce qui est dû aux collaborateurs",
+        "Lire tout l'historique financier"],
+  interdit:"Il ne peut ni créer le budget d'achat, ni s'allouer des fonds, ni modifier une pesée ou une livraison.",
+  ecran:{haut:'Finances', sous:'Aminata · comptable',
+   blocs:[{t:'kpi', lib:'Solde disponible', val:'7 657 000 F', sous:"Budget, moins confié, dépensé et dû"},
+          {t:'lignes', titre:'Mes fonds', l:[['Alloué par le patron','20 000 000'],['− Affecté en enveloppes','10 000 000'],['Disponible','9 900 000']]},
+          {t:'lignes', titre:'Sommes dues', l:[['Jean · à payer','272 000'],['Paul · payé','0']]}],
+   pied:[['Finances','1'],['Planteurs','2'],['Équipe','3']], actif:0, fab:'🧾'}},
+
+ {id:'planteur', nom:'Planteur', titre:'Il consulte',
+  res:"Il voit ses livraisons, ses paiements et ses avances. Rien d'autre, et rien des autres.",
+  peut:["Consulter chaque livraison et son bordereau",
+        "Voir ses avances et leur origine",
+        "Demander une avance, décidée par le patron",
+        "Lier son numéro Mobile Money",
+        "Signer un bordereau"],
+  interdit:"Il ne voit aucun autre planteur, ni les mandats, ni les dépenses, ni le stock, ni les coordonnées du personnel.",
+  ecran:{haut:'Mes poids', sous:'Kouassi Yao · VAL-1234-AB',
+   blocs:[{t:'kpi2', a:['Livré cette campagne','1 240 kg'], b:['Reçu','1 488 000 F']},
+          {t:'lignes', titre:'Dernières livraisons', l:[['12 oct. · 98 kg','117 600 F'],['05 oct. · 142 kg','170 400 F'],['28 sept. · 210 kg','252 000 F']]},
+          {t:'kpi', lib:'Avance à rembourser', val:'50 000 F', sous:'Accordée par Pisteur — Jean'}],
+   pied:[['Mes poids','1'],['Mobile Money','2']], actif:0, fab:null}}
+];
+
+function bloc(b){
+  if(b.t==='kpi') return '<div class="mini"><div class="lib">'+b.lib+'</div><div class="val">'+b.val+'</div>'+(b.sous?'<div class="sous">'+b.sous+'</div>':'')+'</div>';
+  if(b.t==='kpi2') return '<div class="deux"><div class="mini"><div class="lib">'+b.a[0]+'</div><div class="val">'+b.a[1]+'</div></div><div class="mini"><div class="lib">'+b.b[0]+'</div><div class="val">'+b.b[1]+'</div></div></div>';
+  return '<div class="mini"><div class="lib">'+b.titre+'</div>'+b.l.map(function(x){return '<div class="ligne"><span>'+x[0]+'</span><span>'+x[1]+'</span></div>';}).join('')+'</div>';
+}
+
+function montre(i){
+  var r = ROLES[i], e = r.ecran;
+  document.getElementById('ecran').innerHTML =
+    '<div class="haut"><div class="p">'+e.sous+'</div><div class="g">'+e.haut+'</div></div>'+
+    '<div class="corps">'+e.blocs.map(bloc).join('')+'</div>'+
+    (e.fab?'<div class="fab">'+e.fab+'</div>':'')+
+    '<div class="pied">'+e.pied.map(function(p,k){return '<div class="'+(k===e.actif?'on':'')+'"><b>'+p[1]+'</b>'+p[0]+'</div>';}).join('')+'</div>';
+  document.getElementById('expl').innerHTML =
+    '<h3>'+r.nom+' — '+r.titre+'</h3><p class="res">'+r.res+'</p>'+
+    '<ul>'+r.peut.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>'+
+    '<div class="interdit"><b>Ce qu’il ne peut pas faire.</b> '+r.interdit+'</div>';
+  Array.prototype.forEach.call(document.querySelectorAll('#ong button'), function(b,k){
+    b.setAttribute('aria-pressed', k===i);
+  });
+}
+
+document.getElementById('ong').innerHTML = ROLES.map(function(r,i){
+  return '<button aria-pressed="'+(i===0)+'" onclick="montre('+i+')">'+r.nom+'</button>';
+}).join('');
+montre(0);
+</script>
+</body>
+</html>

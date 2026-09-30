@@ -27,7 +27,8 @@
     "Avant le premier déploiement, associer chaque cible à son site :",
     "  firebase target:apply hosting site <id-du-site-public>",
     "  firebase target:apply hosting app  <id-du-site-application>",
-    "Voir docs/SITE-WEB.md."
+    "Voir docs/SITE-WEB.md.",
+    "site/maquette.html est un fichier de TRAVAIL : le site entier dans un seul fichier autonome, avec une barre d'outil pour basculer téléphone/ordinateur et explorer les rôles. Il sert à relire et faire valider la maquette hors ligne — il est donc EXCLU du déploiement (voir « ignore » de la cible site)."
   ],
   "hosting": [
     {
@@ -36,7 +37,8 @@
       "ignore": [
         "firebase.json",
         "**/.*",
-        "**/node_modules/**"
+        "**/node_modules/**",
+        "maquette.html"
       ],
       "cleanUrls": true,
       "trailingSlash": false,
