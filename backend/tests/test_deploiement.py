@@ -222,13 +222,76 @@ class TestConteneur:
 
 
 class TestConfigurationDeploiement:
-    def test_hosting_renvoie_lapi_vers_cloud_run(self):
+    @staticmethod
+    def _cibles():
+        """Les cibles Hosting, indexées par nom.
+
+        `hosting` vaut un objet tant qu'il n'y a qu'un site, une LISTE dès
+        qu'il y en a plusieurs. On accepte les deux : la forme du fichier ne
+        doit pas décider de ce que le test sait vérifier.
+        """
         conf = json.loads((RACINE / "firebase.json").read_text(encoding="utf-8"))
-        regles = conf["hosting"]["rewrites"]
+        h = conf["hosting"]
+        if isinstance(h, dict):
+            return {h.get("target", "app"): h}
+        return {c["target"]: c for c in h}
+
+    def test_hosting_renvoie_lapi_vers_cloud_run(self):
+        regles = self._cibles()["app"]["rewrites"]
         api = next(r for r in regles if r["source"] == "/api/**")
         assert "run" in api and api["run"]["serviceId"]
         # Le repli SPA doit venir EN DERNIER, sinon il attrape aussi l'API.
         assert regles[-1]["source"] == "**"
+
+    def test_le_site_public_n_a_PAS_le_repli_spa(self):
+        """Le site public et l'application ne partagent pas leur routage.
+
+        Le repli SPA d'expo-router (`source: "**"`) attrape tout ce qui n'a pas
+        déjà été servi. S'il vivait sur le site public, la politique de
+        confidentialité et la page 404 disparaîtraient derrière l'application —
+        et le site paraîtrait cassé sans que rien ne l'explique.
+        """
+        site = self._cibles().get("site")
+        assert site, "la cible « site » doit exister"
+        assert site["public"] == "site"
+        assert not site.get("rewrites"), (
+            "le site public ne doit porter AUCUN rewrite : il sert des fichiers")
+
+    def test_le_site_public_ne_charge_aucune_ressource_externe(self):
+        """Contrainte de conception, pas de style : la page s'ouvre en 3G.
+
+        Une police Google ou un script d'analyse ajoute une résolution DNS, une
+        poignée de main TLS et un aller-retour vers un serveur lointain, devant
+        quelqu'un qui a deux barres de réseau. Le test le rend non négociable —
+        et il vaut aussi comme garantie de confidentialité : aucune page ne
+        prévient un tiers de la visite.
+        """
+        import re as _re
+        pages = sorted((RACINE / "site").glob("*.html"))
+        assert pages, "aucune page dans site/"
+        for page in pages:
+            texte = page.read_text(encoding="utf-8")
+            externes = _re.findall(r'(?:src|href)="(https?://[^"]+)"', texte)
+            # Un lien de navigation vers l'application est légitime ; charger
+            # une RESSOURCE depuis un autre domaine ne l'est pas.
+            charges = [u for u in externes if _re.search(r"\.(js|css|woff2?|ttf|png|jpe?g|svg)(\?|$)", u)]
+            assert not charges, f"{page.name} charge des ressources externes : {charges}"
+            assert "googletagmanager" not in texte and "google-analytics" not in texte, (
+                f"{page.name} contient un traceur")
+
+    def test_la_politique_de_confidentialite_existe_et_est_liee(self):
+        """Le Play Store l'exige, et l'accueil doit y renvoyer.
+
+        Une politique publiée mais orpheline ne remplit pas la condition : le
+        formulaire du Play Store demande une URL atteignable depuis le site.
+        """
+        conf = RACINE / "site" / "confidentialite.html"
+        assert conf.exists(), "politique de confidentialité manquante"
+        texte = conf.read_text(encoding="utf-8")
+        for attendu in ("PBKDF2", "europe-west1", "contact@valeo-scoop.com"):
+            assert attendu in texte, f"la politique doit mentionner « {attendu} »"
+        accueil = (RACINE / "site" / "index.html").read_text(encoding="utf-8")
+        assert "confidentialite" in accueil, "l'accueil doit lier la politique"
 
     def test_les_regles_firestore_refusent_tout_acces_direct(self):
         """Invariant 29 : le backend est le seul écrivain."""

@@ -1,0 +1,170 @@
+/* VALEO — feuille de style du site public.
+   Contrainte de conception : la page doit s'ouvrir vite sur un téléphone
+   d'entrée de gamme, en 3G, en Côte d'Ivoire. Donc AUCUNE ressource externe —
+   ni police Google, ni framework, ni script d'analyse. Tout est ici. */
+
+:root {
+  --teal: #0E8E80;
+  --teal-dark: #0A6F64;
+  --green: #1E7A4D;
+  --green-dark: #155C39;
+  --gold: #B98328;
+  --rust: #A9502A;
+  --bg: #F7F3EC;
+  --card: #FFFFFF;
+  --ink: #241C15;
+  --muted: #7A6E62;
+  --line: #EAE2D5;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+
+/* ----------------------------- En-tête ----------------------------------- */
+
+header {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(247, 243, 236, 0.94);
+  backdrop-filter: saturate(180%) blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.bar { display: flex; align-items: center; gap: 16px; padding: 12px 0; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.brand img { height: 34px; width: auto; display: block; }
+.brand b { font-size: 19px; letter-spacing: 0.5px; }
+nav { margin-left: auto; display: flex; align-items: center; gap: 22px; }
+nav a { color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 600; }
+nav a:hover { color: var(--teal); }
+.nav-links { display: flex; gap: 22px; }
+
+/* ----------------------------- Boutons ----------------------------------- */
+
+.btn {
+  display: inline-block; text-decoration: none; font-weight: 700; font-size: 15.5px;
+  padding: 12px 22px; border-radius: 12px; border: 1px solid transparent;
+  transition: transform .06s ease, background .15s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--teal); color: #fff; }
+.btn-primary:hover { background: var(--teal-dark); }
+.btn-ghost { background: #fff; color: var(--ink); border-color: var(--line); }
+.btn-ghost:hover { border-color: var(--teal); color: var(--teal); }
+
+/* ------------------------------ Héros ------------------------------------ */
+
+.hero { padding: 64px 0 48px; }
+.hero h1 {
+  font-size: 44px; line-height: 1.12; margin: 0 0 18px; letter-spacing: -0.5px;
+  max-width: 17ch;
+}
+.hero h1 em { font-style: normal; color: var(--teal); }
+.hero p.lede { font-size: 19.5px; color: var(--muted); max-width: 56ch; margin: 0 0 28px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero-note { margin-top: 18px; font-size: 14.5px; color: var(--muted); }
+
+/* ----------------------------- Sections ---------------------------------- */
+
+section { padding: 56px 0; border-top: 1px solid var(--line); }
+section > .wrap > h2 {
+  font-size: 30px; margin: 0 0 12px; letter-spacing: -0.3px;
+}
+section > .wrap > p.intro { font-size: 18px; color: var(--muted); max-width: 62ch; margin: 0 0 32px; }
+
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 22px;
+}
+.card h3 { margin: 0 0 8px; font-size: 18px; }
+.card p { margin: 0; color: var(--muted); font-size: 15.5px; }
+.card .tag {
+  display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--teal); margin-bottom: 10px;
+}
+
+/* --------------------------- Chaîne du produit --------------------------- */
+
+.flow { display: grid; gap: 12px; }
+.step {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px;
+}
+.step .num {
+  flex: 0 0 34px; height: 34px; border-radius: 50%;
+  background: var(--teal); color: #fff; font-weight: 800; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+}
+.step h3 { margin: 4px 0 6px; font-size: 17.5px; }
+.step p { margin: 0; color: var(--muted); font-size: 15.5px; }
+
+/* ------------------------------ Filières --------------------------------- */
+
+.filieres { display: flex; flex-wrap: wrap; gap: 10px; }
+.filiere {
+  background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+  padding: 9px 18px; font-weight: 600; font-size: 15px;
+}
+
+/* ------------------------------ Contact ---------------------------------- */
+
+.contact-box {
+  background: var(--green-dark); color: #fff; border-radius: 20px; padding: 36px 28px;
+}
+.contact-box h2 { margin: 0 0 10px; font-size: 27px; color: #fff; }
+.contact-box p { color: #D6E6DC; margin: 0 0 22px; max-width: 54ch; }
+.contact-box .btn-primary { background: #fff; color: var(--green-dark); }
+.contact-box .btn-primary:hover { background: #EAF3EE; }
+
+/* ------------------------------- Pied ------------------------------------ */
+
+footer { padding: 36px 0 56px; color: var(--muted); font-size: 14.5px; }
+footer a { color: var(--muted); }
+.foot { display: flex; flex-wrap: wrap; gap: 16px 26px; align-items: center; }
+.foot .sep { margin-left: auto; }
+
+/* ------------------------------ Document --------------------------------- */
+
+.doc { padding: 40px 0 20px; max-width: 74ch; }
+.doc h1 { font-size: 34px; margin: 0 0 6px; }
+.doc .maj { color: var(--muted); font-size: 15px; margin: 0 0 32px; }
+.doc h2 { font-size: 21px; margin: 34px 0 10px; }
+.doc h3 { font-size: 17px; margin: 22px 0 6px; }
+.doc p, .doc li { color: #3C332A; }
+.doc ul { padding-left: 22px; }
+.doc li { margin-bottom: 7px; }
+.doc table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 15.5px; }
+.doc th, .doc td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.doc th { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .5px; }
+.doc .encadre {
+  background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--teal);
+  border-radius: 12px; padding: 16px 20px; margin: 22px 0;
+}
+
+/* ------------------------------ Téléphone -------------------------------- */
+
+@media (max-width: 760px) {
+  body { font-size: 16.5px; }
+  .hero { padding: 40px 0 34px; }
+  .hero h1 { font-size: 33px; max-width: none; }
+  .hero p.lede { font-size: 18px; }
+  section { padding: 42px 0; }
+  section > .wrap > h2 { font-size: 25px; }
+  .nav-links { display: none; }          /* le logo et le bouton suffisent */
+  .cta .btn { flex: 1 1 100%; text-align: center; }
+  .contact-box { padding: 28px 22px; }
+  .doc h1 { font-size: 27px; }
+}

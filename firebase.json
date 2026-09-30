@@ -1,35 +1,119 @@
 {
   "_commentaire": [
-    "Firebase Hosting sert le frontend et RENVOIE les appels d'API vers le service",
-    "Cloud Run qui porte le backend FastAPI. Tout passe ainsi par une seule origine :",
-    "plus de question de CORS, et l'application n'a qu'une URL à connaître.",
-    "L'ordre des règles compte : la plus spécifique d'abord. La dernière (**) est le",
-    "repli SPA d'expo-router, elle attraperait tout si elle passait avant.",
+    "DEUX sites Firebase Hosting, volontairement séparés :",
     "",
-    "RÉGION : les deux rewrites doivent nommer la région où Cloud Run est",
-    "réellement déployé, et Hosting ne sait renvoyer que vers un jeu de régions",
-    "précis — à vérifier avant de choisir. Idéalement la MÊME région que la base",
-    "Firestore, sinon chaque lecture traverse un continent. Attention : la",
-    "localisation d'une base Firestore est DÉFINITIVE, elle se décide une fois."
+    "  • cible « site » → dossier site/          → valeo-scoop.com",
+    "    Le site public. Pages statiques, aucune dépendance externe, aucun",
+    "    renvoi vers l'API : il doit s'ouvrir vite sur un téléphone en 3G.",
+    "",
+    "  • cible « app »  → dossier frontend/dist  → app.valeo-scoop.com",
+    "    L'application. Hosting RENVOIE /api/** vers le service Cloud Run qui",
+    "    porte le backend FastAPI : tout passe par une seule origine, donc plus",
+    "    de question de CORS et une seule URL à connaître (invariant 31).",
+    "",
+    "Pourquoi deux sites plutôt qu'un seul avec des chemins ? Parce que le",
+    "repli SPA d'expo-router (source **) attrape TOUT ce qui n'a pas déjà",
+    "été servi. Mettre le site public derrière lui reviendrait à le faire",
+    "disparaître au premier chemin inconnu.",
+    "",
+    "L'ordre des règles compte : la plus spécifique d'abord.",
+    "",
+    "RÉGION : les rewrites doivent nommer la région où Cloud Run est réellement",
+    "déployé, et Hosting ne sait renvoyer que vers un jeu de régions précis.",
+    "Idéalement la MÊME région que la base Firestore, sinon chaque lecture",
+    "traverse un continent. Attention : la localisation d'une base Firestore",
+    "est DÉFINITIVE, elle se décide une fois.",
+    "",
+    "Avant le premier déploiement, associer chaque cible à son site :",
+    "  firebase target:apply hosting site <id-du-site-public>",
+    "  firebase target:apply hosting app  <id-du-site-application>",
+    "Voir docs/SITE-WEB.md."
   ],
-  "hosting": {
-    "public": "frontend/dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [
-      { "source": "/api/**", "run": { "serviceId": "valeo-backend", "region": "europe-west1" } },
-      { "source": "/health", "run": { "serviceId": "valeo-backend", "region": "europe-west1" } },
-      { "source": "**", "destination": "/index.html" }
-    ],
-    "headers": [
-      {
-        "source": "**",
-        "headers": [
-          { "key": "X-Content-Type-Options", "value": "nosniff" },
-          { "key": "Referrer-Policy", "value": "same-origin" }
-        ]
-      }
-    ]
-  },
+  "hosting": [
+    {
+      "target": "site",
+      "public": "site",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "cleanUrls": true,
+      "trailingSlash": false,
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "SAMEORIGIN"
+            }
+          ]
+        },
+        {
+          "source": "/img/**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=2592000"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "target": "app",
+      "public": "frontend/dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/api/**",
+          "run": {
+            "serviceId": "valeo-backend",
+            "region": "europe-west1"
+          }
+        },
+        {
+          "source": "/health",
+          "run": {
+            "serviceId": "valeo-backend",
+            "region": "europe-west1"
+          }
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "same-origin"
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
