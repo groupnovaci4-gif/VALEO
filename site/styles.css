@@ -1,175 +1,752 @@
-/* VALEO — feuille de style du site public.
-   Contrainte de conception : la page doit s'ouvrir vite sur un téléphone
-   d'entrée de gamme, en 3G, en Côte d'Ivoire. Donc AUCUNE ressource externe —
-   ni police Google, ni framework, ni script d'analyse. Tout est ici. */
+/* ===========================================================================
+   VALEO — feuille de style du site public.
+
+   Contrainte de conception, et elle commande tout le reste : la page doit
+   s'ouvrir vite sur un telephone d'entree de gamme, en 3G, en Cote d'Ivoire.
+   Donc AUCUNE ressource externe — ni police Google, ni framework, ni script
+   d'analyse, ni CDN. Tout tient dans ce fichier et dans site/img/.
+   Corollaire assume : la typographie est celle du systeme. Une police web,
+   c'est 2 a 4 requetes bloquantes et 100 Ko avant le premier mot lisible.
+
+   Les couleurs ne sont pas choisies : elles sont RELEVEES sur le logo
+   (echantillonnage des pixels opaques). Le vert #005010 et l'or #E5A014 sont
+   ceux de la marque, pas une interpretation.
+   =========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Jetons
+   -------------------------------------------------------------------------- */
 
 :root {
-  --teal: #0E8E80;
-  --teal-dark: #0A6F64;
-  --green: #1E7A4D;
-  --green-dark: #155C39;
-  --gold: #B98328;
-  --rust: #A9502A;
-  --bg: #F7F3EC;
-  --card: #FFFFFF;
-  --ink: #241C15;
-  --muted: #7A6E62;
-  --line: #EAE2D5;
+  /* Marque — releves sur valeo-logo.png */
+  --foret-900: #032C10;
+  --foret-800: #04380F;
+  --foret-700: #005010;
+  --foret-600: #0A5F1E;
+  --foret-500: #127830;
+  --foret-300: #7FBE92;
+  --foret-100: #DDEEE1;
+
+  --or-600: #B87D0C;
+  --or-500: #E5A014;
+  --or-400: #F5B424;
+  --or-200: #FBE2A8;
+  --or-100: #FDF3DC;
+
+  --terre: #8A4B22;
+
+  /* Neutres chauds — un gris froid a cote d'un vert forestier fait sale */
+  --ivoire: #FBF8F2;
+  --ivoire-2: #F4EFE5;
+  --carte: #FFFFFF;
+  --encre: #1A1611;
+  --encre-2: #4A4239;
+  --sourdine: #7C7264;
+  --trait: #E7DFD1;
+
+  --ok: #17803D;
+  --alerte: #B4530A;
+  --rouge: #B3261E;
+
+  /* Rythme — echelle de 4 px, pas de valeurs au hasard */
+  --e1: 4px;  --e2: 8px;  --e3: 12px; --e4: 16px; --e5: 24px;
+  --e6: 32px; --e7: 48px; --e8: 64px; --e9: 96px; --e10: 128px;
+
+  --r-s: 10px; --r-m: 16px; --r-l: 24px; --r-xl: 32px;
+
+  /* Ombres : teintees de vert, jamais du noir pur — le noir pur sur fond
+     ivoire donne un gris sale. */
+  --ombre-1: 0 1px 2px rgba(3,44,16,.06), 0 1px 3px rgba(3,44,16,.08);
+  --ombre-2: 0 4px 10px rgba(3,44,16,.06), 0 12px 28px rgba(3,44,16,.09);
+  --ombre-3: 0 10px 24px rgba(3,44,16,.10), 0 30px 60px rgba(3,44,16,.14);
+
+  --contenu: 1180px;
+  --etroit: 760px;
+
+  --police: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
-* { box-sizing: border-box; }
+/* --------------------------------------------------------------------------
+   2. Reinitialisation
+   -------------------------------------------------------------------------- */
 
-html { scroll-behavior: smooth; }
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; }
+
+/* La regle du navigateur est `[hidden]{display:none}`, de specificite (0,1,0).
+   N'IMPORTE quelle classe posant un `display` la bat — ici .roles-grille, qui
+   est en `display:grid`. Resultat : les cinq panneaux de roles s'affichaient
+   tous a la fois, et la page faisait 10 000 px de haut. */
+[hidden] { display: none !important; }
+
+html {
+  scroll-behavior: smooth;
+  /* Le header colle en haut : sans ce decalage, une ancre cache son titre. */
+  scroll-padding-top: 88px;
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--ivoire);
+  color: var(--encre);
+  font-family: var(--police);
   font-size: 17px;
-  line-height: 1.6;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
-.wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+img, svg, video { display: block; max-width: 100%; }
+img { height: auto; }
+a { color: var(--foret-700); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+button, input, textarea, select { font: inherit; color: inherit; }
 
-/* ----------------------------- En-tête ----------------------------------- */
-
-header {
-  position: sticky; top: 0; z-index: 10;
-  background: rgba(247, 243, 236, 0.94);
-  backdrop-filter: saturate(180%) blur(8px);
-  border-bottom: 1px solid var(--line);
+:focus-visible {
+  outline: 3px solid var(--or-500);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
-.bar { display: flex; align-items: center; gap: 16px; padding: 12px 0; }
-.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
-.brand img { height: 34px; width: auto; display: block; }
-.brand b { font-size: 19px; letter-spacing: 0.5px; }
-nav { margin-left: auto; display: flex; align-items: center; gap: 22px; }
-nav a { color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 600; }
-nav a:hover { color: var(--teal); }
-/* `nav a` est PLUS SPÉCIFIQUE que `.btn-primary` et l'emportait : le libellé du
-   bouton sortait en brun sur fond vert, illisible. Défaut invisible à la
-   lecture du code, vu seulement en regardant la page rendue. */
-nav a.btn-primary { color: #fff; }
-nav a.btn-ghost { color: var(--ink); }
-.nav-links { display: flex; gap: 22px; }
 
-/* ----------------------------- Boutons ----------------------------------- */
+::selection { background: var(--or-200); color: var(--foret-900); }
+
+/* --------------------------------------------------------------------------
+   3. Typographie
+   -------------------------------------------------------------------------- */
+
+h1, h2, h3, h4 {
+  line-height: 1.12;
+  letter-spacing: -0.022em;
+  font-weight: 800;
+  text-wrap: balance;
+}
+
+/* clamp() plutot que des points de rupture : la taille suit la fenetre en
+   continu, il n'y a donc aucune largeur ou le titre est mal dimensionne. */
+.t-display { font-size: clamp(2.35rem, 1.2rem + 4.6vw, 4.3rem); }
+.t-h2      { font-size: clamp(1.85rem, 1.15rem + 2.5vw, 2.9rem); }
+.t-h3      { font-size: clamp(1.2rem, 1.02rem + 0.62vw, 1.45rem); letter-spacing: -0.012em; }
+
+p { text-wrap: pretty; }
+
+.plomb {
+  font-size: clamp(1.06rem, 0.98rem + 0.4vw, 1.28rem);
+  line-height: 1.6;
+  color: var(--encre-2);
+}
+
+.oeil {
+  display: inline-flex; align-items: center; gap: var(--e2);
+  font-size: 0.78rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--foret-600);
+}
+.oeil::before {
+  content: ""; width: 22px; height: 2px; border-radius: 2px;
+  background: var(--or-500);
+}
+.oeil.sur-sombre { color: var(--or-400); }
+
+.sourdine { color: var(--sourdine); }
+.mono { font-family: var(--mono); font-size: 0.92em; }
+
+/* --------------------------------------------------------------------------
+   4. Mise en page
+   -------------------------------------------------------------------------- */
+
+.wrap { width: 100%; max-width: var(--contenu); margin-inline: auto; padding-inline: var(--e5); }
+.wrap-etroit { max-width: var(--etroit); }
+
+.section { padding-block: clamp(var(--e8), 7vw, var(--e10)); }
+.section-serree { padding-block: clamp(var(--e7), 5vw, var(--e8)); }
+
+.entete-section { max-width: 680px; margin-bottom: var(--e7); }
+.entete-section.centre { margin-inline: auto; text-align: center; }
+.entete-section .t-h2 { margin-block: var(--e3) var(--e4); }
+
+.grille { display: grid; gap: var(--e5); }
+.g-2 { grid-template-columns: repeat(2, 1fr); }
+.g-3 { grid-template-columns: repeat(3, 1fr); }
+.g-4 { grid-template-columns: repeat(4, 1fr); }
+
+.pile { display: flex; flex-direction: column; }
+.rang { display: flex; align-items: center; gap: var(--e3); flex-wrap: wrap; }
+
+/* Bandes sombres : le fond fonce est la respiration du site, il decoupe les
+   sections et met la photo et les maquettes en valeur. */
+.bande-sombre {
+  background:
+    radial-gradient(1100px 520px at 12% -10%, rgba(18,120,48,.42), transparent 62%),
+    radial-gradient(760px 420px at 96% 8%, rgba(229,160,20,.16), transparent 60%),
+    linear-gradient(168deg, var(--foret-900), #02210C 58%, #041A08);
+  color: #EFF4EE;
+  position: relative;
+  overflow: hidden;
+}
+.bande-sombre h2, .bande-sombre h3 { color: #FFFFFF; }
+.bande-sombre p, .bande-sombre li { color: #C6D4C6; }
+.bande-sombre a { color: var(--or-400); }
+.bande-claire { background: var(--ivoire-2); }
+
+/* Grain : une trame de points tres legere casse l'aplat numerique. Elle est
+   en SVG inline dans le CSS, donc zero requete. */
+.bande-sombre::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='1.5' cy='1.5' r='1' fill='%23ffffff' fill-opacity='.05'/%3E%3C/svg%3E");
+}
+.bande-sombre > * { position: relative; }
+
+/* --------------------------------------------------------------------------
+   5. Boutons
+   -------------------------------------------------------------------------- */
 
 .btn {
-  display: inline-block; text-decoration: none; font-weight: 700; font-size: 15.5px;
-  padding: 12px 22px; border-radius: 12px; border: 1px solid transparent;
-  transition: transform .06s ease, background .15s ease;
+  --btn-fond: var(--foret-700);
+  --btn-texte: #fff;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--e2);
+  padding: 14px 26px;
+  border: 1px solid transparent; border-radius: 999px;
+  background: var(--btn-fond); color: var(--btn-texte);
+  font-size: 1rem; font-weight: 700; letter-spacing: -0.008em;
+  text-decoration: none; cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease;
+  box-shadow: var(--ombre-1);
 }
-.btn:active { transform: translateY(1px); }
-.btn-primary { background: var(--teal); color: #fff; }
-.btn-primary:hover { background: var(--teal-dark); }
-.btn-ghost { background: #fff; color: var(--ink); border-color: var(--line); }
-.btn-ghost:hover { border-color: var(--teal); color: var(--teal); }
+.btn:hover { transform: translateY(-2px); box-shadow: var(--ombre-2); }
+.btn:active { transform: translateY(0); }
 
-/* ------------------------------ Héros ------------------------------------ */
+.btn-or { --btn-fond: var(--or-500); --btn-texte: var(--foret-900); }
+.btn-or:hover { --btn-fond: var(--or-400); }
 
-.hero { padding: 64px 0 48px; }
-.hero h1 {
-  font-size: 44px; line-height: 1.12; margin: 0 0 18px; letter-spacing: -0.5px;
-  max-width: 17ch;
+.btn-clair { --btn-fond: #fff; --btn-texte: var(--foret-900); }
+
+.btn-fantome {
+  --btn-fond: transparent; --btn-texte: var(--encre);
+  border-color: var(--trait); box-shadow: none;
 }
-.hero h1 em { font-style: normal; color: var(--teal); }
-.hero p.lede { font-size: 19.5px; color: var(--muted); max-width: 56ch; margin: 0 0 28px; }
-.cta { display: flex; flex-wrap: wrap; gap: 12px; }
-.hero-note { margin-top: 18px; font-size: 14.5px; color: var(--muted); }
+.btn-fantome:hover { border-color: var(--foret-500); background: var(--foret-100); }
 
-/* ----------------------------- Sections ---------------------------------- */
-
-section { padding: 56px 0; border-top: 1px solid var(--line); }
-section > .wrap > h2 {
-  font-size: 30px; margin: 0 0 12px; letter-spacing: -0.3px;
+.bande-sombre .btn-fantome {
+  --btn-texte: #fff; border-color: rgba(255,255,255,.28);
 }
-section > .wrap > p.intro { font-size: 18px; color: var(--muted); max-width: 62ch; margin: 0 0 32px; }
+.bande-sombre .btn-fantome:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.5); }
 
-.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+/* Meme piege, deux fois : `nav a` et `.bande-sombre a` valent (0,1,1) et
+   battent `.btn` / `.btn-or` qui ne valent que (0,1,0). Le libelle du bouton
+   prenait donc la couleur des liens — or sur or dans le heros, vert sur vert
+   dans la barre : illisible dans les deux cas. Defaut invisible a la lecture
+   du code, trouve en REGARDANT une capture d'ecran.
+   On reprend la main avec (0,2,1), et une seule fois pour tous les boutons. */
+nav a.btn,
+.bande-sombre a.btn,
+footer a.btn { color: var(--btn-texte); }
 
-.card {
-  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
-  padding: 22px;
+/* --------------------------------------------------------------------------
+   6. En-tete
+   -------------------------------------------------------------------------- */
+
+header {
+  position: sticky; top: 0; z-index: 60;
+  transition: background-color .25s ease, box-shadow .25s ease, border-color .25s ease;
+  border-bottom: 1px solid transparent;
 }
-.card h3 { margin: 0 0 8px; font-size: 18px; }
-.card p { margin: 0; color: var(--muted); font-size: 15.5px; }
-.card .tag {
-  display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .6px;
-  text-transform: uppercase; color: var(--teal); margin-bottom: 10px;
-}
-
-/* --------------------------- Chaîne du produit --------------------------- */
-
-.flow { display: grid; gap: 12px; }
-.step {
-  display: flex; gap: 16px; align-items: flex-start;
-  background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px;
-}
-.step .num {
-  flex: 0 0 34px; height: 34px; border-radius: 50%;
-  background: var(--teal); color: #fff; font-weight: 800; font-size: 15px;
-  display: flex; align-items: center; justify-content: center;
-}
-.step h3 { margin: 4px 0 6px; font-size: 17.5px; }
-.step p { margin: 0; color: var(--muted); font-size: 15.5px; }
-
-/* ------------------------------ Filières --------------------------------- */
-
-.filieres { display: flex; flex-wrap: wrap; gap: 10px; }
-.filiere {
-  background: var(--card); border: 1px solid var(--line); border-radius: 999px;
-  padding: 9px 18px; font-weight: 600; font-size: 15px;
+/* Au repos le header flotte sur le heros sombre ; des que la page defile, il
+   devient opaque. La classe est posee par le script, avec un repli : sans JS
+   il reste opaque en permanence (voir .no-js plus bas). */
+header.colle {
+  background: rgba(251, 248, 242, .88);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom-color: var(--trait);
+  box-shadow: 0 1px 20px rgba(3,44,16,.06);
 }
 
-/* ------------------------------ Contact ---------------------------------- */
+.barre { display: flex; align-items: center; gap: var(--e5); padding-block: var(--e3); }
 
-.contact-box {
-  background: var(--green-dark); color: #fff; border-radius: 20px; padding: 36px 28px;
+.marque { display: flex; align-items: center; gap: var(--e3); text-decoration: none; margin-right: auto; }
+.marque img { width: 46px; height: auto; }
+.marque-nom { display: flex; flex-direction: column; line-height: 1.1; }
+.marque-nom b { font-size: 1.18rem; font-weight: 800; letter-spacing: -0.02em; color: #fff; }
+.marque-nom span { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--or-400); }
+header.colle .marque-nom b { color: var(--foret-900); }
+header.colle .marque-nom span { color: var(--or-600); }
+
+.liens { display: flex; align-items: center; gap: var(--e5); }
+.liens a { color: rgba(255,255,255,.88); text-decoration: none; font-size: 0.95rem; font-weight: 600; }
+.liens a:hover { color: #fff; }
+header.colle .liens a { color: var(--encre-2); }
+header.colle .liens a:hover { color: var(--foret-700); }
+.liens .btn { padding: 10px 20px; font-size: 0.93rem; }
+
+.burger {
+  display: none; background: none; border: 1px solid rgba(255,255,255,.3);
+  border-radius: 10px; padding: 8px 10px; cursor: pointer; color: #fff;
 }
-.contact-box h2 { margin: 0 0 10px; font-size: 27px; color: #fff; }
-.contact-box p { color: #D6E6DC; margin: 0 0 22px; max-width: 54ch; }
-.contact-box .btn-primary { background: #fff; color: var(--green-dark); }
-.contact-box .btn-primary:hover { background: #EAF3EE; }
+header.colle .burger { color: var(--encre); border-color: var(--trait); }
 
-/* ------------------------------- Pied ------------------------------------ */
+/* --------------------------------------------------------------------------
+   7. Heros
+   -------------------------------------------------------------------------- */
 
-footer { padding: 36px 0 56px; color: var(--muted); font-size: 14.5px; }
-footer a { color: var(--muted); }
-.foot { display: flex; flex-wrap: wrap; gap: 16px 26px; align-items: center; }
-.foot .sep { margin-left: auto; }
-
-/* ------------------------------ Document --------------------------------- */
-
-.doc { padding: 40px 0 20px; max-width: 74ch; }
-.doc h1 { font-size: 34px; margin: 0 0 6px; }
-.doc .maj { color: var(--muted); font-size: 15px; margin: 0 0 32px; }
-.doc h2 { font-size: 21px; margin: 34px 0 10px; }
-.doc h3 { font-size: 17px; margin: 22px 0 6px; }
-.doc p, .doc li { color: #3C332A; }
-.doc ul { padding-left: 22px; }
-.doc li { margin-bottom: 7px; }
-.doc table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 15.5px; }
-.doc th, .doc td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-.doc th { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .5px; }
-.doc .encadre {
-  background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--teal);
-  border-radius: 12px; padding: 16px 20px; margin: 22px 0;
+.heros {
+  /* Le header est transparent et se superpose : on remonte le heros sous lui. */
+  margin-top: -78px; padding-top: calc(78px + var(--e8));
+  padding-bottom: clamp(var(--e8), 7vw, var(--e10));
 }
 
-/* ------------------------------ Téléphone -------------------------------- */
-
-@media (max-width: 760px) {
-  body { font-size: 16.5px; }
-  .hero { padding: 40px 0 34px; }
-  .hero h1 { font-size: 33px; max-width: none; }
-  .hero p.lede { font-size: 18px; }
-  section { padding: 42px 0; }
-  section > .wrap > h2 { font-size: 25px; }
-  .nav-links { display: none; }          /* le logo et le bouton suffisent */
-  .cta .btn { flex: 1 1 100%; text-align: center; }
-  .contact-box { padding: 28px 22px; }
-  .doc h1 { font-size: 27px; }
+.heros-grille {
+  display: grid; gap: clamp(var(--e6), 5vw, var(--e8));
+  grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr);
+  align-items: center;
 }
+
+.heros h1 { margin-block: var(--e4) var(--e5); color: #fff; }
+.heros h1 em { font-style: normal; color: var(--or-400); }
+.heros .plomb { color: #C9D8C9; max-width: 46ch; }
+.heros .actions { margin-top: var(--e6); gap: var(--e3); }
+
+/* Bandeau de confiance sous les boutons : trois faits verifiables, pas des
+   logos de clients que nous n'avons pas. */
+.confiance {
+  margin-top: var(--e7); padding-top: var(--e5);
+  border-top: 1px solid rgba(255,255,255,.14);
+  display: flex; flex-wrap: wrap; gap: var(--e3) var(--e6);
+}
+.confiance div { display: flex; align-items: center; gap: var(--e2); font-size: .88rem; color: #B7C8B7; }
+.confiance svg { flex: none; color: var(--or-400); }
+
+/* -- Composition visuelle du heros : photo + telephone qui la chevauche ---- */
+.heros-visuel { position: relative; }
+
+.photo-carte {
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: var(--ombre-3);
+  border: 1px solid rgba(255,255,255,.12);
+  position: relative;
+}
+.photo-carte img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+/* Teinte verte sur la photo : elle la raccroche a la palette au lieu de
+   flotter comme une vignette rapportee. */
+.photo-carte::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(200deg, rgba(3,44,16,.08), rgba(3,44,16,.5));
+}
+.photo-legende {
+  position: absolute; left: var(--e4); bottom: var(--e4); z-index: 2;
+  font-size: .76rem; font-weight: 600; letter-spacing: .04em;
+  color: rgba(255,255,255,.82);
+  background: rgba(3,44,16,.5); border: 1px solid rgba(255,255,255,.16);
+  padding: 6px 12px; border-radius: 999px;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+
+.heros-tel {
+  position: absolute; right: -46px; bottom: -62px; width: 224px; z-index: 3;
+}
+
+/* --------------------------------------------------------------------------
+   8. Maquette de telephone — c'est l'image produit du site.
+   Dessinee en CSS : nette a tout facteur de zoom, et surtout toujours a jour,
+   la ou une capture d'ecran perime des la version suivante.
+   -------------------------------------------------------------------------- */
+
+.tel {
+  background: #0B0B0C;
+  border-radius: 30px;
+  padding: 9px;
+  box-shadow: var(--ombre-3), inset 0 0 0 1.5px rgba(255,255,255,.14);
+}
+.tel-ecran {
+  background: var(--ivoire);
+  border-radius: 22px;
+  overflow: hidden;
+  position: relative;
+  color: var(--encre);
+  font-size: 11.5px; line-height: 1.45;
+}
+/* Encoche */
+.tel-ecran::before {
+  content: ""; position: absolute; top: 7px; left: 50%; transform: translateX(-50%);
+  width: 58px; height: 5px; border-radius: 99px; background: rgba(0,0,0,.2); z-index: 5;
+}
+
+.tel-barre {
+  background: linear-gradient(150deg, var(--foret-700), var(--foret-800));
+  color: #fff; padding: 22px 13px 13px;
+}
+.tel-barre .haut { display: flex; justify-content: space-between; align-items: baseline; }
+.tel-barre .role { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--or-400); font-weight: 700; }
+.tel-barre .nom { font-size: 14px; font-weight: 800; letter-spacing: -.01em; margin-top: 1px; }
+.tel-barre .coop { font-size: 9.5px; color: rgba(255,255,255,.62); }
+
+.tel-corps { padding: 11px; display: flex; flex-direction: column; gap: 8px; }
+
+.tel-carte {
+  background: var(--carte); border: 1px solid var(--trait);
+  border-radius: 12px; padding: 10px 11px;
+  box-shadow: 0 1px 2px rgba(3,44,16,.04);
+}
+.tel-carte .etiq { font-size: 8.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--sourdine); font-weight: 700; }
+.tel-carte .val { font-size: 19px; font-weight: 800; letter-spacing: -.02em; margin-top: 2px; }
+.tel-carte .val.vert { color: var(--foret-700); }
+.tel-carte .val.or { color: var(--or-600); }
+.tel-carte .sous { font-size: 9.5px; color: var(--sourdine); }
+
+.tel-ligne {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 7px 0; border-bottom: 1px solid var(--trait);
+}
+.tel-ligne:last-child { border-bottom: 0; }
+.tel-ligne .g { min-width: 0; }
+.tel-ligne .t { font-weight: 700; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tel-ligne .s { font-size: 9px; color: var(--sourdine); }
+.tel-ligne .d { font-weight: 800; font-size: 11.5px; white-space: nowrap; }
+
+.jeton {
+  display: inline-block; padding: 2px 7px; border-radius: 99px;
+  font-size: 8.5px; font-weight: 800; letter-spacing: .03em;
+  background: var(--foret-100); color: var(--foret-700);
+}
+.jeton.or { background: var(--or-100); color: var(--or-600); }
+.jeton.gris { background: var(--ivoire-2); color: var(--sourdine); }
+.jeton.rouge { background: #FBE9E7; color: var(--rouge); }
+
+.tel-onglets {
+  display: flex; background: var(--carte); border-top: 1px solid var(--trait);
+  padding: 7px 4px 10px;
+}
+.tel-onglets span {
+  flex: 1; text-align: center; font-size: 8px; font-weight: 700;
+  color: var(--sourdine); display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.tel-onglets span.actif { color: var(--foret-700); }
+.tel-onglets i {
+  width: 15px; height: 15px; border-radius: 5px; background: currentColor;
+  opacity: .22; display: block;
+}
+.tel-onglets span.actif i { opacity: 1; }
+
+/* --------------------------------------------------------------------------
+   9. Cartes
+   -------------------------------------------------------------------------- */
+
+.carte {
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: var(--r-l);
+  padding: var(--e6);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.carte-levee:hover { transform: translateY(-4px); box-shadow: var(--ombre-2); border-color: var(--foret-300); }
+.carte h3 { margin-bottom: var(--e2); }
+.carte p { color: var(--encre-2); font-size: .97rem; }
+
+.bande-sombre .carte {
+  background: rgba(255,255,255,.045);
+  border-color: rgba(255,255,255,.12);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.bande-sombre .carte-levee:hover { border-color: rgba(229,160,20,.5); background: rgba(255,255,255,.075); }
+
+.pastille {
+  width: 50px; height: 50px; border-radius: 15px;
+  display: grid; place-items: center; margin-bottom: var(--e4);
+  background: var(--foret-100); color: var(--foret-700);
+}
+.pastille.or { background: var(--or-100); color: var(--or-600); }
+.bande-sombre .pastille { background: rgba(229,160,20,.14); color: var(--or-400); }
+
+/* --------------------------------------------------------------------------
+   10. Chiffres
+   -------------------------------------------------------------------------- */
+
+.chiffres { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--e5); }
+.chiffre { text-align: center; padding: var(--e4) var(--e2); }
+.chiffre b {
+  display: block; font-size: clamp(2rem, 1.2rem + 2.6vw, 3.1rem);
+  font-weight: 800; letter-spacing: -.035em; line-height: 1;
+  color: var(--foret-700);
+}
+.bande-sombre .chiffre b { color: var(--or-400); }
+.chiffre span { display: block; margin-top: var(--e2); font-size: .87rem; color: var(--sourdine); }
+.bande-sombre .chiffre span { color: #A9BCA9; }
+
+/* --------------------------------------------------------------------------
+   11. Chaine de valeur
+   -------------------------------------------------------------------------- */
+
+.chaine { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--e4); position: relative; }
+.maillon {
+  background: var(--carte); border: 1px solid var(--trait);
+  border-radius: var(--r-m); padding: var(--e5); position: relative;
+}
+.maillon .num {
+  position: absolute; top: -13px; left: var(--e5);
+  width: 27px; height: 27px; border-radius: 50%;
+  background: var(--foret-700); color: #fff;
+  display: grid; place-items: center; font-size: .78rem; font-weight: 800;
+}
+.maillon h3 { font-size: 1.04rem; margin-bottom: var(--e2); }
+.maillon p { font-size: .9rem; color: var(--encre-2); }
+.maillon .qui {
+  display: inline-block; margin-bottom: var(--e3);
+  font-size: .68rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--or-600);
+}
+/* Fleche entre les maillons — masquee des que la grille se replie. */
+.chaine .maillon:not(:last-child)::after {
+  content: ""; position: absolute; top: 50%; right: calc(var(--e4) * -1);
+  width: var(--e4); height: 2px; background: var(--trait);
+}
+
+/* --------------------------------------------------------------------------
+   12. Explorateur de roles
+   -------------------------------------------------------------------------- */
+
+.roles-grille {
+  display: grid; gap: clamp(var(--e5), 4vw, var(--e8));
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+}
+
+.onglets-roles { display: flex; flex-wrap: wrap; gap: var(--e2); margin-bottom: var(--e6); }
+.onglet-role {
+  padding: 10px 18px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.05); color: #D7E3D7;
+  font-size: .93rem; font-weight: 700;
+  transition: background-color .16s, color .16s, border-color .16s;
+}
+.onglet-role:hover { background: rgba(255,255,255,.12); color: #fff; }
+.onglet-role[aria-selected="true"] {
+  background: var(--or-500); color: var(--foret-900); border-color: var(--or-500);
+}
+
+.role-titre { display: flex; align-items: center; gap: var(--e4); margin-bottom: var(--e4); }
+.role-titre .pastille { margin: 0; flex: none; }
+.role-corps p { max-width: 58ch; }
+
+.liste-faits { list-style: none; padding: 0; margin-top: var(--e5); display: grid; gap: var(--e3); }
+.liste-faits li { display: flex; gap: var(--e3); align-items: flex-start; font-size: .96rem; }
+.liste-faits svg { flex: none; margin-top: 4px; color: var(--or-400); }
+
+/* --------------------------------------------------------------------------
+   13. Securite
+   -------------------------------------------------------------------------- */
+
+.secu-grille { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--e4); }
+.secu {
+  border: 1px solid var(--trait); border-radius: var(--r-m);
+  padding: var(--e5); background: var(--carte);
+}
+.secu h3 { font-size: 1rem; margin-bottom: var(--e2); }
+.secu p { font-size: .9rem; color: var(--encre-2); }
+.secu .tag {
+  font-family: var(--mono); font-size: .72rem; font-weight: 700;
+  color: var(--foret-700); background: var(--foret-100);
+  padding: 3px 8px; border-radius: 6px; display: inline-block; margin-bottom: var(--e3);
+}
+
+/* --------------------------------------------------------------------------
+   14. Bordereau
+   -------------------------------------------------------------------------- */
+
+.bordereau {
+  background: #fff; border-radius: var(--r-m) var(--r-m) 0 0;
+  padding: var(--e5);
+  box-shadow: var(--ombre-3);
+  font-family: var(--mono); font-size: .8rem; line-height: 1.75;
+  max-width: 340px; width: 100%; color: var(--encre);
+  position: relative;
+}
+/* Bord dentele, comme un ticket detache.
+   ATTENTION — la version precedente utilisait `mask-image` avec
+   `mask-repeat: repeat-x` : le masque ne couvrait qu'une bande de 12 px en bas,
+   donc TOUT le reste de la carte etait masque. Le bordereau etait purement et
+   simplement invisible, seule la dentelure s'affichait. On dessine donc les
+   dents dans un element a part, qui ne peut rien effacer d'autre. */
+.bordereau::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 11px;
+  background: radial-gradient(circle at 6px 0, transparent 5.6px, #fff 6px);
+  background-size: 12px 12px;
+  filter: drop-shadow(0 6px 10px rgba(3,44,16,.10));
+}
+.bordereau .tete { text-align: center; border-bottom: 1px dashed #CFC6B6; padding-bottom: var(--e3); margin-bottom: var(--e3); }
+.bordereau .tete b { font-family: var(--police); font-size: 1rem; letter-spacing: .04em; }
+.bordereau .l { display: flex; justify-content: space-between; gap: var(--e3); }
+.bordereau .l span:last-child { font-weight: 700; }
+.bordereau .total {
+  border-top: 1px dashed #CFC6B6; margin-top: var(--e3); padding-top: var(--e3);
+  font-weight: 800; font-size: .95rem;
+}
+
+/* --------------------------------------------------------------------------
+   15. Questions frequentes — <details>, donc fonctionnel sans JavaScript.
+   -------------------------------------------------------------------------- */
+
+.faq { max-width: var(--etroit); margin-inline: auto; }
+.faq details {
+  border-bottom: 1px solid var(--trait);
+}
+.faq summary {
+  cursor: pointer; list-style: none;
+  padding: var(--e5) 44px var(--e5) 0; position: relative;
+  font-weight: 700; font-size: 1.06rem; letter-spacing: -.01em;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+  content: ""; position: absolute; right: 8px; top: 50%;
+  width: 11px; height: 11px; margin-top: -7px;
+  border-right: 2.5px solid var(--foret-600); border-bottom: 2.5px solid var(--foret-600);
+  transform: rotate(45deg); transition: transform .2s ease;
+}
+.faq details[open] summary::after { transform: rotate(-135deg); margin-top: -2px; }
+.faq details p { padding-bottom: var(--e5); color: var(--encre-2); max-width: 66ch; }
+
+/* --------------------------------------------------------------------------
+   16. Appel final + pied de page
+   -------------------------------------------------------------------------- */
+
+.appel { text-align: center; }
+.appel .t-h2 { margin-bottom: var(--e4); }
+.appel .plomb { margin-inline: auto; max-width: 54ch; }
+.appel .actions { margin-top: var(--e6); justify-content: center; }
+
+footer { background: var(--foret-900); color: #A9BCA9; padding-block: var(--e8) var(--e6); }
+footer a { color: #D6E2D6; text-decoration: none; }
+footer a:hover { color: var(--or-400); text-decoration: underline; }
+.pied-grille { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: var(--e6); }
+.pied-grille h4 { font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; color: var(--or-400); margin-bottom: var(--e4); }
+.pied-grille ul { list-style: none; padding: 0; display: grid; gap: var(--e2); font-size: .93rem; }
+.pied-marque img { width: 58px; margin-bottom: var(--e3); }
+.pied-marque p { font-size: .9rem; max-width: 34ch; }
+.pied-bas {
+  margin-top: var(--e7); padding-top: var(--e5);
+  border-top: 1px solid rgba(255,255,255,.1);
+  display: flex; justify-content: space-between; gap: var(--e4); flex-wrap: wrap;
+  font-size: .85rem;
+}
+
+/* --------------------------------------------------------------------------
+   17. Contenu long (politique de confidentialite)
+   -------------------------------------------------------------------------- */
+
+.prose { max-width: 70ch; }
+.prose h2 { font-size: 1.5rem; margin-top: var(--e8); margin-bottom: var(--e4); }
+.prose h3 { font-size: 1.1rem; margin-top: var(--e6); margin-bottom: var(--e3); }
+.prose p, .prose li { color: var(--encre-2); }
+.prose p { margin-bottom: var(--e4); }
+.prose ul, .prose ol { margin-bottom: var(--e4); padding-left: var(--e5); display: grid; gap: var(--e2); }
+.prose table { width: 100%; border-collapse: collapse; margin-bottom: var(--e5); font-size: .94rem; }
+.prose th, .prose td { text-align: left; padding: var(--e3); border-bottom: 1px solid var(--trait); vertical-align: top; }
+.prose th { font-weight: 700; color: var(--encre); }
+.encadre {
+  background: var(--or-100); border: 1px solid var(--or-200);
+  border-radius: var(--r-m); padding: var(--e5); margin-bottom: var(--e5);
+}
+.encadre p:last-child { margin-bottom: 0; }
+
+/* --------------------------------------------------------------------------
+   18. Mouvement — apparition au defilement
+   -------------------------------------------------------------------------- */
+
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.vu { opacity: 1; transform: none; }
+
+/* Sans JavaScript l'observateur ne pose jamais .vu : le contenu resterait
+   invisible. C'est la panne la plus courante de ce procede — on la desamorce
+   en n'activant l'effet QUE si le script a marque la page. */
+html:not(.js) .reveal { opacity: 1; transform: none; transition: none; }
+html:not(.js) header { background: rgba(251,248,242,.94); border-bottom-color: var(--trait); }
+html:not(.js) .marque-nom b { color: var(--foret-900); }
+html:not(.js) .marque-nom span { color: var(--or-600); }
+html:not(.js) .liens a { color: var(--encre-2); }
+html:not(.js) .heros { margin-top: 0; padding-top: var(--e8); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .btn:hover, .carte-levee:hover { transform: none; }
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* --------------------------------------------------------------------------
+   19. Adaptation aux petits ecrans
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1000px) {
+  .heros-grille { grid-template-columns: 1fr; }
+  .heros-visuel { max-width: 520px; margin-inline: auto; }
+  .heros-tel { right: -8px; bottom: -40px; width: 190px; }
+  .roles-grille { grid-template-columns: 1fr; }
+  .roles-grille .tel { max-width: 280px; margin-inline: auto; }
+  .chaine { grid-template-columns: repeat(2, 1fr); }
+  .chaine .maillon:not(:last-child)::after { display: none; }
+  .secu-grille, .g-3 { grid-template-columns: repeat(2, 1fr); }
+  .pied-grille { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 720px) {
+  body { font-size: 16px; }
+  html { scroll-padding-top: 76px; }
+  .liens { display: none; }
+  .liens.ouvert {
+    display: flex; flex-direction: column; align-items: stretch; gap: var(--e1);
+    position: absolute; left: var(--e4); right: var(--e4); top: calc(100% + 8px);
+    background: var(--carte); border: 1px solid var(--trait);
+    border-radius: var(--r-m); padding: var(--e3);
+    box-shadow: var(--ombre-3);
+  }
+  .liens.ouvert a { color: var(--encre); padding: 12px var(--e4); border-radius: 10px; }
+  .liens.ouvert a:hover { background: var(--ivoire-2); }
+  .liens.ouvert .btn { margin-top: var(--e2); justify-content: center; }
+  .burger { display: block; }
+  header { position: sticky; }
+  .barre { position: relative; }
+
+  .heros { margin-top: -70px; padding-top: calc(70px + var(--e7)); }
+  .heros .actions { flex-direction: column; align-items: stretch; }
+  .heros .actions .btn { width: 100%; }
+  .heros-tel { display: none; }
+  .confiance { gap: var(--e3); flex-direction: column; }
+
+  .chaine, .secu-grille, .g-2, .g-3, .g-4 { grid-template-columns: 1fr; }
+  .chiffres { grid-template-columns: repeat(2, 1fr); gap: var(--e3); }
+  .carte { padding: var(--e5); }
+  .pied-grille { grid-template-columns: 1fr; gap: var(--e5); }
+  .pied-bas { flex-direction: column; gap: var(--e2); }
+  .bordereau { max-width: none; }
+}
+
+/* --------------------------------------------------------------------------
+   20. Impression — la politique de confidentialite doit pouvoir etre remise
+   sur papier a un planteur qui n'a pas de connexion.
+   -------------------------------------------------------------------------- */
+
+@media print {
+  header, footer, .btn, .heros-visuel, .burger { display: none !important; }
+  body { background: #fff; font-size: 11pt; }
+  .section { padding-block: 0; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: .85em; color: #555; }
+}
+
+/* --------------------------------------------------------------------------
+   21. Embleme de l'en-tete
+   Le logo complet est un ecusson presque carre (2142 x 1822) : pose dans une
+   barre horizontale a 46 px, le mot VALEO qu'il contient devient illisible et
+   fait doublon avec le nom ecrit a cote. On n'en garde donc que l'embleme —
+   arc, planteur, cabosse — sur une tuile ivoire, pour qu'il tienne aussi bien
+   sur le heros sombre que sur l'en-tete clair, avec un seul fichier.
+   -------------------------------------------------------------------------- */
+
+.marque .embleme {
+  width: 54px; height: auto;
+  background: var(--ivoire);
+  border-radius: 11px;
+  padding: 5px 6px;
+  box-shadow: 0 1px 3px rgba(3,44,16,.18);
+}
+header.colle .marque .embleme { box-shadow: none; background: transparent; }

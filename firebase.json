@@ -38,7 +38,8 @@
         "firebase.json",
         "**/.*",
         "**/node_modules/**",
-        "maquette.html"
+        "maquette.html",
+        "outils/**"
       ],
       "cleanUrls": true,
       "trailingSlash": false,
@@ -46,6 +47,10 @@
         {
           "source": "**",
           "headers": [
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'sha256-riitXBKGtl5y5ccA7GF6ccqJuwEVP5tm8j0ff/fbw9U='; upgrade-insecure-requests"
+            },
             {
               "key": "X-Content-Type-Options",
               "value": "nosniff"
@@ -56,7 +61,23 @@
             },
             {
               "key": "X-Frame-Options",
-              "value": "SAMEORIGIN"
+              "value": "DENY"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=31536000; includeSubDomains"
+            },
+            {
+              "key": "Permissions-Policy",
+              "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+            },
+            {
+              "key": "Cross-Origin-Opener-Policy",
+              "value": "same-origin"
+            },
+            {
+              "key": "Cross-Origin-Resource-Policy",
+              "value": "same-origin"
             }
           ]
         },
@@ -66,6 +87,19 @@
             {
               "key": "Cache-Control",
               "value": "public, max-age=2592000"
+            },
+            {
+              "key": "Cross-Origin-Resource-Policy",
+              "value": "cross-origin"
+            }
+          ]
+        },
+        {
+          "source": "/valeo.js",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=3600"
             }
           ]
         }
@@ -119,5 +153,7 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
-  }
+  },
+  "__commentaire_csp": "La CSP de la cible « site » vaut script-src 'self' + UNE empreinte : celle de l'amorce d'une ligne qui pose la classe « js » avant le rendu. Si cette ligne change, l'empreinte ne correspond plus et le navigateur BLOQUE le script en silence — la page s'affiche mais rien ne fonctionne. backend/tests/test_deploiement.py recalcule l'empreinte depuis site/index.html et fait echouer la suite plutot que de laisser passer ce defaut muet.",
+  "__commentaire_site": "Cible « site » = le site public valeo-scoop.com (dossier site/). Deux fichiers de TRAVAIL en sont exclus : maquette.html (le site entier dans un fichier autonome, avec une barre d'outils pour basculer téléphone/ordinateur et explorer les rôles — elle n'a rien à faire en production) et outils/ (le script qui la fabrique). Les régénérer : python3 site/outils/construire_maquette.py"
 }

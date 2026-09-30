@@ -945,3 +945,206 @@ class TestBaremesDeRepli:
         m = re.search(r'"prixKg":\s*(\d+)', srv)
         assert m, "prixKg de empty_state introuvable"
         assert int(m.group(1)) == self._table(lib, "DEFAULT_PRICES")["cacao"]
+
+
+class TestSecuriteDuSitePublic:
+    """La Content-Security-Policy du site, et le piège qu'elle tend.
+
+    Le site public ne charge aucune ressource externe (un autre test le
+    vérifie). Cette propriété permet une CSP réellement stricte —
+    `default-src 'none'` — au lieu de la liste de domaines autorisés qu'on voit
+    d'ordinaire et qui ne protège plus de grand-chose.
+
+    Mais une CSP qui bloque le script du site est PIRE que pas de CSP : la page
+    s'affiche normalement, le style est là, et rien ne fonctionne. Aucune erreur
+    visible pour qui n'ouvre pas la console. C'est exactement le mode de panne
+    silencieuse que ce dépôt refuse ailleurs (invariants 27 et 32), et c'est ce
+    que cette classe verrouille.
+    """
+
+    def _site(self):
+        conf = json.loads((RACINE / "firebase.json").read_text(encoding="utf-8"))
+        return next(h for h in conf["hosting"] if h["target"] == "site")
+
+    def _entetes(self):
+        site = self._site()
+        return {
+            e["key"]: e["value"]
+            for h in site["headers"] if h["source"] == "**"
+            for e in h["headers"]
+        }
+
+    def _accueil(self):
+        return (RACINE / "site" / "index.html").read_text(encoding="utf-8")
+
+    def test_l_empreinte_de_la_CSP_correspond_au_script_en_ligne(self):
+        """LE test de cette classe.
+
+        Un seul script reste en ligne dans la page : l'amorce d'une ligne qui
+        pose la classe « js » avant le rendu (elle ne peut pas être externalisée
+        sans faire clignoter la page). Elle est autorisée par son empreinte
+        SHA-256, inscrite dans `firebase.json`.
+
+        Modifier cette ligne — ne serait-ce qu'une espace — invalide
+        l'empreinte. Le navigateur refuse alors le script, `html` ne reçoit
+        jamais la classe « js », et tout le site bascule dans son mode
+        « sans JavaScript ». En production. Sans message.
+
+        On recalcule donc l'empreinte depuis la page elle-même et on la compare
+        à celle déclarée : le défaut devient un test rouge.
+        """
+        import base64
+        import hashlib
+
+        scripts = re.findall(r"<script>(.*?)</script>", self._accueil(), re.S)
+        assert len(scripts) == 1, (
+            "un seul script en ligne est prévu (l'amorce). Les autres doivent "
+            f"vivre dans un fichier servi par 'self'. Trouvés : {len(scripts)}")
+
+        empreinte = base64.b64encode(
+            hashlib.sha256(scripts[0].strip().encode()).digest()).decode()
+        csp = self._entetes()["Content-Security-Policy"]
+        assert f"'sha256-{empreinte}'" in csp, (
+            "l'empreinte de la CSP ne correspond plus au script en ligne.\n"
+            f"  attendue dans firebase.json : sha256-{empreinte}\n"
+            "  sinon le navigateur bloque le script SANS RIEN AFFICHER.")
+
+    def test_la_CSP_refuse_tout_par_defaut(self):
+        csp = self._entetes()["Content-Security-Policy"]
+        assert "default-src 'none'" in csp, (
+            "le site ne charge rien d'externe : la CSP doit partir de zéro")
+        for directive in ("base-uri 'none'", "frame-ancestors 'none'",
+                          "form-action 'none'"):
+            assert directive in csp, f"directive manquante : {directive}"
+
+    def test_aucun_script_arbitraire_n_est_autorise(self):
+        """`'unsafe-inline'` dans `script-src` annulerait toute la protection.
+
+        C'est la concession que font la plupart des sites, et elle rouvre
+        exactement la faille que la CSP devait fermer : n'importe quel script
+        injecté dans la page s'exécute. On l'accepte pour `style-src` — une
+        feuille de style ne fait pas exécuter de code — jamais pour les scripts.
+        """
+        csp = self._entetes()["Content-Security-Policy"]
+        script_src = next(d for d in csp.split(";") if d.strip().startswith("script-src"))
+        assert "'unsafe-inline'" not in script_src, script_src
+        assert "'unsafe-eval'" not in script_src, script_src
+
+    def test_les_entetes_de_securite_essentiels_sont_poses(self):
+        e = self._entetes()
+        assert e["X-Content-Type-Options"] == "nosniff"
+        assert e["X-Frame-Options"] == "DENY"
+        assert "max-age=" in e["Strict-Transport-Security"]
+        assert "camera=()" in e["Permissions-Policy"]
+        assert e["Referrer-Policy"].startswith("strict-origin")
+
+    def test_les_images_restent_lisibles_par_les_apercus_de_partage(self):
+        """`Cross-Origin-Resource-Policy: same-origin` sur tout le site
+        empêcherait WhatsApp, Facebook ou LinkedIn d'afficher la vignette
+        `og:image` — un lien partagé apparaîtrait nu. Le dossier des images doit
+        donc lever la restriction, et lui seul.
+        """
+        site = self._site()
+        sources = [h["source"] for h in site["headers"]]
+        assert len(sources) == len(set(sources)), (
+            f"deux blocs portent la même source : Firebase n'applique que la "
+            f"première, la seconde est silencieusement ignorée — {sources}")
+        img = next((h for h in site["headers"] if h["source"] == "/img/**"), None)
+        assert img, "aucun en-tête propre au dossier des images"
+        corp = {e["key"]: e["value"] for e in img["headers"]}
+        assert corp.get("Cross-Origin-Resource-Policy") == "cross-origin"
+
+    def test_le_script_du_site_est_bien_servi_depuis_le_domaine(self):
+        assert (RACINE / "site" / "valeo.js").exists(), "site/valeo.js manquant"
+        assert 'src="/valeo.js"' in self._accueil()
+
+
+class TestDefautsDAffichageDuSite:
+    """Trois défauts trouvés en REGARDANT des captures d'écran, pas en relisant
+    le code. Tous les trois compilent, ne lèvent aucune erreur, et passent
+    inaperçus à la lecture. D'où ces garde-fous.
+    """
+
+    def _css(self):
+        return (RACINE / "site" / "styles.css").read_text(encoding="utf-8")
+
+    def test_un_element_masque_le_reste_vraiment(self):
+        """`[hidden]` du navigateur vaut (0,1,0) : n'importe quelle classe qui
+        pose un `display` le bat. `.roles-grille` est en `display:grid` — les
+        CINQ panneaux de rôles s'affichaient donc simultanément, et la page
+        faisait 10 000 px de haut au lieu de 8 000.
+        """
+        assert re.search(r"\[hidden\]\s*\{\s*display:\s*none\s*!important",
+                         self._css()), (
+            "sans `!important`, [hidden] perd contre toute classe qui pose un "
+            "display : les panneaux masqués restent visibles")
+
+    def test_le_libelle_des_boutons_reste_lisible(self):
+        """`nav a` et `.bande-sombre a` valent (0,1,1) et battent `.btn` (0,1,0).
+
+        Le libellé des boutons prenait donc la couleur des liens : or sur or
+        dans le héros, vert sur vert dans la barre. Illisible dans les deux cas,
+        et parfaitement invisible à la lecture du code.
+        """
+        # On découpe la feuille en règles « sélecteurs { corps } » et on garde
+        # celles qui reprennent la couleur du libellé d'un bouton-lien.
+        regles = [
+            (sel.split("}")[-1].strip(), corps)
+            for sel, corps in re.findall(r"([^{}]+)\{([^}]*)\}", self._css())
+        ]
+        reprises = [sel for sel, corps in regles
+                    if "a.btn" in sel and "color:" in corps]
+        assert reprises, "aucune règle ne reprend la couleur du libellé des boutons"
+        selecteurs = " ".join(reprises)
+        for contexte in ("nav a.btn", ".bande-sombre a.btn"):
+            assert contexte in selecteurs, (
+                f"{contexte} manque : le libellé y reprendra la couleur des liens")
+
+    def test_le_bordereau_n_est_pas_efface_par_son_propre_masque(self):
+        """La dentelure du ticket était dessinée avec `mask-image` +
+        `mask-repeat: repeat-x` : le masque ne couvrait qu'une bande de 12 px en
+        bas, donc TOUT le reste de la carte était masqué. Le bordereau était
+        purement et simplement invisible sur la page — seule la dentelure
+        s'affichait, flottant dans le vide.
+        """
+        css = self._css()
+        bloc = re.search(r"\.bordereau\s*\{([^}]*)\}", css)
+        assert bloc, ".bordereau introuvable"
+        assert "mask" not in bloc.group(1), (
+            "un masque sur .bordereau efface la carte entière ; dessiner la "
+            "dentelure dans un pseudo-élément à part")
+
+    def test_toutes_les_images_referencees_existent(self):
+        """Une image manquante ne casse rien : elle laisse un cadre vide.
+
+        C'est le défaut le plus courant d'un site statique, et le plus discret —
+        la page se charge, le style est bon, il manque juste le logo. Personne
+        ne s'en aperçoit avant un visiteur. Le test lit les références réelles
+        des pages et vérifie que chaque fichier est là.
+        """
+        img = RACINE / "site" / "img"
+        manquantes = []
+        for page in sorted((RACINE / "site").glob("*.html")):
+            if page.name == "maquette.html":
+                continue  # fichier autonome : ses images sont encodées dedans
+            texte = page.read_text(encoding="utf-8")
+            for nom in set(re.findall(r"/img/([A-Za-z0-9_-]+\.[a-z0-9]{2,5})", texte)):
+                if not (img / nom).is_file():
+                    manquantes.append(f"{page.name} → {nom}")
+        assert not manquantes, f"images référencées mais absentes : {manquantes}"
+
+    def test_aucune_image_orpheline_n_est_publiee(self):
+        """L'inverse : un fichier que plus aucune page n'utilise part quand même
+        chez Firebase à chaque déploiement. Ce n'est pas grave, c'est sale — et
+        au bout de quelques refontes on ne sait plus lesquels sont vivants.
+        """
+        site = RACINE / "site"
+        refs = set()
+        for f in list(site.glob("*.html")) + list(site.glob("*.css")):
+            if f.name == "maquette.html":
+                continue
+            refs |= set(re.findall(r"/img/([A-Za-z0-9_-]+\.[a-z0-9]{2,5})",
+                                   f.read_text(encoding="utf-8")))
+        orphelines = sorted(p.name for p in (site / "img").iterdir()
+                            if p.is_file() and p.name not in refs)
+        assert not orphelines, f"images publiées mais jamais utilisées : {orphelines}"

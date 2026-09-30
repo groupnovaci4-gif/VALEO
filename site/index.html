@@ -3,265 +3,796 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VALEO — Gestion de coopérative agricole, même sans réseau</title>
-<meta name="description" content="VALEO est l'application de gestion des coopératives agricoles ivoiriennes : pesée bord-champ, vérification au magasin, mandats, commissions et comptabilité. Elle fonctionne hors connexion.">
-<link rel="icon" href="img/favicon.png" type="image/png">
-<link rel="apple-touch-icon" href="img/logo-192.png">
-<link rel="stylesheet" href="styles.css">
-<meta property="og:title" content="VALEO — Gestion de coopérative agricole">
-<meta property="og:description" content="Pesée, stock, mandats et comptabilité pour les coopératives de cacao, café, anacarde, hévéa et palmier. Fonctionne sans réseau.">
+<title>VALEO — Le logiciel des coopératives agricoles de Côte d'Ivoire</title>
+<meta name="description" content="VALEO gère la collecte, la pesée, le stock, les avances et la trésorerie d'une coopérative de cacao, café, anacarde ou hévéa. Hors-ligne d'abord : vos pisteurs travaillent sans réseau, tout se synchronise au retour.">
+<meta name="theme-color" content="#032C10">
+<meta name="color-scheme" content="light">
+<link rel="canonical" href="https://valeo-scoop.com/">
+<link rel="icon" href="/img/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<link rel="stylesheet" href="/styles.css">
+
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://valeo-scoop.com/">
-<meta property="og:image" content="https://valeo-scoop.com/img/logo-512.png">
 <meta property="og:locale" content="fr_CI">
+<meta property="og:site_name" content="VALEO">
+<meta property="og:url" content="https://valeo-scoop.com/">
+<meta property="og:title" content="VALEO — Tracer, Gérer, Valoriser">
+<meta property="og:description" content="Le logiciel des coopératives agricoles de Côte d'Ivoire. Hors-ligne d'abord, de la pesée au bord-champ jusqu'au bilan de campagne.">
+<meta property="og:image" content="https://valeo-scoop.com/img/cacao-976.jpg">
+<meta name="twitter:card" content="summary_large_image">
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication",
+"name":"VALEO","applicationCategory":"BusinessApplication",
+"operatingSystem":"Android, Web",
+"description":"Logiciel de gestion pour coopératives agricoles : collecte, pesée, stock, avances, trésorerie.",
+"url":"https://valeo-scoop.com/","inLanguage":"fr",
+"areaServed":{"@type":"Country","name":"Côte d'Ivoire"}}
+</script>
+
+<!-- Marque la page comme pilotee par JavaScript. Pose AVANT le rendu pour
+     qu'aucune image ne s'affiche puis disparaisse (pas de scintillement). -->
+<script>document.documentElement.className += " js";</script>
 </head>
 <body>
 
-<header>
-  <div class="wrap bar">
-    <a class="brand" href="/">
-      <img src="img/logo.png" alt="VALEO" width="560" height="476">
-      <b>VALEO</b>
-    </a>
-    <nav>
-      <span class="nav-links">
-        <a href="#fonctionnement">Fonctionnement</a>
-        <a href="#roles">Rôles</a>
-        <a href="#garanties">Garanties</a>
+<a href="#contenu" class="btn" style="position:absolute;left:-9999px;top:8px;z-index:200"
+   onfocus="this.style.left='8px'" onblur="this.style.left='-9999px'">Aller au contenu</a>
+
+<header id="tete">
+  <div class="wrap barre">
+    <a class="marque" href="/" aria-label="VALEO, accueil">
+      <img class="embleme" src="/img/embleme.png" width="220" height="118" alt="" aria-hidden="true">
+      <span class="marque-nom">
+        <b>VALEO</b>
+        <span>Tracer · Gérer · Valoriser</span>
       </span>
-      <a class="btn btn-primary" href="https://app.valeo-scoop.com">Ouvrir l'application</a>
+    </a>
+
+    <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+
+    <nav class="liens" id="menu">
+      <a href="#chaine">Comment ça marche</a>
+      <a href="#roles">Les rôles</a>
+      <a href="#hors-ligne">Hors-ligne</a>
+      <a href="#securite">Sécurité</a>
+      <a class="btn btn-or" href="#contact">Demander une démonstration</a>
     </nav>
   </div>
 </header>
 
-<main>
+<main id="contenu">
 
-  <div class="wrap hero">
-    <h1>La gestion de votre coopérative, <em>même sans réseau</em>.</h1>
-    <p class="lede">
-      VALEO suit le cacao depuis la pesée au bord du champ jusqu'à l'expédition
-      à l'usine : poids, paiements, mandats, commissions et comptabilité. Le
-      pisteur travaille en brousse sans connexion ; tout se synchronise au
-      retour.
-    </p>
-    <div class="cta">
-      <a class="btn btn-primary" href="#contact">Demander une démonstration</a>
-      <a class="btn btn-ghost" href="#fonctionnement">Comment ça marche</a>
+<!-- ======================================================================
+     HÉROS
+     ====================================================================== -->
+<section class="heros bande-sombre">
+  <div class="wrap heros-grille">
+
+    <div>
+      <p class="oeil sur-sombre">Coopératives agricoles · Côte d'Ivoire</p>
+      <h1 class="t-display">La valeur commence <em>à la source</em>.</h1>
+      <p class="plomb">
+        Du premier sac pesé au bord-champ jusqu'au bilan de campagne, VALEO tient
+        le compte exact de ce que votre coopérative achète, stocke, avance et doit.
+        Vos pisteurs travaillent <strong>sans réseau</strong> ; tout se synchronise au retour.
+      </p>
+
+      <div class="rang actions">
+        <a class="btn btn-or" href="#contact">
+          Demander une démonstration
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a class="btn btn-fantome" href="#chaine">Voir comment ça marche</a>
+      </div>
+
+      <div class="confiance">
+        <div>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 4.4-3.1 8.2-8 9-4.9-.8-8-4.6-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>
+          Codes secrets jamais stockés en clair
+        </div>
+        <div>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h4l3 8 6-16 3 8h4"/></svg>
+          Fonctionne sans réseau
+        </div>
+        <div>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9"/><path d="M3 15h18l-1.5 4.5a2 2 0 0 1-1.9 1.5H6.4a2 2 0 0 1-1.9-1.5z"/></svg>
+          Cacao · Café · Anacarde · Hévéa
+        </div>
+      </div>
     </div>
-    <p class="hero-note">
-      Cacao · Café · Anacarde · Hévéa · Palmier à huile
-    </p>
+
+    <div class="heros-visuel">
+      <figure class="photo-carte">
+        <picture>
+          <source type="image/webp" srcset="/img/cacao-420.webp 420w, /img/cacao-640.webp 640w, /img/cacao-976.webp 976w" sizes="(max-width: 1000px) 90vw, 520px">
+          <img src="/img/cacao-640.jpg"
+               srcset="/img/cacao-420.jpg 420w, /img/cacao-640.jpg 640w, /img/cacao-976.jpg 976w"
+               sizes="(max-width: 1000px) 90vw, 520px"
+               width="640" height="481" fetchpriority="high"
+               alt="Cabosses de cacao mûres sur l'arbre, en plantation.">
+        </picture>
+        <figcaption class="photo-legende">Campagne 2025 – 2026</figcaption>
+      </figure>
+
+      <!-- Maquette produit : ecran du pisteur, dessine en CSS. -->
+      <div class="tel heros-tel" role="img" aria-label="Écran VALEO d'un pisteur : mandat reçu 2 000 000 F, 14 pesées du jour, commission acquise 48 000 F.">
+        <div class="tel-ecran">
+          <div class="tel-barre">
+            <div class="haut">
+              <div>
+                <div class="role">Pisteur</div>
+                <div class="nom">Koffi Adama</div>
+                <div class="coop">SCOOP-CA Divo</div>
+              </div>
+            </div>
+          </div>
+          <div class="tel-corps">
+            <div class="tel-carte">
+              <div class="etiq">Mandat reçu</div>
+              <div class="val vert">2 000 000 F</div>
+              <div class="sous">Reste en caisse 412 000 F</div>
+            </div>
+            <div class="tel-carte">
+              <div class="tel-ligne"><div class="g"><div class="t">N'Guessan Y.</div><div class="s">180 kg · P-KAD-0042</div></div><div class="d">216 000 F</div></div>
+              <div class="tel-ligne"><div class="g"><div class="t">Bamba S.</div><div class="s">95 kg · P-KAD-0043</div></div><div class="d">114 000 F</div></div>
+              <div class="tel-ligne"><div class="g"><div class="t">Kouassi A.</div><div class="s">240 kg · P-KAD-0044</div></div><div class="d">288 000 F</div></div>
+            </div>
+            <div class="tel-carte">
+              <div class="etiq">Commission acquise</div>
+              <div class="val or">48 000 F</div>
+              <div class="sous">Sur poids vérifié au magasin</div>
+            </div>
+          </div>
+          <div class="tel-onglets">
+            <span class="actif"><i></i>Accueil</span>
+            <span><i></i>Pesée</span>
+            <span><i></i>Planteurs</span>
+            <span><i></i>Mon point</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
+</section>
 
-  <section id="probleme">
-    <div class="wrap">
-      <h2>Trois problèmes que le carnet ne règle pas</h2>
-      <p class="intro">
-        Ce ne sont pas des problèmes d'organisation : ce sont des problèmes
-        d'information. Ils disparaissent dès que chaque poids et chaque franc
-        portent une trace.
-      </p>
-      <div class="grid">
-        <div class="card">
-          <span class="tag">Le poids</span>
-          <h3>Ce qui part du champ n'est pas ce qui arrive au magasin</h3>
-          <p>
-            L'écart se découvre en fin de campagne, quand plus personne ne se
-            souvient du chargement. VALEO le constate à la réception, chargement
-            par chargement.
-          </p>
-        </div>
-        <div class="card">
-          <span class="tag">L'argent</span>
-          <h3>La caisse d'un pisteur se justifie de mémoire</h3>
-          <p>
-            Mandat reçu, achats payés, restes dus aux planteurs, commission :
-            quatre choses différentes, souvent mélangées dans un seul chiffre.
-            VALEO les tient séparées.
-          </p>
-        </div>
-        <div class="card">
-          <span class="tag">La preuve</span>
-          <h3>Le planteur n'a rien en main</h3>
-          <p>
-            Sans bordereau, une contestation oppose deux souvenirs. Chaque pesée
-            produit un reçu numéroté, remis au planteur sur-le-champ.
-          </p>
-        </div>
-      </div>
+<!-- ======================================================================
+     CHIFFRES
+     ====================================================================== -->
+<section class="section-serree bande-claire">
+  <div class="wrap">
+    <div class="chiffres reveal">
+      <div class="chiffre"><b>5</b><span>rôles, un seul outil : patron, pisteur, magasinier, comptable, planteur</span></div>
+      <div class="chiffre"><b>0</b><span>barre de réseau nécessaire pour peser un planteur</span></div>
+      <div class="chiffre"><b>4</b><span>cultures suivies : cacao, café, anacarde, hévéa</span></div>
+      <div class="chiffre"><b>2</b><span>poids sur chaque livraison : déclaré au champ, vérifié au magasin</span></div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section id="fonctionnement">
-    <div class="wrap">
-      <h2>Du champ à l'usine, en six étapes</h2>
-      <p class="intro">
-        Chaque étape est enregistrée par la personne qui la fait, sous son nom,
-        avec l'heure. Rien n'est ressaisi deux fois.
+<!-- ======================================================================
+     LE PROBLÈME
+     ====================================================================== -->
+<section class="section">
+  <div class="wrap">
+    <div class="entete-section centre">
+      <p class="oeil">Ce que remplace VALEO</p>
+      <h2 class="t-h2">Le cahier ne dit pas où est passé l'argent.</h2>
+      <p class="plomb">
+        Un carnet de pesée, un cahier de mandat, des bouts de papier pour les avances,
+        et une calculatrice le soir. Chaque étape est juste ; c'est le total qui ne
+        tombe jamais.
       </p>
-      <div class="flow">
-        <div class="step">
-          <div class="num">1</div>
-          <div>
-            <h3>Le pisteur pèse au bord du champ</h3>
-            <p>Poids net après tare des sacs, prix du jour, paiement total ou partiel. Le planteur repart avec son bordereau. Aucune connexion requise.</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="num">2</div>
-          <div>
-            <h3>Il livre son chargement au magasin</h3>
-            <p>La livraison est déclarée et signée de son nom. Le patron et le magasinier sont prévenus qu'un poids attend d'être vérifié.</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="num">3</div>
-          <div>
-            <h3>Le magasinier constate le poids réel</h3>
-            <p>Il pèse le chargement une seule fois. C'est ce poids-là qui entre en stock, et lui seul.</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="num">4</div>
-          <div>
-            <h3>L'écart est réglé, dans le bon sens</h3>
-            <p>Un manquant devient une dette en kilos, remboursée en marchandise. Un excédent revient au pisteur, versé avec sa commission.</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="num">5</div>
-          <div>
-            <h3>Le patron expédie à l'usine</h3>
-            <p>Poids livré, poids constaté là-bas, prix d'achat de l'usine : le bénéfice de l'expédition se lit directement, freinte comprise.</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="num">6</div>
-          <div>
-            <h3>La comptabilité suit, sans ressaisie</h3>
-            <p>Budget d'achat, fonds confiés, mandats, dépenses, sommes dues aux agents : tout se déduit des opérations déjà enregistrées.</p>
-          </div>
-        </div>
-      </div>
     </div>
-  </section>
 
-  <section id="roles">
-    <div class="wrap">
-      <h2>Un métier, un écran</h2>
-      <p class="intro">
-        Personne ne voit ce qui ne le regarde pas, et personne n'a de bouton
-        qu'il n'a pas le droit d'utiliser. Ce partage est appliqué sur les
-        données, pas seulement à l'affichage.
-      </p>
-      <div class="grid">
-        <div class="card">
-          <span class="tag">Patron</span>
-          <h3>Il pilote</h3>
-          <p>Tableau de bord, équipe, planteurs, barèmes, avances, stock, expéditions, budget d'achat de la campagne.</p>
+    <div class="grille g-3">
+      <article class="carte carte-levee reveal">
+        <div class="pastille">
+          <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M8 11h8M8 15h5"/></svg>
         </div>
-        <div class="card">
-          <span class="tag">Pisteur / Délégué</span>
-          <h3>Il collecte</h3>
-          <p>Pesée bord-champ, recrutement de planteurs, avances sur le terrain, livraison au magasin, suivi de sa caisse et de sa commission.</p>
-        </div>
-        <div class="card">
-          <span class="tag">Magasinier</span>
-          <h3>Il vérifie et stocke</h3>
-          <p>Pesée au magasin, vérification des chargements ramenés par les pisteurs, tenue du stock.</p>
-        </div>
-        <div class="card">
-          <span class="tag">Comptable</span>
-          <h3>Il finance</h3>
-          <p>Enveloppes, mandats aux pisteurs, dépenses, règlements. Il ne pèse jamais : c'est ce qui rend ses chiffres vérifiables.</p>
-        </div>
-        <div class="card">
-          <span class="tag">Planteur</span>
-          <h3>Il consulte</h3>
-          <p>Ses livraisons, ses paiements, ses avances et leur origine, son Mobile Money. Rien d'autre, et rien des autres.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="garanties">
-    <div class="wrap">
-      <h2>Ce qui est garanti</h2>
-      <p class="intro">
-        Une application de gestion manipule l'argent de gens qui n'ont pas de
-        marge d'erreur. Voici ce sur quoi elle ne transige pas.
-      </p>
-      <div class="grid">
-        <div class="card">
-          <h3>Elle fonctionne sans réseau</h3>
-          <p>Chaque téléphone garde ses données en local et se synchronise quand le réseau revient. Une tournée de plusieurs jours hors couverture ne perd rien.</p>
-        </div>
-        <div class="card">
-          <h3>Elle dit quand elle ne synchronise pas</h3>
-          <p>Un bandeau permanent annonce l'état réel. Une application qui se tait pendant que les données s'accumulent est plus dangereuse qu'une panne visible.</p>
-        </div>
-        <div class="card">
-          <h3>Les prix sont figés à la pesée</h3>
-          <p>Changer le barème en cours de campagne ne réécrit aucun reçu déjà remis à un planteur.</p>
-        </div>
-        <div class="card">
-          <h3>Chaque coopérative est isolée</h3>
-          <p>Aucune coopérative ne peut voir ni modifier les données d'une autre. C'est la garantie la plus étroitement vérifiée du produit.</p>
-        </div>
-        <div class="card">
-          <h3>Les codes secrets ne sont jamais lisibles</h3>
-          <p>Ils sont dérivés par PBKDF2 et ne quittent jamais le serveur — ni vers l'application, ni vers l'administration.</p>
-        </div>
-        <div class="card">
-          <h3>Rien ne s'efface en silence</h3>
-          <p>Les pesées, avances et soldes sont horodatés côté serveur dans un journal d'audit. Corriger, c'est écrire une correction.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="filieres">
-    <div class="wrap">
-      <h2>Filières prises en charge</h2>
-      <p class="intro">
-        Chaque filière a son prix et sa commission, réglés par la coopérative.
-      </p>
-      <div class="filieres">
-        <span class="filiere">Cacao</span>
-        <span class="filiere">Café</span>
-        <span class="filiere">Anacarde</span>
-        <span class="filiere">Hévéa</span>
-        <span class="filiere">Palmier à huile</span>
-      </div>
-    </div>
-  </section>
-
-  <section id="contact">
-    <div class="wrap">
-      <div class="contact-box">
-        <h2>Voir VALEO sur vos propres chiffres</h2>
+        <h3 class="t-h3">Le poids déclaré n'est pas le poids reçu</h3>
         <p>
-          Nous installons l'application avec vous, sur une campagne d'essai, et
-          nous formons vos pisteurs et votre magasinier. Écrivez-nous en
-          indiquant votre coopérative, votre région et vos filières.
+          Le pisteur annonce 1 200 kg, le magasin en pèse 1 160. Sans trace de
+          l'écart, personne ne sait si c'est la freinte, l'humidité ou autre chose —
+          et la commission se paie quand même sur les 1 200.
         </p>
-        <div class="cta">
-          <a class="btn btn-primary" href="mailto:contact@valeo-scoop.com?subject=Demande%20de%20d%C3%A9monstration%20VALEO">contact@valeo-scoop.com</a>
+      </article>
+
+      <article class="carte carte-levee reveal">
+        <div class="pastille">
+          <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20"/><path d="M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <h3 class="t-h3">Les avances se perdent entre deux campagnes</h3>
+        <p>
+          Une avance accordée en novembre doit se recouvrer sur les livraisons de
+          janvier, puis sur celles de la campagne suivante si elle n'est pas soldée.
+          Un cahier par campagne efface cette dette.
+        </p>
+      </article>
+
+      <article class="carte carte-levee reveal">
+        <div class="pastille">
+          <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 20h20"/><path d="M5 20V9l7-5 7 5v11"/><path d="M10 20v-6h4v6"/></svg>
+        </div>
+        <h3 class="t-h3">Le stock est un cumul, pas un stock</h3>
+        <p>
+          Additionner les collectes donne ce qui est <em>entré</em>. Ce qui est parti à
+          l'usine, vendu, transféré ou perdu n'est retranché nulle part — et le
+          magasin croit détenir des tonnes qu'il n'a plus.
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     CHAÎNE DE VALEUR
+     ====================================================================== -->
+<section class="section bande-claire" id="chaine">
+  <div class="wrap">
+    <div class="entete-section">
+      <p class="oeil">Le parcours d'un sac</p>
+      <h2 class="t-h2">Quatre étapes, et chacune laisse une trace signée.</h2>
+      <p class="plomb">
+        VALEO suit la marchandise, pas seulement l'argent. À chaque main qui la
+        touche correspond un enregistrement horodaté, avec un auteur.
+      </p>
+    </div>
+
+    <div class="chaine reveal">
+      <article class="maillon">
+        <div class="num">1</div>
+        <div class="qui">Pisteur</div>
+        <h3>Pesée au bord-champ</h3>
+        <p>
+          Le planteur est pesé sur place, sac par sac. Tare déduite, prix figé à la
+          seconde de la pesée, bordereau numéroté remis en main propre. Sans réseau.
+        </p>
+      </article>
+
+      <article class="maillon">
+        <div class="num">2</div>
+        <div class="qui">Pisteur → Magasin</div>
+        <h3>Livraison du chargement</h3>
+        <p>
+          Le pisteur déclare son chargement à l'arrivée. Le patron et le magasinier
+          sont alertés ; la marchandise reste à sa charge tant qu'elle n'est pas pesée.
+        </p>
+      </article>
+
+      <article class="maillon">
+        <div class="num">3</div>
+        <div class="qui">Magasinier</div>
+        <h3>Vérification du poids</h3>
+        <p>
+          Le chargement est pesé <strong>une fois</strong>, en une ou plusieurs fournées.
+          C'est ce poids-là qui entre en stock, et lui seul qui ouvre la commission.
+        </p>
+      </article>
+
+      <article class="maillon">
+        <div class="num">4</div>
+        <div class="qui">Patron</div>
+        <h3>Expédition et résultat</h3>
+        <p>
+          L'usine constate son propre poids et son prix. L'écart — freinte, humidité,
+          tare — devient un chiffre visible, et le bénéfice de l'expédition se calcule
+          tout seul.
+        </p>
+      </article>
+    </div>
+
+    <div class="grille g-2" style="margin-top:var(--e8);align-items:center">
+      <div class="reveal">
+        <p class="oeil">Ce que reçoit le planteur</p>
+        <h3 class="t-h2" style="font-size:clamp(1.5rem,1.1rem+1.4vw,2rem);margin-block:var(--e3) var(--e4)">
+          Un bordereau qu'il peut garder, et contester.
+        </h3>
+        <p class="plomb" style="font-size:1.05rem">
+          Numéroté par agent, imprimable, et surtout complet : le poids brut, la tare
+          des sacs, le prix du jour, l'avance recouvrée et l'ancien reste soldé.
+          Le planteur voit comment on arrive au total — c'est la seule façon
+          d'installer la confiance.
+        </p>
+        <ul class="liste-faits" style="margin-top:var(--e5)">
+          <li>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--foret-600)"><path d="M20 6L9 17l-5-5"/></svg>
+            <span>Le prix et la commission sont <strong>gelés</strong> sur la pesée : un changement de barème ne réécrit jamais un reçu déjà remis.</span>
+          </li>
+          <li>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--foret-600)"><path d="M20 6L9 17l-5-5"/></svg>
+            <span>Le net à payer ne peut pas être négatif, et l'ancien reste dû se solde <strong>avant</strong> la livraison du jour.</span>
+          </li>
+          <li>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--foret-600)"><path d="M20 6L9 17l-5-5"/></svg>
+            <span>Le planteur retrouve ses livraisons, ses paiements et ses avances dans son propre espace, sur son téléphone.</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="reveal" style="display:grid;place-items:center">
+        <div class="bordereau">
+          <div class="tete">
+            <b>VALEO</b><br>
+            SCOOP-CA DIVO<br>
+            <span style="font-size:.76rem">Bordereau de pesée</span>
+          </div>
+          <div class="l"><span>N°</span><span>P-KAD-0042</span></div>
+          <div class="l"><span>Date</span><span>12/01/2026</span></div>
+          <div class="l"><span>Planteur</span><span>N'Guessan Y.</span></div>
+          <div class="l"><span>Pisteur</span><span>Koffi Adama</span></div>
+          <div class="l" style="margin-top:8px"><span>Brut</span><span>186 kg</span></div>
+          <div class="l"><span>Sacs (tare)</span><span>− 6 kg</span></div>
+          <div class="l"><span>Net</span><span>180 kg</span></div>
+          <div class="l"><span>Prix / kg</span><span>1 200 F</span></div>
+          <div class="l"><span>Montant</span><span>216 000 F</span></div>
+          <div class="l"><span>Avance recouvrée</span><span>− 40 000 F</span></div>
+          <div class="l"><span>Ancien reste soldé</span><span>+ 12 000 F</span></div>
+          <div class="l total"><span>TOTAL REMIS</span><span>188 000 F</span></div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
+
+<!-- ======================================================================
+     RÔLES
+     ====================================================================== -->
+<section class="section bande-sombre" id="roles">
+  <div class="wrap">
+    <div class="entete-section">
+      <p class="oeil sur-sombre">Cinq métiers</p>
+      <h2 class="t-h2">Chacun voit ce qui le concerne. Rien de plus.</h2>
+      <p class="plomb">
+        Ce n'est pas un réglage d'affichage : le serveur refuse l'écriture qui sort
+        du rôle. Un planteur ne peut pas voir un autre planteur, un pisteur ne solde
+        que ses propres pesées, un comptable ne touche jamais à une balance.
+      </p>
+    </div>
+
+    <div class="onglets-roles" role="tablist" aria-label="Choisir un rôle">
+      <button class="onglet-role" role="tab" id="o-patron"   aria-controls="p-patron"   aria-selected="true">Patron</button>
+      <button class="onglet-role" role="tab" id="o-pisteur"  aria-controls="p-pisteur"  aria-selected="false">Pisteur</button>
+      <button class="onglet-role" role="tab" id="o-commis"   aria-controls="p-commis"   aria-selected="false">Magasinier</button>
+      <button class="onglet-role" role="tab" id="o-comptable" aria-controls="p-comptable" aria-selected="false">Comptable</button>
+      <button class="onglet-role" role="tab" id="o-planteur" aria-controls="p-planteur" aria-selected="false">Planteur</button>
+    </div>
+
+    <!-- PATRON -->
+    <div class="roles-grille" role="tabpanel" id="p-patron" aria-labelledby="o-patron" tabindex="0">
+      <div class="role-corps">
+        <div class="role-titre">
+          <div class="pastille">
+            <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M4 20V9l8-5 8 5v11"/><path d="M12 20v-5"/></svg>
+          </div>
+          <h3 class="t-h3">Le patron — souverain sur sa coopérative</h3>
+        </div>
+        <p class="plomb" style="font-size:1.02rem">
+          Il fixe les barèmes, recrute les collaborateurs, ouvre le budget de campagne,
+          approuve les avances et expédie à l'usine. Il voit tout — et seulement chez lui :
+          l'isolation entre coopératives est la garantie la plus stricte du produit.
+        </p>
+        <ul class="liste-faits">
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Bilan de campagne : volumes, stock réel, commissions, bénéfice par expédition.</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Il corrige une vérification contestée — personne d'autre ne le peut.</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Une seule limite à sa souveraineté : les dépenses privées d'un pisteur.</span></li>
+        </ul>
+      </div>
+      <div class="tel">
+        <div class="tel-ecran">
+          <div class="tel-barre"><div class="haut"><div><div class="role">Patron</div><div class="nom">Kouadio Yao</div><div class="coop">SCOOP-CA Divo</div></div></div></div>
+          <div class="tel-corps">
+            <div class="tel-carte"><div class="etiq">Stock magasin</div><div class="val vert">14 820 kg</div><div class="sous">+ 1 160 kg en attente de vérification</div></div>
+            <div class="tel-carte">
+              <div class="tel-ligne"><div class="g"><div class="t">Collecté ce mois</div><div class="s">Campagne 2025-2026</div></div><div class="d">38,4 t</div></div>
+              <div class="tel-ligne"><div class="g"><div class="t">Budget engagé</div><div class="s">sur 50 000 000 F</div></div><div class="d">31,2 M</div></div>
+              <div class="tel-ligne"><div class="g"><div class="t">Avances en cours</div><div class="s">42 planteurs</div></div><div class="d">6,8 M</div></div>
+            </div>
+            <div class="tel-carte"><div class="etiq">À approuver</div>
+              <div class="tel-ligne"><div class="g"><div class="t">Bamba Salif</div><div class="s">Demande d'avance</div></div><div class="d"><span class="jeton or">3</span></div></div>
+            </div>
+          </div>
+          <div class="tel-onglets"><span class="actif"><i></i>Accueil</span><span><i></i>Planteurs</span><span><i></i>Finances</span><span><i></i>Bilan</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PISTEUR -->
+    <div class="roles-grille" role="tabpanel" id="p-pisteur" aria-labelledby="o-pisteur" tabindex="0" hidden>
+      <div class="role-corps">
+        <div class="role-titre">
+          <div class="pastille">
+            <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h2l1-9h11l1 9h2"/><circle cx="8" cy="19" r="2"/><circle cx="17" cy="19" r="2"/></svg>
+          </div>
+          <h3 class="t-h3">Le pisteur — la tournée, sans réseau</h3>
+        </div>
+        <p class="plomb" style="font-size:1.02rem">
+          Il part avec un mandat, pèse les planteurs au bord-champ, peut accorder une
+          avance sur-le-champ, puis livre son chargement au magasin. C'est un
+          prestataire rémunéré à la commission : ses frais sont les siens et
+          n'entament pas son mandat.
+        </p>
+        <ul class="liste-faits">
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Sa caisse ne dit qu'une chose : l'argent du mandat qui n'a pas servi à acheter.</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Un manquant se rembourse en <strong>poids</strong>, un excédent se verse avec la commission.</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Dépasser son mandat n'est jamais bloqué : l'achat a déjà eu lieu, on en garde la trace.</span></li>
+        </ul>
+      </div>
+      <div class="tel">
+        <div class="tel-ecran">
+          <div class="tel-barre"><div class="haut"><div><div class="role">Pisteur</div><div class="nom">Koffi Adama</div><div class="coop">Tournée du 12/01</div></div></div></div>
+          <div class="tel-corps">
+            <div class="tel-carte"><div class="etiq">Reste en caisse</div><div class="val vert">412 000 F</div><div class="sous">Mandat 2 000 000 F · achats 1 588 000 F</div></div>
+            <div class="tel-carte"><div class="etiq">Ma charge non remise</div><div class="val">1 160 kg</div><div class="sous">14 pesées · à livrer au magasin</div></div>
+            <div class="tel-carte">
+              <div class="tel-ligne"><div class="g"><div class="t">Commission acquise</div><div class="s">poids vérifié</div></div><div class="d">48 000 F</div></div>
+              <div class="tel-ligne"><div class="g"><div class="t">En attente</div><div class="s">à vérifier au magasin</div></div><div class="d"><span class="jeton gris">27 840 F</span></div></div>
+              <div class="tel-ligne"><div class="g"><div class="t">Dû aux planteurs</div><div class="s">achats à crédit</div></div><div class="d">72 000 F</div></div>
+            </div>
+          </div>
+          <div class="tel-onglets"><span class="actif"><i></i>Accueil</span><span><i></i>Pesée</span><span><i></i>Planteurs</span><span><i></i>Mon point</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAGASINIER -->
+    <div class="roles-grille" role="tabpanel" id="p-commis" aria-labelledby="o-commis" tabindex="0" hidden>
+      <div class="role-corps">
+        <div class="role-titre">
+          <div class="pastille">
+            <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V8l9-5 9 5v13"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg>
+          </div>
+          <h3 class="t-h3">Le magasinier — le poids qui fait foi</h3>
+        </div>
+        <p class="plomb" style="font-size:1.02rem">
+          Il pèse les planteurs qui viennent au magasin, et surtout il vérifie les
+          chargements ramenés par les pisteurs. Son constat est celui qui entre en
+          stock — et celui qui déclenche la commission du pisteur. C'est ce qui donne
+          du poids à son travail, au sens propre.
+        </p>
+        <ul class="liste-faits">
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Il ne peut jamais vérifier sa propre pesée. Seul le patron corrige après coup.</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>La vérification ne rouvre pas le paiement du planteur : il a été payé au champ.</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>L'historique des livraisons reste consultable : pisteur, heure, écart, détail.</span></li>
+        </ul>
+      </div>
+      <div class="tel">
+        <div class="tel-ecran">
+          <div class="tel-barre"><div class="haut"><div><div class="role">Magasinier</div><div class="nom">Traoré Awa</div><div class="coop">Magasin central</div></div></div></div>
+          <div class="tel-corps">
+            <div class="tel-carte"><div class="etiq">Stock magasin</div><div class="val vert">14 820 kg</div><div class="sous">Entrées − sorties, poids vérifié</div></div>
+            <div class="tel-carte"><div class="etiq">À vérifier</div>
+              <div class="tel-ligne"><div class="g"><div class="t">Koffi Adama</div><div class="s">14 pesées · 12/01 à 17h20</div></div><div class="d">1 160 kg</div></div>
+              <div class="tel-ligne"><div class="g"><div class="t">Yao Bertin</div><div class="s">9 pesées · 12/01 à 18h05</div></div><div class="d">820 kg</div></div>
+            </div>
+            <div class="tel-carte"><div class="etiq">Dernier écart constaté</div><div class="val" style="color:var(--alerte)">− 40 kg</div><div class="sous">Koffi A. · déclaré 1 200 · pesé 1 160</div></div>
+          </div>
+          <div class="tel-onglets"><span class="actif"><i></i>Accueil</span><span><i></i>Vérifier</span><span><i></i>Pesée</span><span><i></i>Stock</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPTABLE -->
+    <div class="roles-grille" role="tabpanel" id="p-comptable" aria-labelledby="o-comptable" tabindex="0" hidden>
+      <div class="role-corps">
+        <div class="role-titre">
+          <div class="pastille">
+            <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M16 15h0M8 19h6"/></svg>
+          </div>
+          <h3 class="t-h3">Le comptable — il finance, il ne pèse pas</h3>
+        </div>
+        <p class="plomb" style="font-size:1.02rem">
+          Il reçoit une allocation du patron, ouvre des enveloppes, confie les mandats
+          aux pisteurs et règle les commissions. Le serveur lui refuse les pesées, le
+          stock et les barèmes : un comptable qui pourrait corriger une balance
+          équilibrerait ses comptes en changeant le terrain.
+        </p>
+        <ul class="liste-faits">
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Budget → allocation → enveloppe → mandat : quatre crans, chacun borne le suivant.</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Il ne peut <strong>jamais</strong> créer de fonds : sa limite est posée par le patron.</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Le journal financier est une <em>lecture</em> des écritures, jamais un second registre.</span></li>
+        </ul>
+      </div>
+      <div class="tel">
+        <div class="tel-ecran">
+          <div class="tel-barre"><div class="haut"><div><div class="role">Comptable</div><div class="nom">Diabaté Mariam</div><div class="coop">SCOOP-CA Divo</div></div></div></div>
+          <div class="tel-corps">
+            <div class="tel-carte"><div class="etiq">Solde disponible</div><div class="val vert">7 657 000 F</div><div class="sous">Alloué 20 000 000 F</div></div>
+            <div class="tel-carte"><div class="etiq">Mes enveloppes</div>
+              <div class="tel-ligne"><div class="g"><div class="t">Achats Divo-Nord</div><div class="s">3 mandats</div></div><div class="d">10 000 000 F</div></div>
+              <div class="tel-ligne"><div class="g"><div class="t">Transport usine</div><div class="s">1 mandat</div></div><div class="d">2 000 000 F</div></div>
+            </div>
+            <div class="tel-carte"><div class="etiq">Dû aux agents</div>
+              <div class="tel-ligne"><div class="g"><div class="t">Koffi Adama</div><div class="s">commission + excédent</div></div><div class="d">63 400 F</div></div>
+              <div class="tel-ligne"><div class="g"><div class="t">Yao Bertin</div><div class="s">commission</div></div><div class="d">31 200 F</div></div>
+            </div>
+          </div>
+          <div class="tel-onglets"><span class="actif"><i></i>Trésorerie</span><span><i></i>Enveloppes</span><span><i></i>Mandats</span><span><i></i>Journal</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLANTEUR -->
+    <div class="roles-grille" role="tabpanel" id="p-planteur" aria-labelledby="o-planteur" tabindex="0" hidden>
+      <div class="role-corps">
+        <div class="role-titre">
+          <div class="pastille">
+            <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22V9"/><path d="M12 9C12 5 9 2 5 2c0 4 3 7 7 7z"/><path d="M12 9c0-4 3-7 7-7 0 4-3 7-7 7z"/></svg>
+          </div>
+          <h3 class="t-h3">Le planteur — ses chiffres, et rien que les siens</h3>
+        </div>
+        <p class="plomb" style="font-size:1.02rem">
+          Il se connecte avec son identifiant <span class="mono">VAL-XXXX-YY</span> ou son
+          téléphone, et retrouve ses livraisons, ses paiements et ses avances. Il peut
+          demander une avance, lier son Mobile Money et signer ses bordereaux.
+        </p>
+        <ul class="liste-faits">
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Il ne voit aucun autre planteur, aucune dépense interne, aucune coordonnée du personnel.</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Chaque avance affiche son origine : accordée par le patron, ou par tel pisteur.</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Un reste dû le suit d'une campagne à l'autre : rien ne s'efface à la clôture.</span></li>
+        </ul>
+      </div>
+      <div class="tel">
+        <div class="tel-ecran">
+          <div class="tel-barre"><div class="haut"><div><div class="role">Planteur</div><div class="nom">N'Guessan Yao</div><div class="coop">VAL-4821-CI</div></div></div></div>
+          <div class="tel-corps">
+            <div class="tel-carte"><div class="etiq">Livré cette campagne</div><div class="val vert">1 340 kg</div><div class="sous">8 livraisons · cacao</div></div>
+            <div class="tel-carte"><div class="etiq">Dernières livraisons</div>
+              <div class="tel-ligne"><div class="g"><div class="t">12 janvier</div><div class="s">180 kg · P-KAD-0042</div></div><div class="d">188 000 F</div></div>
+              <div class="tel-ligne"><div class="g"><div class="t">28 décembre</div><div class="s">210 kg · P-KAD-0031</div></div><div class="d">252 000 F</div></div>
+            </div>
+            <div class="tel-carte"><div class="etiq">Mon avance</div><div class="val or">60 000 F</div><div class="sous">Accordée par le pisteur Koffi A. · reste 20 000 F</div></div>
+          </div>
+          <div class="tel-onglets"><span class="actif"><i></i>Accueil</span><span><i></i>Livraisons</span><span><i></i>Paiements</span><span><i></i>Avances</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     HORS-LIGNE
+     ====================================================================== -->
+<section class="section" id="hors-ligne">
+  <div class="wrap grille g-2" style="align-items:center">
+    <div class="reveal">
+      <p class="oeil">Hors-ligne d'abord</p>
+      <h2 class="t-h2" style="margin-block:var(--e3) var(--e4)">
+        La tournée ne s'arrête pas parce que le réseau s'arrête.
+      </h2>
+      <p class="plomb">
+        Ce n'est pas un mode dégradé : c'est le fonctionnement normal. Chaque téléphone
+        garde un cache local chiffré et travaille dessus. Quand le réseau revient,
+        VALEO ne remplace pas : il <strong>fusionne, enregistrement par enregistrement</strong>,
+        et la version la plus récente de chaque champ gagne.
+      </p>
+      <p class="plomb" style="margin-top:var(--e4)">
+        Deux pisteurs partis dans deux directions peuvent peser le même jour sans jamais
+        s'écraser l'un l'autre. Une absence n'est jamais une suppression — seule une
+        suppression explicite supprime.
+      </p>
+      <ul class="liste-faits">
+        <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--foret-600)"><path d="M20 6L9 17l-5-5"/></svg><span><strong>L'application dit quand elle ne synchronise pas.</strong> Un bandeau permanent, sur tous les rôles — la perte silencieuse est le pire défaut d'un outil hors-ligne.</span></li>
+        <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--foret-600)"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Elle dit aussi quand l'horloge du téléphone est fausse</strong>, parce qu'une horloge en retard fait perdre des modifications sans rien afficher.</span></li>
+        <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--foret-600)"><path d="M20 6L9 17l-5-5"/></svg><span>Une même pesée envoyée deux fois n'est enregistrée qu'une seule fois.</span></li>
+      </ul>
+    </div>
+
+    <div class="reveal" style="display:grid;place-items:center">
+      <!-- Schema : deux telephones hors ligne, une fusion. Dessin SVG, aucune
+           requete, net a tout zoom, et lisible en mode impression. -->
+      <svg viewBox="0 0 420 360" width="100%" style="max-width:480px" role="img"
+           aria-label="Schéma : deux téléphones travaillent hors ligne chacun de leur côté, puis leurs enregistrements fusionnent dans un serveur unique sans s'écraser.">
+        <defs>
+          <linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#127830"/><stop offset="1" stop-color="#005010"/>
+          </linearGradient>
+        </defs>
+
+        <rect x="18"  y="16" width="104" height="150" rx="16" fill="#fff" stroke="#E7DFD1" stroke-width="2"/>
+        <rect x="298" y="16" width="104" height="150" rx="16" fill="#fff" stroke="#E7DFD1" stroke-width="2"/>
+
+        <text x="70"  y="44" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1611" font-family="sans-serif">Pisteur A</text>
+        <text x="350" y="44" text-anchor="middle" font-size="12" font-weight="700" fill="#1A1611" font-family="sans-serif">Pisteur B</text>
+
+        <g fill="#B4530A" font-size="9.5" font-family="sans-serif" font-weight="600">
+          <text x="70"  y="60" text-anchor="middle">hors réseau</text>
+          <text x="350" y="60" text-anchor="middle">hors réseau</text>
+        </g>
+
+        <g fill="#F4EFE5">
+          <rect x="32" y="72" width="76" height="20" rx="6"/>
+          <rect x="32" y="98" width="76" height="20" rx="6"/>
+          <rect x="32" y="124" width="76" height="20" rx="6"/>
+          <rect x="312" y="72" width="76" height="20" rx="6"/>
+          <rect x="312" y="98" width="76" height="20" rx="6"/>
+        </g>
+        <g fill="#005010" font-size="9" font-family="sans-serif" font-weight="600">
+          <text x="40" y="86">3 pesées</text>
+          <text x="40" y="112">1 avance</text>
+          <text x="40" y="138">1 livraison</text>
+          <text x="320" y="86">2 pesées</text>
+          <text x="320" y="112">1 dépense</text>
+        </g>
+
+        <path d="M70 176 C70 214 150 216 190 232"  fill="none" stroke="#7FBE92" stroke-width="2.5" stroke-dasharray="6 5" stroke-linecap="round"/>
+        <path d="M350 176 C350 214 270 216 230 232" fill="none" stroke="#7FBE92" stroke-width="2.5" stroke-dasharray="6 5" stroke-linecap="round"/>
+
+        <rect x="120" y="238" width="180" height="88" rx="18" fill="url(#gv)"/>
+        <text x="210" y="266" text-anchor="middle" font-size="12.5" font-weight="800" fill="#fff" font-family="sans-serif">Fusion par enregistrement</text>
+        <text x="210" y="286" text-anchor="middle" font-size="10" fill="#B7D6BF" font-family="sans-serif">le plus récent gagne, champ par champ</text>
+        <rect x="150" y="296" width="120" height="20" rx="6" fill="rgba(255,255,255,.16)"/>
+        <text x="210" y="310" text-anchor="middle" font-size="9.5" font-weight="700" fill="#F5B424" font-family="sans-serif">8 enregistrements, 0 écrasé</text>
+
+        <text x="210" y="348" text-anchor="middle" font-size="10" fill="#7C7264" font-family="sans-serif">Une absence n'est pas une suppression.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     SÉCURITÉ
+     ====================================================================== -->
+<section class="section bande-claire" id="securite">
+  <div class="wrap">
+    <div class="entete-section">
+      <p class="oeil">Sécurité</p>
+      <h2 class="t-h2">C'est le serveur qui décide, jamais le téléphone.</h2>
+      <p class="plomb">
+        Les garde-fous d'écran sont cosmétiques : un appareil modifié les contourne en
+        une minute. Dans VALEO, chaque écriture est réautorisée côté serveur selon le
+        rôle du jeton, et le refus est la valeur par défaut.
+      </p>
+    </div>
+
+    <div class="secu-grille">
+      <article class="secu reveal">
+        <span class="tag">isolation</span>
+        <h3>Une coopérative ne voit jamais une autre</h3>
+        <p>Le serveur impose l'identifiant de coopérative du jeton sur chaque enregistrement entrant. La séparation est aussi inscrite dans la clé de stockage, pas seulement dans le filtre de lecture.</p>
+      </article>
+
+      <article class="secu reveal">
+        <span class="tag">PBKDF2-HMAC-SHA256</span>
+        <h3>Aucun code secret en clair</h3>
+        <p>Les codes à 6 chiffres et les mots de passe sont dérivés avec un sel propre à chaque compte. Les empreintes ne quittent jamais le serveur — pour aucun rôle, pas même l'administrateur.</p>
+      </article>
+
+      <article class="secu reveal">
+        <span class="tag">anti-force-brute</span>
+        <h3>Un code à 6 chiffres reste un code à 6 chiffres</h3>
+        <p>Chaque vérification passe par un verrou porté sur l'identifiant tenté. Un identifiant inconnu consomme le même temps de calcul qu'un mauvais code : la durée de réponse ne révèle pas quels comptes existent.</p>
+      </article>
+
+      <article class="secu reveal">
+        <span class="tag">validation</span>
+        <h3>Une valeur impossible est refusée</h3>
+        <p>Un poids négatif, un paiement négatif, un statut d'avance inventé : refusés côté serveur, pour tous les rôles, patron compris. C'est une règle de validité, pas d'autorisation.</p>
+      </article>
+
+      <article class="secu reveal">
+        <span class="tag">journal d'audit</span>
+        <h3>L'acteur et l'heure sont posés par le serveur</h3>
+        <p>Pesées, avances, soldes, livraisons et vérifications sont horodatés côté serveur. Le client ne peut pas se déclarer auteur d'une action qu'il n'a pas faite.</p>
+      </article>
+
+      <article class="secu reveal">
+        <span class="tag">chiffrement</span>
+        <h3>En transit et au repos</h3>
+        <p>HTTPS obligatoire de bout en bout, cache local chiffré sur chaque appareil, et base de données hébergée chez Google Cloud. Une session peut être révoquée à distance depuis l'espace d'administration.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     QUESTIONS
+     ====================================================================== -->
+<section class="section" id="faq">
+  <div class="wrap">
+    <div class="entete-section centre">
+      <p class="oeil">Questions fréquentes</p>
+      <h2 class="t-h2">Ce qu'on nous demande le plus souvent.</h2>
+    </div>
+
+    <div class="faq">
+      <details open>
+        <summary>Faut-il du réseau pour peser un planteur ?</summary>
+        <p>Non, et c'est le point de départ de toute la conception. Le pisteur pèse, imprime son bordereau et paie sans aucune barre de réseau. La synchronisation se fait quand elle peut — au retour au village, au bureau, ou le lendemain. Rien n'est perdu entre-temps, et l'application affiche en permanence si elle est synchronisée ou non.</p>
+      </details>
+
+      <details>
+        <summary>Que se passe-t-il si le poids du magasin ne correspond pas à celui du pisteur ?</summary>
+        <p>L'écart est enregistré et reste lisible : il ne disparaît pas dans une moyenne. Le bordereau déjà remis au planteur n'est pas rouvert — il a été payé au champ, sur le poids constaté à ce moment-là. L'écart se règle avec le pisteur, et en poids : un manquant doit être comblé par de la marchandise, un excédent lui est versé avec sa commission.</p>
+      </details>
+
+      <details>
+        <summary>Un pisteur peut-il voir les planteurs d'un autre pisteur ?</summary>
+        <p>Il voit l'annuaire des planteurs de la coopérative, mais pas les opérations d'un collègue : il ne solde que les restes dus issus de ses propres pesées, et ses notifications sont filtrées de la même façon. Ce cloisonnement est appliqué sur la donnée par le serveur, pas seulement à l'affichage.</p>
+      </details>
+
+      <details>
+        <summary>Combien de coopératives peut-on gérer ?</summary>
+        <p>Autant que nécessaire, chacune totalement isolée des autres. Un patron est souverain sur sa seule coopérative : il ne peut ni lire ni écrire les données d'une autre, même en réutilisant un identifiant.</p>
+      </details>
+
+      <details>
+        <summary>Sur quels téléphones VALEO fonctionne-t-il ?</summary>
+        <p>Sur Android, y compris des appareils d'entrée de gamme — c'est une contrainte assumée qui a guidé les choix techniques. L'application existe aussi en version web pour le bureau, avec exactement les mêmes règles d'autorisation.</p>
+      </details>
+
+      <details>
+        <summary>Qui est propriétaire des données ?</summary>
+        <p>La coopérative. Les données sont exportables, et la politique de confidentialité détaille ce qui est collecté, pourquoi, et combien de temps c'est conservé.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================================
+     APPEL FINAL
+     ====================================================================== -->
+<section class="section bande-sombre" id="contact">
+  <div class="wrap appel">
+    <p class="oeil sur-sombre">Prendre contact</p>
+    <h2 class="t-h2">Voyons votre campagne ensemble.</h2>
+    <p class="plomb">
+      Une démonstration dure une demi-heure et se fait sur vos propres chiffres :
+      vos barèmes, vos pisteurs, vos planteurs. Vous verrez tout de suite si VALEO
+      tient la route pour votre coopérative.
+    </p>
+    <div class="rang actions">
+      <a class="btn btn-or" href="mailto:contact@valeo-scoop.com?subject=Demande%20de%20d%C3%A9monstration%20VALEO">
+        contact@valeo-scoop.com
+      </a>
+      <a class="btn btn-fantome" href="#roles">Revoir les rôles</a>
+    </div>
+  </div>
+</section>
 
 </main>
 
 <footer>
-  <div class="wrap foot">
-    <span>© 2026 VALEO</span>
-    <a href="/confidentialite">Politique de confidentialité</a>
-    <a href="mailto:contact@valeo-scoop.com">Nous écrire</a>
-    <span class="sep">Abidjan, Côte d'Ivoire</span>
+  <div class="wrap">
+    <div class="pied-grille">
+      <div class="pied-marque">
+        <img src="/img/logo-192.png" width="192" height="163" alt="VALEO">
+        <p>Le logiciel des coopératives agricoles de Côte d'Ivoire. Tracer, gérer, valoriser.</p>
+      </div>
+      <div>
+        <h4>Produit</h4>
+        <ul>
+          <li><a href="#chaine">Comment ça marche</a></li>
+          <li><a href="#roles">Les rôles</a></li>
+          <li><a href="#hors-ligne">Hors-ligne</a></li>
+          <li><a href="#securite">Sécurité</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Ressources</h4>
+        <ul>
+          <li><a href="/confidentialite">Confidentialité</a></li>
+          <li><a href="#faq">Questions fréquentes</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="mailto:contact@valeo-scoop.com">contact@valeo-scoop.com</a></li>
+          <li>Côte d'Ivoire</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pied-bas">
+      <span>© 2026 VALEO. Tous droits réservés.</span>
+      <span>La valeur commence à la source.</span>
+    </div>
   </div>
 </footer>
 
+<script src="/valeo.js" defer></script>
 </body>
 </html>
