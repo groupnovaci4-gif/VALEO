@@ -398,3 +398,48 @@ patron autour de VALEO), donc la photographie en a été chassée. Sans la repla
 le site n'aurait plus eu **aucune image** — précisément le reproche d'origine. Elle
 occupe une bande pleine largeur entre « Le problème » et « Le cycle ».
 `test_aucune_image_orpheline_n_est_publiee` l'a signalé avant qu'on s'en aperçoive.
+
+
+---
+
+## 11. Retrait de quatre rubriques (1<sup>er</sup> octobre, troisième passe)
+
+Supprimées à la demande : **Solution · Acteurs · Filières · Sécurité**.
+
+| Rubrique | Ce qui a été retiré |
+|---|---|
+| Solution | Section `#solution` de l'accueil — le cycle en 10 étapes, du budget au résultat d'expédition |
+| Acteurs | Section `#acteurs` de l'accueil **et** la page `/acteurs` (les 5 rôles en détail, avec ce qui leur est refusé) |
+| Filières | Section `#filieres` de l'accueil — les 5 cultures et leurs barèmes |
+| Sécurité | La page `/securite` (9 mécanismes) |
+
+**Menu restant** : Accueil · Fonctionnalités · Tarifs · FAQ, plus le bouton
+« Demander une démo ». L'accueil passe de 13 264 px à 9 921 px.
+
+### Ce que le site ne dit plus
+
+À garder en tête avant de s'étonner d'une question d'un prospect :
+
+- **Quelles filières sont prises en charge.** Seul subsistait le bandeau du héros
+  (« 5 filières agricoles ») et une question de la FAQ. Le détail — cacao, café,
+  anacarde, hévéa, palmier, chacun avec son barème — n'est plus affiché.
+- **Qui fait quoi, et ce qui lui est refusé.** La section `#mobile` montre encore
+  l'écran de chaque rôle, mais la liste des permissions a disparu.
+- **Comment les données sont protégées.** L'argument de sécurité ne vit plus que
+  dans la politique de confidentialité et dans deux réponses de la FAQ. C'était
+  le principal élément différenciant du site.
+- **Le cycle complet** (budget → allocation → enveloppe → mandat → achat → pesée
+  → commission → expédition). La cascade `#argent` en couvre la partie
+  financière, pas le parcours de la marchandise.
+
+Le contenu reste dans l'historique git (`git show f89192d:site/acteurs.html`,
+`git show f89192d:site/securite.html`) : le remettre est un `git checkout`, pas
+une réécriture.
+
+### Défaut créé par le retrait, et corrigé
+
+Deux sections portaient alors le **même titre** — « VALEO dans votre poche. » :
+`#mobile` (l'explorateur de rôles, dont le titre d'origine venait de la section
+Acteurs supprimée) et `#telecharger`. Chaque titre dit désormais ce que fait sa
+section : « Chacun voit ce qui le concerne. » et « VALEO dans votre poche. ».
+Défaut invisible à la lecture du diff, vu sur la capture pleine page.

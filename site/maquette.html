@@ -1193,8 +1193,6 @@ header {
   <span class="sep"></span>
   <span class="grp" role="group" aria-label="Page">
     <button data-page="accueil" class="on">Accueil</button>
-    <button data-page="acteurs">Acteurs</button>
-    <button data-page="securite">Sécurité</button>
     <button data-page="tarifs">Tarifs</button>
     <button data-page="faq">FAQ</button>
     <button data-page="apropos">À propos</button>
@@ -1259,11 +1257,7 @@ header {
     </button>
     <nav class="liens" id="menu">
       <a href="/" class="actif">Accueil</a>
-      <a href="/#solution">Solution</a>
       <a href="/#fonctionnalites">Fonctionnalités</a>
-      <a href="/acteurs">Acteurs</a>
-      <a href="/#filieres">Filières</a>
-      <a href="/securite">Sécurité</a>
       <a href="/tarifs">Tarifs</a>
       <a href="/faq">FAQ</a>
       <a class="btn btn-or" href="/contact">
@@ -1412,32 +1406,7 @@ header {
   </div>
 </section>
 
-<!-- ====================== COMMENT ÇA FONCTIONNE ====================== -->
-<section class="section" id="solution">
-  <div class="wrap">
-    <div class="entete-section centre">
-      <p class="oeil" style="justify-content:center">Comment fonctionne VALEO&nbsp;?</p>
-      <h2 class="t-h2">Un cycle unique, du budget au paiement.</h2>
-      <p class="plomb">
-        L'argent descend du patron jusqu'au producteur ; la marchandise remonte du
-        producteur jusqu'au magasin. VALEO tient les deux sens, et les rapproche.
-      </p>
-    </div>
 
-    <div class="cycle reveal">
-      <div class="etape"><div class="qui">Patron</div><div class="quoi"><b>Budget d'achat</b><small>L'argent que la coopérative engage pour la campagne.</small></div></div>
-      <div class="etape"><div class="qui">Patron</div><div class="quoi"><b>Allocation financière</b><small>Ce qu'il met à la main d'un comptable. Jamais plus que le budget.</small></div></div>
-      <div class="etape"><div class="qui">Comptable</div><div class="quoi"><b>Enveloppe</b><small>L'affectation à un usage : achats d'un secteur, transport, frais de route.</small></div></div>
-      <div class="etape"><div class="qui">Comptable</div><div class="quoi"><b>Mandat</b><small>Ce qu'il confie à un pisteur nommément. Jamais plus que l'enveloppe.</small></div></div>
-      <div class="etape"><div class="qui">Pisteur</div><div class="quoi"><b>Achat au producteur</b><small>Pesée sur place, prix figé, bordereau numéroté remis en main propre.</small></div></div>
-      <div class="etape"><div class="qui ext">Producteur</div><div class="quoi"><b>Paiement et reçu</b><small>Avance recouvrée, ancien reste soldé, total remis — tout est sur le bordereau.</small></div></div>
-      <div class="etape"><div class="qui">Pisteur</div><div class="quoi"><b>Livraison au magasin</b><small>Il déclare son chargement. Le patron et le magasinier sont alertés.</small></div></div>
-      <div class="etape"><div class="qui">Magasinier</div><div class="quoi"><b>Pesée et contrôle</b><small>Le chargement est pesé une fois. C'est ce poids-là qui entre en stock.</small></div></div>
-      <div class="etape"><div class="qui">Comptable</div><div class="quoi"><b>Commission et solde</b><small>La commission se gagne sur le poids vérifié, pas sur le poids déclaré.</small></div></div>
-      <div class="etape"><div class="qui">Patron</div><div class="quoi"><b>Expédition et résultat</b><small>L'usine constate son poids et son prix. La freinte et le bénéfice deviennent des chiffres.</small></div></div>
-    </div>
-  </div>
-</section>
 
 <!-- ====================== L'ARGENT SOUS CONTRÔLE ====================== -->
 <section class="section bande-claire" id="argent">
@@ -1570,78 +1539,7 @@ header {
   </div>
 </section>
 
-<section class="section bande-claire" id="acteurs">
-  <div class="wrap">
-    <div class="entete-section">
-      <p class="oeil">Les acteurs</p>
-      <h2 class="t-h2">Des responsabilités séparées, une même plateforme.</h2>
-      <p class="plomb">
-        Ce n'est pas un réglage d'affichage : le serveur refuse l'écriture qui sort
-        du rôle, et le refus est la valeur par défaut. Sous chaque rôle, ce qui lui
-        est <strong>interdit</strong> — c'est là que naissent les malentendus.
-      </p>
-    </div>
 
-    <div class="acteurs reveal">
-      <article class="acteur">
-        <div class="chapeau">
-          <span class="rond"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M4 20V9l8-5 8 5v11"/><path d="M12 20v-5"/></svg></span>
-          <b>Patron</b>
-        </div>
-        <p>Définit les barèmes et le budget d'achat, alloue les fonds, recrute les collaborateurs, approuve les avances et expédie à l'usine.</p>
-        <p class="refus">Souverain sur <strong>sa seule</strong> coopérative. Sa seule limite : les dépenses privées d'un pisteur.</p>
-      </article>
-
-      <article class="acteur">
-        <div class="chapeau">
-          <span class="rond"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h2M12 11h2M8 15h2M12 15h2M8 19h6"/></svg></span>
-          <b>Comptable</b>
-        </div>
-        <p>Gère les fonds reçus, crée les enveloppes, attribue les mandats, enregistre les dépenses et règle les commissions.</p>
-        <p class="refus">Il finance, <strong>il ne pèse pas</strong> : pesées, stock, barèmes et planteurs lui sont refusés.</p>
-      </article>
-
-      <article class="acteur">
-        <div class="chapeau">
-          <span class="rond"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h2l1-9h11l1 9h2"/><circle cx="8" cy="19" r="2"/><circle cx="17" cy="19" r="2"/></svg></span>
-          <b>Pisteur</b>
-        </div>
-        <p>Reçoit un mandat, pèse les planteurs au bord-champ, peut accorder une avance sur-le-champ, puis livre son chargement au magasin.</p>
-        <p class="refus">Ni vente, ni expédition : il ramasse et il livre. Il ne solde que <strong>ses propres</strong> restes dus.</p>
-      </article>
-
-      <article class="acteur">
-        <div class="chapeau">
-          <span class="rond"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V8l9-5 9 5v13"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg></span>
-          <b>Magasinier</b>
-        </div>
-        <p>Réceptionne, pèse, vérifie les chargements ramenés par les pisteurs et tient le stock. Son constat est celui qui fait foi.</p>
-        <p class="refus">Jamais sa propre pesée, et <strong>une seule fois</strong> : seul le patron corrige après coup.</p>
-      </article>
-
-      <article class="acteur">
-        <div class="chapeau">
-          <span class="rond"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22V9"/><path d="M12 9C12 5 9 2 5 2c0 4 3 7 7 7z"/><path d="M12 9c0-4 3-7 7-7 0 4-3 7-7 7z"/></svg></span>
-          <b>Planteur</b>
-        </div>
-        <p>Consulte ses livraisons, ses paiements et ses avances, demande une avance, lie son Mobile Money et signe ses bordereaux.</p>
-        <p class="refus">Il ne voit <strong>aucun autre planteur</strong>, aucune dépense interne, aucune coordonnée du personnel.</p>
-      </article>
-
-      <article class="acteur" style="background:var(--ivoire-2);border-style:dashed">
-        <div class="chapeau">
-          <span class="rond or" style="background:var(--or-100);color:var(--or-600)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 4.4-3.1 8.2-8 9-4.9-.8-8-4.6-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg></span>
-          <b>Et l'administrateur</b>
-        </div>
-        <p>Un espace séparé, avec son propre jeton, pour gérer les comptes, réinitialiser un code secret, désactiver un accès et lire le journal d'activité.</p>
-        <p class="refus">Même lui ne voit <strong>jamais</strong> les empreintes des codes secrets.</p>
-      </article>
-    </div>
-    <div class="rang actions" style="margin-top:var(--e6);justify-content:center">
-      <a class="btn btn-fantome" href="/acteurs">Voir ce que chaque acteur peut faire</a>
-    </div>
-  </div>
-</section>
 
 <!-- ====================== TRAÇABILITÉ ====================== -->
 <section class="section" id="tracabilite">
@@ -1666,88 +1564,16 @@ header {
   </div>
 </section>
 
-<!-- ====================== FILIÈRES ====================== -->
-<section class="section bande-claire" id="filieres">
-  <div class="wrap grille g-2" style="align-items:center">
-    <div class="reveal">
-      <p class="oeil">Les filières</p>
-      <h2 class="t-h2" style="margin-block:var(--e3) var(--e4)">Une seule plateforme pour plusieurs filières agricoles.</h2>
-      <p class="plomb">
-        Chaque culture a son barème : un prix au kilo et une commission qui lui sont
-        propres, réglés par le patron et <strong>figés sur chaque pesée</strong>. Changer un
-        prix en cours de campagne ne réécrit jamais un reçu déjà remis.
-      </p>
-      <p class="plomb" style="margin-top:var(--e4)">
-        VALEO s'adapte aux règles propres à chaque filière. Une filière supplémentaire
-        se traite comme les autres : un barème, et les mêmes règles de collecte, de
-        stock et de commission.
-      </p>
-      <div class="rang actions" style="margin-top:var(--e6)">
-        <a class="btn btn-or" href="/contact">Parler de votre filière</a>
-      </div>
-    </div>
 
-    <div class="reveal">
-      <div class="filieres">
-        <div class="filiere">
-          <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
-            <ellipse cx="20" cy="20" rx="8.5" ry="14" fill="#F5B424" stroke="#B87D0C" stroke-width="1.6"/>
-            <path d="M20 7v26M14.5 10c-1 6-1 14 0 20M25.5 10c1 6 1 14 0 20" stroke="#B87D0C" stroke-width="1.2" stroke-linecap="round"/>
-            <path d="M20 6c0-2 1.5-3.5 3-4" stroke="#127830" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <b>Cacao</b><small>Achats, mandats, pisteurs, pesées, commissions, livraisons</small>
-        </div>
-        <div class="filiere">
-          <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
-            <ellipse cx="20" cy="21" rx="11" ry="13" fill="#B3261E" stroke="#7A1A14" stroke-width="1.5"/>
-            <path d="M20 9c0 8 0 16 0 24" stroke="#7A1A14" stroke-width="1.6" stroke-linecap="round"/>
-            <path d="M20 8c2-3 5-4 8-4-1 3-3 5-6 5z" fill="#127830"/>
-          </svg>
-          <b>Café</b><small>Collecte, pesées, qualité, suivi des producteurs</small>
-        </div>
-        <div class="filiere">
-          <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
-            <path d="M20 4c5 0 9 4 9 9s-4 10-9 10-9-5-9-10 4-9 9-9z" fill="#B3261E" stroke="#7A1A14" stroke-width="1.4"/>
-            <path d="M20 4c0-2 2-3 4-3" stroke="#127830" stroke-width="1.8" stroke-linecap="round"/>
-            <path d="M13 24c0-3 3-5 7-5 4 0 7 2 7 5 0 4-4 7-8 7-2 0-3-1-3-2s1-2 2-2c2 0 4-1 4-3s-3-3-6-3c-2 0-3 1-3 3z" fill="#E5A014" stroke="#B87D0C" stroke-width="1.4" stroke-linejoin="round"/>
-          </svg>
-          <b>Anacarde</b><small>Collecte, pisteurs, achats, poids, opérations commerciales</small>
-        </div>
-        <div class="filiere">
-          <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
-            <path d="M16 4v32" stroke="#8A4B22" stroke-width="4" stroke-linecap="round"/>
-            <path d="M16 14l9 6" stroke="#B87D0C" stroke-width="2" stroke-linecap="round"/>
-            <path d="M22 21h7v6a3.5 3.5 0 0 1-7 0z" fill="#EDF1ED" stroke="#6E796E" stroke-width="1.5"/>
-            <path d="M16 8c3-3 7-3 10-1-3 3-7 4-10 2z" fill="#127830"/>
-          </svg>
-          <b>Hévéa</b><small>Achats, pesées, qualité, collecte et transferts</small>
-        </div>
-        <div class="filiere">
-          <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
-            <path d="M20 16v20" stroke="#8A4B22" stroke-width="3.5" stroke-linecap="round"/>
-            <path d="M20 15C15 9 9 8 4 10c4 4 10 6 16 5zM20 15c5-6 11-7 16-5-4 4-10 6-16 5zM20 15c-2-6 0-11 3-14 2 5 1 10-3 14z" fill="#127830"/>
-            <circle cx="20" cy="17" r="2.6" fill="#E5A014"/>
-          </svg>
-          <b>Palmier à huile</b><small>Achats de régimes, pesées, collecte et transferts</small>
-        </div>
-      </div>
-      <p class="sourdine" style="font-size:.84rem;margin-top:var(--e4);text-align:center">
-        Les cinq filières réellement prises en charge aujourd'hui, avec leur barème
-        par défaut. Chaque coopérative règle le sien.
-      </p>
-    </div>
-  </div>
-</section>
 
 <section class="section" id="mobile">
   <div class="wrap">
     <div class="entete-section">
-      <p class="oeil">Application mobile</p>
-      <h2 class="t-h2">VALEO dans votre poche.</h2>
+      <p class="oeil">Un écran par métier</p>
+      <h2 class="t-h2">Chacun voit ce qui le concerne.</h2>
       <p class="plomb">
-        Une expérience pensée pour des équipes qui travaillent au bureau comme sur le
-        terrain, sur les téléphones Android qu'elles ont déjà. Choisissez un rôle
-        pour voir son écran d'accueil.
+        Ce n'est pas un réglage d'affichage : le serveur refuse l'écriture qui sort
+        du rôle. Choisissez un métier pour voir son écran d'accueil.
       </p>
     </div>
 
@@ -2097,643 +1923,9 @@ header {
       <div>
         <h4>Produit</h4>
         <ul>
-          <li><a href="/#solution">Solution</a></li>
           <li><a href="/#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="/acteurs">Acteurs</a></li>
-          <li><a href="/#filieres">Filières</a></li>
-          <li><a href="/securite">Sécurité</a></li>
-          <li><a href="/tarifs">Tarifs</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Ressources</h4>
-        <ul>
-          <li><a href="/faq">FAQ</a></li>
-          <li><a href="/tutoriels">Tutoriels</a></li>
-          <li><a href="/blog">Blog</a></li>
-          <li><a href="/a-propos">À propos</a></li>
-          <li><a href="/confidentialite">Confidentialité</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Contact</h4>
-        <ul>
-          <li><a href="/contact">Demander une démo</a></li>
-          <li><a href="mailto:contact@valeo-scoop.com">contact@valeo-scoop.com</a></li>
-          <li>Côte d'Ivoire</li>
-        </ul>
-      </div>
-    </div>
-    <div class="pied-bas">
-      <span>© 2026 VALEO. Tous droits réservés.</span>
-      <span>La valeur commence à la source.</span>
-    </div>
-  </div>
-</footer>
-
-<script>
-/* VALEO — comportements du site public.
-   Sorti du HTML pour que la Content-Security-Policy puisse valoir
-   `script-src 'self'` : aucun script en ligne a autoriser, donc aucune
-   empreinte a maintenir quand ce fichier evolue. */
-(function () {
-  "use strict";
-
-  /* -- En-tete : opaque des que la page defile ----------------------------- */
-  var tete = document.getElementById("tete");
-  var auSol = function () { tete.classList.toggle("colle", window.scrollY > 24); };
-  auSol();
-  addEventListener("scroll", auSol, { passive: true });
-
-  /* -- Menu du telephone --------------------------------------------------- */
-  var burger = document.getElementById("burger");
-  var menu = document.getElementById("menu");
-  burger.addEventListener("click", function () {
-    var ouvert = menu.classList.toggle("ouvert");
-    burger.setAttribute("aria-expanded", String(ouvert));
-  });
-  menu.addEventListener("click", function (e) {
-    if (e.target.tagName === "A") {
-      menu.classList.remove("ouvert");
-      burger.setAttribute("aria-expanded", "false");
-    }
-  });
-
-  /* -- Apparition au defilement -------------------------------------------- */
-  var aReveler = document.querySelectorAll(".reveal");
-  if (!("IntersectionObserver" in window)) {
-    /* Navigateur ancien : on montre tout plutot que de cacher le site. */
-    aReveler.forEach(function (n) { n.classList.add("vu"); });
-  } else {
-    var obs = new IntersectionObserver(function (entrees) {
-      entrees.forEach(function (e) {
-        if (e.isIntersecting) { e.target.classList.add("vu"); obs.unobserve(e.target); }
-      });
-    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
-    aReveler.forEach(function (n) { obs.observe(n); });
-  }
-
-  /* -- Explorateur de roles ------------------------------------------------ */
-  var onglets = [].slice.call(document.querySelectorAll('[role="tab"]'));
-
-  function montrer(onglet) {
-    onglets.forEach(function (o) {
-      var actif = o === onglet;
-      o.setAttribute("aria-selected", String(actif));
-      document.getElementById(o.getAttribute("aria-controls")).hidden = !actif;
-    });
-  }
-
-  onglets.forEach(function (o, i) {
-    o.addEventListener("click", function () { montrer(o); });
-    /* Navigation au clavier : les fleches parcourent les onglets, comme le
-       veut le motif ARIA. Sans cela l'explorateur est inutilisable sans souris. */
-    o.addEventListener("keydown", function (e) {
-      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-      if (!d) return;
-      e.preventDefault();
-      var suivant = onglets[(i + d + onglets.length) % onglets.length];
-      montrer(suivant);
-      suivant.focus();
-    });
-  });
-
-  /* -- Compteurs ------------------------------------------------------------
-     Les chiffres du bandeau sont deja dans le HTML : l'animation ne fait que
-     les faire monter. Si le script tombe, ils restent justes et lisibles. */
-  var reduit = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!reduit && "IntersectionObserver" in window) {
-    var oc = new IntersectionObserver(function (entrees) {
-      entrees.forEach(function (e) {
-        if (!e.isIntersecting) return;
-        oc.unobserve(e.target);
-        var cible = parseInt(e.target.textContent, 10);
-        if (isNaN(cible) || cible === 0) return;
-        var t0 = performance.now(), duree = 750;
-        (function pas(t) {
-          var p = Math.min(1, (t - t0) / duree);
-          e.target.textContent = String(Math.round(cible * (1 - Math.pow(1 - p, 3))));
-          if (p < 1) requestAnimationFrame(pas);
-        })(t0);
-      });
-    }, { threshold: 0.6 });
-    document.querySelectorAll(".chiffre b").forEach(function (n) { oc.observe(n); });
-  }
-})();
-
-/* --------------------------------------------------------------------------
-   Formulaire de démonstration
-
-   Ce n'est PAS un <form>. Volontairement : la Content-Security-Policy du site
-   pose `form-action 'none'`, et le site n'a aucun backend pour recevoir une
-   soumission. Un vrai formulaire exigerait soit un service tiers (une requête
-   vers un autre domaine, que la CSP interdit et que la page promet de ne pas
-   faire), soit un endpoint à écrire et à protéger du spam.
-
-   On compose donc un `mailto:` avec les champs saisis. L'expéditeur relit
-   avant d'envoyer, rien ne part de la page, et sans JavaScript l'adresse reste
-   accessible juste en dessous.
-   -------------------------------------------------------------------------- */
-(function () {
-  "use strict";
-  var bouton = document.getElementById("envoyer");
-  if (!bouton) return;
-
-  var CHAMPS = [
-    ["f-nom", "Nom"], ["f-prenom", "Prénom"], ["f-coop", "Coopérative"],
-    ["f-fonction", "Fonction"], ["f-filiere", "Filière"], ["f-tel", "Téléphone"],
-    ["f-mail", "E-mail"], ["f-membres", "Nombre de producteurs"]
-  ];
-
-  bouton.addEventListener("click", function () {
-    var lignes = [];
-    CHAMPS.forEach(function (c) {
-      var el = document.getElementById(c[0]);
-      if (el && el.value.trim()) lignes.push(c[1] + " : " + el.value.trim());
-    });
-    var msg = document.getElementById("f-msg");
-    if (msg && msg.value.trim()) lignes.push("", "Message :", msg.value.trim());
-
-    var coop = document.getElementById("f-coop");
-    var sujet = "Demande de démonstration VALEO"
-              + (coop && coop.value.trim() ? " — " + coop.value.trim() : "");
-
-    location.href = "mailto:contact@valeo-scoop.com"
-      + "?subject=" + encodeURIComponent(sujet)
-      + "&body=" + encodeURIComponent(lignes.join("\n"));
-  });
-})();
-
-</script>
-</div>
-  <div id="pg-acteurs" hidden>
-
-<header id="tete" class="colle">
-  <div class="wrap barre">
-    <a class="marque" href="/" aria-label="VALEO, accueil">
-      <img class="embleme" src="data:image/png;base64,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" width="220" height="118" alt="" aria-hidden="true">
-      <span class="marque-nom">
-        <b>VALEO</b>
-        <span>Tracer · Gérer · Valoriser</span>
-      </span>
-    </a>
-    <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-    </button>
-    <nav class="liens" id="menu">
-      <a href="/">Accueil</a>
-      <a href="/#solution">Solution</a>
-      <a href="/#fonctionnalites">Fonctionnalités</a>
-      <a href="/acteurs" class="actif">Acteurs</a>
-      <a href="/#filieres">Filières</a>
-      <a href="/securite">Sécurité</a>
-      <a href="/tarifs">Tarifs</a>
-      <a href="/faq">FAQ</a>
-      <a class="btn btn-or" href="/contact">
-        Demander une démo
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </a>
-    </nav>
-  </div>
-</header>
-
-<main>
-<section class="section">
-  <div class="wrap">
-    <div class="entete-section centre">
-      <p class="oeil" style="justify-content:center">VALEO pour chaque acteur</p>
-      <h2 class="t-h2">Des responsabilités séparées, une même plateforme.</h2>
-      <p class="plomb">
-        Les garde-fous d'écran sont cosmétiques : un appareil modifié les contourne.
-        Dans VALEO, chaque écriture est réautorisée <strong>côté serveur</strong> selon le
-        rôle, et le refus est la valeur par défaut. D'où la ligne « ce qui lui est
-        refusé » sous chaque rôle : c'est là que naissent les malentendus.
-      </p>
-    </div>
-
-    <div style="max-width:780px;margin-inline:auto">
-      <article class="carte" style="margin-bottom:var(--e5)">
-        <div class="role-titre">
-          <div class="pastille"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M4 20V9l8-5 8 5v11"/><path d="M12 20v-5"/></svg></div>
-          <h3 class="t-h3">Le patron — gardez le contrôle de votre coopérative</h3>
-        </div>
-        <p class="plomb" style="font-size:1.02rem;margin-bottom:var(--e5)">Il décide. Il fixe les barèmes, ouvre le budget d'achat, recrute les collaborateurs, approuve les avances et expédie à l'usine.</p>
-        <p class="titre-liste" style="font-size:.72rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--sourdine);margin-bottom:var(--e3)">Ce qu'il peut faire</p>
-        <ul class="liste-faits">
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Définir son budget d'achat de campagne</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Allouer des fonds à un comptable</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Suivre les dépenses de la coopérative</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Superviser les équipes et créer les comptes</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Suivre les achats, les poids et le stock</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Consulter les mandats en cours</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Suivre les commissions dues aux agents</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Contrôler les paiements et corriger une vérification contestée</span></li>
-        </ul>
-        <p class="refus" style="margin-top:var(--e5);padding-top:var(--e4);border-top:1px dashed var(--trait);color:var(--encre-2);font-size:.93rem">
-          <strong>Ce qui lui est refusé.</strong> Rien, sur sa coopérative — mais <strong>rien du tout sur une autre</strong> : l'isolation entre coopératives est la garantie la plus stricte du produit. Sa seule autre limite : les dépenses privées d'un pisteur, qui ne lui appartiennent pas.
-        </p>
-      </article>      <article class="carte" style="margin-bottom:var(--e5)">
-        <div class="role-titre">
-          <div class="pastille"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h2M12 11h2M8 15h2M12 15h2M8 19h6"/></svg></div>
-          <h3 class="t-h3">Le comptable — transformez un budget en opérations maîtrisées</h3>
-        </div>
-        <p class="plomb" style="font-size:1.02rem;margin-bottom:var(--e5)">Il gère l'argent reçu du patron, dans la limite que celui-ci a posée. Il ne possède pas les fonds : il les administre.</p>
-        <p class="titre-liste" style="font-size:.72rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--sourdine);margin-bottom:var(--e3)">Ce qu'il peut faire</p>
-        <ul class="liste-faits">
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Gérer les fonds alloués par le patron</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Créer et ajuster les enveloppes</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Attribuer les mandats aux pisteurs</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Enregistrer les dépenses de la coopérative</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Suivre les soldes et la trésorerie</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Régler les commissions et les dettes aux agents</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Consulter le journal financier</span></li>
-        </ul>
-        <p class="refus" style="margin-top:var(--e5);padding-top:var(--e4);border-top:1px dashed var(--trait);color:var(--encre-2);font-size:.93rem">
-          <strong>Ce qui lui est refusé.</strong> <strong>Il finance, il ne pèse pas.</strong> Pesées, soldes de restes, sorties de stock, avances, fiches producteurs, fiches collaborateurs et barèmes lui sont refusés par le serveur. Un comptable qui pourrait modifier une pesée corrigerait ses chiffres en changeant le terrain — la fraude la plus difficile à détecter, puisqu'elle laisse des comptes équilibrés devant un stock faux.
-        </p>
-      </article>      <article class="carte" style="margin-bottom:var(--e5)">
-        <div class="role-titre">
-          <div class="pastille"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h2l1-9h11l1 9h2"/><circle cx="8" cy="19" r="2"/><circle cx="17" cy="19" r="2"/></svg></div>
-          <h3 class="t-h3">Le pisteur / délégué — achetez, collectez et rendez compte</h3>
-        </div>
-        <p class="plomb" style="font-size:1.02rem;margin-bottom:var(--e5)">Il part avec un mandat, achète auprès des producteurs, puis ramène son chargement. C'est un prestataire rémunéré à la commission, pas un salarié.</p>
-        <p class="titre-liste" style="font-size:.72rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--sourdine);margin-bottom:var(--e3)">Ce qu'il peut faire</p>
-        <ul class="liste-faits">
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Recevoir un mandat nominatif</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Acheter auprès des producteurs, sans réseau</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Suivre le poids collecté et pas encore remis</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Accorder une avance sur-le-champ</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Livrer son chargement au magasin</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Suivre les sommes utilisées et son solde de caisse</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Suivre sa commission et son excédent acquis</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Voir ce que la coopérative lui doit</span></li>
-        </ul>
-        <p class="refus" style="margin-top:var(--e5);padding-top:var(--e4);border-top:1px dashed var(--trait);color:var(--encre-2);font-size:.93rem">
-          <strong>Ce qui lui est refusé.</strong> Ni vente, ni expédition, ni transfert : il ramasse et il livre, c'est tout. Il ne vérifie jamais un poids, et ne solde que les restes dus issus de <strong>ses propres</strong> pesées — pas ceux d'un collègue, même sur un producteur qu'il suit.
-        </p>
-      </article>      <article class="carte" style="margin-bottom:var(--e5)">
-        <div class="role-titre">
-          <div class="pastille"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V8l9-5 9 5v13"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg></div>
-          <h3 class="t-h3">Le magasinier — contrôlez les entrées avec précision</h3>
-        </div>
-        <p class="plomb" style="font-size:1.02rem;margin-bottom:var(--e5)">Il réceptionne, pèse et tient le stock. Son constat est celui qui fait foi : c'est le poids qu'il relève qui entre en stock et qui ouvre la commission du pisteur.</p>
-        <p class="titre-liste" style="font-size:.72rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--sourdine);margin-bottom:var(--e3)">Ce qu'il peut faire</p>
-        <ul class="liste-faits">
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Réceptionner les chargements livrés</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Peser et vérifier, en une ou plusieurs fournées</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Peser les producteurs qui viennent au magasin</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Enregistrer les entrées et sorties</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Tenir le stock réel du magasin</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Créer une fiche producteur rattachée à lui</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Consulter l'historique des livraisons</span></li>
-        </ul>
-        <p class="refus" style="margin-top:var(--e5);padding-top:var(--e4);border-top:1px dashed var(--trait);color:var(--encre-2);font-size:.93rem">
-          <strong>Ce qui lui est refusé.</strong> Jamais sa propre pesée, et <strong>une seule fois</strong> par chargement : seul le patron corrige après coup. Et il <strong>ne gère pas les finances du comptable</strong> — ni enveloppes, ni allocations, ni mandats.
-        </p>
-      </article>      <article class="carte" style="margin-bottom:var(--e5)">
-        <div class="role-titre">
-          <div class="pastille"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22V9"/><path d="M12 9C12 5 9 2 5 2c0 4 3 7 7 7z"/><path d="M12 9c0-4 3-7 7-7 0 4-3 7-7 7z"/></svg></div>
-          <h3 class="t-h3">Le planteur — vos chiffres, et rien que les vôtres</h3>
-        </div>
-        <p class="plomb" style="font-size:1.02rem;margin-bottom:var(--e5)">Il consulte ce qui le concerne depuis son propre téléphone, avec son identifiant <span class="mono">VAL-XXXX-YY</span> ou son numéro.</p>
-        <p class="titre-liste" style="font-size:.72rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--sourdine);margin-bottom:var(--e3)">Ce qu'il peut faire</p>
-        <ul class="liste-faits">
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Consulter ses livraisons et leurs bordereaux</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Consulter ses paiements</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Suivre ses avances et leur origine</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Demander une avance</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Lier son Mobile Money</span></li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Signer ses bordereaux</span></li>
-        </ul>
-        <p class="refus" style="margin-top:var(--e5);padding-top:var(--e4);border-top:1px dashed var(--trait);color:var(--encre-2);font-size:.93rem">
-          <strong>Ce qui lui est refusé.</strong> Il ne voit <strong>aucun autre planteur</strong>, aucune dépense interne, aucun mandat, et aucune coordonnée du personnel. Ce n'est pas un filtre d'affichage : le serveur ne lui transmet pas ces données.
-        </p>
-      </article>
-    </div>
-
-    <div class="appel" style="margin-top:var(--e8)">
-      <p class="plomb">Un rôle ne correspond pas à votre organisation&nbsp;?</p>
-      <a class="btn btn-or" href="/contact">Parlons-en</a>
-    </div>
-  </div>
-</section>
-
-</main>
-
-<footer>
-  <div class="wrap">
-    <div class="pied-grille">
-      <div class="pied-marque">
-        <img src="data:image/png;base64,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" width="192" height="163" alt="VALEO">
-        <p>La plateforme de gestion des opérations agricoles. Du budget d'achat à la collecte, de la pesée au paiement.</p>
-      </div>
-      <div>
-        <h4>Produit</h4>
-        <ul>
-          <li><a href="/#solution">Solution</a></li>
-          <li><a href="/#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="/acteurs">Acteurs</a></li>
-          <li><a href="/#filieres">Filières</a></li>
-          <li><a href="/securite">Sécurité</a></li>
-          <li><a href="/tarifs">Tarifs</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Ressources</h4>
-        <ul>
-          <li><a href="/faq">FAQ</a></li>
-          <li><a href="/tutoriels">Tutoriels</a></li>
-          <li><a href="/blog">Blog</a></li>
-          <li><a href="/a-propos">À propos</a></li>
-          <li><a href="/confidentialite">Confidentialité</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>Contact</h4>
-        <ul>
-          <li><a href="/contact">Demander une démo</a></li>
-          <li><a href="mailto:contact@valeo-scoop.com">contact@valeo-scoop.com</a></li>
-          <li>Côte d'Ivoire</li>
-        </ul>
-      </div>
-    </div>
-    <div class="pied-bas">
-      <span>© 2026 VALEO. Tous droits réservés.</span>
-      <span>La valeur commence à la source.</span>
-    </div>
-  </div>
-</footer>
-
-<script>
-/* VALEO — comportements du site public.
-   Sorti du HTML pour que la Content-Security-Policy puisse valoir
-   `script-src 'self'` : aucun script en ligne a autoriser, donc aucune
-   empreinte a maintenir quand ce fichier evolue. */
-(function () {
-  "use strict";
-
-  /* -- En-tete : opaque des que la page defile ----------------------------- */
-  var tete = document.getElementById("tete");
-  var auSol = function () { tete.classList.toggle("colle", window.scrollY > 24); };
-  auSol();
-  addEventListener("scroll", auSol, { passive: true });
-
-  /* -- Menu du telephone --------------------------------------------------- */
-  var burger = document.getElementById("burger");
-  var menu = document.getElementById("menu");
-  burger.addEventListener("click", function () {
-    var ouvert = menu.classList.toggle("ouvert");
-    burger.setAttribute("aria-expanded", String(ouvert));
-  });
-  menu.addEventListener("click", function (e) {
-    if (e.target.tagName === "A") {
-      menu.classList.remove("ouvert");
-      burger.setAttribute("aria-expanded", "false");
-    }
-  });
-
-  /* -- Apparition au defilement -------------------------------------------- */
-  var aReveler = document.querySelectorAll(".reveal");
-  if (!("IntersectionObserver" in window)) {
-    /* Navigateur ancien : on montre tout plutot que de cacher le site. */
-    aReveler.forEach(function (n) { n.classList.add("vu"); });
-  } else {
-    var obs = new IntersectionObserver(function (entrees) {
-      entrees.forEach(function (e) {
-        if (e.isIntersecting) { e.target.classList.add("vu"); obs.unobserve(e.target); }
-      });
-    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
-    aReveler.forEach(function (n) { obs.observe(n); });
-  }
-
-  /* -- Explorateur de roles ------------------------------------------------ */
-  var onglets = [].slice.call(document.querySelectorAll('[role="tab"]'));
-
-  function montrer(onglet) {
-    onglets.forEach(function (o) {
-      var actif = o === onglet;
-      o.setAttribute("aria-selected", String(actif));
-      document.getElementById(o.getAttribute("aria-controls")).hidden = !actif;
-    });
-  }
-
-  onglets.forEach(function (o, i) {
-    o.addEventListener("click", function () { montrer(o); });
-    /* Navigation au clavier : les fleches parcourent les onglets, comme le
-       veut le motif ARIA. Sans cela l'explorateur est inutilisable sans souris. */
-    o.addEventListener("keydown", function (e) {
-      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-      if (!d) return;
-      e.preventDefault();
-      var suivant = onglets[(i + d + onglets.length) % onglets.length];
-      montrer(suivant);
-      suivant.focus();
-    });
-  });
-
-  /* -- Compteurs ------------------------------------------------------------
-     Les chiffres du bandeau sont deja dans le HTML : l'animation ne fait que
-     les faire monter. Si le script tombe, ils restent justes et lisibles. */
-  var reduit = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!reduit && "IntersectionObserver" in window) {
-    var oc = new IntersectionObserver(function (entrees) {
-      entrees.forEach(function (e) {
-        if (!e.isIntersecting) return;
-        oc.unobserve(e.target);
-        var cible = parseInt(e.target.textContent, 10);
-        if (isNaN(cible) || cible === 0) return;
-        var t0 = performance.now(), duree = 750;
-        (function pas(t) {
-          var p = Math.min(1, (t - t0) / duree);
-          e.target.textContent = String(Math.round(cible * (1 - Math.pow(1 - p, 3))));
-          if (p < 1) requestAnimationFrame(pas);
-        })(t0);
-      });
-    }, { threshold: 0.6 });
-    document.querySelectorAll(".chiffre b").forEach(function (n) { oc.observe(n); });
-  }
-})();
-
-/* --------------------------------------------------------------------------
-   Formulaire de démonstration
-
-   Ce n'est PAS un <form>. Volontairement : la Content-Security-Policy du site
-   pose `form-action 'none'`, et le site n'a aucun backend pour recevoir une
-   soumission. Un vrai formulaire exigerait soit un service tiers (une requête
-   vers un autre domaine, que la CSP interdit et que la page promet de ne pas
-   faire), soit un endpoint à écrire et à protéger du spam.
-
-   On compose donc un `mailto:` avec les champs saisis. L'expéditeur relit
-   avant d'envoyer, rien ne part de la page, et sans JavaScript l'adresse reste
-   accessible juste en dessous.
-   -------------------------------------------------------------------------- */
-(function () {
-  "use strict";
-  var bouton = document.getElementById("envoyer");
-  if (!bouton) return;
-
-  var CHAMPS = [
-    ["f-nom", "Nom"], ["f-prenom", "Prénom"], ["f-coop", "Coopérative"],
-    ["f-fonction", "Fonction"], ["f-filiere", "Filière"], ["f-tel", "Téléphone"],
-    ["f-mail", "E-mail"], ["f-membres", "Nombre de producteurs"]
-  ];
-
-  bouton.addEventListener("click", function () {
-    var lignes = [];
-    CHAMPS.forEach(function (c) {
-      var el = document.getElementById(c[0]);
-      if (el && el.value.trim()) lignes.push(c[1] + " : " + el.value.trim());
-    });
-    var msg = document.getElementById("f-msg");
-    if (msg && msg.value.trim()) lignes.push("", "Message :", msg.value.trim());
-
-    var coop = document.getElementById("f-coop");
-    var sujet = "Demande de démonstration VALEO"
-              + (coop && coop.value.trim() ? " — " + coop.value.trim() : "");
-
-    location.href = "mailto:contact@valeo-scoop.com"
-      + "?subject=" + encodeURIComponent(sujet)
-      + "&body=" + encodeURIComponent(lignes.join("\n"));
-  });
-})();
-
-</script>
-</div>
-  <div id="pg-securite" hidden>
-
-<header id="tete" class="colle">
-  <div class="wrap barre">
-    <a class="marque" href="/" aria-label="VALEO, accueil">
-      <img class="embleme" src="data:image/png;base64,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" width="220" height="118" alt="" aria-hidden="true">
-      <span class="marque-nom">
-        <b>VALEO</b>
-        <span>Tracer · Gérer · Valoriser</span>
-      </span>
-    </a>
-    <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-    </button>
-    <nav class="liens" id="menu">
-      <a href="/">Accueil</a>
-      <a href="/#solution">Solution</a>
-      <a href="/#fonctionnalites">Fonctionnalités</a>
-      <a href="/acteurs">Acteurs</a>
-      <a href="/#filieres">Filières</a>
-      <a href="/securite" class="actif">Sécurité</a>
-      <a href="/tarifs">Tarifs</a>
-      <a href="/faq">FAQ</a>
-      <a class="btn btn-or" href="/contact">
-        Demander une démo
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </a>
-    </nav>
-  </div>
-</header>
-
-<main>
-<section class="section">
-  <div class="wrap">
-    <div class="entete-section centre">
-      <p class="oeil" style="justify-content:center">Sécurité &amp; contrôle</p>
-      <h2 class="t-h2">Chaque utilisateur ne voit et ne réalise que les opérations de son rôle.</h2>
-      <p class="plomb">
-        Et ce n'est pas une promesse d'interface. Les garde-fous d'écran sont
-        cosmétiques : un appareil modifié les contourne en une minute. Dans VALEO,
-        chaque écriture est réautorisée <strong>côté serveur</strong>, et le refus est la
-        valeur par défaut — un champ oublié provoque une erreur visible, jamais une
-        faille silencieuse.
-      </p>
-    </div>
-
-    <div class="secu-grille">
-      <article class="secu">
-        <span class="tag">isolation</span>
-        <h3>Une coopérative ne voit jamais une autre</h3>
-        <p>Le serveur impose l'identifiant de coopérative du jeton sur chaque enregistrement entrant. La séparation est aussi inscrite dans la clé de stockage, pas seulement dans le filtre de lecture — réutiliser l'identifiant d'une autre coopérative n'ouvre rien.</p>
-      </article>
-      <article class="secu">
-        <span class="tag">permissions</span>
-        <h3>Une matrice de rôles, appliquée sur la donnée</h3>
-        <p>Qui peut peser, vérifier, solder, approuver, allouer, expédier : chaque combinaison est décidée par le serveur. Un rôle inconnu est refusé par défaut plutôt qu'autorisé par omission.</p>
-      </article>
-      <article class="secu">
-        <span class="tag">PBKDF2-HMAC-SHA256</span>
-        <h3>Aucun code secret en clair</h3>
-        <p>Les codes à 6 chiffres et les mots de passe sont dérivés avec un sel propre à chaque compte. Les empreintes ne quittent jamais le serveur — pour aucun rôle, pas même l'administrateur.</p>
-      </article>
-      <article class="secu">
-        <span class="tag">anti-force-brute</span>
-        <h3>Un code à 6 chiffres reste un code à 6 chiffres</h3>
-        <p>Chaque vérification passe par un verrou porté sur l'identifiant tenté. Un identifiant inconnu consomme le même temps de calcul qu'un mauvais code : la durée de réponse ne révèle pas quels comptes existent.</p>
-      </article>
-      <article class="secu">
-        <span class="tag">journal d'audit</span>
-        <h3>L'acteur et l'heure sont posés par le serveur</h3>
-        <p>Pesées, avances, soldes, livraisons et vérifications sont horodatés côté serveur. Le client ne peut pas se déclarer auteur d'une action qu'il n'a pas faite, ni antidater une opération.</p>
-      </article>
-      <article class="secu">
-        <span class="tag">validation</span>
-        <h3>Une valeur impossible est refusée</h3>
-        <p>Un poids négatif, un paiement négatif, un statut d'avance inventé : refusés pour tous les rôles, patron compris. C'est une règle de validité, pas d'autorisation — la souveraineté du patron porte sur ce qu'il décide, pas sur la possibilité d'écrire un poids négatif.</p>
-      </article>
-      <article class="secu">
-        <span class="tag">séparation</span>
-        <h3>Celui qui finance ne pèse pas</h3>
-        <p>Le comptable n'a accès ni aux pesées, ni au stock, ni aux barèmes. Un comptable capable de corriger une balance équilibrerait ses comptes en changeant le terrain : des comptes justes devant un stock faux.</p>
-      </article>
-      <article class="secu">
-        <span class="tag">révocation</span>
-        <h3>Désactiver un accès, à distance</h3>
-        <p>Un compte désactivé est refusé à la connexion même si le code est bon, et le champ n'appartient à aucun ensemble modifiable par l'application : personne ne peut lever sa propre désactivation.</p>
-      </article>
-      <article class="secu">
-        <span class="tag">chiffrement</span>
-        <h3>En transit et au repos</h3>
-        <p>HTTPS obligatoire de bout en bout, cache local chiffré sur chaque appareil, base hébergée chez Google Cloud. L'accès direct à la base est refusé : seul le serveur écrit, après avoir autorisé.</p>
-      </article>
-    </div>
-
-    <div class="carte" style="max-width:780px;margin:var(--e8) auto 0">
-      <h3 class="t-h3" style="margin-bottom:var(--e3)">Ce que la sécurité ne doit pas empêcher</h3>
-      <p>
-        Un pisteur passe des jours en tournée sans réseau. S'il fallait être connecté
-        pour peser, le produit ne servirait à rien sur le terrain — et aucune règle de
-        sécurité ne justifie de rendre l'outil inutilisable là où il doit travailler.
-      </p>
-      <p style="margin-top:var(--e3)">
-        VALEO fonctionne donc hors-ligne, et c'est au retour que le serveur arbitre :
-        il autorise, il fusionne enregistrement par enregistrement, et il refuse ce qui
-        sort du rôle. Deux agents partis dans deux directions ne s'écrasent jamais.
-      </p>
-    </div>
-
-    <div class="appel" style="margin-top:var(--e8)">
-      <p class="plomb">Une question précise sur la sécurité de vos données&nbsp;?</p>
-      <div class="rang actions" style="justify-content:center">
-        <a class="btn btn-or" href="/contact">Nous écrire</a>
-        <a class="btn btn-fantome" href="/confidentialite">Politique de confidentialité</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-</main>
-
-<footer>
-  <div class="wrap">
-    <div class="pied-grille">
-      <div class="pied-marque">
-        <img src="data:image/png;base64,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" width="192" height="163" alt="VALEO">
-        <p>La plateforme de gestion des opérations agricoles. Du budget d'achat à la collecte, de la pesée au paiement.</p>
-      </div>
-      <div>
-        <h4>Produit</h4>
-        <ul>
-          <li><a href="/#solution">Solution</a></li>
-          <li><a href="/#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="/acteurs">Acteurs</a></li>
-          <li><a href="/#filieres">Filières</a></li>
-          <li><a href="/securite">Sécurité</a></li>
+          <li><a href="/#argent">L'argent sous contrôle</a></li>
+          <li><a href="/#tracabilite">Traçabilité</a></li>
           <li><a href="/tarifs">Tarifs</a></li>
         </ul>
       </div>
@@ -2914,11 +2106,7 @@ header {
     </button>
     <nav class="liens" id="menu">
       <a href="/">Accueil</a>
-      <a href="/#solution">Solution</a>
       <a href="/#fonctionnalites">Fonctionnalités</a>
-      <a href="/acteurs">Acteurs</a>
-      <a href="/#filieres">Filières</a>
-      <a href="/securite">Sécurité</a>
       <a href="/tarifs" class="actif">Tarifs</a>
       <a href="/faq">FAQ</a>
       <a class="btn btn-or" href="/contact">
@@ -3023,11 +2211,9 @@ header {
       <div>
         <h4>Produit</h4>
         <ul>
-          <li><a href="/#solution">Solution</a></li>
           <li><a href="/#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="/acteurs">Acteurs</a></li>
-          <li><a href="/#filieres">Filières</a></li>
-          <li><a href="/securite">Sécurité</a></li>
+          <li><a href="/#argent">L'argent sous contrôle</a></li>
+          <li><a href="/#tracabilite">Traçabilité</a></li>
           <li><a href="/tarifs">Tarifs</a></li>
         </ul>
       </div>
@@ -3208,11 +2394,7 @@ header {
     </button>
     <nav class="liens" id="menu">
       <a href="/">Accueil</a>
-      <a href="/#solution">Solution</a>
       <a href="/#fonctionnalites">Fonctionnalités</a>
-      <a href="/acteurs">Acteurs</a>
-      <a href="/#filieres">Filières</a>
-      <a href="/securite">Sécurité</a>
       <a href="/tarifs">Tarifs</a>
       <a href="/faq" class="actif">FAQ</a>
       <a class="btn btn-or" href="/contact">
@@ -3287,7 +2469,7 @@ header {
       </details>
       <details>
         <summary>Mes données sont-elles sécurisées ?</summary>
-        <p>Les codes secrets sont hachés et ne quittent jamais le serveur, les échanges passent en HTTPS, le cache local de chaque appareil est chiffré, et une coopérative ne peut ni lire ni écrire les données d'une autre. La page <a href='/securite'>Sécurité &amp; contrôle</a> détaille chaque mécanisme.</p>
+        <p>Les codes secrets sont hachés et ne quittent jamais le serveur, les échanges passent en HTTPS, le cache local de chaque appareil est chiffré, et une coopérative ne peut ni lire ni écrire les données d'une autre. Chaque écriture est par ailleurs réautorisée côté serveur selon le rôle : les garde-fous d'écran ne suffisent pas face à un appareil modifié.</p>
       </details>
       <details>
         <summary>Qui est propriétaire des données ?</summary>
@@ -3321,11 +2503,9 @@ header {
       <div>
         <h4>Produit</h4>
         <ul>
-          <li><a href="/#solution">Solution</a></li>
           <li><a href="/#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="/acteurs">Acteurs</a></li>
-          <li><a href="/#filieres">Filières</a></li>
-          <li><a href="/securite">Sécurité</a></li>
+          <li><a href="/#argent">L'argent sous contrôle</a></li>
+          <li><a href="/#tracabilite">Traçabilité</a></li>
           <li><a href="/tarifs">Tarifs</a></li>
         </ul>
       </div>
@@ -3506,11 +2686,7 @@ header {
     </button>
     <nav class="liens" id="menu">
       <a href="/">Accueil</a>
-      <a href="/#solution">Solution</a>
       <a href="/#fonctionnalites">Fonctionnalités</a>
-      <a href="/acteurs">Acteurs</a>
-      <a href="/#filieres">Filières</a>
-      <a href="/securite">Sécurité</a>
       <a href="/tarifs">Tarifs</a>
       <a href="/faq">FAQ</a>
       <a class="btn btn-or" href="/contact">
@@ -3597,7 +2773,7 @@ header {
 
     <div class="rang actions" style="margin-top:var(--e6)">
       <a class="btn btn-or" href="/contact">Demander une démonstration</a>
-      <a class="btn btn-fantome" href="/securite">Comment nous protégeons vos données</a>
+      <a class="btn btn-fantome" href="/confidentialite">Comment nous traitons vos données</a>
     </div>
   </div>
 </section>
@@ -3614,11 +2790,9 @@ header {
       <div>
         <h4>Produit</h4>
         <ul>
-          <li><a href="/#solution">Solution</a></li>
           <li><a href="/#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="/acteurs">Acteurs</a></li>
-          <li><a href="/#filieres">Filières</a></li>
-          <li><a href="/securite">Sécurité</a></li>
+          <li><a href="/#argent">L'argent sous contrôle</a></li>
+          <li><a href="/#tracabilite">Traçabilité</a></li>
           <li><a href="/tarifs">Tarifs</a></li>
         </ul>
       </div>
@@ -3799,11 +2973,7 @@ header {
     </button>
     <nav class="liens" id="menu">
       <a href="/">Accueil</a>
-      <a href="/#solution">Solution</a>
       <a href="/#fonctionnalites">Fonctionnalités</a>
-      <a href="/acteurs">Acteurs</a>
-      <a href="/#filieres">Filières</a>
-      <a href="/securite">Sécurité</a>
       <a href="/tarifs">Tarifs</a>
       <a href="/faq">FAQ</a>
       <a class="btn btn-or" href="/contact">
@@ -3896,11 +3066,9 @@ header {
       <div>
         <h4>Produit</h4>
         <ul>
-          <li><a href="/#solution">Solution</a></li>
           <li><a href="/#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="/acteurs">Acteurs</a></li>
-          <li><a href="/#filieres">Filières</a></li>
-          <li><a href="/securite">Sécurité</a></li>
+          <li><a href="/#argent">L'argent sous contrôle</a></li>
+          <li><a href="/#tracabilite">Traçabilité</a></li>
           <li><a href="/tarifs">Tarifs</a></li>
         </ul>
       </div>
@@ -4080,11 +3248,7 @@ header {
     </button>
     <nav class="liens" id="menu">
       <a href="/">Accueil</a>
-      <a href="/#solution">Solution</a>
       <a href="/#fonctionnalites">Fonctionnalités</a>
-      <a href="/acteurs">Acteurs</a>
-      <a href="/#filieres">Filières</a>
-      <a href="/securite">Sécurité</a>
       <a href="/tarifs">Tarifs</a>
       <a href="/faq">FAQ</a>
       <a class="btn btn-or" href="/contact">
@@ -4298,11 +3462,9 @@ header {
       <div>
         <h4>Produit</h4>
         <ul>
-          <li><a href="/#solution">Solution</a></li>
           <li><a href="/#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="/acteurs">Acteurs</a></li>
-          <li><a href="/#filieres">Filières</a></li>
-          <li><a href="/securite">Sécurité</a></li>
+          <li><a href="/#argent">L'argent sous contrôle</a></li>
+          <li><a href="/#tracabilite">Traçabilité</a></li>
           <li><a href="/tarifs">Tarifs</a></li>
         </ul>
       </div>
@@ -4482,11 +3644,7 @@ header {
     </button>
     <nav class="liens" id="menu">
       <a href="/">Accueil</a>
-      <a href="/#solution">Solution</a>
       <a href="/#fonctionnalites">Fonctionnalités</a>
-      <a href="/acteurs">Acteurs</a>
-      <a href="/#filieres">Filières</a>
-      <a href="/securite">Sécurité</a>
       <a href="/tarifs">Tarifs</a>
       <a href="/faq">FAQ</a>
       <a class="btn btn-or" href="/contact">
@@ -4553,11 +3711,9 @@ header {
       <div>
         <h4>Produit</h4>
         <ul>
-          <li><a href="/#solution">Solution</a></li>
           <li><a href="/#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="/acteurs">Acteurs</a></li>
-          <li><a href="/#filieres">Filières</a></li>
-          <li><a href="/securite">Sécurité</a></li>
+          <li><a href="/#argent">L'argent sous contrôle</a></li>
+          <li><a href="/#tracabilite">Traçabilité</a></li>
           <li><a href="/tarifs">Tarifs</a></li>
         </ul>
       </div>
@@ -4737,11 +3893,7 @@ header {
     </button>
     <nav class="liens" id="menu">
       <a href="/">Accueil</a>
-      <a href="/#solution">Solution</a>
       <a href="/#fonctionnalites">Fonctionnalités</a>
-      <a href="/acteurs">Acteurs</a>
-      <a href="/#filieres">Filières</a>
-      <a href="/securite">Sécurité</a>
       <a href="/tarifs">Tarifs</a>
       <a href="/faq">FAQ</a>
       <a class="btn btn-or" href="/contact">
@@ -4867,11 +4019,9 @@ header {
       <div>
         <h4>Produit</h4>
         <ul>
-          <li><a href="/#solution">Solution</a></li>
           <li><a href="/#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="/acteurs">Acteurs</a></li>
-          <li><a href="/#filieres">Filières</a></li>
-          <li><a href="/securite">Sécurité</a></li>
+          <li><a href="/#argent">L'argent sous contrôle</a></li>
+          <li><a href="/#tracabilite">Traçabilité</a></li>
           <li><a href="/tarifs">Tarifs</a></li>
         </ul>
       </div>
@@ -5051,11 +4201,7 @@ header {
     </button>
     <nav class="liens" id="menu">
       <a href="/">Accueil</a>
-      <a href="/#solution">Solution</a>
       <a href="/#fonctionnalites">Fonctionnalités</a>
-      <a href="/acteurs">Acteurs</a>
-      <a href="/#filieres">Filières</a>
-      <a href="/securite">Sécurité</a>
       <a href="/tarifs">Tarifs</a>
       <a href="/faq">FAQ</a>
       <a class="btn btn-or" href="/contact">
@@ -5256,11 +4402,9 @@ header {
       <div>
         <h4>Produit</h4>
         <ul>
-          <li><a href="/#solution">Solution</a></li>
           <li><a href="/#fonctionnalites">Fonctionnalités</a></li>
-          <li><a href="/acteurs">Acteurs</a></li>
-          <li><a href="/#filieres">Filières</a></li>
-          <li><a href="/securite">Sécurité</a></li>
+          <li><a href="/#argent">L'argent sous contrôle</a></li>
+          <li><a href="/#tracabilite">Traçabilité</a></li>
           <li><a href="/tarifs">Tarifs</a></li>
         </ul>
       </div>

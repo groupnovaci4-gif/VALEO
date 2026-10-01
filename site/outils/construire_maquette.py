@@ -89,8 +89,6 @@ BARRE = """
   <span class="sep"></span>
   <span class="grp" role="group" aria-label="Page">
     <button data-page="accueil" class="on">Accueil</button>
-    <button data-page="acteurs">Acteurs</button>
-    <button data-page="securite">Sécurité</button>
     <button data-page="tarifs">Tarifs</button>
     <button data-page="faq">FAQ</button>
     <button data-page="apropos">À propos</button>
@@ -170,8 +168,6 @@ def main() -> None:
     # du document (métadonnées, style et script en ligne).
     PAGES = [
         ("accueil",   "index.html"),
-        ("acteurs",   "acteurs.html"),
-        ("securite",  "securite.html"),
         ("tarifs",    "tarifs.html"),
         ("faq",       "faq.html"),
         ("apropos",   "a-propos.html"),
