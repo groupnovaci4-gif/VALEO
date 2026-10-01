@@ -345,3 +345,56 @@ pour un fond qui n'existe plus. Trois l'étaient, trouvées en regardant les
 captures : le bandeau de confiance (gris très pâle sur blanc), les onglets de
 l'explorateur de rôles, et les coches des listes (or clair sur blanc). À
 vérifier systématiquement en déplaçant un composant d'un fond à l'autre.
+
+
+---
+
+## 10. Plan du 1<sup>er</sup> octobre (seconde passe) — onze pages
+
+Structure demandée, et appliquée :
+
+| URL | Fichier | Contenu |
+|---|---|---|
+| `/` | `index.html` | Héros · Le problème · Le cycle · L'argent sous contrôle · Fonctionnalités · Acteurs · Traçabilité · Filières · Application · Pourquoi VALEO · Téléchargement · Démonstration |
+| `/acteurs` | `acteurs.html` | Les 5 rôles en détail : ce qu'il peut faire, **et ce qui lui est refusé** |
+| `/securite` | `securite.html` | 9 mécanismes + ce que la sécurité ne doit pas empêcher |
+| `/tarifs` | `tarifs.html` | Essentiel 30 000 F · Complet 50 000 F · 4 questions de facturation |
+| `/faq` | `faq.html` | 15 questions, en 3 blocs (produit, terrain, technique) |
+| `/a-propos` | `a-propos.html` | Vision, problème résolu, trois convictions |
+| `/contact` · `/tutoriels` · `/blog` · `/confidentialite` | — | Inchangés, menu et pied alignés |
+
+**Menu** : Accueil · Solution · Fonctionnalités · Acteurs · Filières · Sécurité ·
+Tarifs · FAQ, plus le bouton « Demander une démo ». Blog, Tutoriels, À propos et
+Confidentialité vivent dans le pied de page : les mettre au menu l'aurait porté à
+douze entrées, illisible dès 1200 px.
+
+### Ce qui a été écarté du plan, et pourquoi
+
+| Demandé | Décision |
+|---|---|
+| **Coton** dans les filières | Refusé. `DEFAULT_PRICES` (lib.ts) ne contient que cacao, café, anacarde, hévéa, palmier. Le plan ajoutait le coton **et oubliait le café**, qui lui est réellement pris en charge à 1 300 F/kg |
+| **« Magasinier délégué »** dans les équipes | Ce rôle n'existe pas. `ROLES` définit patron, commis (Magasinier), pisteur (Pisteur / **Délégué**), comptable. Le « délégué » est un pisteur, pas un magasinier |
+| **Bouton « Télécharger sur Android » + QR code** | L'application n'est pas publiée : aucune URL d'installation publique n'existe. Un bouton qui ne mène nulle part fait perdre le visiteur. La section existe, le bouton demande l'accès, et un encadré dit franchement que l'application est en test interne |
+| **« VALEO en chiffres »** (X coopératives, X tonnes…) | Non publiée. Le plan le demandait lui-même : « uniquement avec des chiffres réellement vérifiés ». Nous n'en avons aucun |
+| **Captures d'écran réelles** (6 à 8) | Les écrans du site sont **dessinés en CSS**, pas capturés. Ils reprennent les libellés et les formules réels. De vraies captures supposent qu'on nous les envoie depuis l'APK |
+| **Conditions d'utilisation**, réseaux sociaux | Pas de texte juridique ni de comptes à lier. Ajoutés au pied de page le jour où ils existent |
+
+### Le formulaire de démonstration n'est pas un `<form>`
+
+Et c'est délibéré. La CSP du site pose `form-action 'none'`, et le site n'a aucun
+backend pour recevoir une soumission. Un vrai formulaire exigerait soit un service
+tiers — une requête vers un autre domaine, que la CSP interdit et que la page
+promet de ne pas faire — soit un endpoint à écrire et à protéger du spam.
+
+Le bouton compose donc un `mailto:` avec les champs saisis. L'expéditeur relit
+avant d'envoyer, rien ne part de la page, et sans JavaScript l'adresse reste
+visible juste en dessous. Encodage vérifié dans un navigateur sur des accents, une
+apostrophe, un tiret cadratin et une esperluette.
+
+### La photo revient en bande pleine largeur
+
+Le héros porte désormais le schéma (producteur, pisteur, magasin, comptabilité,
+patron autour de VALEO), donc la photographie en a été chassée. Sans la replacer,
+le site n'aurait plus eu **aucune image** — précisément le reproche d'origine. Elle
+occupe une bande pleine largeur entre « Le problème » et « Le cycle ».
+`test_aucune_image_orpheline_n_est_publiee` l'a signalé avant qu'on s'en aperçoive.

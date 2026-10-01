@@ -1195,7 +1195,8 @@ class TestDefautsDAffichageDuSite:
         à dépendre de la page par laquelle on y entre.
         """
         site = RACINE / "site"
-        attendues = {"/", "/#tarifs", "/blog", "/#faq", "/tutoriels", "/contact"}
+        attendues = {"/", "/#solution", "/#fonctionnalites", "/acteurs",
+                     "/#filieres", "/securite", "/tarifs", "/faq"}
         manquantes = {}
         for page in sorted(site.rglob("*.html")):
             if page.name in ("maquette.html", "404.html"):
@@ -1203,8 +1204,6 @@ class TestDefautsDAffichageDuSite:
             texte = page.read_text(encoding="utf-8")
             nav = texte[texte.index('<nav class="liens"'):texte.index("</nav>")]
             liens = set(re.findall(r'href="([^"]+)"', nav))
-            # L'accueil se référence par ses ancres directes (#tarifs, #faq).
-            liens |= {"/" + a for a in re.findall(r'href="(#[^"]+)"', nav)}
             absent = attendues - liens
             if absent:
                 manquantes[str(page.relative_to(site))] = sorted(absent)
@@ -1214,8 +1213,11 @@ class TestDefautsDAffichageDuSite:
         """Les montants sont une décision commerciale, pas un détail de style :
         on vérifie qu'ils sont là et qu'ils n'ont pas été intervertis.
         """
-        accueil = (RACINE / "site" / "index.html").read_text(encoding="utf-8")
+        # Les formules vivent sur leur page dédiée depuis le 1er octobre :
+        # une grille de tarifs sur l'accueil oblige à répéter l'argumentaire
+        # pour que le prix ait un sens.
+        page = (RACINE / "site" / "tarifs.html").read_text(encoding="utf-8")
         formules = re.findall(r"<h3>(Essentiel|Complet)</h3>.*?<b>([\d\s ]+)</b>",
-                              accueil, re.S)
+                              page, re.S)
         prix = {nom: int(re.sub(r"\D", "", m)) for nom, m in formules}
         assert prix == {"Essentiel": 30000, "Complet": 50000}, prix

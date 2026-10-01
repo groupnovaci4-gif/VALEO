@@ -992,3 +992,160 @@ header {
 .confiance { border-top-color: var(--trait); }
 .confiance div { color: var(--encre-2); }
 .confiance svg { color: var(--foret-600); }
+
+/* ==========================================================================
+   26. PLAN DU 1er OCTOBRE — sections supplémentaires
+   Le problème · Le cycle · La cascade d'argent · Groupes de fonctionnalités ·
+   Traçabilité · Formulaire de démonstration · Téléchargement.
+   ========================================================================== */
+
+/* -- Le problème ----------------------------------------------------------
+   Dix constats courts. Deux colonnes sur grand écran : en une seule, la liste
+   fait une colonne d'angoisse interminable ; en trois, chaque ligne devient
+   un fragment illisible. */
+.problemes {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--e3) var(--e6);
+  max-width: 880px;
+}
+.probleme {
+  display: flex; gap: var(--e3); align-items: flex-start;
+  padding: var(--e3) 0; font-size: .97rem; color: var(--encre-2);
+}
+.probleme svg { flex: none; margin-top: 3px; color: var(--alerte); }
+
+.verdict {
+  margin-top: var(--e7); padding: var(--e6);
+  background: var(--foret-100); border: 1px solid var(--foret-300);
+  border-radius: var(--r-l); text-align: center;
+}
+.verdict b { display: block; font-size: clamp(1.3rem, 1.1rem + 1vw, 1.75rem); letter-spacing: -.02em; color: var(--foret-800); }
+.verdict span { display: block; margin-top: var(--e2); color: var(--encre-2); }
+
+/* -- Le cycle complet -----------------------------------------------------
+   Une colonne verticale : le cycle a onze étapes, et une frise horizontale à
+   onze colonnes n'est lisible sur aucun écran. */
+.cycle { display: grid; gap: 0; max-width: 720px; margin-inline: auto; }
+.etape {
+  display: grid; grid-template-columns: 112px 1fr; gap: var(--e5);
+  align-items: center; padding: var(--e4) 0; position: relative;
+}
+.etape + .etape { border-top: 1px dashed var(--trait); }
+.etape .qui {
+  font-size: .68rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  text-align: right; color: var(--foret-700);
+}
+.etape .qui.ext { color: var(--or-600); }
+.etape .quoi b { display: block; font-size: 1.02rem; letter-spacing: -.012em; }
+.etape .quoi small { color: var(--sourdine); font-size: .88rem; }
+
+/* -- La cascade d'argent --------------------------------------------------
+   Des barres de largeur décroissante : la vue montre d'un coup d'œil que
+   chaque montant est contenu dans le précédent. C'est l'argument du produit,
+   et il se passe de texte. */
+.cascade { max-width: 720px; margin-inline: auto; display: grid; gap: var(--e3); }
+.palier { display: grid; grid-template-columns: 1fr; gap: 5px; }
+.palier .barre {
+  background: linear-gradient(100deg, var(--foret-700), var(--foret-500));
+  color: #fff; border-radius: 12px;
+  padding: var(--e4) var(--e5);
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 4px var(--e4);
+  box-shadow: var(--ombre-1);
+  /* Les barres du bas sont étroites par construction — c'est tout l'intérêt
+     du dessin. Sans ce repli, leur libellé s'écrase contre le montant et se
+     casse en deux lignes serrées : il passe donc dessous. */
+  flex-wrap: wrap;
+}
+.palier .barre b { flex: none; }
+.palier .barre span { flex: 1 1 auto; min-width: 0; }
+.palier .barre b { font-size: 1.12rem; font-weight: 800; letter-spacing: -.02em; white-space: nowrap; }
+.palier .barre span { font-size: .85rem; color: #C6DCC9; text-align: right; }
+.palier.reste .barre { background: linear-gradient(100deg, var(--or-600), var(--or-500)); }
+.palier.reste .barre span { color: #4A3608; }
+.palier .lgd { font-size: .8rem; color: var(--sourdine); padding-left: var(--e4); }
+
+/* -- Groupes de fonctionnalités ------------------------------------------- */
+.groupes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--e4); }
+.groupe {
+  background: var(--carte); border: 1px solid var(--trait);
+  border-radius: var(--r-l); padding: var(--e5);
+}
+.groupe h3 { font-size: 1.04rem; margin-bottom: var(--e3); }
+.groupe ul { list-style: none; padding: 0; display: grid; gap: 5px; }
+.groupe li {
+  font-size: .9rem; color: var(--encre-2);
+  padding-left: 15px; position: relative;
+}
+.groupe li::before {
+  content: ""; position: absolute; left: 0; top: 9px;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--foret-300);
+}
+
+/* -- Traçabilité : les six questions -------------------------------------- */
+.questions { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--e3); }
+.question {
+  background: var(--carte); border: 1px solid var(--trait);
+  border-radius: var(--r-m); padding: var(--e5);
+}
+.question b { display: block; font-size: 1rem; letter-spacing: -.012em; margin-bottom: 5px; }
+.question small { color: var(--sourdine); font-size: .87rem; line-height: 1.5; display: block; }
+
+/* -- Formulaire de démonstration ------------------------------------------ */
+.form-demo { display: grid; grid-template-columns: 1fr 1fr; gap: var(--e4); max-width: 720px; margin-inline: auto; text-align: left; }
+.form-demo .pleine { grid-column: 1 / -1; }
+.champ { display: grid; gap: 5px; }
+.champ label { font-size: .82rem; font-weight: 700; color: #C6D4C6; }
+.champ input, .champ select, .champ textarea {
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 11px; padding: 11px 13px; color: #fff; font-size: .95rem;
+  width: 100%;
+}
+.champ textarea { resize: vertical; min-height: 84px; }
+.champ input::placeholder, .champ textarea::placeholder { color: rgba(255,255,255,.4); }
+.champ select option { color: var(--encre); }
+.champ input:focus, .champ select:focus, .champ textarea:focus {
+  outline: 2px solid var(--or-400); outline-offset: 1px; border-color: transparent;
+}
+.form-aide { font-size: .84rem; color: #9FB5A1; }
+
+/* -- Téléchargement -------------------------------------------------------- */
+.dl { display: grid; grid-template-columns: 1fr auto; gap: var(--e6); align-items: center; }
+.dl-boutons { display: flex; gap: var(--e3); flex-wrap: wrap; margin-top: var(--e5); }
+.dl-note {
+  margin-top: var(--e4); font-size: .88rem; color: var(--sourdine);
+  padding: var(--e3) var(--e4); background: var(--or-100);
+  border: 1px solid var(--or-200); border-radius: var(--r-m);
+}
+
+@media (max-width: 1000px) {
+  .groupes, .questions { grid-template-columns: 1fr 1fr; }
+  .dl { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .problemes, .groupes, .questions, .form-demo { grid-template-columns: 1fr; }
+  .etape { grid-template-columns: 1fr; gap: 3px; }
+  .etape .qui { text-align: left; }
+  .palier .barre { flex-direction: column; align-items: flex-start; gap: 3px; }
+  .palier .barre span { text-align: left; }
+}
+
+/* -- Bande photo pleine largeur -------------------------------------------
+   La photo est la seule du site : elle respire mieux en pleine largeur, et
+   casse la succession d'aplats et de cartes. Hauteur bornée pour qu'elle ne
+   mange pas l'écran, et voile vert foncé pour que le texte reste lisible
+   quelle que soit la zone de l'image qui tombe derrière. */
+.bande-photo { position: relative; overflow: hidden; }
+.bande-photo img {
+  width: 100%; height: clamp(220px, 32vw, 380px); object-fit: cover;
+  object-position: center 62%;
+}
+.bande-photo-texte {
+  position: absolute; inset: 0;
+  display: flex; align-items: center;
+  background: linear-gradient(90deg, rgba(3,30,12,.84) 0%, rgba(3,30,12,.55) 48%, rgba(3,30,12,.18) 100%);
+}
+@media (max-width: 680px) {
+  .bande-photo-texte { background: linear-gradient(180deg, rgba(3,30,12,.55), rgba(3,30,12,.84)); }
+}

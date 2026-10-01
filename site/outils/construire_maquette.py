@@ -89,10 +89,15 @@ BARRE = """
   <span class="sep"></span>
   <span class="grp" role="group" aria-label="Page">
     <button data-page="accueil" class="on">Accueil</button>
+    <button data-page="acteurs">Acteurs</button>
+    <button data-page="securite">Sécurité</button>
+    <button data-page="tarifs">Tarifs</button>
+    <button data-page="faq">FAQ</button>
+    <button data-page="apropos">À propos</button>
+    <button data-page="contact">Contact</button>
     <button data-page="tutoriels">Tutoriels</button>
     <button data-page="blog">Blog</button>
     <button data-page="article">Article</button>
-    <button data-page="contact">Contact</button>
     <button data-page="conf">Confidentialité</button>
   </span>
   <span class="grp" role="group" aria-label="Appareil">
@@ -165,10 +170,15 @@ def main() -> None:
     # du document (métadonnées, style et script en ligne).
     PAGES = [
         ("accueil",   "index.html"),
+        ("acteurs",   "acteurs.html"),
+        ("securite",  "securite.html"),
+        ("tarifs",    "tarifs.html"),
+        ("faq",       "faq.html"),
+        ("apropos",   "a-propos.html"),
+        ("contact",   "contact.html"),
         ("tutoriels", "tutoriels.html"),
         ("blog",      "blog/index.html"),
         ("article",   "blog/commission-poids-verifie.html"),
-        ("contact",   "contact.html"),
         ("conf",      "confidentialite.html"),
     ]
     rendus = [(cle, inliner((SITE / f).read_text(encoding="utf-8")))
