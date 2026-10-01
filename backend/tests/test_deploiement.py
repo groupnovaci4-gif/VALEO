@@ -1195,7 +1195,7 @@ class TestDefautsDAffichageDuSite:
         à dépendre de la page par laquelle on y entre.
         """
         site = RACINE / "site"
-        attendues = {"/", "/#fonctionnalites", "/tarifs", "/faq"}
+        attendues = {"/", "/#fonctionnalites", "/tarifs", "/faq", "/a-propos"}
         manquantes = {}
         for page in sorted(site.rglob("*.html")):
             if page.name in ("maquette.html", "404.html"):

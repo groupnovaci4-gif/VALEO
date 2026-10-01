@@ -413,8 +413,13 @@ Supprimées à la demande : **Solution · Acteurs · Filières · Sécurité**.
 | Filières | Section `#filieres` de l'accueil — les 5 cultures et leurs barèmes |
 | Sécurité | La page `/securite` (9 mécanismes) |
 
-**Menu restant** : Accueil · Fonctionnalités · Tarifs · FAQ, plus le bouton
+**Menu** : Accueil · Fonctionnalités · Tarifs · FAQ · À propos, plus le bouton
 « Demander une démo ». L'accueil passe de 13 264 px à 9 921 px.
+
+> « À propos » n'avait jamais été dans le menu : depuis sa création elle ne
+> vivait que dans le pied de page, sous « Ressources ». Avec huit rubriques, la
+> barre était pleine ; à quatre, elle y a sa place — et une page que personne ne
+> trouve vaut une page qui n'existe pas.
 
 ### Ce que le site ne dit plus
 
