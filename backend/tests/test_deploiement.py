@@ -1086,6 +1086,11 @@ class TestDefautsDAffichageDuSite:
         Le libellé des boutons prenait donc la couleur des liens : or sur or
         dans le héros, vert sur vert dans la barre. Illisible dans les deux cas,
         et parfaitement invisible à la lecture du code.
+
+        La liste s'allonge à chaque nouveau fond sombre — `.bloc-demo` l'a
+        rejointe à la refonte du 1er octobre. C'est le prix de la règle, et
+        c'est pour cela qu'elle est tenue par un test plutôt que par la
+        vigilance.
         """
         # On découpe la feuille en règles « sélecteurs { corps } » et on garde
         # celles qui reprennent la couleur du libellé d'un bouton-lien.
@@ -1097,7 +1102,7 @@ class TestDefautsDAffichageDuSite:
                     if "a.btn" in sel and "color:" in corps]
         assert reprises, "aucune règle ne reprend la couleur du libellé des boutons"
         selecteurs = " ".join(reprises)
-        for contexte in ("nav a.btn", ".bande-sombre a.btn"):
+        for contexte in ("nav a.btn", ".bande-sombre a.btn", ".bloc-demo a.btn"):
             assert contexte in selecteurs, (
                 f"{contexte} manque : le libellé y reprendra la couleur des liens")
 

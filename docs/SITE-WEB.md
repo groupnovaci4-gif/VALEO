@@ -266,14 +266,14 @@ répondu « est-ce sérieux ? ».
 traduite décrédibilise plus qu'il n'aide. À rouvrir le jour où une version
 anglaise complète est décidée.
 
-### Deux directions visuelles — `body[data-dir]`
+### Direction visuelle retenue
 
-La seule différence est **le héros de l'accueil** : `sombre` ouvre sur le vert
-forêt (la photo s'y détache, c'est plus affirmé), `clair` ouvre sur l'ivoire (le
-vert devient un accent, c'est plus institutionnel). Tout le reste est commun —
-l'alternance clair/foncé des sections et la bande verte des rôles font la
-respiration de la page, et ne sont pas négociables : sans elles, la page est un
-long aplat. La maquette permet de basculer entre les deux pour trancher.
+Le choix est tranché : **héros clair**, vert et or en accents. Le mécanisme
+`body[data-dir]` qui permettait de comparer les deux ouvertures a été
+**retiré** — garder le code mort d'une option écartée revient à laisser croire
+qu'elle est encore supportée, et il faudrait l'entretenir à chaque correctif.
+Un seul fond reste sombre : le bloc Démonstration (`.bloc-demo`), plus le
+pied de page. L'alternance blanc / `bande-claire` fait la respiration.
 
 ### Le menu est recopié dans chaque page
 
@@ -299,3 +299,49 @@ Comptable, la chaîne budgétaire à quatre crans, la trésorerie, les règlemen
 le résultat par expédition. Les deux montants sont verrouillés par
 `test_les_deux_formules_tarifaires_sont_affichees` — ce sont des décisions
 commerciales, pas des détails de style.
+
+
+---
+
+## 9. Refonte du 1<sup>er</sup> octobre — structure retenue
+
+La structure vient d'une proposition externe, adoptée telle quelle pour le
+plan des sections :
+
+**Solution · Parcours d'un sac · Circuit financier · Acteurs · Filières ·
+Application mobile · Hors-ligne · Sécurité · Tarifs · FAQ · Démonstration**
+
+Sept points de cette proposition **n'ont pas été recopiés**, et il faut savoir
+pourquoi avant de les réintroduire :
+
+| Dans la proposition | Pourquoi écarté |
+|---|---|
+| `assets/hero-flow.svg`, `finance-flow.svg`, `filieres.svg`, `mobile-mockup.svg` | Les quatre fichiers n'existent pas : la page affichait quatre cadres vides. Remplacés par la photo du dépôt, une frise en CSS, des icônes SVG dessinées et la maquette de téléphone en CSS |
+| `contact@valeo-app.com` | Mauvais domaine. Le bon est `valeo-scoop.com` |
+| « coton » dans les filières | VALEO ne gère pas le coton. Les filières réelles sont celles de `DEFAULT_PRICES` : cacao, café, anacarde, hévéa, palmier |
+| Quatre acteurs | Le **planteur** manquait — c'est un rôle réel, avec son propre espace et son propre périmètre de données |
+| Accent violet `#7b61ff` | La marque est vert forêt + or, relevés sur le logo. Un violet à côté de l'emblème tire la page vers une autre identité |
+| Aucune section Tarifs | Les deux formules sont une décision commerciale déjà prise |
+| `font-family: Inter` | Jamais chargée, donc sans effet. Et la charger coûterait une requête bloquante avant le premier mot lisible — ce que le site s'interdit |
+
+### Ce que la proposition a apporté
+
+- **La frise du circuit financier à cinq crans** (`.frise`) : budget → allocation
+  → enveloppe → mandat → suivi. C'est la meilleure représentation de
+  l'invariant 13ter produite jusqu'ici — elle rend visible le fait que chaque
+  cran borne le suivant.
+- **Une échelle neutre plus froide et plus claire**, des rayons plus généreux
+  (20 px) et des pastilles d'icône. L'encre reste toutefois un **vert très
+  sombre** (`#13261A`) et non un bleu marine : à côté d'un logo vert et or, un
+  bleu tire la page vers une autre marque.
+- **Le bloc Démonstration** en carte sombre arrondie, qui ancre le bas de page.
+
+### Piège hérité de la bascule clair/foncé
+
+Les composants écrits pour la bande vert foncé gardent des couleurs réglées
+pour du blanc sur sombre. Repris tels quels sur fond clair, ils deviennent
+illisibles **sans qu'aucune règle CSS soit fautive** — chacune est correcte,
+pour un fond qui n'existe plus. Trois l'étaient, trouvées en regardant les
+captures : le bandeau de confiance (gris très pâle sur blanc), les onglets de
+l'explorateur de rôles, et les coches des listes (or clair sur blanc). À
+vérifier systématiquement en déplaçant un composant d'un fond à l'autre.

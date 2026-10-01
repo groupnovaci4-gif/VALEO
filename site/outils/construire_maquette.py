@@ -87,10 +87,6 @@ BARRE = """
 <div id="barre-maquette">
   <strong>MAQUETTE VALEO</strong>
   <span class="sep"></span>
-  <span class="grp" role="group" aria-label="Direction visuelle">
-    <button data-dir="sombre" class="on">Héros vert foncé</button>
-    <button data-dir="clair">Héros ivoire</button>
-  </span>
   <span class="grp" role="group" aria-label="Page">
     <button data-page="accueil" class="on">Accueil</button>
     <button data-page="tutoriels">Tutoriels</button>
@@ -140,18 +136,11 @@ SCRIPT = """
 (function () {
   var b = document.body;
   b.dataset.vue = "pc";
-  b.dataset.dir = "sombre";
   document.querySelectorAll("#barre-maquette button").forEach(function (bt) {
     bt.addEventListener("click", function () {
       var grp = bt.parentNode;
       grp.querySelectorAll("button").forEach(function (o) { o.classList.remove("on"); });
       bt.classList.add("on");
-      if (bt.dataset.dir) {
-        /* La direction se pose sur <body>, exactement comme sur le vrai site :
-           on compare donc le rendu reel, pas une imitation. */
-        b.dataset.dir = bt.dataset.dir;
-        scrollTo(0, 0);
-      }
       if (bt.dataset.vue) {
         b.dataset.vue = bt.dataset.vue;
         /* Le rendu « téléphone » passe par la largeur du cadre : les media
@@ -202,7 +191,7 @@ def main() -> None:
 {tete}
 <meta name="robots" content="noindex">
 </head>
-<body data-dir="sombre">
+<body>
 {BARRE}
 <div id="cadre">
 {corps_pages}

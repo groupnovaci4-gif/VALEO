@@ -35,14 +35,17 @@
 
   --terre: #8A4B22;
 
-  /* Neutres chauds — un gris froid a cote d'un vert forestier fait sale */
-  --ivoire: #FBF8F2;
-  --ivoire-2: #F4EFE5;
+  /* Neutres — refonte du 1er octobre : échelle plus froide et plus claire,
+     dans l'esprit de la proposition retenue. L'encre n'est toutefois pas un
+     bleu marine mais un vert très sombre : à côté d'un logo vert et or, un
+     bleu tire la page vers une autre marque que la sienne. */
+  --ivoire: #F6F8F6;
+  --ivoire-2: #EDF1ED;
   --carte: #FFFFFF;
-  --encre: #1A1611;
-  --encre-2: #4A4239;
-  --sourdine: #7C7264;
-  --trait: #E7DFD1;
+  --encre: #13261A;
+  --encre-2: #495449;
+  --sourdine: #6E796E;
+  --trait: #E3E9E4;
 
   --ok: #17803D;
   --alerte: #B4530A;
@@ -52,13 +55,13 @@
   --e1: 4px;  --e2: 8px;  --e3: 12px; --e4: 16px; --e5: 24px;
   --e6: 32px; --e7: 48px; --e8: 64px; --e9: 96px; --e10: 128px;
 
-  --r-s: 10px; --r-m: 16px; --r-l: 24px; --r-xl: 32px;
+  --r-s: 12px; --r-m: 16px; --r-l: 20px; --r-xl: 28px;
 
   /* Ombres : teintees de vert, jamais du noir pur — le noir pur sur fond
      ivoire donne un gris sale. */
-  --ombre-1: 0 1px 2px rgba(3,44,16,.06), 0 1px 3px rgba(3,44,16,.08);
-  --ombre-2: 0 4px 10px rgba(3,44,16,.06), 0 12px 28px rgba(3,44,16,.09);
-  --ombre-3: 0 10px 24px rgba(3,44,16,.10), 0 30px 60px rgba(3,44,16,.14);
+  --ombre-1: 0 1px 2px rgba(19,38,26,.05), 0 1px 3px rgba(19,38,26,.06);
+  --ombre-2: 0 4px 10px rgba(19,38,26,.05), 0 12px 28px rgba(19,38,26,.07);
+  --ombre-3: 0 10px 24px rgba(19,38,26,.08), 0 30px 60px rgba(19,38,26,.11);
 
   --contenu: 1180px;
   --etroit: 760px;
@@ -751,69 +754,11 @@ html:not(.js) .heros { margin-top: 0; padding-top: var(--e8); }
 }
 header.colle .marque .embleme { box-shadow: none; background: transparent; }
 
-/* ==========================================================================
-   22. DIRECTION VISUELLE — `body[data-dir]`
-   Deux ouvertures possibles pour la page d'accueil, et c'est la SEULE
-   différence entre les deux : le héros. Tout le reste (sections claires,
-   bande des rôles en vert foncé, appel final, pied de page) est commun —
-   l'alternance clair/foncé fait la respiration de la page, elle n'est pas
-   négociable, c'est ce qui l'empêche d'être un long aplat.
-
-     data-dir="sombre"  le héros ouvre sur le vert forêt, la photo de cacao
-                        s'y détache. Plus affirmé, plus « produit ».
-     data-dir="clair"   le héros ouvre sur l'ivoire, le vert devient un
-                        accent. Plus sobre, plus institutionnel.
-   ========================================================================== */
-
-body[data-dir="clair"] #heros {
-  background:
-    radial-gradient(900px 520px at 88% -8%, rgba(229,160,20,.16), transparent 62%),
-    radial-gradient(760px 480px at 2% 10%, rgba(18,120,48,.08), transparent 60%),
-    var(--ivoire);
-  color: var(--encre);
-  /* L'en-tête est opaque dans cette direction : le héros ne passe pas dessous. */
-  margin-top: 0;
-  padding-top: clamp(var(--e7), 5vw, var(--e9));
-}
-body[data-dir="clair"] #heros::before { opacity: .5; filter: invert(1); }
-body[data-dir="clair"] #heros h1      { color: var(--foret-900); }
-body[data-dir="clair"] #heros h1 em   { color: var(--or-600); }
-body[data-dir="clair"] #heros .plomb  { color: var(--encre-2); }
-body[data-dir="clair"] #heros .oeil   { color: var(--foret-600); }
-body[data-dir="clair"] #heros .confiance      { border-top-color: var(--trait); }
-body[data-dir="clair"] #heros .confiance div  { color: var(--sourdine); }
-body[data-dir="clair"] #heros .confiance svg  { color: var(--or-600); }
-body[data-dir="clair"] #heros .btn-fantome {
-  --btn-texte: var(--encre); border-color: var(--trait);
-}
-body[data-dir="clair"] #heros .btn-fantome:hover {
-  background: var(--foret-100); border-color: var(--foret-500);
-}
-body[data-dir="clair"] #heros .photo-carte { border-color: var(--trait); }
-
-/* En direction claire, l'en-tête est opaque en permanence : il n'a plus de
-   fond sombre sur lequel flotter. */
-body[data-dir="clair"] header {
-  background: rgba(251, 248, 242, .9);
-  -webkit-backdrop-filter: saturate(180%) blur(12px);
-  backdrop-filter: saturate(180%) blur(12px);
-  border-bottom-color: var(--trait);
-}
-body[data-dir="clair"] .marque-nom b     { color: var(--foret-900); }
-body[data-dir="clair"] .marque-nom span  { color: var(--or-600); }
-body[data-dir="clair"] .liens a          { color: var(--encre-2); }
-body[data-dir="clair"] .liens a:hover    { color: var(--foret-700); }
-body[data-dir="clair"] .liens a.btn      { color: var(--btn-texte); }
-body[data-dir="clair"] .burger           { color: var(--encre); border-color: var(--trait); }
-body[data-dir="clair"] .marque .embleme  { background: transparent; box-shadow: none; }
-
 /* --------------------------------------------------------------------------
    23. Navigation — pastille sur la rubrique courante
    -------------------------------------------------------------------------- */
 
-.liens a.actif { color: #fff; }
-header.colle .liens a.actif,
-body[data-dir="clair"] .liens a.actif { color: var(--foret-900); }
+.liens a.actif { color: var(--encre); }
 .liens a.actif::before {
   content: ""; display: inline-block; vertical-align: middle;
   width: 6px; height: 6px; border-radius: 50%;
@@ -880,9 +825,170 @@ body[data-dir="clair"] .liens a.actif { color: var(--foret-900); }
   .formule .pour { min-height: 0; }
 }
 
-/* Le voile vert foncé posé sur la photo sert à la raccrocher au héros sombre.
-   Sur fond ivoire il l'alourdit au lieu de l'intégrer : on l'allège, et on
-   réchauffe légèrement au lieu d'assombrir. */
-body[data-dir="clair"] #heros .photo-carte::after {
-  background: linear-gradient(200deg, rgba(229,160,20,.06), rgba(3,44,16,.22));
+/* Le voile posé sur la photo servait à la raccrocher à un héros vert foncé.
+   Le héros est désormais clair : un voile aussi dense l'alourdirait. On
+   l'allège et on réchauffe au lieu d'assombrir, en gardant juste assez de
+   densité en bas pour que la légende reste lisible. */
+.photo-carte::after {
+  background: linear-gradient(200deg, rgba(229,160,20,.06), rgba(19,38,26,.26));
 }
+
+/* ==========================================================================
+   25. REFONTE DU 1er OCTOBRE — composants de la structure retenue
+   Solution · Circuit financier · Acteurs · Filières · Mobile · Sécurité ·
+   Tarifs · FAQ · Démo.
+   ========================================================================== */
+
+/* -- Héros clair ----------------------------------------------------------
+   Le héros n'ouvre plus sur un aplat vert foncé mais sur un dégradé très
+   pâle. Le vert et l'or redeviennent des ACCENTS, posés sur du blanc. */
+.heros {
+  background: linear-gradient(180deg, #F2F6F2 0%, #FAFBFA 55%, #FFFFFF 100%);
+  margin-top: 0;
+  padding-block: clamp(var(--e7), 6vw, 92px) clamp(var(--e8), 7vw, 104px);
+  border-bottom: 1px solid var(--trait);
+}
+.heros h1 {
+  color: var(--encre);
+  letter-spacing: -0.035em;
+  margin-block: var(--e4) var(--e5);
+}
+.heros h1 em { font-style: normal; color: var(--foret-700); }
+.heros .plomb { color: var(--sourdine); font-size: clamp(1.08rem, 1rem + 0.45vw, 1.3rem); }
+
+/* -- Pastille d'icône ----------------------------------------------------- */
+.ico {
+  width: 46px; height: 46px; border-radius: 13px;
+  display: grid; place-items: center; margin-bottom: var(--e4);
+  background: var(--foret-100); color: var(--foret-700);
+}
+.ico.or { background: var(--or-100); color: var(--or-600); }
+
+/* -- Frise du circuit financier -------------------------------------------
+   Cinq crans. La frise est HORIZONTALE sur grand écran et VERTICALE sur
+   téléphone : cinq colonnes de 160 px côte à côte sont illisibles, et une
+   frise qu'on fait défiler latéralement ne se lit pas non plus. */
+.frise { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--e3); }
+.cran {
+  background: var(--carte); border: 1px solid var(--trait);
+  border-radius: var(--r-l); padding: var(--e5) var(--e4);
+  position: relative;
+}
+.cran .n {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--foret-700); color: #fff;
+  display: grid; place-items: center;
+  font-size: .72rem; font-weight: 800; margin-bottom: var(--e3);
+}
+.cran strong { display: block; font-size: 1rem; letter-spacing: -.01em; margin-bottom: 3px; }
+.cran small { color: var(--sourdine); font-size: .85rem; line-height: 1.45; display: block; }
+/* Le trait de liaison : il dit que chaque cran BORNE le suivant. */
+.frise .cran:not(:last-child)::after {
+  content: ""; position: absolute; top: calc(var(--e5) + 12px); right: calc(var(--e3) * -1);
+  width: var(--e3); height: 2px; background: var(--trait);
+}
+
+/* -- Cartes d'acteur ------------------------------------------------------ */
+.acteurs { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--e4); }
+.acteur {
+  background: var(--carte); border: 1px solid var(--trait);
+  border-radius: var(--r-l); padding: var(--e5);
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.acteur:hover { border-color: var(--foret-300); transform: translateY(-3px); box-shadow: var(--ombre-2); }
+.acteur .chapeau { display: flex; align-items: center; gap: var(--e3); margin-bottom: var(--e3); }
+.acteur .chapeau b { font-size: 1.06rem; letter-spacing: -.012em; }
+.acteur .rond {
+  width: 38px; height: 38px; border-radius: 11px; flex: none;
+  display: grid; place-items: center;
+  background: var(--foret-100); color: var(--foret-700);
+}
+.acteur p { color: var(--encre-2); font-size: .93rem; }
+.acteur .refus {
+  margin-top: var(--e3); padding-top: var(--e3);
+  border-top: 1px dashed var(--trait);
+  font-size: .85rem; color: var(--sourdine);
+}
+
+/* -- Filières ------------------------------------------------------------- */
+/* Trois colonnes, pas cinq : la grille vit dans une demi-largeur, et cinq
+   cartes de 90 px y rendent l'icône minuscule et le libellé coupé. */
+.filieres { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--e3); }
+.filiere {
+  background: var(--carte); border: 1px solid var(--trait);
+  border-radius: var(--r-m); padding: var(--e4) var(--e3);
+  text-align: center;
+}
+.filiere svg { margin: 0 auto var(--e3); width: 40px; height: 40px; }
+.filiere b { display: block; font-size: .95rem; }
+.filiere small { color: var(--sourdine); font-size: .8rem; }
+
+/* -- Bloc Démo ------------------------------------------------------------ */
+.bloc-demo {
+  background:
+    radial-gradient(760px 420px at 88% -20%, rgba(229,160,20,.22), transparent 62%),
+    linear-gradient(160deg, var(--foret-800), #04210C);
+  color: #EFF4EE;
+  border-radius: var(--r-xl);
+  padding: clamp(var(--e6), 5vw, 56px);
+  text-align: center;
+}
+.bloc-demo h2 { color: #fff; margin-bottom: var(--e4); }
+.bloc-demo p { color: #BFD0BF; margin-inline: auto; max-width: 56ch; }
+.bloc-demo .actions { margin-top: var(--e6); justify-content: center; }
+.bloc-demo .btn-fantome { --btn-texte: #fff; border-color: rgba(255,255,255,.32); }
+.bloc-demo .btn-fantome:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.55); }
+.bloc-demo a.btn { color: var(--btn-texte); }
+
+/* -- En-tête : toujours opaque, la page n'a plus de héros sombre ---------- */
+header {
+  background: rgba(246, 248, 246, .9);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom-color: var(--trait);
+}
+.marque-nom b    { color: var(--encre); }
+.marque-nom span { color: var(--or-600); }
+.liens a         { color: var(--encre-2); }
+.liens a:hover   { color: var(--foret-700); }
+.liens a.actif   { color: var(--encre); }
+.burger          { color: var(--encre); border-color: var(--trait); }
+.marque .embleme { background: transparent; box-shadow: none; }
+
+@media (max-width: 1000px) {
+  .frise { grid-template-columns: 1fr 1fr; }
+  .frise .cran:not(:last-child)::after { display: none; }
+  .acteurs { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 680px) {
+  .frise, .acteurs { grid-template-columns: 1fr; }
+  .filieres { grid-template-columns: 1fr 1fr; }
+}
+
+/* -- Explorateur de rôles sur fond clair ----------------------------------
+   Il vivait sur la bande vert foncé. Ses onglets et ses puces étaient donc
+   réglés pour du blanc sur sombre : repris tels quels sur fond clair, le
+   libellé de l'onglet inactif sortait en gris très pâle sur blanc, et les
+   coches en or pâle, toutes deux illisibles. */
+.onglet-role {
+  border-color: var(--trait);
+  background: var(--carte);
+  color: var(--encre-2);
+}
+.onglet-role:hover { background: var(--ivoire-2); color: var(--encre); }
+.onglet-role[aria-selected="true"] {
+  background: var(--foret-700); color: #fff; border-color: var(--foret-700);
+}
+.liste-faits svg { color: var(--foret-600); }
+.role-corps .plomb { color: var(--encre-2); }
+
+/* Le téléphone se détache mieux sur une carte que posé à même le fond. */
+.roles-grille .tel { box-shadow: var(--ombre-3); }
+
+/* Le bandeau de confiance gardait lui aussi ses couleurs de fond sombre :
+   gris très pâle et or clair, posés sur du blanc. Illisible, et invisible à
+   la lecture du CSS puisque la règle d'origine est correcte — pour un fond
+   vert foncé qui n'existe plus. */
+.confiance { border-top-color: var(--trait); }
+.confiance div { color: var(--encre-2); }
+.confiance svg { color: var(--foret-600); }
