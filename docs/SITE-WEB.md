@@ -240,3 +240,62 @@ tenu par un test dans `TestDefautsDAffichageDuSite` :
 3. **Le bordereau était totalement invisible.** Sa dentelure était dessinée avec
    `mask-image` + `mask-repeat: repeat-x` — le masque ne couvrait qu'une bande de
    12 px en bas, donc tout le reste de la carte était masqué.
+
+
+---
+
+## 8. Structure du site (1<sup>er</sup> octobre 2026)
+
+Le plan demandé : **Accueil · Tarifs · Blog · FAQ · Tutoriels · Contact**.
+
+| URL | Fichier | Contenu |
+|---|---|---|
+| `/` | `site/index.html` | Accueil, avec les sections `#tarifs` et `#faq` |
+| `/tutoriels` | `site/tutoriels.html` | 10 marches à suivre, chacune disant aussi ce que le logiciel **refuse** |
+| `/blog` | `site/blog/index.html` | Journal |
+| `/blog/commission-poids-verifie` | `site/blog/commission-poids-verifie.html` | Première note |
+| `/contact` | `site/contact.html` | Démonstration, ce qu'il faut préparer |
+| `/confidentialite` | `site/confidentialite.html` | Politique de confidentialité |
+
+**Tarifs et FAQ sont des sections de l'accueil, pas des pages.** Une page de
+tarifs isolée oblige à répéter l'argumentaire pour que le prix ait un sens ;
+placée après la section Sécurité, elle répond « combien ? » juste après avoir
+répondu « est-ce sérieux ? ».
+
+**Pas de sélecteur de langue.** Un drapeau qui mène vers une page à moitié
+traduite décrédibilise plus qu'il n'aide. À rouvrir le jour où une version
+anglaise complète est décidée.
+
+### Deux directions visuelles — `body[data-dir]`
+
+La seule différence est **le héros de l'accueil** : `sombre` ouvre sur le vert
+forêt (la photo s'y détache, c'est plus affirmé), `clair` ouvre sur l'ivoire (le
+vert devient un accent, c'est plus institutionnel). Tout le reste est commun —
+l'alternance clair/foncé des sections et la bande verte des rôles font la
+respiration de la page, et ne sont pas négociables : sans elles, la page est un
+long aplat. La maquette permet de basculer entre les deux pour trancher.
+
+### Le menu est recopié dans chaque page
+
+Il n'y a pas de moteur de gabarit — c'est tenable pour six pages, et ça évite
+une chaîne de construction pour un site statique. Ce qui le rend sûr, c'est
+`test_toutes_les_pages_portent_la_meme_navigation` : sans lui, une rubrique
+ajoutée à l'accueil manque sur les cinq autres pages et le site se met à dépendre
+de la page par laquelle on y entre. Défaut déjà rencontré : la politique de
+confidentialité avait gardé un menu « Retour au site » à une rubrique.
+
+`test_tous_les_liens_internes_aboutissent` résout chaque lien comme le fera
+Firebase Hosting (`cleanUrls: true` : `/contact` → `contact.html`, `/blog` →
+`blog/index.html`). C'est le garde-fou de la rubrique qu'on met au menu avant
+d'écrire la page.
+
+### Tarifs
+
+30 000 F CFA/mois (Essentiel) et 50 000 F CFA/mois (Complet), par coopérative,
+sans limite de planteurs ni de collaborateurs. La ligne de partage est
+**le terrain d'un côté, la comptabilité de l'autre** : l'Essentiel couvre
+collecte, pesée, stock, avances et bilan ; le Complet y ajoute le rôle
+Comptable, la chaîne budgétaire à quatre crans, la trésorerie, les règlements et
+le résultat par expédition. Les deux montants sont verrouillés par
+`test_les_deux_formules_tarifaires_sont_affichees` — ce sont des décisions
+commerciales, pas des détails de style.

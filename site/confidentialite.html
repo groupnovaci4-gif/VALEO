@@ -13,7 +13,7 @@
 <meta name="robots" content="index, follow">
 <script>document.documentElement.className += " js";</script>
 </head>
-<body>
+<body data-dir="clair">
 
 <header id="tete" class="colle">
   <div class="wrap barre">
@@ -24,8 +24,20 @@
         <span>Tracer · Gérer · Valoriser</span>
       </span>
     </a>
-    <nav class="liens" id="menu" style="display:flex">
-      <a class="btn btn-fantome" href="/">Retour au site</a>
+    <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <nav class="liens" id="menu">
+      <a href="/">Accueil</a>
+      <a href="/#tarifs">Tarifs</a>
+      <a href="/blog">Blog</a>
+      <a href="/#faq">FAQ</a>
+      <a href="/tutoriels">Tutoriels</a>
+      <a href="/contact">Contact</a>
+      <a class="btn btn-or" href="/contact">
+        Démonstration
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
     </nav>
   </div>
 </header>

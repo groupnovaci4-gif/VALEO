@@ -78,16 +78,25 @@ def inliner(html: str) -> str:
 
 
 def corps(html: str) -> str:
-    """Extrait ce qui est entre <body> et </body>."""
-    return html[html.index("<body>") + len("<body>"): html.rindex("</body>")]
+    """Extrait ce qui est entre <body ...> et </body>."""
+    debut = html.index(">", html.index("<body")) + 1
+    return html[debut: html.rindex("</body>")]
 
 
 BARRE = """
 <div id="barre-maquette">
   <strong>MAQUETTE VALEO</strong>
   <span class="sep"></span>
+  <span class="grp" role="group" aria-label="Direction visuelle">
+    <button data-dir="sombre" class="on">Héros vert foncé</button>
+    <button data-dir="clair">Héros ivoire</button>
+  </span>
   <span class="grp" role="group" aria-label="Page">
     <button data-page="accueil" class="on">Accueil</button>
+    <button data-page="tutoriels">Tutoriels</button>
+    <button data-page="blog">Blog</button>
+    <button data-page="article">Article</button>
+    <button data-page="contact">Contact</button>
     <button data-page="conf">Confidentialité</button>
   </span>
   <span class="grp" role="group" aria-label="Appareil">
@@ -131,11 +140,18 @@ SCRIPT = """
 (function () {
   var b = document.body;
   b.dataset.vue = "pc";
+  b.dataset.dir = "sombre";
   document.querySelectorAll("#barre-maquette button").forEach(function (bt) {
     bt.addEventListener("click", function () {
       var grp = bt.parentNode;
       grp.querySelectorAll("button").forEach(function (o) { o.classList.remove("on"); });
       bt.classList.add("on");
+      if (bt.dataset.dir) {
+        /* La direction se pose sur <body>, exactement comme sur le vrai site :
+           on compare donc le rendu reel, pas une imitation. */
+        b.dataset.dir = bt.dataset.dir;
+        scrollTo(0, 0);
+      }
       if (bt.dataset.vue) {
         b.dataset.vue = bt.dataset.vue;
         /* Le rendu « téléphone » passe par la largeur du cadre : les media
@@ -143,8 +159,9 @@ SCRIPT = """
            pas. On le dit plutôt que de laisser croire à un rendu fidèle. */
       }
       if (bt.dataset.page) {
-        document.getElementById("pg-accueil").hidden = bt.dataset.page !== "accueil";
-        document.getElementById("pg-conf").hidden = bt.dataset.page !== "conf";
+        document.querySelectorAll("#cadre > div").forEach(function (p) {
+          p.hidden = p.id !== "pg-" + bt.dataset.page;
+        });
         scrollTo(0, 0);
       }
     });
@@ -155,14 +172,29 @@ SCRIPT = """
 
 
 def main() -> None:
-    accueil = inliner((SITE / "index.html").read_text(encoding="utf-8"))
-    conf = inliner((SITE / "confidentialite.html").read_text(encoding="utf-8"))
+    # L'ordre est celui de la barre d'outils. La première page fournit l'en-tête
+    # du document (métadonnées, style et script en ligne).
+    PAGES = [
+        ("accueil",   "index.html"),
+        ("tutoriels", "tutoriels.html"),
+        ("blog",      "blog/index.html"),
+        ("article",   "blog/commission-poids-verifie.html"),
+        ("contact",   "contact.html"),
+        ("conf",      "confidentialite.html"),
+    ]
+    rendus = [(cle, inliner((SITE / f).read_text(encoding="utf-8")))
+              for cle, f in PAGES]
 
-    tete = accueil[accueil.index("<head>"): accueil.index("</head>")]
+    premier = rendus[0][1]
+    tete = premier[premier.index("<head>"): premier.index("</head>")]
     tete = tete.replace("<head>", "").strip()
     tete = re.sub(r"<title>.*?</title>", "<title>Maquette VALEO</title>", tete, flags=re.S)
     # La maquette n'est pas indexable et n'a pas d'URL canonique.
     tete = re.sub(r'<link rel="canonical"[^>]*>', "", tete)
+
+    corps_pages = "\n".join(
+        f'  <div id="pg-{cle}"{"" if i == 0 else " hidden"}>{corps(html)}</div>'
+        for i, (cle, html) in enumerate(rendus))
 
     sortie = f"""<!doctype html>
 <html lang="fr" class="js">
@@ -170,11 +202,10 @@ def main() -> None:
 {tete}
 <meta name="robots" content="noindex">
 </head>
-<body>
+<body data-dir="sombre">
 {BARRE}
 <div id="cadre">
-  <div id="pg-accueil">{corps(accueil)}</div>
-  <div id="pg-conf" hidden>{corps(conf)}</div>
+{corps_pages}
 </div>
 {SCRIPT}
 </body>

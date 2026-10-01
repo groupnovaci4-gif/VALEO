@@ -267,7 +267,8 @@ class TestConfigurationDeploiement:
         prévient un tiers de la visite.
         """
         import re as _re
-        pages = sorted((RACINE / "site").glob("*.html"))
+        pages = [p for p in sorted((RACINE / "site").rglob("*.html"))
+                 if p.name != "maquette.html"]
         assert pages, "aucune page dans site/"
         for page in pages:
             texte = page.read_text(encoding="utf-8")
@@ -1124,7 +1125,7 @@ class TestDefautsDAffichageDuSite:
         """
         img = RACINE / "site" / "img"
         manquantes = []
-        for page in sorted((RACINE / "site").glob("*.html")):
+        for page in sorted((RACINE / "site").rglob("*.html")):
             if page.name == "maquette.html":
                 continue  # fichier autonome : ses images sont encodées dedans
             texte = page.read_text(encoding="utf-8")
@@ -1140,7 +1141,7 @@ class TestDefautsDAffichageDuSite:
         """
         site = RACINE / "site"
         refs = set()
-        for f in list(site.glob("*.html")) + list(site.glob("*.css")):
+        for f in list(site.rglob("*.html")) + list(site.glob("*.css")):
             if f.name == "maquette.html":
                 continue
             refs |= set(re.findall(r"/img/([A-Za-z0-9_-]+\.[a-z0-9]{2,5})",
@@ -1148,3 +1149,68 @@ class TestDefautsDAffichageDuSite:
         orphelines = sorted(p.name for p in (site / "img").iterdir()
                             if p.is_file() and p.name not in refs)
         assert not orphelines, f"images publiées mais jamais utilisées : {orphelines}"
+
+    def test_tous_les_liens_internes_aboutissent(self):
+        """Un lien mort ne casse rien non plus : il mène à une page 404.
+
+        C'est le défaut typique d'un site qui grandit — on ajoute « Blog » au
+        menu avant d'écrire le blog, et la rubrique reste morte pendant des
+        semaines sans que personne du côté technique ne s'en aperçoive.
+
+        Le test résout chaque lien comme le fera Firebase Hosting, qui sert la
+        cible `site` avec `cleanUrls: true` : « /contact » désigne
+        `contact.html`, « /blog » désigne `blog/index.html`.
+        """
+        site = RACINE / "site"
+
+        def resout(href: str) -> bool:
+            chemin = href.split("#")[0].split("?")[0].strip("/")
+            if not chemin:
+                return (site / "index.html").is_file()
+            cible = site / chemin
+            return (cible.is_file()                       # /styles.css, /img/x.png
+                    or cible.with_suffix(".html").is_file()   # cleanUrls
+                    or (cible / "index.html").is_file())      # dossier
+
+        morts = []
+        for page in sorted(site.rglob("*.html")):
+            if page.name == "maquette.html":
+                continue
+            for href in set(re.findall(r'href="(/[^"]*)"',
+                                       page.read_text(encoding="utf-8"))):
+                if not resout(href):
+                    morts.append(f"{page.relative_to(site)} → {href}")
+        assert not morts, f"liens internes morts : {sorted(morts)}"
+
+    def test_toutes_les_pages_portent_la_meme_navigation(self):
+        """Le menu est recopié dans chaque page (pas de moteur de gabarit).
+
+        C'est tenable tant qu'un test le vérifie : sans lui, une rubrique
+        ajoutée à l'accueil manque sur les cinq autres pages, et le site se met
+        à dépendre de la page par laquelle on y entre.
+        """
+        site = RACINE / "site"
+        attendues = {"/", "/#tarifs", "/blog", "/#faq", "/tutoriels", "/contact"}
+        manquantes = {}
+        for page in sorted(site.rglob("*.html")):
+            if page.name in ("maquette.html", "404.html"):
+                continue  # la 404 est volontairement nue
+            texte = page.read_text(encoding="utf-8")
+            nav = texte[texte.index('<nav class="liens"'):texte.index("</nav>")]
+            liens = set(re.findall(r'href="([^"]+)"', nav))
+            # L'accueil se référence par ses ancres directes (#tarifs, #faq).
+            liens |= {"/" + a for a in re.findall(r'href="(#[^"]+)"', nav)}
+            absent = attendues - liens
+            if absent:
+                manquantes[str(page.relative_to(site))] = sorted(absent)
+        assert not manquantes, f"rubriques absentes du menu : {manquantes}"
+
+    def test_les_deux_formules_tarifaires_sont_affichees(self):
+        """Les montants sont une décision commerciale, pas un détail de style :
+        on vérifie qu'ils sont là et qu'ils n'ont pas été intervertis.
+        """
+        accueil = (RACINE / "site" / "index.html").read_text(encoding="utf-8")
+        formules = re.findall(r"<h3>(Essentiel|Complet)</h3>.*?<b>([\d\s ]+)</b>",
+                              accueil, re.S)
+        prix = {nom: int(re.sub(r"\D", "", m)) for nom, m in formules}
+        assert prix == {"Essentiel": 30000, "Complet": 50000}, prix

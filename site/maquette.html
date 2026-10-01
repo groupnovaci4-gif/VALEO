@@ -762,6 +762,142 @@ html:not(.js) .heros { margin-top: 0; padding-top: var(--e8); }
 }
 header.colle .marque .embleme { box-shadow: none; background: transparent; }
 
+/* ==========================================================================
+   22. DIRECTION VISUELLE — `body[data-dir]`
+   Deux ouvertures possibles pour la page d'accueil, et c'est la SEULE
+   différence entre les deux : le héros. Tout le reste (sections claires,
+   bande des rôles en vert foncé, appel final, pied de page) est commun —
+   l'alternance clair/foncé fait la respiration de la page, elle n'est pas
+   négociable, c'est ce qui l'empêche d'être un long aplat.
+
+     data-dir="sombre"  le héros ouvre sur le vert forêt, la photo de cacao
+                        s'y détache. Plus affirmé, plus « produit ».
+     data-dir="clair"   le héros ouvre sur l'ivoire, le vert devient un
+                        accent. Plus sobre, plus institutionnel.
+   ========================================================================== */
+
+body[data-dir="clair"] #heros {
+  background:
+    radial-gradient(900px 520px at 88% -8%, rgba(229,160,20,.16), transparent 62%),
+    radial-gradient(760px 480px at 2% 10%, rgba(18,120,48,.08), transparent 60%),
+    var(--ivoire);
+  color: var(--encre);
+  /* L'en-tête est opaque dans cette direction : le héros ne passe pas dessous. */
+  margin-top: 0;
+  padding-top: clamp(var(--e7), 5vw, var(--e9));
+}
+body[data-dir="clair"] #heros::before { opacity: .5; filter: invert(1); }
+body[data-dir="clair"] #heros h1      { color: var(--foret-900); }
+body[data-dir="clair"] #heros h1 em   { color: var(--or-600); }
+body[data-dir="clair"] #heros .plomb  { color: var(--encre-2); }
+body[data-dir="clair"] #heros .oeil   { color: var(--foret-600); }
+body[data-dir="clair"] #heros .confiance      { border-top-color: var(--trait); }
+body[data-dir="clair"] #heros .confiance div  { color: var(--sourdine); }
+body[data-dir="clair"] #heros .confiance svg  { color: var(--or-600); }
+body[data-dir="clair"] #heros .btn-fantome {
+  --btn-texte: var(--encre); border-color: var(--trait);
+}
+body[data-dir="clair"] #heros .btn-fantome:hover {
+  background: var(--foret-100); border-color: var(--foret-500);
+}
+body[data-dir="clair"] #heros .photo-carte { border-color: var(--trait); }
+
+/* En direction claire, l'en-tête est opaque en permanence : il n'a plus de
+   fond sombre sur lequel flotter. */
+body[data-dir="clair"] header {
+  background: rgba(251, 248, 242, .9);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom-color: var(--trait);
+}
+body[data-dir="clair"] .marque-nom b     { color: var(--foret-900); }
+body[data-dir="clair"] .marque-nom span  { color: var(--or-600); }
+body[data-dir="clair"] .liens a          { color: var(--encre-2); }
+body[data-dir="clair"] .liens a:hover    { color: var(--foret-700); }
+body[data-dir="clair"] .liens a.btn      { color: var(--btn-texte); }
+body[data-dir="clair"] .burger           { color: var(--encre); border-color: var(--trait); }
+body[data-dir="clair"] .marque .embleme  { background: transparent; box-shadow: none; }
+
+/* --------------------------------------------------------------------------
+   23. Navigation — pastille sur la rubrique courante
+   -------------------------------------------------------------------------- */
+
+.liens a.actif { color: #fff; }
+header.colle .liens a.actif,
+body[data-dir="clair"] .liens a.actif { color: var(--foret-900); }
+.liens a.actif::before {
+  content: ""; display: inline-block; vertical-align: middle;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--or-500); margin-right: 7px;
+}
+
+/* --------------------------------------------------------------------------
+   24. Tarifs
+   -------------------------------------------------------------------------- */
+
+.grille-tarifs {
+  display: grid; gap: var(--e5);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 880px; margin-inline: auto;
+  align-items: start;
+}
+
+.formule {
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: var(--r-l);
+  padding: var(--e6);
+  position: relative;
+  display: flex; flex-direction: column; height: 100%;
+}
+.formule.mise-en-avant {
+  border-color: var(--foret-600);
+  box-shadow: 0 0 0 1px var(--foret-600), var(--ombre-2);
+}
+.formule .ruban {
+  position: absolute; top: -13px; left: var(--e6);
+  background: var(--foret-700); color: #fff;
+  font-size: .68rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  padding: 5px 13px; border-radius: 999px;
+}
+.formule h3 { font-size: 1.3rem; margin-bottom: var(--e2); }
+.formule .pour { font-size: .93rem; color: var(--sourdine); min-height: 3em; }
+
+.prix { display: flex; align-items: baseline; gap: 6px; margin-block: var(--e5) var(--e2); }
+.prix b {
+  font-size: clamp(2rem, 1.4rem + 2vw, 2.7rem); font-weight: 800;
+  letter-spacing: -.035em; line-height: 1; color: var(--foret-700);
+}
+.prix .dev  { font-size: 1.05rem; font-weight: 800; color: var(--foret-700); }
+.prix .par  { font-size: .95rem; color: var(--sourdine); }
+
+.formule .btn { margin-block: var(--e5); justify-content: center; }
+
+.formule ul { list-style: none; padding: 0; display: grid; gap: var(--e3); font-size: .93rem; }
+.formule li { display: flex; gap: var(--e3); align-items: flex-start; }
+.formule li svg { flex: none; margin-top: 4px; color: var(--foret-600); }
+.formule .titre-liste {
+  font-size: .72rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--sourdine); margin-bottom: var(--e2);
+}
+
+.note-tarif {
+  max-width: 880px; margin: var(--e6) auto 0;
+  font-size: .9rem; color: var(--sourdine); text-align: center;
+}
+
+@media (max-width: 760px) {
+  .grille-tarifs { grid-template-columns: 1fr; }
+  .formule .pour { min-height: 0; }
+}
+
+/* Le voile vert foncé posé sur la photo sert à la raccrocher au héros sombre.
+   Sur fond ivoire il l'alourdit au lieu de l'intégrer : on l'allège, et on
+   réchauffe légèrement au lieu d'assombrir. */
+body[data-dir="clair"] #heros .photo-carte::after {
+  background: linear-gradient(200deg, rgba(229,160,20,.06), rgba(3,44,16,.22));
+}
+
 </style>
 
 <meta property="og:type" content="website">
@@ -787,13 +923,21 @@ header.colle .marque .embleme { box-shadow: none; background: transparent; }
 <script>document.documentElement.className += " js";</script>
 <meta name="robots" content="noindex">
 </head>
-<body>
+<body data-dir="sombre">
 
 <div id="barre-maquette">
   <strong>MAQUETTE VALEO</strong>
   <span class="sep"></span>
+  <span class="grp" role="group" aria-label="Direction visuelle">
+    <button data-dir="sombre" class="on">Héros vert foncé</button>
+    <button data-dir="clair">Héros ivoire</button>
+  </span>
   <span class="grp" role="group" aria-label="Page">
     <button data-page="accueil" class="on">Accueil</button>
+    <button data-page="tutoriels">Tutoriels</button>
+    <button data-page="blog">Blog</button>
+    <button data-page="article">Article</button>
+    <button data-page="contact">Contact</button>
     <button data-page="conf">Confidentialité</button>
   </span>
   <span class="grp" role="group" aria-label="Appareil">
@@ -852,11 +996,16 @@ header.colle .marque .embleme { box-shadow: none; background: transparent; }
     </button>
 
     <nav class="liens" id="menu">
-      <a href="#chaine">Comment ça marche</a>
-      <a href="#roles">Les rôles</a>
-      <a href="#hors-ligne">Hors-ligne</a>
-      <a href="#securite">Sécurité</a>
-      <a class="btn btn-or" href="#contact">Demander une démonstration</a>
+      <a href="/" class="actif">Accueil</a>
+      <a href="#tarifs">Tarifs</a>
+      <a href="/blog">Blog</a>
+      <a href="#faq">FAQ</a>
+      <a href="/tutoriels">Tutoriels</a>
+      <a href="/contact">Contact</a>
+      <a class="btn btn-or" href="#contact">
+        Démonstration
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
     </nav>
   </div>
 </header>
@@ -866,7 +1015,7 @@ header.colle .marque .embleme { box-shadow: none; background: transparent; }
 <!-- ======================================================================
      HÉROS
      ====================================================================== -->
-<section class="heros bande-sombre">
+<section class="heros bande-sombre" id="heros">
   <div class="wrap heros-grille">
 
     <div>
@@ -1485,6 +1634,73 @@ header.colle .marque .embleme { box-shadow: none; background: transparent; }
 </section>
 
 <!-- ======================================================================
+     TARIFS
+     ====================================================================== -->
+<section class="section" id="tarifs">
+  <div class="wrap">
+    <div class="entete-section centre">
+      <p class="oeil" style="justify-content:center">Tarifs</p>
+      <h2 class="t-h2">Deux formules, et la ligne de partage est claire.</h2>
+      <p class="plomb">
+        L'<strong>Essentiel</strong> couvre tout le terrain : collecter, peser, payer,
+        stocker, avancer. Le <strong>Complet</strong> y ajoute la chaîne financière —
+        le rôle Comptable et tout ce qui encadre l'argent avant qu'il ne parte.
+      </p>
+    </div>
+
+    <div class="grille-tarifs reveal">
+
+      <article class="formule">
+        <h3>Essentiel</h3>
+        <p class="pour">Pour une coopérative qui achète, pèse et paie ses planteurs.</p>
+        <div class="prix"><b>30 000</b><span class="dev">F CFA</span><span class="par">/ mois</span></div>
+        <a class="btn btn-fantome" href="#contact">Demander une démonstration</a>
+
+        <p class="titre-liste">Ce qui est inclus</p>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>4 rôles</strong> : patron, pisteur, magasinier, planteur</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Pesée au bord-champ et au magasin, <strong>sans réseau</strong></span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Bordereau numéroté par agent, imprimable</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Livraison au magasin et <strong>vérification des poids</strong></span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Stock réel du magasin : entrées − sorties</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Avances, recouvrement automatique et restes dus</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Espace planteur : livraisons, paiements, avances</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Caisse et commission des agents</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Bilan de campagne et espace d'administration</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Mises à jour et sauvegardes incluses</span></li>
+        </ul>
+      </article>
+
+      <article class="formule mise-en-avant">
+        <span class="ruban">Toutes les fonctionnalités</span>
+        <h3>Complet</h3>
+        <p class="pour">Pour une coopérative qui veut aussi tenir ses comptes dans le même outil.</p>
+        <div class="prix"><b>50 000</b><span class="dev">F CFA</span><span class="par">/ mois</span></div>
+        <a class="btn" href="#contact">Demander une démonstration</a>
+
+        <p class="titre-liste">Tout l'Essentiel, plus</p>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Le <strong>rôle Comptable</strong>, avec son propre espace</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Chaîne budgétaire à 4 crans : budget → allocation → enveloppe → mandat</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Plafonds appliqués <strong>côté serveur</strong> : le comptable ne crée jamais de fonds</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Trésorerie consolidée et journal financier</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Règlement des commissions et des dettes aux agents</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Expéditions usine : <strong>bénéfice par expédition</strong>, freinte, prix de revient figé</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Dépenses de la coopérative et alertes financières</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Formation des équipes</strong> et support prioritaire</span></li>
+        </ul>
+      </article>
+    </div>
+
+    <p class="note-tarif">
+      Prix par coopérative, sans limite de nombre de planteurs ni de collaborateurs.
+      Une coopérative peut changer de formule en cours de campagne : ses données
+      restent les mêmes, seules les fonctionnalités s'ouvrent ou se referment.
+    </p>
+  </div>
+</section>
+
+<!-- ======================================================================
      QUESTIONS
      ====================================================================== -->
 <section class="section" id="faq">
@@ -1563,20 +1779,23 @@ header.colle .marque .embleme { box-shadow: none; background: transparent; }
         <ul>
           <li><a href="#chaine">Comment ça marche</a></li>
           <li><a href="#roles">Les rôles</a></li>
-          <li><a href="#hors-ligne">Hors-ligne</a></li>
+          <li><a href="#tarifs">Tarifs</a></li>
           <li><a href="#securite">Sécurité</a></li>
         </ul>
       </div>
       <div>
         <h4>Ressources</h4>
         <ul>
-          <li><a href="/confidentialite">Confidentialité</a></li>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="/tutoriels">Tutoriels</a></li>
           <li><a href="#faq">Questions fréquentes</a></li>
+          <li><a href="/confidentialite">Confidentialité</a></li>
         </ul>
       </div>
       <div>
         <h4>Contact</h4>
         <ul>
+          <li><a href="/contact">Nous écrire</a></li>
           <li><a href="mailto:contact@valeo-scoop.com">contact@valeo-scoop.com</a></li>
           <li>Côte d'Ivoire</li>
         </ul>
@@ -1681,6 +1900,1065 @@ header.colle .marque .embleme { box-shadow: none; background: transparent; }
 
 </script>
 </div>
+  <div id="pg-tutoriels" hidden>
+
+<header id="tete" class="colle">
+  <div class="wrap barre">
+    <a class="marque" href="/" aria-label="VALEO, accueil">
+      <img class="embleme" src="data:image/png;base64,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" width="220" height="118" alt="" aria-hidden="true">
+      <span class="marque-nom">
+        <b>VALEO</b>
+        <span>Tracer · Gérer · Valoriser</span>
+      </span>
+    </a>
+    <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <nav class="liens" id="menu">
+      <a href="/">Accueil</a>
+      <a href="/#tarifs">Tarifs</a>
+      <a href="/blog">Blog</a>
+      <a href="/#faq">FAQ</a>
+      <a href="/tutoriels" class="actif">Tutoriels</a>
+      <a href="/contact">Contact</a>
+      <a class="btn btn-or" href="/contact">
+        Démonstration
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="section">
+  <div class="wrap">
+    <div class="entete-section centre">
+      <p class="oeil" style="justify-content:center">Tutoriels</p>
+      <h2 class="t-h2">Chaque geste du métier, pas à pas.</h2>
+      <p class="plomb">
+        Des marches à suivre courtes, dans l'ordre où elles se présentent sur le
+        terrain. Chacune dit aussi <strong>ce que le logiciel refusera</strong> —
+        c'est souvent là que naissent les malentendus.
+      </p>
+    </div>
+
+    <div class="faq" style="max-width:860px">
+
+      <p class="oeil" style="margin-bottom:var(--e4)">Mise en route</p>
+
+      <details open>
+        <summary>1. Créer sa coopérative et son compte patron</summary>
+        <p>
+          À l'ouverture, choisissez <strong>Créer une coopérative</strong>. Vous saisissez
+          le nom, la localisation (elle se <em>choisit</em> dans la base officielle, elle ne
+          se tape pas : c'est ce qui évite deux orthographes pour le même village), votre
+          e-mail et un mot de passe. Ce compte est celui du patron : il est souverain sur
+          cette coopérative, et sur elle seule.
+        </p>
+        <p>
+          Réglez ensuite vos <strong>barèmes</strong> dans Réglages : prix au kilo et
+          commission, par culture. Vous pouvez les changer en cours de campagne — les
+          pesées déjà faites gardent le prix du jour où elles ont été faites.
+        </p>
+      </details>
+
+      <details>
+        <summary>2. Ajouter un collaborateur</summary>
+        <p>
+          Menu <strong>Mes collaborateurs → Ajouter</strong>. Vous saisissez le nom, le
+          téléphone, le rôle (pisteur, magasinier ou comptable) et un code à 6 chiffres.
+          C'est avec ce couple téléphone + code qu'il se connectera : VALEO n'a pas de
+          connexion par e-mail pour les collaborateurs, et ce n'est pas un oubli —
+          le circuit téléphone + code porte le verrou anti-force-brute et la révocation.
+        </p>
+        <p class="sourdine" style="font-size:.93rem">
+          <strong>Ce qui est refusé :</strong> personne d'autre que le patron ne peut créer,
+          supprimer ou modifier un collaborateur, ni poser un code secret.
+        </p>
+      </details>
+
+      <p class="oeil" style="margin:var(--e7) 0 var(--e4)">La tournée</p>
+
+      <details>
+        <summary>3. Peser un planteur au bord-champ</summary>
+        <p>
+          Onglet <strong>Pesée</strong>. Choisissez le planteur (ou créez-le sur place),
+          puis entrez les poids sac par sac — le pavé additionne les pesées successives.
+          Indiquez le <strong>nombre de sacs</strong> : 1 kg de tare est déduit par sac, et
+          le montant se calcule sur le poids <em>net</em>, jamais sur le brut.
+        </p>
+        <p>
+          VALEO propose alors le recouvrement de l'avance en cours, solde l'ancien reste dû,
+          et affiche le total à remettre. Validez : le bordereau est numéroté
+          (<span class="mono">P-KAD-0042</span>) et peut être imprimé ou montré à l'écran.
+        </p>
+        <p class="sourdine" style="font-size:.93rem">
+          <strong>Aucun réseau n'est nécessaire.</strong> La pesée est enregistrée sur le
+          téléphone et partira à la prochaine connexion.
+        </p>
+      </details>
+
+      <details>
+        <summary>4. Accorder une avance sur le terrain</summary>
+        <p>
+          Depuis la fiche du planteur, <strong>Accorder une avance</strong>. Elle naît
+          directement approuvée et signée de votre nom : c'est vous le créancier.
+        </p>
+        <p>
+          Conséquence importante : <strong>vous seul la recouvrez</strong>. Si le planteur
+          porte aussi une avance du patron, les deux coexistent sans se mélanger, et vos
+          pesées n'imputent rien sur celle du patron.
+        </p>
+      </details>
+
+      <details>
+        <summary>5. Livrer son chargement au magasin</summary>
+        <p>
+          En fin de tournée, onglet <strong>Mon point → Livrer au magasin</strong>.
+          Sélectionnez les pesées que vous remettez et validez. Le patron et le magasinier
+          sont alertés immédiatement.
+        </p>
+        <p class="sourdine" style="font-size:.93rem">
+          <strong>La livraison est définitive</strong> : on ne retire pas sa marchandise de
+          la file du magasin après coup. Tant qu'elle n'est pas vérifiée, le poids reste à
+          votre charge et n'entre pas dans le stock.
+        </p>
+      </details>
+
+      <p class="oeil" style="margin:var(--e7) 0 var(--e4)">Au magasin</p>
+
+      <details>
+        <summary>6. Vérifier un chargement</summary>
+        <p>
+          Onglet <strong>Vérifier</strong> : la file des livraisons en attente, avec le
+          pisteur, l'heure et le poids déclaré. Ouvrez-en une et pesez le chargement
+          <strong>en une seule fois</strong>, en autant de fournées de sacs que vous voulez.
+          C'est la même procédure de pesée que d'habitude, sans le paiement.
+        </p>
+        <p>
+          Le poids que vous constatez est celui qui entre en stock, et c'est lui qui ouvre
+          la commission du pisteur. L'écart apparaît tel quel — en moins comme en plus.
+        </p>
+        <p class="sourdine" style="font-size:.93rem">
+          <strong>Ce qui est refusé :</strong> vérifier votre propre pesée, et vérifier
+          deux fois. Seul le patron corrige une vérification contestée.
+        </p>
+      </details>
+
+      <details>
+        <summary>7. Lire un écart, et savoir qui doit quoi</summary>
+        <p>
+          Un <strong>manquant</strong> se rembourse en <em>poids</em>, pas en argent : le
+          mandat a été confié pour rapporter de la marchandise. La dette en kilos du pisteur
+          augmente, et rien n'est prélevé sur sa caisse.
+        </p>
+        <p>
+          Un <strong>excédent</strong> comble d'abord cette dette, kilo pour kilo. Seul le
+          reliquat lui est acquis, valorisé au prix figé du chargement et versé avec sa
+          commission.
+        </p>
+      </details>
+
+      <p class="oeil" style="margin:var(--e7) 0 var(--e4)">Argent et clôture</p>
+
+      <details>
+        <summary>8. Confier un mandat à un pisteur (comptable)</summary>
+        <p>
+          La chaîne a quatre crans, et chacun borne le suivant :
+          <strong>budget</strong> d'achat (ouvert par le patron) →
+          <strong>allocation</strong> au comptable (par le patron) →
+          <strong>enveloppe</strong> (ouverte par le comptable) →
+          <strong>mandat</strong> confié à un pisteur.
+        </p>
+        <p>
+          Ouvrez l'enveloppe, puis <strong>Nouveau mandat</strong> : l'écran affiche le
+          disponible restant avant même que vous saisissiez le montant.
+        </p>
+        <p class="sourdine" style="font-size:.93rem">
+          <strong>Ce qui est refusé :</strong> un mandat au-delà de l'enveloppe. La décision
+          se prend au bureau, connecté, les chiffres sous les yeux — la refuser ne fait rien
+          perdre. En revanche, un pisteur qui <em>achète</em> au-delà de son mandat n'est
+          jamais bloqué : l'achat a déjà eu lieu, et en refuser la saisie n'en supprimerait
+          que la trace.
+        </p>
+      </details>
+
+      <details>
+        <summary>9. Expédier vers l'usine et lire le résultat</summary>
+        <p>
+          Onglet <strong>Stock → Sortie → Expédition</strong>. Vous saisissez le poids qui
+          part, le transport et les frais de route. Le prix de revient est pré-rempli au
+          barème et <strong>figé sur l'enregistrement</strong> : un changement de barème ne
+          réécrira jamais un bénéfice déjà constaté.
+        </p>
+        <p>
+          À la réception, saisissez le poids constaté par l'usine et son prix. VALEO calcule
+          le bénéfice et la <strong>freinte</strong> — l'écart entre ce qui est parti et ce
+          qui est arrivé, une perte sèche qui n'apparaît nulle part ailleurs. Le bénéfice
+          peut être négatif, et il s'affiche tel quel.
+        </p>
+      </details>
+
+      <details>
+        <summary>10. Clôturer une campagne</summary>
+        <p>
+          Réglages → <strong>Campagne</strong>. La production est cloisonnée : volumes,
+          stock, caisses et commissions repartent à zéro.
+        </p>
+        <p>
+          Mais <strong>les dettes sont reportées</strong>, et c'est voulu : un reste dû à un
+          planteur, une avance non remboursée et la dette en kilos d'un agent suivent d'une
+          campagne à l'autre. Les effacer à la clôture reviendrait à annuler des créances
+          réelles.
+        </p>
+      </details>
+    </div>
+
+    <div class="appel" style="margin-top:var(--e8)">
+      <p class="plomb">Une manipulation qui n'est pas ici ?</p>
+      <a class="btn btn-or" href="/contact">Posez-nous la question</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="pied-grille">
+      <div class="pied-marque">
+        <img src="data:image/png;base64,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" width="192" height="163" alt="VALEO">
+        <p>Le logiciel des coopératives agricoles de Côte d'Ivoire. Tracer, gérer, valoriser.</p>
+      </div>
+      <div>
+        <h4>Produit</h4>
+        <ul>
+          <li><a href="/#chaine">Comment ça marche</a></li>
+          <li><a href="/#roles">Les rôles</a></li>
+          <li><a href="/#tarifs">Tarifs</a></li>
+          <li><a href="/#securite">Sécurité</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Ressources</h4>
+        <ul>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="/tutoriels">Tutoriels</a></li>
+          <li><a href="/#faq">Questions fréquentes</a></li>
+          <li><a href="/confidentialite">Confidentialité</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="/contact">Nous écrire</a></li>
+          <li><a href="mailto:contact@valeo-scoop.com">contact@valeo-scoop.com</a></li>
+          <li>Côte d'Ivoire</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pied-bas">
+      <span>© 2026 VALEO. Tous droits réservés.</span>
+      <span>La valeur commence à la source.</span>
+    </div>
+  </div>
+</footer>
+<script>
+/* VALEO — comportements du site public.
+   Sorti du HTML pour que la Content-Security-Policy puisse valoir
+   `script-src 'self'` : aucun script en ligne a autoriser, donc aucune
+   empreinte a maintenir quand ce fichier evolue. */
+(function () {
+  "use strict";
+
+  /* -- En-tete : opaque des que la page defile ----------------------------- */
+  var tete = document.getElementById("tete");
+  var auSol = function () { tete.classList.toggle("colle", window.scrollY > 24); };
+  auSol();
+  addEventListener("scroll", auSol, { passive: true });
+
+  /* -- Menu du telephone --------------------------------------------------- */
+  var burger = document.getElementById("burger");
+  var menu = document.getElementById("menu");
+  burger.addEventListener("click", function () {
+    var ouvert = menu.classList.toggle("ouvert");
+    burger.setAttribute("aria-expanded", String(ouvert));
+  });
+  menu.addEventListener("click", function (e) {
+    if (e.target.tagName === "A") {
+      menu.classList.remove("ouvert");
+      burger.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  /* -- Apparition au defilement -------------------------------------------- */
+  var aReveler = document.querySelectorAll(".reveal");
+  if (!("IntersectionObserver" in window)) {
+    /* Navigateur ancien : on montre tout plutot que de cacher le site. */
+    aReveler.forEach(function (n) { n.classList.add("vu"); });
+  } else {
+    var obs = new IntersectionObserver(function (entrees) {
+      entrees.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("vu"); obs.unobserve(e.target); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    aReveler.forEach(function (n) { obs.observe(n); });
+  }
+
+  /* -- Explorateur de roles ------------------------------------------------ */
+  var onglets = [].slice.call(document.querySelectorAll('[role="tab"]'));
+
+  function montrer(onglet) {
+    onglets.forEach(function (o) {
+      var actif = o === onglet;
+      o.setAttribute("aria-selected", String(actif));
+      document.getElementById(o.getAttribute("aria-controls")).hidden = !actif;
+    });
+  }
+
+  onglets.forEach(function (o, i) {
+    o.addEventListener("click", function () { montrer(o); });
+    /* Navigation au clavier : les fleches parcourent les onglets, comme le
+       veut le motif ARIA. Sans cela l'explorateur est inutilisable sans souris. */
+    o.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var suivant = onglets[(i + d + onglets.length) % onglets.length];
+      montrer(suivant);
+      suivant.focus();
+    });
+  });
+
+  /* -- Compteurs ------------------------------------------------------------
+     Les chiffres du bandeau sont deja dans le HTML : l'animation ne fait que
+     les faire monter. Si le script tombe, ils restent justes et lisibles. */
+  var reduit = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduit && "IntersectionObserver" in window) {
+    var oc = new IntersectionObserver(function (entrees) {
+      entrees.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        oc.unobserve(e.target);
+        var cible = parseInt(e.target.textContent, 10);
+        if (isNaN(cible) || cible === 0) return;
+        var t0 = performance.now(), duree = 750;
+        (function pas(t) {
+          var p = Math.min(1, (t - t0) / duree);
+          e.target.textContent = String(Math.round(cible * (1 - Math.pow(1 - p, 3))));
+          if (p < 1) requestAnimationFrame(pas);
+        })(t0);
+      });
+    }, { threshold: 0.6 });
+    document.querySelectorAll(".chiffre b").forEach(function (n) { oc.observe(n); });
+  }
+})();
+
+</script>
+</div>
+  <div id="pg-blog" hidden>
+
+<header id="tete" class="colle">
+  <div class="wrap barre">
+    <a class="marque" href="/" aria-label="VALEO, accueil">
+      <img class="embleme" src="data:image/png;base64,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" width="220" height="118" alt="" aria-hidden="true">
+      <span class="marque-nom">
+        <b>VALEO</b>
+        <span>Tracer · Gérer · Valoriser</span>
+      </span>
+    </a>
+    <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <nav class="liens" id="menu">
+      <a href="/">Accueil</a>
+      <a href="/#tarifs">Tarifs</a>
+      <a href="/blog" class="actif">Blog</a>
+      <a href="/#faq">FAQ</a>
+      <a href="/tutoriels">Tutoriels</a>
+      <a href="/contact">Contact</a>
+      <a class="btn btn-or" href="/contact">
+        Démonstration
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="section">
+  <div class="wrap">
+    <div class="entete-section centre">
+      <p class="oeil" style="justify-content:center">Journal</p>
+      <h2 class="t-h2">Ce qu'on apprend en regardant une coopérative compter.</h2>
+      <p class="plomb">
+        Des notes de terrain sur la gestion d'une coopérative : les écarts de poids,
+        les avances, la caisse d'un pisteur. Pas d'actualité produit — des problèmes
+        de métier, et comment ils se tranchent.
+      </p>
+    </div>
+
+    <div class="grille g-2" style="max-width:960px;margin-inline:auto">
+
+      <article class="carte carte-levee">
+        <p class="oeil">1<sup>er</sup> octobre 2026 · Métier</p>
+        <h3 class="t-h3" style="margin-block:var(--e3) var(--e3)">
+          <a href="/blog/commission-poids-verifie" style="text-decoration:none;color:inherit">
+            Payer la commission sur le poids déclaré, c'est payer de la marchandise qu'on n'a pas reçue
+          </a>
+        </h3>
+        <p>
+          Un pisteur annonce 1 200 kg, le magasin en pèse 1 160. Si la commission se calcule
+          sur les 1 200, le constat du magasinier ne change plus rien pour personne — et son
+          travail perd toute portée. Pourquoi nous avons déplacé la base de calcul.
+        </p>
+        <p style="margin-top:var(--e4)">
+          <a href="/blog/commission-poids-verifie">Lire la note →</a>
+        </p>
+      </article>
+
+      <article class="carte" style="display:grid;place-items:center;text-align:center;background:var(--ivoire-2);border-style:dashed">
+        <div>
+          <p class="oeil" style="justify-content:center">Prochainement</p>
+          <h3 class="t-h3" style="margin-block:var(--e3)">Trois choses qu'un cahier de pesée ne peut pas dire</h3>
+          <p class="sourdine" style="font-size:.93rem">
+            Le stock réel, la dette reportée d'une campagne à l'autre, et la caisse d'un agent.
+          </p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="pied-grille">
+      <div class="pied-marque">
+        <img src="data:image/png;base64,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" width="192" height="163" alt="VALEO">
+        <p>Le logiciel des coopératives agricoles de Côte d'Ivoire. Tracer, gérer, valoriser.</p>
+      </div>
+      <div>
+        <h4>Produit</h4>
+        <ul>
+          <li><a href="/#chaine">Comment ça marche</a></li>
+          <li><a href="/#roles">Les rôles</a></li>
+          <li><a href="/#tarifs">Tarifs</a></li>
+          <li><a href="/#securite">Sécurité</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Ressources</h4>
+        <ul>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="/tutoriels">Tutoriels</a></li>
+          <li><a href="/#faq">Questions fréquentes</a></li>
+          <li><a href="/confidentialite">Confidentialité</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="/contact">Nous écrire</a></li>
+          <li><a href="mailto:contact@valeo-scoop.com">contact@valeo-scoop.com</a></li>
+          <li>Côte d'Ivoire</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pied-bas">
+      <span>© 2026 VALEO. Tous droits réservés.</span>
+      <span>La valeur commence à la source.</span>
+    </div>
+  </div>
+</footer>
+<script>
+/* VALEO — comportements du site public.
+   Sorti du HTML pour que la Content-Security-Policy puisse valoir
+   `script-src 'self'` : aucun script en ligne a autoriser, donc aucune
+   empreinte a maintenir quand ce fichier evolue. */
+(function () {
+  "use strict";
+
+  /* -- En-tete : opaque des que la page defile ----------------------------- */
+  var tete = document.getElementById("tete");
+  var auSol = function () { tete.classList.toggle("colle", window.scrollY > 24); };
+  auSol();
+  addEventListener("scroll", auSol, { passive: true });
+
+  /* -- Menu du telephone --------------------------------------------------- */
+  var burger = document.getElementById("burger");
+  var menu = document.getElementById("menu");
+  burger.addEventListener("click", function () {
+    var ouvert = menu.classList.toggle("ouvert");
+    burger.setAttribute("aria-expanded", String(ouvert));
+  });
+  menu.addEventListener("click", function (e) {
+    if (e.target.tagName === "A") {
+      menu.classList.remove("ouvert");
+      burger.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  /* -- Apparition au defilement -------------------------------------------- */
+  var aReveler = document.querySelectorAll(".reveal");
+  if (!("IntersectionObserver" in window)) {
+    /* Navigateur ancien : on montre tout plutot que de cacher le site. */
+    aReveler.forEach(function (n) { n.classList.add("vu"); });
+  } else {
+    var obs = new IntersectionObserver(function (entrees) {
+      entrees.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("vu"); obs.unobserve(e.target); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    aReveler.forEach(function (n) { obs.observe(n); });
+  }
+
+  /* -- Explorateur de roles ------------------------------------------------ */
+  var onglets = [].slice.call(document.querySelectorAll('[role="tab"]'));
+
+  function montrer(onglet) {
+    onglets.forEach(function (o) {
+      var actif = o === onglet;
+      o.setAttribute("aria-selected", String(actif));
+      document.getElementById(o.getAttribute("aria-controls")).hidden = !actif;
+    });
+  }
+
+  onglets.forEach(function (o, i) {
+    o.addEventListener("click", function () { montrer(o); });
+    /* Navigation au clavier : les fleches parcourent les onglets, comme le
+       veut le motif ARIA. Sans cela l'explorateur est inutilisable sans souris. */
+    o.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var suivant = onglets[(i + d + onglets.length) % onglets.length];
+      montrer(suivant);
+      suivant.focus();
+    });
+  });
+
+  /* -- Compteurs ------------------------------------------------------------
+     Les chiffres du bandeau sont deja dans le HTML : l'animation ne fait que
+     les faire monter. Si le script tombe, ils restent justes et lisibles. */
+  var reduit = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduit && "IntersectionObserver" in window) {
+    var oc = new IntersectionObserver(function (entrees) {
+      entrees.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        oc.unobserve(e.target);
+        var cible = parseInt(e.target.textContent, 10);
+        if (isNaN(cible) || cible === 0) return;
+        var t0 = performance.now(), duree = 750;
+        (function pas(t) {
+          var p = Math.min(1, (t - t0) / duree);
+          e.target.textContent = String(Math.round(cible * (1 - Math.pow(1 - p, 3))));
+          if (p < 1) requestAnimationFrame(pas);
+        })(t0);
+      });
+    }, { threshold: 0.6 });
+    document.querySelectorAll(".chiffre b").forEach(function (n) { oc.observe(n); });
+  }
+})();
+
+</script>
+</div>
+  <div id="pg-article" hidden>
+
+<header id="tete" class="colle">
+  <div class="wrap barre">
+    <a class="marque" href="/" aria-label="VALEO, accueil">
+      <img class="embleme" src="data:image/png;base64,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" width="220" height="118" alt="" aria-hidden="true">
+      <span class="marque-nom">
+        <b>VALEO</b>
+        <span>Tracer · Gérer · Valoriser</span>
+      </span>
+    </a>
+    <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <nav class="liens" id="menu">
+      <a href="/">Accueil</a>
+      <a href="/#tarifs">Tarifs</a>
+      <a href="/blog" class="actif">Blog</a>
+      <a href="/#faq">FAQ</a>
+      <a href="/tutoriels">Tutoriels</a>
+      <a href="/contact">Contact</a>
+      <a class="btn btn-or" href="/contact">
+        Démonstration
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="section">
+  <div class="wrap prose">
+    <p class="oeil">1<sup>er</sup> octobre 2026 · Métier · 5 min de lecture</p>
+    <h1 class="t-h2" style="margin-block:var(--e3) var(--e5)">
+      Payer la commission sur le poids déclaré, c'est payer de la marchandise qu'on n'a pas reçue
+    </h1>
+
+    <div class="encadre">
+      <p><strong>En deux lignes.</strong> Tant que la commission d'un pisteur se calcule sur le
+      poids qu'il annonce, le pesage du magasinier ne change rien pour personne. En la
+      calculant sur le poids <em>vérifié</em>, on rend au magasin son rôle d'arbitre — et on
+      cesse de rémunérer du cacao qui n'est jamais arrivé.</p>
+    </div>
+
+    <p>
+      Le cas est banal, et c'est ce qui le rend intéressant. Un pisteur part en tournée,
+      pèse quatorze planteurs au bord-champ, et déclare 1 200 kg en rentrant. Le magasinier
+      pèse le chargement : 1 160 kg. Quarante kilos manquent.
+    </p>
+    <p>
+      Freinte, humidité, sacs mal vidés, erreur de lecture sur une balance de brousse : les
+      explications ne manquent pas, et la plupart sont honnêtes. La question n'est pas là.
+      Elle est de savoir <strong>sur quel poids la coopérative paie</strong>.
+    </p>
+
+    <h2>Le problème du poids déclaré</h2>
+    <p>
+      Si la commission se calcule sur les 1 200 kg, alors le passage au magasin ne modifie
+      rien : le pisteur touche la même somme que le chargement pèse 1 200 ou 1 100 kg. Le
+      magasinier peut peser avec le plus grand soin, consigner l'écart, le signaler — son
+      constat n'a <em>aucune conséquence</em>. Il devient un employé qui remplit une case.
+    </p>
+    <p>
+      Pire : la coopérative verse une commission sur de la marchandise qu'elle n'a pas
+      reçue. Sur quarante kilos à 1 200 F et 40 F de commission au kilo, ce sont 1 600 F
+      par chargement. Multipliés par une campagne, l'ordre de grandeur cesse d'être
+      anecdotique.
+    </p>
+
+    <h2>Déplacer la base de calcul</h2>
+    <p>
+      La règle que nous avons retenue tient en une phrase : <strong>la commission se gagne
+      sur le poids qui entre en magasin</strong>. Pas sur le poids déclaré au bord-champ.
+    </p>
+    <p>Concrètement, trois cas, et un seul chiffre par cas :</p>
+    <ul>
+      <li>pesée faite <strong>au magasin</strong> → le poids pesé, il n'y a pas de second pesage ;</li>
+      <li>collecte bord-champ <strong>vérifiée</strong> → le poids constaté par le magasinier ;</li>
+      <li>collecte bord-champ <strong>pas encore vérifiée</strong> → rien, pour l'instant.</li>
+    </ul>
+    <p>
+      Le magasinier et le patron, qui pèsent directement au magasin, gardent donc exactement
+      la commission qu'ils avaient. Rien ne change pour eux.
+    </p>
+
+    <h2>La conséquence qu'il faut assumer</h2>
+    <p>
+      Pendant toute sa tournée, la commission d'un pisteur vaut zéro. C'est mécanique : rien
+      n'a encore été vérifié. Et c'est insupportable si on ne le dit pas — il croira
+      l'avoir perdue.
+    </p>
+    <p>
+      Son écran affiche donc <strong>deux lignes séparées</strong> : la commission
+      <em>acquise</em> (sur ce qui est entré en stock) et la commission <em>en attente de
+      vérification</em>. La seconde n'est pas un dû, c'est une prévision — mais elle existe
+      à l'écran, et elle enlève l'impression de travailler pour rien.
+    </p>
+
+    <h2>Et l'écart, alors ?</h2>
+    <p>
+      Il ne devient pas une amende. Un manquant se rembourse <strong>en poids</strong>, parce
+      que le mandat a été confié pour rapporter de la marchandise, pas pour rendre une somme.
+      La dette en kilos de l'agent augmente, et sa caisse n'est pas touchée.
+    </p>
+    <p>
+      Symétriquement, un excédent comble d'abord cette dette, kilo pour kilo. Seul le
+      reliquat lui est acquis, valorisé au prix figé du chargement et versé avec sa
+      commission. L'ordre compte : les chargements se dépouillent du plus ancien au plus
+      récent, sans quoi un excédent de janvier effacerait un manquant de février qui n'a pas
+      encore eu lieu.
+    </p>
+
+    <h2>Ce que ça change dans la coopérative</h2>
+    <p>
+      Le magasinier retrouve une fonction d'arbitre : son pesage a des conséquences
+      financières, donc il est fait sérieusement, et contesté quand il doit l'être. Le
+      pisteur a intérêt à soigner son chargement. Et le patron cesse de payer deux fois la
+      même incertitude.
+    </p>
+    <p>
+      Aucune de ces trois choses n'est un gain de productivité. Ce sont des incitations
+      remises à l'endroit — et dans une coopérative, c'est généralement ce qui manque avant
+      qu'il ne manque un logiciel.
+    </p>
+
+    <hr style="border:0;border-top:1px solid var(--trait);margin-block:var(--e8)">
+    <p>
+      <a href="/blog">← Toutes les notes</a> &nbsp;·&nbsp;
+      <a href="/contact">Demander une démonstration</a>
+    </p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="pied-grille">
+      <div class="pied-marque">
+        <img src="data:image/png;base64,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" width="192" height="163" alt="VALEO">
+        <p>Le logiciel des coopératives agricoles de Côte d'Ivoire. Tracer, gérer, valoriser.</p>
+      </div>
+      <div>
+        <h4>Produit</h4>
+        <ul>
+          <li><a href="/#chaine">Comment ça marche</a></li>
+          <li><a href="/#roles">Les rôles</a></li>
+          <li><a href="/#tarifs">Tarifs</a></li>
+          <li><a href="/#securite">Sécurité</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Ressources</h4>
+        <ul>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="/tutoriels">Tutoriels</a></li>
+          <li><a href="/#faq">Questions fréquentes</a></li>
+          <li><a href="/confidentialite">Confidentialité</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="/contact">Nous écrire</a></li>
+          <li><a href="mailto:contact@valeo-scoop.com">contact@valeo-scoop.com</a></li>
+          <li>Côte d'Ivoire</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pied-bas">
+      <span>© 2026 VALEO. Tous droits réservés.</span>
+      <span>La valeur commence à la source.</span>
+    </div>
+  </div>
+</footer>
+<script>
+/* VALEO — comportements du site public.
+   Sorti du HTML pour que la Content-Security-Policy puisse valoir
+   `script-src 'self'` : aucun script en ligne a autoriser, donc aucune
+   empreinte a maintenir quand ce fichier evolue. */
+(function () {
+  "use strict";
+
+  /* -- En-tete : opaque des que la page defile ----------------------------- */
+  var tete = document.getElementById("tete");
+  var auSol = function () { tete.classList.toggle("colle", window.scrollY > 24); };
+  auSol();
+  addEventListener("scroll", auSol, { passive: true });
+
+  /* -- Menu du telephone --------------------------------------------------- */
+  var burger = document.getElementById("burger");
+  var menu = document.getElementById("menu");
+  burger.addEventListener("click", function () {
+    var ouvert = menu.classList.toggle("ouvert");
+    burger.setAttribute("aria-expanded", String(ouvert));
+  });
+  menu.addEventListener("click", function (e) {
+    if (e.target.tagName === "A") {
+      menu.classList.remove("ouvert");
+      burger.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  /* -- Apparition au defilement -------------------------------------------- */
+  var aReveler = document.querySelectorAll(".reveal");
+  if (!("IntersectionObserver" in window)) {
+    /* Navigateur ancien : on montre tout plutot que de cacher le site. */
+    aReveler.forEach(function (n) { n.classList.add("vu"); });
+  } else {
+    var obs = new IntersectionObserver(function (entrees) {
+      entrees.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("vu"); obs.unobserve(e.target); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    aReveler.forEach(function (n) { obs.observe(n); });
+  }
+
+  /* -- Explorateur de roles ------------------------------------------------ */
+  var onglets = [].slice.call(document.querySelectorAll('[role="tab"]'));
+
+  function montrer(onglet) {
+    onglets.forEach(function (o) {
+      var actif = o === onglet;
+      o.setAttribute("aria-selected", String(actif));
+      document.getElementById(o.getAttribute("aria-controls")).hidden = !actif;
+    });
+  }
+
+  onglets.forEach(function (o, i) {
+    o.addEventListener("click", function () { montrer(o); });
+    /* Navigation au clavier : les fleches parcourent les onglets, comme le
+       veut le motif ARIA. Sans cela l'explorateur est inutilisable sans souris. */
+    o.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var suivant = onglets[(i + d + onglets.length) % onglets.length];
+      montrer(suivant);
+      suivant.focus();
+    });
+  });
+
+  /* -- Compteurs ------------------------------------------------------------
+     Les chiffres du bandeau sont deja dans le HTML : l'animation ne fait que
+     les faire monter. Si le script tombe, ils restent justes et lisibles. */
+  var reduit = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduit && "IntersectionObserver" in window) {
+    var oc = new IntersectionObserver(function (entrees) {
+      entrees.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        oc.unobserve(e.target);
+        var cible = parseInt(e.target.textContent, 10);
+        if (isNaN(cible) || cible === 0) return;
+        var t0 = performance.now(), duree = 750;
+        (function pas(t) {
+          var p = Math.min(1, (t - t0) / duree);
+          e.target.textContent = String(Math.round(cible * (1 - Math.pow(1 - p, 3))));
+          if (p < 1) requestAnimationFrame(pas);
+        })(t0);
+      });
+    }, { threshold: 0.6 });
+    document.querySelectorAll(".chiffre b").forEach(function (n) { oc.observe(n); });
+  }
+})();
+
+</script>
+</div>
+  <div id="pg-contact" hidden>
+
+<header id="tete" class="colle">
+  <div class="wrap barre">
+    <a class="marque" href="/" aria-label="VALEO, accueil">
+      <img class="embleme" src="data:image/png;base64,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" width="220" height="118" alt="" aria-hidden="true">
+      <span class="marque-nom">
+        <b>VALEO</b>
+        <span>Tracer · Gérer · Valoriser</span>
+      </span>
+    </a>
+    <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <nav class="liens" id="menu">
+      <a href="/">Accueil</a>
+      <a href="/#tarifs">Tarifs</a>
+      <a href="/blog">Blog</a>
+      <a href="/#faq">FAQ</a>
+      <a href="/tutoriels">Tutoriels</a>
+      <a href="/contact" class="actif">Contact</a>
+      <a class="btn btn-or" href="/contact">
+        Démonstration
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="section">
+  <div class="wrap">
+    <div class="entete-section centre">
+      <p class="oeil" style="justify-content:center">Contact</p>
+      <h2 class="t-h2">Parlons de votre campagne.</h2>
+      <p class="plomb">
+        Une démonstration dure une demi-heure et se fait sur <strong>vos propres
+        chiffres</strong> : vos barèmes, vos pisteurs, vos planteurs. Vous verrez
+        tout de suite si VALEO tient la route chez vous.
+      </p>
+    </div>
+
+    <div class="grille g-2" style="align-items:start;max-width:960px;margin-inline:auto">
+
+      <article class="carte">
+        <div class="pastille or">
+          <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+        </div>
+        <h3 class="t-h3">Nous écrire</h3>
+        <p style="margin-bottom:var(--e5)">
+          C'est la voie la plus directe. Nous répondons sous un jour ouvré.
+        </p>
+        <a class="btn btn-or" href="mailto:contact@valeo-scoop.com?subject=Demande%20de%20d%C3%A9monstration%20VALEO&amp;body=Nom%20de%20la%20coop%C3%A9rative%20%3A%0ALocalit%C3%A9%20%3A%0ACultures%20%3A%0ANombre%20de%20planteurs%20%3A%0ANombre%20de%20pisteurs%20%3A%0A%0AVotre%20question%20%3A%0A">
+          contact@valeo-scoop.com
+        </a>
+        <p class="sourdine" style="font-size:.86rem;margin-top:var(--e4)">
+          Le lien ouvre votre messagerie avec un modèle déjà rempli.
+        </p>
+      </article>
+
+      <article class="carte">
+        <div class="pastille">
+          <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+        </div>
+        <h3 class="t-h3">Ce qu'il faut préparer</h3>
+        <p>Rien d'obligatoire, mais la démonstration sera beaucoup plus parlante avec :</p>
+        <ul class="liste-faits" style="margin-top:var(--e4)">
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--foret-600)"><path d="M20 6L9 17l-5-5"/></svg><span>Votre <strong>prix d'achat</strong> au kilo et la <strong>commission</strong> de vos pisteurs</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--foret-600)"><path d="M20 6L9 17l-5-5"/></svg><span>Le nombre de planteurs, de pisteurs et de magasins</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--foret-600)"><path d="M20 6L9 17l-5-5"/></svg><span>Une page de votre cahier de pesée, même manuscrite</span></li>
+          <li><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--foret-600)"><path d="M20 6L9 17l-5-5"/></svg><span>Le point qui vous pose aujourd'hui le plus de problème</span></li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="carte" style="max-width:960px;margin:var(--e7) auto 0">
+      <h3 class="t-h3" style="margin-bottom:var(--e4)">Questions qui reviennent avant un premier contact</h3>
+      <div class="faq" style="max-width:none">
+        <details open>
+          <summary>Faut-il acheter des téléphones ?</summary>
+          <p>Non. VALEO tourne sur les téléphones Android que vos agents ont déjà, y compris des appareils d'entrée de gamme — c'est une contrainte qui a guidé toute la conception. Il existe aussi une version web pour le bureau.</p>
+        </details>
+        <details>
+          <summary>Et si nos agents ne savent pas lire ?</summary>
+          <p>Les écrans de terrain sont faits de chiffres, de gros boutons et de listes de noms. La pesée tient en trois gestes. Nous formons les équipes — c'est inclus dans la formule Complet, et proposé séparément pour l'Essentiel.</p>
+        </details>
+        <details>
+          <summary>Peut-on essayer avant de s'engager ?</summary>
+          <p>Oui. Nous ouvrons une coopérative de test avec vos barèmes, et vous la faites tourner sur une vraie tournée. Les données de test sont effacées ensuite, ou conservées si vous continuez.</p>
+        </details>
+        <details>
+          <summary>Que deviennent nos données si nous arrêtons ?</summary>
+          <p>Elles vous appartiennent et vous sont remises dans un format exploitable. La <a href="/confidentialite">politique de confidentialité</a> détaille la conservation et vos droits.</p>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="pied-grille">
+      <div class="pied-marque">
+        <img src="data:image/png;base64,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" width="192" height="163" alt="VALEO">
+        <p>Le logiciel des coopératives agricoles de Côte d'Ivoire. Tracer, gérer, valoriser.</p>
+      </div>
+      <div>
+        <h4>Produit</h4>
+        <ul>
+          <li><a href="/#chaine">Comment ça marche</a></li>
+          <li><a href="/#roles">Les rôles</a></li>
+          <li><a href="/#tarifs">Tarifs</a></li>
+          <li><a href="/#securite">Sécurité</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Ressources</h4>
+        <ul>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="/tutoriels">Tutoriels</a></li>
+          <li><a href="/#faq">Questions fréquentes</a></li>
+          <li><a href="/confidentialite">Confidentialité</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="/contact">Nous écrire</a></li>
+          <li><a href="mailto:contact@valeo-scoop.com">contact@valeo-scoop.com</a></li>
+          <li>Côte d'Ivoire</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pied-bas">
+      <span>© 2026 VALEO. Tous droits réservés.</span>
+      <span>La valeur commence à la source.</span>
+    </div>
+  </div>
+</footer>
+<script>
+/* VALEO — comportements du site public.
+   Sorti du HTML pour que la Content-Security-Policy puisse valoir
+   `script-src 'self'` : aucun script en ligne a autoriser, donc aucune
+   empreinte a maintenir quand ce fichier evolue. */
+(function () {
+  "use strict";
+
+  /* -- En-tete : opaque des que la page defile ----------------------------- */
+  var tete = document.getElementById("tete");
+  var auSol = function () { tete.classList.toggle("colle", window.scrollY > 24); };
+  auSol();
+  addEventListener("scroll", auSol, { passive: true });
+
+  /* -- Menu du telephone --------------------------------------------------- */
+  var burger = document.getElementById("burger");
+  var menu = document.getElementById("menu");
+  burger.addEventListener("click", function () {
+    var ouvert = menu.classList.toggle("ouvert");
+    burger.setAttribute("aria-expanded", String(ouvert));
+  });
+  menu.addEventListener("click", function (e) {
+    if (e.target.tagName === "A") {
+      menu.classList.remove("ouvert");
+      burger.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  /* -- Apparition au defilement -------------------------------------------- */
+  var aReveler = document.querySelectorAll(".reveal");
+  if (!("IntersectionObserver" in window)) {
+    /* Navigateur ancien : on montre tout plutot que de cacher le site. */
+    aReveler.forEach(function (n) { n.classList.add("vu"); });
+  } else {
+    var obs = new IntersectionObserver(function (entrees) {
+      entrees.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("vu"); obs.unobserve(e.target); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    aReveler.forEach(function (n) { obs.observe(n); });
+  }
+
+  /* -- Explorateur de roles ------------------------------------------------ */
+  var onglets = [].slice.call(document.querySelectorAll('[role="tab"]'));
+
+  function montrer(onglet) {
+    onglets.forEach(function (o) {
+      var actif = o === onglet;
+      o.setAttribute("aria-selected", String(actif));
+      document.getElementById(o.getAttribute("aria-controls")).hidden = !actif;
+    });
+  }
+
+  onglets.forEach(function (o, i) {
+    o.addEventListener("click", function () { montrer(o); });
+    /* Navigation au clavier : les fleches parcourent les onglets, comme le
+       veut le motif ARIA. Sans cela l'explorateur est inutilisable sans souris. */
+    o.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var suivant = onglets[(i + d + onglets.length) % onglets.length];
+      montrer(suivant);
+      suivant.focus();
+    });
+  });
+
+  /* -- Compteurs ------------------------------------------------------------
+     Les chiffres du bandeau sont deja dans le HTML : l'animation ne fait que
+     les faire monter. Si le script tombe, ils restent justes et lisibles. */
+  var reduit = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduit && "IntersectionObserver" in window) {
+    var oc = new IntersectionObserver(function (entrees) {
+      entrees.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        oc.unobserve(e.target);
+        var cible = parseInt(e.target.textContent, 10);
+        if (isNaN(cible) || cible === 0) return;
+        var t0 = performance.now(), duree = 750;
+        (function pas(t) {
+          var p = Math.min(1, (t - t0) / duree);
+          e.target.textContent = String(Math.round(cible * (1 - Math.pow(1 - p, 3))));
+          if (p < 1) requestAnimationFrame(pas);
+        })(t0);
+      });
+    }, { threshold: 0.6 });
+    document.querySelectorAll(".chiffre b").forEach(function (n) { oc.observe(n); });
+  }
+})();
+
+</script>
+</div>
   <div id="pg-conf" hidden>
 
 <header id="tete" class="colle">
@@ -1692,8 +2970,20 @@ header.colle .marque .embleme { box-shadow: none; background: transparent; }
         <span>Tracer · Gérer · Valoriser</span>
       </span>
     </a>
-    <nav class="liens" id="menu" style="display:flex">
-      <a class="btn btn-fantome" href="/">Retour au site</a>
+    <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Ouvrir le menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+    <nav class="liens" id="menu">
+      <a href="/">Accueil</a>
+      <a href="/#tarifs">Tarifs</a>
+      <a href="/blog">Blog</a>
+      <a href="/#faq">FAQ</a>
+      <a href="/tutoriels">Tutoriels</a>
+      <a href="/contact">Contact</a>
+      <a class="btn btn-or" href="/contact">
+        Démonstration
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
     </nav>
   </div>
 </header>
@@ -1921,11 +3211,18 @@ header.colle .marque .embleme { box-shadow: none; background: transparent; }
 (function () {
   var b = document.body;
   b.dataset.vue = "pc";
+  b.dataset.dir = "sombre";
   document.querySelectorAll("#barre-maquette button").forEach(function (bt) {
     bt.addEventListener("click", function () {
       var grp = bt.parentNode;
       grp.querySelectorAll("button").forEach(function (o) { o.classList.remove("on"); });
       bt.classList.add("on");
+      if (bt.dataset.dir) {
+        /* La direction se pose sur <body>, exactement comme sur le vrai site :
+           on compare donc le rendu reel, pas une imitation. */
+        b.dataset.dir = bt.dataset.dir;
+        scrollTo(0, 0);
+      }
       if (bt.dataset.vue) {
         b.dataset.vue = bt.dataset.vue;
         /* Le rendu « téléphone » passe par la largeur du cadre : les media
@@ -1933,8 +3230,9 @@ header.colle .marque .embleme { box-shadow: none; background: transparent; }
            pas. On le dit plutôt que de laisser croire à un rendu fidèle. */
       }
       if (bt.dataset.page) {
-        document.getElementById("pg-accueil").hidden = bt.dataset.page !== "accueil";
-        document.getElementById("pg-conf").hidden = bt.dataset.page !== "conf";
+        document.querySelectorAll("#cadre > div").forEach(function (p) {
+          p.hidden = p.id !== "pg-" + bt.dataset.page;
+        });
         scrollTo(0, 0);
       }
     });

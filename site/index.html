@@ -34,7 +34,7 @@
      qu'aucune image ne s'affiche puis disparaisse (pas de scintillement). -->
 <script>document.documentElement.className += " js";</script>
 </head>
-<body>
+<body data-dir="sombre">
 
 <a href="#contenu" class="btn" style="position:absolute;left:-9999px;top:8px;z-index:200"
    onfocus="this.style.left='8px'" onblur="this.style.left='-9999px'">Aller au contenu</a>
@@ -54,11 +54,16 @@
     </button>
 
     <nav class="liens" id="menu">
-      <a href="#chaine">Comment ça marche</a>
-      <a href="#roles">Les rôles</a>
-      <a href="#hors-ligne">Hors-ligne</a>
-      <a href="#securite">Sécurité</a>
-      <a class="btn btn-or" href="#contact">Demander une démonstration</a>
+      <a href="/" class="actif">Accueil</a>
+      <a href="#tarifs">Tarifs</a>
+      <a href="/blog">Blog</a>
+      <a href="#faq">FAQ</a>
+      <a href="/tutoriels">Tutoriels</a>
+      <a href="/contact">Contact</a>
+      <a class="btn btn-or" href="#contact">
+        Démonstration
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
     </nav>
   </div>
 </header>
@@ -68,7 +73,7 @@
 <!-- ======================================================================
      HÉROS
      ====================================================================== -->
-<section class="heros bande-sombre">
+<section class="heros bande-sombre" id="heros">
   <div class="wrap heros-grille">
 
     <div>
@@ -689,6 +694,73 @@
 </section>
 
 <!-- ======================================================================
+     TARIFS
+     ====================================================================== -->
+<section class="section" id="tarifs">
+  <div class="wrap">
+    <div class="entete-section centre">
+      <p class="oeil" style="justify-content:center">Tarifs</p>
+      <h2 class="t-h2">Deux formules, et la ligne de partage est claire.</h2>
+      <p class="plomb">
+        L'<strong>Essentiel</strong> couvre tout le terrain : collecter, peser, payer,
+        stocker, avancer. Le <strong>Complet</strong> y ajoute la chaîne financière —
+        le rôle Comptable et tout ce qui encadre l'argent avant qu'il ne parte.
+      </p>
+    </div>
+
+    <div class="grille-tarifs reveal">
+
+      <article class="formule">
+        <h3>Essentiel</h3>
+        <p class="pour">Pour une coopérative qui achète, pèse et paie ses planteurs.</p>
+        <div class="prix"><b>30 000</b><span class="dev">F CFA</span><span class="par">/ mois</span></div>
+        <a class="btn btn-fantome" href="#contact">Demander une démonstration</a>
+
+        <p class="titre-liste">Ce qui est inclus</p>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>4 rôles</strong> : patron, pisteur, magasinier, planteur</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Pesée au bord-champ et au magasin, <strong>sans réseau</strong></span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Bordereau numéroté par agent, imprimable</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Livraison au magasin et <strong>vérification des poids</strong></span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Stock réel du magasin : entrées − sorties</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Avances, recouvrement automatique et restes dus</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Espace planteur : livraisons, paiements, avances</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Caisse et commission des agents</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Bilan de campagne et espace d'administration</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Mises à jour et sauvegardes incluses</span></li>
+        </ul>
+      </article>
+
+      <article class="formule mise-en-avant">
+        <span class="ruban">Toutes les fonctionnalités</span>
+        <h3>Complet</h3>
+        <p class="pour">Pour une coopérative qui veut aussi tenir ses comptes dans le même outil.</p>
+        <div class="prix"><b>50 000</b><span class="dev">F CFA</span><span class="par">/ mois</span></div>
+        <a class="btn" href="#contact">Demander une démonstration</a>
+
+        <p class="titre-liste">Tout l'Essentiel, plus</p>
+        <ul>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Le <strong>rôle Comptable</strong>, avec son propre espace</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Chaîne budgétaire à 4 crans : budget → allocation → enveloppe → mandat</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Plafonds appliqués <strong>côté serveur</strong> : le comptable ne crée jamais de fonds</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Trésorerie consolidée et journal financier</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Règlement des commissions et des dettes aux agents</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Expéditions usine : <strong>bénéfice par expédition</strong>, freinte, prix de revient figé</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Dépenses de la coopérative et alertes financières</span></li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Formation des équipes</strong> et support prioritaire</span></li>
+        </ul>
+      </article>
+    </div>
+
+    <p class="note-tarif">
+      Prix par coopérative, sans limite de nombre de planteurs ni de collaborateurs.
+      Une coopérative peut changer de formule en cours de campagne : ses données
+      restent les mêmes, seules les fonctionnalités s'ouvrent ou se referment.
+    </p>
+  </div>
+</section>
+
+<!-- ======================================================================
      QUESTIONS
      ====================================================================== -->
 <section class="section" id="faq">
@@ -767,20 +839,23 @@
         <ul>
           <li><a href="#chaine">Comment ça marche</a></li>
           <li><a href="#roles">Les rôles</a></li>
-          <li><a href="#hors-ligne">Hors-ligne</a></li>
+          <li><a href="#tarifs">Tarifs</a></li>
           <li><a href="#securite">Sécurité</a></li>
         </ul>
       </div>
       <div>
         <h4>Ressources</h4>
         <ul>
-          <li><a href="/confidentialite">Confidentialité</a></li>
+          <li><a href="/blog">Blog</a></li>
+          <li><a href="/tutoriels">Tutoriels</a></li>
           <li><a href="#faq">Questions fréquentes</a></li>
+          <li><a href="/confidentialite">Confidentialité</a></li>
         </ul>
       </div>
       <div>
         <h4>Contact</h4>
         <ul>
+          <li><a href="/contact">Nous écrire</a></li>
           <li><a href="mailto:contact@valeo-scoop.com">contact@valeo-scoop.com</a></li>
           <li>Côte d'Ivoire</li>
         </ul>

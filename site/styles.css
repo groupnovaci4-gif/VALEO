@@ -750,3 +750,139 @@ html:not(.js) .heros { margin-top: 0; padding-top: var(--e8); }
   box-shadow: 0 1px 3px rgba(3,44,16,.18);
 }
 header.colle .marque .embleme { box-shadow: none; background: transparent; }
+
+/* ==========================================================================
+   22. DIRECTION VISUELLE — `body[data-dir]`
+   Deux ouvertures possibles pour la page d'accueil, et c'est la SEULE
+   différence entre les deux : le héros. Tout le reste (sections claires,
+   bande des rôles en vert foncé, appel final, pied de page) est commun —
+   l'alternance clair/foncé fait la respiration de la page, elle n'est pas
+   négociable, c'est ce qui l'empêche d'être un long aplat.
+
+     data-dir="sombre"  le héros ouvre sur le vert forêt, la photo de cacao
+                        s'y détache. Plus affirmé, plus « produit ».
+     data-dir="clair"   le héros ouvre sur l'ivoire, le vert devient un
+                        accent. Plus sobre, plus institutionnel.
+   ========================================================================== */
+
+body[data-dir="clair"] #heros {
+  background:
+    radial-gradient(900px 520px at 88% -8%, rgba(229,160,20,.16), transparent 62%),
+    radial-gradient(760px 480px at 2% 10%, rgba(18,120,48,.08), transparent 60%),
+    var(--ivoire);
+  color: var(--encre);
+  /* L'en-tête est opaque dans cette direction : le héros ne passe pas dessous. */
+  margin-top: 0;
+  padding-top: clamp(var(--e7), 5vw, var(--e9));
+}
+body[data-dir="clair"] #heros::before { opacity: .5; filter: invert(1); }
+body[data-dir="clair"] #heros h1      { color: var(--foret-900); }
+body[data-dir="clair"] #heros h1 em   { color: var(--or-600); }
+body[data-dir="clair"] #heros .plomb  { color: var(--encre-2); }
+body[data-dir="clair"] #heros .oeil   { color: var(--foret-600); }
+body[data-dir="clair"] #heros .confiance      { border-top-color: var(--trait); }
+body[data-dir="clair"] #heros .confiance div  { color: var(--sourdine); }
+body[data-dir="clair"] #heros .confiance svg  { color: var(--or-600); }
+body[data-dir="clair"] #heros .btn-fantome {
+  --btn-texte: var(--encre); border-color: var(--trait);
+}
+body[data-dir="clair"] #heros .btn-fantome:hover {
+  background: var(--foret-100); border-color: var(--foret-500);
+}
+body[data-dir="clair"] #heros .photo-carte { border-color: var(--trait); }
+
+/* En direction claire, l'en-tête est opaque en permanence : il n'a plus de
+   fond sombre sur lequel flotter. */
+body[data-dir="clair"] header {
+  background: rgba(251, 248, 242, .9);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+  border-bottom-color: var(--trait);
+}
+body[data-dir="clair"] .marque-nom b     { color: var(--foret-900); }
+body[data-dir="clair"] .marque-nom span  { color: var(--or-600); }
+body[data-dir="clair"] .liens a          { color: var(--encre-2); }
+body[data-dir="clair"] .liens a:hover    { color: var(--foret-700); }
+body[data-dir="clair"] .liens a.btn      { color: var(--btn-texte); }
+body[data-dir="clair"] .burger           { color: var(--encre); border-color: var(--trait); }
+body[data-dir="clair"] .marque .embleme  { background: transparent; box-shadow: none; }
+
+/* --------------------------------------------------------------------------
+   23. Navigation — pastille sur la rubrique courante
+   -------------------------------------------------------------------------- */
+
+.liens a.actif { color: #fff; }
+header.colle .liens a.actif,
+body[data-dir="clair"] .liens a.actif { color: var(--foret-900); }
+.liens a.actif::before {
+  content: ""; display: inline-block; vertical-align: middle;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--or-500); margin-right: 7px;
+}
+
+/* --------------------------------------------------------------------------
+   24. Tarifs
+   -------------------------------------------------------------------------- */
+
+.grille-tarifs {
+  display: grid; gap: var(--e5);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 880px; margin-inline: auto;
+  align-items: start;
+}
+
+.formule {
+  background: var(--carte);
+  border: 1px solid var(--trait);
+  border-radius: var(--r-l);
+  padding: var(--e6);
+  position: relative;
+  display: flex; flex-direction: column; height: 100%;
+}
+.formule.mise-en-avant {
+  border-color: var(--foret-600);
+  box-shadow: 0 0 0 1px var(--foret-600), var(--ombre-2);
+}
+.formule .ruban {
+  position: absolute; top: -13px; left: var(--e6);
+  background: var(--foret-700); color: #fff;
+  font-size: .68rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  padding: 5px 13px; border-radius: 999px;
+}
+.formule h3 { font-size: 1.3rem; margin-bottom: var(--e2); }
+.formule .pour { font-size: .93rem; color: var(--sourdine); min-height: 3em; }
+
+.prix { display: flex; align-items: baseline; gap: 6px; margin-block: var(--e5) var(--e2); }
+.prix b {
+  font-size: clamp(2rem, 1.4rem + 2vw, 2.7rem); font-weight: 800;
+  letter-spacing: -.035em; line-height: 1; color: var(--foret-700);
+}
+.prix .dev  { font-size: 1.05rem; font-weight: 800; color: var(--foret-700); }
+.prix .par  { font-size: .95rem; color: var(--sourdine); }
+
+.formule .btn { margin-block: var(--e5); justify-content: center; }
+
+.formule ul { list-style: none; padding: 0; display: grid; gap: var(--e3); font-size: .93rem; }
+.formule li { display: flex; gap: var(--e3); align-items: flex-start; }
+.formule li svg { flex: none; margin-top: 4px; color: var(--foret-600); }
+.formule .titre-liste {
+  font-size: .72rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--sourdine); margin-bottom: var(--e2);
+}
+
+.note-tarif {
+  max-width: 880px; margin: var(--e6) auto 0;
+  font-size: .9rem; color: var(--sourdine); text-align: center;
+}
+
+@media (max-width: 760px) {
+  .grille-tarifs { grid-template-columns: 1fr; }
+  .formule .pour { min-height: 0; }
+}
+
+/* Le voile vert foncé posé sur la photo sert à la raccrocher au héros sombre.
+   Sur fond ivoire il l'alourdit au lieu de l'intégrer : on l'allège, et on
+   réchauffe légèrement au lieu d'assombrir. */
+body[data-dir="clair"] #heros .photo-carte::after {
+  background: linear-gradient(200deg, rgba(229,160,20,.06), rgba(3,44,16,.22));
+}
