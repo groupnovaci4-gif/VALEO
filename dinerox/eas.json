@@ -1,22 +1,70 @@
 {
-  "cli": { "version": ">= 16.0.0", "appVersionSource": "remote" },
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
+    "apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "dinerox-app.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "dinerox-app",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "dinerox-app.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "653588987819",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:653588987819:web:1e0d1cbcb91beca43d5cee",
+        "EXPO_PUBLIC_FUNCTIONS_REGION": "europe-west1"
+      }
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": { "APP_ENV": "development" }
+      "env": {
+        "APP_ENV": "development",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "dinerox-app.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "dinerox-app",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "dinerox-app.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "653588987819",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:653588987819:web:1e0d1cbcb91beca43d5cee",
+        "EXPO_PUBLIC_FUNCTIONS_REGION": "europe-west1"
+      }
     },
     "staging": {
       "distribution": "internal",
-      "channel": "staging",
-      "env": { "APP_ENV": "staging" },
-      "android": { "buildType": "apk" }
+      "env": {
+        "APP_ENV": "staging",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "dinerox-app.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "dinerox-app",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "dinerox-app.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "653588987819",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:653588987819:web:1e0d1cbcb91beca43d5cee",
+        "EXPO_PUBLIC_FUNCTIONS_REGION": "europe-west1"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
-      "channel": "production",
       "autoIncrement": true,
-      "env": { "APP_ENV": "production" }
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "dinerox-app.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "dinerox-app",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "dinerox-app.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "653588987819",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:653588987819:web:1e0d1cbcb91beca43d5cee",
+        "EXPO_PUBLIC_FUNCTIONS_REGION": "europe-west1"
+      }
     }
   },
-  "submit": { "production": {} }
+  "submit": {
+    "production": {}
+  }
 }

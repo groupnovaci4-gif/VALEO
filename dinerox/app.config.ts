@@ -1,4 +1,4 @@
-import type { ExpoConfig } from 'expo/config';
+import type { ConfigContext, ExpoConfig } from 'expo/config';
 import { brand } from './src/config/brand.ts';
 
 /**
@@ -11,7 +11,8 @@ const APP_ENV = (process.env.APP_ENV ?? 'development') as 'development' | 'stagi
 const suffix = APP_ENV === 'production' ? '' : `.${APP_ENV}`;
 const displayName = APP_ENV === 'production' ? brand.name : `${brand.name} (${APP_ENV})`;
 
-const config: ExpoConfig = {
+const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
+  ...base,
   name: displayName,
   slug: brand.slug,
   scheme: brand.scheme,
@@ -49,9 +50,12 @@ const config: ExpoConfig = {
   ],
   experiments: { typedRoutes: false },
   extra: {
+    ...base.extra,
     appEnv: APP_ENV,
-    eas: { projectId: process.env.EAS_PROJECT_ID },
+    // Écrit dans app.json par `eas init`, ou fourni par EAS_PROJECT_ID.
+    eas: { projectId: process.env.EAS_PROJECT_ID ?? (base.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId },
   },
-};
+});
 
-export default config;
+// `config` contient app.json (où `eas init` enregistre l'identifiant du projet EAS).
+export default ({ config }: ConfigContext): ExpoConfig => build(config);
