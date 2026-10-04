@@ -1,0 +1,82 @@
+/**
+ * Revenus/dépenses récurrents.
+ *
+ * Les échéances dues sont matérialisées en opérations avec un identifiant
+ * DÉTERMINISTE `rec_<règle>_<date>` : si deux appareils génèrent la même
+ * échéance hors-ligne, ils écrivent le même document — pas de doublon.
+ */
+import type { RecurringRule, Transaction } from './types';
+import { addDays, addMonths, type ISODate } from './dates';
+
+export function recurringTxId(ruleId: string, date: ISODate): string {
+  return `rec_${ruleId}_${date.replace(/-/g, '')}`;
+}
+
+export function nextOccurrence(rule: Pick<RecurringRule, 'frequency'>, date: ISODate): ISODate {
+  switch (rule.frequency) {
+    case 'weekly':
+      return addDays(date, 7);
+    case 'monthly':
+      return addMonths(date, 1);
+    case 'yearly':
+      return addMonths(date, 12);
+  }
+}
+
+/**
+ * Échéances dues (≤ `until`) non encore générées. Bornées à `max` pour ne
+ * jamais générer des centaines d'opérations d'un coup après une longue absence.
+ */
+export function dueOccurrences(rule: RecurringRule, until: ISODate, max = 24): ISODate[] {
+  if (!rule.active || rule.deleted) return [];
+  const out: ISODate[] = [];
+  // Les mois sont calculés depuis la date de début (et non de proche en
+  // proche) : une règle du 31 retombe bien le 31 après un mois de 30 jours.
+  for (let i = 0; out.length < max; i++) {
+    const d =
+      rule.frequency === 'weekly'
+        ? addDays(rule.startDate, 7 * i)
+        : addMonths(rule.startDate, i * (rule.frequency === 'yearly' ? 12 : 1));
+    if (d > until) break;
+    if (rule.endDate && d > rule.endDate) break;
+    if (!rule.lastGenerated || d > rule.lastGenerated) out.push(d);
+  }
+  return out;
+}
+
+/** Prochaine échéance future (pour l'affichage). */
+export function upcomingOccurrence(rule: RecurringRule, from: ISODate): ISODate | null {
+  if (!rule.active) return null;
+  for (let i = 0; i < 1000; i++) {
+    const d =
+      rule.frequency === 'weekly'
+        ? addDays(rule.startDate, 7 * i)
+        : addMonths(rule.startDate, i * (rule.frequency === 'yearly' ? 12 : 1));
+    if (rule.endDate && d > rule.endDate) return null;
+    if (d >= from) return d;
+  }
+  return null;
+}
+
+export function materialize(
+  rule: RecurringRule,
+  date: ISODate,
+  meta: { now: number; uid: string },
+): Transaction {
+  return {
+    id: recurringTxId(rule.id, date),
+    type: rule.type,
+    amount: rule.amount,
+    currency: rule.currency,
+    date,
+    accountId: rule.accountId,
+    categoryId: rule.categoryId ?? null,
+    envelopeId: rule.envelopeId ?? null,
+    payee: rule.label,
+    note: null,
+    recurringId: rule.id,
+    createdAt: meta.now,
+    updatedAt: meta.now,
+    createdBy: meta.uid,
+  };
+}
