@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "dinerox-app",
+    "production": "dinerox-app"
+  }
+}
