@@ -34,7 +34,7 @@ export function TransactionRow({ tx, onPress }: { tx: Transaction; onPress?: () 
       subtitle={`${sub} · ${date(tx.date)}`}
       left={<IconCircle icon={meta.icon} color={meta.color} />}
       right={
-        <Text variant="bodyStrong" tone={tone}>
+        <Text variant="numeric" weight="600" tone={tone}>
           {amount}
         </Text>
       }
@@ -118,7 +118,7 @@ export function AccountRow({ account, balance, onPress }: { account: Account; ba
       subtitle={`${t(`acc.type.${account.type}`)}${account.active ? '' : ` · ${t('common.inactive')}`}`}
       left={<IconCircle icon={account.icon} color={account.color} />}
       right={
-        <Text variant="bodyStrong" tone={balance < 0 ? 'danger' : 'default'}>
+        <Text variant="numeric" weight="600" tone={balance < 0 ? 'danger' : 'default'}>
           {money(balance, { currency: account.currency })}
         </Text>
       }

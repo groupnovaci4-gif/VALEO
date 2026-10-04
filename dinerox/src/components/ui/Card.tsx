@@ -8,6 +8,7 @@ export function Card({ children, style, onPress, padded = true, accessibilityLab
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
+    // Filet fin (charte) : blanc 8 % en sombre
     borderColor: colors.border,
     padding: padded ? 16 : 0,
     ...(dark ? {} : shadow.card),

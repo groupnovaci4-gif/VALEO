@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { Stack, router, useSegments, SplashScreen, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import { FONT_ASSETS } from '@/theme/fonts';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,6 +16,9 @@ import { Bootstrap } from '@/components/Bootstrap';
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
+  // Polices de la charte ; en cas d'échec de chargement, on continue avec les polices système.
+  const [fontsLoaded, fontError] = useFonts(FONT_ASSETS);
+  if (!fontsLoaded && !fontError) return null;
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -31,7 +36,7 @@ export default function RootLayout() {
 function Providers({ children }: { children: React.ReactNode }) {
   const { profile } = useApp();
   return (
-    <ThemeProvider preference={profile?.preferences.theme ?? 'system'}>
+    <ThemeProvider preference={profile?.preferences.theme ?? 'dark'}>
       <I18nProvider lang={profile?.language ?? deviceLanguage()}>
         <ToastProvider>{children}</ToastProvider>
       </I18nProvider>

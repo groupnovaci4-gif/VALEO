@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Platform, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme, MIN_TOUCH } from '@/theme';
+import { fontFor } from '@/theme/fonts';
+import { brand } from '@/config/brand';
 import { Text } from './Text';
 import { currencyInfo, formatMoney, parseAmountInput, toMajor } from '@/core/money';
 
@@ -26,7 +28,9 @@ export function Field({ label, hint, error, suffix, style, ...rest }: FieldProps
           flexDirection: 'row',
           alignItems: 'center',
           borderWidth: 1.5,
-          borderColor: error ? colors.danger : focused ? colors.primary : colors.border,
+          borderColor: error ? colors.danger : focused ? brand.colors.green : colors.border,
+          // Halo vert au focus (charte)
+          ...(focused && !error ? { shadowColor: brand.colors.green, shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } } : null),
           borderRadius: radius.md,
           backgroundColor: colors.surface,
           paddingHorizontal: 12,
@@ -44,7 +48,7 @@ export function Field({ label, hint, error, suffix, style, ...rest }: FieldProps
             setFocused(false);
             rest.onBlur?.(e);
           }}
-          style={[{ flex: 1, minWidth: 0, color: colors.text, fontSize: 16, paddingVertical: 10 }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null, style]}
+          style={[{ flex: 1, minWidth: 0, color: colors.text, fontSize: 16, fontFamily: fontFor('body', 400), paddingVertical: 10 }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null, style]}
           {...rest}
         />
         {suffix ? <Text tone="muted">{suffix}</Text> : null}
@@ -106,7 +110,7 @@ export function AmountField({
       suffix={info.symbol}
       error={error}
       hint={value ? formatMoney(value, currency) : hint}
-      style={big ? { fontSize: 30, fontWeight: '800', color: colors.text } : undefined}
+      style={big ? { fontSize: 30, fontFamily: fontFor('heading', 800), color: colors.text } : undefined}
       onChangeText={(s) => {
         setText(s);
         onChange(parseAmountInput(s, currency));

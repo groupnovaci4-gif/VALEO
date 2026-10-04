@@ -10,7 +10,7 @@ import { DEFAULT_CURRENCY } from '@/core/money';
 import { deviceLanguage } from '@/i18n';
 
 export const defaultPreferences = (): UserPreferences => ({
-  theme: 'system',
+  theme: 'dark',
   notifications: {
     budgetAlerts: true,
     goalProgress: true,

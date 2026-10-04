@@ -7,6 +7,7 @@ import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/theme';
+import { brand } from '@/config/brand';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
@@ -18,7 +19,7 @@ import { formatMoney, type CurrencyCode } from '@/core/money';
 import { resendVerification } from '@/services/auth';
 
 export default function Home() {
-  const { colors, radius } = useTheme();
+  const { colors, radius, shadow } = useTheme();
   const { t } = useI18n();
   const { profile, user, mode } = useApp();
   const money = useMoney();
@@ -56,7 +57,7 @@ export default function Home() {
       ) : null}
 
       {/* Héro : solde disponible */}
-      <View style={{ backgroundColor: colors.hero, borderRadius: radius.xl, padding: 22, marginBottom: 14 }}>
+      <View style={{ backgroundColor: colors.hero, borderRadius: radius.xl, padding: 22, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(20,184,166,0.28)', ...shadow.glowGreen }}>
         <Text variant="small" tone="heroMuted">
           {t('home.available')}
         </Text>
@@ -164,9 +165,9 @@ function HeroAction({ icon, label, onPress }: { icon: string; label: string; onP
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={({ pressed }) => ({ flex: 1, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.12)', opacity: pressed ? 0.7 : 1 })}
+      style={({ pressed }) => ({ flex: 1, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: radius.md, backgroundColor: 'rgba(20,184,166,0.16)', borderWidth: 1, borderColor: 'rgba(20,184,166,0.35)', opacity: pressed ? 0.7 : 1 })}
     >
-      <Icon name={icon} size={16} color="#FFFFFF" />
+      <Icon name={icon} size={16} color={brand.colors.green} />
       <Text variant="small" weight="600" tone="onHero">
         {label}
       </Text>
@@ -185,7 +186,7 @@ function Stat({ label, value, tone, icon, onPress }: { label: string; value: str
           {label}
         </Text>
       </View>
-      <Text variant="bodyStrong" numberOfLines={1} adjustsFontSizeToFit>
+      <Text variant="numericLg" numberOfLines={1} adjustsFontSizeToFit>
         {value}
       </Text>
     </Card>

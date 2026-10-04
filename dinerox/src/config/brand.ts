@@ -16,14 +16,16 @@ export const brand = {
   /** Lettre affichée dans le logo typographique tant qu'aucun logo n'existe. */
   logoLetter: 'D',
   supportEmail: 'support@dinerox.app',
-  /** Couleurs du logo : D vert, flèche jaune, fond nuit. */
+  /** Charte « Sovereign Apex » : vert émeraude dominant, or impérial en accent, fond nuit. */
   colors: {
-    green: '#2AB8A1',
-    yellow: '#F8AE16',
-    night: '#0D0D1C',
-    primary: '#0D0D1C',
-    accent: '#2AB8A1',
-    splash: '#0D0D1C',
+    green: '#14B8A6',
+    greenDeep: '#0D9488',
+    yellow: '#F59E0B',
+    gold: '#FBBF24',
+    night: '#020617',
+    primary: '#020617',
+    accent: '#14B8A6',
+    splash: '#020617',
   },
 } as const;
 

@@ -3,7 +3,6 @@
  * propres couleurs, tailles ou rayons : tout passe par ces jetons.
  * Contrastes vérifiés pour le texte principal (≥ 4,5:1) dans les deux thèmes.
  */
-import { brand } from '@/config/brand';
 
 export const palette = {
   ink900: '#0F172A',
@@ -70,90 +69,97 @@ export interface ColorScheme {
 }
 
 /**
- * Couleurs DineroX, tirées du logo : D vert (#2AB8A1), flèche jaune
- * (#F8AE16), fond nuit (#0D0D1C). Les teintes des textes sont assombries
- * en mode clair pour garder un contraste lisible (≥ 4,5:1).
+ * Couleurs DineroX — charte « Sovereign Apex », VERT DOMINANT.
+ *  - Vert émeraude (#14B8A6 / #0D9488) : couleur principale (boutons, sélection,
+ *    progression, entrées d'argent, navigation active).
+ *  - Or impérial (#F59E0B / #D97706) : accent rare (bouton « + », assistant, temps forts).
+ *  - Cyan (#38BDF8) : informations.
+ *  - Fonds nuit (#020617 / #0B1120 / #1E293B), filets fins, texte #F8FAFC.
+ * Le thème sombre est la référence de la charte ; le thème clair reprend le même
+ * vert, assombri pour rester lisible sur fond blanc (contraste ≥ 4,5:1).
  */
-export const lightColors: ColorScheme = {
-  background: '#F5F6F8',
-  surface: palette.white,
-  surfaceAlt: '#EEF0F3',
-  border: '#E3E6EB',
-  text: '#11121F',
-  textMuted: '#4B5060',
-  textSubtle: '#6B7080',
-  primary: brand.colors.night,
-  onPrimary: palette.white,
-  hero: brand.colors.night,
-  onHero: palette.white,
-  heroMuted: '#A9ADC0',
-  income: '#13806F',
-  expense: palette.red600,
-  success: '#13806F',
-  successBg: '#DDF5F0',
-  warning: '#A86A00',
-  warningBg: '#FEF3D6',
-  danger: palette.red600,
-  dangerBg: palette.red100,
-  info: '#1F6FB2',
-  infoBg: '#E1EEFA',
-  ai: '#9A6200',
-  aiBg: '#FFF6E0',
-  track: '#E9ECF0',
-  overlay: 'rgba(13,13,28,0.6)',
-  tabBar: palette.white,
-  chartIncome: '#1f9e8a',
-  chartExpense: '#d08f00',
-  grid: '#E3E6EB',
+export const darkColors: ColorScheme = {
+  background: '#020617',
+  surface: '#0B1120',
+  surfaceAlt: '#1E293B',
+  border: 'rgba(255,255,255,0.08)',
+  text: '#F8FAFC',
+  textMuted: '#94A3B8',
+  textSubtle: '#7C8BA1',
+  primary: '#14B8A6',
+  onPrimary: '#012A25',
+  hero: '#0B1120',
+  onHero: '#F8FAFC',
+  heroMuted: '#94A3B8',
+  income: '#34D399',
+  expense: '#F43F5E',
+  success: '#10B981',
+  successBg: 'rgba(16,185,129,0.15)',
+  warning: '#FBBF24',
+  warningBg: 'rgba(245,158,11,0.15)',
+  danger: '#F43F5E',
+  dangerBg: 'rgba(244,63,94,0.15)',
+  info: '#38BDF8',
+  infoBg: 'rgba(56,189,248,0.12)',
+  ai: '#FBBF24',
+  aiBg: 'rgba(245,158,11,0.12)',
+  track: '#1E293B',
+  overlay: 'rgba(2,6,23,0.75)',
+  tabBar: '#0B1120',
+  chartIncome: '#0d9488',
+  chartExpense: '#d97706',
+  grid: 'rgba(255,255,255,0.08)',
 };
 
-export const darkColors: ColorScheme = {
-  background: brand.colors.night,
-  surface: '#16172A',
-  surfaceAlt: '#1F2036',
-  border: '#2A2B44',
-  text: '#ECEDF5',
-  textMuted: '#B1B3C6',
-  textSubtle: '#8D90A6',
-  primary: brand.colors.green,
-  onPrimary: brand.colors.night,
-  hero: '#14152A',
-  onHero: palette.white,
-  heroMuted: '#A3A6BC',
-  income: brand.colors.green,
-  expense: '#F87171',
-  success: brand.colors.green,
-  successBg: '#0E2E2A',
-  warning: brand.colors.yellow,
-  warningBg: '#3A2B08',
-  danger: '#F87171',
-  dangerBg: '#3B1212',
-  info: '#60A5FA',
-  infoBg: '#10213F',
-  ai: brand.colors.yellow,
-  aiBg: '#2A220E',
-  track: '#2A2B44',
-  overlay: 'rgba(0,0,0,0.7)',
-  tabBar: '#14152A',
-  chartIncome: '#24a690',
-  chartExpense: '#bf7f00',
-  grid: '#2A2B44',
+export const lightColors: ColorScheme = {
+  background: '#F3F8F7',
+  surface: palette.white,
+  surfaceAlt: '#E6F2F0',
+  border: '#D9E6E3',
+  text: '#0B1120',
+  textMuted: '#475569',
+  textSubtle: '#64748B',
+  primary: '#0F766E',
+  onPrimary: palette.white,
+  hero: '#0B1120',
+  onHero: '#F8FAFC',
+  heroMuted: '#94A3B8',
+  income: '#047857',
+  expense: '#E11D48',
+  success: '#047857',
+  successBg: '#D1FAE5',
+  warning: '#B45309',
+  warningBg: '#FEF3C7',
+  danger: '#E11D48',
+  dangerBg: '#FFE4E6',
+  info: '#0369A1',
+  infoBg: '#E0F2FE',
+  ai: '#B45309',
+  aiBg: '#FEF6E4',
+  track: '#E2ECEA',
+  overlay: 'rgba(2,6,23,0.6)',
+  tabBar: palette.white,
+  chartIncome: '#0d9488',
+  chartExpense: '#d97706',
+  grid: '#D9E6E3',
 };
 
 export const spacing = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, xxxl: 40 } as const;
-export const radius = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 } as const;
+export const radius = { sm: 8, md: 12, lg: 16, xl: 24, pill: 999 } as const;
 
-/** Tailles généreuses : public non expert, écrans d'entrée de gamme. */
+/** Échelle typographique de la charte (version mobile), tailles généreuses pour la lisibilité. */
 export const typography = {
-  display: { fontSize: 34, fontWeight: '800' as const, letterSpacing: -0.5 },
-  h1: { fontSize: 26, fontWeight: '800' as const },
-  h2: { fontSize: 20, fontWeight: '700' as const },
-  h3: { fontSize: 17, fontWeight: '700' as const },
-  body: { fontSize: 16, fontWeight: '400' as const },
-  bodyStrong: { fontSize: 16, fontWeight: '600' as const },
-  small: { fontSize: 14, fontWeight: '400' as const },
-  caption: { fontSize: 12, fontWeight: '500' as const },
-  overline: { fontSize: 11, fontWeight: '700' as const, letterSpacing: 1.2 },
+  display: { fontSize: 36, lineHeight: 44, fontWeight: '800' as const, letterSpacing: -0.9, role: 'heading' as const },
+  h1: { fontSize: 26, lineHeight: 34, fontWeight: '700' as const, letterSpacing: -0.5, role: 'heading' as const },
+  h2: { fontSize: 22, lineHeight: 28, fontWeight: '600' as const, letterSpacing: -0.3, role: 'heading' as const },
+  h3: { fontSize: 18, lineHeight: 24, fontWeight: '600' as const, letterSpacing: -0.2, role: 'heading' as const },
+  body: { fontSize: 16, lineHeight: 24, fontWeight: '400' as const, role: 'body' as const },
+  bodyStrong: { fontSize: 16, lineHeight: 24, fontWeight: '600' as const, role: 'body' as const },
+  small: { fontSize: 14, lineHeight: 20, fontWeight: '400' as const, role: 'body' as const },
+  caption: { fontSize: 12, lineHeight: 16, fontWeight: '500' as const, role: 'body' as const },
+  overline: { fontSize: 11, lineHeight: 14, fontWeight: '700' as const, letterSpacing: 1.2, role: 'body' as const },
+  numericLg: { fontSize: 18, lineHeight: 24, fontWeight: '600' as const, letterSpacing: -0.4, role: 'numeric' as const },
+  numeric: { fontSize: 14, lineHeight: 18, fontWeight: '500' as const, role: 'numeric' as const },
 };
 
 export type TypographyVariant = keyof typeof typography;
@@ -161,10 +167,12 @@ export type TypographyVariant = keyof typeof typography;
 /** Cible tactile minimale (WCAG / Material : 44–48 dp). */
 export const MIN_TOUCH = 48;
 
+/** Élévations : halo vert ou or (charte), ombre douce en mode clair. */
 export const shadow = {
-  card: { shadowColor: '#0F172A', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  fab: { shadowColor: '#0F172A', shadowOpacity: 0.25, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  card: { shadowColor: '#0B1120', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  fab: { shadowColor: '#F59E0B', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
+  glowGreen: { shadowColor: '#14B8A6', shadowOpacity: 0.3, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
 };
 
 /** Palette pour comptes/enveloppes/catégories créés par l'utilisateur. */
-export const pickableColors = ['#2AB8A1', '#F8AE16', '#16A34A', '#0EA5E9', '#6366F1', '#8B5CF6', '#EC4899', '#F97316', '#EAB308', '#14B8A6', '#334155', '#EF4444'];
+export const pickableColors = ['#14B8A6', '#F59E0B', '#38BDF8', '#10B981', '#0EA5E9', '#6366F1', '#8B5CF6', '#EC4899', '#F97316', '#EAB308', '#14B8A6', '#334155', '#EF4444'];

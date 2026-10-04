@@ -2,6 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, MIN_TOUCH } from '@/theme';
+import { brand } from '@/config/brand';
 import { Text } from './Text';
 import { Icon } from './Icon';
 
@@ -21,17 +22,17 @@ export interface ButtonProps {
 }
 
 export function Button({ label, onPress, variant = 'primary', icon, loading, disabled, full, small, style, accessibilityHint }: ButtonProps) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, dark, shadow } = useTheme();
   const bg: Record<ButtonVariant, string> = {
     primary: colors.primary,
-    secondary: colors.surfaceAlt,
+    secondary: dark ? 'rgba(20,184,166,0.15)' : colors.surfaceAlt,
     ghost: 'transparent',
     danger: colors.danger,
     success: colors.success,
   };
   const fg: Record<ButtonVariant, string> = {
     primary: colors.onPrimary,
-    secondary: colors.text,
+    secondary: dark ? brand.colors.green : colors.primary,
     ghost: colors.text,
     danger: '#FFFFFF',
     success: '#FFFFFF',
@@ -52,8 +53,12 @@ export function Button({ label, onPress, variant = 'primary', icon, loading, dis
         {
           minHeight: small ? 40 : MIN_TOUCH,
           paddingHorizontal: small ? 12 : 18,
-          borderRadius: radius.md,
+          borderRadius: radius.pill,
           backgroundColor: bg[variant],
+          borderWidth: variant === 'secondary' && dark ? 1 : 0,
+          borderColor: 'rgba(20,184,166,0.4)',
+          ...(variant === 'primary' && dark && !inactive ? shadow.glowGreen : null),
+          transform: [{ scale: pressed ? 0.98 : 1 }],
           opacity: inactive ? 0.5 : pressed ? 0.85 : 1,
           alignSelf: full ? 'stretch' : 'auto',
           justifyContent: 'center',

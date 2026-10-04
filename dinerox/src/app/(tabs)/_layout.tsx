@@ -2,6 +2,8 @@ import React from 'react';
 import { View, type ColorValue } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useTheme } from '@/theme';
+import { fontFor } from '@/theme/fonts';
+import { brand } from '@/config/brand';
 import { useI18n } from '@/i18n';
 import { Icon } from '@/components/ui';
 import { QuickAddFab, QuickAddProvider } from '@/features/QuickAdd';
@@ -11,7 +13,7 @@ import { QuickAddFab, QuickAddProvider } from '@/features/QuickAdd';
  * La saisie rapide (« + ») flotte au-dessus, accessible depuis chaque onglet.
  */
 export default function TabsLayout() {
-  const { colors } = useTheme();
+  const { colors, dark } = useTheme();
   const { t } = useI18n();
   const icon = (name: string) =>
     function TabIcon({ color, focused }: { color: ColorValue; focused: boolean }) {
@@ -23,10 +25,10 @@ export default function TabsLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: colors.text,
+            tabBarActiveTintColor: dark ? brand.colors.green : colors.primary,
             tabBarInactiveTintColor: colors.textSubtle,
             tabBarStyle: { backgroundColor: colors.tabBar, borderTopColor: colors.border, minHeight: 60 },
-            tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: -0.2 },
+            tabBarLabelStyle: { fontSize: 10, fontFamily: fontFor('body', 600), letterSpacing: -0.2 },
             tabBarAllowFontScaling: false,
           }}
         >
