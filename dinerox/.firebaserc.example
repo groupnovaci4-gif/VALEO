@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "development": "dinerox-dev",
+    "staging": "dinerox-staging",
+    "production": "dinerox-prod"
+  }
+}

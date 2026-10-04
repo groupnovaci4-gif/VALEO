@@ -1,7 +1,0 @@
-{
-  "projects": {
-    "development": "kap-dev",
-    "staging": "kap-staging",
-    "production": "kap-prod"
-  }
-}
