@@ -108,7 +108,7 @@ export const en: Record<TKey, string> = {
   'auth.err.notConfigured': 'Online sign-in is not configured in this build.',
 
   'onb.step': 'Step {current} of {total}',
-  'onb.name.title': "What's your name?",
+  'onb.name.title': 'Your last and first name',
   'onb.name.hint': 'Just to greet you.',
   'onb.country.title': 'Where do you live?',
   'onb.currency.title': 'Your main currency',
@@ -119,6 +119,8 @@ export const en: Record<TKey, string> = {
   'onb.family.couple_children': 'Couple with children',
   'onb.family.single_parent': 'Single parent',
   'onb.family.extended': 'I also support my extended family',
+  'onb.sources.title': 'Where does your income come from?',
+  'common.multiSelect': 'You can pick several.',
   'onb.income.title': 'Your main income',
   'onb.income.hint': 'A rough figure is enough. You can adjust it later.',
   'onb.income.amount': 'Monthly income (approx.)',

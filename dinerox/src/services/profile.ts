@@ -57,12 +57,12 @@ export function defaultProfile(uid: string, email: string, firstName = ''): User
 }
 
 /** Crée le profil s'il n'existe pas ; renvoie le profil serveur. */
-export async function ensureProfile(uid: string, email: string, firstName: string, termsVersion: string | null): Promise<UserProfile> {
+export async function ensureProfile(uid: string, email: string, firstName: string, termsVersion: string | null, lastName = ''): Promise<UserProfile> {
   const { db } = firebase();
   const ref = doc(db, 'users', uid);
   const snap = await getDoc(ref);
   if (snap.exists()) return snap.data() as UserProfile;
-  const profile = { ...defaultProfile(uid, email, firstName), termsAcceptedVersion: termsVersion };
+  const profile = { ...defaultProfile(uid, email, firstName), lastName, termsAcceptedVersion: termsVersion };
   await setDoc(ref, profile);
   return profile;
 }

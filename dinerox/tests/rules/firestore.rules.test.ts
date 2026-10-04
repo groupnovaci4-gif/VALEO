@@ -85,6 +85,10 @@ describe('profil utilisateur', () => {
 });
 
 describe('espaces et isolation', () => {
+  it('première connexion : on peut vérifier que son espace personnel n’existe pas encore', async () => {
+    await assertSucceeds(getDoc(doc(db('u1'), 'spaces/u1')));
+    await assertFails(getDoc(doc(db('u1'), 'spaces/u2')));
+  });
   it('espace personnel : id = uid, seul membre', async () => {
     await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1'), personal('u1')));
     await assertFails(setDoc(doc(db('u1'), 'spaces/u2'), { ...personal('u1'), id: 'u2' }));

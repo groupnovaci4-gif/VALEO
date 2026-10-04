@@ -186,7 +186,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [engine]);
 
   const spaces = useMemo(() => {
-    const base: Space[] = mode === 'local' && user ? [personalSpace(LOCAL_UID, profile?.firstName ?? '', profile?.currency ?? 'XOF')].map((s) => ({ ...s, id: 'local' })) : remoteSpaces;
+    let base: Space[] = mode === 'local' && user ? [personalSpace(LOCAL_UID, profile?.firstName ?? '', profile?.currency ?? 'XOF')].map((s) => ({ ...s, id: 'local' })) : remoteSpaces;
+    // L'espace personnel existe toujours côté application, même avant d'être reçu du serveur
+    // (première connexion, hors-ligne) : les écritures sont autorisées par les règles (id = uid).
+    if (mode === 'firebase' && user && !base.some((s) => s.id === user.uid)) {
+      base = [personalSpace(user.uid, profile?.firstName ?? user.displayName, profile?.currency ?? 'XOF'), ...base];
+    }
     const personal = base.filter((s) => s.kind === 'personal');
     const families = base.filter((s) => s.kind === 'family').sort((a, b) => a.createdAt - b.createdAt);
     return [...personal, ...families, ...localSpaces];
@@ -215,14 +220,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = useCallback(
     async (patch: Partial<Omit<UserProfile, 'subscription' | 'uid'>>) => {
-      const current = profileRef.current;
-      if (!user || !current) return;
+      if (!user) return;
+      // Profil pas encore reçu (première connexion, réseau lent) : on part du profil par défaut
+      // au lieu d'ignorer la modification — sinon l'onboarding ne pourrait jamais se terminer.
+      const current = profileRef.current ?? defaultProfile(user.uid, user.email, user.displayName);
       const next = { ...current, ...patch, updatedAt: Date.now() } as UserProfile;
+      profileRef.current = next;
       setProfile(next);
       await writeJSON(storageKey(user.uid, 'profile'), next);
       if (mode === 'firebase') {
         // Hors-ligne : le SDK conserve l'écriture en mémoire et la rejoue ; le cache local fait foi en attendant.
-        void saveProfile(user.uid, patch).catch(() => undefined);
+        void ensureProfile(user.uid, user.email, user.displayName, null)
+          .then(() => saveProfile(user.uid, patch))
+          .catch(() => undefined);
       }
     },
     [user, mode],

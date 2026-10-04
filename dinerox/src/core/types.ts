@@ -403,6 +403,12 @@ export interface UserProfile {
   subscription: Subscription;
   onboarding: {
     completed: boolean;
+    /** Choix multiples (ex. en couple ET soutien de la famille élargie). */
+    familySituations?: FamilySituation[];
+    /** Catégories de revenus (inc_salary, inc_business…). */
+    incomeSources?: string[];
+    incomeFrequencies?: IncomeFrequency[];
+    /** Anciens champs à choix unique (conservés pour les profils existants). */
     familySituation?: FamilySituation | null;
     incomeFrequency?: IncomeFrequency | null;
     mainExpenses?: string[];

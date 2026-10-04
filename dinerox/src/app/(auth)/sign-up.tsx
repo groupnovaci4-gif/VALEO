@@ -7,10 +7,11 @@ import { GoogleButton } from '@/components/GoogleButton';
 import { authErrorKey, isPasswordStrong, signUp } from '@/services/auth';
 import { analytics } from '@/services/analytics';
 import { TERMS_VERSION } from '@/config/legal';
-import { ensureProfile } from '@/services/profile';
+import { ensureProfile, saveProfile } from '@/services/profile';
 
 export default function SignUp() {
   const { t } = useI18n();
+  const [lastName, setLastName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,8 +26,11 @@ export default function SignUp() {
     if (!terms) return setError(t('auth.err.terms'));
     setBusy(true);
     try {
-      const user = await signUp(email, password, firstName);
-      await ensureProfile(user.uid, user.email ?? email, firstName.trim(), TERMS_VERSION);
+      const user = await signUp(email, password, firstName, lastName);
+      await ensureProfile(user.uid, user.email ?? email, firstName.trim(), TERMS_VERSION, lastName.trim());
+      // Le profil a pu être créé juste avant (sans nom) par la session qui démarre : on écrit
+      // toujours le nom, le prénom et l'acceptation des conditions saisis ici.
+      await saveProfile(user.uid, { firstName: firstName.trim(), lastName: lastName.trim(), termsAcceptedVersion: TERMS_VERSION });
       analytics.track('sign_up', { method: 'email' });
     } catch (e) {
       setError(t(authErrorKey(e)));
@@ -36,6 +40,7 @@ export default function SignUp() {
   };
   return (
     <Screen back title={t('auth.signup.title')} syncBanner={false}>
+      <Field label={t('auth.lastName')} value={lastName} onChangeText={setLastName} autoComplete="family-name" textContentType="familyName" />
       <Field label={t('auth.firstName')} value={firstName} onChangeText={setFirstName} autoComplete="given-name" textContentType="givenName" />
       <Field label={t('auth.email')} value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
       <Field label={t('auth.password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" textContentType="newPassword" hint={t('auth.err.weak-password')} />
@@ -50,7 +55,7 @@ export default function SignUp() {
           {error}
         </Text>
       ) : null}
-      <Button full label={t('auth.signup.submit')} loading={busy} disabled={!email || !password || !firstName} onPress={() => void submit()} />
+      <Button full label={t('auth.signup.submit')} loading={busy} disabled={!email || !password || !firstName.trim() || !lastName.trim()} onPress={() => void submit()} />
       <Text tone="subtle" align="center" style={{ marginVertical: 12 }}>
         {t('common.or')}
       </Text>

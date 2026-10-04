@@ -71,7 +71,9 @@ service cloud.firestore {
       }
       function isMember() { return signedIn() && roleOf() in ['admin', 'partner', 'child']; }
 
-      allow read: if signedIn() && me() in resource.data.memberIds;
+      // Son propre espace personnel est lisible même s'il n'existe pas encore
+      // (sinon la vérification « existe-t-il ? » de la première connexion échoue).
+      allow read: if signedIn() && (spaceId == me() || me() in resource.data.memberIds);
       // Création : uniquement un espace dont on est le SEUL membre, administrateur.
       allow create: if signedIn()
         && request.resource.data.ownerId == me()

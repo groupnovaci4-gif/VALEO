@@ -17,7 +17,7 @@ export default function Welcome() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.hero }}>
       <View style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 18 }}>
-        <Logo size={64} inverted />
+        <Logo size={96} />
         <Text variant="display" tone="onHero">
           {t('auth.welcome.title')}
         </Text>

@@ -22,10 +22,10 @@ import { firebase } from './firebase';
 import type { TKey } from '@/i18n';
 import { hasKey } from '@/i18n';
 
-export async function signUp(email: string, password: string, firstName: string): Promise<User> {
+export async function signUp(email: string, password: string, firstName: string, lastName = ''): Promise<User> {
   const { auth } = firebase();
   const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-  await updateProfile(cred.user, { displayName: firstName.trim() });
+  await updateProfile(cred.user, { displayName: `${firstName.trim()} ${lastName.trim()}`.trim() });
   // Non bloquant : l'utilisateur peut continuer et confirmer plus tard.
   void sendEmailVerification(cred.user).catch(() => undefined);
   return cred.user;

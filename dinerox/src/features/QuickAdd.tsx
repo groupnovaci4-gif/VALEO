@@ -6,6 +6,7 @@ import { useTheme } from '@/theme';
 import { useI18n } from '@/i18n';
 import { Icon, IconCircle, Row, Sheet } from '@/components/ui';
 import { useApp } from '@/store/app';
+import { brand } from '@/config/brand';
 import { can } from '@/core/permissions';
 
 const QuickAddContext = createContext<{ open: () => void }>({ open: () => undefined });
@@ -46,7 +47,7 @@ export function useQuickAdd() {
 /** Bouton flottant « + » au-dessus de la barre d'onglets. */
 export function QuickAddFab() {
   const { open } = useQuickAdd();
-  const { colors, shadow } = useTheme();
+  const { shadow } = useTheme();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   return (
@@ -55,9 +56,9 @@ export function QuickAddFab() {
         accessibilityRole="button"
         accessibilityLabel={t('quick.title')}
         onPress={open}
-        style={({ pressed }) => ({ width: 60, height: 60, borderRadius: 30, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.85 : 1, ...shadow.fab })}
+        style={({ pressed }) => ({ width: 60, height: 60, borderRadius: 30, backgroundColor: brand.colors.yellow, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.85 : 1, ...shadow.fab })}
       >
-        <Icon name="add" size={32} color={colors.onPrimary} />
+        <Icon name="add" size={32} color={brand.colors.night} />
       </Pressable>
     </View>
   );

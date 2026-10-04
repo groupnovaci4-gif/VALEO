@@ -31,7 +31,7 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
   android: {
     package: brand.bundleId + suffix,
     adaptiveIcon: {
-      backgroundColor: '#0F172A',
+      backgroundColor: brand.colors.night,
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',
@@ -46,7 +46,7 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
     'expo-web-browser',
     ['expo-splash-screen', { backgroundColor: brand.colors.splash, image: './assets/splash-icon.png', imageWidth: 160 }],
     ['expo-local-authentication', { faceIDPermission: `${brand.name} utilise Face ID pour protéger vos finances.` }],
-    ['expo-notifications', { color: brand.colors.accent }],
+    ['expo-notifications', { color: brand.colors.green }],
   ],
   experiments: { typedRoutes: false },
   extra: {

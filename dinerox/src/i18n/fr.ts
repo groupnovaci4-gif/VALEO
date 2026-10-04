@@ -116,7 +116,7 @@ export const fr = {
 
   // Onboarding
   'onb.step': 'Étape {current} sur {total}',
-  'onb.name.title': 'Comment vous appelez-vous ?',
+  'onb.name.title': 'Votre nom et prénom',
   'onb.name.hint': 'Pour vous saluer, rien de plus.',
   'onb.country.title': 'Où vivez-vous ?',
   'onb.currency.title': 'Votre devise principale',
@@ -127,6 +127,8 @@ export const fr = {
   'onb.family.couple_children': 'En couple avec enfants',
   'onb.family.single_parent': 'Parent seul(e)',
   'onb.family.extended': 'Je soutiens aussi ma famille élargie',
+  'onb.sources.title': "D'où viennent vos revenus ?",
+  'common.multiSelect': 'Plusieurs choix possibles.',
   'onb.income.title': 'Vos revenus principaux',
   'onb.income.hint': "Un ordre d'idée suffit. Vous pourrez l'ajuster.",
   'onb.income.amount': 'Revenu mensuel (environ)',
