@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
 import { useData } from '@/store/app';
 import { ActionError, useActions } from '@/store/actions';
@@ -31,7 +32,7 @@ function EnvelopeEdit() {
     try {
       actions.saveEnvelope({ id: existing?.id, name: name.trim(), icon, color, monthlyBudget: budget ?? 0, categoryIds, order: existing?.order ?? data.envelopes.length, active: true });
       toast.show(t('common.saved'));
-      router.back();
+      goBack();
     } catch (e) {
       if (e instanceof ActionError && e.code === 'limit') setError(t('error.limit', { limit: e.details.limit ?? '' }));
       else if (e instanceof ActionError && e.code === 'permission') setError(t('error.permission'));
@@ -41,7 +42,7 @@ function EnvelopeEdit() {
   const remove = () =>
     Alert.alert(t('common.deleteConfirmTitle'), t('common.deleteConfirmBody'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => (actions.remove('envelopes', existing!.id), router.back()) },
+      { text: t('common.delete'), style: 'destructive', onPress: () => (actions.remove('envelopes', existing!.id), goBack()) },
     ]);
   return (
     <Screen
@@ -55,7 +56,7 @@ function EnvelopeEdit() {
       }
     >
       {error ? <Banner tone="danger" icon="alert-circle" text={error} /> : null}
-      <Field label={t('common.name')} value={name} onChangeText={setName} />
+      <Field label={t('common.name')} value={name} onChangeText={setName} maxLength={80} />
       <AmountField label={t('env.budget')} value={budget} onChange={setBudget} currency={currency} />
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('env.categories')}

@@ -169,7 +169,7 @@ export default function Family() {
       {current ? <Button variant="secondary" icon="add" label={t('fam.create')} style={{ marginTop: 8 }} onPress={() => setCreateOpen(true)} /> : null}
 
       <Sheet visible={createOpen} onClose={() => setCreateOpen(false)} title={t('fam.create')}>
-        <Field label={t('fam.name')} placeholder={t('fam.namePlaceholder')} value={name} onChangeText={setName} />
+        <Field label={t('fam.name')} placeholder={t('fam.namePlaceholder')} value={name} onChangeText={setName} maxLength={80} />
         <Button
           full
           loading={busy}

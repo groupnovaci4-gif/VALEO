@@ -52,7 +52,7 @@ export default function Settings() {
       <Card>
         <Row title={t('set.privacy')} chevron onPress={() => router.push('/legal/privacy')} />
         <Row title={t('set.terms')} chevron onPress={() => router.push('/legal/terms')} />
-        <Row title={t('set.about')} subtitle={`${brand.name} · ${t('set.version', { version: env.appVersion, env: env.appEnv })}`} />
+        <Row title={t('set.about')} subtitle={`${brand.name} · ${t('set.version', { version: env.buildLabel, env: env.appEnv })}`} />
       </Card>
       <Card style={{ marginTop: 18 }}>
         <Row

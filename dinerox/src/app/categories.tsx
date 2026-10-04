@@ -46,7 +46,7 @@ function Categories() {
       </Card>
       <Button icon="add" label={t('cat.new')} style={{ marginTop: 14 }} onPress={() => open('new')} />
       <Sheet visible={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? t('cat.new') : t('common.edit')}>
-        <Field label={t('common.name')} value={name} onChangeText={setName} />
+        <Field label={t('common.name')} value={name} onChangeText={setName} maxLength={60} />
         <ChipGroup scroll value={icon} onChange={setIcon} options={ICONS.map((i) => ({ value: i, label: '', icon: i }))} />
         <ChipGroup scroll value={color} onChange={setColor} options={pickableColors.map((c) => ({ value: c, label: ' ', icon: 'ellipse', color: c }))} />
         <Button full label={t('common.save')} onPress={save} />

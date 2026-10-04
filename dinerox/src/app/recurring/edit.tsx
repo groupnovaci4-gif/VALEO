@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
 import { useData } from '@/store/app';
 import { useActions } from '@/store/actions';
@@ -39,7 +40,7 @@ function RecurringEdit() {
     const lastGenerated = existing && existing.startDate === startDate ? (existing.lastGenerated ?? null) : lastOccurrenceBefore({ frequency, startDate }, today());
     actions.saveRecurring({ id: existing?.id, type, label: label.trim(), amount, currency: account.currency, accountId: account.id, categoryId, envelopeId: null, frequency, startDate, endDate, active, lastGenerated });
     toast.show(t('common.saved'));
-    router.back();
+    goBack();
   };
   return (
     <Screen
@@ -47,14 +48,14 @@ function RecurringEdit() {
       title={existing ? t('common.edit') : t('rec.new')}
       footer={
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          {existing ? <Button variant="secondary" icon="trash-outline" label={t('common.delete')} onPress={() => (actions.remove('recurring', existing.id), router.back())} /> : null}
+          {existing ? <Button variant="secondary" icon="trash-outline" label={t('common.delete')} onPress={() => (actions.remove('recurring', existing.id), goBack())} /> : null}
           <Button style={{ flex: 1 }} label={t('common.save')} onPress={save} />
         </View>
       }
     >
       {error ? <Banner tone="danger" icon="alert-circle" text={error} /> : null}
       <Segmented value={type} onChange={(v) => (setType(v), setCategoryId(null))} options={[{ value: 'income', label: t('tx.income') }, { value: 'expense', label: t('tx.expense') }]} />
-      <Field label={t('rec.label')} value={label} onChangeText={setLabel} placeholder={t('inc.salary')} />
+      <Field label={t('rec.label')} value={label} onChangeText={setLabel} placeholder={t('inc.salary')} maxLength={120} />
       <AmountField label={t('common.amount')} value={amount} onChange={setAmount} currency={account?.currency ?? 'XOF'} big />
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('tx.account')}

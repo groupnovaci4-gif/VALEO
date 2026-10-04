@@ -1,5 +1,17 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { execSync } from 'node:child_process';
 import { brand } from './src/config/brand.ts';
+
+/** Identifiant de version affiché dans l'app (commit), pour savoir quelle version est installée. */
+function buildId(): string {
+  const fromEas = process.env.EAS_BUILD_GIT_COMMIT_HASH;
+  if (fromEas) return fromEas.slice(0, 7);
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch {
+    return 'local';
+  }
+}
 
 /**
  * Configuration Expo dynamique : le nom, le schéma et l'identifiant viennent
@@ -16,7 +28,7 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
   name: displayName,
   slug: brand.slug,
   scheme: brand.scheme,
-  version: '1.0.0',
+  version: '1.1.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
@@ -52,6 +64,8 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
   extra: {
     ...base.extra,
     appEnv: APP_ENV,
+    buildId: buildId(),
+    builtAt: new Date().toISOString().slice(0, 10),
     // Écrit dans app.json par `eas init`, ou fourni par EAS_PROJECT_ID.
     eas: { projectId: process.env.EAS_PROJECT_ID ?? (base.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId },
   },

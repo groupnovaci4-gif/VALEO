@@ -192,8 +192,9 @@ export class SyncEngine {
     const doc = stamp(
       {
         ...(input as unknown as T),
-        createdBy: existing?.createdBy ?? input.createdBy ?? this.uid,
-        createdAt: existing?.createdAt ?? now,
+        // `||` et non `??` : un brouillon peut porter createdBy '' / createdAt 0.
+        createdBy: existing?.createdBy || input.createdBy || this.uid,
+        createdAt: existing?.createdAt || now,
         updatedAt: now,
       },
       now,
@@ -231,7 +232,7 @@ export class SyncEngine {
     const now = Date.now();
     for (const { col, doc } of items) {
       const existing = s.docs[col][doc.id];
-      const stamped = stamp({ ...doc, createdBy: doc.createdBy ?? this.uid, createdAt: existing?.createdAt ?? doc.createdAt ?? now, updatedAt: now }, now, existing);
+      const stamped = stamp({ ...doc, createdBy: existing?.createdBy || doc.createdBy || this.uid, createdAt: existing?.createdAt || doc.createdAt || now, updatedAt: now }, now, existing);
       s.docs[col] = { ...s.docs[col], [stamped.id]: stamped };
       if (!isLocalOnlySpace(spaceId) && this.remote) {
         this.outbox = enqueue(this.outbox, { spaceId, collection: col, id: stamped.id, doc: stamped }, now);

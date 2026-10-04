@@ -120,7 +120,7 @@ export function GoalFields({ draft, onChange, categories, saved, editing }: { dr
   const familyTotal = plannedMonthly(draft.planned);
   return (
     <View>
-      <Field label={t('goal.name')} value={draft.name} onChangeText={(v) => set('name', v)} placeholder={t('goal.customPlaceholder')} />
+      <Field label={t('goal.name')} value={draft.name} onChangeText={(v) => set('name', v)} placeholder={t('goal.customPlaceholder')} maxLength={120} />
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('goal.category')}
       </Text>

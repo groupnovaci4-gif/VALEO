@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { router } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { Button, ChipGroup, Field, Screen, Text, useToast } from '@/components/ui';
@@ -22,12 +22,12 @@ export default function Profile() {
     // La devise de l'espace personnel suit la devise principale (aucune conversion des montants).
     if (mode === 'firebase' && user && activeSpace?.id === user.uid && activeSpace.currency !== currency) void updateSpaceInfo(user.uid, { currency }).catch(() => undefined);
     toast.show(t('common.saved'));
-    router.back();
+    goBack();
   };
   return (
     <Screen back title={t('set.profile')} footer={<Button full label={t('common.save')} onPress={() => void save()} />}>
-      <Field label={t('auth.firstName')} value={firstName} onChangeText={setFirstName} />
-      <Field label={t('auth.lastName')} value={lastName} onChangeText={setLastName} />
+      <Field label={t('auth.firstName')} value={firstName} onChangeText={setFirstName} maxLength={80} />
+      <Field label={t('auth.lastName')} value={lastName} onChangeText={setLastName} maxLength={80} />
       {profile.email ? <Field label={t('auth.email')} value={profile.email} editable={false} /> : null}
       <Field label={t('set.phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoComplete="tel" />
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>

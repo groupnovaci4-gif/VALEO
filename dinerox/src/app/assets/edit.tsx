@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
 import { useData } from '@/store/app';
 import { useActions } from '@/store/actions';
@@ -27,7 +28,7 @@ function AssetEdit() {
     if (!value) return setError(t('error.amount.invalid'));
     actions.saveAsset({ id: existing?.id, name: name.trim(), type, value, currency: existing?.currency ?? currency, acquiredAt, note: null });
     toast.show(t('common.saved'));
-    router.back();
+    goBack();
   };
   return (
     <Screen
@@ -35,14 +36,14 @@ function AssetEdit() {
       title={existing ? t('nw.edit') : t('nw.add')}
       footer={
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          {existing ? <Button variant="secondary" icon="trash-outline" label={t('common.delete')} onPress={() => (actions.remove('assets', existing.id), router.back())} /> : null}
+          {existing ? <Button variant="secondary" icon="trash-outline" label={t('common.delete')} onPress={() => (actions.remove('assets', existing.id), goBack())} /> : null}
           <Button style={{ flex: 1 }} label={t('common.save')} onPress={save} />
         </View>
       }
     >
       {error ? <Banner tone="danger" icon="alert-circle" text={error} /> : null}
       <ChipGroup value={type} onChange={setType} options={(['real_estate', 'land', 'vehicle', 'savings', 'investment', 'business', 'other'] as AssetType[]).map((k) => ({ value: k, label: t(`nw.type.${k}` as TKey) }))} />
-      <Field label={t('common.name')} value={name} onChangeText={setName} />
+      <Field label={t('common.name')} value={name} onChangeText={setName} maxLength={120} />
       <AmountField label={t('nw.value')} value={value} onChange={setValue} currency={existing?.currency ?? currency} big />
       <DateField label={`${t('nw.acquiredAt')} (${t('common.optional')})`} value={acquiredAt} onChange={setAcquiredAt} allowClear shortcuts={false} />
     </Screen>

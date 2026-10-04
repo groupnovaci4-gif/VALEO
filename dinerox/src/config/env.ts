@@ -32,6 +32,11 @@ export const env = {
   /** Active le menu « données de démonstration » (jamais en production). */
   enableDemo: process.env.EXPO_PUBLIC_ENABLE_DEMO === 'true',
   appVersion: Constants.expoConfig?.version ?? '1.0.0',
+  /** Commit et date de construction : « v1.1.0 · 28b75bc · 2026-10-05 ». */
+  buildLabel: (() => {
+    const extra = (Constants.expoConfig?.extra ?? {}) as { buildId?: string; builtAt?: string };
+    return [`v${Constants.expoConfig?.version ?? '1.0.0'}`, extra.buildId, extra.builtAt].filter(Boolean).join(' · ');
+  })(),
 };
 
 export const isFirebaseConfigured = Boolean(env.firebase.apiKey && env.firebase.projectId && env.firebase.appId);

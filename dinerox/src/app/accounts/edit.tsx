@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp, useData } from '@/store/app';
 import { ActionError, useActions } from '@/store/actions';
@@ -51,7 +52,7 @@ function AccountEdit() {
         order: existing?.order ?? data.accounts.length,
       });
       toast.show(t('common.saved'));
-      router.back();
+      goBack();
     } catch (e) {
       if (e instanceof ActionError && e.code === 'limit') setError('limit');
       else if (e instanceof ActionError && e.code === 'permission') setError(t('error.permission'));
@@ -66,7 +67,7 @@ function AccountEdit() {
         style: 'destructive',
         onPress: () => {
           if (actions.deleteAccount(existing!.id) === 'blocked') Alert.alert(t('acc.deleteBlocked'));
-          else router.back();
+          else goBack();
         },
       },
     ]);
@@ -98,7 +99,7 @@ function AccountEdit() {
           options={ACCOUNT_TEMPLATES.map((a) => ({ value: a.key, label: t(a.key as TKey), icon: a.icon, color: a.color }))}
         />
       ) : null}
-      <Field label={t('acc.name')} value={name} onChangeText={setName} />
+      <Field label={t('acc.name')} value={name} onChangeText={setName} maxLength={80} />
       <AmountField label={t('acc.openingBalance')} value={opening} onChange={setOpening} currency={currency} hint={t('acc.openingBalanceHint')} />
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('acc.currency')}

@@ -74,7 +74,9 @@ export default function Onboarding() {
     }
     setBusy(true);
     try {
-      if (mode === 'firebase' && activeSpace.kind === 'personal') await ensurePersonalSpace(user.uid, fullName(), currency).catch(() => undefined);
+      // Création côté serveur en arrière-plan : les écritures sont déjà autorisées
+      // (id = uid) et un réseau lent ne doit jamais bloquer ce bouton.
+      if (mode === 'firebase' && activeSpace.kind === 'personal') void ensurePersonalSpace(user.uid, fullName(), currency).catch(() => undefined);
       await engine.open(activeSpace.id, 'admin');
       const existing = engine.getData(activeSpace.id);
       // Ne recrée pas de structure si des données existent déjà (réinstallation, 2e appareil).
@@ -185,8 +187,8 @@ export default function Onboarding() {
           <Text tone="muted" style={{ marginBottom: 16 }}>
             {t('onb.name.hint')}
           </Text>
-          <Field label={t('auth.lastName')} value={lastName} onChangeText={setLastName} autoComplete="family-name" textContentType="familyName" autoFocus />
-          <Field label={t('auth.firstName')} value={firstName} onChangeText={setFirstName} autoComplete="given-name" textContentType="givenName" onSubmitEditing={() => canContinue && next()} />
+          <Field label={t('auth.lastName')} value={lastName} onChangeText={setLastName} autoComplete="family-name" textContentType="familyName" autoFocus maxLength={80} />
+          <Field label={t('auth.firstName')} value={firstName} onChangeText={setFirstName} autoComplete="given-name" textContentType="givenName" onSubmitEditing={() => canContinue && next()} maxLength={80} />
         </>
       ) : null}
 

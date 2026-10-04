@@ -6,6 +6,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Image, View } from 'react-native';
 import { router } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import * as ImagePicker from 'expo-image-picker';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp, useData } from '@/store/app';
@@ -117,7 +118,7 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
         });
       }
       toast.show(t('tx.saved'));
-      router.back();
+      goBack();
     } catch (e) {
       if (e instanceof ActionError && e.details.errors) setErrors(e.details.errors.map((k) => t(`error.${k}` as TKey)));
       else if (e instanceof ActionError && e.code === 'permission') setErrors([t('error.permission')]);
@@ -136,7 +137,7 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
         onPress: () => {
           actions.remove('transactions', existing!.id);
           toast.show(t('common.deleted'));
-          router.back();
+          goBack();
         },
       },
     ]);
@@ -219,8 +220,8 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
       ) : null}
 
       <DateField label={t('common.date')} value={date} onChange={(d) => d && setDate(d)} />
-      {type !== 'transfer' ? <Field label={type === 'income' ? t('tx.source') : t('tx.payee')} value={payee} onChangeText={setPayee} /> : null}
-      <Field label={`${t('common.note')} (${t('common.optional')})`} value={note} onChangeText={setNote} multiline />
+      {type !== 'transfer' ? <Field label={type === 'income' ? t('tx.source') : t('tx.payee')} value={payee} onChangeText={setPayee} maxLength={120} /> : null}
+      <Field label={`${t('common.note')} (${t('common.optional')})`} value={note} onChangeText={setNote} multiline maxLength={1000} />
 
       {type === 'expense' ? (
         <View style={{ marginBottom: 14 }}>

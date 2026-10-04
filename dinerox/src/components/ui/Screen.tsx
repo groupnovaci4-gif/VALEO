@@ -1,7 +1,7 @@
 import React from 'react';
 import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import { useTheme } from '@/theme';
 import { Text } from './Text';
 import { IconButton } from './Button';
@@ -34,7 +34,7 @@ export function Screen({ title, subtitle, back, right, children, scroll = true, 
   const header =
     title || back || right ? (
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: back ? 4 : 16, paddingTop: 4, paddingBottom: 8, minHeight: 52 }}>
-        {back ? <IconButton icon="chevron-back" label={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} /> : null}
+        {back ? <IconButton icon="chevron-back" label={t('common.back')} onPress={goBack} /> : null}
         <View style={{ flex: 1 }}>
           {title ? (
             <Text variant="h2" accessibilityRole="header" numberOfLines={1}>

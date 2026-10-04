@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
 import { useData } from '@/store/app';
 import { useActions } from '@/store/actions';
@@ -50,7 +51,7 @@ function DebtEdit() {
       status: existing?.status ?? 'active',
     });
     toast.show(t('common.saved'));
-    router.back();
+    goBack();
   };
   const remove = () =>
     Alert.alert(t('common.deleteConfirmTitle'), t('common.deleteConfirmBody'), [
@@ -74,7 +75,7 @@ function DebtEdit() {
         {t('debt.kind')}
       </Text>
       <ChipGroup value={kind} onChange={setKind} options={kinds.map((k) => ({ value: k, label: t(`debt.kind.${k}` as TKey) }))} />
-      <Field label={t('debt.counterparty')} value={counterparty} onChangeText={setCounterparty} />
+      <Field label={t('debt.counterparty')} value={counterparty} onChangeText={setCounterparty} maxLength={120} />
       <AmountField label={t('debt.principal')} value={principal} onChange={setPrincipal} currency={existing?.currency ?? currency} big />
       <AmountField label={`${t('debt.installment')} (${t('common.optional')})`} value={installment} onChange={setInstallment} currency={existing?.currency ?? currency} />
       <Field label={`${t('debt.dueDay')} (${t('common.optional')})`} value={dueDay} onChangeText={(s) => setDueDay(s.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" />

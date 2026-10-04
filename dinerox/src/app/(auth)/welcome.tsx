@@ -7,7 +7,7 @@ import { useI18n } from '@/i18n';
 import { Button, Text } from '@/components/ui';
 import { Logo } from '@/components/Logo';
 import { useApp } from '@/store/app';
-import { isFirebaseConfigured } from '@/config/env';
+import { env, isFirebaseConfigured } from '@/config/env';
 
 export default function Welcome() {
   const { colors } = useTheme();
@@ -45,6 +45,9 @@ export default function Welcome() {
         />
         <Text variant="caption" tone="subtle" align="center">
           {t('auth.welcome.disclaimer')}
+        </Text>
+        <Text variant="caption" tone="subtle" align="center" numeric>
+          {env.buildLabel}
         </Text>
       </View>
     </SafeAreaView>

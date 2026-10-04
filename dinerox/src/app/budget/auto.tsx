@@ -4,7 +4,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
-import { router } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
@@ -65,7 +65,7 @@ function AutoBudget() {
       }),
     );
     toast.show(t('budget.auto.applied'));
-    router.back();
+    goBack();
   };
 
   return (

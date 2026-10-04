@@ -85,6 +85,15 @@ describe('moteur de synchronisation', () => {
     expect(d2.createdAt).toBe(d.createdAt);
   });
 
+  it('un brouillon sans auteur ni date reçoit ceux de la session (budget automatique)', async () => {
+    const engine = new SyncEngine('u1', null);
+    await engine.open('local', 'admin');
+    engine.writeMany('local', [{ col: 'envelopes', doc: { id: 'e1', createdAt: 0, updatedAt: 0, createdBy: '' } as never }]);
+    const e = engine.getData('local').envelopes[0];
+    expect(e.createdBy).toBe('u1');
+    expect(e.createdAt).toBeGreaterThan(0);
+  });
+
   it('suppression logique : masquée localement, propagée au serveur', async () => {
     const f = fakeRemote();
     const engine = new SyncEngine('u1', f.remote as never);

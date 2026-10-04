@@ -175,4 +175,4 @@ export const shadow = {
 };
 
 /** Palette pour comptes/enveloppes/catégories créés par l'utilisateur. */
-export const pickableColors = ['#14B8A6', '#F59E0B', '#38BDF8', '#10B981', '#0EA5E9', '#6366F1', '#8B5CF6', '#EC4899', '#F97316', '#EAB308', '#14B8A6', '#334155', '#EF4444'];
+export const pickableColors = ['#14B8A6', '#F59E0B', '#38BDF8', '#10B981', '#0EA5E9', '#6366F1', '#8B5CF6', '#EC4899', '#F97316', '#EAB308', '#0D9488', '#334155', '#EF4444'];

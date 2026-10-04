@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import { useI18n } from '@/i18n';
 import { useData } from '@/store/app';
 import { useActions } from '@/store/actions';
@@ -37,7 +38,7 @@ function EditGoal() {
       categoryId: cat ? cat.id : draft.categoryId,
     });
     toast.show(t('common.saved'));
-    router.back();
+    goBack();
   };
   return (
     <Screen back title={t('common.edit')} edges={['top', 'bottom']} footer={<Button full label={t('common.save')} onPress={save} />}>

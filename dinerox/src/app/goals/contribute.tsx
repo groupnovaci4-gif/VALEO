@@ -4,7 +4,8 @@
  * met simplement de côté (il n'est alors plus compté comme disponible).
  */
 import React, { useState } from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import { useI18n } from '@/i18n';
 import { useData } from '@/store/app';
 import { ActionError, useActions } from '@/store/actions';
@@ -38,7 +39,7 @@ function Contribute() {
     try {
       actions.contributeToGoal({ goalId: goal.id, amount: amount ?? 0, date, accountId, note: note.trim() || null, moveTo: move ? goal.accountId : null, withdraw: isWithdraw });
       toast.show(t('goal.contribution.saved'));
-      router.back();
+      goBack();
     } catch (e) {
       setError(e instanceof ActionError && e.code === 'permission' ? t('error.permission') : t('error.amount.invalid'));
     }
