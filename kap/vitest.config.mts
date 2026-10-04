@@ -1,8 +1,8 @@
 import { defineConfig } from 'vitest/config';
-import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// Tests des modules PURS (src/core) : aucune dépendance React Native.
+// Tests des modules PURS (src/core) et du moteur de synchro : aucune dépendance React Native.
 export default defineConfig({
-  resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
-  test: { include: ['tests/**/*.test.ts'], exclude: ['tests/rules/**'], environment: 'node' },
+  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+  test: { include: ['tests/**/*.test.ts'], exclude: ['tests/rules/**', 'node_modules/**'], environment: 'node' },
 });

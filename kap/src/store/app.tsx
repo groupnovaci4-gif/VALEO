@@ -19,8 +19,8 @@ import { firebase } from '@/services/firebase';
 import { readJSON, removeKeys, storageKey, writeJSON } from '@/services/storage';
 import { SyncEngine } from '@/services/sync/engine';
 import { firestoreRemote } from '@/services/sync/remote';
-import { defaultProfile, listenProfile, saveProfile } from '@/services/profile';
-import { listenSpaces, personalSpace } from '@/services/spaces';
+import { defaultProfile, ensureProfile, listenProfile, saveProfile } from '@/services/profile';
+import { ensurePersonalSpace, listenSpaces, personalSpace } from '@/services/spaces';
 import { effectivePlan } from '@/core/subscription';
 import { roleIn } from '@/core/permissions';
 import { emptySpaceData, type PlanId, type Role, type Space, type SpaceData, type UserProfile } from '@/core/types';
@@ -70,10 +70,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [remoteSpaces, setRemoteSpaces] = useState<Space[]>([]);
   const [localSpaces, setLocalSpaces] = useState<Space[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [engine, setEngine] = useState<SyncEngine | null>(null);
   const [online, setOnline] = useState(true);
   const profileRef = useRef<UserProfile | null>(null);
-  profileRef.current = profile;
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
   const loadLocalUser = useCallback(async () => {
     const p = (await readJSON<UserProfile>(storageKey(LOCAL_UID, 'profile'))) ?? defaultProfile(LOCAL_UID, '');
@@ -132,6 +133,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (p) {
           setProfile(p);
           void writeJSON(storageKey(user.uid, 'profile'), p);
+        } else {
+          // Première connexion (Google, ou inscription interrompue) : profil par défaut.
+          void ensureProfile(user.uid, user.email, user.displayName, null).catch(() => undefined);
         }
       },
       () => undefined,
@@ -144,6 +148,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       () => undefined,
     );
+    // L'espace personnel doit exister avant toute écriture (règles Firestore).
+    void ensurePersonalSpace(user.uid, user.displayName, profileRef.current?.currency ?? 'XOF').catch(() => undefined);
     return () => {
       offProfile();
       offSpaces();
@@ -157,12 +163,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   // 5. Moteur de synchronisation par utilisateur.
-  useEffect(() => {
-    if (!user) return;
-    const e = new SyncEngine(user.uid, mode === 'firebase' ? firestoreRemote() : null);
-    setEngine(e);
-    return () => e.destroy();
-  }, [user, mode]);
+  const engine = useMemo(() => (user ? new SyncEngine(user.uid, mode === 'firebase' ? firestoreRemote() : null) : null), [user, mode]);
+  useEffect(() => () => engine?.destroy(), [engine]);
 
   // 6. Réseau.
   useEffect(() => {
@@ -311,3 +313,11 @@ export function useSyncStatus() {
 }
 
 const EMPTY_DATA = emptySpaceData();
+
+/** Vrai quand le cache local de l'espace actif est chargé (lecture locale, quasi instantanée). */
+export function useSpaceReady(): boolean {
+  const { engine, activeSpace } = useApp();
+  const id = activeSpace?.id ?? '';
+  const get = useCallback(() => (engine && id ? engine.isLoaded(id) : false), [engine, id]);
+  return useSyncExternalStore(engine?.subscribe ?? noopSubscribe, get, get);
+}

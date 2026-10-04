@@ -1,0 +1,195 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════════
+// Règles de sécurité Firestore — LE SERVEUR DÉCIDE.
+//
+// Principes :
+//  1. Isolation : un utilisateur ne lit/écrit que ses espaces (personnel ou
+//     familles dont il est membre). Aucune donnée d'un autre utilisateur.
+//  2. Rôles (miroir de src/core/permissions.ts) :
+//       admin   — tout ; partner — données partagées ; child — limité.
+//  3. Les membres d'un espace ne changent QUE via Cloud Functions.
+//  4. L'abonnement n'est écrit QUE par le serveur.
+//  5. Conflits : une mise à jour plus ancienne (updatedAt) que la version
+//     stockée est refusée — « le plus récent gagne », arbitré ici.
+//  6. Pas de suppression physique côté client : suppression logique
+//     (deleted: true), pour que la suppression se synchronise hors-ligne.
+//  7. Refus par défaut : toute collection non listée est inaccessible.
+// ═══════════════════════════════════════════════════════════════════════
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function isPlatformAdmin() { return signedIn() && request.auth.token.admin == true; }
+    function isInt(v) { return v is int; }
+    function isISODate(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+    function optString(data, k, max) { return !(k in data) || data[k] == null || (data[k] is string && data[k].size() <= max); }
+    function optInt(data, k) { return !(k in data) || data[k] == null || data[k] is int; }
+
+    // ─── Profil utilisateur ──────────────────────────────────────────
+    match /users/{userId} {
+      function validProfile(d) {
+        return d.uid == userId
+          && d.firstName is string && d.firstName.size() <= 80
+          && d.currency is string && d.currency.size() == 3
+          && d.language in ['fr', 'en']
+          && d.keys().size() <= 30;
+      }
+      allow read: if signedIn() && me() == userId;
+      // À la création, l'abonnement est forcément « gratuit ».
+      allow create: if signedIn() && me() == userId && validProfile(request.resource.data)
+        && request.resource.data.subscription.plan == 'free'
+        && request.resource.data.subscription.status == 'active'
+        && request.resource.data.subscription.provider == 'none';
+      // Ensuite, le client ne peut jamais toucher à l'abonnement ni à l'identité.
+      allow update: if signedIn() && me() == userId && validProfile(request.resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription', 'uid', 'createdAt']);
+      allow delete: if false; // Cloud Function deleteAccount
+
+      // Jetons push de l'utilisateur.
+      match /devices/{deviceId} {
+        allow read, delete: if signedIn() && me() == userId;
+        allow create, update: if signedIn() && me() == userId
+          && request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt'])
+          && request.resource.data.token is string && request.resource.data.token.size() < 300;
+      }
+    }
+
+    // Abonnements vérifiés côté serveur (reçus, fournisseurs).
+    match /subscriptions/{userId} {
+      allow read: if signedIn() && me() == userId;
+      allow write: if false;
+    }
+
+    // ─── Espaces ────────────────────────────────────────────────────
+    match /spaces/{spaceId} {
+      function spaceData() { return get(/databases/$(database)/documents/spaces/$(spaceId)).data; }
+      // Espace personnel : id = uid, aucun get() nécessaire.
+      function roleOf() {
+        return spaceId == me() ? 'admin' : spaceData().members.get(me(), null);
+      }
+      function isMember() { return signedIn() && roleOf() in ['admin', 'partner', 'child']; }
+
+      allow read: if signedIn() && me() in resource.data.memberIds;
+      // Création : uniquement un espace dont on est le SEUL membre, administrateur.
+      allow create: if signedIn()
+        && request.resource.data.ownerId == me()
+        // Personnel : id = uid du créateur. Famille : id préfixé « fam_ » (jamais un uid),
+        // sinon un tiers pourrait occuper le chemin d'un espace personnel avant sa création.
+        && ((request.resource.data.kind == 'personal' && spaceId == me())
+            || (request.resource.data.kind == 'family' && spaceId.matches('^fam_[A-Za-z0-9]+$')))
+        && request.resource.data.members.keys().hasOnly([me()])
+        && request.resource.data.members[me()] == 'admin'
+        && request.resource.data.memberIds == [me()]
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && request.resource.data.currency is string && request.resource.data.currency.size() == 3;
+      // Un admin peut renommer l'espace ou changer sa devise — rien d'autre.
+      allow update: if signedIn() && resource.data.members.get(me(), null) == 'admin'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'currency', 'updatedAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80;
+      allow delete: if false;
+
+      // ─── Données financières de l'espace ──────────────────────────
+      match /{col}/{docId} {
+        function knownCollection() {
+          return col in ['accounts', 'categories', 'transactions', 'recurring', 'envelopes', 'budgets',
+                         'goals', 'goalContributions', 'debts', 'debtPayments', 'assets'];
+        }
+        function canRead() {
+          let r = roleOf();
+          return r in ['admin', 'partner']
+            || (r == 'child' && col in ['transactions', 'categories', 'envelopes', 'budgets', 'goals', 'goalContributions', 'accounts']);
+        }
+        // Champs communs imposés à toute écriture.
+        function validBase(d) {
+          return d.id == docId
+            && isInt(d.updatedAt) && isInt(d.createdAt)
+            && d.createdBy is string
+            && d.syncedAt == request.time
+            && (!('deleted' in d) || d.deleted is bool)
+            && d.keys().size() <= 40;
+        }
+        function validTransaction(d) {
+          return d.type in ['income', 'expense', 'transfer']
+            && isInt(d.amount) && d.amount > 0 && d.amount < 1000000000000000
+            && d.currency is string && d.currency.size() == 3
+            && isISODate(d.date)
+            && d.accountId is string
+            && (d.type != 'transfer' || (d.toAccountId is string && d.toAccountId != d.accountId))
+            && optInt(d, 'toAmount')
+            && optString(d, 'payee', 120) && optString(d, 'note', 1000) && optString(d, 'receiptUrl', 2000);
+        }
+        function validDoc(d) {
+          return col == 'transactions' ? validTransaction(d)
+            : col == 'accounts' ? (d.name is string && d.name.size() <= 80 && isInt(d.openingBalance) && d.currency is string && d.currency.size() == 3 && d.active is bool)
+            : col == 'goals' ? (d.name is string && d.name.size() <= 120 && isInt(d.targetAmount) && d.targetAmount >= 0 && isInt(d.initialAmount) && d.initialAmount >= 0
+                                && d.status in ['active', 'paused', 'completed', 'abandoned', 'archived']
+                                && d.priority in ['low', 'normal', 'high', 'urgent'])
+            : col == 'goalContributions' ? (d.goalId is string && isInt(d.amount) && d.amount != 0 && isISODate(d.date))
+            : col == 'envelopes' ? (d.name is string && d.name.size() <= 80 && isInt(d.monthlyBudget) && d.monthlyBudget >= 0)
+            : col == 'debts' ? (d.direction in ['i_owe', 'owed_to_me'] && isInt(d.principal) && d.principal > 0 && d.counterparty is string && d.counterparty.size() <= 120)
+            : col == 'debtPayments' ? (d.debtId is string && isInt(d.amount) && d.amount > 0 && isISODate(d.date))
+            : col == 'assets' ? (d.name is string && d.name.size() <= 120 && isInt(d.value) && d.value >= 0)
+            : col == 'recurring' ? (d.type in ['income', 'expense'] && isInt(d.amount) && d.amount > 0 && d.frequency in ['weekly', 'monthly', 'yearly'] && isISODate(d.startDate))
+            : col == 'budgets' ? (d.month is string && d.month.matches('^[0-9]{4}-[0-9]{2}$') && d.id == d.month)
+            : col == 'categories' ? (d.kind in ['income', 'expense'] && d.name is string && d.name.size() <= 60)
+            : false;
+        }
+
+        allow read: if knownCollection() && isMember() && canRead();
+
+        allow create: if knownCollection() && isMember()
+          && validBase(request.resource.data) && validDoc(request.resource.data)
+          && (
+            roleOf() in ['admin', 'partner']
+            // Enfant : ses propres dépenses et contributions uniquement.
+            || (roleOf() == 'child'
+                && request.resource.data.createdBy == me()
+                && ((col == 'transactions' && request.resource.data.type == 'expense') || col == 'goalContributions'))
+          );
+
+        allow update: if knownCollection() && isMember()
+          && validBase(request.resource.data) && validDoc(request.resource.data)
+          // L'auteur et la date de création sont immuables.
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt
+          // Le plus récent gagne : une version plus ancienne est refusée.
+          && request.resource.data.updatedAt >= resource.data.updatedAt
+          && (
+            roleOf() in ['admin', 'partner']
+            || (roleOf() == 'child' && col == 'transactions' && resource.data.createdBy == me() && request.resource.data.type == 'expense')
+          );
+
+        allow delete: if false;
+      }
+    }
+
+    // ─── Invitations familiales (écrites par les Cloud Functions) ────
+    match /invites/{inviteId} {
+      allow read: if signedIn() && (
+        (request.auth.token.email != null && resource.data.email == request.auth.token.email.lower())
+        || get(/databases/$(database)/documents/spaces/$(resource.data.spaceId)).data.members.get(me(), null) == 'admin'
+      );
+      allow write: if false;
+    }
+
+    // ─── Configuration publiée par les administrateurs ──────────────
+    match /config/{doc}/items/{itemId} {
+      allow read: if signedIn();
+      allow write: if isPlatformAdmin();
+    }
+
+    // ─── Statistiques anonymes (écriture seule, aucune lecture client) ─
+    match /analyticsEvents/{eventId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['event', 'props', 'env', 'day', 'at'])
+        && request.resource.data.event is string && request.resource.data.event.size() <= 40
+        && request.resource.data.props is map && request.resource.data.props.size() <= 6
+        && request.resource.data.at == request.time;
+      allow read, update, delete: if false;
+    }
+
+    // Tout le reste est refusé par défaut.
+  }
+}

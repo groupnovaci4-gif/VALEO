@@ -80,3 +80,21 @@ export function materialize(
     createdBy: meta.uid,
   };
 }
+
+/**
+ * Dernière échéance STRICTEMENT antérieure à `date` (null s'il n'y en a pas).
+ * Sert à créer une règle dont la date de début est passée sans générer
+ * rétroactivement toutes les échéances.
+ */
+export function lastOccurrenceBefore(rule: Pick<RecurringRule, 'frequency' | 'startDate'>, date: ISODate): ISODate | null {
+  let last: ISODate | null = null;
+  for (let i = 0; i < 5000; i++) {
+    const d =
+      rule.frequency === 'weekly'
+        ? addDays(rule.startDate, 7 * i)
+        : addMonths(rule.startDate, i * (rule.frequency === 'yearly' ? 12 : 1));
+    if (d >= date) break;
+    last = d;
+  }
+  return last;
+}

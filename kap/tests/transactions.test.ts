@@ -75,3 +75,11 @@ describe('récurrences', () => {
     expect(a.id).toBe(recurringTxId('r1', '2026-09-25'));
   });
 });
+
+describe('règle commencée dans le passé', () => {
+  it('pas de génération rétroactive', async () => {
+    const { lastOccurrenceBefore } = await import('../src/core/recurring');
+    expect(lastOccurrenceBefore({ frequency: 'monthly', startDate: '2026-01-25' }, '2026-10-04')).toBe('2026-09-25');
+    expect(lastOccurrenceBefore({ frequency: 'monthly', startDate: '2026-12-25' }, '2026-10-04')).toBeNull();
+  });
+});

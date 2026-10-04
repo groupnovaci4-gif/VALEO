@@ -63,6 +63,10 @@ export interface ColorScheme {
   track: string;
   overlay: string;
   tabBar: string;
+  /** Graphiques : 2 séries validées (daltonisme, contraste) dans chaque thème. */
+  chartIncome: string;
+  chartExpense: string;
+  grid: string;
 }
 
 export const lightColors: ColorScheme = {
@@ -93,6 +97,9 @@ export const lightColors: ColorScheme = {
   track: '#EDF1F5',
   overlay: 'rgba(15,23,42,0.55)',
   tabBar: palette.white,
+  chartIncome: '#2a78d6',
+  chartExpense: '#eb6834',
+  grid: '#E8EDF3',
 };
 
 export const darkColors: ColorScheme = {
@@ -123,6 +130,9 @@ export const darkColors: ColorScheme = {
   track: '#24324A',
   overlay: 'rgba(0,0,0,0.65)',
   tabBar: '#131C2E',
+  chartIncome: '#3987e5',
+  chartExpense: '#d95926',
+  grid: '#24324A',
 };
 
 export const spacing = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, xxxl: 40 } as const;

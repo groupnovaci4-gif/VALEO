@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { SyncEngine } from '../src/services/sync/engine';
+import type { PendingOp } from '../src/core/sync';
+import type { SyncedDoc } from '../src/core/types';
 
 // AsyncStorage en mémoire.
 const mem = new Map<string, string>();
@@ -14,9 +17,6 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
 vi.mock('../src/services/sync/remote', () => ({}));
 vi.mock('../src/services/firebase', () => ({}));
 
-import { SyncEngine } from '../src/services/sync/engine';
-import type { PendingOp } from '../src/core/sync';
-import type { SyncedDoc } from '../src/core/types';
 
 function fakeRemote() {
   const server = new Map<string, SyncedDoc>();

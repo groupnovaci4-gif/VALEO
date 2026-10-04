@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useTheme, MIN_TOUCH } from '@/theme';
+import { useTheme } from '@/theme';
 import { Text } from './Text';
 import { Chip } from './Chip';
 import { Icon } from './Icon';

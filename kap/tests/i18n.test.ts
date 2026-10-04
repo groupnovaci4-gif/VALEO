@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'fr' }] }));
 import { fr } from '../src/i18n/fr';
 import { en } from '../src/i18n/en';
+vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'fr' }] }));
 
 describe('i18n', () => {
   it('chaque clé française existe en anglais et inversement', () => {

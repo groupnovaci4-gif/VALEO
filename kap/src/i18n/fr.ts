@@ -292,7 +292,7 @@ export const fr = {
 
   // Budget & enveloppes
   'budget.title': 'Budget',
-  'budget.month': 'Budget de {month}',
+  'budget.month': 'Budget — {month}',
   'budget.planned': 'Prévu',
   'budget.spent': 'Dépensé',
   'budget.remaining': 'Restant',

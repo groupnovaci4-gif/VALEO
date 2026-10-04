@@ -1,0 +1,47 @@
+import React, { useState } from 'react';
+import { router } from 'expo-router';
+import { useI18n, type TKey } from '@/i18n';
+import { useApp } from '@/store/app';
+import { Button, ChipGroup, Field, Screen, Text, useToast } from '@/components/ui';
+import { COUNTRIES } from '@/config/countries';
+import { CURRENCIES, type CurrencyCode } from '@/core/money';
+import { updateSpaceInfo } from '@/services/spaces';
+
+export default function Profile() {
+  const { t, lang } = useI18n();
+  const toast = useToast();
+  const { profile, updateProfile, mode, user, activeSpace } = useApp();
+  const [firstName, setFirstName] = useState(profile?.firstName ?? '');
+  const [lastName, setLastName] = useState(profile?.lastName ?? '');
+  const [phone, setPhone] = useState(profile?.phone ?? '');
+  const [country, setCountry] = useState(profile?.country ?? 'CI');
+  const [currency, setCurrency] = useState<CurrencyCode>(profile?.currency ?? 'XOF');
+  if (!profile) return null;
+  const save = async () => {
+    await updateProfile({ firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim() || null, country, currency });
+    // La devise de l'espace personnel suit la devise principale (aucune conversion des montants).
+    if (mode === 'firebase' && user && activeSpace?.id === user.uid && activeSpace.currency !== currency) void updateSpaceInfo(user.uid, { currency }).catch(() => undefined);
+    toast.show(t('common.saved'));
+    router.back();
+  };
+  return (
+    <Screen back title={t('set.profile')} footer={<Button full label={t('common.save')} onPress={() => void save()} />}>
+      <Field label={t('auth.firstName')} value={firstName} onChangeText={setFirstName} />
+      <Field label={t('auth.lastName')} value={lastName} onChangeText={setLastName} />
+      {profile.email ? <Field label={t('auth.email')} value={profile.email} editable={false} /> : null}
+      <Field label={t('set.phone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoComplete="tel" />
+      <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
+        {t('set.country')}
+      </Text>
+      <ChipGroup scroll value={country} onChange={setCountry} options={COUNTRIES.map((c) => ({ value: c, label: t(`country.${c}` as TKey) }))} />
+      <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
+        {t('set.currency')}
+      </Text>
+      <ChipGroup scroll value={currency} onChange={setCurrency} options={Object.values(CURRENCIES).map((c) => ({ value: c.code, label: `${c.code} · ${c.name[lang]}` }))} />
+      <Text variant="caption" tone="subtle">
+        {t('onb.currency.hint')}
+      </Text>
+      <Field label={t('set.timezone')} value={profile.timezone} editable={false} />
+    </Screen>
+  );
+}

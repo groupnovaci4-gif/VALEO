@@ -1,0 +1,24 @@
+rules_version = '2';
+
+// Justificatifs : lisibles et ajoutables par les membres de l'espace,
+// images uniquement, 5 Mo max. Pas de suppression côté client.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /spaces/{spaceId}/receipts/{fileName} {
+      function isMember() {
+        return request.auth != null && (
+          spaceId == request.auth.uid
+          || request.auth.uid in firestore.get(/databases/(default)/documents/spaces/$(spaceId)).data.memberIds
+        );
+      }
+      allow read: if isMember();
+      allow create: if isMember()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow update, delete: if false;
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

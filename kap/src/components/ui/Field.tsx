@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { TextInput, View, type TextInputProps } from 'react-native';
+import React, { useState } from 'react';
+import { Platform, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme, MIN_TOUCH } from '@/theme';
 import { Text } from './Text';
 import { currencyInfo, formatMoney, parseAmountInput, toMajor } from '@/core/money';
@@ -44,7 +44,7 @@ export function Field({ label, hint, error, suffix, style, ...rest }: FieldProps
             setFocused(false);
             rest.onBlur?.(e);
           }}
-          style={[{ flex: 1, color: colors.text, fontSize: 16, paddingVertical: 10 }, style]}
+          style={[{ flex: 1, minWidth: 0, color: colors.text, fontSize: 16, paddingVertical: 10 }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null, style]}
           {...rest}
         />
         {suffix ? <Text tone="muted">{suffix}</Text> : null}
@@ -89,12 +89,12 @@ export function AmountField({
   const info = currencyInfo(currency);
   const toText = (v: number | null) => (v === null ? '' : info.decimals ? String(toMajor(v, currency)).replace('.', ',') : String(v));
   const [text, setText] = useState(toText(value));
-  useEffect(() => {
-    // Synchronise si la valeur change de l'extérieur (proposition IA, édition).
-    const parsed = parseAmountInput(text, currency);
-    if (parsed !== value) setText(toText(value));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, currency]);
+  const [prev, setPrev] = useState<{ value: number | null; currency: string }>({ value, currency });
+  // Synchronise si la valeur change de l'extérieur (proposition IA, édition).
+  if (prev.value !== value || prev.currency !== currency) {
+    setPrev({ value, currency });
+    if (parseAmountInput(text, currency) !== value) setText(toText(value));
+  }
   return (
     <Field
       label={label}

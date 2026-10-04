@@ -277,7 +277,7 @@ export const en: Record<TKey, string> = {
   'inc.other': 'Other income',
 
   'budget.title': 'Budget',
-  'budget.month': '{month} budget',
+  'budget.month': 'Budget — {month}',
   'budget.planned': 'Planned',
   'budget.spent': 'Spent',
   'budget.remaining': 'Left',
