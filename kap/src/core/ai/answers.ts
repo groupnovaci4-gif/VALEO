@@ -108,7 +108,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
       if (!goals.length) return { key: 'ai.a.noGoals' };
       const capacity = savingsCapacity(data.transactions, now, currency);
       let needed = 0;
-      const bullets: AnswerLine[] = goals.slice(0, 4).map((g) => {
+      const bullets: AnswerLine[] = goals.slice(0, 4).map((g): AnswerLine => {
         const plan = goalPlanFor(g, data.goalContributions, now);
         needed += plan.requiredMonthly ?? 0;
         if (plan.reached) return { key: 'ai.a.goalReached', params: { name: g.name } };

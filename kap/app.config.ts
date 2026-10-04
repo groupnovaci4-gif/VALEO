@@ -1,5 +1,5 @@
 import type { ExpoConfig } from 'expo/config';
-import { brand } from './src/config/brand';
+import { brand } from './src/config/brand.ts';
 
 /**
  * Configuration Expo dynamique : le nom, le schéma et l'identifiant viennent
@@ -19,11 +19,6 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
-  splash: {
-    image: './assets/splash-icon.png',
-    resizeMode: 'contain',
-    backgroundColor: brand.colors.splash,
-  },
   ios: {
     supportsTablet: false,
     bundleIdentifier: brand.bundleId + suffix,
