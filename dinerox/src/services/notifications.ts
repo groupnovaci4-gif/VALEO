@@ -8,9 +8,8 @@
  *   Cloud Function planifiée envoie les résumés (voir firebase/functions).
  * Chaque type est désactivable dans les préférences.
  */
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import Constants from 'expo-constants';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import { doc, setDoc } from 'firebase/firestore';
 import { firebase } from './firebase';
@@ -20,11 +19,45 @@ import type { Debt, DebtPayment, NotificationPrefs } from '@/core/types';
 import { debtStatus } from '@/core/debts';
 import { addDays, parseISODate, today } from '@/core/dates';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
-});
+type NotificationsModule = typeof import('expo-notifications');
+
+/**
+ * Depuis le SDK 53, Expo Go sur Android refuse de charger expo-notifications
+ * (le simple import lève une erreur et ferait planter l'application). Le
+ * module est donc chargé à la demande, et désactivé dans ce cas précis ;
+ * il fonctionne normalement dans un build de développement ou de production.
+ */
+export const notificationsSupported = !(Platform.OS === 'android' && Constants.executionEnvironment === ExecutionEnvironment.StoreClient);
+
+let loaded: NotificationsModule | null | undefined;
+function getNotifications(): NotificationsModule | null {
+  if (loaded !== undefined) return loaded;
+  loaded = null;
+  if (!notificationsSupported) return loaded;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mod = require('expo-notifications') as NotificationsModule;
+    mod.setNotificationHandler({
+      handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
+    });
+    loaded = mod;
+  } catch {
+    loaded = null;
+  }
+  return loaded;
+}
+
+/** État des autorisations, sans rien demander. null si indisponible. */
+export async function permissionStatus(): Promise<{ granted: boolean; canAskAgain: boolean } | null> {
+  const Notifications = getNotifications();
+  if (!Notifications) return null;
+  const p = await Notifications.getPermissionsAsync();
+  return { granted: p.granted, canAskAgain: p.canAskAgain };
+}
 
 export async function ensurePermission(): Promise<boolean> {
+  const Notifications = getNotifications();
+  if (!Notifications) return false;
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', { name: 'Default', importance: Notifications.AndroidImportance.DEFAULT });
   }
@@ -46,7 +79,8 @@ export async function scheduleLocalNotifications(
   formatAmount: (n: number) => string,
   formatDate: (d: string) => string,
 ): Promise<void> {
-  if (!(await ensurePermission())) return;
+  const Notifications = getNotifications();
+  if (!Notifications || !(await ensurePermission())) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
   const T = Notifications.SchedulableTriggerInputTypes;
   if (prefs.savingsReminder) {
@@ -110,7 +144,8 @@ export async function notifyNewInsights(uid: string, insights: Insight[], prefs:
     if (i.kind === 'envelope_threshold' && i.params.level === 'warn70') return false; // 70 % : visible dans l'app, sans notification
     return true;
   });
-  if (!fresh.length) return;
+  const Notifications = getNotifications();
+  if (!fresh.length || !Notifications) return;
   const granted = (await Notifications.getPermissionsAsync()).granted;
   for (const i of fresh.slice(0, 3)) {
     seen.add(i.id);
@@ -122,7 +157,8 @@ export async function notifyNewInsights(uid: string, insights: Insight[], prefs:
 /** Enregistre le jeton push de l'appareil (appareil physique + projet EAS requis). */
 export async function registerPushToken(uid: string): Promise<void> {
   try {
-    if (!Device.isDevice) return;
+    const Notifications = getNotifications();
+    if (!Notifications || !Device.isDevice) return;
     const projectId = (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
     if (!projectId || !(await ensurePermission())) return;
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });

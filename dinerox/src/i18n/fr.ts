@@ -680,6 +680,7 @@ export const fr = {
   'notif.monthlySummary': 'Résumé mensuel',
   'notif.permissionDenied': 'Les notifications sont désactivées dans les réglages du téléphone.',
   'notif.empty': 'Aucune notification pour le moment.',
+  'notif.unavailableExpoGo': "Les notifications du téléphone ne sont pas disponibles dans Expo Go sur Android. Elles fonctionneront dans l'application installée (build de développement ou version finale). Les alertes restent visibles dans l'application.",
   'notif.savingsReminder.title': "C'est le moment d'épargner 🐷",
   'notif.savingsReminder.body': 'Mettez quelque chose de côté pour vos objectifs.',
   'notif.debtDue.title': 'Échéance à venir',

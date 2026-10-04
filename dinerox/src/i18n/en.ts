@@ -656,6 +656,7 @@ export const en: Record<TKey, string> = {
   'notif.monthlySummary': 'Monthly summary',
   'notif.permissionDenied': 'Notifications are disabled in your phone settings.',
   'notif.empty': 'No notifications yet.',
+  'notif.unavailableExpoGo': 'Phone notifications are not available in Expo Go on Android. They will work in the installed app (development or release build). Alerts remain visible in the app.',
   'notif.savingsReminder.title': 'Time to save 🐷',
   'notif.savingsReminder.body': 'Set something aside for your goals.',
   'notif.debtDue.title': 'Payment due soon',
