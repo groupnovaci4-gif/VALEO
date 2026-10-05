@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n';
 import { Button, Field, Screen, SwitchRow, Text } from '@/components/ui';
 import { GoogleButton } from '@/components/GoogleButton';
 import { Logo } from '@/components/Logo';
+import { Wordmark } from '@/components/Wordmark';
 import { authErrorKey, isPasswordStrong, signUp } from '@/services/auth';
 import { analytics } from '@/services/analytics';
 import { TERMS_VERSION } from '@/config/legal';
@@ -41,8 +42,9 @@ export default function SignUp() {
   };
   return (
     <Screen back title={t('auth.signup.title')} syncBanner={false}>
-      <View style={{ alignItems: 'center', marginBottom: 20 }}>
+      <View style={{ alignItems: 'center', marginBottom: 20, gap: 12 }}>
         <Logo size={72} />
+        <Wordmark size={26} center />
       </View>
       <Field label={t('auth.lastName')} value={lastName} onChangeText={setLastName} autoComplete="family-name" textContentType="familyName" maxLength={80} />
       <Field label={t('auth.firstName')} value={firstName} onChangeText={setFirstName} autoComplete="given-name" textContentType="givenName" maxLength={80} />

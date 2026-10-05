@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme';
@@ -7,6 +7,7 @@ import { useI18n } from '@/i18n';
 import { Text } from '@/components/ui';
 import { PinPad } from './PinPad';
 import { Logo } from './Logo';
+import { Wordmark } from './Wordmark';
 import { authenticateBiometric, biometricAvailable, hasPin, verifyPin } from '@/services/security';
 
 /**
@@ -86,7 +87,10 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', gap: 28 }}>
-      <Logo size={72} />
+      <View style={{ alignItems: 'center', gap: 12 }}>
+        <Logo size={72} />
+        <Wordmark size={24} center />
+      </View>
       <Text variant="h3">{t('set.pin.enter')}</Text>
       {error ? (
         <Text tone="danger" accessibilityLiveRegion="assertive">

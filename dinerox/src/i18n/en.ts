@@ -66,6 +66,9 @@ export const en: Record<TKey, string> = {
   'sync.localMode': 'Local mode: data is stored on this device only.',
   'sync.done': 'Synced',
 
+  'brand.slogan1': 'Manage better.',
+  'brand.slogan2': 'Plan better.',
+  'brand.slogan3': 'Live better.',
   'auth.welcome.title': '{app}',
   'auth.welcome.tagline': 'Your money, finally clear.',
   'auth.welcome.pitch': 'Track spending, plan your projects and manage family finances, simply.',

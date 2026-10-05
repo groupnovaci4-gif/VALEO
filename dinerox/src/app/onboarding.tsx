@@ -10,6 +10,7 @@ import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { AmountField, Button, Card, ChipGroup, Field, ProgressBar, Screen, SwitchRow, Text, useToast } from '@/components/ui';
 import { Logo } from '@/components/Logo';
+import { Wordmark } from '@/components/Wordmark';
 import { ACCOUNT_TEMPLATES, EXPENSE_CATEGORIES, INCOME_CATEGORIES, buildInitialStructure } from '@/core/defaults';
 import { DEFAULT_GOAL_CATEGORIES } from '@/core/goalCategories';
 import { CURRENCIES, type CurrencyCode } from '@/core/money';
@@ -132,6 +133,7 @@ export default function Onboarding() {
       <Screen syncBanner={false} contentStyle={{ flexGrow: 1, justifyContent: 'center', gap: 18 }}>
         <View style={{ alignItems: 'center', gap: 18 }}>
           <Logo size={88} />
+          <Wordmark size={28} slogan center />
           <Text variant="h1" align="center">
             {t('onb.done.title')}
           </Text>
