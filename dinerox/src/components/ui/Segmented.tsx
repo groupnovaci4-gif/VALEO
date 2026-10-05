@@ -31,6 +31,7 @@ export function Segmented<T extends string>({
             accessibilityRole="tab"
             accessibilityLabel={o.label}
             accessibilityState={{ selected: sel }}
+            aria-selected={sel}
             onPress={() => onChange(o.value)}
             style={{
               flex: 1,

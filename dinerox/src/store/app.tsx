@@ -51,7 +51,8 @@ interface AppValue {
   online: boolean;
   setActiveSpace: (id: string) => void;
   updateProfile: (patch: Partial<Omit<UserProfile, 'subscription' | 'uid'>>) => Promise<void>;
-  enterLocalMode: () => Promise<void>;
+  /** Mode sans compte en ligne ; `demo` : tableau de bord de démonstration (données fictives). */
+  enterLocalMode: (opts?: { demo?: boolean }) => Promise<void>;
   /** Ajoute/retire un espace local (démonstration). */
   addLocalSpace: (space: Space) => Promise<void>;
   removeLocalSpace: (id: string) => Promise<void>;
@@ -72,6 +73,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [remoteSpaces, setRemoteSpaces] = useState<Space[]>([]);
   const [localSpaces, setLocalSpaces] = useState<Space[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [restoredFor, setRestoredFor] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
   const profileRef = useRef<UserProfile | null>(null);
   const pendingProfile = useRef<PendingProfile | null>(null);
@@ -189,7 +191,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // 4. Espaces locaux (mode local + démonstrations).
   useEffect(() => {
     if (!user) return;
-    void readJSON<Space[]>(storageKey(user.uid, 'localSpaces')).then((s) => setLocalSpaces(s ?? []));
+    // Espaces locaux ET espace actif mémorisé sont restaurés ensemble : aucun écran
+    // n'affiche un autre espace (vide) le temps de la lecture.
+    void Promise.all([readJSON<Space[]>(storageKey(user.uid, 'localSpaces')), readJSON<string>(storageKey(user.uid, 'activeSpace'))]).then(([s, id]) => {
+      setLocalSpaces(s ?? []);
+      if (id) setActiveId(id);
+      setRestoredFor(user.uid);
+    });
   }, [user]);
 
   // 5. Moteur de synchronisation par utilisateur.
@@ -212,6 +220,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
       if (s === 'active') void engine?.flush();
+      // Mise en arrière-plan : sauvegarde locale immédiate (le système peut fermer l'app).
+      else void engine?.persistNow();
     });
     return () => sub.remove();
   }, [engine]);
@@ -228,12 +238,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return [...personal, ...families, ...localSpaces];
   }, [mode, user, profile?.firstName, profile?.currency, remoteSpaces, localSpaces]);
 
-  // Espace actif : mémorisé, sinon l'espace personnel.
-  useEffect(() => {
-    if (!user) return;
-    void readJSON<string>(storageKey(user.uid, 'activeSpace')).then((id) => id && setActiveId(id));
-  }, [user]);
-  const activeSpace = spaces.find((s) => s.id === activeId) ?? spaces.find((s) => s.kind === 'personal') ?? spaces[0] ?? null;
+  // Espace actif : mémorisé, sinon l'espace personnel (null tant que la restauration n'est pas faite).
+  const restored = !!user && restoredFor === user.uid;
+  const activeSpace = !restored ? null : (spaces.find((s) => s.id === activeId) ?? spaces.find((s) => s.kind === 'personal') ?? spaces[0] ?? null);
   const role: Role | null = activeSpace ? (activeSpace.id === 'local' || activeSpace.id.startsWith('demo_') ? 'admin' : roleIn(activeSpace, user?.uid)) : null;
 
   // Ouverture de l'espace actif dans le moteur.
@@ -270,11 +277,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [user, mode, pushPendingProfile],
   );
 
-  const enterLocalMode = useCallback(async () => {
+  const enterLocalMode = useCallback(async (opts?: { demo?: boolean }) => {
     await writeJSON(MODE_KEY, 'local');
+    if (opts?.demo) {
+      // Démonstration : pas de questionnaire, l'espace « Démo » est créé par Bootstrap.
+      const p = (await readJSON<UserProfile>(storageKey(LOCAL_UID, 'profile'))) ?? defaultProfile(LOCAL_UID, '');
+      await writeJSON(storageKey(LOCAL_UID, 'profile'), { ...p, onboarding: { ...p.onboarding, completed: true } });
+      await writeJSON(storageKey(LOCAL_UID, 'demoRequested'), true);
+    }
     setMode('local');
     await loadLocalUser();
-    analytics.track('sign_up', { method: 'local' });
+    analytics.track('sign_up', { method: opts?.demo ? 'demo' : 'local' });
   }, [loadLocalUser]);
 
   const signOutLocal = useCallback(async () => {

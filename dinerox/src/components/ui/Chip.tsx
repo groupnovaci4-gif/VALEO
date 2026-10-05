@@ -10,6 +10,7 @@ export function Chip({ label, selected, onPress, icon, emoji, color }: { label: 
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: !!selected }}
+      aria-selected={!!selected}
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => ({

@@ -72,7 +72,12 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
     accounts,
     categories: systemCategories(meta),
     transactions,
-    recurring: [],
+    recurring: [
+      // Échéances récurrentes (calendrier financier) : aucune génération rétroactive.
+      { ...base, id: 'demo_rec_salary', type: 'income', label: meta.label('inc.salary'), amount: 450_000, currency: 'XOF', accountId: 'demo_bank', categoryId: 'inc_salary', frequency: 'monthly', startDate: `${meta.today.slice(0, 7)}-25`, active: true, lastGenerated: `${meta.today.slice(0, 7)}-25` },
+      { ...base, id: 'demo_rec_rent', type: 'expense', label: meta.label('cat.housing'), amount: 100_000, currency: 'XOF', accountId: 'demo_bank', categoryId: 'cat_housing', frequency: 'monthly', startDate: `${meta.today.slice(0, 7)}-05`, active: true, lastGenerated: `${meta.today.slice(0, 7)}-05` },
+      { ...base, id: 'demo_rec_tontine', type: 'expense', label: meta.label('acc.tontine'), amount: 10_000, currency: 'XOF', accountId: 'demo_cash', categoryId: 'cat_informal', frequency: 'weekly', startDate: meta.today, active: true, lastGenerated: meta.today },
+    ],
     envelopes,
     budgets: [],
     goals,

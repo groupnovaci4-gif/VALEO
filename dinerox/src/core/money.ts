@@ -10,7 +10,10 @@
  * `sumByCurrency` dans balance.ts).
  */
 
-export type CurrencyCode = 'XOF' | 'XAF' | 'EUR' | 'USD' | 'CAD' | 'GBP' | 'CHF' | 'GNF' | 'MAD';
+export type CurrencyCode =
+  | 'XOF' | 'XAF' | 'GNF' | 'GHS' | 'NGN' | 'MAD' | 'DZD' | 'TND' | 'KES' | 'CDF'
+  | 'EUR' | 'CHF' | 'GBP' | 'SEK' | 'NOK' | 'DKK' | 'PLN' | 'CZK'
+  | 'USD' | 'CAD';
 
 export interface CurrencyInfo {
   code: CurrencyCode;
@@ -33,6 +36,17 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyInfo> = {
   CHF: { code: 'CHF', decimals: 2, symbol: 'CHF', prefix: false, name: { fr: 'Franc suisse', en: 'Swiss franc' } },
   GNF: { code: 'GNF', decimals: 0, symbol: 'GNF', prefix: false, name: { fr: 'Franc guinéen', en: 'Guinean franc' } },
   MAD: { code: 'MAD', decimals: 2, symbol: 'DH', prefix: false, name: { fr: 'Dirham marocain', en: 'Moroccan dirham' } },
+  GHS: { code: 'GHS', decimals: 2, symbol: 'GH₵', prefix: true, name: { fr: 'Cedi ghanéen', en: 'Ghanaian cedi' } },
+  NGN: { code: 'NGN', decimals: 2, symbol: '₦', prefix: true, name: { fr: 'Naira nigérian', en: 'Nigerian naira' } },
+  DZD: { code: 'DZD', decimals: 2, symbol: 'DA', prefix: false, name: { fr: 'Dinar algérien', en: 'Algerian dinar' } },
+  TND: { code: 'TND', decimals: 3, symbol: 'DT', prefix: false, name: { fr: 'Dinar tunisien', en: 'Tunisian dinar' } },
+  KES: { code: 'KES', decimals: 2, symbol: 'KSh', prefix: true, name: { fr: 'Shilling kényan', en: 'Kenyan shilling' } },
+  CDF: { code: 'CDF', decimals: 2, symbol: 'FC', prefix: false, name: { fr: 'Franc congolais', en: 'Congolese franc' } },
+  SEK: { code: 'SEK', decimals: 2, symbol: 'kr', prefix: false, name: { fr: 'Couronne suédoise', en: 'Swedish krona' } },
+  NOK: { code: 'NOK', decimals: 2, symbol: 'kr', prefix: false, name: { fr: 'Couronne norvégienne', en: 'Norwegian krone' } },
+  DKK: { code: 'DKK', decimals: 2, symbol: 'kr', prefix: false, name: { fr: 'Couronne danoise', en: 'Danish krone' } },
+  PLN: { code: 'PLN', decimals: 2, symbol: 'zł', prefix: false, name: { fr: 'Złoty polonais', en: 'Polish złoty' } },
+  CZK: { code: 'CZK', decimals: 2, symbol: 'Kč', prefix: false, name: { fr: 'Couronne tchèque', en: 'Czech koruna' } },
 };
 
 export const DEFAULT_CURRENCY: CurrencyCode = 'XOF';

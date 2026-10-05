@@ -91,7 +91,7 @@ export default function Assistant() {
     switch (intent.kind) {
       case 'expense':
       case 'income': {
-        if (!data.accounts.length) return push({ id: mid(), from: 'assistant', text: t('ai.noAccount') });
+        // Sans compte : un compte « Espèces » sera créé à la confirmation (aucun blocage).
         if (intent.amount === null) return push({ id: mid(), from: 'assistant', text: t('ai.incomeNoAmount') });
         const amount = minor(intent.amount)!;
         const accountId = resolveAccountHint(intent.accountHint, data.accounts)?.id ?? defaultAccount;
@@ -134,8 +134,7 @@ export default function Assistant() {
     const p = m.proposal!;
     try {
       if (p.kind === 'tx') {
-        if (!p.accountId) throw new Error('account');
-        actions.saveTransaction({ type: p.type, amount: p.amount, currency, date: p.date, accountId: p.accountId, categoryId: p.categoryId, payee: p.payee, note: null });
+        actions.saveTransaction({ type: p.type, amount: p.amount, currency, date: p.date, accountId: p.accountId ?? '', categoryId: p.categoryId, payee: p.payee, note: null });
       } else if (p.kind === 'transfer') {
         if (!p.from || !p.to) throw new Error('account');
         actions.saveTransaction({ type: 'transfer', amount: p.amount, currency, date: p.date, accountId: p.from, toAccountId: p.to });

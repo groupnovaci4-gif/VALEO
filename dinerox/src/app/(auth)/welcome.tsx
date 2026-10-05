@@ -13,7 +13,11 @@ export default function Welcome() {
   const { colors } = useTheme();
   const { t } = useI18n();
   const { enterLocalMode } = useApp();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<'demo' | 'local' | null>(null);
+  const start = (kind: 'demo' | 'local') => {
+    setBusy(kind);
+    void enterLocalMode({ demo: kind === 'demo' }).finally(() => setBusy(null));
+  };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.hero }}>
       <View style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 18 }}>
@@ -32,17 +36,14 @@ export default function Welcome() {
             <Button full label={t('auth.welcome.signup')} onPress={() => router.push('/sign-up')} />
             <Button full variant="secondary" label={t('auth.welcome.signin')} onPress={() => router.push('/sign-in')} />
           </>
-        ) : null}
-        <Button
-          full
-          variant={isFirebaseConfigured ? 'ghost' : 'primary'}
-          label={t('auth.welcome.localMode')}
-          loading={busy}
-          onPress={() => {
-            setBusy(true);
-            void enterLocalMode().finally(() => setBusy(false));
-          }}
-        />
+        ) : (
+          <Button full label={t('fp.localOnly')} loading={busy === 'local'} onPress={() => start('local')} />
+        )}
+        {/* Options secondaires : démonstration (données fictives) et usage sans compte en ligne. */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 }}>
+          <Button small variant="ghost" icon="flask-outline" label={t('fp.demo')} loading={busy === 'demo'} onPress={() => start('demo')} />
+          {isFirebaseConfigured ? <Button small variant="ghost" icon="phone-portrait-outline" label={t('fp.localOnly')} loading={busy === 'local'} onPress={() => start('local')} /> : null}
+        </View>
         <Text variant="caption" tone="subtle" align="center">
           {t('auth.welcome.disclaimer')}
         </Text>

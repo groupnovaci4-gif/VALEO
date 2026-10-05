@@ -46,6 +46,15 @@ export default function More() {
       ],
     },
     {
+      title: 'more.intelligence',
+      aside: '',
+      items: [
+        { key: 'intel.title', sub: 'intel.sub', icon: 'analytics', color: colors.primary, path: '/analysis' },
+        { key: 'cal.title', sub: 'cal.sub', icon: 'calendar', color: colors.info, path: '/calendar' },
+        { key: 'fi.title', sub: 'fi.sub', icon: 'trending-up', color: colors.secondary, path: '/independence' },
+      ],
+    },
+    {
       title: 'more.plan',
       aside: t('more.pilot'),
       items: [

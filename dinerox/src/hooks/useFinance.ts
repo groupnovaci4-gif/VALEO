@@ -43,12 +43,22 @@ export function useCategoryLabels() {
       const seed = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES].find((s) => s.id === id);
       return { name: label(c, id ?? ''), icon: c?.icon ?? seed?.icon ?? 'pricetag', color: c?.color ?? seed?.color ?? '#94A3B8' };
     };
+    // Catégories principales uniquement (les sous-catégories s'affichent sous leur parent).
     const sorted = (kind: 'income' | 'expense') =>
       data.categories
-        .filter((c) => c.kind === kind)
+        .filter((c) => c.kind === kind && !c.parentId)
         .sort((a, b) => a.order - b.order)
         .map((c) => ({ id: c.id, ...meta(c.id) }));
-    return { label, byId: (id: string) => label(byId.get(id), id), meta, list: sorted };
+    /** Sous-catégories d'une catégorie (icône et couleur du parent). */
+    const children = (parentId: string | null | undefined) => {
+      if (!parentId) return [];
+      const parent = meta(parentId);
+      return data.categories
+        .filter((c) => c.parentId === parentId)
+        .sort((a, b) => a.order - b.order || label(a, a.id).localeCompare(label(b, b.id)))
+        .map((c) => ({ id: c.id, name: label(c, c.id), icon: parent.icon, color: parent.color, fixed: !!c.fixed }));
+    };
+    return { label, byId: (id: string) => label(byId.get(id), id), meta, list: sorted, children };
   }, [data.categories, t]);
 }
 

@@ -11,6 +11,8 @@ import { ACCOUNT_TEMPLATES } from '@/core/defaults';
 import { CURRENCIES, type CurrencyCode } from '@/core/money';
 import type { AccountType, SavingsKind } from '@/core/types';
 import { pickableColors } from '@/theme';
+import { countryProfile } from '@/core/countries';
+import { useAccountName } from '@/features/FinancialProfileSteps';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 function AccountEdit() {
@@ -18,7 +20,12 @@ function AccountEdit() {
   const { t } = useI18n();
   const toast = useToast();
   const data = useData();
-  const { activeSpace } = useApp();
+  const { activeSpace, profile } = useApp();
+  const accountName = useAccountName();
+  const country = profile?.country ?? 'CI';
+  // Sources d'argent du pays en premier, puis toutes les autres (rien n'est interdit).
+  const preferred = countryProfile(country).paymentMethods;
+  const templates = [...preferred.map((k) => ACCOUNT_TEMPLATES.find((a) => a.key === k)!).filter(Boolean), ...ACCOUNT_TEMPLATES.filter((a) => !preferred.includes(a.key))];
   const actions = useActions();
   const existing = data.accounts.find((a) => a.id === id);
   const initialTpl = ACCOUNT_TEMPLATES.find((x) => x.key === (savings ? 'acc.savings' : 'acc.cash'))!;
@@ -89,14 +96,14 @@ function AccountEdit() {
           onChange={(k) => {
             const x = ACCOUNT_TEMPLATES.find((a) => a.key === k)!;
             setTpl(k);
-            setName(t(k as TKey));
+            setName(accountName(k, country));
             setType(x.type);
             setProvider(x.provider);
             setColor(x.color);
             setIcon(x.icon);
             setIsSavings(!!x.isSavings);
           }}
-          options={ACCOUNT_TEMPLATES.map((a) => ({ value: a.key, label: t(a.key as TKey), icon: a.icon, color: a.color }))}
+          options={templates.map((a) => ({ value: a.key, label: accountName(a.key, country), icon: a.icon, color: a.color }))}
         />
       ) : null}
       <Field label={t('acc.name')} value={name} onChangeText={setName} maxLength={80} />

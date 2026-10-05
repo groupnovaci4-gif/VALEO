@@ -18,12 +18,16 @@ import type { CurrencyCode } from './money';
 import { proposeBudget, type BudgetBucket } from './budget';
 import { today, type ISODate } from './dates';
 import { DEFAULT_GOAL_CATEGORIES } from './goalCategories';
+import type { Zone } from './countries';
+import { findSubcategory, subcategoryDocs } from './catalog';
 
 interface CatSeed {
   id: string;
   key: string;
   icon: string;
   color: string;
+  /** Zones où la catégorie est proposée (absente = partout). Une suggestion, jamais une obligation. */
+  zones?: Zone[];
 }
 
 /** Catégories de dépenses initiales (identifiants stables : ne pas renommer). */
@@ -41,6 +45,10 @@ export const EXPENSE_CATEGORIES: CatSeed[] = [
   { id: 'cat_debts', key: 'cat.debts', icon: 'receipt', color: '#64748B' },
   { id: 'cat_savings', key: 'cat.savings', icon: 'wallet', color: '#16A34A' },
   { id: 'cat_investment', key: 'cat.investment', icon: 'trending-up', color: '#22C55E' },
+  { id: 'cat_social', key: 'cat.social', icon: 'people-circle', color: '#DB2777', zones: ['africa'] },
+  { id: 'cat_informal', key: 'cat.informal', icon: 'people', color: '#0D9488', zones: ['africa'] },
+  { id: 'cat_taxes', key: 'cat.taxes', icon: 'document-text', color: '#475569' },
+  { id: 'cat_insurance', key: 'cat.insurance', icon: 'shield-checkmark', color: '#0369A1' },
   { id: 'cat_other', key: 'cat.other', icon: 'ellipsis-horizontal', color: '#94A3B8' },
 ];
 
@@ -52,10 +60,23 @@ export const INCOME_CATEGORIES: CatSeed[] = [
   { id: 'inc_pension', key: 'inc.pension', icon: 'umbrella', color: '#8B5CF6' },
   { id: 'inc_family', key: 'inc.family', icon: 'people', color: '#EC4899' },
   { id: 'inc_rent', key: 'inc.rent', icon: 'key', color: '#14B8A6' },
+  { id: 'inc_agri', key: 'inc.agri', icon: 'leaf', color: '#65A30D', zones: ['africa'] },
+  { id: 'inc_allowance', key: 'inc.allowance', icon: 'gift', color: '#0EA5E9', zones: ['europe'] },
+  { id: 'inc_investment', key: 'inc.investment', icon: 'trending-up', color: '#22C55E' },
+  { id: 'inc_sale', key: 'inc.sale', icon: 'pricetags', color: '#F97316' },
+  { id: 'inc_side', key: 'inc.side', icon: 'construct', color: '#6366F1' },
+  { id: 'inc_gift', key: 'inc.gift', icon: 'gift', color: '#EC4899' },
+  { id: 'inc_refund', key: 'inc.refund', icon: 'return-down-back', color: '#64748B' },
   { id: 'inc_other', key: 'inc.other', icon: 'add-circle', color: '#94A3B8' },
 ];
 
-export function systemCategories(meta: { now: number; uid: string }): Category[] {
+/** Catégories système proposées dans une zone (toutes si la zone est inconnue). */
+export function categorySeedsFor(zone?: Zone | null): { expense: CatSeed[]; income: CatSeed[] } {
+  const keep = (c: CatSeed) => !zone || !c.zones || c.zones.includes(zone);
+  return { expense: EXPENSE_CATEGORIES.filter(keep), income: INCOME_CATEGORIES.filter(keep) };
+}
+
+export function systemCategories(meta: { now: number; uid: string; zone?: Zone | null }): Category[] {
   const mk = (kind: 'income' | 'expense') => (c: CatSeed, i: number): Category => ({
     id: c.id,
     kind,
@@ -69,7 +90,8 @@ export function systemCategories(meta: { now: number; uid: string }): Category[]
     updatedAt: meta.now,
     createdBy: meta.uid,
   });
-  return [...EXPENSE_CATEGORIES.map(mk('expense')), ...INCOME_CATEGORIES.map(mk('income'))];
+  const seeds = categorySeedsFor(meta.zone);
+  return [...seeds.expense.map(mk('expense')), ...seeds.income.map(mk('income'))];
 }
 
 export interface AccountTemplate {
@@ -88,17 +110,24 @@ export const ACCOUNT_TEMPLATES: AccountTemplate[] = [
   { key: 'acc.mtn', type: 'mobile_money', provider: 'mtn_momo', icon: 'phone-portrait', color: '#EAB308' },
   { key: 'acc.moov', type: 'mobile_money', provider: 'moov_money', icon: 'phone-portrait', color: '#2563EB' },
   { key: 'acc.wave', type: 'mobile_money', provider: 'wave', icon: 'water', color: '#0EA5E9' },
+  { key: 'acc.free', type: 'mobile_money', provider: 'free_money', icon: 'phone-portrait', color: '#DC2626' },
+  { key: 'acc.airtel', type: 'mobile_money', provider: 'airtel_money', icon: 'phone-portrait', color: '#E11D48' },
+  { key: 'acc.mobile', type: 'mobile_money', provider: 'mobile_other', icon: 'phone-portrait', color: '#0D9488' },
   { key: 'acc.bank', type: 'bank', provider: 'bank', icon: 'business', color: '#334155' },
+  { key: 'acc.current', type: 'bank', provider: 'bank', icon: 'business', color: '#334155' },
+  { key: 'acc.joint', type: 'bank', provider: 'bank', icon: 'people', color: '#0369A1' },
   { key: 'acc.savings', type: 'savings', provider: 'none', icon: 'wallet', color: '#16A34A', isSavings: true },
   { key: 'acc.card', type: 'card', provider: 'bank', icon: 'card', color: '#7C3AED' },
+  { key: 'acc.investment', type: 'investment', provider: 'none', icon: 'trending-up', color: '#22C55E', isSavings: true },
+  { key: 'acc.tontine', type: 'other', provider: 'tontine', icon: 'people', color: '#0D9488', isSavings: true },
 ];
 
 const BUCKET_ENVELOPE: Record<Exclude<BudgetBucket, 'needs' | 'wants'>, { key: string; icon: string; color: string; categoryIds: string[] }> = {
-  housing: { key: 'env.housing', icon: 'home', color: '#6366F1', categoryIds: ['cat_housing', 'cat_internet'] },
+  housing: { key: 'env.housing', icon: 'home', color: '#6366F1', categoryIds: ['cat_housing', 'cat_internet', 'cat_taxes', 'cat_insurance'] },
   food: { key: 'env.food', icon: 'restaurant', color: '#F59E0B', categoryIds: ['cat_food'] },
   transport: { key: 'env.transport', icon: 'car', color: '#0EA5E9', categoryIds: ['cat_transport'] },
-  family: { key: 'env.family', icon: 'heart', color: '#EC4899', categoryIds: ['cat_family', 'cat_education', 'cat_health'] },
-  savings: { key: 'env.savings', icon: 'wallet', color: '#16A34A', categoryIds: ['cat_savings'] },
+  family: { key: 'env.family', icon: 'heart', color: '#EC4899', categoryIds: ['cat_family', 'cat_education', 'cat_health', 'cat_social'] },
+  savings: { key: 'env.savings', icon: 'wallet', color: '#16A34A', categoryIds: ['cat_savings', 'cat_informal'] },
   project: { key: 'env.project', icon: 'rocket', color: '#8B5CF6', categoryIds: ['cat_investment'] },
   free: { key: 'env.free', icon: 'sparkles', color: '#94A3B8', categoryIds: ['cat_leisure', 'cat_clothing', 'cat_communication', 'cat_other'] },
 };
@@ -115,6 +144,15 @@ export interface OnboardingAnswers {
   budgetMethod: BudgetMethod;
   /** Comptes utilisés (clés de ACCOUNT_TEMPLATES). */
   accounts: string[];
+  /** Pays (contextualisation : sous-catégories locales). Défaut : aucune sous-catégorie. */
+  country?: string;
+  zone?: Zone;
+  /** Solde actuel déclaré par compte (clé de modèle → montant). Facultatif. */
+  openingBalances?: Record<string, number>;
+  /** Charges principales déclarées (sous-catégorie → montant mensuel, 0 = inconnu). */
+  fixedCharges?: Record<string, number>;
+  /** Noms de comptes dans le pays (ex. tontine → « Susu » au Ghana). */
+  accountLabel?: (key: string) => string;
 }
 
 /** Libellés résolus par l'appelant (i18n) pour garder ce module pur. */
@@ -137,11 +175,11 @@ export function buildInitialStructure(
     .map((t, i) => ({
       ...base,
       id: meta.id('acc_'),
-      name: meta.label(t.key),
+      name: answers.accountLabel?.(t.key) ?? meta.label(t.key),
       type: t.type,
       provider: t.provider,
       currency: answers.currency,
-      openingBalance: 0,
+      openingBalance: Math.max(0, Math.round(answers.openingBalances?.[t.key] ?? 0)),
       color: t.color,
       icon: t.icon,
       active: true,
@@ -152,11 +190,20 @@ export function buildInitialStructure(
 
   const method: BudgetMethod = answers.budgetMethod === '50_30_20' ? 'envelopes' : answers.budgetMethod;
   const lines = proposeBudget(answers.monthlyIncome, method, answers.currency);
+  // Charges déclarées : elles fixent le budget minimal de l'enveloppe correspondante
+  // (le montant réel de l'utilisateur prime sur une proportion théorique).
+  const declared: Partial<Record<string, number>> = {};
+  for (const [subId, amount] of Object.entries(answers.fixedCharges ?? {})) {
+    const sc = findSubcategory(subId);
+    if (!sc || !(amount > 0)) continue;
+    const bucket = (Object.keys(BUCKET_ENVELOPE) as (keyof typeof BUCKET_ENVELOPE)[]).find((b) => BUCKET_ENVELOPE[b].categoryIds.includes(sc.parent)) ?? 'free';
+    declared[bucket] = (declared[bucket] ?? 0) + Math.round(amount);
+  }
   const envelopes: Envelope[] = [];
   const buckets: (keyof typeof BUCKET_ENVELOPE)[] = ['housing', 'food', 'transport', 'family', 'savings', 'project', 'free'];
   buckets.forEach((b, i) => {
     const def = BUCKET_ENVELOPE[b];
-    const amount = lines.find((l) => l.bucket === b)?.amount ?? 0;
+    const amount = Math.max(lines.find((l) => l.bucket === b)?.amount ?? 0, declared[b] ?? 0);
     envelopes.push({
       ...base,
       id: meta.id('env_'),
@@ -220,9 +267,15 @@ export function buildInitialStructure(
     })
     .filter((g): g is Goal => !!g);
 
+  const categories = systemCategories({ ...meta, zone: answers.zone });
+  if (answers.country && answers.zone) {
+    const parents = new Set(categories.map((c) => c.id));
+    categories.push(...subcategoryDocs(answers.country, answers.zone, { now: meta.now, uid: meta.uid, lang: meta.lang ?? 'fr', parents }));
+  }
+
   return {
     accounts,
-    categories: systemCategories(meta),
+    categories,
     envelopes,
     recurring,
     goals,
@@ -237,18 +290,27 @@ function nextMonthSameDay(d: ISODate): ISODate {
 }
 
 /**
- * Structure de départ créée automatiquement à la première ouverture (sans
- * questionnaire) : compte Espèces, enveloppes, sans montant inventé.
- * Identifiants FIXES (acc_start1, env_start1…) : si deux appareils la créent
+ * Environnement DINEROX de départ (fin de l'inscription, ou « Plus tard »).
+ * Tout est facultatif : sans réponse, un compte Espèces et des enveloppes à 0.
+ * Identifiants FIXES (acc_start1, env_start1…) : si deux appareils le créent
  * en même temps, ils écrivent les mêmes documents au lieu de les dupliquer.
  */
 export function starterStructure(
-  p: { firstName: string; currency: CurrencyCode },
+  p: Partial<OnboardingAnswers> & { firstName: string; currency: CurrencyCode },
   meta: { now: number; uid: string; lang?: 'fr' | 'en'; label: Labeler; date?: ISODate },
 ): Partial<SpaceData> {
   const counters: Record<string, number> = {};
   return buildInitialStructure(
-    { firstName: p.firstName, currency: p.currency, monthlyIncome: 0, incomeFrequency: 'irregular', payDay: 25, mainExpenses: [], goals: [], budgetMethod: 'envelopes', accounts: ['acc.cash'] },
+    {
+      monthlyIncome: 0,
+      incomeFrequency: 'irregular',
+      payDay: 25,
+      mainExpenses: [],
+      goals: [],
+      budgetMethod: 'envelopes',
+      ...p,
+      accounts: p.accounts?.length ? p.accounts : ['acc.cash'],
+    },
     { ...meta, id: (prefix) => `${prefix}start${(counters[prefix] = (counters[prefix] ?? 0) + 1)}` },
   );
 }

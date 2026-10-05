@@ -43,6 +43,8 @@ export function Button({ label, onPress, variant = 'primary', icon, loading, dis
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
+      aria-disabled={!!inactive}
+      aria-busy={!!loading}
       disabled={inactive}
       onPress={() => {
         // L'action d'abord : un retour haptique indisponible (module natif absent,

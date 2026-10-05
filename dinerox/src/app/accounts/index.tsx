@@ -17,7 +17,7 @@ export default function Accounts() {
   const savings = sorted.filter((a) => a.isSavings);
   return (
     <Screen back title={t('acc.title')} right={can(role, 'create', 'accounts') ? <IconButton icon="add-circle" size={30} label={t('acc.new')} onPress={() => router.push('/accounts/edit')} /> : undefined}>
-      <Banner tone="info" icon="information-circle-outline" text={t('acc.manualNotice')} />
+      <Banner tone="info" icon="information-circle-outline" text={t('acc.trackingNotice')} />
       {data.accounts.length === 0 ? (
         <Card>
           <EmptyState emoji="👛" title={t('acc.empty.title')} body={t('acc.empty.body')} action={t('acc.new')} onAction={() => router.push('/accounts/edit')} />

@@ -65,13 +65,13 @@ export interface FamilyInvite {
 
 // ─── Comptes ──────────────────────────────────────────────────────────
 
-export type AccountType = 'cash' | 'mobile_money' | 'bank' | 'savings' | 'card' | 'other';
+export type AccountType = 'cash' | 'mobile_money' | 'bank' | 'savings' | 'card' | 'investment' | 'other';
 
 /**
  * Fournisseur d'un compte. Purement descriptif dans cette version : AUCUNE
  * connexion réelle aux opérateurs n'est faite (voir services/providers).
  */
-export type AccountProvider = 'orange_money' | 'mtn_momo' | 'moov_money' | 'wave' | 'bank' | 'none';
+export type AccountProvider = 'orange_money' | 'mtn_momo' | 'moov_money' | 'wave' | 'free_money' | 'airtel_money' | 'mobile_other' | 'tontine' | 'bank' | 'none';
 
 export interface Account extends SyncedDoc {
   name: string;
@@ -105,6 +105,10 @@ export interface Category extends SyncedDoc {
   system?: boolean;
   /** Clé i18n pour les catégories système. */
   labelKey?: string;
+  /** Sous-catégorie : identifiant de la catégorie parente (une seule profondeur). */
+  parentId?: string | null;
+  /** Charge habituellement fixe (loyer, électricité, tontine…) : sert à l'analyse des charges fixes. */
+  fixed?: boolean;
 }
 
 // ─── Opérations ───────────────────────────────────────────────────────
@@ -123,6 +127,8 @@ export interface Transaction extends SyncedDoc {
   /** Transfert entre devises différentes : montant reçu, saisi par l'utilisateur. */
   toAmount?: number | null;
   categoryId?: ID | null;
+  /** Sous-catégorie facultative (la catégorie reste la catégorie principale : budgets et rapports inchangés). */
+  subcategoryId?: ID | null;
   envelopeId?: ID | null;
   /** Bénéficiaire / commerçant (dépense) ou source (revenu). */
   payee?: string | null;
@@ -388,6 +394,42 @@ export interface Subscription {
   updatedAt: Millis;
 }
 
+export type EmploymentStatus = 'employee' | 'civil_servant' | 'self_employed' | 'trader' | 'farmer' | 'student' | 'unemployed' | 'retired' | 'other';
+export type HousingStatus = 'tenant' | 'owner' | 'family' | 'hosted' | 'other';
+/** Nature des revenus : fixe (salaire), variable (commissions), irrégulier, ou aucun pour le moment. */
+export type IncomeNature = 'fixed' | 'variable' | 'irregular' | 'none';
+
+/**
+ * Profil financier : complété PROGRESSIVEMENT (tout est facultatif, sauf le
+ * pays et la devise qui ont des valeurs par défaut). Le pays et la devise sont
+ * deux informations distinctes (Côte d'Ivoire, Sénégal, Bénin… → XOF).
+ */
+export interface FinancialProfile {
+  familyStatus?: FamilySituation | null;
+  children?: number | null;
+  /** Autres personnes à charge (parents, frères et sœurs, neveux…). */
+  dependents?: number | null;
+  employmentStatus?: EmploymentStatus | null;
+  incomeNature?: IncomeNature | null;
+  /** Catégories de revenus (inc_salary, inc_business…). */
+  incomeSources?: string[];
+  /** Revenu mensuel approximatif déclaré (unités mineures), si connu. */
+  monthlyIncome?: number | null;
+  payDay?: number | null;
+  housingStatus?: HousingStatus | null;
+  /** Moyens de paiement / sources d'argent utilisés (clés ACCOUNT_TEMPLATES). */
+  paymentMethods?: string[];
+  /** L'utilisateur a indiqué ne pas avoir (encore) de compte bancaire. */
+  noBankAccount?: boolean;
+  /** Charges principales déclarées : sous-catégorie → montant mensuel (0 = montant inconnu). */
+  fixedCharges?: Record<string, number>;
+  /** Capacité d'épargne déclarée par l'utilisateur (sinon estimée par DINEROX). */
+  savingCapacity?: number | null;
+  /** Modèles d'objectifs choisis. */
+  financialGoals?: string[];
+  updatedAt?: number;
+}
+
 export interface UserProfile {
   uid: string;
   firstName: string;
@@ -401,6 +443,8 @@ export interface UserProfile {
   timezone: string;
   preferences: UserPreferences;
   subscription: Subscription;
+  /** Profil financier (complété progressivement). */
+  financial?: FinancialProfile;
   onboarding: {
     completed: boolean;
     /** Choix multiples (ex. en couple ET soutien de la famille élargie). */

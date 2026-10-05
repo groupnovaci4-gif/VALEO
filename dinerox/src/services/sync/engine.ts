@@ -133,7 +133,7 @@ export class SyncEngine {
 
   destroy() {
     for (const s of this.spaces.values()) this.closeSubscriptions(s);
-    this.writer.flushAll();
+    void this.writer.flushAll();
     this.listeners.clear();
     if (this.retryTimer) clearTimeout(this.retryTimer);
   }
@@ -309,6 +309,11 @@ export class SyncEngine {
   }
 
   // ─── Persistance ──────────────────────────────────────────────────
+
+  /** Sauvegarde locale immédiate (sans attendre le délai d'écriture groupée). */
+  persistNow(): Promise<void> {
+    return this.writer.flushAll();
+  }
 
   private spaceKey(spaceId: string) {
     return storageKey(this.uid, 'space', spaceId);

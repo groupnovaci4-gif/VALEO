@@ -95,6 +95,7 @@ export default function Settings() {
 
       <SectionHeader title={t('set.title').toUpperCase()} />
       <Card padded={false} style={{ paddingHorizontal: 14, paddingVertical: 4 }}>
+        {row('fp.edit.title', 'fp.edit.sub', 'person-circle', colors.primary, '/settings/financial')}
         {row('set.security', 'set.sub.security', 'lock-closed', colors.primary, '/settings/security')}
         {row('set.notifications', 'set.sub.notifications', 'notifications', colors.secondary, '/settings/notifications')}
         {row('set.recurring', 'set.sub.recurring', 'repeat', colors.info, '/recurring')}

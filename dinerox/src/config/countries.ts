@@ -1,14 +1,9 @@
-import type { CurrencyCode } from '@/core/money';
+/**
+ * Pays proposés : le registre complet (devise, moyens de paiement, charges,
+ * objectifs…) est dans `core/countries.ts`. Ce fichier garde l'API historique.
+ */
+import { COUNTRY_PROFILES } from '@/core/countries';
 
-/** Pays proposés (premier marché : Côte d'Ivoire, puis Afrique francophone). */
-export const COUNTRIES = ['CI', 'SN', 'ML', 'BF', 'BJ', 'TG', 'NE', 'GN', 'CM', 'GA', 'CG', 'FR', 'OTHER'] as const;
-export type CountryCode = (typeof COUNTRIES)[number];
-
-const CURRENCY_BY_COUNTRY: Partial<Record<string, CurrencyCode>> = {
-  CI: 'XOF', SN: 'XOF', ML: 'XOF', BF: 'XOF', BJ: 'XOF', TG: 'XOF', NE: 'XOF',
-  CM: 'XAF', GA: 'XAF', CG: 'XAF', GN: 'GNF', FR: 'EUR',
-};
-
-export function currencyForCountry(c: string): CurrencyCode {
-  return CURRENCY_BY_COUNTRY[c] ?? 'XOF';
-}
+export { currencyForCountry, countryProfile, zoneOf } from '@/core/countries';
+export const COUNTRIES = [...COUNTRY_PROFILES.map((p) => p.code), 'OTHER'];
+export type CountryCode = string;

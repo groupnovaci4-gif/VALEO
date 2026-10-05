@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
-import { useData } from '@/store/app';
+import { useApp, useData } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useCategoryLabels } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, Segmented, SwitchRow, Text, useToast } from '@/components/ui';
@@ -17,6 +17,7 @@ function RecurringEdit() {
   const { t } = useI18n();
   const toast = useToast();
   const data = useData();
+  const { activeSpace } = useApp();
   const actions = useActions();
   const cats = useCategoryLabels();
   const existing = data.recurring.find((r) => r.id === id);
@@ -35,10 +36,12 @@ function RecurringEdit() {
   const save = () => {
     if (!label.trim()) return setError(t('error.name.required'));
     if (!amount) return setError(t('error.amount.invalid'));
-    if (!account) return setError(t('error.account.missing'));
+    // Aucun compte : rattachée à un compte « Espèces » créé automatiquement.
+    const accId = account?.id ?? actions.ensureCashAccount(activeSpace?.currency ?? 'XOF');
+    const accCurrency = account?.currency ?? activeSpace?.currency ?? 'XOF';
     // Pas de génération rétroactive : une règle commencée dans le passé démarre à la prochaine échéance.
     const lastGenerated = existing && existing.startDate === startDate ? (existing.lastGenerated ?? null) : lastOccurrenceBefore({ frequency, startDate }, today());
-    actions.saveRecurring({ id: existing?.id, type, label: label.trim(), amount, currency: account.currency, accountId: account.id, categoryId, envelopeId: null, frequency, startDate, endDate, active, lastGenerated });
+    actions.saveRecurring({ id: existing?.id, type, label: label.trim(), amount, currency: accCurrency, accountId: accId, categoryId, envelopeId: null, frequency, startDate, endDate, active, lastGenerated });
     toast.show(t('common.saved'));
     goBack();
   };

@@ -1,0 +1,53 @@
+/**
+ * Calendrier financier : échéances à venir dérivées des données de
+ * l'utilisateur (récurrences, dettes, objectifs). Rien n'est inventé.
+ */
+import type { SpaceData } from './types';
+import type { CurrencyCode } from './money';
+import { addDays, addMonths, type ISODate } from './dates';
+import { debtStatus } from './debts';
+import { goalPlanFor } from './goals';
+
+export type CalendarKind = 'income' | 'expense' | 'tontine' | 'debt' | 'goal';
+
+export interface CalendarEvent {
+  id: string;
+  date: ISODate;
+  kind: CalendarKind;
+  label: string;
+  amount: number | null;
+  currency: CurrencyCode;
+  link: string;
+}
+
+export function financialCalendar(data: Pick<SpaceData, 'recurring' | 'debts' | 'debtPayments' | 'goals' | 'goalContributions'>, from: ISODate, days = 60): CalendarEvent[] {
+  const until = addDays(from, days);
+  const out: CalendarEvent[] = [];
+  for (const r of data.recurring) {
+    if (r.deleted || !r.active) continue;
+    for (let i = 0; i < 400; i++) {
+      const d = r.frequency === 'weekly' ? addDays(r.startDate, 7 * i) : addMonths(r.startDate, i * (r.frequency === 'yearly' ? 12 : 1));
+      if (d > until || (r.endDate && d > r.endDate)) break;
+      if (d < from) continue;
+      const kind: CalendarKind = r.type === 'income' ? 'income' : r.categoryId === 'cat_informal' ? 'tontine' : 'expense';
+      out.push({ id: `${r.id}_${d}`, date: d, kind, label: r.label, amount: r.amount, currency: r.currency, link: `/recurring/edit?id=${r.id}` });
+    }
+  }
+  for (const d of data.debts) {
+    if (d.deleted || d.direction !== 'i_owe') continue;
+    const s = debtStatus(d, data.debtPayments, from);
+    if (s.settled || !s.nextDue) continue;
+    let due: ISODate = s.nextDue;
+    for (let i = 0; i < 12 && due <= until; i++) {
+      if (due >= from) out.push({ id: `${d.id}_${due}`, date: due, kind: 'debt', label: d.counterparty, amount: Math.min(d.installment ?? s.remaining, s.remaining), currency: d.currency, link: `/debts/${d.id}` });
+      if (!d.installment) break;
+      due = addMonths(due, 1);
+    }
+  }
+  for (const g of data.goals) {
+    if (g.deleted || g.status !== 'active' || !g.targetDate || g.targetDate < from || g.targetDate > until) continue;
+    const plan = goalPlanFor(g, data.goalContributions, from);
+    out.push({ id: `goal_${g.id}`, date: g.targetDate, kind: 'goal', label: g.name, amount: plan.remaining, currency: g.currency, link: `/goals/${g.id}` });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label));
+}

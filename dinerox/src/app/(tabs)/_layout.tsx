@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, type ColorValue } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
+import { useApp } from '@/store/app';
 import { useTheme } from '@/theme';
 import { fontFor } from '@/theme/fonts';
 import { brand } from '@/config/brand';
@@ -16,6 +17,12 @@ import { QuickAddFab, QuickAddProvider } from '@/features/QuickAdd';
 export default function TabsLayout() {
   const { colors, dark } = useTheme();
   const { t } = useI18n();
+  const { profile, activeSpace } = useApp();
+  // Profil financier pas encore créé : on le propose (chaque étape peut être passée).
+  const needsProfile = !!profile && !profile.onboarding.completed && !activeSpace?.id.startsWith('demo_');
+  useEffect(() => {
+    if (needsProfile) router.replace('/onboarding');
+  }, [needsProfile]);
   const icon = (name: string) =>
     function TabIcon({ color, focused }: { color: ColorValue; focused: boolean }) {
       return <Icon name={focused ? name : `${name}-outline`} size={24} color={String(color)} />;

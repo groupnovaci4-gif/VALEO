@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { goBack } from '@/hooks/goBack';
-import { useI18n, type TKey } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
-import { Button, ChipGroup, Field, Screen, Text, useToast } from '@/components/ui';
-import { COUNTRIES } from '@/config/countries';
+import { Button, ChipGroup, Field, Loading, Screen, Text, useToast } from '@/components/ui';
+import { COUNTRIES, countryProfile } from '@/config/countries';
 import { CURRENCIES, type CurrencyCode } from '@/core/money';
 import { updateSpaceInfo } from '@/services/spaces';
 
 export default function Profile() {
+  const { profile } = useApp();
+  // Formulaire initialisé avec le profil chargé : un enregistrement ne peut pas écraser le vrai profil.
+  if (!profile) return <Loading />;
+  return <ProfileForm key={profile.uid} />;
+}
+
+function ProfileForm() {
   const { t, lang } = useI18n();
   const toast = useToast();
   const { profile, updateProfile, mode, user, activeSpace } = useApp();
@@ -33,13 +40,13 @@ export default function Profile() {
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('set.country')}
       </Text>
-      <ChipGroup scroll value={country} onChange={setCountry} options={COUNTRIES.map((c) => ({ value: c, label: t(`country.${c}` as TKey) }))} />
+      <ChipGroup scroll value={country} onChange={setCountry} options={COUNTRIES.map((c) => ({ value: c, label: countryProfile(c).name[lang], emoji: countryProfile(c).flag }))} />
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('set.currency')}
       </Text>
       <ChipGroup scroll value={currency} onChange={setCurrency} options={Object.values(CURRENCIES).map((c) => ({ value: c.code, label: `${c.code} · ${c.name[lang]}` }))} />
       <Text variant="caption" tone="subtle">
-        {t('onb.currency.hint')}
+        {t('fp.currency.hint')}
       </Text>
       <Field label={t('set.timezone')} value={profile.timezone} editable={false} />
     </Screen>

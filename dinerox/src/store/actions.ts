@@ -31,6 +31,7 @@ import { dueOccurrences, materialize } from '@/core/recurring';
 import { newId } from '@/core/sync';
 import { today } from '@/core/dates';
 import { analytics } from '@/services/analytics';
+import { useI18n } from '@/i18n';
 
 export class ActionError extends Error {
   constructor(
@@ -59,6 +60,7 @@ const PREFIX: Record<CollectionName, string> = {
 
 export function useActions() {
   const { engine, activeSpace, role, user, plan } = useApp();
+  const { t } = useI18n();
 
   const ctx = useCallback(() => {
     if (!engine || !activeSpace || !user) throw new ActionError('notReady');
@@ -107,9 +109,43 @@ export function useActions() {
 
   // ─── Opérations ───────────────────────────────────────────────────
 
-  const saveTransaction = useCallback(
-    (draft: Draft<Transaction>): Transaction => {
+  /**
+   * Aucun compte n'est obligatoire pour commencer : sans compte actif, une
+   * opération est rattachée à un compte « Espèces » créé automatiquement.
+   */
+  const ensureCashAccount = useCallback(
+    (currency: string): string => {
       const d = data();
+      const usable = d.accounts.find((a) => a.active && !a.deleted && !a.isSavings && a.currency === currency) ?? d.accounts.find((a) => a.active && !a.deleted && a.currency === currency);
+      if (usable) return usable.id;
+      const id = d.accounts.some((a) => a.id === 'acc_cash_auto') ? newId(PREFIX.accounts) : 'acc_cash_auto';
+      save<Account>('accounts', {
+        id,
+        name: t('acc.type.cash'),
+        type: 'cash',
+        provider: 'none',
+        currency: currency as Account['currency'],
+        openingBalance: 0,
+        color: '#16A34A',
+        icon: 'cash',
+        active: true,
+        isSavings: false,
+        order: d.accounts.length,
+      });
+      return id;
+    },
+    [data, save, t],
+  );
+
+  const saveTransaction = useCallback(
+    (input: Draft<Transaction>): Transaction => {
+      let d = data();
+      let draft = input;
+      const hasAccount = d.accounts.some((a) => a.id === draft.accountId && !a.deleted);
+      if (!hasAccount && draft.type !== 'transfer' && !d.accounts.some((a) => a.active && !a.deleted)) {
+        draft = { ...draft, accountId: ensureCashAccount(draft.currency) };
+        d = data();
+      }
       const errors = validateTransaction(draft, d.accounts);
       if (errors.length) throw new ActionError('validation', { errors });
       const isFirst = !d.transactions.some((t) => t.type === draft.type);
@@ -123,7 +159,7 @@ export function useActions() {
       if (!draft.id && isFirst && draft.type !== 'transfer') analytics.track(draft.type === 'expense' ? 'first_expense' : 'first_income');
       return tx;
     },
-    [data, save],
+    [data, save, ensureCashAccount],
   );
 
   // ─── Comptes ──────────────────────────────────────────────────────
@@ -367,8 +403,9 @@ export function useActions() {
       saveAsset,
       saveRecurring,
       runRecurring,
+      ensureCashAccount,
     }),
-    [save, remove, saveTransaction, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring],
+    [save, remove, saveTransaction, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount],
   );
 }
 

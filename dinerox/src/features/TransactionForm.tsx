@@ -48,7 +48,13 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
   const accountId = chosenAccount ?? defaultAccount?.id ?? null;
   const [toAccountId, setToAccountId] = useState<string | null>(existing?.toAccountId ?? initial?.toAccountId ?? null);
   const [toAmount, setToAmount] = useState<number | null>(existing?.toAmount ?? null);
-  const [categoryId, setCategoryId] = useState<string | null>(existing?.categoryId ?? initial?.categoryId ?? null);
+  const [categoryId, setCategoryIdRaw] = useState<string | null>(existing?.categoryId ?? initial?.categoryId ?? null);
+  const [subcategoryId, setSubcategoryId] = useState<string | null>(existing?.subcategoryId ?? null);
+  // Changer de catégorie efface la sous-catégorie (elle appartient à l'ancienne).
+  const setCategoryId = (id: string | null) => {
+    setCategoryIdRaw(id);
+    setSubcategoryId(null);
+  };
   const [envelopeId, setEnvelopeId] = useState<string>(existing?.envelopeId ?? 'auto');
   const [payee, setPayee] = useState(existing?.payee ?? initial?.payee ?? '');
   const [note, setNote] = useState(existing?.note ?? initial?.note ?? '');
@@ -93,6 +99,7 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
         toAccountId: type === 'transfer' ? toAccountId : null,
         toAmount: crossCurrency ? toAmount : null,
         categoryId: type === 'transfer' ? null : categoryId,
+        subcategoryId: type === 'transfer' ? null : subcategoryId,
         envelopeId: type === 'expense' && envelopeId !== 'auto' ? envelopeId : null,
         payee: payee.trim() || null,
         note: note.trim() || null,
@@ -176,7 +183,8 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
       {errors.map((e) => (
         <Banner key={e} tone="danger" icon="alert-circle" text={e} />
       ))}
-      {accounts.length === 0 ? <Banner tone="warning" icon="wallet-outline" text={t('ai.noAccount')} action={t('acc.new')} onAction={() => router.push('/accounts/edit')} /> : null}
+      {accounts.length === 0 && type !== 'transfer' ? <Banner tone="info" icon="cash-outline" text={t('tx.autoCash')} action={t('acc.new')} onAction={() => router.push('/accounts/edit')} /> : null}
+      {type === 'transfer' && accounts.length < 2 ? <Banner tone="warning" icon="swap-horizontal" text={t('tx.transferNeedsTwo')} action={t('acc.new')} onAction={() => router.push('/accounts/edit')} /> : null}
 
       <AmountField label={t('common.amount')} value={amount} onChange={setAmount} currency={txCurrency} big autoFocus={!existing && !initial?.amount} />
 
@@ -202,6 +210,19 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
             {t('tx.category')}
           </Text>
           <ChipGroup options={categories.map((c) => ({ value: c.id, label: c.name, icon: c.icon, color: c.color }))} value={categoryId} onChange={setCategoryId} />
+          {cats.children(categoryId).length ? (
+            <>
+              <Text variant="small" weight="600" style={{ marginBottom: 8 }}>
+                {t('tx.subcategory')}
+              </Text>
+              <ChipGroup
+                scroll
+                options={cats.children(categoryId).map((c) => ({ value: c.id, label: c.name }))}
+                value={subcategoryId}
+                onChange={(v) => setSubcategoryId(subcategoryId === v ? null : v)}
+              />
+            </>
+          ) : null}
         </>
       )}
 

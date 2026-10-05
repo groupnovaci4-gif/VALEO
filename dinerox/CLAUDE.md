@@ -24,3 +24,18 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
 7. IA : aucune opération financière sans confirmation explicite ; aucune donnée
    inventée ; données minimales vers le serveur (`core/ai/summary.ts`).
 8. Abonnement et membres d'un espace : écrits **uniquement** par les Cloud Functions.
+9. **Pays ≠ devise.** Le contexte pays vit dans `core/countries.ts` (registre :
+   devise proposée, sources d'argent, revenus, charges, objectifs) et
+   `core/catalog.ts` (sous-catégories par zone/pays, mots locaux). Ajouter un
+   pays = une entrée dans le registre (+ libellés locaux éventuels), aucun écran
+   à modifier ; `tests/countries.test.ts` vérifie chaque profil. Tout ce qui
+   vient du pays est une SUGGESTION modifiable, jamais une obligation.
+10. **Aucun blocage de saisie.** Seuls pays et devise sont obligatoires (et
+    préremplis). Aucun compte n'est requis : `useActions().ensureCashAccount`
+    crée « Espèces » si besoin. Une sous-catégorie précise la catégorie
+    (`Transaction.subcategoryId`) sans la remplacer : budgets et rapports
+    restent par catégorie principale.
+11. **Provenance des chiffres** (`core/intelligence.ts`) : `user` (opérations),
+    `declared` (profil financier), `estimate` (estimation DINEROX). Aucune
+    statistique externe sans source identifiable (`external` + `reference`).
+    Les simulations (indépendance financière) sont présentées comme telles.

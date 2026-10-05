@@ -36,22 +36,25 @@ export async function removeKeys(prefix: string): Promise<void> {
 export function debouncedWriter(delay = 500) {
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   const pending = new Map<string, () => unknown>();
-  const flushKey = (key: string) => {
+  const flushKey = (key: string): Promise<void> => {
     const get = pending.get(key);
     pending.delete(key);
     timers.delete(key);
-    if (get) void writeJSON(key, get());
+    return get ? writeJSON(key, get()) : Promise.resolve();
   };
   return {
     schedule(key: string, get: () => unknown) {
       pending.set(key, get);
-      if (!timers.has(key)) timers.set(key, setTimeout(() => flushKey(key), delay));
+      if (!timers.has(key)) timers.set(key, setTimeout(() => void flushKey(key), delay));
     },
-    flushAll() {
+    /** Écrit immédiatement tout ce qui est en attente (avant une étape critique ou la mise en arrière-plan). */
+    flushAll(): Promise<void> {
+      const writes: Promise<void>[] = [];
       for (const [key, t] of timers) {
         clearTimeout(t);
-        flushKey(key);
+        writes.push(flushKey(key));
       }
+      return Promise.all(writes).then(() => undefined);
     },
   };
 }

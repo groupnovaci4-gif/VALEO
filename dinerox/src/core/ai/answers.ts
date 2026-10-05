@@ -9,6 +9,7 @@ import type { ParsedIntent } from './parser';
 import { monthKey, previousMonth, type ISODate } from '../dates';
 import { moneyPosition } from '../balance';
 import { budgetSummary, envelopeStatuses, resolveEnvelopeId } from '../budget';
+import { financialSnapshot } from '../intelligence';
 import { expensesByCategory, monthFlows, savingsCapacity } from '../insights';
 import { goalPlanFor, sortGoals } from '../goals';
 
@@ -175,6 +176,11 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
       if (cats[0] && flows.expense > 0) {
         bullets.push({ key: 'ai.a.whyTop', params: { name: categoryName(cats[0][0]), percent: Math.round((cats[0][1] / flows.expense) * 100) } });
       }
+      // Moteur d'intelligence : poids des charges fixes, des dettes et de la famille.
+      const snap = financialSnapshot({ data, currency, now, available: 0 });
+      if (snap.fixedRatio !== null && snap.fixedRatio >= 50) bullets.push({ key: 'ai.a.whyFixed', params: { percent: snap.fixedRatio } });
+      if (snap.debtRatio !== null && snap.debtRatio >= 35) bullets.push({ key: 'ai.a.whyDebt', params: { percent: snap.debtRatio } });
+      if (snap.familyShare !== null && snap.familyShare >= 20) bullets.push({ key: 'ai.a.whyFamily', params: { percent: snap.familyShare } });
       const overCount = statuses.filter((s) => s.level === 'over').length;
       if (overCount) bullets.push({ key: 'ai.a.whyOver', params: { count: overCount } });
       const hasSavingsEnvelope = statuses.some((s) => s.envelope.categoryIds.includes('cat_savings') && s.budget > 0);

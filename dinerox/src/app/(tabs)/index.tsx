@@ -13,6 +13,8 @@ import { useFinance, useMoney } from '@/hooks/useFinance';
 import { Badge, Banner, Button, Card, EmptyState, GradientCard, Icon, IconCircle, ProgressBar, Screen, SectionHeader, Text, levelTone, useToast } from '@/components/ui';
 import { GoalCard, InsightCard, SpaceSwitcher, TransactionRow } from '@/features/rows';
 import type { EnvelopeStatus } from '@/core/budget';
+import { useIntelligence } from '@/hooks/useIntelligence';
+import { RecommendationCard } from '@/features/Recommendation';
 import { goalPlanFor, sortGoals } from '@/core/goals';
 import { sortTransactions } from '@/core/transactions';
 import { formatMoney, type CurrencyCode } from '@/core/money';
@@ -21,7 +23,7 @@ import { resendVerification } from '@/services/auth';
 export default function Home() {
   const { colors, radius } = useTheme();
   const { t, monthYear } = useI18n();
-  const { profile, user, mode, online } = useApp();
+  const { profile, user, mode, online, activeSpace, signOutLocal } = useApp();
   const money = useMoney();
   const toast = useToast();
   const f = useFinance();
@@ -35,6 +37,8 @@ export default function Home() {
   const others = Object.entries(position.otherCurrencies).filter(([, v]) => v !== 0);
 
   const [hidden, setHidden] = useState(false);
+  const { recommendations } = useIntelligence();
+  const topRec = recommendations[0];
   // Montants masquables d'un geste (consultation en public).
   const show = (n: number) => (hidden ? '••••••' : money(n));
   const monthLabel = monthYear(now);
@@ -55,6 +59,15 @@ export default function Home() {
         </Text>
       </View>
 
+      {activeSpace?.id.startsWith('demo_') ? (
+        <Banner
+          tone="info"
+          icon="flask-outline"
+          text={t('home.demoBanner')}
+          action={mode === 'local' ? t('home.demoCta') : undefined}
+          onAction={() => void signOutLocal().then(() => router.replace('/sign-up'))}
+        />
+      ) : null}
       {mode === 'firebase' && user && !user.emailVerified ? (
         <Banner
           tone="warning"
@@ -111,6 +124,14 @@ export default function Home() {
         </View>
         <Icon name="chevron-forward" size={18} color={colors.textMuted} />
       </Pressable>
+
+      {/* Intelligence financière : la recommandation la plus importante, à partir des données réelles. */}
+      {topRec ? (
+        <>
+          <SectionHeader title={t('home.analysis')} action={t('common.seeAll')} onAction={() => router.push('/analysis')} />
+          <RecommendationCard r={topRec} />
+        </>
+      ) : null}
 
       {data.accounts.length === 0 ? (
         <Card style={{ marginTop: 14 }}>

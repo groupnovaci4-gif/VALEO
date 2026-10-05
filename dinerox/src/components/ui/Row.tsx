@@ -27,7 +27,7 @@ export function Row({
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: MIN_TOUCH + 8, paddingVertical: 8 }}>
       {left}
       <View style={{ flex: 1 }}>
-        <Text variant="bodyStrong" tone={danger ? 'danger' : 'default'} numberOfLines={1}>
+        <Text variant="bodyStrong" tone={danger ? 'danger' : 'default'} numberOfLines={2}>
           {title}
         </Text>
         {subtitle ? (
@@ -48,23 +48,37 @@ export function Row({
   );
 }
 
+/**
+ * Interrupteur : TOUTE la ligne est touchable (pas seulement le petit bouton),
+ * et le libellé n'est jamais tronqué. Un seul contrôle accessible (rôle switch).
+ */
 export function SwitchRow({ title, subtitle, value, onChange, disabled }: { title: string; subtitle?: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const { colors } = useTheme();
   return (
-    <Row
-      title={title}
-      subtitle={subtitle}
-      right={
-        <Switch
-          accessibilityLabel={title}
-          value={value}
-          disabled={disabled}
-          onValueChange={onChange}
-          trackColor={{ true: colors.primary, false: colors.track }}
-          thumbColor={colors.onInverse}
-        />
-      }
-    />
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={title}
+      accessibilityHint={subtitle}
+      accessibilityState={{ checked: value, disabled: !!disabled }}
+      aria-checked={value}
+      aria-disabled={!!disabled}
+      disabled={disabled}
+      onPress={() => onChange(!value)}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: MIN_TOUCH + 8, paddingVertical: 8, opacity: disabled ? 0.5 : pressed ? 0.7 : 1 })}
+    >
+      <View style={{ flex: 1 }}>
+        <Text variant="bodyStrong">{title}</Text>
+        {subtitle ? (
+          <Text variant="caption" tone="subtle">
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      {/* Indicateur visuel : la ligne entière porte l'action (évite un double basculement). */}
+      <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <Switch value={value} disabled={disabled} trackColor={{ true: colors.primary, false: colors.track }} thumbColor={colors.onInverse} />
+      </View>
+    </Pressable>
   );
 }
 

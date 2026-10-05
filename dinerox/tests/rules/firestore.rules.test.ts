@@ -77,6 +77,13 @@ describe('profil utilisateur', () => {
     await assertFails(updateDoc(doc(db('u1'), 'users/u1'), { 'subscription.plan': 'family' }));
     await assertSucceeds(updateDoc(doc(db('u1'), 'users/u1'), { firstName: 'Awa K.' }));
   });
+  it('profil financier : enregistrable par son propriétaire (et lui seul), sans toucher à l’abonnement', async () => {
+    await setDoc(doc(db('u1'), 'users/u1'), profile('u1'));
+    const financial = { familyStatus: 'couple_children', children: 2, dependents: 1, incomeNature: 'irregular', incomeSources: ['inc_business'], monthlyIncome: null, paymentMethods: ['acc.cash', 'acc.wave'], noBankAccount: true, fixedCharges: { sub_housing_rent: 80000, sub_informal_tontine: 0 }, financialGoals: ['buy_land'], updatedAt: 1 };
+    await assertSucceeds(setDoc(doc(db('u1'), 'users/u1'), { country: 'SN', currency: 'XOF', financial, onboarding: { completed: true }, updatedAt: 2 }, { merge: true }));
+    await assertFails(setDoc(doc(db('u2'), 'users/u1'), { financial }, { merge: true }));
+    await assertFails(setDoc(doc(db('u1'), 'users/u1'), { financial, subscription: { plan: 'family', status: 'active', provider: 'none' } }, { merge: true }));
+  });
   it("impossible de lire le profil d'un autre", async () => {
     await setDoc(doc(db('u1'), 'users/u1'), profile('u1'));
     await assertFails(getDoc(doc(db('u2'), 'users/u1')));
@@ -111,6 +118,12 @@ describe('espaces et isolation', () => {
     await assertFails(getDoc(doc(db('u2'), 'spaces/u1/transactions/t1')));
     await assertFails(setDoc(doc(db('u2'), 'spaces/u1/transactions/t2'), tx('t2', 'u2')));
     await assertFails(getDoc(doc(db('u2'), 'spaces/u1')));
+  });
+  it('sous-catégorie et opération avec sous-catégorie acceptées dans son espace', async () => {
+    await setDoc(doc(db('u1'), 'spaces/u1'), personal('u1'));
+    const base = { createdAt: 1, updatedAt: 1, createdBy: 'u1', syncedAt: serverTimestamp() };
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/categories/sub_food_maquis'), { ...base, id: 'sub_food_maquis', kind: 'expense', name: 'Maquis', icon: 'ellipse', color: '#94A3B8', order: 0, parentId: 'cat_food', fixed: false }));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/transactions/t9'), tx('t9', 'u1', { categoryId: 'cat_food', subcategoryId: 'sub_food_maquis' })));
   });
   it('collection inconnue refusée', async () => {
     await assertFails(setDoc(doc(db('u1'), 'spaces/u1/secrets/s1'), { id: 's1', createdAt: 1, updatedAt: 1, createdBy: 'u1', syncedAt: serverTimestamp() }));

@@ -63,7 +63,9 @@ démonstration** crée un espace « Démo » séparé (revenu 450 000, logement
 | Domaine | Ce qui est livré |
 |---|---|
 | Authentification | Inscription, connexion, déconnexion, mot de passe oublié, changement de mot de passe (réauthentification), vérification e-mail, Google (si configuré), session persistante, mode local sans compte |
-| Première connexion | Aucun questionnaire : l'inscription mène directement au tableau de bord ; la structure de départ (compte Espèces, enveloppes, catégories) est créée automatiquement, avec des identifiants fixes (aucun doublon entre appareils) |
+| Première connexion | Profil financier en 6 étapes toutes facultatives (pays et devise préremplis ; Passer / Retour / Plus tard) : situation, revenus fixes/variables/irréguliers/aucun, sources d'argent du pays (avec « pas de compte bancaire »), charges principales, projets. « Tester sans données » ouvre une démonstration séparée. |
+| Pays et devises | 37 pays (Afrique de l'Ouest, centrale, du Nord, de l'Est ; Europe) + « Autre » ; 20 devises ; pays ≠ devise. Sources d'argent, revenus, charges, objectifs et mots locaux propres au pays (woro-woro, clando, zémidjan, susu, LAMal, Council Tax…). Registre surchargeable par les admins. |
+| Intelligence financière | Capacité d'épargne réaliste, charges fixes et leur part des revenus, budget personnalisé (pas de règle universelle), alertes (hausse inhabituelle, objectifs non finançables, risque de solde insuffisant, endettement), calendrier financier, simulation d'indépendance financière. Chaque chiffre affiche sa provenance (vos données / déclaré / estimation). |
 | Tableau de bord | Solde disponible (hors épargne et argent mis de côté), revenus/dépenses du mois, épargne, budget restant, alertes, enveloppes, objectifs prioritaires, dernières opérations, autres devises non converties |
 | Opérations | Dépense / revenu / transfert, catégories (système + personnalisées), enveloppe, bénéficiaire, note, photo justificative, date, modification, suppression, filtres et recherche, liste virtualisée |
 | Saisie rapide | Bouton « + » partout : dépense, revenu, transfert, épargne, objectif, « Dire à DineroX » |

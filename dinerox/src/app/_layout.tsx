@@ -49,9 +49,9 @@ function Navigator() {
   const { colors, dark } = useTheme();
   const segments = useSegments();
 
-  // Routage selon la session : accueil (déconnecté) → tableau de bord (connecté).
-  // Aucun écran intermédiaire : dès l'inscription, l'utilisateur entre dans
-  // l'application (la structure de départ est créée par Bootstrap).
+  // Routage selon la session : accueil (déconnecté) → application (connecté).
+  // Le profil financier à compléter est proposé par la navigation à onglets ;
+  // ce routage n'attend jamais le profil (aucun blocage si le réseau tarde).
   useEffect(() => {
     if (status === 'loading') return;
     void SplashScreen.hideAsync().catch(() => undefined);
@@ -71,6 +71,7 @@ function Navigator() {
         <Bootstrap />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="transaction/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="goals/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
