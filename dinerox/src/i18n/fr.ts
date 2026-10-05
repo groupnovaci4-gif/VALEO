@@ -73,9 +73,6 @@ export const fr = {
   'sync.done': 'Synchronisé',
 
   // Authentification
-  'brand.slogan1': 'Mieux gérer.',
-  'brand.slogan2': 'Mieux prévoir.',
-  'brand.slogan3': 'Mieux vivre.',
   'auth.welcome.title': '{app}',
   'auth.welcome.tagline': 'Votre argent, enfin lisible.',
   'auth.welcome.pitch': "Suivez vos dépenses, préparez vos projets et gérez les finances de la famille, simplement.",
