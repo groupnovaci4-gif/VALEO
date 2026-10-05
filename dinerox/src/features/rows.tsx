@@ -16,6 +16,7 @@ import type { EnvelopeStatus } from '@/core/budget';
 import type { GoalPlan } from '@/core/goals';
 import type { Insight } from '@/core/insights';
 import { minimumPlanFor, type Feature } from '@/core/subscription';
+import { findGoalCategory } from '@/core/goalCategories';
 
 export function TransactionRow({ tx, onPress }: { tx: Transaction; onPress?: () => void }) {
   const { colors } = useTheme();
@@ -67,42 +68,74 @@ export function EnvelopeRow({ s, onPress }: { s: EnvelopeStatus; onPress?: () =>
   );
 }
 
-export function GoalCard({ goal, plan, compact }: { goal: Goal; plan: GoalPlan; compact?: boolean }) {
-  const { t, monthYear } = useI18n();
+export function GoalCard({ goal, plan, compact, rank }: { goal: Goal; plan: GoalPlan; compact?: boolean; rank?: number }) {
+  const { t, monthYear, lang } = useI18n();
   const money = useMoney();
-  const { colors } = useTheme();
+  const { colors, radius } = useTheme();
   const tone = plan.reached ? 'success' : plan.overdue ? 'danger' : 'primary';
+  const accent = plan.overdue ? colors.danger : colors.primary;
+  const category = findGoalCategory(goal.categoryId)?.label[lang];
+  const chip = plan.reached
+    ? null
+    : plan.requiredMonthly
+      ? t('goal.perMonthChip', { amount: money(plan.requiredMonthly) })
+      : plan.estimatedDate
+        ? t('goal.atPaceChip', { date: monthYear(plan.estimatedDate) })
+        : null;
   return (
     <Card onPress={() => router.push(`/goals/${goal.id}`)} accessibilityLabel={goal.name} style={{ marginBottom: 12 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-        <IconCircle emoji={goal.icon} color={colors.primary} size={44} />
-        <View style={{ flex: 1 }}>
-          <Text variant="bodyStrong" numberOfLines={1}>
-            {goal.name}
-          </Text>
-          <Text variant="small" tone="muted">
-            {goal.targetAmount > 0 ? t('goal.progress', { saved: money(plan.saved), target: money(plan.target) }) : t('goal.setAmount')}
-          </Text>
-        </View>
-        <Text variant="h3">{plan.percent} %</Text>
-      </View>
-      <ProgressBar value={plan.percent} tone={tone} height={10} label={goal.name} />
-      {!compact && goal.targetAmount > 0 ? (
-        <View style={{ marginTop: 10, gap: 2 }}>
-          <Text variant="small">{t('goal.left', { amount: money(plan.remaining) })}</Text>
-          {goal.targetDate ? (
-            <Text variant="small" tone="muted">
-              {t('goal.planned.date', { date: monthYear(goal.targetDate) })}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+        <IconCircle emoji={goal.icon} color={colors.primary} size={48} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+            <Text variant="h3" numberOfLines={2} style={{ flexShrink: 1 }}>
+              {goal.name}
+            </Text>
+            {rank ? <Badge tone={rank === 1 ? 'danger' : 'neutral'} label={t('goal.rank', { rank }).toUpperCase()} /> : null}
+          </View>
+          {category ? (
+            <Text variant="small" tone="muted" numberOfLines={1}>
+              {category}
+              {goal.targetDate ? ` · ${monthYear(goal.targetDate)}` : ''}
             </Text>
           ) : null}
-          {plan.requiredMonthly ? (
-            <Text variant="small" tone="muted">
-              {t('goal.recommended', { amount: money(plan.requiredMonthly) })}
+        </View>
+      </View>
+      {goal.targetAmount > 0 ? (
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: 8 }}>
+          <Text variant="h2" numberOfLines={1} adjustsFontSizeToFit style={{ color: accent, flexShrink: 1 }}>
+            {money(plan.saved)}
+          </Text>
+          <Text variant="small" tone="muted" numberOfLines={1} style={{ flexShrink: 1, marginBottom: 3 }}>
+            / {money(plan.target)}
+          </Text>
+          <View style={{ flex: 1 }} />
+          <Text variant="bodyStrong" style={{ color: accent }}>
+            {plan.percent} %
+          </Text>
+        </View>
+      ) : (
+        <Text variant="small" tone="muted" style={{ marginBottom: 8 }}>
+          {t('goal.setAmount')}
+        </Text>
+      )}
+      <ProgressBar value={plan.percent} tone={tone} height={10} label={goal.name} />
+      {!compact && goal.targetAmount > 0 ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+            <Icon name="time-outline" size={16} color={colors.textMuted} />
+            <Text variant="small" numberOfLines={1} style={{ flexShrink: 1 }}>
+              {t('goal.left', { amount: money(plan.remaining) })}
             </Text>
-          ) : plan.estimatedDate && !plan.reached ? (
-            <Text variant="small" tone="muted">
-              {t('goal.estimatedDate', { date: monthYear(plan.estimatedDate) })}
-            </Text>
+          </View>
+          <View style={{ flex: 1 }} />
+          {chip ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.infoBg, borderRadius: radius.md, paddingHorizontal: 10, paddingVertical: 6, maxWidth: '100%' }}>
+              <Icon name="repeat" size={14} color={colors.info} />
+              <Text variant="caption" weight="600" style={{ color: colors.info, flexShrink: 1 }} numberOfLines={1}>
+                {chip}
+              </Text>
+            </View>
           ) : null}
         </View>
       ) : null}

@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { Button, useToast } from '@/components/ui';
+import { View } from 'react-native';
+import { Button, Text, useToast } from '@/components/ui';
+import { TERMS_VERSION } from '@/config/legal';
+import { ensureProfile, saveProfile } from '@/services/profile';
 import { env, isGoogleConfigured } from '@/config/env';
 import { useI18n } from '@/i18n';
 import { authErrorKey, signInWithGoogleIdToken } from '@/services/auth';
@@ -28,11 +31,32 @@ function GoogleButtonInner() {
     const idToken = response.params.id_token;
     if (!idToken) return;
     signInWithGoogleIdToken(idToken)
+      // Consentement affiché sous le bouton : enregistré sur le profil (comme l'inscription par e-mail).
+      .then(async (u) => {
+        const [first = '', ...rest] = (u.displayName ?? '').split(' ');
+        const p = await ensureProfile(u.uid, u.email ?? '', first, TERMS_VERSION, rest.join(' '));
+        if (!p.termsAcceptedVersion) await saveProfile(u.uid, { termsAcceptedVersion: TERMS_VERSION });
+      })
       .catch((e) => toast.show(t(authErrorKey(e)), 'error'))
       .finally(() => setBusy(false));
   }, [response, t, toast]);
-  return <Button variant="secondary" full icon="logo-google" label={t('auth.google')} loading={busy} disabled={!request} onPress={() => {
-        setBusy(true);
-        void promptAsync().then((r) => r.type !== 'success' && setBusy(false));
-      }} />;
+  return (
+    <View style={{ gap: 6 }}>
+      <Button
+        variant="secondary"
+        full
+        icon="logo-google"
+        label={t('auth.google')}
+        loading={busy}
+        disabled={!request}
+        onPress={() => {
+          setBusy(true);
+          void promptAsync().then((r) => r.type !== 'success' && setBusy(false));
+        }}
+      />
+      <Text variant="caption" tone="subtle" align="center">
+        {t('auth.google.consent')}
+      </Text>
+    </View>
+  );
 }

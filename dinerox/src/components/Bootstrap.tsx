@@ -6,20 +6,46 @@ import { useI18n } from '@/i18n';
 import { analytics, enableFirestoreAnalytics } from '@/services/analytics';
 import { notifyNewInsights, registerPushToken, scheduleLocalNotifications } from '@/services/notifications';
 import { useInsightText } from '@/hooks/useInsightText';
+import { starterStructure } from '@/core/defaults';
+import type { CollectionName, SyncedDoc } from '@/core/types';
+import type { TKey } from '@/i18n';
 
 /**
  * Tâches de fond liées à la session : récurrences dues, notifications,
  * consentement analytique, jeton push. Ne rend rien.
  */
 export function Bootstrap() {
-  const { user, profile, mode, activeSpace, engine } = useApp();
+  const { user, profile, mode, activeSpace, engine, role, updateProfile } = useApp();
   const data = useData();
   const { runRecurring } = useActions();
   const { insights } = useFinance();
-  const { t, date } = useI18n();
+  const { t, date, lang } = useI18n();
   const money = useMoney();
   const render = useInsightText();
   const ranFor = useRef<string | null>(null);
+  const starterFor = useRef<string | null>(null);
+
+  // Première ouverture : pas de questionnaire, l'utilisateur arrive directement sur
+  // son tableau de bord. La structure de départ (compte Espèces, enveloppes,
+  // catégories) est créée ici, une seule fois, dans son espace personnel.
+  useEffect(() => {
+    if (!user || !profile || !engine || !activeSpace || role !== 'admin') return;
+    if (profile.onboarding.completed || activeSpace.kind !== 'personal') return;
+    if (!engine.isLoaded(activeSpace.id) || starterFor.current === activeSpace.id) return;
+    starterFor.current = activeSpace.id;
+    // Compte existant (réinstallation, ancien parcours) : rien à recréer.
+    if (engine.getData(activeSpace.id).accounts.length === 0) {
+      const structure = starterStructure(
+        { firstName: profile.firstName, currency: profile.currency },
+        { now: Date.now(), uid: user.uid, lang, label: (k) => t(k as TKey) },
+      );
+      const items: { col: CollectionName; doc: SyncedDoc }[] = [];
+      for (const [col, docs] of Object.entries(structure)) for (const doc of docs as SyncedDoc[]) items.push({ col: col as CollectionName, doc });
+      engine.writeMany(activeSpace.id, items);
+      analytics.track('onboarding_completed', { method: 'auto' });
+    }
+    void updateProfile({ onboarding: { ...profile.onboarding, completed: true } });
+  }, [user, profile, engine, activeSpace, role, lang, t, updateProfile, data.accounts.length]);
 
   // Consentement analytique.
   useEffect(() => {

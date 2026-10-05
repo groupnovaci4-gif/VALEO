@@ -17,7 +17,16 @@ export default function Budget() {
   const alerts = insights.filter((i) => i.kind === 'envelope_threshold' || i.kind === 'envelope_over_streak');
   const editable = can(role, 'create', 'envelopes');
   return (
-    <Screen title={t('budget.title')} subtitle={monthYear(now)} right={editable ? <Button small variant="ghost" icon="sparkles" label={t('budget.auto')} onPress={() => router.push('/budget/auto')} /> : undefined}>
+    <Screen brandSection={t('tab.budget')}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="h1">{t('budget.title')}</Text>
+          <Text variant="small" tone="muted">
+            {monthYear(now)}
+          </Text>
+        </View>
+        {editable ? <Button small variant="secondary" icon="sparkles" label={t('budget.auto')} onPress={() => router.push('/budget/auto')} /> : null}
+      </View>
       <SpaceSwitcher />
       <Card>
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>

@@ -13,3 +13,4 @@ export * from './Screen';
 export * from './Sheet';
 export * from './DateField';
 export * from './Toast';
+export * from './GradientCard';

@@ -326,6 +326,7 @@ export default function Assistant() {
         />
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 12, paddingBottom: 90, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
           <TextInput
+            maxFontSizeMultiplier={1.3}
             value={input}
             onChangeText={setInput}
             placeholder={t('ai.placeholder')}

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useTheme } from '@/theme';
-import { brand } from '@/config/brand';
 import { Text } from './Text';
 import { Icon } from './Icon';
 
@@ -18,16 +17,18 @@ export function Chip({ label, selected, onPress, icon, emoji, color }: { label: 
         alignItems: 'center',
         gap: 6,
         minHeight: 40,
+        maxWidth: '100%',
         paddingHorizontal: 14,
+        paddingVertical: 6,
         borderRadius: radius.pill,
         borderWidth: 1.5,
-        borderColor: selected ? brand.colors.green : colors.border,
-        backgroundColor: selected ? brand.colors.green : colors.surface,
+        borderColor: selected ? colors.primary : colors.border,
+        backgroundColor: selected ? colors.primary : colors.surface,
         opacity: pressed ? 0.85 : 1,
       })}
     >
-      {emoji ? <Text>{emoji}</Text> : icon ? <Icon name={icon} size={16} color={selected ? brand.colors.night : color ?? colors.textMuted} /> : null}
-      <Text variant="small" weight="600" style={{ color: selected ? brand.colors.night : colors.text }}>
+      {emoji ? <Text>{emoji}</Text> : icon ? <Icon name={icon} size={16} color={selected ? colors.onPrimary : color ?? colors.textMuted} /> : null}
+      <Text variant="small" weight="600" style={{ color: selected ? colors.onPrimary : colors.text, flexShrink: 1 }}>
         {label}
       </Text>
     </Pressable>

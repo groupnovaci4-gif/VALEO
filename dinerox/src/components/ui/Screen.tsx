@@ -7,6 +7,7 @@ import { Text } from './Text';
 import { IconButton } from './Button';
 import { useI18n } from '@/i18n';
 import { SyncBanner } from '@/components/SyncBanner';
+import { AppHeader } from '@/components/AppHeader';
 
 export interface ScreenProps {
   title?: string;
@@ -15,8 +16,10 @@ export interface ScreenProps {
   back?: boolean;
   /** Action(s) à droite de l'en-tête. */
   right?: React.ReactNode;
-  /** Élément avant le titre (logo de la marque sur le tableau de bord). */
+  /** Élément avant le titre. */
   leading?: React.ReactNode;
+  /** En-tête de marque (logo, DINEROX, nom de l'écran, cloche, avatar) au lieu du titre. */
+  brandSection?: string;
   children: React.ReactNode;
   /** false : pas de ScrollView (listes virtualisées). */
   scroll?: boolean;
@@ -29,12 +32,16 @@ export interface ScreenProps {
   syncBanner?: boolean;
 }
 
+/** Largeur maximale du contenu (tablettes, web). */
+export const MAX_CONTENT_WIDTH = 680;
+
 /** Conteneur d'écran standard : zone sûre, en-tête, défilement, clavier. */
-export function Screen({ title, subtitle, back, right, leading, children, scroll = true, edges = ['top'], contentStyle, onRefresh, refreshing, footer, syncBanner = true }: ScreenProps) {
+export function Screen({ title, subtitle, back, right, leading, brandSection, children, scroll = true, edges = ['top'], contentStyle, onRefresh, refreshing, footer, syncBanner = true }: ScreenProps) {
   const { colors } = useTheme();
   const { t } = useI18n();
-  const header =
-    title || back || right ? (
+  const header = brandSection ? (
+    <AppHeader section={brandSection} />
+  ) : title || back || right ? (
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: back ? 4 : 16, paddingTop: 4, paddingBottom: 8, minHeight: 52 }}>
         {back ? <IconButton icon="chevron-back" label={t('common.back')} onPress={goBack} /> : null}
         {leading ? <View style={{ marginRight: 10 }}>{leading}</View> : null}
@@ -59,11 +66,14 @@ export function Screen({ title, subtitle, back, right, leading, children, scroll
       contentContainerStyle={[{ padding: 16, paddingBottom: 120 }, contentStyle]}
       refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} /> : undefined}
     >
-      {syncBanner ? <SyncBanner /> : null}
-      {children}
+      {/* Largeur de lecture bornée : sur tablette, le contenu reste centré et lisible. */}
+      <View style={{ width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' }}>
+        {syncBanner ? <SyncBanner /> : null}
+        {children}
+      </View>
     </ScrollView>
   ) : (
-    <View style={[{ flex: 1, paddingHorizontal: 16 }, contentStyle]}>
+    <View style={[{ flex: 1, paddingHorizontal: 16, width: '100%', maxWidth: MAX_CONTENT_WIDTH + 32, alignSelf: 'center' }, contentStyle]}>
       {syncBanner ? <SyncBanner /> : null}
       {children}
     </View>
@@ -73,7 +83,11 @@ export function Screen({ title, subtitle, back, right, leading, children, scroll
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         {header}
         {body}
-        {footer ? <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>{footer}</View> : null}
+        {footer ? (
+          <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
+            <View style={{ width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' }}>{footer}</View>
+          </View>
+        ) : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

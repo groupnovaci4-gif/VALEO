@@ -35,7 +35,7 @@ export function Text({ variant = 'body', tone = 'default', align, weight, numeri
   };
   return (
     <RNText
-      maxFontSizeMultiplier={1.6}
+      maxFontSizeMultiplier={1.3}
       style={[
         { fontSize: v.fontSize, lineHeight: v.lineHeight, letterSpacing: 'letterSpacing' in v ? v.letterSpacing : undefined },
         // Chaque graisse est une famille de police distincte (pas de gras synthétique).

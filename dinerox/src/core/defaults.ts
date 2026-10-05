@@ -235,3 +235,20 @@ function nextMonthSameDay(d: ISODate): ISODate {
   const ny = m === 12 ? y + 1 : y;
   return `${ny}-${String(nm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
+
+/**
+ * Structure de départ créée automatiquement à la première ouverture (sans
+ * questionnaire) : compte Espèces, enveloppes, sans montant inventé.
+ * Identifiants FIXES (acc_start1, env_start1…) : si deux appareils la créent
+ * en même temps, ils écrivent les mêmes documents au lieu de les dupliquer.
+ */
+export function starterStructure(
+  p: { firstName: string; currency: CurrencyCode },
+  meta: { now: number; uid: string; lang?: 'fr' | 'en'; label: Labeler; date?: ISODate },
+): Partial<SpaceData> {
+  const counters: Record<string, number> = {};
+  return buildInitialStructure(
+    { firstName: p.firstName, currency: p.currency, monthlyIncome: 0, incomeFrequency: 'irregular', payDay: 25, mainExpenses: [], goals: [], budgetMethod: 'envelopes', accounts: ['acc.cash'] },
+    { ...meta, id: (prefix) => `${prefix}start${(counters[prefix] = (counters[prefix] ?? 0) + 1)}` },
+  );
+}

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Platform, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme, MIN_TOUCH } from '@/theme';
 import { fontFor } from '@/theme/fonts';
-import { brand } from '@/config/brand';
 import { Text } from './Text';
 import { currencyInfo, formatMoney, parseAmountInput, toMajor } from '@/core/money';
 
@@ -28,9 +27,9 @@ export function Field({ label, hint, error, suffix, style, ...rest }: FieldProps
           flexDirection: 'row',
           alignItems: 'center',
           borderWidth: 1.5,
-          borderColor: error ? colors.danger : focused ? brand.colors.green : colors.border,
+          borderColor: error ? colors.danger : focused ? colors.primary : colors.border,
           // Halo vert au focus (charte)
-          ...(focused && !error ? { shadowColor: brand.colors.green, shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } } : null),
+          ...(focused && !error ? { shadowColor: colors.primary, shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } } : null),
           borderRadius: radius.md,
           backgroundColor: colors.surface,
           paddingHorizontal: 12,
@@ -39,6 +38,7 @@ export function Field({ label, hint, error, suffix, style, ...rest }: FieldProps
       >
         <TextInput
           accessibilityLabel={label}
+          maxFontSizeMultiplier={1.3}
           placeholderTextColor={colors.textSubtle}
           onFocus={(e) => {
             setFocused(true);

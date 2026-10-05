@@ -9,7 +9,8 @@ import { Icon } from '@/components/ui';
 import { QuickAddFab, QuickAddProvider } from '@/features/QuickAdd';
 
 /**
- * Navigation principale : Accueil · Opérations · Budget · Objectifs · DineroX · Plus.
+ * Navigation principale : Accueil · Opérations · Budget · Objectifs · Plus.
+ * L'assistant reste accessible depuis la carte « IA » de l'accueil et le bouton +.
  * La saisie rapide (« + ») flotte au-dessus, accessible depuis chaque onglet.
  */
 export default function TabsLayout() {
@@ -26,6 +27,7 @@ export default function TabsLayout() {
           screenOptions={{
             headerShown: false,
             tabBarActiveTintColor: dark ? brand.colors.green : colors.primary,
+            tabBarItemStyle: { paddingTop: 4 },
             tabBarInactiveTintColor: colors.textSubtle,
             tabBarStyle: { backgroundColor: colors.tabBar, borderTopColor: colors.border, minHeight: 60 },
             tabBarLabelStyle: { fontSize: 10, fontFamily: fontFor('body', 600), letterSpacing: -0.2 },
@@ -36,8 +38,8 @@ export default function TabsLayout() {
           <Tabs.Screen name="transactions" options={{ title: t('tab.transactions'), tabBarIcon: icon('swap-vertical') }} />
           <Tabs.Screen name="budget" options={{ title: t('tab.budget'), tabBarIcon: icon('pie-chart') }} />
           <Tabs.Screen name="goals" options={{ title: t('tab.goals'), tabBarIcon: icon('flag') }} />
-          <Tabs.Screen name="assistant" options={{ title: t('tab.assistant'), tabBarIcon: icon('chatbubble-ellipses') }} />
-          <Tabs.Screen name="more" options={{ title: t('tab.more'), tabBarIcon: icon('grid') }} />
+          <Tabs.Screen name="assistant" options={{ title: t('tab.assistant'), href: null }} />
+          <Tabs.Screen name="more" options={{ title: t('tab.more'), tabBarIcon: icon('sparkles') }} />
         </Tabs>
         <QuickAddFab />
       </View>

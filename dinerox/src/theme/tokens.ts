@@ -54,6 +54,11 @@ export interface ColorScheme {
   /** Or de la flèche du logo : accent rare (bouton +, assistant). */
   secondary: string;
   onSecondary: string;
+  /** Fond or clair (bouton +, pastilles épargne) et son contenu. */
+  secondaryContainer: string;
+  onSecondaryContainer: string;
+  /** Dégradé de la carte principale (solde, objectifs, patrimoine). */
+  heroGradient: [string, string];
   /** Surface inversée (toasts) et son texte. */
   inverseSurface: string;
   onInverse: string;
@@ -106,6 +111,9 @@ export const darkColors: ColorScheme = {
   onPrimary: '#012A25',
   secondary: '#F59E0B',
   onSecondary: '#020617',
+  secondaryContainer: '#F59E0B',
+  onSecondaryContainer: '#020617',
+  heroGradient: ['#13806F', '#0A5F58'],
   inverseSurface: '#1E293B',
   onInverse: '#F8FAFC',
   hero: '#0B1120',
@@ -131,44 +139,53 @@ export const darkColors: ColorScheme = {
   grid: 'rgba(255,255,255,0.08)',
 };
 
+/**
+ * Thème clair (référence des maquettes DineroX) : fond lavande très clair,
+ * cartes blanches, vert profond #00685F pour les actions et la navigation,
+ * carte principale en dégradé vert, or pour l'épargne et le bouton +.
+ * Contrastes du texte ≥ 4,5:1 sur blanc.
+ */
 export const lightColors: ColorScheme = {
-  background: '#F3F8F7',
+  background: '#F8F7FD',
   surface: palette.white,
-  surfaceAlt: '#E6F2F0',
-  border: '#D9E6E3',
-  text: '#0B1120',
-  textMuted: '#475569',
-  textSubtle: '#64748B',
-  primary: '#0F766E',
-  primaryDark: '#115E59',
-  primaryLight: '#E6F4F1',
-  primaryBorder: '#99D5CB',
+  surfaceAlt: '#EFEEF6',
+  border: '#E4E3EC',
+  text: '#1A1B21',
+  textMuted: '#4A4D55',
+  textSubtle: '#686B73',
+  primary: '#00685F',
+  primaryDark: '#004F48',
+  primaryLight: '#D5F2EE',
+  primaryBorder: '#9ED9D0',
   onPrimary: palette.white,
-  secondary: '#F59E0B',
-  onSecondary: '#020617',
-  inverseSurface: '#0B1120',
+  secondary: '#8B5600',
+  onSecondary: palette.white,
+  secondaryContainer: '#FFB95F',
+  onSecondaryContainer: '#2A1700',
+  heroGradient: ['#1A7D6B', '#0A6F67'],
+  inverseSurface: '#1A1B21',
   onInverse: '#F8FAFC',
-  hero: '#0B1120',
-  onHero: '#F8FAFC',
-  heroMuted: '#94A3B8',
-  income: '#047857',
-  expense: '#E11D48',
-  success: '#047857',
-  successBg: '#D1FAE5',
-  warning: '#B45309',
-  warningBg: '#FEF3C7',
-  danger: '#E11D48',
-  dangerBg: '#FFE4E6',
-  info: '#0369A1',
-  infoBg: '#E0F2FE',
-  ai: '#B45309',
-  aiBg: '#FEF6E4',
-  track: '#E2ECEA',
-  overlay: 'rgba(2,6,23,0.6)',
+  hero: '#00685F',
+  onHero: palette.white,
+  heroMuted: 'rgba(255,255,255,0.82)',
+  income: '#00685F',
+  expense: '#BA1A1A',
+  success: '#00685F',
+  successBg: '#D5F2EE',
+  warning: '#8B5600',
+  warningBg: '#FFE8CC',
+  danger: '#BA1A1A',
+  dangerBg: '#FFDAD6',
+  info: '#3F51B5',
+  infoBg: '#E1E4FB',
+  ai: '#8B5600',
+  aiBg: '#FBF1E6',
+  track: '#E3E3EE',
+  overlay: 'rgba(26,27,33,0.5)',
   tabBar: palette.white,
   chartIncome: '#0d9488',
   chartExpense: '#d97706',
-  grid: '#D9E6E3',
+  grid: '#E4E3EC',
 };
 
 export const spacing = { xxs: 2, xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, xxxl: 40 } as const;
@@ -196,7 +213,7 @@ export const MIN_TOUCH = 48;
 
 /** Élévations : halo vert ou or (charte), ombre douce en mode clair. */
 export const shadow = {
-  card: { shadowColor: '#0B1120', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  card: { shadowColor: '#1A1B21', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
   fab: { shadowColor: '#F59E0B', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
   glowGreen: { shadowColor: '#14B8A6', shadowOpacity: 0.3, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
 };

@@ -37,7 +37,10 @@ export default function Transactions() {
 
   const filtered = type !== 'all' || accountId !== 'all' || !!search;
   return (
-    <Screen title={t('tx.title')} scroll={false}>
+    <Screen brandSection={t('tab.transactions')} scroll={false}>
+      <Text variant="h1" style={{ marginBottom: 12 }}>
+        {t('tx.title')}
+      </Text>
       <Segmented
         value={type}
         onChange={setType}

@@ -3,20 +3,24 @@
  * répartition de la capacité d'épargne, suggestions, objectifs terminés.
  */
 import React, { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { AmountField, Button, Card, EmptyState, IconButton, Row, Screen, SectionHeader, Text } from '@/components/ui';
-import { GoalCard, InsightCard, SpaceSwitcher } from '@/features/rows';
+import { AmountField, Badge, Button, Card, EmptyState, GradientCard, Icon, IconButton, Row, Screen, SectionHeader, Text } from '@/components/ui';
+import { useTheme } from '@/theme';
+import { useInsightText } from '@/hooks/useInsightText';
+import { GoalCard, SpaceSwitcher } from '@/features/rows';
 import { allocateCapacity, goalPlanFor, sortGoals } from '@/core/goals';
 import { savingsCapacity } from '@/core/insights';
 import { can } from '@/core/permissions';
 
 export default function Goals() {
   const { t } = useI18n();
+  const { colors, radius } = useTheme();
+  const renderInsight = useInsightText();
   const { role } = useApp();
   const money = useMoney();
   const actions = useActions();
@@ -38,33 +42,113 @@ export default function Goals() {
     actions.reorderGoals(ids);
   };
 
+  const plans = useMemo(() => active.map((g) => ({ g, plan: goalPlanFor(g, data.goalContributions, now) })), [active, data.goalContributions, now]);
+  // Synthèse réelle des objectifs actifs chiffrés (aucun chiffre inventé).
+  const totals = useMemo(() => {
+    const withTarget = plans.filter((p) => p.g.status === 'active' && p.g.targetAmount > 0);
+    const saved = withTarget.reduce((n, p) => n + Math.min(p.plan.saved, p.plan.target), 0);
+    const target = withTarget.reduce((n, p) => n + p.plan.target, 0);
+    return { saved, target, pct: target > 0 ? Math.round((saved / target) * 100) : 0, count: plans.filter((p) => p.g.status === 'active').length };
+  }, [plans]);
+  const tip = suggestions[0];
+
   return (
-    <Screen title={t('goal.title')} subtitle={t('goal.tagline')} right={canCreate ? <IconButton icon="add-circle" label={t('goal.new')} onPress={() => router.push('/goals/new')} size={30} /> : undefined}>
+    <Screen brandSection={t('tab.goals')}>
       <SpaceSwitcher />
-      {suggestions.slice(0, 2).map((i) => (
-        <InsightCard key={i.id} insight={i} />
-      ))}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <Text variant="h1">{t('goal.title')}</Text>
+          {totals.count ? <Badge tone="success" label={t(totals.count === 1 ? 'goal.activeCount.one' : 'goal.activeCount', { count: totals.count })} /> : null}
+        </View>
+        {canCreate ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('goal.new')}
+            onPress={() => router.push('/goals/new')}
+            style={({ pressed }) => ({ width: 52, height: 52, borderRadius: radius.lg, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.85 : 1 })}
+          >
+            <Icon name="add" size={28} color={colors.onPrimary} />
+          </Pressable>
+        ) : null}
+      </View>
+      <Text tone="muted" style={{ marginBottom: 14 }}>
+        {t('goal.tagline')}
+      </Text>
+
+      {totals.target > 0 ? (
+        <GradientCard>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Icon name="star-outline" size={16} color={colors.onHero} />
+            <Text variant="overline" tone="onHero" style={{ flexShrink: 1 }}>
+              {t('goal.global.title').toUpperCase()}
+            </Text>
+            <View style={{ flex: 1 }} />
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3 }}>
+              <Text variant="caption" weight="700" tone="onHero">
+                {t('goal.global.pct', { pct: totals.pct })}
+              </Text>
+            </View>
+          </View>
+          <Text variant="display" tone="onHero" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ marginTop: 8 }}>
+            {money(totals.saved)}
+          </Text>
+          <Text variant="small" tone="heroMuted">
+            {t('goal.global.of', { amount: money(totals.target) })}
+          </Text>
+          <View style={{ height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.22)', marginTop: 14, overflow: 'hidden' }}>
+            <View style={{ width: `${Math.min(100, totals.pct)}%`, height: '100%', backgroundColor: colors.secondaryContainer, borderRadius: 5 }} />
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+            <Text variant="caption" weight="600" tone="onHero">
+              ● {t(totals.count === 1 ? 'goal.global.count.one' : 'goal.global.count', { count: totals.count })}
+            </Text>
+            <Text variant="caption" tone="heroMuted">
+              {t('goal.left', { amount: money(Math.max(0, totals.target - totals.saved)) })}
+            </Text>
+          </View>
+        </GradientCard>
+      ) : null}
+
+      {tip ? (
+        <View style={{ flexDirection: 'row', gap: 12, backgroundColor: colors.surfaceAlt, borderRadius: radius.lg, padding: 14, marginBottom: 14 }}>
+          <View style={{ width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.warningBg, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="bulb-outline" size={20} color={colors.secondary} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="overline" style={{ color: colors.secondary, marginBottom: 4 }}>
+              {t('goal.tip').toUpperCase()}
+            </Text>
+            <Text variant="small">{renderInsight(tip)}</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {canCreate ? <Button full icon="add-circle-outline" label={t('goal.createNew')} onPress={() => router.push('/goals/new')} style={{ marginBottom: 6 }} /> : null}
+
       {active.length === 0 ? (
-        <Card>
+        <Card style={{ marginTop: 10 }}>
           <EmptyState title={t('goal.empty.title')} body={t('goal.empty.body')} action={canCreate ? t('goal.empty.cta') : undefined} onAction={() => router.push('/goals/new')} />
         </Card>
       ) : (
-        active.map((g, i) => (
-          <View key={g.id}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text variant="caption" tone="subtle">
-                {g.status === 'active' ? t('goal.rank', { rank: i + 1 }) : t('goal.status.paused')}
-              </Text>
+        <>
+          <SectionHeader title={t('goal.running')} action={t('goal.byPriority')} />
+          {plans.map(({ g, plan }, i) => (
+            <View key={g.id}>
+              {g.status !== 'active' ? (
+                <Text variant="caption" tone="subtle">
+                  {t('goal.status.paused')}
+                </Text>
+              ) : null}
+              <GoalCard goal={g} plan={plan} rank={g.status === 'active' ? i + 1 : undefined} />
               {canEdit && g.status === 'active' && active.length > 1 ? (
-                <View style={{ flexDirection: 'row' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: -8, marginBottom: 6 }}>
                   <IconButton icon="chevron-up" label={t('goal.moveUp')} onPress={() => move(i, -1)} size={18} />
                   <IconButton icon="chevron-down" label={t('goal.moveDown')} onPress={() => move(i, 1)} size={18} />
                 </View>
               ) : null}
             </View>
-            <GoalCard goal={g} plan={goalPlanFor(g, data.goalContributions, now)} />
-          </View>
-        ))
+          ))}
+        </>
       )}
 
       {active.filter((g) => g.status === 'active').length > 1 ? (
@@ -93,7 +177,6 @@ export default function Goals() {
           </Card>
         </>
       ) : null}
-      {canCreate && active.length ? <Button variant="secondary" icon="add" label={t('goal.new')} onPress={() => router.push('/goals/new')} style={{ marginTop: 16 }} /> : null}
     </Screen>
   );
 }

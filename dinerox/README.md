@@ -63,7 +63,7 @@ démonstration** crée un espace « Démo » séparé (revenu 450 000, logement
 | Domaine | Ce qui est livré |
 |---|---|
 | Authentification | Inscription, connexion, déconnexion, mot de passe oublié, changement de mot de passe (réauthentification), vérification e-mail, Google (si configuré), session persistante, mode local sans compte |
-| Onboarding | 9 étapes courtes (prénom, pays, devise, situation, revenus + fréquence + jour de paie, comptes, dépenses, projets, méthode de budget) ; crée comptes, catégories, enveloppes budgétées, salaire récurrent et objectifs |
+| Première connexion | Aucun questionnaire : l'inscription mène directement au tableau de bord ; la structure de départ (compte Espèces, enveloppes, catégories) est créée automatiquement, avec des identifiants fixes (aucun doublon entre appareils) |
 | Tableau de bord | Solde disponible (hors épargne et argent mis de côté), revenus/dépenses du mois, épargne, budget restant, alertes, enveloppes, objectifs prioritaires, dernières opérations, autres devises non converties |
 | Opérations | Dépense / revenu / transfert, catégories (système + personnalisées), enveloppe, bénéficiaire, note, photo justificative, date, modification, suppression, filtres et recherche, liste virtualisée |
 | Saisie rapide | Bouton « + » partout : dépense, revenu, transfert, épargne, objectif, « Dire à DineroX » |

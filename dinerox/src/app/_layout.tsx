@@ -36,7 +36,7 @@ export default function RootLayout() {
 function Providers({ children }: { children: React.ReactNode }) {
   const { profile } = useApp();
   return (
-    <ThemeProvider preference={profile?.preferences.theme ?? 'dark'}>
+    <ThemeProvider preference={profile?.preferences.theme ?? 'light'}>
       <I18nProvider lang={profile?.language ?? deviceLanguage()}>
         <ToastProvider>{children}</ToastProvider>
       </I18nProvider>
@@ -45,28 +45,24 @@ function Providers({ children }: { children: React.ReactNode }) {
 }
 
 function Navigator() {
-  const { status, profile } = useApp();
+  const { status } = useApp();
   const { colors, dark } = useTheme();
   const segments = useSegments();
 
-  // Routage selon la session : accueil → onboarding → application.
+  // Routage selon la session : accueil (déconnecté) → tableau de bord (connecté).
+  // Aucun écran intermédiaire : dès l'inscription, l'utilisateur entre dans
+  // l'application (la structure de départ est créée par Bootstrap).
   useEffect(() => {
     if (status === 'loading') return;
     void SplashScreen.hideAsync().catch(() => undefined);
     const inAuth = segments[0] === '(auth)';
-    const inOnboarding = segments[0] === 'onboarding';
     const inLegal = segments[0] === 'legal';
     if (status === 'signedOut') {
       if (!inAuth && !inLegal) router.replace('/welcome');
       return;
     }
-    if (!profile) return;
-    if (!profile.onboarding.completed) {
-      if (!inOnboarding) router.replace('/onboarding');
-    } else if (inAuth || inOnboarding) {
-      router.replace('/');
-    }
-  }, [status, profile, segments]);
+    if (inAuth) router.replace('/');
+  }, [status, segments]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -76,7 +72,6 @@ function Navigator() {
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" />
-          <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
           <Stack.Screen name="transaction/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="goals/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         </Stack>

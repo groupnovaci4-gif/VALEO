@@ -74,17 +74,22 @@ export function Divider() {
 }
 
 export function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+  const { colors } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, marginBottom: 10 }}>
-      <Text variant="h3" accessibilityRole="header">
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 22, marginBottom: 10 }}>
+      <Text variant="h3" accessibilityRole="header" style={{ flexShrink: 1 }} numberOfLines={2}>
         {title}
       </Text>
       {action && onAction ? (
         <Pressable accessibilityRole="button" onPress={onAction} hitSlop={10} style={{ minHeight: 32, justifyContent: 'center' }}>
-          <Text variant="small" weight="700" tone="info">
+          <Text variant="small" weight="700" style={{ color: colors.primary }}>
             {action}
           </Text>
         </Pressable>
+      ) : action ? (
+        <Text variant="small" tone="muted">
+          {action}
+        </Text>
       ) : null}
     </View>
   );
