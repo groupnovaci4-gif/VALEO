@@ -25,6 +25,7 @@ import { effectivePlan } from '@/core/subscription';
 import { roleIn } from '@/core/permissions';
 import { emptySpaceData, type PlanId, type Role, type Space, type SpaceData, type UserProfile } from '@/core/types';
 import { analytics } from '@/services/analytics';
+import { applyPending, queuePatch, type PendingProfile } from '@/core/profilePending';
 
 export type AppMode = 'firebase' | 'local';
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
@@ -62,6 +63,7 @@ const AppContext = createContext<AppValue | null>(null);
 const LOCAL_UID = 'local';
 const MODE_KEY = 'dinerox:v1:mode';
 
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<AppMode | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
@@ -72,6 +74,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
   const profileRef = useRef<UserProfile | null>(null);
+  const pendingProfile = useRef<PendingProfile | null>(null);
+
+  /** Envoie au serveur la modification de profil en attente ; la retire une fois confirmée. */
+  const pushPendingProfile = useCallback(async (u: SessionUser) => {
+    const pending = pendingProfile.current;
+    if (!pending) return;
+    try {
+      await ensureProfile(u.uid, u.email, u.displayName, null);
+      await saveProfile(u.uid, pending.patch);
+      if (pendingProfile.current === pending) {
+        pendingProfile.current = null;
+        await writeJSON(storageKey(u.uid, 'profilePending'), null);
+      }
+    } catch {
+      // Hors-ligne ou refus temporaire : nouvel essai au retour du réseau ou au prochain lancement.
+    }
+  }, []);
   useEffect(() => {
     profileRef.current = profile;
   }, [profile]);
@@ -131,8 +150,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       user.uid,
       (p) => {
         if (p) {
-          setProfile(p);
-          void writeJSON(storageKey(user.uid, 'profile'), p);
+          // Une modification locale pas encore confirmée par le serveur (réseau lent, coupure,
+          // redémarrage) reste appliquée par-dessus : sans cela, l'ancienne version du serveur
+          // effacerait par exemple « onboarding terminé » et renverrait vers l'onboarding.
+          // La modification en attente n'est libérée que par l'accusé de réception du serveur
+          // (pushPendingProfile) : un instantané peut refléter une écriture encore locale.
+          const merged = applyPending(p, pendingProfile.current);
+          setProfile(merged);
+          void writeJSON(storageKey(user.uid, 'profile'), merged);
         } else {
           // Première connexion (Google, ou inscription interrompue) : profil par défaut.
           void ensureProfile(user.uid, user.email, user.displayName, null).catch(() => undefined);
@@ -148,13 +173,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       () => undefined,
     );
+    // Modification du profil restée en attente lors d'une session précédente : on la renvoie.
+    void readJSON<PendingProfile>(storageKey(user.uid, 'profilePending')).then((pending) => {
+      if (pending && !pendingProfile.current) pendingProfile.current = pending;
+      void pushPendingProfile(user);
+    });
     // L'espace personnel doit exister avant toute écriture (règles Firestore).
     void ensurePersonalSpace(user.uid, user.displayName, profileRef.current?.currency ?? 'XOF').catch(() => undefined);
     return () => {
       offProfile();
       offSpaces();
     };
-  }, [mode, user]);
+  }, [mode, user, pushPendingProfile]);
 
   // 4. Espaces locaux (mode local + démonstrations).
   useEffect(() => {
@@ -176,7 +206,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
   useEffect(() => {
     engine?.setOnline(online);
-  }, [engine, online]);
+    if (online && mode === 'firebase' && user) void pushPendingProfile(user);
+  }, [engine, online, mode, user, pushPendingProfile]);
   // Au retour au premier plan : tenter de vider l'outbox.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
@@ -229,13 +260,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setProfile(next);
       await writeJSON(storageKey(user.uid, 'profile'), next);
       if (mode === 'firebase') {
-        // Hors-ligne : le SDK conserve l'écriture en mémoire et la rejoue ; le cache local fait foi en attendant.
-        void ensureProfile(user.uid, user.email, user.displayName, null)
-          .then(() => saveProfile(user.uid, patch))
-          .catch(() => undefined);
+        // Mémorisée sur l'appareil jusqu'à confirmation du serveur (voir pushPendingProfile).
+        const prev = pendingProfile.current;
+        pendingProfile.current = queuePatch(prev, patch, next.updatedAt);
+        await writeJSON(storageKey(user.uid, 'profilePending'), pendingProfile.current);
+        void pushPendingProfile(user);
       }
     },
-    [user, mode],
+    [user, mode, pushPendingProfile],
   );
 
   const enterLocalMode = useCallback(async () => {

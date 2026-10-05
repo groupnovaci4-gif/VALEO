@@ -8,10 +8,12 @@ import type { ThemePreference } from '@/core/types';
 import { env } from '@/config/env';
 import { brand } from '@/config/brand';
 import { signOut } from '@/services/auth';
+import { useTheme } from '@/theme';
 
 export default function Settings() {
   const { t } = useI18n();
   const { profile, updateProfile, mode, user, signOutLocal, plan } = useApp();
+  const { colors } = useTheme();
   if (!profile) return null;
   const prefs = profile.preferences;
   return (
@@ -20,7 +22,7 @@ export default function Settings() {
         <Row
           title={`${profile.firstName} ${profile.lastName}`.trim() || t('set.profile')}
           subtitle={[user?.email, t(`sub.${plan}`)].filter(Boolean).join(' · ')}
-          left={<IconCircle icon="person" color="#2563EB" />}
+          left={<IconCircle icon="person" color={colors.primary} />}
           chevron
           onPress={() => router.push('/settings/profile')}
         />
@@ -42,11 +44,11 @@ export default function Settings() {
       </Card>
       <SectionHeader title={t('set.title')} />
       <Card>
-        <Row title={t('set.security')} left={<IconCircle icon="lock-closed" color="#0F172A" size={36} />} chevron onPress={() => router.push('/settings/security')} />
-        <Row title={t('set.notifications')} left={<IconCircle icon="notifications" color="#EAB308" size={36} />} chevron onPress={() => router.push('/settings/notifications')} />
-        <Row title={t('set.recurring')} left={<IconCircle icon="repeat" color="#14B8A6" size={36} />} chevron onPress={() => router.push('/recurring')} />
-        <Row title={t('set.categories')} left={<IconCircle icon="pricetags" color="#64748B" size={36} />} chevron onPress={() => router.push('/categories')} />
-        <Row title={t('set.data')} left={<IconCircle icon="server" color="#7C3AED" size={36} />} chevron onPress={() => router.push('/settings/data')} />
+        <Row title={t('set.security')} left={<IconCircle icon="lock-closed" color={colors.primary} size={36} />} chevron onPress={() => router.push('/settings/security')} />
+        <Row title={t('set.notifications')} left={<IconCircle icon="notifications" color={colors.secondary} size={36} />} chevron onPress={() => router.push('/settings/notifications')} />
+        <Row title={t('set.recurring')} left={<IconCircle icon="repeat" color={colors.primary} size={36} />} chevron onPress={() => router.push('/recurring')} />
+        <Row title={t('set.categories')} left={<IconCircle icon="pricetags" color={colors.textMuted} size={36} />} chevron onPress={() => router.push('/categories')} />
+        <Row title={t('set.data')} left={<IconCircle icon="server" color={colors.info} size={36} />} chevron onPress={() => router.push('/settings/data')} />
       </Card>
       <SectionHeader title={t('set.legal')} />
       <Card>

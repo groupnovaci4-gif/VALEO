@@ -100,6 +100,7 @@ export const en: Record<TKey, string> = {
   'auth.err.invalid-credential': 'Wrong email or password.',
   'auth.err.email-already-in-use': 'An account already exists with this address.',
   'auth.err.weak-password': 'Password too weak: 8 characters minimum.',
+  'auth.passwordHint': '8 characters minimum.',
   'auth.err.too-many-requests': 'Too many attempts. Wait a few minutes.',
   'auth.err.network': 'No connection. Check the Internet and try again.',
   'auth.err.passwordMismatch': "Passwords don't match.",

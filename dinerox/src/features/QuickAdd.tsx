@@ -16,17 +16,18 @@ export function QuickAddProvider({ children }: { children: React.ReactNode }) {
   const [visible, setVisible] = useState(false);
   const { t } = useI18n();
   const { role } = useApp();
+  const { colors } = useTheme();
   const go = (path: Parameters<typeof router.push>[0]) => {
     setVisible(false);
     setTimeout(() => router.push(path), 150);
   };
   const items = [
-    { key: 'expense', icon: 'arrow-up', color: '#DC2626', label: t('quick.expense'), path: '/transaction/new?type=expense', show: can(role, 'create', 'transactions') },
-    { key: 'income', icon: 'arrow-down', color: '#16A34A', label: t('quick.income'), path: '/transaction/new?type=income', show: can(role, 'create', 'transactions') && role !== 'child' },
-    { key: 'transfer', icon: 'swap-horizontal', color: '#2563EB', label: t('quick.transfer'), path: '/transaction/new?type=transfer', show: role !== 'child' },
-    { key: 'saving', icon: 'wallet', color: '#16A34A', label: t('quick.saving'), path: '/savings', show: role !== 'child' },
-    { key: 'goal', icon: 'flag', color: '#7C3AED', label: t('quick.goal'), path: '/goals/new', show: can(role, 'create', 'goals') },
-    { key: 'say', icon: 'chatbubble-ellipses', color: '#7C3AED', label: t('quick.say'), path: '/assistant', show: true },
+    { key: 'expense', icon: 'arrow-up', color: colors.expense, label: t('quick.expense'), path: '/transaction/new?type=expense', show: can(role, 'create', 'transactions') },
+    { key: 'income', icon: 'arrow-down', color: colors.income, label: t('quick.income'), path: '/transaction/new?type=income', show: can(role, 'create', 'transactions') && role !== 'child' },
+    { key: 'transfer', icon: 'swap-horizontal', color: colors.info, label: t('quick.transfer'), path: '/transaction/new?type=transfer', show: role !== 'child' },
+    { key: 'saving', icon: 'wallet', color: colors.primary, label: t('quick.saving'), path: '/savings', show: role !== 'child' },
+    { key: 'goal', icon: 'flag', color: colors.primary, label: t('quick.goal'), path: '/goals/new', show: can(role, 'create', 'goals') },
+    { key: 'say', icon: 'chatbubble-ellipses', color: colors.secondary, label: t('quick.say'), path: '/assistant', show: true },
   ].filter((i) => i.show);
   return (
     <QuickAddContext.Provider value={{ open: () => setVisible(true) }}>

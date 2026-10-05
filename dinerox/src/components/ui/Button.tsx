@@ -2,7 +2,6 @@ import React from 'react';
 import { ActivityIndicator, Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, MIN_TOUCH } from '@/theme';
-import { brand } from '@/config/brand';
 import { Text } from './Text';
 import { Icon } from './Icon';
 
@@ -25,17 +24,17 @@ export function Button({ label, onPress, variant = 'primary', icon, loading, dis
   const { colors, radius, dark, shadow } = useTheme();
   const bg: Record<ButtonVariant, string> = {
     primary: colors.primary,
-    secondary: dark ? 'rgba(20,184,166,0.15)' : colors.surfaceAlt,
+    secondary: colors.primaryLight,
     ghost: 'transparent',
     danger: colors.danger,
     success: colors.success,
   };
   const fg: Record<ButtonVariant, string> = {
     primary: colors.onPrimary,
-    secondary: dark ? brand.colors.green : colors.primary,
+    secondary: colors.primary,
     ghost: colors.text,
-    danger: '#FFFFFF',
-    success: '#FFFFFF',
+    danger: colors.onInverse,
+    success: colors.onInverse,
   };
   const inactive = disabled || loading;
   return (
@@ -46,8 +45,14 @@ export function Button({ label, onPress, variant = 'primary', icon, loading, dis
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       disabled={inactive}
       onPress={() => {
-        void Haptics.selectionAsync().catch(() => undefined);
+        // L'action d'abord : un retour haptique indisponible (module natif absent,
+        // web) ne doit jamais empêcher le bouton de fonctionner.
         onPress?.();
+        try {
+          void Haptics.selectionAsync().catch(() => undefined);
+        } catch {
+          /* sans vibration */
+        }
       }}
       style={({ pressed }) => [
         {
@@ -55,8 +60,8 @@ export function Button({ label, onPress, variant = 'primary', icon, loading, dis
           paddingHorizontal: small ? 12 : 18,
           borderRadius: radius.pill,
           backgroundColor: bg[variant],
-          borderWidth: variant === 'secondary' && dark ? 1 : 0,
-          borderColor: 'rgba(20,184,166,0.4)',
+          borderWidth: variant === 'secondary' ? 1 : 0,
+          borderColor: colors.primaryBorder,
           ...(variant === 'primary' && dark && !inactive ? shadow.glowGreen : null),
           transform: [{ scale: pressed ? 0.98 : 1 }],
           opacity: inactive ? 0.5 : pressed ? 0.85 : 1,

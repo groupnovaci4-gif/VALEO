@@ -70,11 +70,12 @@ export function EnvelopeRow({ s, onPress }: { s: EnvelopeStatus; onPress?: () =>
 export function GoalCard({ goal, plan, compact }: { goal: Goal; plan: GoalPlan; compact?: boolean }) {
   const { t, monthYear } = useI18n();
   const money = useMoney();
+  const { colors } = useTheme();
   const tone = plan.reached ? 'success' : plan.overdue ? 'danger' : 'primary';
   return (
     <Card onPress={() => router.push(`/goals/${goal.id}`)} accessibilityLabel={goal.name} style={{ marginBottom: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-        <IconCircle emoji={goal.icon} color="#7C3AED" size={44} />
+        <IconCircle emoji={goal.icon} color={colors.primary} size={44} />
         <View style={{ flex: 1 }}>
           <Text variant="bodyStrong" numberOfLines={1}>
             {goal.name}

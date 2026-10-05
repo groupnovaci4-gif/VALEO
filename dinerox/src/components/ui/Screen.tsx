@@ -15,6 +15,8 @@ export interface ScreenProps {
   back?: boolean;
   /** Action(s) à droite de l'en-tête. */
   right?: React.ReactNode;
+  /** Élément avant le titre (logo de la marque sur le tableau de bord). */
+  leading?: React.ReactNode;
   children: React.ReactNode;
   /** false : pas de ScrollView (listes virtualisées). */
   scroll?: boolean;
@@ -28,13 +30,14 @@ export interface ScreenProps {
 }
 
 /** Conteneur d'écran standard : zone sûre, en-tête, défilement, clavier. */
-export function Screen({ title, subtitle, back, right, children, scroll = true, edges = ['top'], contentStyle, onRefresh, refreshing, footer, syncBanner = true }: ScreenProps) {
+export function Screen({ title, subtitle, back, right, leading, children, scroll = true, edges = ['top'], contentStyle, onRefresh, refreshing, footer, syncBanner = true }: ScreenProps) {
   const { colors } = useTheme();
   const { t } = useI18n();
   const header =
     title || back || right ? (
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: back ? 4 : 16, paddingTop: 4, paddingBottom: 8, minHeight: 52 }}>
         {back ? <IconButton icon="chevron-back" label={t('common.back')} onPress={goBack} /> : null}
+        {leading ? <View style={{ marginRight: 10 }}>{leading}</View> : null}
         <View style={{ flex: 1 }}>
           {title ? (
             <Text variant="h2" accessibilityRole="header" numberOfLines={1}>

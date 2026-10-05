@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
 import { Button, Field, Screen, SwitchRow, Text } from '@/components/ui';
 import { GoogleButton } from '@/components/GoogleButton';
+import { Logo } from '@/components/Logo';
 import { authErrorKey, isPasswordStrong, signUp } from '@/services/auth';
 import { analytics } from '@/services/analytics';
 import { TERMS_VERSION } from '@/config/legal';
@@ -40,13 +41,16 @@ export default function SignUp() {
   };
   return (
     <Screen back title={t('auth.signup.title')} syncBanner={false}>
+      <View style={{ alignItems: 'center', marginBottom: 20 }}>
+        <Logo size={72} />
+      </View>
       <Field label={t('auth.lastName')} value={lastName} onChangeText={setLastName} autoComplete="family-name" textContentType="familyName" maxLength={80} />
       <Field label={t('auth.firstName')} value={firstName} onChangeText={setFirstName} autoComplete="given-name" textContentType="givenName" maxLength={80} />
       <Field label={t('auth.email')} value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
-      <Field label={t('auth.password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" textContentType="newPassword" hint={t('auth.err.weak-password')} />
+      <Field label={t('auth.password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" textContentType="newPassword" hint={t('auth.passwordHint')} />
       <Field label={t('auth.passwordConfirm')} value={confirm} onChangeText={setConfirm} secureTextEntry autoComplete="new-password" textContentType="newPassword" />
       <SwitchRow title={t('auth.signup.terms')} value={terms} onChange={setTerms} />
-      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
         <Button small variant="ghost" label={t('set.terms')} onPress={() => router.push('/legal/terms')} />
         <Button small variant="ghost" label={t('set.privacy')} onPress={() => router.push('/legal/privacy')} />
       </View>

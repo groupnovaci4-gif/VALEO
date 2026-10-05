@@ -13,6 +13,7 @@ import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { Banner, Button, Card, EmptyState, Icon, IconButton, Screen, SectionHeader, Text, useToast } from '@/components/ui';
 import { EnvelopeRow, GoalCard, InsightCard, SpaceSwitcher, TransactionRow } from '@/features/rows';
+import { Logo } from '@/components/Logo';
 import { goalPlanFor, sortGoals } from '@/core/goals';
 import { sortTransactions } from '@/core/transactions';
 import { formatMoney, type CurrencyCode } from '@/core/money';
@@ -42,6 +43,7 @@ export default function Home() {
           <IconButton icon="settings-outline" label={t('set.title')} onPress={() => router.push('/settings')} />
         </View>
       }
+      leading={<Logo size={36} />}
       title={profile?.firstName ? t('home.hello', { name: profile.firstName }) : t('home.helloAnon')}
     >
       <SpaceSwitcher />

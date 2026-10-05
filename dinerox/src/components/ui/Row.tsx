@@ -60,8 +60,8 @@ export function SwitchRow({ title, subtitle, value, onChange, disabled }: { titl
           value={value}
           disabled={disabled}
           onValueChange={onChange}
-          trackColor={{ true: colors.success, false: colors.track }}
-          thumbColor="#FFFFFF"
+          trackColor={{ true: colors.primary, false: colors.track }}
+          thumbColor={colors.onInverse}
         />
       }
     />

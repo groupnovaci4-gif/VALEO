@@ -107,6 +107,7 @@ export const fr = {
   'auth.err.invalid-credential': 'E-mail ou mot de passe incorrect.',
   'auth.err.email-already-in-use': 'Un compte existe déjà avec cette adresse.',
   'auth.err.weak-password': 'Mot de passe trop faible : 8 caractères minimum.',
+  'auth.passwordHint': '8 caractères minimum.',
   'auth.err.too-many-requests': 'Trop de tentatives. Patientez quelques minutes.',
   'auth.err.network': "Pas de connexion. Vérifiez Internet et réessayez.",
   'auth.err.passwordMismatch': 'Les mots de passe ne correspondent pas.',

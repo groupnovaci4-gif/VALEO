@@ -34,9 +34,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           accessibilityRole="alert"
           style={{ position: 'absolute', left: 16, right: 16, bottom: insets.bottom + 90, alignItems: 'center' }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#0F172A', paddingHorizontal: 16, paddingVertical: 12, borderRadius: radius.md, maxWidth: 520 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.inverseSurface, paddingHorizontal: 16, paddingVertical: 12, borderRadius: radius.md, maxWidth: 520 }}>
             <Icon name={icon} size={18} color={color} />
-            <Text variant="small" style={{ color: '#FFFFFF', flexShrink: 1 }}>
+            <Text variant="small" style={{ color: colors.onInverse, flexShrink: 1 }}>
               {toast.message}
             </Text>
           </View>

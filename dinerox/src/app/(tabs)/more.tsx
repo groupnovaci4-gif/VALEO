@@ -5,6 +5,7 @@ import { useApp } from '@/store/app';
 import { Badge, Card, IconCircle, Row, Screen, SectionHeader } from '@/components/ui';
 import { can } from '@/core/permissions';
 import { hasFeature } from '@/core/subscription';
+import { useTheme } from '@/theme';
 
 interface Item {
   key: TKey;
@@ -18,32 +19,34 @@ interface Item {
 export default function More() {
   const { t } = useI18n();
   const { role, plan, user } = useApp();
+  // Icônes à la couleur de la marque : vert pour l'argent, or pour les temps forts.
+  const { colors } = useTheme();
   const groups: { title: TKey; items: Item[] }[] = [
     {
       title: 'more.money',
       items: [
-        { key: 'acc.title', icon: 'wallet', color: '#16A34A', path: '/accounts' },
-        { key: 'sav.title', icon: 'cash', color: '#0EA5E9', path: '/savings' },
-        { key: 'debt.title', icon: 'receipt', color: '#F97316', path: '/debts', show: can(role, 'read', 'debts') },
-        { key: 'nw.title', icon: 'business', color: '#7C3AED', path: '/assets', show: can(role, 'read', 'assets'), locked: !hasFeature(plan, 'net_worth') },
-        { key: 'rec.title', icon: 'repeat', color: '#14B8A6', path: '/recurring', show: can(role, 'read', 'recurring') },
+        { key: 'acc.title', icon: 'wallet', color: colors.primary, path: '/accounts' },
+        { key: 'sav.title', icon: 'cash', color: colors.primary, path: '/savings' },
+        { key: 'debt.title', icon: 'receipt', color: colors.secondary, path: '/debts', show: can(role, 'read', 'debts') },
+        { key: 'nw.title', icon: 'business', color: colors.primary, path: '/assets', show: can(role, 'read', 'assets'), locked: !hasFeature(plan, 'net_worth') },
+        { key: 'rec.title', icon: 'repeat', color: colors.primary, path: '/recurring', show: can(role, 'read', 'recurring') },
       ],
     },
     {
       title: 'more.plan',
       items: [
-        { key: 'fam.title', icon: 'people', color: '#EC4899', path: '/family' },
-        { key: 'rep.title', icon: 'bar-chart', color: '#2563EB', path: '/reports' },
-        { key: 'notif.title', icon: 'notifications', color: '#EAB308', path: '/notifications' },
-        { key: 'cat.title', icon: 'pricetags', color: '#64748B', path: '/categories', show: can(role, 'create', 'categories') },
+        { key: 'fam.title', icon: 'people', color: colors.primary, path: '/family' },
+        { key: 'rep.title', icon: 'bar-chart', color: colors.info, path: '/reports' },
+        { key: 'notif.title', icon: 'notifications', color: colors.secondary, path: '/notifications' },
+        { key: 'cat.title', icon: 'pricetags', color: colors.textMuted, path: '/categories', show: can(role, 'create', 'categories') },
       ],
     },
     {
       title: 'more.app',
       items: [
-        { key: 'sub.title', icon: 'sparkles', color: '#7C3AED', path: '/subscription' },
-        { key: 'set.title', icon: 'settings', color: '#334155', path: '/settings' },
-        { key: 'admin.title', icon: 'shield-checkmark', color: '#0F172A', path: '/admin', show: !!user?.isAdmin },
+        { key: 'sub.title', icon: 'sparkles', color: colors.secondary, path: '/subscription' },
+        { key: 'set.title', icon: 'settings', color: colors.textMuted, path: '/settings' },
+        { key: 'admin.title', icon: 'shield-checkmark', color: colors.textMuted, path: '/admin', show: !!user?.isAdmin },
       ],
     },
   ];

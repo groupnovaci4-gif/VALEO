@@ -92,8 +92,9 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
 
 function ErrorView({ retry }: { retry: () => Promise<void> }) {
   const { t } = useI18n();
+  const { colors } = useTheme();
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14, backgroundColor: '#F6F8FB' }}>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14, backgroundColor: colors.background }}>
       <Text style={{ fontSize: 44 }}>🛠️</Text>
       <Text variant="h3" align="center">
         {t('error.boundary.title')}

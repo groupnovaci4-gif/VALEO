@@ -42,8 +42,21 @@ export interface ColorScheme {
   text: string;
   textMuted: string;
   textSubtle: string;
+  /** Vert DineroX : boutons principaux, éléments actifs, progression. */
   primary: string;
+  /** Vert assombri : état pressé, liens et icônes sur fond clair. */
+  primaryDark: string;
+  /** Vert très léger : fonds de sélection, boutons secondaires. */
+  primaryLight: string;
+  /** Filet vert des éléments sélectionnés / boutons secondaires. */
+  primaryBorder: string;
   onPrimary: string;
+  /** Or de la flèche du logo : accent rare (bouton +, assistant). */
+  secondary: string;
+  onSecondary: string;
+  /** Surface inversée (toasts) et son texte. */
+  inverseSurface: string;
+  onInverse: string;
   hero: string;
   onHero: string;
   heroMuted: string;
@@ -87,7 +100,14 @@ export const darkColors: ColorScheme = {
   textMuted: '#94A3B8',
   textSubtle: '#7C8BA1',
   primary: '#14B8A6',
+  primaryDark: '#0D9488',
+  primaryLight: 'rgba(20,184,166,0.15)',
+  primaryBorder: 'rgba(20,184,166,0.4)',
   onPrimary: '#012A25',
+  secondary: '#F59E0B',
+  onSecondary: '#020617',
+  inverseSurface: '#1E293B',
+  onInverse: '#F8FAFC',
   hero: '#0B1120',
   onHero: '#F8FAFC',
   heroMuted: '#94A3B8',
@@ -120,7 +140,14 @@ export const lightColors: ColorScheme = {
   textMuted: '#475569',
   textSubtle: '#64748B',
   primary: '#0F766E',
+  primaryDark: '#115E59',
+  primaryLight: '#E6F4F1',
+  primaryBorder: '#99D5CB',
   onPrimary: palette.white,
+  secondary: '#F59E0B',
+  onSecondary: '#020617',
+  inverseSurface: '#0B1120',
+  onInverse: '#F8FAFC',
   hero: '#0B1120',
   onHero: '#F8FAFC',
   heroMuted: '#94A3B8',

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
 import { Button, Field, Screen, Text } from '@/components/ui';
 import { GoogleButton } from '@/components/GoogleButton';
+import { Logo } from '@/components/Logo';
 import { authErrorKey, signIn } from '@/services/auth';
 
 export default function SignIn() {
@@ -24,6 +26,9 @@ export default function SignIn() {
   };
   return (
     <Screen back title={t('auth.signin.title')} syncBanner={false}>
+      <View style={{ alignItems: 'center', marginBottom: 20 }}>
+        <Logo size={72} />
+      </View>
       <Field label={t('auth.email')} value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" textContentType="emailAddress" />
       <Field label={t('auth.password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" error={error} onSubmitEditing={() => void submit()} />
       <Button full label={t('auth.signin.submit')} loading={busy} disabled={!email || !password} onPress={() => void submit()} />
