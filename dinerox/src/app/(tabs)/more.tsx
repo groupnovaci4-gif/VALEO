@@ -52,6 +52,7 @@ export default function More() {
         { key: 'intel.title', sub: 'intel.sub', icon: 'analytics', color: colors.primary, path: '/analysis' },
         { key: 'cal.title', sub: 'cal.sub', icon: 'calendar', color: colors.info, path: '/calendar' },
         { key: 'fi.title', sub: 'fi.sub', icon: 'trending-up', color: colors.secondary, path: '/independence' },
+        { key: 'reward.title', sub: 'reward.subtitle', icon: 'trophy', color: colors.warning, path: '/rewards' },
       ],
     },
     {

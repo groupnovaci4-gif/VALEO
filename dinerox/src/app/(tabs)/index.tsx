@@ -16,6 +16,7 @@ import type { EnvelopeStatus } from '@/core/budget';
 import { useIntelligence } from '@/hooks/useIntelligence';
 import { RecommendationCard } from '@/features/Recommendation';
 import { CoachSummaryCard } from '@/features/coach/CoachSummaryCard';
+import { RewardsTile } from '@/features/coach/RewardsTile';
 import { goalPlanFor, sortGoals } from '@/core/goals';
 import { sortTransactions } from '@/core/transactions';
 import { formatMoney, type CurrencyCode } from '@/core/money';
@@ -110,6 +111,9 @@ export default function Home() {
         <QuickTile icon="arrow-up" tone="expense" label={t('tx.expense')} sub={t('home.action.expense.sub')} onPress={() => router.push('/transaction/new?type=expense')} />
         <QuickTile icon="swap-horizontal" tone="info" label={t('tx.transfer')} sub={t('home.action.transfer.sub')} onPress={() => router.push('/transaction/new?type=transfer')} />
       </View>
+
+      {/* Récompenses : progrès personnels (accès direct depuis l'accueil). */}
+      <RewardsTile />
 
       {/* Assistant */}
       <Pressable

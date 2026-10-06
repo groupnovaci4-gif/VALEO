@@ -31,6 +31,9 @@ import { addNotified, deliveryState, envelopeMemory, mergeDelivered, saveDeliver
 import { fetchDeliveredIds, recordCoachEvents } from '@/services/coachHistory';
 import { presentCoachPlan, setCoachWriteHandler, type CoachWriteSignal } from './bus';
 import { VoiceHost } from './VoiceHost';
+import { RewardCelebration } from './RewardCelebration';
+import { evaluateRewards, monthToEvaluate, rewardKey, REWARDS } from '@/core/coach/rewards';
+import { loadRewards, saveRewards, type StoredReward } from '@/services/rewards';
 
 interface CoachValue {
   /** Résumé en attente (ouverture) : affiché sur l'accueil jusqu'à « J'ai compris ». */
@@ -38,9 +41,13 @@ interface CoachValue {
   dismiss: () => void;
   /** Texte d'un événement (clé i18n + montants formatés). */
   text: (e: CoachEvent) => string;
+  /** Récompenses obtenues (personnelles). */
+  rewards: StoredReward[];
+  /** Réévalue les récompenses maintenant (ex. objectif atteint) ; `overlay` : célébration animée. */
+  checkRewards: (opts?: { overlay?: boolean }) => Promise<void>;
 }
 
-const CoachContext = createContext<CoachValue>({ summary: [], dismiss: () => undefined, text: () => '' });
+const CoachContext = createContext<CoachValue>({ summary: [], dismiss: () => undefined, text: () => '', rewards: [], checkRewards: async () => undefined });
 
 export function useCoach(): CoachValue {
   return useContext(CoachContext);
@@ -56,6 +63,8 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   const fmt = useFormatParams();
   const [summary, setSummary] = useState<CoachEvent[]>([]);
+  const [rewards, setRewards] = useState<StoredReward[]>([]);
+  const [celebration, setCelebration] = useState<{ rewardId: string; message: string } | null>(null);
   const sessionVoiceUsed = useRef(false);
   const remoteMergedFor = useRef<string | null>(null);
 
@@ -118,6 +127,40 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
     return () => setCoachWriteHandler(null);
   }, [deliver]);
 
+  // ─── Récompenses ─────────────────────────────────────────────────────
+  /** Nouvelles récompenses → enregistrées + événements de célébration (même politique que le reste). */
+  const awardRewards = useCallback(async (overlay: boolean): Promise<CoachEvent[]> => {
+    const { engine: e, uid, profile: p, mode: m, currency: cur, spaceId, text: txt } = latest.current;
+    if (!e || !uid || !spaceId || !e.isLoaded(spaceId)) return [];
+    const online = m === 'firebase';
+    const history = await loadRewards(uid, online);
+    const fresh = evaluateRewards({ data: e.getData(spaceId), currency: cur, month: monthToEvaluate(today()), history }, Date.now()).map((r) => ({ ...r, spaceId }));
+    if (!fresh.length) {
+      setRewards(history);
+      return [];
+    }
+    await saveRewards(uid, fresh, online);
+    setRewards([...history, ...fresh]);
+    const now = Date.now();
+    const events: CoachEvent[] = fresh.map((r) => {
+      const def = REWARDS.find((d) => d.id === r.rewardId)!;
+      return { id: `reward_${rewardKey(r.rewardId, r.period)}`, kind: `reward_${r.rewardId}`, severity: 'celebration', priority: 35 + (def.tier === 'gold' ? 3 : def.tier === 'silver' ? 2 : 1), spaceId, period: r.period, textKey: def.messageKey, params: { name: p?.firstName ?? '' }, pref: null, createdAt: now };
+    });
+    if (overlay) {
+      const top = [...events].sort((a, b) => b.priority - a.priority)[0];
+      setCelebration({ rewardId: top.kind.replace('reward_', ''), message: txt(top) });
+    }
+    return events;
+  }, []);
+
+  const checkRewards = useCallback(
+    async (opts?: { overlay?: boolean }) => {
+      const events = await awardRewards(!!opts?.overlay);
+      await deliver(events, 'write');
+    },
+    [awardRewards, deliver],
+  );
+
   // ─── Ouverture / retour au premier plan : un seul résumé ─────────────
   const evaluateOpen = useCallback(async () => {
     const { engine: e, uid, profile: p, mode: m, currency: cur, label, spaceId } = latest.current;
@@ -142,9 +185,10 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
       ...fromInsights(computeInsights({ data, currency: cur, now: day, categoryName: label }), spaceId, month, now),
       ...fromRecommendations(recommendations(snap, data.goals), spaceId, month, now),
       ...detectPositiveEvents(data, cur, day, spaceId, now),
+      ...(await awardRewards(true)),
     ];
     await deliver(events, 'open');
-  }, [deliver]);
+  }, [deliver, awardRewards]);
 
   const spaceId = activeSpace?.id ?? null;
   const onboarded = !!profile?.onboarding.completed;
@@ -170,14 +214,17 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
   if (summaryFor !== uid) {
     setSummaryFor(uid);
     setSummary([]);
+    setRewards([]);
+    setCelebration(null);
   }
 
   const dismiss = useCallback(() => setSummary([]), []);
-  const value = useMemo(() => ({ summary, dismiss, text }), [summary, dismiss, text]);
+  const value = useMemo(() => ({ summary, dismiss, text, rewards, checkRewards }), [summary, dismiss, text, rewards, checkRewards]);
   return (
     <CoachContext.Provider value={value}>
       <VoiceHost />
       {children}
+      {celebration ? <RewardCelebration rewardId={celebration.rewardId} message={celebration.message} onClose={() => setCelebration(null)} /> : null}
     </CoachContext.Provider>
   );
 }

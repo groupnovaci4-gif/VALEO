@@ -68,6 +68,21 @@ service cloud.firestore {
           && request.resource.data.spaceId is string && request.resource.data.spaceId.size() <= 128
           && request.resource.data.deliveredAt is int;
       }
+
+      // Récompenses PERSONNELLES : identifiant `${récompense}_${période}`, création
+      // seule (jamais deux fois la même, jamais modifiée), visibles du seul propriétaire.
+      match /rewards/{rewardKey} {
+        allow read, delete: if signedIn() && me() == userId;
+        allow create: if signedIn() && me() == userId
+          && rewardKey.size() <= 160
+          && request.resource.data.keys().hasOnly(['rewardId', 'period', 'earnedAt', 'spaceId'])
+          && request.resource.data.rewardId is string && request.resource.data.rewardId.size() <= 40
+          && request.resource.data.period is string && request.resource.data.period.size() <= 128
+          && rewardKey == request.resource.data.rewardId + '_' + request.resource.data.period
+          && request.resource.data.earnedAt is int
+          && request.resource.data.spaceId is string && request.resource.data.spaceId.size() <= 128;
+        allow update: if false;
+      }
     }
 
     // Abonnements vérifiés côté serveur (reçus, fournisseurs).

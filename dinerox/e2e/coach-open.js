@@ -21,17 +21,21 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   const d = await mk();
   await go(d.p, '/'); await d.p.getByText('Tester sans données (démonstration)').click();
   await d.p.getByText('Mode démonstration').first().waitFor({ timeout: 8000 }); await d.p.waitForTimeout(4500);
+  // Une éventuelle célébration de récompense (phase 4) s'affiche d'abord : on la ferme.
+  const closeCelebration = async (p) => { const c = p.getByRole('button', { name: 'Continuer' }); if (await c.count()) { await c.first().click({ timeout: 5000 }); await p.waitForTimeout(400); } };
+  await closeCelebration(d.p);
   const first = await card(d.p);
   ok(!!first && first.length >= 1 && first.length <= 3, `ouverture : un seul résumé de 1 à 3 points (${first ? first.length : 0}) — ${JSON.stringify(first)}`);
   ok((await d.p.locator('body').innerText()).includes('Selon les opérations enregistrées dans'), 'mention : selon les opérations enregistrées (pas de suivi bancaire en temps réel)');
   await d.p.screenshot({ path: `${S}/coach-open-1.png` });
-  await d.p.getByRole('button', { name: "J'ai compris" }).click(); await d.p.waitForTimeout(500);
+  await d.p.getByRole('button', { name: "J'ai compris" }).click({ timeout: 10000 }); await d.p.waitForTimeout(500);
   ok((await card(d.p)) === null, '« J’ai compris » : la carte disparaît');
   const seen = new Set(first ?? []);
   let repeated = 0;
   for (let k = 0; k < 2; k++) {
     await d.p.close(); d.p = await d.ctx.newPage(); d.p.on('pageerror', (e) => errs.push(e.message));
     await go(d.p, '/', 6500);
+    await closeCelebration(d.p);
     const again = (await card(d.p)) ?? [];
     for (const l of again) { if (seen.has(l)) repeated++; seen.add(l); }
   }

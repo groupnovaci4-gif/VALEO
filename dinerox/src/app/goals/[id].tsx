@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRunAction } from '@/hooks/useRunAction';
 import { Alert, Modal, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -13,6 +13,7 @@ import { goalPlanFor, shouldCelebrate } from '@/core/goals';
 import { can } from '@/core/permissions';
 import type { GoalStatus } from '@/core/types';
 import { withSpaceReady } from '@/components/SpaceReady';
+import { useCoach } from '@/features/coach/CoachProvider';
 
 function GoalDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,6 +32,12 @@ function GoalDetail() {
   const [dismissed, setDismissed] = useState(false);
   const celebrate = !dismissed && !!goal && shouldCelebrate(goal, data.goalContributions);
   const setCelebrate = (open: boolean) => setDismissed(!open);
+  // Objectif atteint : la récompense est enregistrée (une seule fois par objectif) ;
+  // cette fenêtre reste la célébration, le coach n'en ajoute pas une seconde.
+  const { checkRewards } = useCoach();
+  useEffect(() => {
+    if (celebrate) void checkRewards({ overlay: false }).catch(() => undefined);
+  }, [celebrate, checkRewards]);
 
   if (!goal || !plan) {
     return (
@@ -152,6 +159,9 @@ function GoalDetail() {
               {goal.icon} {goal.name}
             </Text>
             <Text align="center">{t('goal.celebrate.amount', { amount: money(goal.targetAmount) })}</Text>
+            <Text variant="small" tone="muted" align="center">
+              🏆 {t('reward.goal_achieved.name')}
+            </Text>
             {canEdit ? (
               <>
                 <Button full variant="success" icon="trophy" label={t('goal.action.complete')} onPress={() => (setCelebrate(false), setStatus('completed'))} />

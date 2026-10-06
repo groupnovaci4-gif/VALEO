@@ -102,6 +102,19 @@ describe('profil utilisateur', () => {
     await assertFails(setDoc(doc(db('u1'), 'users/u1/coachEvents/z'), { ...ev, severity: 'urgent' }));
     await assertSucceeds(deleteDoc(doc(db('u1'), 'users/u1/coachEvents/env_food_2026-10_warning')));
   });
+  it('récompenses : personnelles, création seule, identifiant cohérent', async () => {
+    await setDoc(doc(db('u1'), 'users/u1'), profile('u1'));
+    const r = { rewardId: 'budget_master', period: '2026-09', earnedAt: 1, spaceId: 'u1' };
+    await assertSucceeds(setDoc(doc(db('u1'), 'users/u1/rewards/budget_master_2026-09'), r));
+    await assertSucceeds(getDoc(doc(db('u1'), 'users/u1/rewards/budget_master_2026-09')));
+    // Jamais modifiée (une récompense obtenue ne se « rejoue » pas), jamais lue par un autre.
+    await assertFails(setDoc(doc(db('u1'), 'users/u1/rewards/budget_master_2026-09'), { ...r, earnedAt: 2 }));
+    await assertFails(getDoc(doc(db('u2'), 'users/u1/rewards/budget_master_2026-09')));
+    await assertFails(setDoc(doc(db('u2'), 'users/u1/rewards/budget_master_2026-10'), { ...r, period: '2026-10' }));
+    // Identifiant incohérent ou champ en trop : refusé.
+    await assertFails(setDoc(doc(db('u1'), 'users/u1/rewards/autre_2026-09'), r));
+    await assertFails(setDoc(doc(db('u1'), 'users/u1/rewards/excellent_2026-09'), { ...r, rewardId: 'excellent', score: 99 }));
+  });
   it("abonnement : jamais modifiable par le client (non-régression)", async () => {
     await setDoc(doc(db('u1'), 'users/u1'), profile('u1'));
     await assertFails(updateDoc(doc(db('u1'), 'users/u1'), { 'subscription.plan': 'family' }));
