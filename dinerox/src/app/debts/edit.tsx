@@ -83,7 +83,7 @@ function DebtEdit() {
       <Field label={t('debt.counterparty')} value={counterparty} onChangeText={setCounterparty} maxLength={120} />
       <AmountField label={t('debt.principal')} value={principal} onChange={setPrincipal} currency={existing?.currency ?? currency} big />
       <AmountField label={`${t('debt.installment')} (${t('common.optional')})`} value={installment} onChange={setInstallment} currency={existing?.currency ?? currency} />
-      <Field label={`${t('debt.dueDay')} (${t('common.optional')})`} value={dueDay} onChangeText={(s) => setDueDay(s.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" />
+      <Field label={`${t('debt.dueDay')} (${t('common.optional')})`} value={dueDay} onChangeText={(s) => setDueDay(s.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" maxLength={2} />
       <DateField label={t('debt.startDate')} value={startDate} onChange={(d) => d && setStartDate(d)} shortcuts={false} />
       <DateField label={`${t('debt.dueDate')} (${t('common.optional')})`} value={dueDate} onChange={setDueDate} allowClear shortcuts={false} />
       <Field label={`${t('debt.rate')} (${t('common.optional')})`} value={rate} onChangeText={setRate} keyboardType="decimal-pad" />

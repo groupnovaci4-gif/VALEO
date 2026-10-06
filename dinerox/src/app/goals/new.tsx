@@ -149,7 +149,7 @@ function NewGoal() {
         <Text tone="muted" style={{ marginBottom: 14 }}>
           {t('goal.customHint')}
         </Text>
-        <Field value={draft.name} onChangeText={(name) => setDraft((d) => ({ ...d, name }))} placeholder={t('goal.customPlaceholder')} autoFocus={!fromAi} maxLength={120} />
+        <Field label={t('goal.name')} value={draft.name} onChangeText={(name) => setDraft((d) => ({ ...d, name }))} placeholder={t('goal.customPlaceholder')} autoFocus={!fromAi} maxLength={120} />
         <CategorySuggestion
           text={draft.name}
           categories={categories}

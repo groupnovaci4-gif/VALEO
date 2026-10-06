@@ -145,10 +145,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setStatus('signedOut');
         return;
       }
-      // Changement de compte : rien de la session précédente ne survit.
-      if (sessionUid.current !== u.uid) resetSession();
-      sessionUid.current = u.uid;
-      const token = await u.getIdTokenResult().catch(() => null);
+      // Lectures d'abord (jeton, cache local), PUIS tout l'état de session posé
+      // d'un seul coup : l'écouteur du profil (effet 3) ne démarre qu'après ce
+      // rendu, ses données fraîches ne peuvent donc plus être écrasées par le
+      // cache lu entre-temps (cause du « Bonjour » sans prénom après inscription).
+      const [token, cachedProfile, cachedSpaces] = await Promise.all([
+        u.getIdTokenResult().catch(() => null),
+        readJSON<UserProfile>(storageKey(u.uid, 'profile')),
+        readJSON<Space[]>(storageKey(u.uid, 'spaces')),
+      ]);
+      // Réponse périmée : le compte a changé pendant la lecture.
+      if (auth.currentUser?.uid !== u.uid) return;
+      if (sessionUid.current !== u.uid) {
+        // Nouveau compte : rien de la session précédente ne survit ; cache du compte
+        // pour une ouverture hors-ligne immédiate.
+        resetSession();
+        sessionUid.current = u.uid;
+        setProfile(cachedProfile ?? null);
+        setRemoteSpaces(cachedSpaces ?? []);
+      }
       setUser({
         uid: u.uid,
         email: u.email ?? '',
@@ -156,11 +171,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         displayName: u.displayName ?? '',
         isAdmin: token?.claims?.admin === true,
       });
-      // Profil et espaces en cache : ouverture hors-ligne immédiate.
-      const cachedProfile = await readJSON<UserProfile>(storageKey(u.uid, 'profile'));
-      const cachedSpaces = await readJSON<Space[]>(storageKey(u.uid, 'spaces'));
-      setProfile(cachedProfile ?? null);
-      setRemoteSpaces(cachedSpaces ?? []);
       setStatus('signedIn');
     });
   }, [mode, resetSession]);

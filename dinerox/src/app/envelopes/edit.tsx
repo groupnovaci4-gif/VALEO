@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { goBack } from '@/hooks/goBack';
-import { useI18n, type TKey } from '@/i18n';
+import { useI18n } from '@/i18n';
 import { useData } from '@/store/app';
 import { ActionError, useActions } from '@/store/actions';
 import { useCategoryLabels, useCurrency } from '@/hooks/useFinance';
@@ -70,10 +70,10 @@ function EnvelopeEdit() {
         onChange={(c) => setCategoryIds((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]))}
       />
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
-        {t('acc.color' as TKey)}
+        {t('acc.color')}
       </Text>
-      <ChipGroup scroll options={pickableColors.map((c) => ({ value: c, label: '●', color: c, icon: 'ellipse' }))} value={color} onChange={setColor} />
-      <ChipGroup scroll options={ICONS.map((i) => ({ value: i, label: '', icon: i }))} value={icon} onChange={setIcon} />
+      <ChipGroup scroll options={pickableColors.map((c, i) => ({ value: c, label: '●', color: c, icon: 'ellipse', a11yLabel: `${t('acc.color')} ${i + 1}` }))} value={color} onChange={setColor} />
+      <ChipGroup scroll options={ICONS.map((i) => ({ value: i, label: '', icon: i, a11yLabel: `${t('common.icon')} ${i}` }))} value={icon} onChange={setIcon} />
     </Screen>
   );
 }

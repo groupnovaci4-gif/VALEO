@@ -43,8 +43,14 @@ export default function Onboarding() {
   const [index, setIndex] = useState(0);
   const [busy, setBusy] = useState(false);
   // Prénom demandé seulement s'il est inconnu (usage sans compte en ligne) ; facultatif.
-  const askName = !profile?.firstName;
+  // Décision FIGÉE au premier profil reçu : juste après l'inscription, le profil
+  // arrive parfois en deux temps (sans prénom, puis avec). Recalculée à chaque
+  // rendu, elle faisait disparaître le champ pendant que l'utilisateur y tapait.
   const [name, setName] = useState('');
+  const [askNameLatched, setAskNameLatched] = useState<boolean | null>(profile ? !profile.firstName : null);
+  if (askNameLatched === null && profile) setAskNameLatched(!profile.firstName);
+  // Un champ commencé n'est jamais retiré.
+  const askName = !!askNameLatched || name !== '';
   const step = STEP_IDS[index];
   const last = index === STEP_IDS.length - 1;
 

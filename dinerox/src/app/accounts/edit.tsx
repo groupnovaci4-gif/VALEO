@@ -128,7 +128,7 @@ function AccountEdit() {
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('acc.color')}
       </Text>
-      <ChipGroup scroll value={color} onChange={setColor} options={pickableColors.map((c) => ({ value: c, label: ' ', icon: 'ellipse', color: c }))} />
+      <ChipGroup scroll value={color} onChange={setColor} options={pickableColors.map((c, i) => ({ value: c, label: ' ', icon: 'ellipse', color: c, a11yLabel: `${t('acc.color')} ${i + 1}` }))} />
       {existing ? <SwitchRow title={t('acc.active')} value={active} onChange={setActive} /> : null}
       <Text variant="caption" tone="subtle">
         {t('acc.manualNotice')}

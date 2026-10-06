@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
@@ -22,10 +22,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setToast(null), tone === 'error' ? 4500 : 2200);
   }, []);
+  // Valeur stable : afficher un message ne fait pas re-rendre tous les écrans (et leurs formulaires).
+  const value = useMemo(() => ({ show }), [show]);
   const icon = toast?.tone === 'error' ? 'alert-circle' : toast?.tone === 'info' ? 'information-circle' : 'checkmark-circle';
   const color = toast?.tone === 'error' ? colors.danger : toast?.tone === 'info' ? colors.info : colors.success;
   return (
-    <ToastContext.Provider value={{ show }}>
+    <ToastContext.Provider value={value}>
       {children}
       {toast ? (
         <View

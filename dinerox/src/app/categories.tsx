@@ -74,8 +74,8 @@ function Categories() {
             <ChipGroup scroll value={parentId} onChange={(v) => setParentId(parentId === v ? null : v)} options={cats.list('expense').map((p) => ({ value: p.id, label: p.name, icon: p.icon, color: p.color }))} />
           </>
         ) : null}
-        <ChipGroup scroll value={icon} onChange={setIcon} options={ICONS.map((i) => ({ value: i, label: '', icon: i }))} />
-        <ChipGroup scroll value={color} onChange={setColor} options={pickableColors.map((c) => ({ value: c, label: ' ', icon: 'ellipse', color: c }))} />
+        <ChipGroup scroll value={icon} onChange={setIcon} options={ICONS.map((i) => ({ value: i, label: '', icon: i, a11yLabel: `${t('common.icon')} ${i}` }))} />
+        <ChipGroup scroll value={color} onChange={setColor} options={pickableColors.map((c, i) => ({ value: c, label: ' ', icon: 'ellipse', color: c, a11yLabel: `${t('acc.color')} ${i + 1}` }))} />
         <Button full label={t('common.save')} onPress={save} />
         {editingCat && !editingCat.system ? <Button full variant="ghost" label={t('common.delete')} onPress={() => run(() => actions.remove('categories', editingCat.id)) && setEditing(null)} /> : null}
       </Sheet>

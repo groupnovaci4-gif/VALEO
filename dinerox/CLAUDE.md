@@ -5,6 +5,8 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
 
 ## Commandes
 - `npm run check` — typecheck + lint + tests (doit rester vert, lint à zéro).
+- `npm run e2e` — parcours de bout en bout sur l'export web + émulateurs
+  (tous les formulaires, multi-comptes) : voir `e2e/README.md`.
 - `npm run test:rules` — règles Firestore sur l'émulateur.
 - `npm --prefix firebase/functions run typecheck` — Cloud Functions.
 - Installer une dépendance native : `EXPO_OFFLINE=1 npx expo install <pkg>`.
@@ -56,3 +58,15 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     effacée à chaque changement de compte (`resetSession`) ; une modification de
     profil en attente porte son propriétaire (`pendingOf`). La déconnexion
     annule les rappels locaux et retire le jeton push de l'appareil.
+15. **Formulaires.** Un seul composant de saisie : `Field` / `AmountField`
+    (seule exception : la zone de message de l'assistant, au style fixe). Un champ ne doit jamais apparaître
+    puis disparaître selon une donnée qui arrive en différé (profil, synchro) :
+    figer la décision au premier chargement et ne jamais retirer un champ
+    commencé (cf. prénom de l'onboarding). Les écrans dont l'état initial dépend
+    des données passent par `withSpaceReady`. Les feuilles avec champs sont des
+    `Sheet` (modale + gestion du clavier) ; un menu qui ouvre un autre écran est
+    une `Sheet inline` (même fenêtre : le champ de l'écran suivant peut ouvrir le
+    clavier). Chaque nouvel écran de saisie est ajouté à `e2e/forms-audit.js`.
+16. **Session Firebase** : dans `onAuthStateChanged`, toutes les lectures
+    asynchrones d'abord, puis l'état de session posé en une fois ; jamais de
+    `setState` après un `await` qui pourrait écraser une donnée plus fraîche.

@@ -4,14 +4,14 @@ import { useTheme } from '@/theme';
 import { Text } from './Text';
 import { Icon } from './Icon';
 
-export function Chip({ label, selected, onPress, icon, emoji, color }: { label: string; selected?: boolean; onPress?: () => void; icon?: string; emoji?: string; color?: string }) {
+export function Chip({ label, selected, onPress, icon, emoji, color, a11yLabel }: { label: string; selected?: boolean; onPress?: () => void; icon?: string; emoji?: string; color?: string; /** Nom lu par le lecteur d'écran quand le libellé visible est un symbole. */ a11yLabel?: string }) {
   const { colors, radius } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected: !!selected }}
       aria-selected={!!selected}
-      accessibilityLabel={label}
+      accessibilityLabel={a11yLabel ?? label}
       onPress={onPress}
       style={({ pressed }) => ({
         flexDirection: 'row',
@@ -42,6 +42,7 @@ export interface ChipOption<T extends string> {
   icon?: string;
   emoji?: string;
   color?: string;
+  a11yLabel?: string;
 }
 
 /** Choix unique ou multiple parmi des puces. `scroll` : sur une ligne défilante. */
@@ -59,7 +60,7 @@ export function ChipGroup<T extends string>({
   scroll?: boolean;
 }) {
   const isSel = (v: T) => (multiple ? (value as T[] | null)?.includes(v) : value === v);
-  const chips = options.map((o) => <Chip key={o.value} label={o.label} icon={o.icon} emoji={o.emoji} color={o.color} selected={!!isSel(o.value)} onPress={() => onChange(o.value)} />);
+  const chips = options.map((o) => <Chip key={o.value} label={o.label} icon={o.icon} emoji={o.emoji} color={o.color} a11yLabel={o.a11yLabel} selected={!!isSel(o.value)} onPress={() => onChange(o.value)} />);
   if (scroll) {
     return (
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }} style={{ marginBottom: 14 }}>

@@ -3,7 +3,9 @@ import { View, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
-import { useData } from '@/store/app';
+import { useApp, useData } from '@/store/app';
+import { hasFeature } from '@/core/subscription';
+import { UpgradeCard } from '@/features/rows';
 import { useActions } from '@/store/actions';
 import { useCurrency } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, useToast } from '@/components/ui';
@@ -25,6 +27,15 @@ function AssetEdit() {
   const [value, setValue] = useState<number | null>(existing?.value ?? null);
   const [acquiredAt, setAcquiredAt] = useState<string | null>(existing?.acquiredAt ?? null);
   const [error, setError] = useState<string | null>(null);
+  const { plan } = useApp();
+  // Même règle que la liste du patrimoine : jamais de saisie que l'utilisateur ne pourrait plus voir.
+  if (!hasFeature(plan, 'net_worth')) {
+    return (
+      <Screen back title={t('nw.add')}>
+        <UpgradeCard feature="net_worth" text={t('nw.empty.body')} />
+      </Screen>
+    );
+  }
   const save = () => {
     if (!name.trim()) return setError(t('error.name.required'));
     if (!value) return setError(t('error.amount.invalid'));
