@@ -47,6 +47,36 @@ function getNotifications(): NotificationsModule | null {
   return loaded;
 }
 
+/** Chemin interne porté par une notification (jamais d'URL externe). */
+function tapUrl(data: unknown): string | null {
+  const url = (data as { url?: unknown } | null)?.url;
+  return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//') ? url : null;
+}
+
+/**
+ * Appelle `onOpen(chemin)` quand l'utilisateur touche une notification,
+ * y compris celle qui a lancé l'application (démarrage à froid).
+ */
+export function listenNotificationTaps(onOpen: (url: string) => void): () => void {
+  const Notifications = getNotifications();
+  if (!Notifications) return () => undefined;
+  let alive = true;
+  Notifications.getLastNotificationResponseAsync()
+    .then((r) => {
+      const url = r ? tapUrl(r.notification.request.content.data) : null;
+      if (alive && url) onOpen(url);
+    })
+    .catch(() => undefined);
+  const sub = Notifications.addNotificationResponseReceivedListener((r) => {
+    const url = tapUrl(r.notification.request.content.data);
+    if (url) onOpen(url);
+  });
+  return () => {
+    alive = false;
+    sub.remove();
+  };
+}
+
 /** État des autorisations, sans rien demander. null si indisponible. */
 export async function permissionStatus(): Promise<{ granted: boolean; canAskAgain: boolean } | null> {
   const Notifications = getNotifications();

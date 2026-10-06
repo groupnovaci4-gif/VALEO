@@ -8,7 +8,8 @@
  * La conversation reste sur l'appareil (non stockée sur le serveur).
  */
 import React, { useMemo, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
+import { FlatList, Platform, Pressable, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
@@ -175,16 +176,24 @@ export default function Assistant() {
     else router.push({ pathname: '/goals/new', params: { name: p.name, amount: p.amount ? String(p.amount) : undefined, targetDate: p.targetDate ?? undefined, ai: '1' } });
   };
 
-  const askRemote = async (m: Message) => {
+  // `consented` : consentement donné à l'instant (le profil de cette closure
+  // n'est pas encore à jour — sinon la demande de consentement réapparaît).
+  const askRemote = async (m: Message, consented = false) => {
     if (!m.question) return;
-    if (!profile?.preferences.aiConsent) {
+    if (!consented && !profile?.preferences.aiConsent) {
       push({ id: mid(), from: 'assistant', text: t('ai.remoteConsent'), question: m.question, proposal: undefined, status: 'pending', remote: true });
       return;
     }
     setBusy(true);
-    const summary = buildFinanceSummary(data, currency, now, cats.byId);
-    const answer = await askRemoteAssistant(m.question, summary, lang);
-    setBusy(false);
+    let answer: string | null = null;
+    try {
+      const summary = buildFinanceSummary(data, currency, now, cats.byId);
+      answer = await askRemoteAssistant(m.question, summary, lang);
+    } catch {
+      answer = null;
+    } finally {
+      setBusy(false);
+    }
     push({ id: mid(), from: 'assistant', text: answer ?? t('ai.remoteUnavailable') });
   };
 
@@ -251,7 +260,7 @@ export default function Assistant() {
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.background }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}>
         <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
           <Text variant="h2" accessibilityRole="header">
             {t('ai.title')}
@@ -306,7 +315,9 @@ export default function Assistant() {
                     label={t('ai.remoteConsentYes')}
                     onPress={() => {
                       update(m.id, { status: 'done' });
-                      void updateProfile({ preferences: { ...profile!.preferences, aiConsent: true } }).then(() => askRemote({ ...m, question: m.question }));
+                      void updateProfile({ preferences: { ...profile!.preferences, aiConsent: true } })
+                        .then(() => askRemote(m, true))
+                        .catch(() => push({ id: mid(), from: 'assistant', text: t('ai.remoteUnavailable') }));
                     }}
                   />
                   <Button small variant="ghost" label={t('common.no')} onPress={() => update(m.id, { status: 'cancelled' })} />

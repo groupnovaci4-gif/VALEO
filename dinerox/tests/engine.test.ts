@@ -151,4 +151,24 @@ describe('moteur de synchronisation', () => {
     expect(cols).not.toContain('assets');
     expect(cols).toContain('transactions');
   });
+  it('deux ouvertures simultanées du même espace : un seul jeu d écouteurs actif', async () => {
+    const f = fakeRemote();
+    let active = 0;
+    let opened = 0;
+    const remote = { ...f.remote, subscribe: () => (active++, opened++, () => void active--) };
+    // Référence : une ouverture seule.
+    let single = 0;
+    await new SyncEngine('u0', { ...f.remote, subscribe: () => (single++, () => undefined) } as never).open('s0', 'admin');
+    const engine = new SyncEngine('u1', remote as never);
+    await Promise.all([engine.open('s1', 'admin'), engine.open('s1', 'admin')]);
+    const perOpen = opened;
+    expect(perOpen).toBe(single);
+    await engine.open('s1', 'admin');
+    expect(opened).toBe(perOpen); // déjà ouvert : rien de relancé
+    expect(active).toBe(perOpen);
+    // Changement de rôle : les anciens écouteurs sont fermés avant d'ouvrir les nouveaux.
+    await engine.open('s1', 'child');
+    expect(active).toBeLessThan(perOpen);
+    expect(active).toBeGreaterThan(0);
+  });
 });

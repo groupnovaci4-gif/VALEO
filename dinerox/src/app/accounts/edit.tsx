@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp, useData } from '@/store/app';
@@ -13,11 +13,13 @@ import type { AccountType, SavingsKind } from '@/core/types';
 import { pickableColors } from '@/theme';
 import { countryProfile } from '@/core/countries';
 import { useAccountName } from '@/features/FinancialProfileSteps';
+import { useActionErrorMessage, useRunAction } from '@/hooks/useRunAction';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 function AccountEdit() {
   const { id, savings } = useLocalSearchParams<{ id?: string; savings?: string }>();
   const { t } = useI18n();
+  const errorMessage = useActionErrorMessage();
   const toast = useToast();
   const data = useData();
   const { activeSpace, profile } = useApp();
@@ -27,6 +29,7 @@ function AccountEdit() {
   const preferred = countryProfile(country).paymentMethods;
   const templates = [...preferred.map((k) => ACCOUNT_TEMPLATES.find((a) => a.key === k)!).filter(Boolean), ...ACCOUNT_TEMPLATES.filter((a) => !preferred.includes(a.key))];
   const actions = useActions();
+  const run = useRunAction();
   const existing = data.accounts.find((a) => a.id === id);
   const initialTpl = ACCOUNT_TEMPLATES.find((x) => x.key === (savings ? 'acc.savings' : 'acc.cash'))!;
   const [tpl, setTpl] = useState(existing ? null : initialTpl.key);
@@ -62,8 +65,7 @@ function AccountEdit() {
       goBack();
     } catch (e) {
       if (e instanceof ActionError && e.code === 'limit') setError('limit');
-      else if (e instanceof ActionError && e.code === 'permission') setError(t('error.permission'));
-      else setError(t('error.name.required'));
+      else setError(errorMessage(e, 'error.name.required'));
     }
   };
   const remove = () =>
@@ -73,8 +75,11 @@ function AccountEdit() {
         text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
-          if (actions.deleteAccount(existing!.id) === 'blocked') Alert.alert(t('acc.deleteBlocked'));
-          else goBack();
+          let result: string | undefined;
+          if (!run(() => (result = actions.deleteAccount(existing!.id)))) return;
+          if (result === 'blocked') Alert.alert(t('acc.deleteBlocked'));
+          // L'écran du compte supprimé n'existe plus : retour à la liste des comptes.
+          else router.replace('/accounts');
         },
       },
     ]);

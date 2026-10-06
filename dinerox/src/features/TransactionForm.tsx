@@ -85,9 +85,17 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
     setBusy(true);
     try {
       let receiptUrl = receipt;
+      let receiptFailed = false;
       // Les justificatifs sont envoyés dans Storage (comptes en ligne) ; en local, le fichier reste sur l'appareil.
       if (receipt && receipt !== existing?.receiptUrl && mode === 'firebase' && activeSpace) {
-        receiptUrl = await uploadReceipt(activeSpace.id, receipt).catch(() => receipt);
+        try {
+          receiptUrl = await uploadReceipt(activeSpace.id, receipt);
+        } catch {
+          // Jamais de chemin local dans un document synchronisé : il serait
+          // illisible sur les autres appareils. On garde l'ancien justificatif.
+          receiptUrl = existing?.receiptUrl ?? null;
+          receiptFailed = true;
+        }
       }
       const saved = actions.saveTransaction({
         id: existing?.id,
@@ -124,7 +132,7 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
           lastGenerated: saved.date,
         });
       }
-      toast.show(t('tx.saved'));
+      toast.show(receiptFailed ? t('tx.receiptUploadFailed') : t('tx.saved'), receiptFailed ? 'error' : undefined);
       goBack();
     } catch (e) {
       if (e instanceof ActionError && e.details.errors) setErrors(e.details.errors.map((k) => t(`error.${k}` as TKey)));
@@ -142,7 +150,12 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
         text: t('common.delete'),
         style: 'destructive',
         onPress: () => {
-          actions.remove('transactions', existing!.id);
+          try {
+            actions.remove('transactions', existing!.id);
+          } catch (e) {
+            toast.show(e instanceof ActionError && e.code === 'permission' ? t('error.permission') : t('error.generic'), 'error');
+            return;
+          }
           toast.show(t('common.deleted'));
           goBack();
         },

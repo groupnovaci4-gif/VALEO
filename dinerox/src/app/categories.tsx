@@ -6,6 +6,7 @@ import { useActions } from '@/store/actions';
 import { useCategoryLabels } from '@/hooks/useFinance';
 import { Button, Card, ChipGroup, Field, Icon, IconCircle, Row, Screen, Segmented, Sheet, Text, useToast } from '@/components/ui';
 import { pickableColors, useTheme } from '@/theme';
+import { useRunAction } from '@/hooks/useRunAction';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 const ICONS = ['pricetag', 'cart', 'gift', 'paw', 'construct', 'barbell', 'bus', 'cafe', 'beer', 'book', 'briefcase', 'flower', 'hammer', 'medkit'];
@@ -17,6 +18,7 @@ function Categories() {
   const toast = useToast();
   const data = useData();
   const actions = useActions();
+  const run = useRunAction();
   const cats = useCategoryLabels();
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [editing, setEditing] = useState<string | 'new' | null>(null);
@@ -33,9 +35,10 @@ function Categories() {
     setEditing(id);
   };
   const save = () => {
-    if (!name.trim()) return;
+    if (!name.trim()) return toast.show(t('error.name.required'), 'error');
     const c = data.categories.find((x) => x.id === editing);
-    actions.saveCategory({ ...(c ?? {}), id: c?.id, kind: c?.kind ?? kind, name: name.trim(), icon, color, order: c?.order ?? data.categories.length, system: c?.system, labelKey: c?.labelKey, parentId: c?.system ? null : parentId });
+    const ok = run(() => actions.saveCategory({ ...(c ?? {}), id: c?.id, kind: c?.kind ?? kind, name: name.trim(), icon, color, order: c?.order ?? data.categories.length, system: c?.system, labelKey: c?.labelKey, parentId: c?.system ? null : parentId }));
+    if (!ok) return;
     toast.show(t('common.saved'));
     setEditing(null);
   };
@@ -74,7 +77,7 @@ function Categories() {
         <ChipGroup scroll value={icon} onChange={setIcon} options={ICONS.map((i) => ({ value: i, label: '', icon: i }))} />
         <ChipGroup scroll value={color} onChange={setColor} options={pickableColors.map((c) => ({ value: c, label: ' ', icon: 'ellipse', color: c }))} />
         <Button full label={t('common.save')} onPress={save} />
-        {editingCat && !editingCat.system ? <Button full variant="ghost" label={t('common.delete')} onPress={() => (actions.remove('categories', editingCat.id), setEditing(null))} /> : null}
+        {editingCat && !editingCat.system ? <Button full variant="ghost" label={t('common.delete')} onPress={() => run(() => actions.remove('categories', editingCat.id)) && setEditing(null)} /> : null}
       </Sheet>
     </Screen>
   );

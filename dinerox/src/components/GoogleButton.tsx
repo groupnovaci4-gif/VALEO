@@ -51,7 +51,19 @@ function GoogleButtonInner() {
         disabled={!request}
         onPress={() => {
           setBusy(true);
-          void promptAsync().then((r) => r.type !== 'success' && setBusy(false));
+          promptAsync()
+            .then((r) => {
+              if (r.type !== 'success') return setBusy(false);
+              // Réponse sans jeton (configuration OAuth incomplète) : on débloque le bouton.
+              if (!r.params.id_token) {
+                setBusy(false);
+                toast.show(t('error.generic'), 'error');
+              }
+            })
+            .catch(() => {
+              setBusy(false);
+              toast.show(t('error.generic'), 'error');
+            });
         }}
       />
       <Text variant="caption" tone="subtle" align="center">

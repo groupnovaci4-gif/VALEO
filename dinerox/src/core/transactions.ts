@@ -14,7 +14,9 @@ export type TxError =
   | 'transfer.sameAccount'
   | 'transfer.missingTarget'
   | 'transfer.currencyMismatch'
-  | 'currency.mismatch';
+  | 'currency.mismatch'
+  | 'goal.inactive'
+  | 'goal.withdrawTooMuch';
 
 export interface TxDraft {
   type: TransactionType;

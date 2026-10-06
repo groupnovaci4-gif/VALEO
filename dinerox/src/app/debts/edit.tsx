@@ -9,6 +9,7 @@ import { useCurrency } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, Segmented, Text, useToast } from '@/components/ui';
 import { today } from '@/core/dates';
 import type { DebtDirection, DebtKind } from '@/core/types';
+import { useRunAction } from '@/hooks/useRunAction';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 function DebtEdit() {
@@ -18,6 +19,7 @@ function DebtEdit() {
   const data = useData();
   const currency = useCurrency();
   const actions = useActions();
+  const run = useRunAction();
   const existing = data.debts.find((d) => d.id === id);
   const [direction, setDirection] = useState<DebtDirection>(existing?.direction ?? 'i_owe');
   const [kind, setKind] = useState<DebtKind>(existing?.kind ?? 'personal');
@@ -35,7 +37,8 @@ function DebtEdit() {
     if (!counterparty.trim()) return setError(t('error.name.required'));
     if (!principal) return setError(t('error.amount.invalid'));
     const day = Number(dueDay);
-    actions.saveDebt({
+    if (dueDay.trim() && !(day >= 1 && day <= 31)) return setError(t('error.dueDay'));
+    const ok = run(() => actions.saveDebt({
       id: existing?.id,
       direction,
       kind,
@@ -45,18 +48,20 @@ function DebtEdit() {
       startDate,
       dueDate,
       installment,
-      dueDay: day >= 1 && day <= 28 ? day : null,
+      // 29 à 31 acceptés : l'échéance tombe le dernier jour des mois plus courts.
+      dueDay: day >= 1 && day <= 31 ? day : null,
       rate: rate ? Number(rate.replace(',', '.')) || null : null,
       note: note.trim() || null,
       status: existing?.status ?? 'active',
-    });
+    }));
+    if (!ok) return;
     toast.show(t('common.saved'));
     goBack();
   };
   const remove = () =>
     Alert.alert(t('common.deleteConfirmTitle'), t('common.deleteConfirmBody'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => (actions.remove('debts', existing!.id), router.replace('/debts')) },
+      { text: t('common.delete'), style: 'destructive', onPress: () => void (run(() => actions.remove('debts', existing!.id)) && router.replace('/debts')) },
     ]);
   return (
     <Screen

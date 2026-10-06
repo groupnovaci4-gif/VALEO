@@ -49,12 +49,14 @@ export function buildReport(data: SpaceData, kind: PeriodKind, ref: ISODate, cur
   const totals = flowTotals(data.transactions, period, currency);
   const before = flowTotals(data.transactions, prev, currency);
 
-  const savingsIds = new Set(data.accounts.filter((a: Account) => a.isSavings).map((a) => a.id));
+  const savingsIds = new Set(data.accounts.filter((a: Account) => a.isSavings && !a.deleted).map((a) => a.id));
   let saved = 0;
   const cats: Record<string, number> = {};
   for (const t of data.transactions) {
     if (t.deleted || t.currency !== currency || !inPeriod(t.date, period)) continue;
+    // Épargne NETTE : versements vers l'épargne moins retraits de l'épargne.
     if (t.type === 'transfer' && t.toAccountId && savingsIds.has(t.toAccountId) && !savingsIds.has(t.accountId)) saved += t.amount;
+    if (t.type === 'transfer' && t.toAccountId && savingsIds.has(t.accountId) && !savingsIds.has(t.toAccountId)) saved -= t.amount;
     if (t.type === 'expense') {
       const k = t.categoryId ?? 'uncategorized';
       cats[k] = (cats[k] ?? 0) + t.amount;

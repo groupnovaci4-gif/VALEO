@@ -1,5 +1,6 @@
 import React from 'react';
-import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import { RefreshControl, View, type StyleProp, type ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, KeyboardAwareScrollView, KeyboardStickyView } from 'react-native-keyboard-controller';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { goBack } from '@/hooks/goBack';
 import { useTheme } from '@/theme';
@@ -60,9 +61,15 @@ export function Screen({ title, subtitle, back, right, leading, brandSection, ch
         {right}
       </View>
     ) : null;
+  // Clavier : Android affiche l'application « bord à bord » (SDK 57) — la fenêtre ne se
+  // redimensionne plus à l'ouverture du clavier. Sans gestion explicite, le clavier
+  // recouvre les champs du bas (ils « disparaissent » et la saisie devient invisible).
+  // KeyboardAwareScrollView fait défiler jusqu'au champ actif ; KeyboardStickyView garde
+  // le pied d'écran (bouton principal) au-dessus du clavier. Même comportement iOS/Android.
   const body = scroll ? (
-    <ScrollView
+    <KeyboardAwareScrollView
       keyboardShouldPersistTaps="handled"
+      bottomOffset={footer ? 110 : 32}
       contentContainerStyle={[{ padding: 16, paddingBottom: 120 }, contentStyle]}
       refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} /> : undefined}
     >
@@ -71,24 +78,40 @@ export function Screen({ title, subtitle, back, right, leading, brandSection, ch
         {syncBanner ? <SyncBanner /> : null}
         {children}
       </View>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   ) : (
     <View style={[{ flex: 1, paddingHorizontal: 16, width: '100%', maxWidth: MAX_CONTENT_WIDTH + 32, alignSelf: 'center' }, contentStyle]}>
       {syncBanner ? <SyncBanner /> : null}
       {children}
     </View>
   );
+  const footerView = footer ? (
+    <KeyboardStickyView>
+      <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
+        <View style={{ width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' }}>{footer}</View>
+      </View>
+    </KeyboardStickyView>
+  ) : null;
   return (
     <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: colors.background }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        {header}
-        {body}
-        {footer ? (
-          <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
-            <View style={{ width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' }}>{footer}</View>
-          </View>
-        ) : null}
-      </KeyboardAvoidingView>
+      {scroll ? (
+        <>
+          {header}
+          {body}
+          {footerView}
+        </>
+      ) : (
+        // Écrans sans défilement (listes, assistant) : la zone se réduit au-dessus du clavier.
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+          {header}
+          {body}
+          {footer ? (
+            <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
+              <View style={{ width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' }}>{footer}</View>
+            </View>
+          ) : null}
+        </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 }

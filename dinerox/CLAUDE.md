@@ -39,3 +39,8 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     `declared` (profil financier), `estimate` (estimation DINEROX). Aucune
     statistique externe sans source identifiable (`external` + `reference`).
     Les simulations (indépendance financière) sont présentées comme telles.
+12. **Saisie au clavier** : écrans via `Screen` (react-native-keyboard-controller,
+    Android edge-to-edge). Validation des formulaires d'identité dans
+    `core/validation.ts`. Une action qui peut échouer passe par `useRunAction()`
+    (message d'erreur, jamais d'exception non gérée). Sur le web, `Alert.alert`
+    est remplacé par `services/webAlert.ts` (confirmations réelles).

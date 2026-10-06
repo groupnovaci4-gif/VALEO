@@ -30,13 +30,17 @@ export default function DataSettings() {
 
   const exportAll = async () => {
     if (!engine) return;
-    const all = [];
-    for (const s of spaces) {
-      await engine.open(s.id, s.members[user.uid] ?? 'admin');
-      all.push({ id: s.id, name: s.name, data: engine.getData(s.id) });
+    try {
+      const all = [];
+      for (const s of spaces) {
+        await engine.open(s.id, s.members[user.uid] ?? 'admin');
+        all.push({ id: s.id, name: s.name, data: engine.getData(s.id) });
+      }
+      await shareFullExport(profile, all);
+      analytics.track('export_data', { kind: 'json' });
+    } catch {
+      toast.show(t('error.generic'), 'error');
     }
-    await shareFullExport(profile, all).catch(() => toast.show(t('error.generic'), 'error'));
-    analytics.track('export_data', { kind: 'json' });
   };
 
   const createDemo = async () => {
@@ -57,7 +61,8 @@ export default function DataSettings() {
   const destroy = async () => {
     setBusy(true);
     try {
-      await clearPin();
+      // Le code n'est effacé qu'APRÈS la suppression réussie : en cas d'échec
+      // (hors-ligne, reconnexion requise), le verrou de l'application reste actif.
       if (mode === 'local') {
         await removeKeys(`dinerox:v1:${user.uid}:`);
         await signOutLocal();
@@ -65,6 +70,7 @@ export default function DataSettings() {
         await deleteAccount();
         await removeKeys(`dinerox:v1:${user.uid}:`);
       }
+      await clearPin().catch(() => undefined);
     } catch (e) {
       const code = String((e as { code?: string })?.code ?? '');
       toast.show(code.includes('requires-recent-login') ? t('auth.err.requires-recent-login') : t('error.network'), 'error');

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useRunAction } from '@/hooks/useRunAction';
 import { Alert, Modal, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/theme';
@@ -22,6 +23,7 @@ function GoalDetail() {
   const money = useMoney();
   const accountLabel = useAccountLabel();
   const actions = useActions();
+  const runAction = useRunAction();
   const { data, now } = useFinance();
   const goal = data.goals.find((g) => g.id === id);
   const plan = useMemo(() => (goal ? goalPlanFor(goal, data.goalContributions, now) : null), [goal, data.goalContributions, now]);
@@ -41,8 +43,7 @@ function GoalDetail() {
   const canContribute = can(role, 'create', 'goalContributions');
   const setStatus = (s: GoalStatus, confirmKey?: TKey) => {
     const run = () => {
-      actions.setGoalStatus(goal.id, s);
-      toast.show(t(`goal.status.${s}` as TKey));
+      if (runAction(() => actions.setGoalStatus(goal.id, s))) toast.show(t(`goal.status.${s}` as TKey));
     };
     if (!confirmKey) return run();
     Alert.alert(t(confirmKey), goal.name, [
@@ -154,7 +155,7 @@ function GoalDetail() {
             {canEdit ? (
               <>
                 <Button full variant="success" icon="trophy" label={t('goal.action.complete')} onPress={() => (setCelebrate(false), setStatus('completed'))} />
-                <Button full variant="secondary" icon="archive-outline" label={t('goal.action.archive')} onPress={() => (setCelebrate(false), actions.setGoalStatus(goal.id, 'completed'), actions.setGoalStatus(goal.id, 'archived'))} />
+                <Button full variant="secondary" icon="archive-outline" label={t('goal.action.archive')} onPress={() => (setCelebrate(false), runAction(() => (actions.setGoalStatus(goal.id, 'completed'), actions.setGoalStatus(goal.id, 'archived'))))} />
               </>
             ) : null}
             <Button full variant="ghost" label={t('goal.celebrate.new')} onPress={() => (setCelebrate(false), router.push('/goals/new'))} />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { View, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
@@ -10,6 +10,7 @@ import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, Segme
 import { today } from '@/core/dates';
 import { lastOccurrenceBefore } from '@/core/recurring';
 import type { Frequency } from '@/core/types';
+import { useRunAction } from '@/hooks/useRunAction';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 function RecurringEdit() {
@@ -19,6 +20,7 @@ function RecurringEdit() {
   const data = useData();
   const { activeSpace } = useApp();
   const actions = useActions();
+  const run = useRunAction();
   const cats = useCategoryLabels();
   const existing = data.recurring.find((r) => r.id === id);
   const [type, setType] = useState<'income' | 'expense'>(existing?.type ?? 'income');
@@ -41,7 +43,8 @@ function RecurringEdit() {
     const accCurrency = account?.currency ?? activeSpace?.currency ?? 'XOF';
     // Pas de génération rétroactive : une règle commencée dans le passé démarre à la prochaine échéance.
     const lastGenerated = existing && existing.startDate === startDate ? (existing.lastGenerated ?? null) : lastOccurrenceBefore({ frequency, startDate }, today());
-    actions.saveRecurring({ id: existing?.id, type, label: label.trim(), amount, currency: accCurrency, accountId: accId, categoryId, envelopeId: null, frequency, startDate, endDate, active, lastGenerated });
+    const ok = run(() => actions.saveRecurring({ id: existing?.id, type, label: label.trim(), amount, currency: accCurrency, accountId: accId, categoryId, envelopeId: null, frequency, startDate, endDate, active, lastGenerated }));
+    if (!ok) return;
     toast.show(t('common.saved'));
     goBack();
   };
@@ -51,7 +54,12 @@ function RecurringEdit() {
       title={existing ? t('common.edit') : t('rec.new')}
       footer={
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          {existing ? <Button variant="secondary" icon="trash-outline" label={t('common.delete')} onPress={() => (actions.remove('recurring', existing.id), goBack())} /> : null}
+          {existing ? <Button variant="secondary" icon="trash-outline" label={t('common.delete')} onPress={() =>
+                Alert.alert(t('common.deleteConfirmTitle'), t('common.deleteConfirmBody'), [
+                  { text: t('common.cancel'), style: 'cancel' },
+                  { text: t('common.delete'), style: 'destructive', onPress: () => void (run(() => actions.remove('recurring', existing.id)) && goBack()) },
+                ])
+              } /> : null}
           <Button style={{ flex: 1 }} label={t('common.save')} onPress={save} />
         </View>
       }

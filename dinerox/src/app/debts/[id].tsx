@@ -9,6 +9,7 @@ import { AmountField, Badge, Banner, Button, Card, ChipGroup, DateField, EmptySt
 import { debtStatus, validateDebtPayment } from '@/core/debts';
 import { today } from '@/core/dates';
 import { can } from '@/core/permissions';
+import { useRunAction } from '@/hooks/useRunAction';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 function DebtDetail() {
@@ -19,6 +20,7 @@ function DebtDetail() {
   const money = useMoney();
   const accountLabel = useAccountLabel();
   const actions = useActions();
+  const runAction = useRunAction();
   const { data, now } = useFinance();
   const debt = data.debts.find((d) => d.id === id);
   const [open, setOpen] = useState(false);
@@ -32,7 +34,7 @@ function DebtDetail() {
   const record = () => {
     const v = validateDebtPayment(amount ?? 0, s.remaining);
     const run = () => {
-      actions.recordDebtPayment({ debtId: debt.id, amount: amount!, date: day, accountId: accountId === 'none' ? null : accountId, label: t('debt.paymentNote', { name: debt.counterparty }) });
+      if (!runAction(() => actions.recordDebtPayment({ debtId: debt.id, amount: amount!, date: day, accountId: accountId === 'none' ? null : accountId, label: t('debt.paymentNote', { name: debt.counterparty }) }))) return;
       setOpen(false);
       toast.show(t('common.saved'));
     };
@@ -71,7 +73,7 @@ function DebtDetail() {
       {canEdit && !s.settled ? (
         <View style={{ gap: 8, marginTop: 14 }}>
           <Button icon="cash-outline" label={t(debt.direction === 'i_owe' ? 'debt.pay' : 'debt.receive')} onPress={() => setOpen(true)} />
-          <Button variant="ghost" label={t('debt.close')} onPress={() => actions.saveDebt({ ...debt, status: 'closed' })} />
+          <Button variant="ghost" label={t('debt.close')} onPress={() => runAction(() => actions.saveDebt({ ...debt, status: 'closed' }))} />
         </View>
       ) : null}
       <SectionHeader title={t('debt.payments')} />

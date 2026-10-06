@@ -30,6 +30,8 @@ import { can, canEditDoc } from '@/core/permissions';
 import { dueOccurrences, materialize } from '@/core/recurring';
 import { newId } from '@/core/sync';
 import { today } from '@/core/dates';
+import { isValidAmount } from '@/core/money';
+import { goalSaved } from '@/core/balance';
 import { analytics } from '@/services/analytics';
 import { useI18n } from '@/i18n';
 
@@ -103,6 +105,18 @@ export function useActions() {
       const { engine: e, spaceId } = ctx();
       ensure('delete', col, e.getDoc(spaceId, col, id));
       e.remove(spaceId, col, id);
+      // Écritures liées : une opération et le remboursement / la contribution qu'elle
+      // représente vont ensemble (sinon une dette resterait « payée » ou un objectif
+      // garderait un transfert fantôme).
+      const d = e.getData(spaceId);
+      if (col === 'transactions') {
+        for (const p of d.debtPayments) if (p.transactionId === id) e.remove(spaceId, 'debtPayments', p.id);
+        for (const c of d.goalContributions) if (c.transferId === id) e.remove(spaceId, 'goalContributions', c.id);
+      } else if (col === 'debtPayments' || col === 'goalContributions') {
+        const doc = e.getDoc(spaceId, col, id) as { transactionId?: string | null; transferId?: string | null } | undefined;
+        const txId = doc?.transactionId ?? doc?.transferId;
+        if (txId && d.transactions.some((t) => t.id === txId)) e.remove(spaceId, 'transactions', txId);
+      }
     },
     [ctx, ensure],
   );
@@ -157,6 +171,15 @@ export function useActions() {
         envelopeId: draft.type === 'expense' ? (draft.envelopeId ?? null) : null,
       });
       if (!draft.id && isFirst && draft.type !== 'transfer') analytics.track(draft.type === 'expense' ? 'first_expense' : 'first_income');
+      // Modification d'une opération liée : le remboursement / la contribution suit.
+      if (draft.id) {
+        const payment = d.debtPayments.find((p) => p.transactionId === tx.id);
+        if (payment && (payment.amount !== tx.amount || payment.date !== tx.date)) save<DebtPayment>('debtPayments', { ...payment, amount: tx.amount, date: tx.date });
+        const contribution = d.goalContributions.find((c) => c.transferId === tx.id);
+        if (contribution && (Math.abs(contribution.amount) !== tx.amount || contribution.date !== tx.date)) {
+          save<GoalContribution>('goalContributions', { ...contribution, amount: contribution.amount < 0 ? -tx.amount : tx.amount, date: tx.date });
+        }
+      }
       return tx;
     },
     [data, save, ensureCashAccount],
@@ -297,7 +320,10 @@ export function useActions() {
     (input: { goalId: string; amount: number; date: string; accountId: string | null; note?: string | null; moveTo?: string | null; withdraw?: boolean }) => {
       const d = data();
       const goal = d.goals.find((g) => g.id === input.goalId);
-      if (!goal || !(input.amount > 0)) throw new ActionError('validation', { errors: ['amount.invalid'] });
+      if (!goal || !isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
+      if (goal.status !== 'active' && goal.status !== 'paused') throw new ActionError('validation', { errors: ['goal.inactive'] });
+      // Un retrait ne peut pas dépasser ce qui est mis de côté pour cet objectif.
+      if (input.withdraw && input.amount > goalSaved(goal, d.goalContributions)) throw new ActionError('validation', { errors: ['goal.withdrawTooMuch'] });
       let transferId: string | null = null;
       if (input.moveTo && input.accountId && input.moveTo !== input.accountId) {
         const from = input.withdraw ? input.moveTo : input.accountId;
@@ -336,7 +362,7 @@ export function useActions() {
     (input: { debtId: string; amount: number; date: string; accountId: string | null; note?: string | null; label: string }) => {
       const d = data();
       const debt = d.debts.find((x) => x.id === input.debtId);
-      if (!debt || !(input.amount > 0)) throw new ActionError('validation', { errors: ['amount.invalid'] });
+      if (!debt || !isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
       let transactionId: string | null = null;
       if (input.accountId) {
         const t = saveTransaction({

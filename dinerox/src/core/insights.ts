@@ -6,7 +6,8 @@
 import type { Category, Debt, DebtPayment, Envelope, Goal, GoalContribution, SpaceData, Transaction } from './types';
 import type { CurrencyCode } from './money';
 import { envelopeStatuses, spentByEnvelope, envelopeBudgetFor } from './budget';
-import { goalPlanFor } from './goals';
+import { hasEmergencyFund, goalPlanFor } from './goals';
+import { observedCapacity } from './intelligence';
 import { debtStatus } from './debts';
 import { lastMonths, monthKey, previousMonth, type ISODate, type MonthKey } from './dates';
 
@@ -223,13 +224,13 @@ export function computeInsights({ data, currency, now, categoryName }: InsightIn
   }
 
   // 7. Capacité d'épargne & suggestions d'objectifs.
-  const capacity = savingsCapacity(tx, now, currency);
+  // Définition unique de la capacité (charges fixes connues comprises).
+  const capacity = observedCapacity(data, currency, now);
   const activeGoals = data.goals.filter((g) => !g.deleted && g.status === 'active');
   if (capacity !== null) {
     if (capacity > 0) {
       out.push({ id: `capacity_${month}`, kind: 'savings_capacity', severity: 'positive', params: { amount: capacity }, weight: 35 });
-      const hasEmergency = data.goals.some((g) => !g.deleted && (g.templateId === 'emergency_fund' || g.categoryId === 'finance'));
-      if (!hasEmergency) {
+      if (!hasEmergencyFund(data.goals)) {
         out.push({ id: `suggest_emergency_${month}`, kind: 'suggest_emergency_fund', severity: 'info', params: { amount: capacity }, weight: 30 });
       } else if (activeGoals.length === 0) {
         out.push({
@@ -281,7 +282,7 @@ export function computeInsights({ data, currency, now, categoryName }: InsightIn
       id: `debtdue_${d.id}_${s.nextDue}`,
       kind: 'debt_due',
       severity: s.daysToDue < 0 ? 'danger' : 'warning',
-      params: { name: d.counterparty, days: s.daysToDue, amount: d.installment ?? s.remaining, date: s.nextDue ?? '' },
+      params: { name: d.counterparty, days: s.daysToDue, amount: Math.min(d.installment ?? s.remaining, s.remaining), date: s.nextDue ?? '' },
       ref: { type: 'debt', id: d.id },
       weight: s.daysToDue < 0 ? 88 : 68,
     });

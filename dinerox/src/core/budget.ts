@@ -154,6 +154,16 @@ export function proposeBudget(income: number, method: BudgetMethod, currency: Cu
   const push = (bucket: BudgetBucket, ratio: number) => {
     lines.push({ bucket, amount: roundTo(income * ratio, step, currency) });
   };
+  /** Les arrondis ne doivent jamais faire dépasser le revenu (sinon une ligne deviendrait négative). */
+  const fit = () => {
+    let excess = lines.reduce((s, l) => s + l.amount, 0) - income;
+    while (excess > 0) {
+      const biggest = lines.reduce((a, b) => (b.amount > a.amount ? b : a));
+      const cut = Math.min(excess, biggest.amount);
+      biggest.amount -= cut;
+      excess -= cut;
+    }
+  };
   switch (method) {
     case '50_30_20':
       push('needs', 0.5);
@@ -163,6 +173,7 @@ export function proposeBudget(income: number, method: BudgetMethod, currency: Cu
     case 'zero_based':
       // Budget base zéro : chaque franc a une affectation, aucun « libre ».
       for (const [b, r] of ENVELOPE_RATIOS) push(b, r);
+      fit();
       {
         const used = lines.reduce((s, l) => s + l.amount, 0);
         const savings = lines.find((l) => l.bucket === 'savings')!;
@@ -172,6 +183,7 @@ export function proposeBudget(income: number, method: BudgetMethod, currency: Cu
     default:
       for (const [b, r] of ENVELOPE_RATIOS) push(b, r);
   }
+  fit();
   const used = lines.reduce((s, l) => s + l.amount, 0);
   const rest = income - used;
   if (method === '50_30_20') {

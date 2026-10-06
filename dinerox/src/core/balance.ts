@@ -128,7 +128,6 @@ export function moneyPosition(
   let available = 0;
   let savings = 0;
   const otherCurrencies: Partial<Record<CurrencyCode, number>> = {};
-  const savingsAccountIds = new Set<string>();
   for (const a of accounts) {
     if (a.deleted || !a.active) continue;
     const b = balances[a.id] ?? 0;
@@ -136,10 +135,8 @@ export function moneyPosition(
       otherCurrencies[a.currency] = (otherCurrencies[a.currency] ?? 0) + b;
       continue;
     }
-    if (a.isSavings) {
-      savings += b;
-      savingsAccountIds.add(a.id);
-    } else available += b;
+    if (a.isSavings) savings += b;
+    else available += b;
   }
   let allocatedToGoals = 0;
   let earmarkedInSpending = 0;
@@ -150,18 +147,20 @@ export function moneyPosition(
     activeGoals.set(g.id, g);
     allocatedToGoals += goalSaved(g, contributions);
   }
-  // Seules les contributions « mises de côté » sans déplacement d'argent, pour
-  // un objectif non adossé à un compte d'épargne, restent physiquement dans
-  // les comptes de dépense : on les retire du disponible libre. Le montant
-  // initial (« déjà disponible ») est supposé détenu hors des comptes de
-  // dépense, ou sur le compte associé.
+  // Seules les contributions « mises de côté » SANS transfert restent physiquement
+  // dans les comptes de dépense : on les retire du disponible libre. (Une
+  // contribution avec transfert a déjà quitté ces comptes.) Le calcul se fait
+  // PAR OBJECTIF et borné à [0, montant de l'objectif] : le retrait d'un objectif
+  // ne peut pas « libérer » l'argent réservé à un autre.
+  const perGoal = new Map<string, number>();
   for (const c of contributions) {
-    if (c.deleted || c.transferId) continue;
-    const g = activeGoals.get(c.goalId);
-    if (!g || (g.accountId && savingsAccountIds.has(g.accountId))) continue;
-    earmarkedInSpending += c.amount;
+    if (c.deleted || c.transferId || !activeGoals.has(c.goalId)) continue;
+    perGoal.set(c.goalId, (perGoal.get(c.goalId) ?? 0) + c.amount);
   }
-  earmarkedInSpending = Math.max(0, earmarkedInSpending);
+  for (const [goalId, amount] of perGoal) {
+    const g = activeGoals.get(goalId)!;
+    earmarkedInSpending += Math.min(Math.max(0, amount), goalSaved(g, contributions));
+  }
   return {
     available,
     savings,

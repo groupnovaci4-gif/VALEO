@@ -8,7 +8,8 @@ export function useIntelligence() {
   const { profile } = useApp();
   const { data, currency, now, position } = useFinance();
   return useMemo(() => {
-    const snapshot = financialSnapshot({ data, currency, now, available: position.available, financial: profile?.financial });
+    // Disponible LIBRE (hors argent mis de côté pour les objectifs), comme partout ailleurs.
+    const snapshot = financialSnapshot({ data, currency, now, available: position.free, financial: profile?.financial });
     return { snapshot, recommendations: recommendations(snapshot, data.goals) };
-  }, [data, currency, now, position.available, profile?.financial]);
+  }, [data, currency, now, position.free, profile?.financial]);
 }

@@ -69,10 +69,11 @@ export function personalBudget(input: {
     if (env && amount > 0) declared[env.id] = (declared[env.id] ?? 0) + amount;
   }
 
+  // Une seule enveloppe d'épargne porte l'effort des objectifs (jamais en double).
+  const savingsEnvelopeId = active.find((e) => e.categoryIds.includes('cat_savings'))?.id ?? null;
   const lines: PersonalBudgetLine[] = active.map((e) => {
     const fixed = e.categoryIds.some((c) => FIXED_ENVELOPE_CATEGORIES.has(c));
-    const isSavings = e.categoryIds.includes('cat_savings');
-    if (isSavings && goalNeeds > 0) return { envelopeId: e.id, current: e.monthlyBudget, suggested: roundUp(goalNeeds), basis: 'goals', fixed: false };
+    if (e.id === savingsEnvelopeId && goalNeeds > 0) return { envelopeId: e.id, current: e.monthlyBudget, suggested: roundUp(goalNeeds), basis: 'goals', fixed: false };
     const obs = spent[e.id] && monthsWithData ? Math.round(Object.values(spent[e.id]).reduce((a, b) => a + b, 0) / monthsWithData) : 0;
     if (obs > 0) return { envelopeId: e.id, current: e.monthlyBudget, suggested: roundUp(Math.max(obs, declared[e.id] ?? 0)), basis: 'observed', fixed };
     if (declared[e.id]) return { envelopeId: e.id, current: e.monthlyBudget, suggested: roundUp(declared[e.id]), basis: 'declared', fixed };
@@ -81,10 +82,22 @@ export function personalBudget(input: {
 
   let total = lines.reduce((n, l) => n + l.suggested, 0);
   let adjusted = false;
+  // L'épargne ne peut pas dépasser ce qui reste réellement : elle est réduite AVANT
+  // les dépenses courantes (on n'ampute pas l'alimentation pour épargner).
+  const savingsLine = lines.find((l) => l.basis === 'goals');
+  if (income > 0 && savingsLine && total > income) {
+    const others = total - savingsLine.suggested;
+    const capped = Math.max(0, Math.floor((income - others) / 1000) * 1000);
+    if (capped < savingsLine.suggested) {
+      savingsLine.suggested = capped;
+      adjusted = true;
+      total = lines.reduce((n, l) => n + l.suggested, 0);
+    }
+  }
   if (income > 0 && total > income) {
     adjusted = true;
     const fixedTotal = lines.filter((l) => l.fixed).reduce((n, l) => n + l.suggested, 0);
-    const flexible = lines.filter((l) => !l.fixed);
+    const flexible = lines.filter((l) => !l.fixed && l !== savingsLine);
     const flexTotal = flexible.reduce((n, l) => n + l.suggested, 0);
     const room = Math.max(0, income - fixedTotal);
     const ratio = flexTotal > 0 ? Math.min(1, room / flexTotal) : 0;

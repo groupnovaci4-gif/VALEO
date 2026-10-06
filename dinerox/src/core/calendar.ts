@@ -7,6 +7,7 @@ import type { CurrencyCode } from './money';
 import { addDays, addMonths, type ISODate } from './dates';
 import { debtStatus } from './debts';
 import { goalPlanFor } from './goals';
+import { occurrencesBetween } from './recurring';
 
 export type CalendarKind = 'income' | 'expense' | 'tontine' | 'debt' | 'goal';
 
@@ -25,10 +26,7 @@ export function financialCalendar(data: Pick<SpaceData, 'recurring' | 'debts' | 
   const out: CalendarEvent[] = [];
   for (const r of data.recurring) {
     if (r.deleted || !r.active) continue;
-    for (let i = 0; i < 400; i++) {
-      const d = r.frequency === 'weekly' ? addDays(r.startDate, 7 * i) : addMonths(r.startDate, i * (r.frequency === 'yearly' ? 12 : 1));
-      if (d > until || (r.endDate && d > r.endDate)) break;
-      if (d < from) continue;
+    for (const d of occurrencesBetween(r, from, until)) {
       const kind: CalendarKind = r.type === 'income' ? 'income' : r.categoryId === 'cat_informal' ? 'tontine' : 'expense';
       out.push({ id: `${r.id}_${d}`, date: d, kind, label: r.label, amount: r.amount, currency: r.currency, link: `/recurring/edit?id=${r.id}` });
     }
@@ -37,9 +35,14 @@ export function financialCalendar(data: Pick<SpaceData, 'recurring' | 'debts' | 
     if (d.deleted || d.direction !== 'i_owe') continue;
     const s = debtStatus(d, data.debtPayments, from);
     if (s.settled || !s.nextDue) continue;
+    // Échéances successives, sans jamais dépasser le restant dû ; une échéance en
+    // retard (date passée) reste affichée.
     let due: ISODate = s.nextDue;
-    for (let i = 0; i < 12 && due <= until; i++) {
-      if (due >= from) out.push({ id: `${d.id}_${due}`, date: due, kind: 'debt', label: d.counterparty, amount: Math.min(d.installment ?? s.remaining, s.remaining), currency: d.currency, link: `/debts/${d.id}` });
+    let left = s.remaining;
+    for (let i = 0; i < 12 && due <= until && left > 0; i++) {
+      const amount = Math.min(d.installment ?? left, left);
+      out.push({ id: `${d.id}_${due}`, date: due, kind: 'debt', label: d.counterparty, amount, currency: d.currency, link: `/debts/${d.id}` });
+      left -= amount;
       if (!d.installment) break;
       due = addMonths(due, 1);
     }

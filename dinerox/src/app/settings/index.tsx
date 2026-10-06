@@ -11,10 +11,11 @@ import { env } from '@/config/env';
 import { brand } from '@/config/brand';
 import { signOut } from '@/services/auth';
 import { useTheme } from '@/theme';
+import { can } from '@/core/permissions';
 
 export default function Settings() {
   const { t } = useI18n();
-  const { profile, updateProfile, mode, user, signOutLocal, plan } = useApp();
+  const { profile, updateProfile, mode, user, signOutLocal, plan, role } = useApp();
   const { colors, radius } = useTheme();
   if (!profile) return null;
   const prefs = profile.preferences;
@@ -98,8 +99,9 @@ export default function Settings() {
         {row('fp.edit.title', 'fp.edit.sub', 'person-circle', colors.primary, '/settings/financial')}
         {row('set.security', 'set.sub.security', 'lock-closed', colors.primary, '/settings/security')}
         {row('set.notifications', 'set.sub.notifications', 'notifications', colors.secondary, '/settings/notifications')}
-        {row('set.recurring', 'set.sub.recurring', 'repeat', colors.info, '/recurring')}
-        {row('set.categories', 'set.sub.categories', 'pricetags', colors.primary, '/categories')}
+        {/* Mêmes droits que l'onglet « Plus » (miroir des règles Firestore). */}
+        {can(role, 'read', 'recurring') ? row('set.recurring', 'set.sub.recurring', 'repeat', colors.info, '/recurring') : null}
+        {can(role, 'create', 'categories') ? row('set.categories', 'set.sub.categories', 'pricetags', colors.primary, '/categories') : null}
         {row('set.data', 'set.sub.data', 'server', colors.info, '/settings/data')}
       </Card>
 

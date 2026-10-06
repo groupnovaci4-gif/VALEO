@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useApp, useData } from '@/store/app';
+import { useApp, useData, useSpaceReady } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { useI18n } from '@/i18n';
@@ -86,14 +86,29 @@ export function Bootstrap() {
   }, [profile?.preferences.analyticsConsent]);
 
   // Échéances récurrentes : une fois par ouverture d'espace, après chargement.
+  // L'espace n'est marqué « traité » qu'une fois le minuteur écoulé : si l'effet
+  // est relancé entre-temps (synchro qui livre les règles), il réarme le minuteur
+  // au lieu de l'annuler définitivement.
+  const runRecurringRef = useRef(runRecurring);
   useEffect(() => {
-    if (!engine || !activeSpace || !profile?.onboarding.completed) return;
-    if (ranFor.current === activeSpace.id || !engine.isLoaded(activeSpace.id)) return;
-    ranFor.current = activeSpace.id;
+    runRecurringRef.current = runRecurring;
+  }, [runRecurring]);
+  const activeSpaceId = activeSpace?.id ?? null;
+  const spaceLoaded = useSpaceReady();
+  useEffect(() => {
+    if (!activeSpaceId || !spaceLoaded || !profile?.onboarding.completed) return;
+    if (ranFor.current === activeSpaceId) return;
     // Laisse le temps à la synchro initiale de livrer les règles à jour.
-    const timer = setTimeout(() => runRecurring(), 1500);
+    const timer = setTimeout(() => {
+      ranFor.current = activeSpaceId;
+      try {
+        runRecurringRef.current();
+      } catch {
+        // Droits insuffisants (enfant) ou espace en lecture seule : rien à générer.
+      }
+    }, 1500);
     return () => clearTimeout(timer);
-  }, [engine, activeSpace, profile?.onboarding.completed, runRecurring, data.recurring.length]);
+  }, [activeSpaceId, spaceLoaded, profile?.onboarding.completed, data.recurring.length]);
 
   // Notifications programmées (rappels, résumés, échéances).
   const prefs = profile?.preferences.notifications;

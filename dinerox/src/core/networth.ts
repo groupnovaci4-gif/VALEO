@@ -57,7 +57,8 @@ export function netWorth(
       skipped++;
       continue;
     }
-    const r = debtStatus(d, payments).remaining;
+    const st = debtStatus(d, payments);
+    const r = st.settled ? 0 : st.remaining; // dette clôturée : plus un passif
     if (d.direction === 'i_owe') liabilities += r;
     else receivables += r;
   }

@@ -178,14 +178,17 @@ export function allocateCapacity(
   contributions: GoalContribution[],
   now: ISODate = today(),
   step = 1000,
+  currency?: string,
 ): AllocationLine[] {
-  const active = sortGoals(goals.filter((g) => !g.deleted && g.status === 'active'));
+  // Objectifs actifs, chiffrés, non atteints, dans la devise de la capacité
+  // (jamais de mélange de devises sans conversion).
+  const active = sortGoals(goals.filter((g) => !g.deleted && g.status === 'active' && g.targetAmount > 0 && (!currency || g.currency === currency)));
   let left = Math.max(0, capacity);
   const lines: AllocationLine[] = [];
   const open: { goalId: string; remaining: number }[] = [];
   for (const g of active) {
     const plan = goalPlanFor(g, contributions, now, step);
-    if (plan.reached) continue;
+    if (plan.reached || plan.remaining <= 0) continue;
     const need = Math.min(plan.remaining, plan.requiredMonthly ?? plan.pace ?? 0);
     if (need > 0) {
       const amount = Math.min(left, need);
@@ -196,12 +199,21 @@ export function allocateCapacity(
       open.push({ goalId: g.id, remaining: plan.remaining });
     }
   }
-  if (left > 0 && open.length) {
-    const share = Math.floor(left / open.length);
-    for (const o of open) {
+  // Objectifs sans date : répartition du reste par parts égales, en redistribuant
+  // ce que les objectifs plafonnés (presque atteints) ne peuvent pas absorber.
+  let pending = open.filter((o) => o.remaining > 0);
+  while (left > 0 && pending.length) {
+    const share = Math.max(1, Math.floor(left / pending.length));
+    let given = 0;
+    for (const o of pending) {
       const line = lines.find((l) => l.goalId === o.goalId)!;
-      line.amount = Math.min(o.remaining, share);
+      const add = Math.min(o.remaining - line.amount, share, left - given);
+      line.amount += add;
+      given += add;
     }
+    left -= given;
+    pending = pending.filter((o) => lines.find((l) => l.goalId === o.goalId)!.amount < o.remaining);
+    if (given === 0) break;
   }
   return lines;
 }
@@ -247,4 +259,9 @@ export function applyGoalChanges(goal: Goal, patch: Partial<Editable>, by: strin
 /** Vrai quand un objectif actif vient d'atteindre 100 % : déclenche la célébration. */
 export function shouldCelebrate(goal: Goal, contributions: GoalContribution[]): boolean {
   return goal.status === 'active' && goal.targetAmount > 0 && goalSaved(goal, contributions) >= goal.targetAmount;
+}
+
+/** Un fonds d'urgence existe-t-il ? (règle unique, utilisée par toutes les analyses) */
+export function hasEmergencyFund(goals: Pick<Goal, 'templateId' | 'status' | 'deleted'>[]): boolean {
+  return goals.some((g) => !g.deleted && g.templateId === 'emergency_fund' && g.status !== 'abandoned' && g.status !== 'archived');
 }

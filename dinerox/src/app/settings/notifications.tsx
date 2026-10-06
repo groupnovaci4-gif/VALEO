@@ -12,7 +12,9 @@ export default function NotificationSettings() {
   const { profile, updateProfile } = useApp();
   const [denied, setDenied] = useState(false);
   useEffect(() => {
-    void permissionStatus().then((p) => setDenied(!!p && !p.granted && !p.canAskAgain));
+    permissionStatus()
+      .then((p) => setDenied(!!p && !p.granted && !p.canAskAgain))
+      .catch(() => setDenied(false));
   }, []);
   if (!profile) return null;
   const prefs = profile.preferences.notifications;

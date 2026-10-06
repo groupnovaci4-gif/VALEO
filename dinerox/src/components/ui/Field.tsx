@@ -10,9 +10,11 @@ export interface FieldProps extends TextInputProps {
   hint?: string;
   error?: string | null;
   suffix?: string;
+  /** Référence vers le champ natif (enchaînement « Suivant » au clavier). */
+  inputRef?: React.Ref<TextInput>;
 }
 
-export function Field({ label, hint, error, suffix, style, ...rest }: FieldProps) {
+export function Field({ label, hint, error, suffix, style, inputRef, onFocus, onBlur, ...rest }: FieldProps) {
   const { colors, radius } = useTheme();
   const [focused, setFocused] = useState(false);
   return (
@@ -37,19 +39,21 @@ export function Field({ label, hint, error, suffix, style, ...rest }: FieldProps
         }}
       >
         <TextInput
+          ref={inputRef}
           accessibilityLabel={label}
           maxFontSizeMultiplier={1.3}
           placeholderTextColor={colors.textSubtle}
+          {...rest}
+          // Après {...rest} : le suivi du focus ne peut pas être écrasé par l'écran appelant.
           onFocus={(e) => {
             setFocused(true);
-            rest.onFocus?.(e);
+            onFocus?.(e);
           }}
           onBlur={(e) => {
             setFocused(false);
-            rest.onBlur?.(e);
+            onBlur?.(e);
           }}
           style={[{ flex: 1, minWidth: 0, color: colors.text, fontSize: 16, fontFamily: fontFor('body', 400), paddingVertical: 10 }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null, style]}
-          {...rest}
         />
         {suffix ? <Text tone="muted">{suffix}</Text> : null}
       </View>

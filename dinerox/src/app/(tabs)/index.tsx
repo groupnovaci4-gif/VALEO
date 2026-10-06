@@ -18,7 +18,7 @@ import { RecommendationCard } from '@/features/Recommendation';
 import { goalPlanFor, sortGoals } from '@/core/goals';
 import { sortTransactions } from '@/core/transactions';
 import { formatMoney, type CurrencyCode } from '@/core/money';
-import { resendVerification } from '@/services/auth';
+import { authErrorKey, resendVerification } from '@/services/auth';
 
 export default function Home() {
   const { colors, radius } = useTheme();
@@ -74,7 +74,11 @@ export default function Home() {
           icon="mail-unread-outline"
           text={t('auth.verify.banner')}
           action={t('auth.verify.resend')}
-          onAction={() => void resendVerification().then(() => toast.show(t('auth.verify.sent')))}
+          onAction={() =>
+            void resendVerification()
+              .then(() => toast.show(t('auth.verify.sent')))
+              .catch((e) => toast.show(t(authErrorKey(e)), 'error'))
+          }
         />
       ) : null}
 

@@ -3,7 +3,7 @@
  * moment et complétables progressivement. N'écrit aucune opération.
  */
 import React, { useState } from 'react';
-import { router } from 'expo-router';
+import { goBack } from '@/hooks/goBack';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { Button, Card, Loading, Screen, SectionHeader, Text, useToast } from '@/components/ui';
@@ -26,7 +26,7 @@ function FinancialProfileForm() {
   const save = () => {
     void updateProfile({ country: draft.country, currency: draft.currency, financial: { ...(profile?.financial ?? {}), ...toFinancialProfile(draft, Date.now()), paymentMethods: profile?.financial?.paymentMethods ?? [] } });
     toast.show(t('fp.saved'));
-    router.back();
+    goBack();
   };
   return (
     <Screen back title={t('fp.edit.title')} edges={['top', 'bottom']} footer={<Button full label={t('common.save')} onPress={save} />}>

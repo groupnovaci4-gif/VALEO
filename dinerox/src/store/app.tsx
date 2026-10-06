@@ -244,9 +244,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const role: Role | null = activeSpace ? (activeSpace.id === 'local' || activeSpace.id.startsWith('demo_') ? 'admin' : roleIn(activeSpace, user?.uid)) : null;
 
   // Ouverture de l'espace actif dans le moteur.
+  const activeSpaceId = activeSpace?.id ?? null;
   useEffect(() => {
-    if (engine && activeSpace && role) void engine.open(activeSpace.id, role);
-  }, [engine, activeSpace, role]);
+    if (engine && activeSpaceId && role) void engine.open(activeSpaceId, role);
+  }, [engine, activeSpaceId, role]);
 
   const setActiveSpace = useCallback(
     (id: string) => {
@@ -322,25 +323,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [user, localSpaces, engine, activeId, spaces, setActiveSpace],
   );
 
-  const value: AppValue = {
-    mode: mode ?? (isFirebaseConfigured ? 'firebase' : 'local'),
-    status,
-    user,
-    profile,
-    // Mode local : formule gratuite (en développement, tout est débloqué pour tester).
-    plan: mode === 'local' ? (__DEV__ ? 'family' : 'free') : effectivePlan(profile?.subscription),
-    spaces,
-    activeSpace,
-    role,
-    engine,
-    online,
-    setActiveSpace,
-    updateProfile,
-    enterLocalMode,
-    addLocalSpace,
-    removeLocalSpace,
-    signOutLocal,
-  };
+  // Valeur mémorisée : les écrans abonnés ne se re-rendent que si une donnée change réellement.
+  const plan: PlanId = mode === 'local' ? (__DEV__ ? 'family' : 'free') : effectivePlan(profile?.subscription);
+  const value = useMemo<AppValue>(
+    () => ({
+      mode: mode ?? (isFirebaseConfigured ? 'firebase' : 'local'),
+      status,
+      user,
+      profile,
+      // Mode local : formule gratuite (en développement, tout est débloqué pour tester).
+      plan,
+      spaces,
+      activeSpace,
+      role,
+      engine,
+      online,
+      setActiveSpace,
+      updateProfile,
+      enterLocalMode,
+      addLocalSpace,
+      removeLocalSpace,
+      signOutLocal,
+    }),
+    [mode, status, user, profile, plan, spaces, activeSpace, role, engine, online, setActiveSpace, updateProfile, enterLocalMode, addLocalSpace, removeLocalSpace, signOutLocal],
+  );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 

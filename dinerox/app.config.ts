@@ -28,7 +28,7 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
   name: displayName,
   slug: brand.slug,
   scheme: brand.scheme,
-  version: '1.3.0',
+  version: '1.4.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',

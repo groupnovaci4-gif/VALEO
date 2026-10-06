@@ -27,6 +27,8 @@ interface SpaceState {
   unsubscribers: (() => void)[];
   /** Instantané mémorisé pour useSyncExternalStore. */
   snapshot: SpaceData | null;
+  /** Abonnements démarrés pour `role`. */
+  started?: boolean;
 }
 
 interface PersistedSpace {
@@ -95,21 +97,28 @@ export class SyncEngine {
   async open(spaceId: string, role: Role): Promise<void> {
     await this.loadOutbox();
     let s = this.spaces.get(spaceId);
-    if (s && s.role === role) return;
-    if (s) this.closeSubscriptions(s);
+    if (s && s.role === role && s.started) return;
     if (!s) {
       const persisted = await readJSON<PersistedSpace>(this.spaceKey(spaceId));
-      s = {
-        docs: { ...emptyDocs(), ...(persisted?.docs ?? {}) },
-        cursors: persisted?.cursors ?? {},
-        loaded: true,
-        role,
-        unsubscribers: [],
-        snapshot: null,
-      };
-      this.spaces.set(spaceId, s);
+      // Un autre appel a pu créer l'état pendant la lecture : on le réutilise
+      // (sinon deux jeux d'écouteurs Firestore, dont un orphelin).
+      s = this.spaces.get(spaceId);
+      if (s && s.role === role && s.started) return;
+      if (!s) {
+        s = {
+          docs: { ...emptyDocs(), ...(persisted?.docs ?? {}) },
+          cursors: persisted?.cursors ?? {},
+          loaded: true,
+          role,
+          unsubscribers: [],
+          snapshot: null,
+        };
+        this.spaces.set(spaceId, s);
+      }
     }
+    this.closeSubscriptions(s);
     s.role = role;
+    s.started = true;
     this.emit();
     this.startSubscriptions(spaceId, s);
     void this.flush();

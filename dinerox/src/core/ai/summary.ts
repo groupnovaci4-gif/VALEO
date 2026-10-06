@@ -7,7 +7,8 @@ import type { SpaceData } from '../types';
 import type { CurrencyCode } from '../money';
 import { monthKey, previousMonth, type ISODate } from '../dates';
 import { envelopeStatuses } from '../budget';
-import { expensesByCategory, monthFlows, savingsCapacity } from '../insights';
+import { expensesByCategory, monthFlows } from '../insights';
+import { observedCapacity } from '../intelligence';
 import { goalPlanFor } from '../goals';
 import { moneyPosition } from '../balance';
 import { debtTotals } from '../debts';
@@ -47,7 +48,7 @@ export function buildFinanceSummary(data: SpaceData, currency: CurrencyCode, now
         return { name: g.name.slice(0, 60), target: g.targetAmount, saved: plan.saved, targetDate: g.targetDate ?? null, monthlyNeeded: plan.requiredMonthly };
       }),
     position: { available: pos.available, free: pos.free, savings: pos.savings },
-    savingsCapacity: savingsCapacity(data.transactions, now, currency),
+    savingsCapacity: observedCapacity(data, currency, now),
     debts: (({ iOwe, owedToMe }) => ({ iOwe, owedToMe }))(debtTotals(data.debts, data.debtPayments, currency)),
   };
 }

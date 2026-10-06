@@ -2,6 +2,7 @@
  * Objectifs : projets de vie, triés par priorité (réordonnables), aide à la
  * répartition de la capacité d'épargne, suggestions, objectifs terminés.
  */
+import { useRunAction } from '@/hooks/useRunAction';
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
@@ -14,7 +15,7 @@ import { useTheme } from '@/theme';
 import { useInsightText } from '@/hooks/useInsightText';
 import { GoalCard, SpaceSwitcher } from '@/features/rows';
 import { allocateCapacity, goalPlanFor, sortGoals } from '@/core/goals';
-import { savingsCapacity } from '@/core/insights';
+import { observedCapacity } from '@/core/intelligence';
 import { can } from '@/core/permissions';
 
 export default function Goals() {
@@ -24,22 +25,28 @@ export default function Goals() {
   const { role } = useApp();
   const money = useMoney();
   const actions = useActions();
+  const run = useRunAction();
   const { data, now, currency, insights } = useFinance();
   const active = useMemo(() => sortGoals(data.goals.filter((g) => g.status === 'active' || g.status === 'paused')), [data.goals]);
   const closed = useMemo(() => data.goals.filter((g) => g.status === 'completed' || g.status === 'archived' || g.status === 'abandoned'), [data.goals]);
-  const detected = useMemo(() => savingsCapacity(data.transactions, now, currency), [data.transactions, now, currency]);
+  const detected = useMemo(() => observedCapacity(data, currency, now), [data, currency, now]);
   const [capacity, setCapacity] = useState<number | null>(null);
   const cap = capacity ?? (detected && detected > 0 ? detected : null);
-  const allocation = useMemo(() => (cap ? allocateCapacity(cap, data.goals, data.goalContributions, now) : []), [cap, data.goals, data.goalContributions, now]);
+  const allocation = useMemo(() => (cap ? allocateCapacity(cap, data.goals, data.goalContributions, now, 1000, currency) : []), [cap, data.goals, data.goalContributions, now, currency]);
   const suggestions = insights.filter((i) => i.kind === 'suggest_emergency_fund' || i.kind === 'suggest_goal_capacity' || i.kind === 'savings_capacity');
   const canCreate = can(role, 'create', 'goals');
   const canEdit = can(role, 'update', 'goals');
-  const move = (index: number, dir: -1 | 1) => {
-    const ids = active.filter((g) => g.status === 'active').map((g) => g.id);
+  // Ordre de priorité des seuls objectifs actifs (les objectifs en pause sont
+  // listés mais hors classement : l'index d'affichage ne convient donc pas).
+  const rankedIds = active.filter((g) => g.status === 'active').map((g) => g.id);
+  const move = (goalId: string, dir: -1 | 1) => {
+    const ids = [...rankedIds];
+    const index = ids.indexOf(goalId);
     const j = index + dir;
+    if (index < 0) return;
     if (j < 0 || j >= ids.length) return;
     [ids[index], ids[j]] = [ids[j], ids[index]];
-    actions.reorderGoals(ids);
+    run(() => actions.reorderGoals(ids));
   };
 
   const plans = useMemo(() => active.map((g) => ({ g, plan: goalPlanFor(g, data.goalContributions, now) })), [active, data.goalContributions, now]);
@@ -132,18 +139,18 @@ export default function Goals() {
       ) : (
         <>
           <SectionHeader title={t('goal.running')} action={t('goal.byPriority')} />
-          {plans.map(({ g, plan }, i) => (
+          {plans.map(({ g, plan }) => (
             <View key={g.id}>
               {g.status !== 'active' ? (
                 <Text variant="caption" tone="subtle">
                   {t('goal.status.paused')}
                 </Text>
               ) : null}
-              <GoalCard goal={g} plan={plan} rank={g.status === 'active' ? i + 1 : undefined} />
-              {canEdit && g.status === 'active' && active.length > 1 ? (
+              <GoalCard goal={g} plan={plan} rank={g.status === 'active' ? rankedIds.indexOf(g.id) + 1 : undefined} />
+              {canEdit && g.status === 'active' && rankedIds.length > 1 ? (
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: -8, marginBottom: 6 }}>
-                  <IconButton icon="chevron-up" label={t('goal.moveUp')} onPress={() => move(i, -1)} size={18} />
-                  <IconButton icon="chevron-down" label={t('goal.moveDown')} onPress={() => move(i, 1)} size={18} />
+                  <IconButton icon="chevron-up" label={t('goal.moveUp')} onPress={() => move(g.id, -1)} size={18} />
+                  <IconButton icon="chevron-down" label={t('goal.moveDown')} onPress={() => move(g.id, 1)} size={18} />
                 </View>
               ) : null}
             </View>

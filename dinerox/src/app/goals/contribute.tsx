@@ -8,15 +8,17 @@ import { useLocalSearchParams } from 'expo-router';
 import { goBack } from '@/hooks/goBack';
 import { useI18n } from '@/i18n';
 import { useData } from '@/store/app';
-import { ActionError, useActions } from '@/store/actions';
+import { useActions } from '@/store/actions';
 import { useAccountLabel, useCurrency } from '@/hooks/useFinance';
-import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, SwitchRow, Text, useToast } from '@/components/ui';
+import { AmountField, Banner, Button, ChipGroup, DateField, EmptyState, Field, Screen, SwitchRow, Text, useToast } from '@/components/ui';
 import { today } from '@/core/dates';
+import { useActionErrorMessage } from '@/hooks/useRunAction';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 function Contribute() {
   const { id, withdraw } = useLocalSearchParams<{ id: string; withdraw?: string }>();
   const { t } = useI18n();
+  const errorMessage = useActionErrorMessage();
   const toast = useToast();
   const data = useData();
   const currency = useCurrency();
@@ -33,7 +35,11 @@ function Contribute() {
   const [date, setDate] = useState(today());
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
-  if (!goal) return null;
+  if (!goal) return (
+      <Screen back>
+        <EmptyState emoji="🎯" title={t('goal.notFound')} />
+      </Screen>
+    );
   const save = () => {
     setError(null);
     try {
@@ -41,7 +47,7 @@ function Contribute() {
       toast.show(t('goal.contribution.saved'));
       goBack();
     } catch (e) {
-      setError(e instanceof ActionError && e.code === 'permission' ? t('error.permission') : t('error.amount.invalid'));
+      setError(errorMessage(e, 'error.amount.invalid'));
     }
   };
   return (

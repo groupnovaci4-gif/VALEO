@@ -22,8 +22,8 @@ export default function Security() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    void hasPin().then(setPinExists);
-    void biometricAvailable().then(setBio);
+    hasPin().then(setPinExists).catch(() => setPinExists(false));
+    biometricAvailable().then(setBio).catch(() => setBio(false));
   }, []);
 
   const onPin = (value: string) => {
@@ -33,12 +33,17 @@ export default function Security() {
       setFirst(value);
       setPinFlow('confirm');
     } else if (value === first) {
-      void setPin(value).then(async () => {
-        setPinExists(true);
-        setPinFlow(null);
-        await updateProfile({ preferences: { ...profile!.preferences, appLock: true } });
-        toast.show(t('common.saved'));
-      });
+      setPin(value)
+        .then(async () => {
+          setPinExists(true);
+          setPinFlow(null);
+          await updateProfile({ preferences: { ...profile!.preferences, appLock: true } });
+          toast.show(t('common.saved'));
+        })
+        .catch(() => {
+          setPinFlow(null);
+          toast.show(t('error.generic'), 'error');
+        });
     } else {
       setPinError(t('set.pin.mismatch'));
       setPinFlow('new');

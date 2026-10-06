@@ -6,7 +6,7 @@
  * échéance hors-ligne, ils écrivent le même document — pas de doublon.
  */
 import type { RecurringRule, Transaction } from './types';
-import { addDays, addMonths, type ISODate } from './dates';
+import { addDays, addMonths, diffDays, type ISODate } from './dates';
 
 export function recurringTxId(ruleId: string, date: ISODate): string {
   return `rec_${ruleId}_${date.replace(/-/g, '')}`;
@@ -97,4 +97,19 @@ export function lastOccurrenceBefore(rule: Pick<RecurringRule, 'frequency' | 'st
     last = d;
   }
   return last;
+}
+
+/** Toutes les occurrences d'une règle entre deux dates incluses (calendrier, prévisions). */
+export function occurrencesBetween(rule: Pick<RecurringRule, 'frequency' | 'startDate' | 'endDate' | 'active'>, from: ISODate, to: ISODate, max = 400): ISODate[] {
+  const out: ISODate[] = [];
+  if (!rule.active) return out;
+  // Saut direct près de `from` pour les règles anciennes (pas de limite d'ancienneté).
+  let i = 0;
+  if (rule.frequency === 'weekly' && rule.startDate < from) i = Math.max(0, Math.floor(diffDays(rule.startDate, from) / 7) - 1);
+  for (let n = 0; n < max; n++, i++) {
+    const d = rule.frequency === 'weekly' ? addDays(rule.startDate, 7 * i) : addMonths(rule.startDate, i * (rule.frequency === 'yearly' ? 12 : 1));
+    if (d > to || (rule.endDate && d > rule.endDate)) break;
+    if (d >= from) out.push(d);
+  }
+  return out;
 }

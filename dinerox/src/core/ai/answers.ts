@@ -9,8 +9,8 @@ import type { ParsedIntent } from './parser';
 import { monthKey, previousMonth, type ISODate } from '../dates';
 import { moneyPosition } from '../balance';
 import { budgetSummary, envelopeStatuses, resolveEnvelopeId } from '../budget';
-import { financialSnapshot } from '../intelligence';
-import { expensesByCategory, monthFlows, savingsCapacity } from '../insights';
+import { financialSnapshot, observedCapacity } from '../intelligence';
+import { expensesByCategory, monthFlows } from '../insights';
 import { goalPlanFor, sortGoals } from '../goals';
 
 export interface AnswerLine {
@@ -93,7 +93,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
       const committed = statuses.reduce((s, x) => s + Math.max(0, x.remaining), 0);
       const amount = intent.amount; // converti en unités mineures par l'appelant (toMinor)
       const afterPurchase = pos.free - amount;
-      const capacity = savingsCapacity(data.transactions, now, currency);
+      const capacity = observedCapacity(data, currency, now);
       if (afterPurchase < 0) {
         const months = capacity && capacity > 0 ? Math.ceil((amount - Math.max(0, pos.free)) / capacity) : null;
         return { key: 'ai.a.affordNo', params: { amount, free: pos.free, months: months ?? 0, hasMonths: months ? 1 : 0 } };
@@ -105,13 +105,14 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
     }
 
     case 'goal_feasibility': {
-      const goals = sortGoals(data.goals.filter((g) => !g.deleted && g.status === 'active' && g.targetAmount > 0));
+      // Objectifs de la devise de l'espace uniquement (jamais d'addition de devises).
+      const goals = sortGoals(data.goals.filter((g) => !g.deleted && g.status === 'active' && g.targetAmount > 0 && g.currency === currency));
       if (!goals.length) return { key: 'ai.a.noGoals' };
-      const capacity = savingsCapacity(data.transactions, now, currency);
-      let needed = 0;
+      const capacity = observedCapacity(data, currency, now);
+      // Effort total calculé sur TOUS les objectifs ; seul le détail affiché est limité à 4.
+      const needed = goals.reduce((n, g) => n + (goalPlanFor(g, data.goalContributions, now).requiredMonthly ?? 0), 0);
       const bullets: AnswerLine[] = goals.slice(0, 4).map((g): AnswerLine => {
         const plan = goalPlanFor(g, data.goalContributions, now);
-        needed += plan.requiredMonthly ?? 0;
         if (plan.reached) return { key: 'ai.a.goalReached', params: { name: g.name } };
         if (plan.requiredMonthly !== null) return { key: 'ai.a.goalNeeds', params: { name: g.name, monthly: plan.requiredMonthly, months: plan.monthsToTarget ?? 0, remaining: plan.remaining } };
         if (plan.estimatedDate) return { key: 'ai.a.goalEta', params: { name: g.name, date: plan.estimatedDate, remaining: plan.remaining } };
@@ -168,7 +169,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
     }
 
     case 'why_no_savings': {
-      const capacity = savingsCapacity(data.transactions, now, currency);
+      const capacity = observedCapacity(data, currency, now);
       const statuses = envelopeStatuses(data.envelopes, data.transactions, data.budgets, month, currency);
       const bullets: AnswerLine[] = [];
       if (capacity !== null && capacity <= 0) bullets.push({ key: 'ai.a.whyNegative', params: { amount: -capacity } });

@@ -8,6 +8,7 @@ import { ActionError, useActions } from '@/store/actions';
 import { useCategoryLabels, useCurrency } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, ChipGroup, Field, Screen, Text, useToast } from '@/components/ui';
 import { pickableColors } from '@/theme';
+import { useActionErrorMessage, useRunAction } from '@/hooks/useRunAction';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 const ICONS = ['home', 'restaurant', 'car', 'heart', 'wallet', 'rocket', 'sparkles', 'school', 'medkit', 'shirt', 'game-controller', 'call', 'gift', 'people'];
@@ -15,10 +16,12 @@ const ICONS = ['home', 'restaurant', 'car', 'heart', 'wallet', 'rocket', 'sparkl
 function EnvelopeEdit() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { t } = useI18n();
+  const errorMessage = useActionErrorMessage();
   const toast = useToast();
   const data = useData();
   const currency = useCurrency();
   const actions = useActions();
+  const run = useRunAction();
   const cats = useCategoryLabels();
   const existing = data.envelopes.find((e) => e.id === id);
   const [name, setName] = useState(existing?.name ?? '');
@@ -35,14 +38,13 @@ function EnvelopeEdit() {
       goBack();
     } catch (e) {
       if (e instanceof ActionError && e.code === 'limit') setError(t('error.limit', { limit: e.details.limit ?? '' }));
-      else if (e instanceof ActionError && e.code === 'permission') setError(t('error.permission'));
-      else setError(t('error.name.required'));
+      else setError(errorMessage(e, 'error.name.required'));
     }
   };
   const remove = () =>
     Alert.alert(t('common.deleteConfirmTitle'), t('common.deleteConfirmBody'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => (actions.remove('envelopes', existing!.id), goBack()) },
+      { text: t('common.delete'), style: 'destructive', onPress: () => void (run(() => actions.remove('envelopes', existing!.id)) && goBack()) },
     ]);
   return (
     <Screen

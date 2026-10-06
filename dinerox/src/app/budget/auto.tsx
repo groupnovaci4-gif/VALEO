@@ -2,6 +2,7 @@
  * Budget automatique : DineroX propose une répartition du revenu selon une
  * méthode ; l'utilisateur ajuste chaque ligne avant de valider.
  */
+import { useRunAction } from '@/hooks/useRunAction';
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { goBack } from '@/hooks/goBack';
@@ -14,6 +15,7 @@ import { UpgradeCard } from '@/features/rows';
 import { proposeBudget, type BudgetBucket } from '@/core/budget';
 import { hasFeature } from '@/core/subscription';
 import { personalBudget } from '@/core/personalBudget';
+import { recurringMonthlyIncome } from '@/core/intelligence';
 import { useIntelligence } from '@/hooks/useIntelligence';
 import type { BudgetMethod } from '@/core/types';
 import { withSpaceReady } from '@/components/SpaceReady';
@@ -37,9 +39,10 @@ function AutoBudget() {
   const money = useMoney();
   const { data, currency, month, now } = useFinance();
   const actions = useActions();
+  const run = useRunAction();
   const { profile } = useApp();
   const { snapshot } = useIntelligence();
-  const lastIncome = useMemo(() => data.recurring.filter((r) => r.type === 'income' && r.active).reduce((s, r) => s + r.amount, 0), [data.recurring]);
+  const lastIncome = useMemo(() => recurringMonthlyIncome(data.recurring, currency), [data.recurring, currency]);
   const [income, setIncome] = useState<number | null>(lastIncome || snapshot.income.value || null);
   const activeEnvelopes = data.envelopes.filter((e) => e.active && !e.deleted);
   // Budget personnalisé par défaut dès qu'il y a des enveloppes : pas de règle universelle imposée.
@@ -66,7 +69,7 @@ function AutoBudget() {
 
   const apply = () => {
     if (method === 'personal') {
-      actions.applyBudget(
+      const ok = run(() => actions.applyBudget(
         month,
         'custom',
         income ?? 0,
@@ -74,12 +77,13 @@ function AutoBudget() {
           const e = data.envelopes.find((x) => x.id === l.envelopeId)!;
           return { envelopeId: e.id, name: e.name, icon: e.icon, color: e.color, amount: l.amount ?? 0, categoryIds: e.categoryIds };
         }),
-      );
+      ));
+      if (!ok) return;
       toast.show(t('budget.auto.applied'));
       goBack();
       return;
     }
-    actions.applyBudget(
+    const ok = run(() => actions.applyBudget(
       month,
       method,
       income ?? 0,
@@ -89,7 +93,8 @@ function AutoBudget() {
         const existing = data.envelopes.find((e) => e.categoryIds.includes(meta.categoryIds[0]));
         return { envelopeId: existing?.id ?? null, name: t(meta.envKey), icon: meta.icon, color: meta.color, amount: l.amount ?? 0, categoryIds: meta.categoryIds };
       }),
-    );
+    ));
+    if (!ok) return;
     toast.show(t('budget.auto.applied'));
     goBack();
   };

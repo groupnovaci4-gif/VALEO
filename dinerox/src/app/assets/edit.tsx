@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { View, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
@@ -8,6 +8,7 @@ import { useActions } from '@/store/actions';
 import { useCurrency } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, useToast } from '@/components/ui';
 import type { AssetType } from '@/core/types';
+import { useRunAction } from '@/hooks/useRunAction';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 function AssetEdit() {
@@ -17,6 +18,7 @@ function AssetEdit() {
   const data = useData();
   const currency = useCurrency();
   const actions = useActions();
+  const run = useRunAction();
   const existing = data.assets.find((a) => a.id === id);
   const [name, setName] = useState(existing?.name ?? '');
   const [type, setType] = useState<AssetType>(existing?.type ?? 'land');
@@ -26,7 +28,8 @@ function AssetEdit() {
   const save = () => {
     if (!name.trim()) return setError(t('error.name.required'));
     if (!value) return setError(t('error.amount.invalid'));
-    actions.saveAsset({ id: existing?.id, name: name.trim(), type, value, currency: existing?.currency ?? currency, acquiredAt, note: null });
+    // La note existante est conservée (l'écran ne la modifie pas).
+    if (!run(() => actions.saveAsset({ id: existing?.id, name: name.trim(), type, value, currency: existing?.currency ?? currency, acquiredAt, note: existing?.note ?? null }))) return;
     toast.show(t('common.saved'));
     goBack();
   };
@@ -36,7 +39,12 @@ function AssetEdit() {
       title={existing ? t('nw.edit') : t('nw.add')}
       footer={
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          {existing ? <Button variant="secondary" icon="trash-outline" label={t('common.delete')} onPress={() => (actions.remove('assets', existing.id), goBack())} /> : null}
+          {existing ? <Button variant="secondary" icon="trash-outline" label={t('common.delete')} onPress={() =>
+                Alert.alert(t('common.deleteConfirmTitle'), t('common.deleteConfirmBody'), [
+                  { text: t('common.cancel'), style: 'cancel' },
+                  { text: t('common.delete'), style: 'destructive', onPress: () => void (run(() => actions.remove('assets', existing.id)) && goBack()) },
+                ])
+              } /> : null}
           <Button style={{ flex: 1 }} label={t('common.save')} onPress={save} />
         </View>
       }

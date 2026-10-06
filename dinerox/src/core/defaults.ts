@@ -201,9 +201,24 @@ export function buildInitialStructure(
   }
   const envelopes: Envelope[] = [];
   const buckets: (keyof typeof BUCKET_ENVELOPE)[] = ['housing', 'food', 'transport', 'family', 'savings', 'project', 'free'];
+  // Budget de départ : les charges déclarées d'abord ; le reste du revenu est réparti
+  // sur les autres enveloppes au prorata de la proposition, sans jamais dépasser le revenu.
+  const amounts: Record<string, number> = {};
+  for (const b of buckets) amounts[b] = Math.max(lines.find((l) => l.bucket === b)?.amount ?? 0, declared[b] ?? 0);
+  const totalProposed = buckets.reduce((n, b) => n + amounts[b], 0);
+  if (answers.monthlyIncome > 0 && totalProposed > answers.monthlyIncome) {
+    const declaredTotal = buckets.reduce((n, b) => n + (declared[b] ?? 0), 0);
+    const room = Math.max(0, answers.monthlyIncome - declaredTotal);
+    const flexible = buckets.filter((b) => !declared[b]);
+    const flexTotal = flexible.reduce((n, b) => n + amounts[b], 0);
+    for (const b of flexible) amounts[b] = flexTotal > 0 ? Math.floor((amounts[b] * room) / flexTotal) : 0;
+    // Les arrondis profitent à l'enveloppe « libre » (total = revenu, ou charges déclarées si elles le dépassent).
+    const used = buckets.reduce((n, b) => n + amounts[b], 0);
+    if (!declared.free && used < answers.monthlyIncome) amounts.free += answers.monthlyIncome - used;
+  }
   buckets.forEach((b, i) => {
     const def = BUCKET_ENVELOPE[b];
-    const amount = Math.max(lines.find((l) => l.bucket === b)?.amount ?? 0, declared[b] ?? 0);
+    const amount = amounts[b];
     envelopes.push({
       ...base,
       id: meta.id('env_'),

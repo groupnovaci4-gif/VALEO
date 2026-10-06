@@ -20,7 +20,7 @@ const ROLES: Role[] = ['admin', 'partner', 'child'];
 export default function Family() {
   const { t } = useI18n();
   const toast = useToast();
-  const { mode, user, profile, spaces, activeSpace, setActiveSpace, plan } = useApp();
+  const { mode, user, profile, spaces, activeSpace, setActiveSpace, plan, engine } = useApp();
   const families = spaces.filter((s) => s.kind === 'family');
   const current = activeSpace?.kind === 'family' ? activeSpace : families[0];
   const myRole = current && user ? current.members[user.uid] : null;
@@ -156,7 +156,15 @@ export default function Family() {
             onPress={() =>
               Alert.alert(t('fam.leave'), t('fam.leaveConfirm'), [
                 { text: t('common.cancel'), style: 'cancel' },
-                { text: t('fam.leave'), style: 'destructive', onPress: () => void run(() => removeMember({ spaceId: current.id, uid: user!.uid })) },
+                { text: t('fam.leave'), style: 'destructive', onPress: () =>
+                    void run(async () => {
+                      await removeMember({ spaceId: current.id, uid: user!.uid });
+                      // Plus membre : on efface le cache local de cet espace (données de la famille).
+                      const personal = spaces.find((s) => s.kind === 'personal');
+                      if (personal) setActiveSpace(personal.id);
+                      await engine?.forget(current.id);
+                    }),
+                },
               ])
             }
           />

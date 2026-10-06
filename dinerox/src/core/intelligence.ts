@@ -17,8 +17,8 @@ import type { Category, Debt, DebtPayment, FinancialProfile, Goal, GoalContribut
 import type { CurrencyCode } from './money';
 import { addDays, lastMonths, monthKey, type ISODate, type MonthKey } from './dates';
 import { debtStatus } from './debts';
-import { goalPlanFor } from './goals';
-import { upcomingOccurrence } from './recurring';
+import { goalPlanFor, hasEmergencyFund } from './goals';
+import { occurrencesBetween } from './recurring';
 import { findSubcategory } from './catalog';
 
 export type DataSource = 'user' | 'declared' | 'estimate' | 'external';
@@ -38,6 +38,11 @@ export function monthlyEquivalent(rule: Pick<RecurringRule, 'amount' | 'frequenc
   if (rule.frequency === 'weekly') return Math.round((rule.amount * 52) / 12);
   if (rule.frequency === 'yearly') return Math.round(rule.amount / 12);
   return rule.amount;
+}
+
+/** Revenus récurrents actifs, en équivalent mensuel, dans une devise (aucune addition de devises). */
+export function recurringMonthlyIncome(rules: RecurringRule[], currency: CurrencyCode): number {
+  return rules.filter((r) => r.active && !r.deleted && r.type === 'income' && r.currency === currency).reduce((n, r) => n + monthlyEquivalent(r), 0);
 }
 
 /** Une dépense est-elle une charge fixe ? (sous-catégorie marquée fixe, catégorie fixe, ou échéance récurrente). */
@@ -114,25 +119,15 @@ export interface SnapshotInput {
 
 export function financialSnapshot({ data, currency, now, available, financial }: SnapshotInput): FinancialSnapshot {
   const months = lastMonths(4, now);
+  // Moyennes UNIQUEMENT sur des mois complets : un mois en cours (salaire reçu le 1er,
+  // loyer pas encore payé) donnerait une capacité d'épargne largement surestimée.
   const past = months.slice(0, 3).map((m) => monthStats(data.transactions, m, currency, data.categories)).filter((m) => m.income > 0 || m.expense > 0);
   const current = monthStats(data.transactions, months[3], currency, data.categories);
   const hasHistory = past.length > 0;
-  const base = hasHistory ? past : current.income > 0 || current.expense > 0 ? [current] : [];
 
-  // Revenus : opérations, sinon revenu déclaré.
-  const observedIncome = avg(base.map((m) => m.income));
-  const declaredIncome = financial?.monthlyIncome ?? 0;
-  const income: Figure = observedIncome > 0 ? { value: observedIncome, source: 'user' } : { value: declaredIncome, source: declaredIncome > 0 ? 'declared' : 'user' };
-
-  const expenseValue = avg(base.map((m) => m.expense));
-  // Charges fixes : observées, ou à défaut récurrences actives + charges déclarées.
+  // Charges fixes connues : récurrences actives (équivalent mensuel) et charges déclarées.
   const recurringFixed = data.recurring.filter((r) => r.active && !r.deleted && r.type === 'expense' && r.currency === currency).reduce((n, r) => n + monthlyEquivalent(r), 0);
   const declaredFixed = Object.values(financial?.fixedCharges ?? {}).reduce((n, v) => n + (v > 0 ? v : 0), 0);
-  const observedFixed = avg(base.map((m) => m.fixed));
-  const fixedValue = Math.max(observedFixed, recurringFixed);
-  const fixedCharges: Figure = fixedValue > 0 ? { value: fixedValue, source: 'user' } : { value: declaredFixed, source: declaredFixed > 0 ? 'declared' : 'user' };
-  const expenses: Figure = expenseValue > 0 ? { value: expenseValue, source: 'user' } : { value: fixedCharges.value, source: fixedCharges.source };
-
   const debtService = data.debts
     .filter((d: Debt) => !d.deleted && d.direction === 'i_owe' && d.currency === currency)
     .reduce((n, d) => {
@@ -140,15 +135,32 @@ export function financialSnapshot({ data, currency, now, available, financial }:
       return s.settled ? n : n + Math.min(d.installment ?? 0, s.remaining);
     }, 0);
 
-  // Capacité : revenus − dépenses (les remboursements saisis sont déjà des dépenses).
-  // Sans historique, estimation à partir du déclaré : revenus − charges − mensualités.
-  const capacity: Figure =
-    expenseValue > 0 || observedIncome > 0
-      ? { value: income.value - expenses.value, source: income.source === 'user' ? 'user' : 'estimate' }
-      : { value: income.value - fixedCharges.value - debtService, source: 'estimate' };
-  if (financial?.savingCapacity && financial.savingCapacity > 0 && capacity.value <= 0 && !hasHistory) {
-    capacity.value = financial.savingCapacity;
-    capacity.source = 'declared';
+  let income: Figure;
+  let expenses: Figure;
+  let fixedCharges: Figure;
+  let capacity: Figure;
+  if (hasHistory) {
+    const observedIncome = avg(past.map((m) => m.income));
+    const observedExpense = avg(past.map((m) => m.expense));
+    const fixedValue = Math.max(avg(past.map((m) => m.fixed)), recurringFixed);
+    income = observedIncome > 0 ? { value: observedIncome, source: 'user' } : { value: financial?.monthlyIncome ?? 0, source: financial?.monthlyIncome ? 'declared' : 'user' };
+    fixedCharges = { value: fixedValue || declaredFixed, source: fixedValue ? 'user' : declaredFixed ? 'declared' : 'user' };
+    // Une charge fixe connue mais pas encore saisie reste une dépense.
+    expenses = { value: Math.max(observedExpense, fixedCharges.value), source: 'user' };
+    // Les remboursements saisis sont déjà des dépenses : pas de double comptage.
+    capacity = { value: income.value - expenses.value, source: income.source === 'user' ? 'user' : 'estimate' };
+  } else {
+    // Pas encore de mois complet : estimation à partir du déclaré et du mois en cours.
+    const declaredIncome = financial?.monthlyIncome ?? 0;
+    income = declaredIncome > 0 ? { value: declaredIncome, source: 'declared' } : { value: current.income, source: 'user' };
+    const knownFixed = Math.max(recurringFixed, declaredFixed);
+    fixedCharges = { value: knownFixed, source: recurringFixed >= declaredFixed && recurringFixed > 0 ? 'user' : declaredFixed > 0 ? 'declared' : 'user' };
+    expenses = { value: Math.max(current.expense, knownFixed + debtService), source: current.expense > knownFixed + debtService ? 'user' : 'estimate' };
+    capacity = { value: income.value - expenses.value, source: 'estimate' };
+    // Capacité déclarée : prise en compte seulement si rien d'autre n'est connu, et
+    // jamais pour masquer un déficit.
+    const declaredCapacity = financial?.savingCapacity ?? 0;
+    if (declaredCapacity > 0 && income.value === 0 && expenses.value === 0) capacity = { value: declaredCapacity, source: 'declared' };
   }
 
   const goalNeeds = data.goals
@@ -160,8 +172,10 @@ export function financialSnapshot({ data, currency, now, available, financial }:
   let upcomingInflows = 0;
   for (const r of data.recurring) {
     if (r.deleted || !r.active || r.currency !== currency) continue;
-    const next = upcomingOccurrence(r, now);
-    if (next && next <= horizon) {
+    // Toutes les occurrences des 30 prochains jours (une règle hebdomadaire en a 4 ou 5),
+    // sauf celles déjà enregistrées en opération (déjà déduites du solde).
+    for (const d of occurrencesBetween(r, now, horizon)) {
+      if (r.lastGenerated && d <= r.lastGenerated) continue;
       if (r.type === 'expense') upcomingOutflows += r.amount;
       else upcomingInflows += r.amount;
     }
@@ -180,8 +194,9 @@ export function financialSnapshot({ data, currency, now, available, financial }:
     .filter((x) => x.average > 0)
     .sort((a, b) => b.change - a.change);
 
-  const familyBase = base.reduce((n, m) => n + m.expense, 0);
-  const familySpend = base.reduce((n, m) => n + (m.byCategory.cat_family ?? 0) + (m.byCategory.cat_social ?? 0), 0);
+  const shareBase = hasHistory ? past : [current];
+  const familyBase = shareBase.reduce((n, m) => n + m.expense, 0);
+  const familySpend = shareBase.reduce((n, m) => n + (m.byCategory.cat_family ?? 0) + (m.byCategory.cat_social ?? 0), 0);
 
   return {
     currency,
@@ -201,6 +216,16 @@ export function financialSnapshot({ data, currency, now, available, financial }:
     categoryTrends,
     familyShare: familyBase > 0 ? Math.round((familySpend / familyBase) * 100) : null,
   };
+}
+
+/**
+ * Capacité d'épargne OBSERVÉE (définition unique pour toute l'application :
+ * analyse, alertes, assistant, objectifs). null tant qu'aucun mois complet
+ * n'a été saisi — on ne déduit rien d'un mois en cours.
+ */
+export function observedCapacity(data: SnapshotInput['data'], currency: CurrencyCode, now: ISODate, financial?: FinancialProfile): number | null {
+  const s = financialSnapshot({ data, currency, now, available: 0, financial });
+  return s.monthsOfData > 0 ? s.savingsCapacity.value : null;
 }
 
 export type RecommendationKind =
@@ -232,7 +257,7 @@ export interface Recommendation {
  * Recommandations : seuils prudents et explicables (pas de règle universelle
  * imposée ; un seuil sert à alerter, jamais à juger).
  */
-export function recommendations(s: FinancialSnapshot, goals: Pick<Goal, 'templateId' | 'status'>[]): Recommendation[] {
+export function recommendations(s: FinancialSnapshot, goals: Pick<Goal, 'templateId' | 'status' | 'deleted'>[]): Recommendation[] {
   const out: Recommendation[] = [];
   const hasAny = s.income.value > 0 || s.expenses.value > 0;
   if (!hasAny) {
@@ -257,8 +282,7 @@ export function recommendations(s: FinancialSnapshot, goals: Pick<Goal, 'templat
   const spike = s.categoryTrends.find((c) => c.change >= 25 && c.current - c.average > 0);
   if (spike) out.push({ id: `spike_${spike.categoryId}`, kind: 'category_spike', severity: 'warning', params: { categoryId: spike.categoryId, percent: spike.change, amount: spike.current - spike.average }, source: 'user', link: '/reports', weight: 65 });
   if (s.debtRatio !== null && s.debtRatio >= 35) out.push({ id: 'debt_ratio', kind: 'debt_ratio_high', severity: 'warning', params: { percent: s.debtRatio, amount: s.debtService.value }, source: 'user', link: '/debts', weight: 80 });
-  const hasEmergency = goals.some((g) => g.templateId === 'emergency_fund' && g.status !== 'abandoned' && g.status !== 'archived');
-  if (!hasEmergency && s.savingsCapacity.value > 0 && s.expenses.value > 0) out.push({ id: 'emergency', kind: 'emergency_fund', severity: 'info', params: { target: s.expenses.value * 3 }, source: 'estimate', link: '/goals/new', weight: 50 });
+  if (!hasEmergencyFund(goals) && s.savingsCapacity.value > 0 && s.expenses.value > 0) out.push({ id: 'emergency', kind: 'emergency_fund', severity: 'info', params: { target: s.expenses.value * 3 }, source: 'estimate', link: '/goals/new', weight: 50 });
   if (s.familyShare !== null && s.familyShare >= 20) out.push({ id: 'family', kind: 'family_share', severity: 'info', params: { percent: s.familyShare }, source: 'user', link: '/budget', weight: 35 });
   return out.sort((a, b) => b.weight - a.weight);
 }

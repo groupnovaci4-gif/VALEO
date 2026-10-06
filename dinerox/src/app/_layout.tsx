@@ -1,17 +1,22 @@
 import React, { useEffect } from 'react';
-import { Stack, router, useSegments, SplashScreen, type ErrorBoundaryProps } from 'expo-router';
+import { Stack, router, useSegments, SplashScreen, type ErrorBoundaryProps, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { FONT_ASSETS } from '@/theme/fonts';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { AppProvider, useApp } from '@/store/app';
 import { ThemeProvider, useTheme } from '@/theme';
 import { I18nProvider, deviceLanguage, useI18n } from '@/i18n';
 import { ToastProvider, Button, Text } from '@/components/ui';
 import { LockGate } from '@/components/LockGate';
 import { Bootstrap } from '@/components/Bootstrap';
+import { listenNotificationTaps } from '@/services/notifications';
+import { installWebAlert } from '@/services/webAlert';
+
+installWebAlert();
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -22,11 +27,14 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AppProvider>
-          <Providers>
-            <Navigator />
-          </Providers>
-        </AppProvider>
+        {/* Gestion du clavier commune iOS/Android (affichage bord à bord). */}
+        <KeyboardProvider>
+          <AppProvider>
+            <Providers>
+              <Navigator />
+            </Providers>
+          </AppProvider>
+        </KeyboardProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -48,6 +56,8 @@ function Navigator() {
   const { status } = useApp();
   const { colors, dark } = useTheme();
   const segments = useSegments();
+  // Chaîne stable : l'effet ne se relance que si la route change réellement.
+  const route = segments.join('/');
 
   // Routage selon la session : accueil (déconnecté) → application (connecté).
   // Le profil financier à compléter est proposé par la navigation à onglets ;
@@ -55,14 +65,21 @@ function Navigator() {
   useEffect(() => {
     if (status === 'loading') return;
     void SplashScreen.hideAsync().catch(() => undefined);
-    const inAuth = segments[0] === '(auth)';
-    const inLegal = segments[0] === 'legal';
+    const first = route.split('/')[0];
+    const inAuth = first === '(auth)';
+    const inLegal = first === 'legal';
     if (status === 'signedOut') {
       if (!inAuth && !inLegal) router.replace('/welcome');
       return;
     }
     if (inAuth) router.replace('/');
-  }, [status, segments]);
+  }, [status, route]);
+
+  // Notification touchée : ouverture de l'écran concerné (session ouverte uniquement).
+  useEffect(() => {
+    if (status !== 'signedIn') return;
+    return listenNotificationTaps((url) => router.push(url as Href));
+  }, [status]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
