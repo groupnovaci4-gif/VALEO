@@ -54,6 +54,20 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt'])
           && request.resource.data.token is string && request.resource.data.token.size() < 300;
       }
+
+      // Coach : historique PERSONNEL des événements déjà présentés (déduplication
+      // entre appareils). Aucun montant ni texte : type, gravité, période seulement.
+      match /coachEvents/{eventId} {
+        allow read, delete: if signedIn() && me() == userId;
+        allow create, update: if signedIn() && me() == userId
+          && eventId.size() <= 160
+          && request.resource.data.keys().hasOnly(['kind', 'severity', 'period', 'spaceId', 'deliveredAt'])
+          && request.resource.data.kind is string && request.resource.data.kind.size() <= 60
+          && request.resource.data.severity in ['info', 'advice', 'warning', 'critical', 'celebration']
+          && request.resource.data.period is string && request.resource.data.period.size() <= 10
+          && request.resource.data.spaceId is string && request.resource.data.spaceId.size() <= 128
+          && request.resource.data.deliveredAt is int;
+      }
     }
 
     // Abonnements vérifiés côté serveur (reçus, fournisseurs).

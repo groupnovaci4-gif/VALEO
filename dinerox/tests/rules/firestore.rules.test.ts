@@ -89,6 +89,24 @@ describe('profil utilisateur', () => {
     await assertFails(getDoc(doc(db('u2'), 'users/u1')));
     await assertFails(getDoc(doc(db(null), 'users/u1')));
   });
+  it('coach : historique personnel, propriétaire uniquement, aucun montant', async () => {
+    await setDoc(doc(db('u1'), 'users/u1'), profile('u1'));
+    const ev = { kind: 'envelope_warning', severity: 'warning', period: '2026-10', spaceId: 'u1', deliveredAt: 1 };
+    await assertSucceeds(setDoc(doc(db('u1'), 'users/u1/coachEvents/env_food_2026-10_warning'), ev));
+    await assertSucceeds(getDoc(doc(db('u1'), 'users/u1/coachEvents/env_food_2026-10_warning')));
+    await assertFails(getDoc(doc(db('u2'), 'users/u1/coachEvents/env_food_2026-10_warning')));
+    await assertFails(setDoc(doc(db('u2'), 'users/u1/coachEvents/x'), ev));
+    await assertFails(deleteDoc(doc(db('u2'), 'users/u1/coachEvents/env_food_2026-10_warning')));
+    // Jamais de montant ni de texte libre dans l'historique.
+    await assertFails(setDoc(doc(db('u1'), 'users/u1/coachEvents/y'), { ...ev, amount: 20000 }));
+    await assertFails(setDoc(doc(db('u1'), 'users/u1/coachEvents/z'), { ...ev, severity: 'urgent' }));
+    await assertSucceeds(deleteDoc(doc(db('u1'), 'users/u1/coachEvents/env_food_2026-10_warning')));
+  });
+  it("abonnement : jamais modifiable par le client (non-régression)", async () => {
+    await setDoc(doc(db('u1'), 'users/u1'), profile('u1'));
+    await assertFails(updateDoc(doc(db('u1'), 'users/u1'), { 'subscription.plan': 'family' }));
+    await assertFails(updateDoc(doc(db('u1'), 'users/u1'), { subscription: { plan: 'plus', status: 'active', provider: 'none' } }));
+  });
   it("jetons push : personne d'autre ne lit, n'écrit ni n'efface ceux d'un utilisateur", async () => {
     await setDoc(doc(db('u1'), 'users/u1'), profile('u1'));
     const dev = { token: 'ExponentPushToken[abc]', platform: 'android', updatedAt: 1 };

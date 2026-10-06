@@ -7,6 +7,7 @@ import { firebase } from './firebase';
 import type { UserPreferences, UserProfile } from '@/core/types';
 import { defaultSubscription } from '@/core/subscription';
 import { DEFAULT_CURRENCY } from '@/core/money';
+import { DEFAULT_COACH_PREFS } from '@/core/coach/prefs';
 import { deviceLanguage } from '@/i18n';
 
 export const defaultPreferences = (): UserPreferences => ({
@@ -26,6 +27,7 @@ export const defaultPreferences = (): UserPreferences => ({
   aiConsent: false,
   analyticsConsent: false,
   budgetMethod: 'envelopes',
+  coach: { ...DEFAULT_COACH_PREFS },
 });
 
 export function defaultProfile(uid: string, email: string, firstName = ''): UserProfile {

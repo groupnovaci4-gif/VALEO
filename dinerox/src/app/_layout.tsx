@@ -13,7 +13,7 @@ import { I18nProvider, deviceLanguage, useI18n } from '@/i18n';
 import { ToastProvider, Button, Text } from '@/components/ui';
 import { LockGate } from '@/components/LockGate';
 import { Bootstrap } from '@/components/Bootstrap';
-import { CoachHost } from '@/features/coach/CoachHost';
+import { CoachProvider } from '@/features/coach/CoachProvider';
 import { listenNotificationTaps } from '@/services/notifications';
 import { installWebAlert } from '@/services/webAlert';
 
@@ -87,14 +87,15 @@ function Navigator() {
       <StatusBar style={dark ? 'light' : 'dark'} />
       <LockGate>
         <Bootstrap />
-        <CoachHost />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="transaction/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-          <Stack.Screen name="goals/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-        </Stack>
+        <CoachProvider>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="transaction/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+            <Stack.Screen name="goals/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+          </Stack>
+        </CoachProvider>
       </LockGate>
     </View>
   );

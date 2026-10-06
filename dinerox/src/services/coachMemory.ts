@@ -8,6 +8,7 @@
  */
 import { readJSON, storageKey, writeJSON } from './storage';
 import type { EnvelopeAlertMemory } from '@/core/coach/envelopeAlerts';
+import { EMPTY_DELIVERY, type DeliveryState } from '@/core/coach/policy';
 
 const notified = new Map<string, Promise<Set<string>>>();
 const envMemory = new Map<string, Promise<EnvelopeAlertMemory>>();
@@ -62,5 +63,30 @@ export function saveEnvelopeMemory(uid: string, spaceId: string, memory: Envelop
 export function resetCoachMemoryCache() {
   notified.clear();
   envMemory.clear();
+  delivery.clear();
 }
 
+// ─── État de diffusion (politique anti-sur-alerte) ─────────────────────
+
+const delivery = new Map<string, Promise<DeliveryState>>();
+const deliveryKey = (uid: string) => storageKey(uid, 'coach', 'delivery');
+
+export function deliveryState(uid: string): Promise<DeliveryState> {
+  let p = delivery.get(uid);
+  if (!p) {
+    p = readJSON<DeliveryState>(deliveryKey(uid)).then((s) => ({ ...EMPTY_DELIVERY, ...(s ?? {}) }));
+    delivery.set(uid, p);
+  }
+  return p;
+}
+
+export function saveDeliveryState(uid: string, state: DeliveryState): Promise<void> {
+  delivery.set(uid, Promise.resolve(state));
+  return serial(() => writeJSON(deliveryKey(uid), state));
+}
+
+/** Fusionne des identifiants déjà présentés ailleurs (autre appareil, historique distant). */
+export async function mergeDelivered(uid: string, ids: Record<string, number>): Promise<void> {
+  const s = await deliveryState(uid);
+  await saveDeliveryState(uid, { ...s, delivered: { ...ids, ...s.delivered } });
+}

@@ -15,6 +15,7 @@ import { GoalCard, InsightCard, SpaceSwitcher, TransactionRow } from '@/features
 import type { EnvelopeStatus } from '@/core/budget';
 import { useIntelligence } from '@/hooks/useIntelligence';
 import { RecommendationCard } from '@/features/Recommendation';
+import { CoachSummaryCard } from '@/features/coach/CoachSummaryCard';
 import { goalPlanFor, sortGoals } from '@/core/goals';
 import { sortTransactions } from '@/core/transactions';
 import { formatMoney, type CurrencyCode } from '@/core/money';
@@ -81,6 +82,9 @@ export default function Home() {
           }
         />
       ) : null}
+
+      {/* Coach : ce qu'il faut savoir depuis la dernière ouverture (un seul résumé). */}
+      <CoachSummaryCard />
 
       {/* Carte principale : solde disponible */}
       <GradientCard>

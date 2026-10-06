@@ -6,6 +6,7 @@ import { useI18n } from '@/i18n';
 import { analytics, enableFirestoreAnalytics } from '@/services/analytics';
 import { notifyNewInsights, registerPushToken, scheduleLocalNotifications } from '@/services/notifications';
 import { useInsightText } from '@/hooks/useInsightText';
+import { coachPrefs } from '@/core/coach/prefs';
 import { buildDemoData } from '@/core/demo';
 import { systemCategories } from '@/core/defaults';
 import { subcategoryDocs } from '@/core/catalog';
@@ -118,11 +119,14 @@ export function Bootstrap() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefs, data.debts, data.debtPayments, profile?.onboarding.completed]);
 
-  // Alertes immédiates (budget, dépense inhabituelle, objectif proche).
+  // Alertes immédiates (budget, dépense inhabituelle, objectif proche) en
+  // notification système — seulement si le coach est désactivé : sinon c'est
+  // le coach qui les présente dans l'application (un seul circuit, pas de doublon).
+  const coachOn = coachPrefs(profile?.preferences).enabled;
   useEffect(() => {
-    if (!user || !prefs || !profile?.onboarding.completed) return;
+    if (!user || !prefs || !profile?.onboarding.completed || coachOn) return;
     void notifyNewInsights(user.uid, insights, prefs, render).catch(() => undefined);
-  }, [user, prefs, insights, render, profile?.onboarding.completed]);
+  }, [user, prefs, insights, render, profile?.onboarding.completed, coachOn]);
 
   // Jeton push (comptes en ligne uniquement).
   useEffect(() => {

@@ -367,9 +367,29 @@ export interface NotificationPrefs {
   monthlySummary: boolean;
 }
 
+/** Coach financier : présentation des alertes (les types d'alertes restent gouvernés par NotificationPrefs). */
+export interface CoachPrefs {
+  enabled: boolean;
+  /** Voix : `off`, `important` (dépassements et félicitations, par défaut) ou `all`. */
+  voice: 'off' | 'important' | 'all';
+  /** Lire les montants à voix haute (faux par défaut : confidentialité en public). */
+  speakAmounts: boolean;
+  /** Volume des sons courts, 0 à 1 (0 : aucun son). */
+  soundVolume: number;
+  frequency: 'discreet' | 'normal' | 'active';
+  /** Seulement les dépassements. */
+  criticalOnly: boolean;
+  /** Aucun son ni voix (texte uniquement). */
+  silent: boolean;
+  /** Voix premium (serveur) si la formule le permet. */
+  premiumVoice: boolean;
+}
+
 export interface UserPreferences {
   theme: ThemePreference;
   notifications: NotificationPrefs;
+  /** Absent sur les profils créés avant la 1.5 : lire via `coachPrefs()`. */
+  coach?: CoachPrefs;
   /** Verrouillage par biométrie/PIN. */
   appLock: boolean;
   /** Minutes en arrière-plan avant verrouillage (0 = immédiat). */
