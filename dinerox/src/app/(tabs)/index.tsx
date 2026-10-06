@@ -275,7 +275,7 @@ function EnvelopeCard({ s }: { s: EnvelopeStatus }) {
         <Text variant="caption" tone="muted">
           {t('env.consumed', { percent: s.percent })}
         </Text>
-        <Text variant="caption" weight="600" tone={s.level === 'over' ? 'danger' : s.level === 'ok' ? 'success' : 'warning'}>
+        <Text variant="caption" weight="600" tone={s.level === 'critical' ? 'danger' : s.level === 'ok' ? 'success' : 'warning'}>
           {t(`env.state.${s.level}` as TKey)}
         </Text>
       </View>

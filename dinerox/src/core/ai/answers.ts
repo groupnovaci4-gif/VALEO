@@ -139,7 +139,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
       const statuses = envelopeStatuses(data.envelopes, data.transactions, data.budgets, month, currency);
       const summary = budgetSummary(statuses, flows.expense);
       const top = Object.entries(expensesByCategory(data.transactions, month, currency)).sort((a, b) => b[1] - a[1])[0];
-      const over = statuses.filter((s) => s.level === 'over');
+      const over = statuses.filter((s) => s.level === 'critical');
       const bullets: AnswerLine[] = [
         { key: 'ai.a.sumIncome', params: { amount: flows.income } },
         { key: 'ai.a.sumExpense', params: { amount: flows.expense } },
@@ -156,7 +156,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
       const cats = Object.entries(expensesByCategory(data.transactions, month, currency)).sort((a, b) => b[1] - a[1]);
       const last = expensesByCategory(data.transactions, prev, currency);
       const bullets: AnswerLine[] = [];
-      for (const s of statuses.filter((x) => x.level === 'over' || x.level === 'full').slice(0, 2)) {
+      for (const s of statuses.filter((x) => x.level === 'critical' || x.level === 'reached').slice(0, 2)) {
         bullets.push({ key: 'ai.a.reduceEnvelope', params: { name: s.envelope.name, spent: s.spent, budget: s.budget } });
       }
       for (const [id, v] of cats.slice(0, 3)) {
@@ -182,7 +182,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
       if (snap.fixedRatio !== null && snap.fixedRatio >= 50) bullets.push({ key: 'ai.a.whyFixed', params: { percent: snap.fixedRatio } });
       if (snap.debtRatio !== null && snap.debtRatio >= 35) bullets.push({ key: 'ai.a.whyDebt', params: { percent: snap.debtRatio } });
       if (snap.familyShare !== null && snap.familyShare >= 20) bullets.push({ key: 'ai.a.whyFamily', params: { percent: snap.familyShare } });
-      const overCount = statuses.filter((s) => s.level === 'over').length;
+      const overCount = statuses.filter((s) => s.level === 'critical').length;
       if (overCount) bullets.push({ key: 'ai.a.whyOver', params: { count: overCount } });
       const hasSavingsEnvelope = statuses.some((s) => s.envelope.categoryIds.includes('cat_savings') && s.budget > 0);
       if (!hasSavingsEnvelope) bullets.push({ key: 'ai.a.whyNoEnvelope' });

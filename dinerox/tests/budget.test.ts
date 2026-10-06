@@ -1,18 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { envelopeLevel, envelopeStatuses, proposeBudget, proposeIncomeAllocation, resolveEnvelopeId } from '../src/core/budget';
+import { envelopeLevel, envelopeStatuses, normalizeLevel, proposeBudget, proposeIncomeAllocation, resolveEnvelopeId } from '../src/core/budget';
 import { envelope, tx } from './helpers';
 
 describe('seuils d enveloppe', () => {
-  it('70 / 90 / 100 / dépassement', () => {
-    expect(envelopeLevel(69, 100)).toBe('ok');
-    expect(envelopeLevel(70, 100)).toBe('warn70');
-    expect(envelopeLevel(90, 100)).toBe('warn90');
-    expect(envelopeLevel(100, 100)).toBe('full');
-    expect(envelopeLevel(101, 100)).toBe('over');
+  it('85 % / 100 % / dépassement (budget 100 000)', () => {
+    expect(envelopeLevel(50_000, 100_000)).toBe('ok');
+    expect(envelopeLevel(84_999, 100_000)).toBe('ok');
+    expect(envelopeLevel(85_000, 100_000)).toBe('warning');
+    expect(envelopeLevel(90_000, 100_000)).toBe('warning');
+    expect(envelopeLevel(99_999, 100_000)).toBe('warning');
+    expect(envelopeLevel(100_000, 100_000)).toBe('reached');
+    expect(envelopeLevel(100_001, 100_000)).toBe('critical');
+    expect(envelopeLevel(120_000, 100_000)).toBe('critical');
   });
   it('budget nul', () => {
     expect(envelopeLevel(0, 0)).toBe('ok');
-    expect(envelopeLevel(1, 0)).toBe('over');
+    expect(envelopeLevel(1, 0)).toBe('critical');
+  });
+  it('lecture compatible des anciens niveaux', () => {
+    expect(normalizeLevel('warn70')).toBe('ok');
+    expect(normalizeLevel('warn90')).toBe('warning');
+    expect(normalizeLevel('full')).toBe('reached');
+    expect(normalizeLevel('over')).toBe('critical');
+    expect(normalizeLevel('critical')).toBe('critical');
+    expect(normalizeLevel(undefined)).toBe('ok');
   });
 });
 
@@ -28,7 +39,7 @@ describe('consommation des enveloppes', () => {
     ];
     const s = envelopeStatuses([food, transport], list, [], '2026-10', 'XOF');
     expect(s[0]).toMatchObject({ spent: 40_000, remaining: 40_000, percent: 50, level: 'ok' });
-    expect(s[1]).toMatchObject({ spent: 33_000, percent: 83, level: 'warn70' });
+    expect(s[1]).toMatchObject({ spent: 33_000, percent: 83, level: 'ok' });
   });
   it('le plan du mois surcharge le budget par défaut', () => {
     const s = envelopeStatuses([food], [], [{ id: '2026-10', month: '2026-10', method: 'custom', expectedIncome: 0, allocations: { food: 50_000 }, createdAt: 1, updatedAt: 1, createdBy: 'u' }], '2026-10', 'XOF');

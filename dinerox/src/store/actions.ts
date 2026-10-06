@@ -34,6 +34,25 @@ import { isValidAmount } from '@/core/money';
 import { goalSaved } from '@/core/balance';
 import { analytics } from '@/services/analytics';
 import { useI18n } from '@/i18n';
+import { monthKey, type MonthKey } from '@/core/dates';
+import { touchedByWrite } from '@/core/coach/envelopeAlerts';
+import { notifyCoachWrite } from '@/features/coach/bus';
+
+/**
+ * Enveloppes/mois dont l'état de budget a pu changer après l'écriture d'un
+ * document (dépense ajoutée/modifiée/supprimée, enveloppe ou budget du mois
+ * modifié) : le coach les réévalue aussitôt (réaction immédiate).
+ */
+function budgetImpact(col: CollectionName, before: SyncedDoc | undefined, after: SyncedDoc | undefined, d: SpaceData): Map<MonthKey, Set<string>> {
+  if (col === 'transactions') return touchedByWrite([before as Transaction | undefined, after as Transaction | undefined], d.envelopes);
+  const month = monthKey(today());
+  if (col === 'envelopes') return new Map([[month, new Set([(after ?? before)!.id])]]);
+  if (col === 'budgets') {
+    const p = (after ?? before) as BudgetPlan;
+    return new Map([[p.month, new Set([...Object.keys(p.allocations ?? {}), ...Object.keys((before as BudgetPlan | undefined)?.allocations ?? {})])]]);
+  }
+  return new Map();
+}
 
 export class ActionError extends Error {
   constructor(
@@ -95,7 +114,9 @@ export function useActions() {
       const { engine: e, spaceId } = ctx();
       const existing = draft.id ? e.getDoc(spaceId, col, draft.id) : undefined;
       ensure(existing ? 'update' : 'create', col, existing);
-      return e.write<T>(spaceId, col, { ...(draft as object), id: draft.id ?? newId(PREFIX[col]) } as never);
+      const written = e.write<T>(spaceId, col, { ...(draft as object), id: draft.id ?? newId(PREFIX[col]) } as never);
+      notifyCoachWrite(spaceId, budgetImpact(col, existing && !existing.deleted ? existing : undefined, written, e.getData(spaceId)));
+      return written;
     },
     [ctx, ensure],
   );
@@ -103,8 +124,10 @@ export function useActions() {
   const remove = useCallback(
     (col: CollectionName, id: string) => {
       const { engine: e, spaceId } = ctx();
-      ensure('delete', col, e.getDoc(spaceId, col, id));
+      const before = e.getDoc(spaceId, col, id);
+      ensure('delete', col, before);
       e.remove(spaceId, col, id);
+      notifyCoachWrite(spaceId, budgetImpact(col, before && !before.deleted ? before : undefined, undefined, e.getData(spaceId)));
       // Écritures liées : une opération et le remboursement / la contribution qu'elle
       // représente vont ensemble (sinon une dette resterait « payée » ou un objectif
       // garderait un transfert fantôme).
@@ -115,7 +138,11 @@ export function useActions() {
       } else if (col === 'debtPayments' || col === 'goalContributions') {
         const doc = e.getDoc(spaceId, col, id) as { transactionId?: string | null; transferId?: string | null } | undefined;
         const txId = doc?.transactionId ?? doc?.transferId;
-        if (txId && d.transactions.some((t) => t.id === txId)) e.remove(spaceId, 'transactions', txId);
+        const linked = txId ? d.transactions.find((t) => t.id === txId) : undefined;
+        if (linked) {
+          e.remove(spaceId, 'transactions', linked.id);
+          notifyCoachWrite(spaceId, budgetImpact('transactions', linked, undefined, d));
+        }
       }
     },
     [ctx, ensure],
@@ -254,6 +281,7 @@ export function useActions() {
       const plan: BudgetPlan = { ...(existingPlan ?? { createdAt: 0, updatedAt: 0, createdBy: '' }), id: month, month, method, expectedIncome, allocations };
       items.push({ col: 'budgets', doc: plan });
       e.writeMany(spaceId, items);
+      notifyCoachWrite(spaceId, budgetImpact('budgets', existingPlan, plan, e.getData(spaceId)));
     },
     [ctx, data, ensure],
   );
@@ -405,7 +433,12 @@ export function useActions() {
       for (const date of dates) items.push({ col: 'transactions', doc: materialize(rule, date, { now: Date.now(), uid: user.uid }) });
       items.push({ col: 'recurring', doc: { ...rule, lastGenerated: dates[dates.length - 1] } as RecurringRule });
     }
-    if (items.length) engine.writeMany(activeSpace.id, items);
+    if (items.length) {
+      engine.writeMany(activeSpace.id, items);
+      // Échéances générées (loyer, abonnement…) : elles comptent dans les budgets.
+      const after = engine.getData(activeSpace.id);
+      notifyCoachWrite(activeSpace.id, touchedByWrite(items.filter((i) => i.col === 'transactions').map((i) => i.doc as Transaction), after.envelopes));
+    }
     return items.length;
   }, [engine, activeSpace, user, role]);
 

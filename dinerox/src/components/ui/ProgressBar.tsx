@@ -29,9 +29,8 @@ export function ProgressBar({ value, tone = 'primary', height = 8, color, label 
 }
 
 /** Couleur sémantique d'un niveau d'enveloppe. */
-export function levelTone(level: 'ok' | 'warn70' | 'warn90' | 'full' | 'over'): ProgressTone {
-  if (level === 'over') return 'danger';
-  if (level === 'warn90' || level === 'full') return 'warning';
-  if (level === 'warn70') return 'info';
+export function levelTone(level: 'ok' | 'warning' | 'reached' | 'critical'): ProgressTone {
+  if (level === 'critical') return 'danger';
+  if (level === 'warning' || level === 'reached') return 'warning';
   return 'success';
 }

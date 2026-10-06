@@ -5,7 +5,7 @@ import { useTheme } from '@/theme';
 import { Text } from './Text';
 import { Icon } from './Icon';
 
-type ToastTone = 'success' | 'error' | 'info';
+type ToastTone = 'success' | 'error' | 'info' | 'warning';
 interface ToastValue {
   show: (message: string, tone?: ToastTone) => void;
 }
@@ -20,12 +20,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const show = useCallback((message: string, tone: ToastTone = 'success') => {
     setToast({ message, tone });
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setToast(null), tone === 'error' ? 4500 : 2200);
+    // Les alertes se lisent plus longtemps qu'une simple confirmation.
+    timer.current = setTimeout(() => setToast(null), tone === 'error' || tone === 'warning' ? 6000 : 2200);
   }, []);
   // Valeur stable : afficher un message ne fait pas re-rendre tous les écrans (et leurs formulaires).
   const value = useMemo(() => ({ show }), [show]);
-  const icon = toast?.tone === 'error' ? 'alert-circle' : toast?.tone === 'info' ? 'information-circle' : 'checkmark-circle';
-  const color = toast?.tone === 'error' ? colors.danger : toast?.tone === 'info' ? colors.info : colors.success;
+  const icon = toast?.tone === 'error' ? 'alert-circle' : toast?.tone === 'warning' ? 'warning' : toast?.tone === 'info' ? 'information-circle' : 'checkmark-circle';
+  const color = toast?.tone === 'error' ? colors.danger : toast?.tone === 'warning' ? colors.warning : toast?.tone === 'info' ? colors.info : colors.success;
   return (
     <ToastContext.Provider value={value}>
       {children}

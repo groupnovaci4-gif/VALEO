@@ -14,6 +14,7 @@ import { Platform } from 'react-native';
 import { deleteDoc, doc, setDoc } from 'firebase/firestore';
 import { firebase } from './firebase';
 import { readJSON, storageKey, writeJSON } from './storage';
+import { addNotified, hasNotified } from './coachMemory';
 import type { Insight } from '@/core/insights';
 import type { Debt, DebtPayment, NotificationPrefs } from '@/core/types';
 import { debtStatus } from '@/core/debts';
@@ -166,22 +167,20 @@ const NOTIFIABLE: Partial<Record<Insight['kind'], keyof NotificationPrefs>> = {
  * importante (une seule fois par alerte, mémorisé localement).
  */
 export async function notifyNewInsights(uid: string, insights: Insight[], prefs: NotificationPrefs, render: (i: Insight) => string): Promise<void> {
-  const key = storageKey(uid, 'notifiedInsights');
-  const seen = new Set((await readJSON<string[]>(key)) ?? []);
-  const fresh = insights.filter((i) => {
+  // Ensemble « déjà signalé » partagé avec les alertes immédiates du coach.
+  const fresh: Insight[] = [];
+  for (const i of insights) {
     const pref = NOTIFIABLE[i.kind];
-    if (!pref || !prefs[pref] || seen.has(i.id)) return false;
-    if (i.kind === 'envelope_threshold' && i.params.level === 'warn70') return false; // 70 % : visible dans l'app, sans notification
-    return true;
-  });
+    if (pref && prefs[pref] && !(await hasNotified(uid, i.id))) fresh.push(i);
+  }
   const Notifications = getNotifications();
   if (!fresh.length || !Notifications) return;
   const granted = (await Notifications.getPermissionsAsync()).granted;
-  for (const i of fresh.slice(0, 3)) {
-    seen.add(i.id);
+  const batch = fresh.slice(0, 3);
+  for (const i of batch) {
     if (granted) await Notifications.scheduleNotificationAsync({ content: { title: render(i), body: '' }, trigger: null });
   }
-  await writeJSON(key, [...seen].slice(-300));
+  await addNotified(uid, batch.map((i) => i.id));
 }
 
 /** Enregistre le jeton push de l'appareil (appareil physique + projet EAS requis). */

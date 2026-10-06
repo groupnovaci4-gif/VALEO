@@ -119,17 +119,17 @@ export function computeInsights({ data, currency, now, categoryName }: InsightIn
   const prev = previousMonth(month);
   const tx = data.transactions;
 
-  // 1. Seuils d'enveloppes (70/90/100/dépassement).
+  // 1. Seuils d'enveloppes (85 % / 100 % / dépassement).
   for (const s of envelopeStatuses(data.envelopes, tx, data.budgets, month, currency)) {
     if (s.level === 'ok' || s.budget <= 0) continue;
-    const severity: InsightSeverity = s.level === 'over' ? 'danger' : s.level === 'warn70' ? 'info' : 'warning';
+    const severity: InsightSeverity = s.level === 'critical' ? 'danger' : 'warning';
     out.push({
       id: `env_${s.envelope.id}_${month}_${s.level}`,
       kind: 'envelope_threshold',
       severity,
       params: { name: s.envelope.name, percent: s.percent, level: s.level, over: Math.max(0, -s.remaining) },
       ref: { type: 'envelope', id: s.envelope.id },
-      weight: s.level === 'over' ? 90 : s.level === 'full' ? 80 : s.level === 'warn90' ? 70 : 50,
+      weight: s.level === 'critical' ? 90 : s.level === 'reached' ? 80 : 70,
     });
   }
 

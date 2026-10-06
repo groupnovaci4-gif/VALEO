@@ -13,6 +13,7 @@ import { I18nProvider, deviceLanguage, useI18n } from '@/i18n';
 import { ToastProvider, Button, Text } from '@/components/ui';
 import { LockGate } from '@/components/LockGate';
 import { Bootstrap } from '@/components/Bootstrap';
+import { CoachHost } from '@/features/coach/CoachHost';
 import { listenNotificationTaps } from '@/services/notifications';
 import { installWebAlert } from '@/services/webAlert';
 
@@ -86,6 +87,7 @@ function Navigator() {
       <StatusBar style={dark ? 'light' : 'dark'} />
       <LockGate>
         <Bootstrap />
+        <CoachHost />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />

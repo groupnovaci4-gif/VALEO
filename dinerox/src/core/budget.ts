@@ -6,7 +6,38 @@ import type { CurrencyCode } from './money';
 import { roundTo } from './money';
 import { monthKey, type MonthKey } from './dates';
 
-export type EnvelopeLevel = 'ok' | 'warn70' | 'warn90' | 'full' | 'over';
+/**
+ * Niveau de consommation d'une enveloppe (v1.5) :
+ *  - `ok`       : moins de 85 % ;
+ *  - `warning`  : de 85 % à moins de 100 % ;
+ *  - `reached`  : exactement 100 % ;
+ *  - `critical` : au-delà de 100 % (dépassement).
+ */
+export type EnvelopeLevel = 'ok' | 'warning' | 'reached' | 'critical';
+/** Anciennes valeurs (≤ 1.4) encore possibles dans un cache ou un identifiant mémorisé. */
+export type LegacyEnvelopeLevel = 'warn70' | 'warn90' | 'full' | 'over';
+
+/** Ordre de gravité (sert à détecter une montée ou une redescente de niveau). */
+export const LEVEL_RANK: Record<EnvelopeLevel, number> = { ok: 0, warning: 1, reached: 2, critical: 3 };
+
+/** Lecture compatible : ancienne valeur → nouveau niveau (inconnu → `ok`). */
+export function normalizeLevel(level: string | undefined | null): EnvelopeLevel {
+  switch (level) {
+    case 'warning':
+    case 'reached':
+    case 'critical':
+    case 'ok':
+      return level;
+    case 'warn90':
+      return 'warning';
+    case 'full':
+      return 'reached';
+    case 'over':
+      return 'critical';
+    default:
+      return 'ok'; // 'warn70' (70 %) n'est plus un seuil d'alerte
+  }
+}
 
 export interface EnvelopeStatus {
   envelope: Envelope;
@@ -19,14 +50,16 @@ export interface EnvelopeStatus {
   level: EnvelopeLevel;
 }
 
-/** Seuils d'alerte demandés : 70 %, 90 %, 100 %, dépassement. */
+/**
+ * Seuils d'alerte : 85 %, 100 %, dépassement. Calcul en entiers (unités
+ * mineures) : aucun arrondi ne peut faire passer 84 999 / 100 000 à 85 %.
+ * Budget nul ou négatif : toute dépense est un dépassement.
+ */
 export function envelopeLevel(spent: number, budget: number): EnvelopeLevel {
-  if (budget <= 0) return spent > 0 ? 'over' : 'ok';
-  if (spent > budget) return 'over';
-  const pct = (spent / budget) * 100;
-  if (pct >= 100) return 'full';
-  if (pct >= 90) return 'warn90';
-  if (pct >= 70) return 'warn70';
+  if (budget <= 0) return spent > 0 ? 'critical' : 'ok';
+  if (spent > budget) return 'critical';
+  if (spent === budget) return 'reached';
+  if (spent * 100 >= budget * 85) return 'warning';
   return 'ok';
 }
 

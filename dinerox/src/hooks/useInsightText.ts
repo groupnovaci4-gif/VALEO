@@ -2,9 +2,10 @@ import { useCallback } from 'react';
 import { useI18n, hasKey } from '@/i18n';
 import { useMoney } from './useFinance';
 import type { Insight } from '@/core/insights';
+import { normalizeLevel } from '@/core/budget';
 
 /** Clés dont la valeur est un montant à formater. */
-const MONEY_PARAMS = new Set(['amount', 'over', 'remaining', 'before', 'monthly', 'total', 'income', 'budget', 'free', 'available', 'savings', 'goals', 'committed', 'after', 'capacity', 'needed', 'gap', 'spent', 'saving', 'expense', 'incomeBefore', 'planned']);
+const MONEY_PARAMS = new Set(['amount', 'over', 'left', 'remaining', 'before', 'monthly', 'total', 'income', 'budget', 'free', 'available', 'savings', 'goals', 'committed', 'after', 'capacity', 'needed', 'gap', 'spent', 'saving', 'expense', 'incomeBefore', 'planned']);
 
 /** Formate les paramètres : montants → devise, dates ISO → « 12 octobre ». */
 export function useFormatParams() {
@@ -29,7 +30,8 @@ export function useInsightText() {
   const fmt = useFormatParams();
   return useCallback(
     (i: Insight) => {
-      const key = i.kind === 'envelope_threshold' ? `ins.envelope_threshold.${i.params.level}` : `ins.${i.kind}`;
+      // Lecture compatible des anciens niveaux (warn90/full/over) encore mémorisés.
+      const key = i.kind === 'envelope_threshold' ? `ins.envelope_threshold.${normalizeLevel(String(i.params.level))}` : `ins.${i.kind}`;
       return hasKey(key) ? t(key, fmt(i.params, { monthDates: i.kind === 'goal_eta' })) : '';
     },
     [t, fmt],

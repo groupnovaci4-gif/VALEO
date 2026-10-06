@@ -8,7 +8,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { monthName, useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useCategoryLabels, useAccountLabel, useFinance, useMoney } from '@/hooks/useFinance';
-import { Button, Card, EmptyState, IconButton, ProgressBar, Row, Screen, SectionHeader, Segmented, Text, useToast } from '@/components/ui';
+import { Button, Card, EmptyState, IconButton, ProgressBar, Row, Screen, SectionHeader, Segmented, Text, levelTone, useToast } from '@/components/ui';
 import { FlowBars, RankedBars } from '@/components/charts';
 import { UpgradeCard } from '@/features/rows';
 import { buildReport, transactionsToCsv } from '@/core/reports';
@@ -117,7 +117,7 @@ export default function Reports() {
         <>
           <SectionHeader title={t('rep.budgets')} />
           <Card>
-            {envelopes.length ? envelopes.map((s) => <Row key={s.envelope.id} title={s.envelope.name} subtitle={`${money(s.spent)} / ${money(s.budget)}`} right={<View style={{ width: 90 }}><ProgressBar value={s.percent} tone={s.level === 'over' ? 'danger' : 'success'} /></View>} />) : <EmptyState title={t('env.empty.title')} />}
+            {envelopes.length ? envelopes.map((s) => <Row key={s.envelope.id} title={s.envelope.name} subtitle={`${money(s.spent)} / ${money(s.budget)}`} right={<View style={{ width: 90 }}><ProgressBar value={s.percent} tone={levelTone(s.level)} /></View>} />) : <EmptyState title={t('env.empty.title')} />}
           </Card>
           <SectionHeader title={t('rep.goals')} />
           <Card>

@@ -3,7 +3,7 @@
 set -u
 cd "$(dirname "$0")"
 status=0
-for t in signup-fields.js forms-audit.js multi-users.js; do
+for t in signup-fields.js forms-audit.js multi-users.js coach-budget.js; do
   echo "== $t"
   node "$t" "${E2E_SHOTS:-/tmp}" || status=1
 done

@@ -26,6 +26,7 @@ import { roleIn } from '@/core/permissions';
 import { emptySpaceData, type PlanId, type Role, type Space, type SpaceData, type UserProfile } from '@/core/types';
 import { analytics } from '@/services/analytics';
 import { forgetDeviceNotifications } from '@/services/notifications';
+import { resetCoachMemoryCache } from '@/services/coachMemory';
 import { applyPending, pendingOf, queuePatch, type OwnedPending, type PendingProfile } from '@/core/profilePending';
 
 export type AppMode = 'firebase' | 'local';
@@ -107,6 +108,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const resetSession = useCallback(() => {
     sessionUid.current = null;
     pendingProfile.current = null;
+    resetCoachMemoryCache();
     profileRef.current = null;
     setUser(null);
     setProfile(null);

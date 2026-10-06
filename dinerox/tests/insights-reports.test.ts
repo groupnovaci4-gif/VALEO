@@ -20,8 +20,8 @@ describe('moteur d analyse', () => {
   ];
   const insights = computeInsights({ data, currency: 'XOF', now: NOW, categoryName: (_c, id) => id });
 
-  it('alerte enveloppe à 82 %', () => {
-    expect(insights.find((i) => i.kind === 'envelope_threshold')).toMatchObject({ params: { percent: 83, level: 'warn70' } });
+  it('enveloppe à 83 % : sous le seuil de 85 %, aucune alerte', () => {
+    expect(insights.find((i) => i.kind === 'envelope_threshold')).toBeUndefined();
   });
   it('hausse d une catégorie vs mois dernier', () => {
     expect(insights.find((i) => i.kind === 'category_increase')).toMatchObject({ params: { percent: 22 } });
