@@ -3,9 +3,8 @@ import { useI18n, hasKey } from '@/i18n';
 import { useMoney } from './useFinance';
 import type { Insight } from '@/core/insights';
 import { normalizeLevel } from '@/core/budget';
+import { MONEY_PARAM_KEYS as MONEY_PARAMS } from '@/core/coach/voice';
 
-/** Clés dont la valeur est un montant à formater. */
-const MONEY_PARAMS = new Set(['amount', 'over', 'left', 'remaining', 'before', 'monthly', 'total', 'income', 'budget', 'free', 'available', 'savings', 'goals', 'committed', 'after', 'capacity', 'needed', 'gap', 'spent', 'saving', 'expense', 'incomeBefore', 'planned']);
 
 /** Formate les paramètres : montants → devise, dates ISO → « 12 octobre ». */
 export function useFormatParams() {

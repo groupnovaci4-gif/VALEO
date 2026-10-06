@@ -12,8 +12,9 @@ import { getStorage } from 'firebase-admin/storage';
 import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { setGlobalOptions, logger } from 'firebase-functions/v2';
-import { defineSecret } from 'firebase-functions/params';
-import { effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant } from './plans';
+import { defineSecret, defineString } from 'firebase-functions/params';
+import { effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium } from './plans';
+import { elevenLabsRequest, nextVoiceUsage, validateSpeak } from './voice';
 import { answerWithClaude } from './assistant';
 
 initializeApp();
@@ -21,6 +22,9 @@ const db = getFirestore();
 setGlobalOptions({ region: 'europe-west1', maxInstances: 20 });
 
 const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
+const ELEVENLABS_API_KEY = defineSecret('ELEVENLABS_API_KEY');
+/** Voix ElevenLabs (modifiable sans redéploiement du code : firebase functions:config / .env). */
+const ELEVENLABS_VOICE_ID = defineString('ELEVENLABS_VOICE_ID', { default: '21m00Tcm4TlvDq8ikWAM' });
 const ROLES = ['admin', 'partner', 'child'] as const;
 type Role = (typeof ROLES)[number];
 const INVITE_TTL_MS = 14 * 24 * 3600 * 1000;
@@ -235,7 +239,8 @@ export const financeAssistant = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSe
     const u = await tx.get(usageRef);
     const count = u.get('day') === day ? Number(u.get('ai') ?? 0) : 0;
     if (count >= AI_DAILY_LIMIT) throw new HttpsError('resource-exhausted', 'ai/quota');
-    tx.set(usageRef, { day, ai: count + 1 });
+    // Fusion : les autres compteurs (voix) du même document sont conservés.
+    tx.set(usageRef, { day, ai: count + 1 }, { merge: true });
   });
   try {
     const answer = await answerWithClaude(ANTHROPIC_API_KEY.value(), question.trim(), summary, language === 'en' ? 'en' : 'fr');
@@ -244,6 +249,38 @@ export const financeAssistant = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSe
     logger.error('assistant failed', { status: (e as { status?: number })?.status });
     throw new HttpsError('unavailable', 'ai/unavailable');
   }
+});
+
+// ─── Voix premium du coach ────────────────────────────────────────────
+
+/**
+ * Synthèse vocale premium. Même style que financeAssistant (callable, région
+ * par défaut). L'application se rabat sur la voix de l'appareil en cas de
+ * refus, d'erreur ou de délai dépassé : ne jamais bloquer l'utilisateur.
+ */
+export const speak = onCall({ secrets: [ELEVENLABS_API_KEY], timeoutSeconds: 15, memory: '256MiB' }, async (req) => {
+  const { uid } = requireAuth(req);
+  const input = validateSpeak(req.data);
+  if ('error' in input) throw new HttpsError('invalid-argument', input.error);
+  const user = await db.doc(`users/${uid}`).get();
+  if (!hasVoicePremium(effectivePlan(user.get('subscription')))) throw new HttpsError('permission-denied', 'plan/voice');
+  const day = new Date().toISOString().slice(0, 10);
+  const usageRef = db.doc(`usage/${uid}`);
+  await db.runTransaction(async (tx) => {
+    const u = await tx.get(usageRef);
+    const next = nextVoiceUsage({ voiceDay: u.get('voiceDay'), voice: u.get('voice') }, day);
+    if (!next.allowed) throw new HttpsError('resource-exhausted', 'voice/quota');
+    tx.set(usageRef, next.patch, { merge: true });
+  });
+  const { url, init } = elevenLabsRequest(input, ELEVENLABS_VOICE_ID.value(), ELEVENLABS_API_KEY.value());
+  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(8000) }).catch(() => null);
+  if (!res || !res.ok) {
+    // Jamais le texte dans les journaux : seulement le statut.
+    logger.warn('voice failed', { status: res?.status ?? 'network' });
+    throw new HttpsError('unavailable', 'voice/unavailable');
+  }
+  const audio = Buffer.from(await res.arrayBuffer()).toString('base64');
+  return { audio, mime: 'audio/mpeg' };
 });
 
 // ─── Administration (statistiques agrégées uniquement) ───────────────

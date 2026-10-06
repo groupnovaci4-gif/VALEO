@@ -18,7 +18,9 @@ export type Feature =
   | 'multiple_accounts'
   | 'net_worth'
   | 'advanced_reports'
-  | 'export';
+  | 'export'
+  /** Voix premium du coach (Cloud Function `speak`). */
+  | 'voice_premium';
 
 export interface PlanDefinition {
   id: PlanId;
@@ -40,7 +42,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   plus: {
     id: 'plus',
     priceXof: 1500,
-    features: ['export', 'ai_assistant', 'auto_budget', 'multiple_goals', 'advanced_insights', 'family', 'multiple_accounts'],
+    features: ['export', 'ai_assistant', 'auto_budget', 'multiple_goals', 'advanced_insights', 'family', 'multiple_accounts', 'voice_premium'],
     limits: { goals: 20, accounts: 10, envelopes: 30, familyMembers: 2 },
   },
   family: {
@@ -57,6 +59,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       'multiple_accounts',
       'net_worth',
       'advanced_reports',
+      'voice_premium',
     ],
     limits: { goals: UNLIMITED, accounts: UNLIMITED, envelopes: UNLIMITED, familyMembers: 8 },
   },

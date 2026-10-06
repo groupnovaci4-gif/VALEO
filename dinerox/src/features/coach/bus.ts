@@ -5,6 +5,8 @@
  * fusionnés et traités une seule fois, juste après l'écriture.
  */
 import type { MonthKey } from '@/core/dates';
+import type { DeliveryPlan } from '@/core/coach/policy';
+import type { CoachEvent } from '@/core/coach/events';
 
 export interface CoachWriteSignal {
   spaceId: string;
@@ -35,4 +37,16 @@ export function notifyCoachWrite(spaceId: string, touched: Map<MonthKey, Set<str
     pending.clear();
     for (const [id, t] of batch) handler?.({ spaceId: id, touched: t });
   });
+}
+
+// ─── Présentation sonore et vocale ─────────────────────────────────────
+
+/** Branché par l'hôte vocal ; absent : texte seul. */
+export type CoachPresenter = (plan: DeliveryPlan, text: (e: CoachEvent) => string) => void;
+let presenter: CoachPresenter | null = null;
+export function setCoachPresenter(p: CoachPresenter | null) {
+  presenter = p;
+}
+export function presentCoachPlan(plan: DeliveryPlan, text: (e: CoachEvent) => string) {
+  presenter?.(plan, text);
 }

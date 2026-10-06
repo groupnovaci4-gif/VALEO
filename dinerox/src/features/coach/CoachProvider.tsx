@@ -25,11 +25,12 @@ import { financialSnapshot, recommendations } from '@/core/intelligence';
 import { moneyPosition } from '@/core/balance';
 import { alertsAfterWrite, evaluateEnvelopeAlerts } from '@/core/coach/envelopeAlerts';
 import { detectPositiveEvents, fromEnvelopeAlert, fromInsights, fromRecommendations, type CoachEvent } from '@/core/coach/events';
-import { planDelivery, type CoachTrigger, type DeliveryPlan } from '@/core/coach/policy';
+import { planDelivery, type CoachTrigger } from '@/core/coach/policy';
 import { coachPrefs } from '@/core/coach/prefs';
 import { addNotified, deliveryState, envelopeMemory, mergeDelivered, saveDeliveryState, saveEnvelopeMemory } from '@/services/coachMemory';
 import { fetchDeliveredIds, recordCoachEvents } from '@/services/coachHistory';
-import { setCoachWriteHandler, type CoachWriteSignal } from './bus';
+import { presentCoachPlan, setCoachWriteHandler, type CoachWriteSignal } from './bus';
+import { VoiceHost } from './VoiceHost';
 
 interface CoachValue {
   /** Résumé en attente (ouverture) : affiché sur l'accueil jusqu'à « J'ai compris ». */
@@ -45,12 +46,6 @@ export function useCoach(): CoachValue {
   return useContext(CoachContext);
 }
 
-/** Présentation sonore/vocale d'un plan (branchée par la phase 3 ; texte seul sinon). */
-export type CoachPresenter = (plan: DeliveryPlan, text: (e: CoachEvent) => string) => void;
-let presenter: CoachPresenter | null = null;
-export function setCoachPresenter(p: CoachPresenter | null) {
-  presenter = p;
-}
 
 export function CoachProvider({ children }: { children: React.ReactNode }) {
   const { engine, user, profile, mode, activeSpace } = useApp();
@@ -64,7 +59,11 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
   const sessionVoiceUsed = useRef(false);
   const remoteMergedFor = useRef<string | null>(null);
 
-  const text = useCallback((e: CoachEvent) => (hasKey(e.textKey) ? t(e.textKey, fmt(e.params, { monthDates: e.kind === 'goal_eta' })) : ''), [t, fmt]);
+  // Prénom absent : « Bravo  ! » → « Bravo ! » (formules neutres sans clé dédiée).
+  const text = useCallback(
+    (e: CoachEvent) => (hasKey(e.textKey) ? t(e.textKey, fmt(e.params, { monthDates: e.kind === 'goal_eta' })).replace(/ {2,}/g, ' ').replace(/ ,/g, ',').replace(/^ /, '') : ''),
+    [t, fmt],
+  );
 
   // Valeurs courantes lues par les gestionnaires asynchrones.
   const latest = useRef({ engine, uid: user?.uid ?? null, profile, mode, currency, label: labels.label, toast, text, spaceId: activeSpace?.id ?? null });
@@ -97,7 +96,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
     } else {
       setSummary(plan.show);
     }
-    presenter?.(plan, txt);
+    presentCoachPlan(plan, txt);
     // Les notifications système et les autres appareils ne répètent pas ce qui vient d'être dit.
     await addNotified(uid, plan.show.map((e) => e.id));
     if (m === 'firebase') void recordCoachEvents(uid, plan.show, Date.now()).catch(() => undefined);
@@ -175,5 +174,10 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
 
   const dismiss = useCallback(() => setSummary([]), []);
   const value = useMemo(() => ({ summary, dismiss, text }), [summary, dismiss, text]);
-  return <CoachContext.Provider value={value}>{children}</CoachContext.Provider>;
+  return (
+    <CoachContext.Provider value={value}>
+      <VoiceHost />
+      {children}
+    </CoachContext.Provider>
+  );
 }

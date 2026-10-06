@@ -28,7 +28,7 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
   name: displayName,
   slug: brand.slug,
   scheme: brand.scheme,
-  version: '1.4.2',
+  version: '1.5.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
@@ -49,6 +49,9 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     permissions: ['USE_BIOMETRIC', 'USE_FINGERPRINT'],
+    // Le coach parle et joue des sons, il n'écoute jamais : aucun accès au micro
+    // (l'entrée vocale de l'assistant est préparée mais désactivée).
+    blockedPermissions: ['android.permission.RECORD_AUDIO'],
   },
   web: { favicon: './assets/favicon.png', bundler: 'metro' },
   plugins: [
@@ -59,6 +62,9 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
     ['expo-splash-screen', { backgroundColor: brand.colors.splash, image: './assets/splash-icon.png', imageWidth: 160 }],
     ['expo-local-authentication', { faceIDPermission: `${brand.name} utilise Face ID pour protéger vos finances.` }],
     ['expo-notifications', { color: brand.colors.green }],
+    // Sons courts du coach : lecture seule. Ni micro, ni lecture en arrière-plan
+    // (le coach ne parle jamais hors premier plan).
+    ['expo-audio', { microphonePermission: false, recordAudioAndroid: false, enableBackgroundPlayback: false, enableBackgroundRecording: false }],
   ],
   experiments: { typedRoutes: false },
   extra: {

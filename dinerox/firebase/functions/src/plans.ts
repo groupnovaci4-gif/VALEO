@@ -23,3 +23,8 @@ export function effectivePlan(sub: Subscription | undefined, now = Date.now()): 
 export function hasAiAssistant(plan: PlanId): boolean {
   return AI_PLANS.includes(plan);
 }
+
+/** Voix premium : mêmes formules que l'assistant (feature `voice_premium` côté application). */
+export function hasVoicePremium(plan: PlanId): boolean {
+  return plan === 'plus' || plan === 'family';
+}
