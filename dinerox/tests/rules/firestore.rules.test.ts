@@ -89,6 +89,16 @@ describe('profil utilisateur', () => {
     await assertFails(getDoc(doc(db('u2'), 'users/u1')));
     await assertFails(getDoc(doc(db(null), 'users/u1')));
   });
+  it("jetons push : personne d'autre ne lit, n'écrit ni n'efface ceux d'un utilisateur", async () => {
+    await setDoc(doc(db('u1'), 'users/u1'), profile('u1'));
+    const dev = { token: 'ExponentPushToken[abc]', platform: 'android', updatedAt: 1 };
+    await assertSucceeds(setDoc(doc(db('u1'), 'users/u1/devices/d1'), dev));
+    await assertFails(getDoc(doc(db('u2'), 'users/u1/devices/d1')));
+    await assertFails(setDoc(doc(db('u2'), 'users/u1/devices/d2'), dev));
+    await assertFails(deleteDoc(doc(db('u2'), 'users/u1/devices/d1')));
+    // Déconnexion : le propriétaire retire son propre jeton.
+    await assertSucceeds(deleteDoc(doc(db('u1'), 'users/u1/devices/d1')));
+  });
 });
 
 describe('espaces et isolation', () => {

@@ -18,6 +18,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
+import { forgetDeviceNotifications } from './notifications';
 import { firebase } from './firebase';
 import type { TKey } from '@/i18n';
 import { hasKey } from '@/i18n';
@@ -45,7 +46,10 @@ export async function signInWithGoogleIdToken(idToken: string): Promise<User> {
 }
 
 export async function signOut(): Promise<void> {
-  await fbSignOut(firebase().auth);
+  const { auth } = firebase();
+  // Avant la déconnexion (droits encore valides) : plus aucune notification de ce compte ici.
+  await forgetDeviceNotifications(auth.currentUser?.uid ?? null, true).catch(() => undefined);
+  await fbSignOut(auth);
 }
 
 export async function resetPassword(email: string): Promise<void> {

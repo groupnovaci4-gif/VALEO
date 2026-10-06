@@ -4,13 +4,20 @@
  * Le PIN n'est jamais stocké en clair : empreinte SHA-256 salée, conservée
  * dans SecureStore (Keychain iOS / Keystore Android). Après 5 erreurs, le
  * déverrouillage est bloqué pendant une durée croissante.
+ *
+ * Un code PAR UTILISATEUR (clé suffixée par l'uid) : sur un appareil partagé,
+ * le code de A ne verrouille ni ne déverrouille jamais la session de B.
  */
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
 import * as LocalAuthentication from 'expo-local-authentication';
 
-const PIN_KEY = 'dinerox.pin.v1';
-const ATTEMPTS_KEY = 'dinerox.pin.attempts.v1';
+// SecureStore n'accepte que [A-Za-z0-9._-] dans les clés.
+const safe = (uid: string) => uid.replace(/[^A-Za-z0-9._-]/g, '_');
+const pinKey = (uid: string) => `dinerox.pin.v2.${safe(uid)}`;
+const attemptsKey = (uid: string) => `dinerox.pin.attempts.v2.${safe(uid)}`;
+// Ancien code commun à tout l'appareil (v1) : propriétaire inconnu, jamais réutilisé.
+const LEGACY_KEYS = ['dinerox.pin.v1', 'dinerox.pin.attempts.v1'];
 const MAX_ATTEMPTS = 5;
 
 interface StoredPin {
@@ -31,21 +38,26 @@ export function isValidPin(pin: string): boolean {
   return /^\d{4,6}$/.test(pin);
 }
 
-export async function hasPin(): Promise<boolean> {
-  return !!(await SecureStore.getItemAsync(PIN_KEY));
+export async function hasPin(uid: string): Promise<boolean> {
+  return !!(await SecureStore.getItemAsync(pinKey(uid)));
 }
 
-export async function setPin(pin: string): Promise<void> {
+/** Supprime l'ancien code commun à l'appareil (il pourrait appartenir à un autre utilisateur). */
+export async function dropLegacyPin(): Promise<void> {
+  for (const k of LEGACY_KEYS) await SecureStore.deleteItemAsync(k).catch(() => undefined);
+}
+
+export async function setPin(uid: string, pin: string): Promise<void> {
   if (!isValidPin(pin)) throw new Error('pin/invalid');
   const salt = toHex(Crypto.getRandomBytes(16));
   const stored: StoredPin = { salt, hash: await hashPin(pin, salt) };
-  await SecureStore.setItemAsync(PIN_KEY, JSON.stringify(stored));
-  await SecureStore.deleteItemAsync(ATTEMPTS_KEY);
+  await SecureStore.setItemAsync(pinKey(uid), JSON.stringify(stored));
+  await SecureStore.deleteItemAsync(attemptsKey(uid));
 }
 
-export async function clearPin(): Promise<void> {
-  await SecureStore.deleteItemAsync(PIN_KEY);
-  await SecureStore.deleteItemAsync(ATTEMPTS_KEY);
+export async function clearPin(uid: string): Promise<void> {
+  await SecureStore.deleteItemAsync(pinKey(uid));
+  await SecureStore.deleteItemAsync(attemptsKey(uid));
 }
 
 interface Attempts {
@@ -53,34 +65,34 @@ interface Attempts {
   lockedUntil: number;
 }
 
-async function readAttempts(): Promise<Attempts> {
-  const raw = await SecureStore.getItemAsync(ATTEMPTS_KEY);
+async function readAttempts(uid: string): Promise<Attempts> {
+  const raw = await SecureStore.getItemAsync(attemptsKey(uid));
   return raw ? (JSON.parse(raw) as Attempts) : { count: 0, lockedUntil: 0 };
 }
 
 /** Secondes restantes de blocage (0 si libre). */
-export async function lockoutRemaining(): Promise<number> {
-  const a = await readAttempts();
+export async function lockoutRemaining(uid: string): Promise<number> {
+  const a = await readAttempts(uid);
   return Math.max(0, Math.ceil((a.lockedUntil - Date.now()) / 1000));
 }
 
 export type PinCheck = { ok: true } | { ok: false; lockedFor: number };
 
-export async function verifyPin(pin: string): Promise<PinCheck> {
-  const remaining = await lockoutRemaining();
+export async function verifyPin(uid: string, pin: string): Promise<PinCheck> {
+  const remaining = await lockoutRemaining(uid);
   if (remaining > 0) return { ok: false, lockedFor: remaining };
-  const raw = await SecureStore.getItemAsync(PIN_KEY);
+  const raw = await SecureStore.getItemAsync(pinKey(uid));
   if (!raw) return { ok: true };
   const stored = JSON.parse(raw) as StoredPin;
   if ((await hashPin(pin, stored.salt)) === stored.hash) {
-    await SecureStore.deleteItemAsync(ATTEMPTS_KEY);
+    await SecureStore.deleteItemAsync(attemptsKey(uid));
     return { ok: true };
   }
-  const a = await readAttempts();
+  const a = await readAttempts(uid);
   const count = a.count + 1;
   // 30 s, puis 60 s, 120 s… à chaque série de 5 erreurs.
   const lockedUntil = count % MAX_ATTEMPTS === 0 ? Date.now() + 30_000 * 2 ** (count / MAX_ATTEMPTS - 1) : 0;
-  await SecureStore.setItemAsync(ATTEMPTS_KEY, JSON.stringify({ count, lockedUntil }));
+  await SecureStore.setItemAsync(attemptsKey(uid), JSON.stringify({ count, lockedUntil }));
   return { ok: false, lockedFor: lockedUntil ? Math.ceil((lockedUntil - Date.now()) / 1000) : 0 };
 }
 

@@ -9,7 +9,8 @@ import { authErrorKey, changePassword, isPasswordStrong } from '@/services/auth'
 export default function Security() {
   const { t } = useI18n();
   const toast = useToast();
-  const { profile, updateProfile, mode } = useApp();
+  const { profile, updateProfile, mode, user } = useApp();
+  const uid = user?.uid ?? '';
   const [pinExists, setPinExists] = useState(false);
   const [bio, setBio] = useState(false);
   const [pinFlow, setPinFlow] = useState<'new' | 'confirm' | null>(null);
@@ -22,9 +23,10 @@ export default function Security() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    hasPin().then(setPinExists).catch(() => setPinExists(false));
+    if (!uid) return;
+    hasPin(uid).then(setPinExists).catch(() => setPinExists(false));
     biometricAvailable().then(setBio).catch(() => setBio(false));
-  }, []);
+  }, [uid]);
 
   const onPin = (value: string) => {
     if (value.length < 4 || !pinFlow) return setPinValue(value);
@@ -33,7 +35,7 @@ export default function Security() {
       setFirst(value);
       setPinFlow('confirm');
     } else if (value === first) {
-      setPin(value)
+      setPin(uid, value)
         .then(async () => {
           setPinExists(true);
           setPinFlow(null);
@@ -58,7 +60,7 @@ export default function Security() {
       setPinFlow('new');
       return;
     }
-    if (!on) await clearPin().then(() => setPinExists(false));
+    if (!on) await clearPin(uid).then(() => setPinExists(false));
     await updateProfile({ preferences: { ...prefs, appLock: on } });
   };
   const submitPassword = async () => {

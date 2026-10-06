@@ -25,7 +25,8 @@ import { effectivePlan } from '@/core/subscription';
 import { roleIn } from '@/core/permissions';
 import { emptySpaceData, type PlanId, type Role, type Space, type SpaceData, type UserProfile } from '@/core/types';
 import { analytics } from '@/services/analytics';
-import { applyPending, queuePatch, type PendingProfile } from '@/core/profilePending';
+import { forgetDeviceNotifications } from '@/services/notifications';
+import { applyPending, pendingOf, queuePatch, type OwnedPending, type PendingProfile } from '@/core/profilePending';
 
 export type AppMode = 'firebase' | 'local';
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
@@ -76,16 +77,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [restoredFor, setRestoredFor] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
   const profileRef = useRef<UserProfile | null>(null);
-  const pendingProfile = useRef<PendingProfile | null>(null);
+  // Modification de profil en attente, TOUJOURS rattachée à son propriétaire : sur un appareil
+  // partagé, celle de A ne doit jamais être fusionnée ni envoyée dans le profil de B.
+  const pendingProfile = useRef<OwnedPending | null>(null);
 
   /** Envoie au serveur la modification de profil en attente ; la retire une fois confirmée. */
   const pushPendingProfile = useCallback(async (u: SessionUser) => {
-    const pending = pendingProfile.current;
-    if (!pending) return;
+    const holder = pendingProfile.current;
+    if (!holder || holder.uid !== u.uid) return;
+    const pending = holder.data;
     try {
       await ensureProfile(u.uid, u.email, u.displayName, null);
       await saveProfile(u.uid, pending.patch);
-      if (pendingProfile.current === pending) {
+      if (pendingProfile.current === holder) {
         pendingProfile.current = null;
         await writeJSON(storageKey(u.uid, 'profilePending'), null);
       }
@@ -96,6 +100,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     profileRef.current = profile;
   }, [profile]);
+
+  // Uid de la session ouverte : détecte un changement de compte.
+  const sessionUid = useRef<string | null>(null);
+  /** Efface tout l'état en mémoire de la session (déconnexion, changement de compte). */
+  const resetSession = useCallback(() => {
+    sessionUid.current = null;
+    pendingProfile.current = null;
+    profileRef.current = null;
+    setUser(null);
+    setProfile(null);
+    setRemoteSpaces([]);
+    setLocalSpaces([]);
+    setActiveId(null);
+    setRestoredFor(null);
+  }, []);
 
   const loadLocalUser = useCallback(async () => {
     const p = (await readJSON<UserProfile>(storageKey(LOCAL_UID, 'profile'))) ?? defaultProfile(LOCAL_UID, '');
@@ -122,12 +141,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const { auth } = firebase();
     return onAuthStateChanged(auth, async (u: User | null) => {
       if (!u) {
-        setUser(null);
-        setProfile(null);
-        setRemoteSpaces([]);
+        resetSession();
         setStatus('signedOut');
         return;
       }
+      // Changement de compte : rien de la session précédente ne survit.
+      if (sessionUid.current !== u.uid) resetSession();
+      sessionUid.current = u.uid;
       const token = await u.getIdTokenResult().catch(() => null);
       setUser({
         uid: u.uid,
@@ -139,11 +159,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Profil et espaces en cache : ouverture hors-ligne immédiate.
       const cachedProfile = await readJSON<UserProfile>(storageKey(u.uid, 'profile'));
       const cachedSpaces = await readJSON<Space[]>(storageKey(u.uid, 'spaces'));
-      if (cachedProfile) setProfile(cachedProfile);
-      if (cachedSpaces) setRemoteSpaces(cachedSpaces);
+      setProfile(cachedProfile ?? null);
+      setRemoteSpaces(cachedSpaces ?? []);
       setStatus('signedIn');
     });
-  }, [mode]);
+  }, [mode, resetSession]);
 
   // 3. Profil + espaces distants.
   useEffect(() => {
@@ -157,7 +177,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // effacerait par exemple « onboarding terminé » et renverrait vers l'onboarding.
           // La modification en attente n'est libérée que par l'accusé de réception du serveur
           // (pushPendingProfile) : un instantané peut refléter une écriture encore locale.
-          const merged = applyPending(p, pendingProfile.current);
+          const merged = applyPending(p, pendingOf(pendingProfile.current, user.uid));
           setProfile(merged);
           void writeJSON(storageKey(user.uid, 'profile'), merged);
         } else {
@@ -177,7 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
     // Modification du profil restée en attente lors d'une session précédente : on la renvoie.
     void readJSON<PendingProfile>(storageKey(user.uid, 'profilePending')).then((pending) => {
-      if (pending && !pendingProfile.current) pendingProfile.current = pending;
+      if (pending && !pendingOf(pendingProfile.current, user.uid)) pendingProfile.current = { uid: user.uid, data: pending };
       void pushPendingProfile(user);
     });
     // L'espace personnel doit exister avant toute écriture (règles Firestore).
@@ -269,9 +289,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await writeJSON(storageKey(user.uid, 'profile'), next);
       if (mode === 'firebase') {
         // Mémorisée sur l'appareil jusqu'à confirmation du serveur (voir pushPendingProfile).
-        const prev = pendingProfile.current;
-        pendingProfile.current = queuePatch(prev, patch, next.updatedAt);
-        await writeJSON(storageKey(user.uid, 'profilePending'), pendingProfile.current);
+        const queued = queuePatch(pendingOf(pendingProfile.current, user.uid), patch, next.updatedAt);
+        pendingProfile.current = { uid: user.uid, data: queued };
+        await writeJSON(storageKey(user.uid, 'profilePending'), queued);
         void pushPendingProfile(user);
       }
     },
@@ -292,14 +312,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [loadLocalUser]);
 
   const signOutLocal = useCallback(async () => {
+    await forgetDeviceNotifications(null, false).catch(() => undefined);
     await writeJSON(MODE_KEY, null);
     await removeKeys(`dinerox:v1:${LOCAL_UID}:`);
-    setUser(null);
-    setProfile(null);
-    setLocalSpaces([]);
+    resetSession();
     setMode(isFirebaseConfigured ? 'firebase' : null);
     setStatus('signedOut');
-  }, []);
+  }, [resetSession]);
 
   const addLocalSpace = useCallback(
     async (space: Space) => {

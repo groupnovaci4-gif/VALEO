@@ -7,7 +7,7 @@ import { useI18n } from '@/i18n';
 import { Button, Text } from '@/components/ui';
 import { PinPad } from './PinPad';
 import { Logo } from './Logo';
-import { authenticateBiometric, biometricAvailable, clearPin, hasPin, verifyPin } from '@/services/security';
+import { authenticateBiometric, biometricAvailable, clearPin, dropLegacyPin, hasPin, verifyPin } from '@/services/security';
 import { signOut } from '@/services/auth';
 
 /**
@@ -33,21 +33,27 @@ export function LockGate({ children }: { children: React.ReactNode }) {
   if (state.uid !== uid) setState({ uid, unlocked: false, checked: false, locked: false });
   else if (uid && !enabled && !state.unlocked) setState({ ...state, unlocked: true });
 
+  // Ancien code commun à l'appareil (v1, propriétaire inconnu) : supprimé une fois.
+  useEffect(() => {
+    void dropLegacyPin().catch(() => undefined);
+  }, []);
+
   // Verrouillage à l'ouverture si un code existe (une erreur de stockage ne bloque jamais).
   const needsCheck = enabled && !state.unlocked && !state.checked;
   useEffect(() => {
     if (!needsCheck) return;
+    if (!uid) return;
     let alive = true;
-    hasPin()
+    hasPin(uid)
       .then((has) => alive && setState((s) => ({ ...s, checked: true, locked: has })))
       .catch(() => alive && setState((s) => ({ ...s, checked: true, locked: false })));
     return () => {
       alive = false;
     };
-  }, [needsCheck]);
+  }, [needsCheck, uid]);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !uid) return;
     const sub = AppState.addEventListener('change', (s) => {
       if (s === 'background' || (s === 'inactive' && Platform.OS === 'android')) {
         if (backgroundAt.current === null) backgroundAt.current = Date.now();
@@ -56,24 +62,26 @@ export function LockGate({ children }: { children: React.ReactNode }) {
         backgroundAt.current = null;
         // > 1,5 s : une boîte système (Face ID, autorisation) ne déclenche pas de boucle.
         if (since !== null && Date.now() - since >= Math.max(minutes, 0) * 60_000 && Date.now() - since > 1500) {
-          hasPin()
+          hasPin(uid)
             .then((has) => has && setState((st) => ({ ...st, locked: true })))
             .catch(() => undefined);
         }
       }
     });
     return () => sub.remove();
-  }, [enabled, minutes]);
+  }, [enabled, minutes, uid]);
 
   const onUnlock = useCallback(() => setState((s) => ({ ...s, unlocked: true, checked: true, locked: false })), []);
 
   const covering = enabled && (state.locked || (!state.unlocked && !state.checked));
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ flex: 1, opacity: covering ? 0 : 1 }} pointerEvents={covering ? 'none' : 'auto'} accessibilityElementsHidden={covering} importantForAccessibility={covering ? 'no-hide-descendants' : 'auto'}>
+      {/* collapsable={false} : masquer/afficher l'application ne réorganise jamais l'arbre
+          natif (sinon tous les écrans seraient détachés puis ré-insérés, focus perdu). */}
+      <View collapsable={false} style={{ flex: 1, opacity: covering ? 0 : 1 }} pointerEvents={covering ? 'none' : 'auto'} accessibilityElementsHidden={covering} importantForAccessibility={covering ? 'no-hide-descendants' : 'auto'}>
         {children}
       </View>
-      {covering ? <View style={StyleSheet.absoluteFill}>{state.locked ? <LockScreen onUnlock={onUnlock} /> : <BlankCover />}</View> : null}
+      {covering ? <View style={StyleSheet.absoluteFill}>{state.locked && uid ? <LockScreen uid={uid} onUnlock={onUnlock} /> : <BlankCover />}</View> : null}
     </View>
   );
 }
@@ -83,7 +91,7 @@ function BlankCover() {
   return <View style={{ flex: 1, backgroundColor: colors.background }} />;
 }
 
-function LockScreen({ onUnlock }: { onUnlock: () => void }) {
+function LockScreen({ uid, onUnlock }: { uid: string; onUnlock: () => void }) {
   const { colors } = useTheme();
   const { t } = useI18n();
   const { mode, signOutLocal } = useApp();
@@ -115,7 +123,7 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   useEffect(() => {
     if (pin.length < 4) return;
     let alive = true;
-    verifyPin(pin)
+    verifyPin(uid, pin)
       .then((r) => {
         if (!alive) return;
         if (r.ok) onUnlock();
@@ -132,7 +140,7 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
     return () => {
       alive = false;
     };
-  }, [pin, onUnlock, t]);
+  }, [pin, uid, onUnlock, t]);
 
   const forgot = () => {
     const reset = async () => {
@@ -140,7 +148,7 @@ function LockScreen({ onUnlock }: { onUnlock: () => void }) {
         if (mode === 'local') await signOutLocal();
         else await signOut();
       } finally {
-        await clearPin().catch(() => undefined);
+        await clearPin(uid).catch(() => undefined);
         onUnlock();
       }
     };

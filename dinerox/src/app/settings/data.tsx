@@ -70,7 +70,7 @@ export default function DataSettings() {
         await deleteAccount();
         await removeKeys(`dinerox:v1:${user.uid}:`);
       }
-      await clearPin().catch(() => undefined);
+      await clearPin(user.uid).catch(() => undefined);
     } catch (e) {
       const code = String((e as { code?: string })?.code ?? '');
       toast.show(code.includes('requires-recent-login') ? t('auth.err.requires-recent-login') : t('error.network'), 'error');

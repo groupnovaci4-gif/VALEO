@@ -3,6 +3,7 @@ import { Platform, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme, MIN_TOUCH } from '@/theme';
 import { fontFor } from '@/theme/fonts';
 import { Text } from './Text';
+import { fieldBoxProps } from './fieldStyle';
 import { currencyInfo, formatMoney, parseAmountInput, toMajor } from '@/core/money';
 
 export interface FieldProps extends TextInputProps {
@@ -24,20 +25,8 @@ export function Field({ label, hint, error, suffix, style, inputRef, onFocus, on
           {label}
         </Text>
       ) : null}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          borderWidth: 1.5,
-          borderColor: error ? colors.danger : focused ? colors.primary : colors.border,
-          // Halo vert au focus (charte)
-          ...(focused && !error ? { shadowColor: colors.primary, shadowOpacity: 0.35, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } } : null),
-          borderRadius: radius.md,
-          backgroundColor: colors.surface,
-          paddingHorizontal: 12,
-          minHeight: MIN_TOUCH,
-        }}
-      >
+      {/* Structure native fixe au focus : voir fieldStyle.ts (cause du clignotement Android). */}
+      <View {...fieldBoxProps({ focused, error: !!error }, colors, radius.md, MIN_TOUCH)}>
         <TextInput
           ref={inputRef}
           accessibilityLabel={label}

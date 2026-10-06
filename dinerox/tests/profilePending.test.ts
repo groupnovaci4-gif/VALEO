@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyPending, queuePatch } from '../src/core/profilePending';
+import { applyPending, pendingOf, queuePatch } from '../src/core/profilePending';
 import type { UserProfile } from '../src/core/types';
 
 const server = (over: Partial<UserProfile> = {}): UserProfile =>
@@ -32,5 +32,13 @@ describe('profil en attente de confirmation serveur', () => {
   it('sans modification en attente, le serveur fait foi', () => {
     const s = server();
     expect(applyPending(s, null)).toBe(s);
+  });
+  it("appareil partagé : la modification en attente de A n'est jamais appliquée au profil de B", () => {
+    const holder = { uid: 'userA', data: queuePatch(null, { firstName: 'Awa', financial: { monthlyIncome: 500000 } }, 200) };
+    expect(pendingOf(holder, 'userB')).toBeNull();
+    const b = applyPending(server({ uid: 'userB', firstName: 'Bakary', updatedAt: 50 }), pendingOf(holder, 'userB'));
+    expect(b.firstName).toBe('Bakary');
+    expect((b as unknown as { financial?: unknown }).financial).toBeUndefined();
+    expect(pendingOf(holder, 'userA')).toBe(holder.data);
   });
 });

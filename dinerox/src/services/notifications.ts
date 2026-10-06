@@ -11,7 +11,7 @@
 import * as Device from 'expo-device';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
-import { doc, setDoc } from 'firebase/firestore';
+import { deleteDoc, doc, setDoc } from 'firebase/firestore';
 import { firebase } from './firebase';
 import { readJSON, storageKey, writeJSON } from './storage';
 import type { Insight } from '@/core/insights';
@@ -194,7 +194,29 @@ export async function registerPushToken(uid: string): Promise<void> {
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
     const id = token.replace(/[^A-Za-z0-9]/g, '').slice(-40);
     await setDoc(doc(firebase().db, 'users', uid, 'devices', id), { token, platform: Platform.OS, updatedAt: Date.now() });
+    await writeJSON(storageKey(uid, 'pushDeviceId'), id);
   } catch {
     // Expo Go Android ne gère plus les push distants : les notifications locales restent actives.
   }
+}
+
+/**
+ * Déconnexion : l'appareil cesse de recevoir les notifications de ce compte.
+ *  - rappels locaux programmés (ils citent des dettes, des objectifs…) annulés ;
+ *  - jeton push retiré du compte (sinon les résumés de A arriveraient sur le
+ *    téléphone désormais utilisé par B).
+ * Ne bloque jamais la déconnexion (hors-ligne : abandon après 3 s).
+ */
+export async function forgetDeviceNotifications(uid: string | null, online: boolean): Promise<void> {
+  const Notifications = getNotifications();
+  if (Notifications) {
+    await Notifications.cancelAllScheduledNotificationsAsync().catch(() => undefined);
+    await Notifications.dismissAllNotificationsAsync().catch(() => undefined);
+  }
+  if (!uid) return;
+  const key = storageKey(uid, 'pushDeviceId');
+  const id = await readJSON<string>(key);
+  if (!id || !online) return;
+  const removal = deleteDoc(doc(firebase().db, 'users', uid, 'devices', id)).then(() => writeJSON(key, null));
+  await Promise.race([removal.catch(() => undefined), new Promise((r) => setTimeout(r, 3000))]);
 }

@@ -44,3 +44,15 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     `core/validation.ts`. Une action qui peut échouer passe par `useRunAction()`
     (message d'erreur, jamais d'exception non gérée). Sur le web, `Alert.alert`
     est remplacé par `services/webAlert.ts` (confirmations réelles).
+13. **Arbre natif stable (Android, Fabric).** Ne jamais faire varier selon un état
+    (focus, pression, erreur) une propriété qui crée un « stacking context »
+    (`shadowColor`, `opacity`, `transform`, `zIndex`, `pointerEvents`, `overflow`…)
+    sur un conteneur qui englobe un `TextInput` : Fabric déplacerait le champ et
+    Android lui retirerait le focus (champs qui clignotent, saisie impossible —
+    bug de la v1.4.0). Fixer `collapsable={false}` et ne varier que des couleurs
+    ou des opacités d'ombre (`components/ui/fieldStyle.ts`, testé).
+14. **Plusieurs comptes sur un appareil.** Tout ce qui est local est rangé par uid
+    (`storageKey(uid, …)`, code PIN `security.ts`) ; la session en mémoire est
+    effacée à chaque changement de compte (`resetSession`) ; une modification de
+    profil en attente porte son propriétaire (`pendingOf`). La déconnexion
+    annule les rappels locaux et retire le jeton push de l'appareil.

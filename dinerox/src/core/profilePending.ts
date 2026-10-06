@@ -41,3 +41,14 @@ export function applyPending(snapshot: UserProfile, pending: PendingProfile | nu
   if (!pending || (snapshot.updatedAt ?? 0) >= pending.at) return snapshot;
   return mergePatch(snapshot, pending.patch);
 }
+
+/** Modification en attente rattachée à son propriétaire (appareil partagé entre plusieurs comptes). */
+export interface OwnedPending {
+  uid: string;
+  data: PendingProfile;
+}
+
+/** Modification en attente de CET utilisateur uniquement — jamais celle d'un autre compte. */
+export function pendingOf(holder: OwnedPending | null, uid: string): PendingProfile | null {
+  return holder && holder.uid === uid ? holder.data : null;
+}
