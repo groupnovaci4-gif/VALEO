@@ -4,15 +4,15 @@ import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { Badge, Banner, Button, Card, Icon, Screen, Text } from '@/components/ui';
 import { useTheme } from '@/theme';
-import { PLANS, PLAN_ORDER } from '@/core/subscription';
+import { FREE_VOICE_ENTRIES_PER_DAY, PLANS, PLAN_ORDER } from '@/core/subscription';
 import { formatMoney } from '@/core/money';
 import { analytics } from '@/services/analytics';
 import type { PlanId } from '@/core/types';
 
 const FEATURES: Record<PlanId, TKey[]> = {
-  free: ['sub.free.f1', 'sub.free.f2', 'sub.free.f3', 'sub.free.f4'],
-  plus: ['sub.plus.f1', 'sub.plus.f2', 'sub.plus.f3', 'sub.plus.f4', 'sub.plus.f5'],
-  family: ['sub.family.f1', 'sub.family.f2', 'sub.family.f3', 'sub.family.f4'],
+  free: ['sub.free.f1', 'sub.free.f2', 'sub.free.f3', 'sub.free.f4', 'sub.free.voice'],
+  plus: ['sub.plus.f1', 'sub.plus.f2', 'sub.plus.f3', 'sub.plus.f4', 'sub.plus.f5', 'sub.voiceUnlimited'],
+  family: ['sub.family.f1', 'sub.family.f2', 'sub.family.f3', 'sub.family.f4', 'sub.voiceUnlimited'],
 };
 
 /**
@@ -42,7 +42,7 @@ export default function Subscription() {
               <View key={f} style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
                 <Icon name="checkmark-circle" size={18} color={colors.success} />
                 <Text variant="small" style={{ flex: 1 }}>
-                  {t(f)}
+                  {t(f, { count: FREE_VOICE_ENTRIES_PER_DAY })}
                 </Text>
               </View>
             ))}

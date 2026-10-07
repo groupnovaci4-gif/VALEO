@@ -385,9 +385,23 @@ export interface CoachPrefs {
   premiumVoice: boolean;
 }
 
+/** Saisie (1.5) : lire via `entryPrefs()` (profils antérieurs : valeurs par défaut). */
+export interface EntryPrefs {
+  /** Méthode proposée en premier par la bulle de l'accueil. */
+  defaultMethod: 'voice' | 'quick_manual';
+  /** Langue de la reconnaissance vocale (null = langue de l'application). */
+  voiceLanguage: 'fr' | 'en' | null;
+  /** Reconnaissance uniquement sur le téléphone (si le téléphone le permet). */
+  onDeviceOnly: boolean;
+  /** Exemples de phrases dans la bulle de l'accueil. */
+  showExamples: boolean;
+}
+
 export interface UserPreferences {
   theme: ThemePreference;
   notifications: NotificationPrefs;
+  /** Absent sur les profils créés avant la 1.5 : lire via `entryPrefs()`. */
+  entry?: EntryPrefs;
   /** Absent sur les profils créés avant la 1.5 : lire via `coachPrefs()`. */
   coach?: CoachPrefs;
   /** Verrouillage par biométrie/PIN. */

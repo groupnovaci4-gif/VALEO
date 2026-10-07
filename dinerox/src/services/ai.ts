@@ -12,25 +12,10 @@ import { httpsCallable } from 'firebase/functions';
 import { firebase } from './firebase';
 import { isFirebaseConfigured } from '@/config/env';
 import type { FinanceSummary } from '@/core/ai/summary';
-import type { AccountHint } from '@/core/ai/parser';
-import type { Account, Language } from '@/core/types';
+import type { Language } from '@/core/types';
 
-/** Trouve le compte correspondant à un indice (« wave », « orange », « épargne »…). */
-export function resolveAccountHint(hint: AccountHint | null, accounts: Account[]): Account | null {
-  const active = accounts.filter((a) => a.active);
-  if (!hint) return null;
-  const byProvider: Partial<Record<AccountHint, (a: Account) => boolean>> = {
-    orange_money: (a) => a.provider === 'orange_money',
-    mtn_momo: (a) => a.provider === 'mtn_momo',
-    moov_money: (a) => a.provider === 'moov_money',
-    wave: (a) => a.provider === 'wave',
-    bank: (a) => a.type === 'bank',
-    savings: (a) => a.isSavings,
-    card: (a) => a.type === 'card',
-    cash: (a) => a.type === 'cash',
-  };
-  return active.find(byProvider[hint] ?? (() => false)) ?? null;
-}
+/** Déplacée dans le module pur du parseur (partagé avec la saisie vocale). */
+export { resolveAccountHint } from '@/core/ai/parser';
 
 export async function askRemoteAssistant(question: string, summary: FinanceSummary, language: Language): Promise<string | null> {
   if (!isFirebaseConfigured) return null;

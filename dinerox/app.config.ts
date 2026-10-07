@@ -49,10 +49,11 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     permissions: ['USE_BIOMETRIC', 'USE_FINGERPRINT'],
-    // Le coach parle et joue des sons, il n'écoute jamais : aucun accès au micro
-    // (l'entrée vocale de l'assistant est préparée mais désactivée).
-    blockedPermissions: ['android.permission.RECORD_AUDIO'],
+    // Micro (RECORD_AUDIO) : ajouté par expo-speech-recognition pour la saisie vocale,
+    // demandé au premier appui sur le micro, jamais au lancement.
   },
+  // Textes des autorisations iOS (micro, reconnaissance vocale) en français et en anglais.
+  locales: { fr: './locales/fr.json', en: './locales/en.json' },
   web: { favicon: './assets/favicon.png', bundler: 'metro' },
   plugins: [
     'expo-router',
@@ -62,9 +63,20 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
     ['expo-splash-screen', { backgroundColor: brand.colors.splash, image: './assets/splash-icon.png', imageWidth: 160 }],
     ['expo-local-authentication', { faceIDPermission: `${brand.name} utilise Face ID pour protéger vos finances.` }],
     ['expo-notifications', { color: brand.colors.green }],
-    // Sons courts du coach : lecture seule. Ni micro, ni lecture en arrière-plan
-    // (le coach ne parle jamais hors premier plan).
-    ['expo-audio', { microphonePermission: false, recordAudioAndroid: false, enableBackgroundPlayback: false, enableBackgroundRecording: false }],
+    // Sons courts du coach : lecture seule, jamais en arrière-plan (le coach ne parle
+    // jamais hors premier plan). expo-audio n'enregistre rien : le micro est demandé
+    // par la reconnaissance vocale ci-dessous.
+    ['expo-audio', { microphonePermission: MIC_TEXT, recordAudioAndroid: false, enableBackgroundPlayback: false, enableBackgroundRecording: false }],
+    // Saisie vocale : reconnaissance du téléphone (sur l'appareil quand c'est possible).
+    // L'audio n'est jamais stocké ni envoyé aux serveurs DineroX.
+    [
+      'expo-speech-recognition',
+      {
+        microphonePermission: MIC_TEXT,
+        speechRecognitionPermission: SPEECH_TEXT,
+        androidSpeechServicePackages: ['com.google.android.googlequicksearchbox', 'com.google.android.as'],
+      },
+    ],
   ],
   experiments: { typedRoutes: false },
   extra: {
@@ -78,4 +90,8 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
 });
 
 // `config` contient app.json (où `eas init` enregistre l'identifiant du projet EAS).
+/** Textes d'autorisation par défaut (français ; traductions iOS dans ./locales). */
+const MIC_TEXT = "Le micro sert uniquement à dicter vos dépenses et revenus. L'audio n'est ni enregistré ni envoyé à nos serveurs.";
+const SPEECH_TEXT = "La reconnaissance vocale transforme votre phrase en texte pour préparer l'opération, que vous confirmez avant tout enregistrement.";
+
 export default ({ config }: ConfigContext): ExpoConfig => build(config);

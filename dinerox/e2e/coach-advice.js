@@ -89,11 +89,12 @@ let b;
 
   // Assistant : réponse lue.
   await go('/assistant'); await closeCelebration();
-  // Saisie vocale préparée mais NON activée : micro présent, désactivé, sans effet.
-  const mic = p.getByRole('button', { name: 'Saisie vocale : bientôt disponible', exact: true });
-  ok((await mic.count()) === 1 && (await mic.getAttribute('aria-disabled')) === 'true', 'micro de l’assistant présent et désactivé (saisie vocale non activée)');
-  await mic.click({ force: true }); await p.waitForTimeout(300);
-  ok((await p.getByPlaceholder('Écrivez comme vous parlez…').inputValue()) === '', 'appui sur le micro : aucun effet, aucune saisie');
+  // Micro de l'assistant (1.5, Lot A) : actif si le téléphone/navigateur reconnaît la parole,
+  // sinon présent et désactivé avec une explication. Dans tous les cas, rien n'est envoyé seul.
+  const micOn = p.getByRole('button', { name: 'Dicter un message', exact: true });
+  const micOff = p.getByRole('button', { name: 'Saisie vocale indisponible sur ce téléphone', exact: true });
+  ok((await micOn.count()) + (await micOff.count()) === 1 && (!(await micOff.count()) || (await micOff.getAttribute('aria-disabled')) === 'true'), 'micro de l’assistant : actif si la reconnaissance existe, sinon désactivé et expliqué');
+  ok((await p.getByPlaceholder('Écrivez comme vous parlez…').inputValue()) === '', 'zone de message vide : rien n’est envoyé sans l’utilisateur');
   await p.getByPlaceholder('Écrivez comme vous parlez…').fill('Fais-moi un résumé du mois');
   const nBefore = await p.getByRole('button', { name: 'Écouter', exact: true }).count();
   await p.getByRole('button', { name: 'Confirmer', exact: true }).last().click(); await p.waitForTimeout(1500);

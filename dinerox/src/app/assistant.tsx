@@ -10,7 +10,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, Pressable, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 import { useI18n, hasKey, type TKey } from '@/i18n';
@@ -33,6 +33,7 @@ import { analytics } from '@/services/analytics';
 import { brand } from '@/config/brand';
 import { ListenButton } from '@/features/coach/ListenButton';
 import { goBack } from '@/hooks/goBack';
+import { stopVoice } from '@/services/voice';
 import { speechInput } from '@/services/speechInput';
 
 type Proposal =
@@ -83,11 +84,16 @@ export default function Assistant() {
     };
   }, []);
   /** La transcription n'est qu'un texte placé dans la zone de message : jamais envoyé ni enregistré sans l'utilisateur. */
-  const dictate = () => {
+  const dictate = async () => {
     if (listening) {
       void speechInput().stop();
       return;
     }
+    const provider = speechInput();
+    const allowed = (await provider.permission()) === 'granted' || (await provider.requestPermission()) === 'granted';
+    if (!allowed) return;
+    // La voix du coach se tait quand le micro s'ouvre.
+    await stopVoice().catch(() => undefined);
     setListening(true);
     speechInput()
       .listen({ language: lang === 'en' ? 'en' : 'fr', onPartial: setInput })
@@ -226,6 +232,16 @@ export default function Assistant() {
     }
     push({ id: mid(), from: 'assistant', text: answer ?? t('ai.remoteUnavailable') });
   };
+
+  const params = useLocalSearchParams<{ q?: string }>();
+  const handledQ = useRef<string | null>(null);
+  useEffect(() => {
+    const q = typeof params.q === 'string' ? params.q.trim() : '';
+    if (!q || handledQ.current === q) return;
+    handledQ.current = q;
+    void Promise.resolve().then(() => handle(q));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.q]);
 
   const examples = useMemo(() => (['ai.ex1', 'ai.ex2', 'ai.ex3', 'ai.ex4', 'ai.ex5', 'ai.ex6'] as TKey[]).map((k) => t(k)), [t]);
 
@@ -388,7 +404,7 @@ export default function Assistant() {
             icon={listening ? 'stop-circle-outline' : 'mic-outline'}
             label={!micReady ? t('ai.mic.soon') : listening ? t('ai.mic.stop') : t('ai.mic.start')}
             disabled={!micReady}
-            onPress={dictate}
+            onPress={() => void dictate()}
           />
           <Pressable
             accessibilityRole="button"

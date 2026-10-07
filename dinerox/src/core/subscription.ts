@@ -20,30 +20,35 @@ export type Feature =
   | 'advanced_reports'
   | 'export'
   /** Voix premium du coach (Cloud Function `speak`). */
-  | 'voice_premium';
+  | 'voice_premium'
+  /** Saisie vocale sans limite quotidienne (la saisie au clavier et la phrase écrite restent illimitées pour tous). */
+  | 'voice_entry_unlimited';
 
 export interface PlanDefinition {
   id: PlanId;
   /** Prix indicatif mensuel en FCFA (affichage). */
   priceXof: number;
   features: Feature[];
-  limits: { goals: number; accounts: number; envelopes: number; familyMembers: number };
+  /** `voiceEntriesPerDay` : saisies vocales validées par jour (s'ajoute aux limites existantes). */
+  limits: { goals: number; accounts: number; envelopes: number; familyMembers: number; voiceEntriesPerDay: number };
 }
 
 const UNLIMITED = Number.POSITIVE_INFINITY;
+/** Saisies vocales par jour en formule gratuite (constante facile à changer). */
+export const FREE_VOICE_ENTRIES_PER_DAY = 5;
 
 export const PLANS: Record<PlanId, PlanDefinition> = {
   free: {
     id: 'free',
     priceXof: 0,
     features: ['export'],
-    limits: { goals: 2, accounts: 3, envelopes: 8, familyMembers: 0 },
+    limits: { goals: 2, accounts: 3, envelopes: 8, familyMembers: 0, voiceEntriesPerDay: FREE_VOICE_ENTRIES_PER_DAY },
   },
   plus: {
     id: 'plus',
     priceXof: 1500,
-    features: ['export', 'ai_assistant', 'auto_budget', 'multiple_goals', 'advanced_insights', 'family', 'multiple_accounts', 'voice_premium'],
-    limits: { goals: 20, accounts: 10, envelopes: 30, familyMembers: 2 },
+    features: ['export', 'ai_assistant', 'auto_budget', 'multiple_goals', 'advanced_insights', 'family', 'multiple_accounts', 'voice_premium', 'voice_entry_unlimited'],
+    limits: { goals: 20, accounts: 10, envelopes: 30, familyMembers: 2, voiceEntriesPerDay: UNLIMITED },
   },
   family: {
     id: 'family',
@@ -60,8 +65,9 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       'net_worth',
       'advanced_reports',
       'voice_premium',
+      'voice_entry_unlimited',
     ],
-    limits: { goals: UNLIMITED, accounts: UNLIMITED, envelopes: UNLIMITED, familyMembers: 8 },
+    limits: { goals: UNLIMITED, accounts: UNLIMITED, envelopes: UNLIMITED, familyMembers: 8, voiceEntriesPerDay: UNLIMITED },
   },
 };
 

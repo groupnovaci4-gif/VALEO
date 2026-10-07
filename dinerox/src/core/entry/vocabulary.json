@@ -1,0 +1,45 @@
+{
+  "_lisezmoi": "Vocabulaire local de la saisie (voix et phrase écrite). Fichier de DONNÉES : modifiable sans toucher au code. Mots en minuscules, SANS accents (le texte est normalisé avant comparaison). 'targets' : catégories essayées dans l'ordre ; la première qui existe chez l'utilisateur est retenue (sous-catégorie 'sub_*' : sa catégorie principale est aussi renseignée). Ordre des entrées = priorité (la plus spécifique d'abord).",
+  "expense": [
+    { "targets": ["sub_transport_shared", "cat_transport"], "words": ["woro-woro", "woro woro", "woro", "gbaka", "clando", "car rapide"] },
+    { "targets": ["sub_transport_mototaxi", "cat_transport"], "words": ["moto-taxi", "moto taxi", "moto", "zemidjan", "okada", "benskin"] },
+    { "targets": ["sub_transport_taxi", "cat_transport"], "words": ["taxi", "yango", "uber", "heetch", "cab"] },
+    { "targets": ["sub_transport_fuel", "cat_transport"], "words": ["carburant", "essence", "gasoil", "gazoil", "fuel", "gas"] },
+    { "targets": ["sub_transport_bus", "cat_transport"], "words": ["bus", "sotra", "transport"] },
+    { "targets": ["cat_food"], "words": ["garba", "alloco", "attieke", "placali", "foutou", "maquis", "marche", "restaurant", "resto", "repas", "dejeuner", "diner", "petit dejeuner", "pain", "riz", "courses", "nourriture", "manger", "cantine", "lunch", "breakfast", "dinner", "food", "groceries"] },
+    { "targets": ["sub_comm_data", "cat_communication", "cat_internet"], "words": ["pass internet", "forfait internet", "forfait", "pass", "data", "megas"] },
+    { "targets": ["sub_comm_airtime", "cat_communication"], "words": ["credit", "unites", "recharge", "airtime", "telephone", "appel"] },
+    { "targets": ["sub_informal_tontine", "cat_informal", "cat_savings"], "words": ["tontine", "susu", "njangi"] },
+    { "targets": ["sub_social_funerals", "cat_social", "cat_family"], "words": ["funerailles", "deuil", "enterrement", "obseques"] },
+    { "targets": ["sub_social_weddings", "cat_social", "cat_family"], "words": ["mariage", "dot", "wedding"] },
+    { "targets": ["sub_social_baptisms", "cat_social", "cat_family"], "words": ["bapteme", "baptism"] },
+    { "targets": ["sub_informal_dues", "cat_informal", "cat_social"], "words": ["cotisation", "cotise", "cotiser"] },
+    { "targets": ["sub_family_transfers", "cat_family"], "words": ["cotisation familiale", "village", "envoi"] },
+    { "targets": ["sub_family_parents", "cat_family"], "words": ["maman", "papa", "mere", "pere", "parents", "mom", "dad", "mother", "father"] },
+    { "targets": ["cat_family"], "words": ["famille", "frere", "soeur", "tante", "oncle", "cousin", "enfant", "enfants", "bebe", "family"] },
+    { "targets": ["cat_housing"], "words": ["loyer", "electricite", "cie", "sodeci", "eau", "courant", "gaz", "rent", "electricity", "water"] },
+    { "targets": ["cat_health"], "words": ["pharmacie", "medicament", "medicaments", "hopital", "clinique", "docteur", "medecin", "consultation", "pharmacy", "medicine", "doctor"] },
+    { "targets": ["cat_education"], "words": ["ecole", "scolarite", "fournitures", "livre", "livres", "cours", "school"] },
+    { "targets": ["cat_clothing"], "words": ["habit", "habits", "vetement", "vetements", "chaussure", "chaussures", "pagne", "coiffure", "tresses", "clothes", "shoes"] },
+    { "targets": ["cat_leisure"], "words": ["cinema", "sortie", "biere", "fete", "concert", "match", "loisir"] },
+    { "targets": ["cat_debts"], "words": ["dette", "echeance", "pret"] }
+  ],
+  "income": [
+    { "targets": ["inc_salary"], "words": ["salaire", "paie", "salary", "paycheck", "wages"] },
+    { "targets": ["inc_refund", "inc_other"], "words": ["rembourse", "remboursement", "refund", "reimbursed"] },
+    { "targets": ["inc_business", "inc_sale"], "words": ["vente", "ventes", "recette", "boutique", "commerce", "clients", "sales"] },
+    { "targets": ["inc_commission"], "words": ["prime", "commission", "bonus"] },
+    { "targets": ["inc_family", "inc_gift"], "words": ["maman", "papa", "mere", "pere", "parents", "famille", "mom", "dad", "family"] },
+    { "targets": ["inc_gift", "inc_family"], "words": ["cadeau", "don", "gift"] },
+    { "targets": ["inc_rent"], "words": ["locataire", "locataires", "tenant"] },
+    { "targets": ["inc_pension"], "words": ["pension", "retraite"] }
+  ],
+  "incomeMarkers": ["on m a rembourse", "on m a donne", "on m a envoye", "on m a paye", "m a rembourse", "m a donne", "m a envoye", "m a paye", "recu", "recus", "recue", "encaisse", "touche", "gagne", "rentre", "vendu", "received", "got paid", "earned", "got"],
+  "expenseMarkers": ["paye", "payer", "depense", "achete", "achat", "envoye", "envoyer", "donne", "regle", "offert", "cotise", "claque", "mis", "paid", "spent", "bought", "sent", "gave"],
+  "todayWords": ["ce matin", "ce soir", "cet apres-midi", "cet apres midi", "aujourd hui", "tout a l heure", "today", "this morning", "tonight"],
+  "slangUnits": [
+    { "word": "baton", "value": null, "statut": "valeur à valider par le fondateur", "actif": false },
+    { "word": "barre", "value": null, "statut": "valeur à valider par le fondateur (le parseur de l'assistant l'interprète déjà comme 1 000 000 : à confirmer)", "actif": false },
+    { "word": "brique", "value": null, "statut": "valeur à valider par le fondateur (le parseur de l'assistant l'interprète déjà comme 1 000 000 : à confirmer)", "actif": false }
+  ]
+}

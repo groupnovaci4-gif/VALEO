@@ -24,10 +24,17 @@ export type AnalyticsEvent =
   | 'premium_converted'
   | 'unsubscribed'
   | 'family_created'
-  | 'export_data';
+  | 'export_data'
+  // Saisie (1.5) : méthode et nombre d'opérations, JAMAIS de montant, de texte ni de catégorie.
+  | 'entry_created'
+  | 'voice_entry_corrected'
+  | 'voice_entry_failed'
+  | 'daily_reminder_opened'
+  | 'history_opened'
+  | 'mic_routed';
 
 /** Seules ces propriétés, non identifiantes, peuvent être transmises. */
-const ALLOWED_PROPS = new Set(['method', 'plan', 'intent', 'source', 'step', 'kind']);
+const ALLOWED_PROPS = new Set(['method', 'plan', 'intent', 'source', 'step', 'kind', 'count', 'reason', 'to']);
 
 type Props = Record<string, string | number | boolean>;
 type Sink = (event: AnalyticsEvent, props: Props) => void;

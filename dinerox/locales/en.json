@@ -1,0 +1,4 @@
+{
+  "NSMicrophoneUsageDescription": "The microphone is only used to dictate your expenses and income. Audio is never recorded or sent to our servers.",
+  "NSSpeechRecognitionUsageDescription": "Speech recognition turns your sentence into text to prepare the transaction, which you confirm before anything is saved."
+}

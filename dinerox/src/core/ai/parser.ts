@@ -9,6 +9,7 @@
  * ouvertes — voir services/ai.
  */
 import { addDays, addMonths, endOfMonth, today, type ISODate } from '../dates';
+import type { Account } from '../types';
 
 export type QuestionTopic =
   | 'spent_month'
@@ -155,6 +156,23 @@ export function accountHints(text: string): AccountHint[] {
   return found.sort((a, b) => a.at - b.at).map((f) => f.hint);
 }
 
+/** Compte de l'utilisateur correspondant à un indice (« par Wave »), ou null. */
+export function resolveAccountHint(hint: AccountHint | null, accounts: Account[]): Account | null {
+  const active = accounts.filter((a) => a.active);
+  if (!hint) return null;
+  const byProvider: Partial<Record<AccountHint, (a: Account) => boolean>> = {
+    orange_money: (a) => a.provider === 'orange_money',
+    mtn_momo: (a) => a.provider === 'mtn_momo',
+    moov_money: (a) => a.provider === 'moov_money',
+    wave: (a) => a.provider === 'wave',
+    bank: (a) => a.type === 'bank',
+    savings: (a) => a.isSavings,
+    card: (a) => a.type === 'card',
+    cash: (a) => a.type === 'cash',
+  };
+  return active.find(byProvider[hint] ?? (() => false)) ?? null;
+}
+
 /** Mots-clés → catégories système (identifiants de defaults.ts). */
 const EXPENSE_KEYWORDS: [string, string[]][] = [
   ['cat_food', ['restaurant', 'resto', 'maquis', 'manger', 'nourriture', 'repas', 'riz', 'marche', 'courses', 'alloco', 'garba', 'attieke', 'pain', 'dejeuner', 'diner', 'petit dejeuner', 'supermarche', 'viande', 'poisson', 'boulangerie', 'cantine']],
@@ -191,7 +209,7 @@ export function guessCategory(text: string, kind: 'expense' | 'income'): string 
 }
 
 /** Bénéficiaire après « à / au / chez / pour » (« envoyé 30000 à maman » → « maman »). */
-function extractPayee(original: string): string | null {
+export function extractPayee(original: string): string | null {
   const m = original.match(/(?:^|\s)(?:à|a|au|aux|chez|pour)\s+(?:la |le |l'|l’|ma |mon |mes )?([A-Za-zÀ-ÿ][\wÀ-ÿ'’ -]{1,30}?)(?:\s+(?:hier|aujourd|avant|ce|cette|avec|par|via|sur|de|du|en)\b|[.,!?]|$)/i);
   if (!m) return null;
   const v = m[1].trim();
