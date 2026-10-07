@@ -52,7 +52,9 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
     // Micro (RECORD_AUDIO) : ajouté par expo-speech-recognition pour la saisie vocale,
     // demandé au premier appui sur le micro, jamais au lancement.
   },
-  // Textes des autorisations iOS (micro, reconnaissance vocale) en français et en anglais.
+  // Textes des autorisations iOS (micro, reconnaissance vocale) en français et en anglais,
+  // rangés sous `ios` dans chaque fichier : sinon Expo les copie en ressources Android et
+  // le lint de la compilation release échoue.
   locales: { fr: './locales/fr.json', en: './locales/en.json' },
   web: { favicon: './assets/favicon.png', bundler: 'metro' },
   plugins: [

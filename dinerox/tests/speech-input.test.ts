@@ -39,9 +39,13 @@ describe('saisie vocale', () => {
     expect(config).not.toMatch(/blockedPermissions:\s*\[[^\]]*RECORD_AUDIO/);
     expect(config).toContain("'expo-speech-recognition'");
     for (const l of ['fr', 'en']) {
-      const loc = JSON.parse(readFileSync(new URL(`locales/${l}.json`, root), 'utf8')) as Record<string, string>;
-      expect(loc.NSMicrophoneUsageDescription.length).toBeGreaterThan(20);
-      expect(loc.NSSpeechRecognitionUsageDescription.length).toBeGreaterThan(20);
+      // Textes iOS rangés sous `ios` : à la racine, Expo les copierait aussi en ressources
+      // Android sans valeur par défaut, et le lint de la compilation release échouerait
+      // (ExtraTranslation, build EAS du 7 octobre 2026).
+      const loc = JSON.parse(readFileSync(new URL(`locales/${l}.json`, root), 'utf8')) as { ios?: Record<string, string> };
+      expect(Object.keys(loc)).toEqual(['ios']);
+      expect(loc.ios?.NSMicrophoneUsageDescription.length).toBeGreaterThan(20);
+      expect(loc.ios?.NSSpeechRecognitionUsageDescription.length).toBeGreaterThan(20);
     }
   });
 });

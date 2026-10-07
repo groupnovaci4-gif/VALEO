@@ -1,4 +1,6 @@
 {
-  "NSMicrophoneUsageDescription": "Le micro sert uniquement à dicter vos dépenses et revenus. L'audio n'est ni enregistré ni envoyé à nos serveurs.",
-  "NSSpeechRecognitionUsageDescription": "La reconnaissance vocale transforme votre phrase en texte pour préparer l'opération, que vous confirmez avant tout enregistrement."
+  "ios": {
+    "NSMicrophoneUsageDescription": "Le micro sert uniquement à dicter vos dépenses et revenus. L'audio n'est ni enregistré ni envoyé à nos serveurs.",
+    "NSSpeechRecognitionUsageDescription": "La reconnaissance vocale transforme votre phrase en texte pour préparer l'opération, que vous confirmez avant tout enregistrement."
+  }
 }
