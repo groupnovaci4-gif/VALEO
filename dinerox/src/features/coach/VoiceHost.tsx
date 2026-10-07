@@ -10,7 +10,7 @@ import { useApp } from '@/store/app';
 import { hasKey, useI18n } from '@/i18n';
 import { useFormatParams } from '@/hooks/useInsightText';
 import { coachPrefs } from '@/core/coach/prefs';
-import { voiceMessage } from '@/core/coach/voice';
+import { speakable, voiceMessage } from '@/core/coach/voice';
 import { hasFeature } from '@/core/subscription';
 import { playCoachSound } from '@/services/voice/sounds';
 import { setPremiumVoiceEnabled, speak, stopVoice } from '@/services/voice';
@@ -35,7 +35,7 @@ export function VoiceHost() {
       if (p.sound) void playCoachSound(p.sound, pr.soundVolume);
       if (p.voice) {
         const m = voiceMessage(p.voice, pr.speakAmounts, hasKey);
-        if (hasKey(m.key)) void speak(tr(m.key, format(m.params)), { language: l === 'en' ? 'en' : 'fr' });
+        if (hasKey(m.key)) void speak(speakable(tr(m.key, format(m.params))), { language: l === 'en' ? 'en' : 'fr' });
       }
     });
     const sub = AppState.addEventListener('change', (s) => {

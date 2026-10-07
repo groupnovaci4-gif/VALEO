@@ -31,6 +31,7 @@ import { hasFeature } from '@/core/subscription';
 import { askRemoteAssistant, resolveAccountHint } from '@/services/ai';
 import { analytics } from '@/services/analytics';
 import { brand } from '@/config/brand';
+import { ListenButton } from '@/features/coach/ListenButton';
 
 type Proposal =
   | { kind: 'tx'; type: 'expense' | 'income'; amount: number; categoryId: string | null; payee: string | null; date: string; accountId: string | null; allocation?: { envelopeId: string | null; amount: number }[] }
@@ -306,6 +307,11 @@ export default function Assistant() {
                     • {b}
                   </Text>
                 ))}
+                {m.from === 'assistant' && (m.text || m.bullets?.length) ? (
+                  <View style={{ alignItems: 'flex-end', marginTop: 2, marginBottom: -6 }}>
+                    <ListenButton text={[m.text ?? '', ...(m.bullets ?? [])]} />
+                  </View>
+                ) : null}
               </View>
               {m.proposal ? <View style={{ width: '88%' }}>{renderProposal(m)}</View> : null}
               {m.remote && m.status === 'pending' ? (

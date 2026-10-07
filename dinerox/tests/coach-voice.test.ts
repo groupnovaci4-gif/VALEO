@@ -1,7 +1,7 @@
 /** Phase 3 — voix : choix du message, file d'attente, délai, erreurs, repli. */
 import { describe, expect, it } from 'vitest';
 import { VoiceQueue, cacheKey, type PreparedProvider } from '../src/services/voice/queue';
-import { voiceMessage } from '../src/core/coach/voice';
+import { speakable, voiceMessage } from '../src/core/coach/voice';
 import { fr } from '../src/i18n/fr';
 import { en } from '../src/i18n/en';
 
@@ -107,5 +107,21 @@ describe('file d’attente vocale', () => {
   it('clé de cache : stable, différente selon texte, voix et langue', () => {
     expect(cacheKey('Bonjour', 'v1', 'fr')).toBe(cacheKey('Bonjour', 'v1', 'fr'));
     expect(new Set([cacheKey('Bonjour', 'v1', 'fr'), cacheKey('Bonjour!', 'v1', 'fr'), cacheKey('Bonjour', 'v2', 'fr'), cacheKey('Bonjour', 'v1', 'en')]).size).toBe(4);
+  });
+});
+
+describe('texte prononcé (bouton « Écouter »)', () => {
+  it('retire les émojis sans toucher au texte', () => {
+    expect(speakable('🔴 Budget Maison dépassé de 25 000 FCFA.')).toBe('Budget Maison dépassé de 25 000 FCFA.');
+    expect(speakable('Objectif atteint 🏆🎉 !')).toBe('Objectif atteint !');
+    expect(speakable('🇨🇮 Côte d’Ivoire')).toBe('Côte d’Ivoire');
+  });
+  it('assemble les lignes : un point seulement s’il manque une ponctuation', () => {
+    expect(speakable(['Votre mois en bref :', 'Revenus : 450 000 FCFA', 'Dépenses : 167 000 FCFA'])).toBe('Votre mois en bref : Revenus : 450 000 FCFA. Dépenses : 167 000 FCFA');
+    expect(speakable(['Première phrase.', 'Seconde'])).toBe('Première phrase. Seconde');
+  });
+  it('ignore les lignes vides et les puces', () => {
+    expect(speakable(['', '• Loyer', '  ', '🔔'])).toBe('Loyer');
+    expect(speakable('')).toBe('');
   });
 });

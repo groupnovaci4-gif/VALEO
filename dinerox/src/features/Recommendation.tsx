@@ -6,6 +6,7 @@ import { useI18n, type TKey } from '@/i18n';
 import { useCategoryLabels, useMoney } from '@/hooks/useFinance';
 import { Icon, Text } from '@/components/ui';
 import type { DataSource, Recommendation } from '@/core/intelligence';
+import { ListenButton } from '@/features/coach/ListenButton';
 
 /** Pastille de provenance d'un chiffre : vos données, déclaré, estimation. */
 export function SourceTag({ source }: { source: DataSource }) {
@@ -44,20 +45,27 @@ export function RecommendationCard({ r }: { r: Recommendation }) {
     danger: [colors.dangerBg, colors.danger, 'alert-circle-outline'],
   } as const;
   const [bg, fg, icon] = map[r.severity];
+  // « Écouter » est À CÔTÉ de la zone cliquable, jamais dedans : pas de bouton
+  // dans un bouton (HTML invalide sur le web, nom accessible pollué).
   return (
-    <Pressable
-      accessibilityRole={r.link ? 'button' : 'text'}
-      onPress={r.link ? () => router.push(r.link as never) : undefined}
-      style={({ pressed }) => ({ flexDirection: 'row', gap: 12, backgroundColor: bg, borderRadius: radius.lg, padding: 14, marginBottom: 10, opacity: pressed ? 0.85 : 1 })}
-    >
-      <Icon name={icon} size={20} color={fg} />
-      <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-        <Text variant="small" style={{ color: colors.text }}>
-          {text(r)}
-        </Text>
-        <SourceTag source={r.source} />
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: bg, borderRadius: radius.lg, marginBottom: 10 }}>
+      <Pressable
+        accessibilityRole={r.link ? 'button' : 'text'}
+        onPress={r.link ? () => router.push(r.link as never) : undefined}
+        style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', gap: 12, padding: 14, paddingRight: 4, opacity: pressed ? 0.85 : 1 })}
+      >
+        <Icon name={icon} size={20} color={fg} />
+        <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+          <Text variant="small" style={{ color: colors.text }}>
+            {text(r)}
+          </Text>
+          <SourceTag source={r.source} />
+        </View>
+        {r.link ? <Icon name="chevron-forward" size={18} color={colors.textMuted} /> : null}
+      </Pressable>
+      <View style={{ paddingTop: 8, paddingRight: 6 }}>
+        <ListenButton text={text(r)} />
       </View>
-      {r.link ? <Icon name="chevron-forward" size={18} color={colors.textMuted} /> : null}
-    </Pressable>
+    </View>
   );
 }

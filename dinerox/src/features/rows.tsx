@@ -17,6 +17,7 @@ import type { GoalPlan } from '@/core/goals';
 import type { Insight } from '@/core/insights';
 import { minimumPlanFor, type Feature } from '@/core/subscription';
 import { findGoalCategory } from '@/core/goalCategories';
+import { ListenButton } from '@/features/coach/ListenButton';
 
 export function TransactionRow({ tx, onPress }: { tx: Transaction; onPress?: () => void }) {
   const { colors } = useTheme();
@@ -179,13 +180,19 @@ export function InsightCard({ insight }: { insight: Insight }) {
         if (path) router.push(path as never);
       }
     : undefined;
+  // « Écouter » à côté de la zone cliquable (jamais un bouton dans un bouton).
   return (
-    <Pressable accessibilityRole={onPress ? 'button' : 'text'} onPress={onPress} style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: bg, borderRadius: radius.md, padding: 12, marginBottom: 8 }}>
-      <Icon name={icon} size={18} color={fg} />
-      <Text variant="small" style={{ flex: 1, color: colors.text }}>
-        {render(insight)}
-      </Text>
-    </Pressable>
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: bg, borderRadius: radius.md, marginBottom: 8 }}>
+      <Pressable accessibilityRole={onPress ? 'button' : 'text'} onPress={onPress} style={{ flex: 1, minWidth: 0, flexDirection: 'row', gap: 10, alignItems: 'flex-start', padding: 12, paddingRight: 4 }}>
+        <Icon name={icon} size={18} color={fg} />
+        <Text variant="small" style={{ flex: 1, color: colors.text }}>
+          {render(insight)}
+        </Text>
+      </Pressable>
+      <View style={{ paddingTop: 6, paddingRight: 6 }}>
+        <ListenButton text={render(insight)} />
+      </View>
+    </View>
   );
 }
 

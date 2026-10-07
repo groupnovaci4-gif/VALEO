@@ -22,3 +22,20 @@ export function voiceMessage(e: Pick<CoachEvent, 'textKey' | 'params' | 'severit
   if (hasKey(variant)) return { key: variant, params: e.params };
   return { key: `coach.voice.generic.${e.severity}`, params: {} };
 }
+
+/**
+ * Texte prêt à être prononcé : retire pictogrammes et émojis (la synthèse les
+ * lirait, « cercle rouge ») et assemble les lignes affichées en phrases — un
+ * point seulement si la ligne ne se termine pas déjà par une ponctuation.
+ * Aucun mot n'est ajouté ni retiré : on lit ce qui est affiché.
+ */
+export function speakable(parts: string | readonly string[]): string {
+  const clean = (s: string) =>
+    s
+      .replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}]/gu, '')
+      .replace(/^\s*[•·\-–]\s*/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  const lines = (typeof parts === 'string' ? [parts] : parts).map(clean).filter(Boolean);
+  return lines.reduce((acc, l) => (!acc ? l : /[.!?…:;]$/.test(acc) ? `${acc} ${l}` : `${acc}. ${l}`), '');
+}

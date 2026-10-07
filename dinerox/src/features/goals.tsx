@@ -13,6 +13,7 @@ import { CUSTOM_GOAL_CATEGORY, DEFAULT_GOAL_CATEGORIES, resolveGoalCategories, s
 import { loadRemoteGoalCategories } from '@/services/remoteConfig';
 import type { Goal, GoalPriority, GoalScope, PlannedContribution } from '@/core/types';
 import { today } from '@/core/dates';
+import { ListenButton } from '@/features/coach/ListenButton';
 
 /** Catégories d'objectifs : défauts + publications admin (cache local). */
 export function useGoalCategories(): GoalCategory[] {
@@ -54,6 +55,9 @@ export function GoalPlanPanel({ plan, targetDate, onAskMonthly }: { plan: GoalPl
           {t('goal.calc.remaining')}
         </Text>
         <Text variant="bodyStrong">{money(plan.remaining)}</Text>
+      </View>
+      <View style={{ alignItems: 'flex-end', marginTop: -6 }}>
+        <ListenButton text={[`${t('goal.calc.remaining')} : ${money(plan.remaining)}`, ...lines]} />
       </View>
       {lines.map((l) => (
         <View key={l} style={{ flexDirection: 'row', gap: 8 }}>

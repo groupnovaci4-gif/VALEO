@@ -19,6 +19,7 @@ import { recurringMonthlyIncome } from '@/core/intelligence';
 import { useIntelligence } from '@/hooks/useIntelligence';
 import type { BudgetMethod } from '@/core/types';
 import { withSpaceReady } from '@/components/SpaceReady';
+import { ListenButton } from '@/features/coach/ListenButton';
 
 const BUCKET_META: Record<BudgetBucket, { icon: string; color: string; categoryIds: string[]; envKey: TKey }> = {
   housing: { icon: 'home', color: '#6366F1', categoryIds: ['cat_housing', 'cat_internet'], envKey: 'env.housing' },
@@ -118,9 +119,15 @@ function AutoBudget() {
       />
       {method === 'personal' ? (
         <Card>
-          <Text variant="small" tone="muted" style={{ marginBottom: 10 }}>
-            {t('budget.personalHint')}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginBottom: 10 }}>
+            <Text variant="small" tone="muted" style={{ flex: 1 }}>
+              {t('budget.personalHint')}
+            </Text>
+            {/* Lecture de la proposition affichée (enveloppes, montants, total). */}
+            <ListenButton
+              text={[t('budget.personalHint'), ...personalAmounts.map((l) => `${data.envelopes.find((x) => x.id === l.envelopeId)?.name ?? ''} : ${money(l.amount ?? 0)}`), `${t('budget.auto.total')} : ${money(total)}`]}
+            />
+          </View>
           {personalAmounts.map((l) => {
             const e = data.envelopes.find((x) => x.id === l.envelopeId)!;
             return (
@@ -144,6 +151,9 @@ function AutoBudget() {
       ) : null}
       {method !== 'personal' && amounts.length ? (
         <Card>
+          <View style={{ alignItems: 'flex-end' }}>
+            <ListenButton text={[...amounts.map((l) => `${t(`budget.bucket.${l.bucket}` as TKey)} : ${money(l.amount ?? 0)}`), `${t('budget.auto.total')} : ${money(total)}`]} />
+          </View>
           {amounts.map((l) => (
             <AmountField key={l.bucket} label={t(`budget.bucket.${l.bucket}` as TKey)} value={l.amount} onChange={(v) => setOverrides((o) => ({ ...o, [l.bucket]: v }))} currency={currency} />
           ))}

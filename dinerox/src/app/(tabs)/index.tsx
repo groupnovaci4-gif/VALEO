@@ -16,6 +16,7 @@ import type { EnvelopeStatus } from '@/core/budget';
 import { useIntelligence } from '@/hooks/useIntelligence';
 import { RecommendationCard } from '@/features/Recommendation';
 import { CoachSummaryCard } from '@/features/coach/CoachSummaryCard';
+import { AdviceOfDay } from '@/features/coach/AdviceOfDay';
 import { RewardsTile } from '@/features/coach/RewardsTile';
 import { goalPlanFor, sortGoals } from '@/core/goals';
 import { sortTransactions } from '@/core/transactions';
@@ -86,6 +87,8 @@ export default function Home() {
 
       {/* Coach : ce qu'il faut savoir depuis la dernière ouverture (un seul résumé). */}
       <CoachSummaryCard />
+      {/* Conseil du jour : déterministe, lisible à voix haute, explicable par l'IA (avec accord). */}
+      <AdviceOfDay excludeId={topRec?.id} />
 
       {/* Carte principale : solde disponible */}
       <GradientCard>
