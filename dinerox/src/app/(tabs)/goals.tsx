@@ -17,8 +17,9 @@ import { GoalCard, SpaceSwitcher } from '@/features/rows';
 import { allocateCapacity, goalPlanFor, sortGoals } from '@/core/goals';
 import { observedCapacity } from '@/core/intelligence';
 import { can } from '@/core/permissions';
-import { isReserve } from '@/core/reserve';
+import { isClassicGoal } from '@/core/reserve';
 import { ReserveSection } from '@/features/reserve/ReserveSection';
+import { SeasonSection } from '@/features/seasons/SeasonSection';
 
 export default function Goals() {
   const { t } = useI18n();
@@ -29,8 +30,8 @@ export default function Goals() {
   const actions = useActions();
   const run = useRunAction();
   const { data, now, currency, insights } = useFinance();
-  // Les réserves ont leur propre section (au-dessus) : hors liste, totaux et répartition des objectifs.
-  const goalsOnly = useMemo(() => data.goals.filter((g) => !isReserve(g)), [data.goals]);
+  // Réserves et moments forts ont leur propre section (au-dessus) : hors liste, totaux et répartition des objectifs.
+  const goalsOnly = useMemo(() => data.goals.filter(isClassicGoal), [data.goals]);
   const active = useMemo(() => sortGoals(goalsOnly.filter((g) => g.status === 'active' || g.status === 'paused')), [goalsOnly]);
   const closed = useMemo(() => goalsOnly.filter((g) => g.status === 'completed' || g.status === 'archived' || g.status === 'abandoned'), [goalsOnly]);
   const detected = useMemo(() => observedCapacity(data, currency, now), [data, currency, now]);
@@ -135,6 +136,7 @@ export default function Goals() {
       ) : null}
 
       <ReserveSection />
+      <SeasonSection />
 
       {canCreate ? <Button full icon="add-circle-outline" label={t('goal.createNew')} onPress={() => router.push('/goals/new')} style={{ marginBottom: 6 }} /> : null}
 

@@ -12,6 +12,7 @@ import { monthKey, periodOf, today } from '@/core/dates';
 import { formatMoney, type CurrencyCode } from '@/core/money';
 import type { Account, Category } from '@/core/types';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/core/defaults';
+import { budgetTransactions } from '@/core/reserve';
 
 export function useCurrency(): CurrencyCode {
   const { activeSpace, profile } = useApp();
@@ -84,7 +85,7 @@ export function useFinance() {
     const balances = accountBalances(data.accounts, data.transactions);
     const position = moneyPosition(data.accounts, data.transactions, data.goals, data.goalContributions, currency);
     const flows = flowTotals(data.transactions, periodOf('month', now), currency);
-    const envelopes = envelopeStatuses(data.envelopes, data.transactions, data.budgets, month, currency);
+    const envelopes = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency);
     const budget = budgetSummary(envelopes, flows.expense);
     const insights = computeInsights({ data, currency, now, categoryName: labels.label });
     const activeAccounts: Account[] = data.accounts.filter((a) => a.active).sort((a, b) => a.order - b.order);

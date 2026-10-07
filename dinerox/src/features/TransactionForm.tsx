@@ -32,6 +32,8 @@ export interface TxInitial {
   toAccountId?: string | null;
   date?: string;
   note?: string | null;
+  /** Réserve présélectionnée (simulateur « Puis-je contribuer ? ») : proposée, l'utilisateur confirme. */
+  reserveId?: string | null;
 }
 
 export function TransactionForm({ existing, initial }: { existing?: Transaction; initial?: TxInitial }) {
@@ -68,7 +70,7 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
   const [recurring, setRecurring] = useState(false);
   // Réserve : utilisation déjà liée à l'opération modifiée, ou choix fait ici.
   const currentUse = existing ? reserveUseOf(existing.id, data.goalContributions) : undefined;
-  const [reserveId, setReserveId] = useState<string | null>(currentUse?.goalId ?? null);
+  const [reserveId, setReserveId] = useState<string | null>(currentUse?.goalId ?? initial?.reserveId ?? null);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 

@@ -39,3 +39,18 @@ describe('structure initiale de l onboarding', () => {
     expect(z.accounts).toHaveLength(1);
   });
 });
+
+describe('démo : réserve famille, obligations et rentrée (1.6)', () => {
+  it('une réserve d’exemple, deux soutiens réguliers et la rentrée scolaire', async () => {
+    const { isReserve, isSeason, reserveBalance, reserveUseOf } = await import('../src/core/reserve');
+    const { familyObligations } = await import('../src/core/obligations');
+    const d = buildDemoData({ now: 1, uid: 'u', today: '2026-10-20', label: (k) => k });
+    const reserves = d.goals.filter(isReserve);
+    expect(reserves).toHaveLength(1);
+    expect(reserveBalance(reserves[0], d.goalContributions)).toBe(80_000);
+    expect(reserveUseOf('demo_tx_ceremony', d.goalContributions)?.amount).toBe(-20_000);
+    expect(familyObligations(d, 'XOF').map((r) => r.label)).toEqual(['Maman', 'Scolarité neveu']);
+    const school = d.goals.filter(isSeason);
+    expect(school.map((g) => [g.templateId, g.targetAmount])).toEqual([['school_start', 120_000]]);
+  });
+});

@@ -12,7 +12,7 @@ import { budgetSummary, envelopeStatuses, resolveEnvelopeId } from '../budget';
 import { financialSnapshot, observedCapacity } from '../intelligence';
 import { expensesByCategory, monthFlows } from '../insights';
 import { goalPlanFor, sortGoals } from '../goals';
-import { isReserve } from '../reserve';
+import { budgetTransactions, isReserve } from '../reserve';
 
 export interface AnswerLine {
   key: string;
@@ -41,6 +41,9 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
   if (!hasData) return { key: 'ai.a.noData', lowData: true };
 
   switch (intent.topic) {
+    // Hypothèse de contribution : le simulateur (core/simulator) donne les chiffres.
+    case 'contribution_sim':
+      return { key: 'ai.a.contributionSim', params: { amount: intent.amount ?? 0 } };
     case 'spent_month':
       return { key: 'ai.a.spentMonth', params: { amount: flows.expense, income: flows.income } };
 
@@ -55,7 +58,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
     }
 
     case 'remaining_category': {
-      const statuses = envelopeStatuses(data.envelopes, data.transactions, data.budgets, month, currency);
+      const statuses = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency);
       const envId = resolveEnvelopeId({ categoryId: intent.categoryId, envelopeId: null }, data.envelopes);
       const s = statuses.find((x) => x.envelope.id === envId);
       if (!s) return { key: 'ai.a.noEnvelopeForCategory', params: { name: categoryName(intent.categoryId!) } };
@@ -89,7 +92,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
     case 'can_afford': {
       if (!intent.amount) return { key: 'ai.a.askAmount' };
       const pos = moneyPosition(data.accounts, data.transactions, data.goals, data.goalContributions, currency);
-      const statuses = envelopeStatuses(data.envelopes, data.transactions, data.budgets, month, currency);
+      const statuses = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency);
       // Ce qui reste à payer ce mois-ci selon le budget (hors « libre » non dépensé).
       const committed = statuses.reduce((s, x) => s + Math.max(0, x.remaining), 0);
       const amount = intent.amount; // converti en unités mineures par l'appelant (toMinor)
@@ -137,7 +140,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
     }
 
     case 'month_summary': {
-      const statuses = envelopeStatuses(data.envelopes, data.transactions, data.budgets, month, currency);
+      const statuses = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency);
       const summary = budgetSummary(statuses, flows.expense);
       const top = Object.entries(expensesByCategory(data.transactions, month, currency)).sort((a, b) => b[1] - a[1])[0];
       const over = statuses.filter((s) => s.level === 'critical');
@@ -153,7 +156,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
     }
 
     case 'reduce_spending': {
-      const statuses = envelopeStatuses(data.envelopes, data.transactions, data.budgets, month, currency);
+      const statuses = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency);
       const cats = Object.entries(expensesByCategory(data.transactions, month, currency)).sort((a, b) => b[1] - a[1]);
       const last = expensesByCategory(data.transactions, prev, currency);
       const bullets: AnswerLine[] = [];
@@ -171,7 +174,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
 
     case 'why_no_savings': {
       const capacity = observedCapacity(data, currency, now);
-      const statuses = envelopeStatuses(data.envelopes, data.transactions, data.budgets, month, currency);
+      const statuses = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency);
       const bullets: AnswerLine[] = [];
       if (capacity !== null && capacity <= 0) bullets.push({ key: 'ai.a.whyNegative', params: { amount: -capacity } });
       const cats = Object.entries(expensesByCategory(data.transactions, month, currency)).sort((a, b) => b[1] - a[1]);

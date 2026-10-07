@@ -48,7 +48,7 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     ['/accounts/edit', 'Compte'], ['/envelopes/edit', 'Enveloppe'], ['/debts/edit', 'Dette'], ['/recurring/edit', 'Récurrence'],
     ['/settings/profile', 'Profil'], ['/settings/financial', 'Profil financier'], ['/settings/security', 'Sécurité'],
     ['/independence', 'Indépendance financière'], ['/transactions', 'Recherche d’opérations'], ['/assistant', 'Assistant'],
-    ['/reserve/new', 'Réserve famille'],
+    ['/reserve/new', 'Réserve famille'], ['/simulate', 'Puis-je contribuer'], ['/seasons/new?event=tabaski', 'Moment fort'],
   ];
   for (const [r, n] of screens) { await go(r); await step(n, () => checkAllInputs(p, n, ok, { expectInputs: true })); }
   await step('Objectif (étapes)', async () => {

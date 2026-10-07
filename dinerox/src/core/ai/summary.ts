@@ -2,6 +2,8 @@
  * Résumé chiffré envoyé à l'IA distante (avec consentement). Minimisation :
  * montants agrégés, catégories, enveloppes et objectifs — JAMAIS de
  * bénéficiaires, notes, noms de personnes, e-mails ou numéros.
+ * Réserves et moments forts : un libellé GÉNÉRIQUE remplace le nom saisi
+ * (« Funérailles de… », « Dot de… » pourraient nommer une personne).
  */
 import type { SpaceData } from '../types';
 import type { CurrencyCode } from '../money';
@@ -12,6 +14,7 @@ import { observedCapacity } from '../intelligence';
 import { goalPlanFor } from '../goals';
 import { moneyPosition } from '../balance';
 import { debtTotals } from '../debts';
+import { budgetTransactions, isReserve, isSeason } from '../reserve';
 
 export interface FinanceSummary {
   currency: CurrencyCode;
@@ -26,7 +29,13 @@ export interface FinanceSummary {
   debts: { iOwe: number; owedToMe: number };
 }
 
-export function buildFinanceSummary(data: SpaceData, currency: CurrencyCode, now: ISODate, categoryName: (id: string) => string): FinanceSummary {
+export function buildFinanceSummary(
+  data: SpaceData,
+  currency: CurrencyCode,
+  now: ISODate,
+  categoryName: (id: string) => string,
+  labels: { reserve: string; season: string } = { reserve: 'Réserve famille', season: 'Moment fort' },
+): FinanceSummary {
   const m = monthKey(now);
   const p = previousMonth(m);
   const pos = moneyPosition(data.accounts, data.transactions, data.goals, data.goalContributions, currency);
@@ -39,13 +48,14 @@ export function buildFinanceSummary(data: SpaceData, currency: CurrencyCode, now
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6)
       .map(([id, amount]) => ({ name: categoryName(id), amount })),
-    envelopes: envelopeStatuses(data.envelopes, data.transactions, data.budgets, m, currency).map((s) => ({ name: s.envelope.name.slice(0, 40), budget: s.budget, spent: s.spent })),
+    envelopes: envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, m, currency).map((s) => ({ name: s.envelope.name.slice(0, 40), budget: s.budget, spent: s.spent })),
     goals: data.goals
       .filter((g) => g.status === 'active' && g.currency === currency)
       .slice(0, 8)
       .map((g) => {
         const plan = goalPlanFor(g, data.goalContributions, now);
-        return { name: g.name.slice(0, 60), target: g.targetAmount, saved: plan.saved, targetDate: g.targetDate ?? null, monthlyNeeded: plan.requiredMonthly };
+        const name = isReserve(g) ? labels.reserve : isSeason(g) ? labels.season : g.name.slice(0, 60);
+        return { name, target: g.targetAmount, saved: plan.saved, targetDate: g.targetDate ?? null, monthlyNeeded: plan.requiredMonthly };
       }),
     position: { available: pos.available, free: pos.free, savings: pos.savings },
     savingsCapacity: observedCapacity(data, currency, now),

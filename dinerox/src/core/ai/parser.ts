@@ -23,7 +23,9 @@ export type QuestionTopic =
   | 'month_summary'
   | 'why_no_savings'
   | 'balance'
-  | 'income_month';
+  | 'income_month'
+  /** « Si je donne 30 000 pour les funérailles, il me reste combien ? » → simulateur « Puis-je contribuer ? ». */
+  | 'contribution_sim';
 
 export type AccountHint = 'cash' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'wave' | 'bank' | 'savings' | 'card';
 
@@ -217,7 +219,7 @@ export function extractPayee(original: string): string | null {
   return v;
 }
 
-const QUESTION_START = /^(combien|est ce que|est-ce que|pourquoi|comment|ou |quel|quelle|quels|quelles|compare|fais|fait moi|donne|resume|puis je|peux je|je peux|ai je|qu est ce|montre|dis moi|analyse)/;
+const QUESTION_START = /^(si j?e? ?(donne|verse|envoie|contribue|cotise|participe|offre|paie|paye)|combien|est ce que|est-ce que|pourquoi|comment|ou |quel|quelle|quels|quelles|compare|fais|fait moi|donne|resume|puis je|peux je|je peux|ai je|qu est ce|montre|dis moi|analyse)/;
 
 function detectQuestion(text: string, original: string): ParsedIntent | null {
   const isQuestion = original.trim().endsWith('?') || QUESTION_START.test(text);
@@ -226,7 +228,8 @@ function detectQuestion(text: string, original: string): ParsedIntent | null {
   const amount = amounts.length ? amounts[0] : null;
   const categoryId = guessCategory(text, 'expense');
   let topic: QuestionTopic | null = null;
-  if (/pourquoi.*(epargn|economis)|jamais.*(epargn|economis)|n arrive pas.*(epargn|economis)/.test(text)) topic = 'why_no_savings';
+  if (/^si j?e? ?(donne|verse|envoie|contribue|cotise|participe|offre|paie|paye)\b/.test(text)) topic = 'contribution_sim';
+  else if (/pourquoi.*(epargn|economis)|jamais.*(epargn|economis)|n arrive pas.*(epargn|economis)/.test(text)) topic = 'why_no_savings';
   else if (/compar|mois dernier|par rapport/.test(text)) topic = 'compare_months';
   else if (/resume|bilan|synthese|recap/.test(text)) topic = 'month_summary';
   else if (/reduire|diminuer|economiser plus|depenser moins|moins depenser|faire des economies/.test(text)) topic = 'reduce_spending';

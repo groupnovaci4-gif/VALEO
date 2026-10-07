@@ -25,6 +25,9 @@ import { financialSnapshot, recommendations } from '@/core/intelligence';
 import { moneyPosition } from '@/core/balance';
 import { alertsAfterWrite, evaluateEnvelopeAlerts } from '@/core/coach/envelopeAlerts';
 import { detectPositiveEvents, fromEnvelopeAlert, fromInsights, fromRecommendations, type CoachEvent } from '@/core/coach/events';
+import { familyEvents } from '@/core/coach/familyEvents';
+import { SEASON_EVENTS } from '@/core/seasons';
+import type { TKey } from '@/i18n';
 import { planDelivery, type CoachTrigger } from '@/core/coach/policy';
 import { coachPrefs } from '@/core/coach/prefs';
 import { addNotified, deliveryState, envelopeMemory, mergeDelivered, saveDeliveryState, saveEnvelopeMemory } from '@/services/coachMemory';
@@ -34,6 +37,7 @@ import { VoiceHost } from './VoiceHost';
 import { RewardCelebration } from './RewardCelebration';
 import { evaluateRewards, monthToEvaluate, rewardKey, REWARDS } from '@/core/coach/rewards';
 import { loadRewards, saveRewards, type StoredReward } from '@/services/rewards';
+import { budgetTransactions } from '@/core/reserve';
 
 interface CoachValue {
   /** Résumé en attente (ouverture) : affiché sur l'accueil jusqu'à « J'ai compris ». */
@@ -177,7 +181,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
     const month = monthKey(day);
     const now = Date.now();
     const memory = await envelopeMemory(uid, spaceId);
-    const env = evaluateEnvelopeAlerts({ statuses: envelopeStatuses(data.envelopes, data.transactions, data.budgets, month, cur), month, plans: data.budgets, memory, today: day });
+    const env = evaluateEnvelopeAlerts({ statuses: envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, cur), month, plans: data.budgets, memory, today: day });
     await saveEnvelopeMemory(uid, spaceId, env.memory);
     const free = moneyPosition(data.accounts, data.transactions, data.goals, data.goalContributions, cur).free;
     const snap = financialSnapshot({ data, currency: cur, now: day, available: free, financial: p.financial });
@@ -186,10 +190,12 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
       ...fromInsights(computeInsights({ data, currency: cur, now: day, categoryName: label }), spaceId, month, now),
       ...fromRecommendations(recommendations(snap, data.goals), spaceId, month, now),
       ...detectPositiveEvents(data, cur, day, spaceId, now, (id) => label(data.categories.find((c) => c.id === id), id)),
+      // Réserve famille, moments forts, soutiens réguliers : libellés du catalogue, jamais un nom saisi.
+      ...familyEvents(data, cur, day, spaceId, now, { firstName: p.firstName, seasonLabel: (id) => (SEASON_EVENTS.some((e) => e.id === id) ? t(`season.event.${id}` as TKey) : t('season.generic')) }),
       ...(await awardRewards(true)),
     ];
     await deliver(events, 'open');
-  }, [deliver, awardRewards]);
+  }, [deliver, awardRewards, t]);
 
   const spaceId = activeSpace?.id ?? null;
   const onboarded = !!profile?.onboarding.completed;

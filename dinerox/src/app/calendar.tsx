@@ -9,7 +9,7 @@ import { withSpaceReady } from '@/components/SpaceReady';
 import { useTheme } from '@/theme';
 import { financialCalendar, type CalendarKind } from '@/core/calendar';
 
-const ICON: Record<CalendarKind, string> = { income: 'arrow-down', expense: 'receipt-outline', tontine: 'people', debt: 'card-outline', goal: 'flag' };
+const ICON: Record<CalendarKind, string> = { income: 'arrow-down', expense: 'receipt-outline', tontine: 'people', debt: 'card-outline', goal: 'flag', season: 'calendar-number' };
 
 function CalendarScreen() {
   const { t, date } = useI18n();
@@ -18,8 +18,8 @@ function CalendarScreen() {
   const { data, now } = useFinance();
   const [days, setDays] = useState<'30' | '60' | '90'>('30');
   const events = useMemo(() => financialCalendar(data, now, Number(days)), [data, now, days]);
-  const tone = (k: CalendarKind) => (k === 'income' ? colors.income : k === 'goal' ? colors.primary : k === 'tontine' ? colors.secondary : k === 'debt' ? colors.danger : colors.info);
-  const totalOut = events.filter((e) => e.kind !== 'income' && e.kind !== 'goal').reduce((n, e) => n + (e.amount ?? 0), 0);
+  const tone = (k: CalendarKind) => (k === 'income' ? colors.income : k === 'goal' || k === 'season' ? colors.primary : k === 'tontine' ? colors.secondary : k === 'debt' ? colors.danger : colors.info);
+  const totalOut = events.filter((e) => e.kind !== 'income' && e.kind !== 'goal' && e.kind !== 'season').reduce((n, e) => n + (e.amount ?? 0), 0);
   const totalIn = events.filter((e) => e.kind === 'income').reduce((n, e) => n + (e.amount ?? 0), 0);
   return (
     <Screen back title={t('cal.title')}>

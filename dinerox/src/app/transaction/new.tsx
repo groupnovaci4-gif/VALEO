@@ -5,7 +5,7 @@ import type { TransactionType } from '@/core/types';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 function NewTransaction() {
-  const p = useLocalSearchParams<{ type?: string; amount?: string; categoryId?: string; payee?: string; accountId?: string; toAccountId?: string; date?: string }>();
+  const p = useLocalSearchParams<{ type?: string; amount?: string; categoryId?: string; payee?: string; accountId?: string; toAccountId?: string; date?: string; reserveId?: string }>();
   const type = (['expense', 'income', 'transfer'].includes(p.type ?? '') ? p.type : 'expense') as TransactionType;
   return (
     <TransactionForm
@@ -17,6 +17,7 @@ function NewTransaction() {
         accountId: p.accountId ?? null,
         toAccountId: p.toAccountId ?? null,
         date: p.date,
+        reserveId: p.reserveId ?? null,
       }}
     />
   );

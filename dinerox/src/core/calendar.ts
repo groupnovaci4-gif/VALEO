@@ -8,8 +8,10 @@ import { addDays, addMonths, type ISODate } from './dates';
 import { debtStatus } from './debts';
 import { goalPlanFor } from './goals';
 import { occurrencesBetween } from './recurring';
+import { isReserve, isSeason } from './reserve';
 
-export type CalendarKind = 'income' | 'expense' | 'tontine' | 'debt' | 'goal';
+/** `season` : moment fort de l'année (objectif à date de la catégorie « moments forts »). */
+export type CalendarKind = 'income' | 'expense' | 'tontine' | 'debt' | 'goal' | 'season';
 
 export interface CalendarEvent {
   id: string;
@@ -48,9 +50,9 @@ export function financialCalendar(data: Pick<SpaceData, 'recurring' | 'debts' | 
     }
   }
   for (const g of data.goals) {
-    if (g.deleted || g.status !== 'active' || !g.targetDate || g.targetDate < from || g.targetDate > until) continue;
+    if (g.deleted || isReserve(g) || g.status !== 'active' || !g.targetDate || g.targetDate < from || g.targetDate > until) continue;
     const plan = goalPlanFor(g, data.goalContributions, from);
-    out.push({ id: `goal_${g.id}`, date: g.targetDate, kind: 'goal', label: g.name, amount: plan.remaining, currency: g.currency, link: `/goals/${g.id}` });
+    out.push({ id: `goal_${g.id}`, date: g.targetDate, kind: isSeason(g) ? 'season' : 'goal', label: g.name, amount: plan.remaining, currency: g.currency, link: `/goals/${g.id}` });
   }
   return out.sort((a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label));
 }

@@ -139,6 +139,13 @@ langue) : une même phrase n'est payée qu'une fois.
 - « Saisie régulière » (`regular_entry`) : au moins 20 jours distincts de
   saisie dans le mois (date de création ; récurrences automatiques exclues).
 
+Famille et cérémonies (1.6, `familyEvents`, voir [`reserve.md`](reserve.md)) :
+`reserve_low` (solde sous 25 % du plafond), `reserve_refilled` (plafond atteint,
+célébration), `season_upcoming` (moment fort à 30 jours ou moins, épargne en
+retard), `obligation_due` (soutien régulier à verser demain). Jamais de
+bénéficiaire, de défunt ni de nom saisi dans les paramètres : libellés du
+catalogue et montants seulement (montants jamais lus sans `speakAmounts`).
+
 Événements positifs (`detectPositiveEvents`) : mois respecté, épargne
 régulière, dette soldée, échéance tenue, fonds d'urgence renforcé et
 **catégorie en baisse** (`categoryDown` : ≥ 20 % sous la moyenne des trois

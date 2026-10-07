@@ -72,14 +72,18 @@ let b;
   // Réserve insuffisante : complément montré, rien de bloqué ; seul le complément pèse sur le reste par jour.
   const before = await perDay();
   const avail0 = before * daysLeft;
+  // Ligne de détail de la carte (affichée aussi en cas de déficit) : « Revenus … − dépenses X − à venir … ».
+  const expenses = (s) => num((s.match(/dépenses ([\d ]+) FCFA − à venir/) || [])[1]);
+  const exp0 = expenses(await text());
   await openKeyboard(); await phrase('Funérailles 100 000');
   await btn('Oui, sur la réserve').click(); await p.waitForTimeout(300);
   t = await text();
   ok(t.includes('65 000 FCFA pris sur la réserve ; le complément de 35 000 FCFA est pris sur le budget du mois.'), 'réserve insuffisante : complément de 35 000 montré');
   ok(!(await btn('Tout valider').isDisabled()), 'réserve insuffisante : enregistrement possible (jamais bloqué)');
   await btn('Tout valider').click(); await p.waitForTimeout(700);
-  const after = await perDay();
-  ok(Math.abs(before - after - Math.round(35_000 / daysLeft)) <= 1, `seul le complément compte : ${before} → ${after} (≈ −35 000 / ${daysLeft} j)`);
+  await perDay();
+  const exp1 = expenses(await text());
+  ok(exp1 - exp0 === 35_000, `seul le complément compte dans le reste par jour : dépenses ${exp0} → ${exp1} (+35 000, pas +100 000)`);
   ok((await balance()) === 0 && avail0 > 0, 'réserve vidée (0), le reste vient du budget');
 
   // Modification de l'opération liée : utilisation recalculée ; suppression : utilisation annulée.

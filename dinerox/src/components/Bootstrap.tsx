@@ -14,6 +14,7 @@ import { subcategoryDocs } from '@/core/catalog';
 import { zoneOf } from '@/core/countries';
 import { parseISODate, today } from '@/core/dates';
 import { reserveReminders } from '@/core/reserve';
+import { seasonReminders } from '@/core/seasons';
 import { readJSON, storageKey, writeJSON } from '@/services/storage';
 import type { CollectionName, SyncedDoc } from '@/core/types';
 import type { TKey } from '@/i18n';
@@ -121,13 +122,16 @@ export function Bootstrap() {
     if (!prefs || !profile?.onboarding.completed) return;
     const reminders = planEntryReminders({ now: Date.now(), enabled: prefs.dailyEntryReminder ?? true, hour: prefs.dailyReminderHour ?? DEFAULT_REMINDER_HOUR, lastEntryAt: lastEntry });
     // Réserve : « Mettre X de côté » le lendemain de la paie (rappels d'épargne activés), à 18 h.
-    const dated = prefs.savingsReminder
-      ? reserveReminders(data, { payDay: profile.financial?.payDay, today: today() }).map((r) => {
-          const when = parseISODate(r.date);
-          when.setHours(18, 0, 0, 0);
-          return { date: when, title: t('notif.reserve.title'), body: t('notif.reserve.body'), url: `/reserve/${r.reserveId}?refill=1` };
-        })
-      : [];
+    const at = (d: string, hour: number) => {
+      const when = parseISODate(d);
+      when.setHours(hour, 0, 0, 0);
+      return when;
+    };
+    const dated = [
+      ...(prefs.savingsReminder ? reserveReminders(data, { payDay: profile.financial?.payDay, today: today() }).map((r) => ({ date: at(r.date, 18), title: t('notif.reserve.title'), body: t('notif.reserve.body'), url: `/reserve/${r.reserveId}?refill=1` })) : []),
+      // Moments forts : J-60, J-30 et J-7 (texte sobre, jamais le nom saisi).
+      ...(prefs.goalProgress ? seasonReminders(data, today()).map((r) => ({ date: at(r.date, 9), title: t('notif.season.title'), body: t('notif.season.body'), url: `/goals/${r.goalId}` })) : []),
+    ];
     void scheduleLocalNotifications(prefs, t, data.debts, data.debtPayments, (n) => money(n), (d) => date(d), reminders, dated).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefs, data.debts, data.debtPayments, data.goals, data.goalContributions, profile?.onboarding.completed, profile?.financial?.payDay, lastEntry]);

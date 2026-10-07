@@ -7,7 +7,7 @@ import type { Category, Debt, DebtPayment, Envelope, Goal, GoalContribution, Spa
 import type { CurrencyCode } from './money';
 import { envelopeStatuses, spentByEnvelope, envelopeBudgetFor } from './budget';
 import { hasEmergencyFund, goalPlanFor } from './goals';
-import { isReserve } from './reserve';
+import { budgetTransactions, isReserve } from './reserve';
 import { observedCapacity } from './intelligence';
 import { debtStatus } from './debts';
 import { lastMonths, monthKey, previousMonth, type ISODate, type MonthKey } from './dates';
@@ -119,9 +119,11 @@ export function computeInsights({ data, currency, now, categoryName }: InsightIn
   const month = monthKey(now);
   const prev = previousMonth(month);
   const tx = data.transactions;
+  // Budget du mois : la part prise sur une réserve n'y pèse pas (déjà mise de côté).
+  const budgetTx = budgetTransactions(tx, data.goalContributions as GoalContribution[]);
 
   // 1. Seuils d'enveloppes (85 % / 100 % / dépassement).
-  for (const s of envelopeStatuses(data.envelopes, tx, data.budgets, month, currency)) {
+  for (const s of envelopeStatuses(data.envelopes, budgetTx, data.budgets, month, currency)) {
     if (s.level === 'ok' || s.budget <= 0) continue;
     const severity: InsightSeverity = s.level === 'critical' ? 'danger' : 'warning';
     out.push({
@@ -140,7 +142,7 @@ export function computeInsights({ data, currency, now, categoryName }: InsightIn
     let streak = 0;
     for (const m of pastMonths) {
       const budget = envelopeBudgetFor(e, m, data.budgets);
-      const spent = spentByEnvelope(tx, data.envelopes, m, currency)[e.id] ?? 0;
+      const spent = spentByEnvelope(budgetTx, data.envelopes, m, currency)[e.id] ?? 0;
       if (budget > 0 && spent > budget) streak++;
       else break;
     }

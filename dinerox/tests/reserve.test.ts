@@ -168,3 +168,21 @@ describe('rappel « Mettre X de côté »', () => {
     expect(refillReminderDate({ payDay: null, today: '2026-10-15', pendingThisMonth: 1 })).toBe('2026-11-01');
   });
 });
+
+describe('budget du mois et réserve', () => {
+  it('la part prise sur la réserve ne pèse pas sur l’enveloppe ; seul le complément compte', async () => {
+    const { budgetTransactions } = await import('../src/core/reserve');
+    const { envelopeStatuses } = await import('../src/core/budget');
+    const { envelope } = await import('./helpers');
+    const fam = envelope({ id: 'fam', monthlyBudget: 20_000, categoryIds: ['cat_social'] });
+    const full = tx({ id: 'full', type: 'expense', amount: 30_000, accountId: 'a', date: '2026-10-05', categoryId: 'cat_social' });
+    const part = tx({ id: 'part', type: 'expense', amount: 25_000, accountId: 'a', date: '2026-10-06', categoryId: 'cat_social' });
+    const uses = [contrib({ amount: -30_000, linkedTransactionId: 'full' }), contrib({ amount: -10_000, linkedTransactionId: 'part' })];
+    const view = budgetTransactions([full, part], uses);
+    expect(view.map((t) => [t.id, t.amount])).toEqual([['part', 15_000]]);
+    const s = envelopeStatuses([fam], view, [], '2026-10', 'XOF')[0];
+    expect([s.spent, s.level]).toEqual([15_000, 'ok']);
+    // Sans réserve : la dépense entière compte (comportement inchangé).
+    expect(envelopeStatuses([fam], budgetTransactions([full], []), [], '2026-10', 'XOF')[0].level).toBe('critical');
+  });
+});

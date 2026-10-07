@@ -104,6 +104,14 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       setView({ kind: 'confirm', drafts: r.items, method, text, edited: false });
       return;
     }
+    if (r.kind === 'question' && r.intent.topic === 'contribution_sim') {
+      // « Si je donne 30 000… » : le simulateur calcule l'effet (rien n'est enregistré).
+      analytics.track('mic_routed', { to: 'assistant', method });
+      onClose();
+      const category = r.intent.categoryId === 'cat_family' || r.intent.categoryId === 'cat_social' ? r.intent.categoryId : undefined;
+      router.push({ pathname: '/simulate', params: { ...(r.intent.amount ? { amount: String(toMinor(r.intent.amount, currency)) } : {}), ...(category ? { category } : {}) } });
+      return;
+    }
     if (r.kind === 'question') {
       analytics.track('mic_routed', { to: 'assistant', method });
       if (!hasFeature(plan, 'ai_assistant') && !FREE_TOPICS.has(r.intent.topic)) {
@@ -412,6 +420,16 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
           return <Chip key={id} label={cats.byId(id)} icon={m.icon} color={m.color} onPress={() => saveQuick(id)} />;
         })}
       </View>
+      <Button
+        small
+        variant="ghost"
+        icon="calculator-outline"
+        label={t('sim.fromEntry')}
+        onPress={() => {
+          onClose();
+          router.push({ pathname: '/simulate', params: quickAmount ? { amount: String(quickAmount) } : {} });
+        }}
+      />
       <Button
         small
         variant="ghost"

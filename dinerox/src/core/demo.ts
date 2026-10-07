@@ -4,10 +4,11 @@
  * Scénario de référence : revenu 450 000, logement 100 000, nourriture
  * 80 000, transport 40 000, famille 50 000, objectif Moto 1 200 000.
  * Réserve famille et cérémonies : 25 000 par mois, plafond 300 000, une
- * cérémonie du mois dernier prise dessus.
+ * cérémonie du mois dernier prise dessus. Deux soutiens réguliers (Maman,
+ * scolarité d'un neveu) et la rentrée scolaire comme moment fort à préparer.
  */
 import type { Account, Envelope, Goal, GoalContribution, SpaceData, Transaction } from './types';
-import { addMonths, lastMonths, type ISODate } from './dates';
+import { addDays, addMonths, lastMonths, type ISODate } from './dates';
 import { systemCategories } from './defaults';
 
 export function buildDemoData(meta: { now: number; uid: string; today: ISODate; label: (k: string) => string }): SpaceData {
@@ -74,6 +75,12 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
     targetAmount: 300_000, initialAmount: 50_000, targetDate: null, priority: 'normal', rank: 3, accountId: null, monthlyContribution: 25_000,
     scope: 'personal', status: 'active', history: [],
   });
+  // Moment fort : la rentrée, dans 8 semaines (date de démonstration, relative à aujourd'hui).
+  goals.push({
+    ...base, id: 'demo_season_school', kind: 'goal', name: meta.label('season.event.school_start'), categoryId: 'seasons', templateId: 'school_start', type: 'family', icon: '🎒', currency: 'XOF',
+    targetAmount: 120_000, initialAmount: 0, targetDate: addDays(meta.today, 56), priority: 'normal', rank: 4, accountId: null, monthlyContribution: null,
+    scope: 'personal', status: 'active', history: [],
+  });
   const goalContributions: GoalContribution[] = transactions
     .filter((x) => x.goalId === 'demo_goal_moto')
     .map((x, i) => ({ ...base, id: `demo_gc_${i}`, goalId: 'demo_goal_moto', amount: x.amount, date: x.date, accountId: 'demo_bank', transferId: x.id, note: null }));
@@ -89,6 +96,9 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
       // Échéances récurrentes (calendrier financier) : aucune génération rétroactive.
       { ...base, id: 'demo_rec_salary', type: 'income', label: meta.label('inc.salary'), amount: 450_000, currency: 'XOF', accountId: 'demo_bank', categoryId: 'inc_salary', frequency: 'monthly', startDate: `${meta.today.slice(0, 7)}-25`, active: true, lastGenerated: `${meta.today.slice(0, 7)}-25` },
       { ...base, id: 'demo_rec_rent', type: 'expense', label: meta.label('cat.housing'), amount: 100_000, currency: 'XOF', accountId: 'demo_bank', categoryId: 'cat_housing', frequency: 'monthly', startDate: `${meta.today.slice(0, 7)}-05`, active: true, lastGenerated: `${meta.today.slice(0, 7)}-05` },
+      // Soutiens réguliers (Famille et obligations) : l'échéance du mois est déjà enregistrée.
+      { ...base, id: 'demo_rec_mum', type: 'expense', label: 'Maman', amount: 50_000, currency: 'XOF', accountId: 'demo_om', categoryId: 'cat_family', frequency: 'monthly', startDate: `${meta.today.slice(0, 7)}-10`, active: true, lastGenerated: `${meta.today.slice(0, 7)}-10` },
+      { ...base, id: 'demo_rec_school', type: 'expense', label: 'Scolarité neveu', amount: 15_000, currency: 'XOF', accountId: 'demo_om', categoryId: 'cat_family', frequency: 'monthly', startDate: `${meta.today.slice(0, 7)}-28`, active: true, lastGenerated: `${meta.today.slice(0, 7)}-28` },
       { ...base, id: 'demo_rec_tontine', type: 'expense', label: meta.label('acc.tontine'), amount: 10_000, currency: 'XOF', accountId: 'demo_cash', categoryId: 'cat_informal', frequency: 'weekly', startDate: meta.today, active: true, lastGenerated: meta.today },
     ],
     envelopes,

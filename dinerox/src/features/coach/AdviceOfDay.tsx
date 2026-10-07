@@ -36,7 +36,7 @@ export function AdviceOfDay({ excludeId }: { excludeId?: string }) {
   const explain = async () => {
     setBusy(true);
     try {
-      const summary = buildFinanceSummary(data, currency, now, cats.byId);
+      const summary = buildFinanceSummary(data, currency, now, cats.byId, { reserve: t('ai.summary.reserve'), season: t('ai.summary.season') });
       const answer = await askRemoteAssistant(reformulationQuestion(text, lang === 'en' ? 'en' : 'fr'), summary, lang);
       setAi({ for: advice.id, text: answer });
     } catch {

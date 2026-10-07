@@ -14,7 +14,8 @@ import { useRunAction } from '@/hooks/useRunAction';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 function RecurringEdit() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  // `obligation=1` : soutien régulier (écran Famille et obligations) — libellé = bénéficiaire libre.
+  const { id, type: typeParam, categoryId: categoryParam, obligation } = useLocalSearchParams<{ id?: string; type?: string; categoryId?: string; obligation?: string }>();
   const { t } = useI18n();
   const toast = useToast();
   const data = useData();
@@ -23,12 +24,13 @@ function RecurringEdit() {
   const run = useRunAction();
   const cats = useCategoryLabels();
   const existing = data.recurring.find((r) => r.id === id);
-  const [type, setType] = useState<'income' | 'expense'>(existing?.type ?? 'income');
+  const [type, setType] = useState<'income' | 'expense'>(existing?.type ?? (typeParam === 'expense' ? 'expense' : 'income'));
   const [label, setLabel] = useState(existing?.label ?? '');
   const [amount, setAmount] = useState<number | null>(existing?.amount ?? null);
   const [chosenAccount, setAccountId] = useState<string | null>(existing?.accountId ?? null);
   const accountId = chosenAccount ?? data.accounts.find((a) => a.active)?.id ?? null;
-  const [categoryId, setCategoryId] = useState<string | null>(existing?.categoryId ?? null);
+  const [categoryId, setCategoryId] = useState<string | null>(existing?.categoryId ?? categoryParam ?? null);
+  const isObligation = obligation === '1';
   const [frequency, setFrequency] = useState<Frequency>(existing?.frequency ?? 'monthly');
   const [startDate, setStartDate] = useState(existing?.startDate ?? today());
   const [endDate, setEndDate] = useState<string | null>(existing?.endDate ?? null);
@@ -66,7 +68,7 @@ function RecurringEdit() {
     >
       {error ? <Banner tone="danger" icon="alert-circle" text={error} /> : null}
       <Segmented value={type} onChange={(v) => (setType(v), setCategoryId(null))} options={[{ value: 'income', label: t('tx.income') }, { value: 'expense', label: t('tx.expense') }]} />
-      <Field label={t('rec.label')} value={label} onChangeText={setLabel} placeholder={t('inc.salary')} maxLength={120} />
+      <Field label={isObligation ? t('obl.beneficiary') : t('rec.label')} value={label} onChangeText={setLabel} placeholder={isObligation ? t('obl.beneficiary.placeholder') : t('inc.salary')} maxLength={120} />
       <AmountField label={t('common.amount')} value={amount} onChange={setAmount} currency={account?.currency ?? 'XOF'} big />
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('tx.account')}

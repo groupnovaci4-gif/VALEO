@@ -110,6 +110,11 @@ function ReserveDetail() {
         <View style={{ height: 14 }} />
       )}
 
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+        <Button small variant="secondary" icon="calculator-outline" label={t('sim.title')} onPress={() => router.push('/simulate')} />
+        <Button small variant="secondary" icon="heart-outline" label={t('obl.title')} onPress={() => router.push('/obligations')} />
+      </View>
+
       <SectionHeader title={t('reserve.history')} />
       <Card>
         {history.length ? (

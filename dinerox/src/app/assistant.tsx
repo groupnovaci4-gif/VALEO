@@ -223,7 +223,7 @@ export default function Assistant() {
     setBusy(true);
     let answer: string | null = null;
     try {
-      const summary = buildFinanceSummary(data, currency, now, cats.byId);
+      const summary = buildFinanceSummary(data, currency, now, cats.byId, { reserve: t('ai.summary.reserve'), season: t('ai.summary.season') });
       answer = await askRemoteAssistant(m.question, summary, lang);
     } catch {
       answer = null;

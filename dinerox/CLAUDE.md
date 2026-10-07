@@ -95,3 +95,15 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     (jamais de montant, texte, bénéficiaire ni catégorie). Limite vocale
     gratuite : `FREE_VOICE_ENTRIES_PER_DAY`. « Reste par jour » :
     `core/dailyAllowance.ts`, jamais recalculé dans un écran.
+19. **Réserve famille et cérémonies (1.6, `docs/reserve.md`).** Une réserve est un
+    objectif `kind: 'reserve'` (absent = objectif classique) ; une utilisation est
+    une contribution négative liée à la dépense (`linkedTransactionId`), jamais
+    au-delà du solde (complément montré, jamais bloqué), supprimée avec
+    l'opération. Le budget du mois (enveloppes, alertes, score) lit
+    `budgetTransactions` ; le reste par jour ne baisse pas pour la part prise sur
+    une réserve. Un enfant n'utilise jamais une réserve (`canUseReserve` + règles).
+    Moments forts : objectifs à date de catégorie `seasons`, AUCUNE date codée en
+    dur (catalogue `config/seasons/items`, corrigeable). Soutiens réguliers :
+    récurrences `cat_family`. Bénéficiaires, défunts et noms saisis ne vont
+    jamais dans un texte du coach, une notification, la voix ni le résumé IA.
+    Ton : des chiffres et des options, jamais de jugement sur ce qu'on donne.

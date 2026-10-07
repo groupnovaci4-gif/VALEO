@@ -15,6 +15,7 @@ import { envelopeStatuses } from '../budget';
 import { debtStatus } from '../debts';
 import { monthKey, previousMonth, lastMonths, type ISODate, type MonthKey } from '../dates';
 import { envelopeAlertMessage, hasDefinedBudget, type EnvelopeAlert } from './envelopeAlerts';
+import { budgetTransactions } from '../reserve';
 
 export type CoachSeverity = 'info' | 'advice' | 'warning' | 'critical' | 'celebration';
 
@@ -125,7 +126,7 @@ export const MIN_OPERATIONS = 10;
 /** Le mois a-t-il été « tenu » ? (≥ 10 opérations, au moins un budget fixé, aucun dépassé). */
 export function monthRespected(data: SpaceData, month: MonthKey, currency: CurrencyCode): boolean {
   if (operationsInMonth(data, month, currency) < MIN_OPERATIONS) return false;
-  const budgeted = envelopeStatuses(data.envelopes, data.transactions, data.budgets, month, currency).filter((s) => s.budget > 0 && hasDefinedBudget(s.envelope, month, data.budgets));
+  const budgeted = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency).filter((s) => s.budget > 0 && hasDefinedBudget(s.envelope, month, data.budgets));
   return budgeted.length > 0 && budgeted.every((s) => s.spent <= s.budget);
 }
 

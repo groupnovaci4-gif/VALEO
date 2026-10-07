@@ -15,7 +15,7 @@ import { envelopeStatuses } from '../budget';
 import { debtStatus } from '../debts';
 import { goalSaved } from '../balance';
 import { hasEmergencyFund } from '../goals';
-import { isReserve } from '../reserve';
+import { budgetTransactions, isReserve } from '../reserve';
 import { monthKey, previousMonth, type ISODate, type MonthKey } from '../dates';
 import { MIN_OPERATIONS, operationsInMonth, savedInMonth } from './events';
 import { hasDefinedBudget } from './envelopeAlerts';
@@ -63,7 +63,7 @@ const opsProgress = (ctx: RewardContext) => clamp(operationsInMonth(ctx.data, ct
 
 /** Part des enveloppes budgétées tenues dans le mois (null : aucun budget fixé). */
 function budgetRespect(ctx: RewardContext): number | null {
-  const s = envelopeStatuses(ctx.data.envelopes, ctx.data.transactions, ctx.data.budgets, ctx.month, ctx.currency).filter((x) => x.budget > 0 && hasDefinedBudget(x.envelope, ctx.month, ctx.data.budgets));
+  const s = envelopeStatuses(ctx.data.envelopes, budgetTransactions(ctx.data.transactions, ctx.data.goalContributions), ctx.data.budgets, ctx.month, ctx.currency).filter((x) => x.budget > 0 && hasDefinedBudget(x.envelope, ctx.month, ctx.data.budgets));
   if (!s.length) return null;
   return s.filter((x) => x.spent <= x.budget).length / s.length;
 }

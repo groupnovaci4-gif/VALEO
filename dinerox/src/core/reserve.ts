@@ -160,3 +160,25 @@ export function reserveReminders(data: Pick<SpaceData, 'goals' | 'goalContributi
     .filter((g) => (g.monthlyContribution ?? 0) > 0)
     .map((g) => ({ reserveId: g.id, date: refillReminderDate({ payDay: input.payDay, today: input.today, pendingThisMonth: refillAmount(g, data.goalContributions, input.today) }) }));
 }
+
+/**
+ * Opérations vues par le BUDGET du mois (enveloppes, alertes, score) : la part
+ * d'une dépense prise sur une réserve en est retirée — l'argent avait déjà été
+ * mis de côté ; seul le complément pèse sur le budget du mois. Les rapports et
+ * l'historique, eux, gardent le montant réel de chaque opération.
+ */
+export function budgetTransactions(transactions: Transaction[], contributions: GoalContribution[]): Transaction[] {
+  const covered = new Map<string, number>();
+  for (const c of contributions) {
+    if (c.deleted || !c.linkedTransactionId || c.amount >= 0) continue;
+    covered.set(c.linkedTransactionId, (covered.get(c.linkedTransactionId) ?? 0) - c.amount);
+  }
+  if (!covered.size) return transactions;
+  const out: Transaction[] = [];
+  for (const t of transactions) {
+    const part = t.type === 'expense' ? Math.min(t.amount, covered.get(t.id) ?? 0) : 0;
+    if (part <= 0) out.push(t);
+    else if (part < t.amount) out.push({ ...t, amount: t.amount - part });
+  }
+  return out;
+}

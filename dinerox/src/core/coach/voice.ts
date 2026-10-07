@@ -10,6 +10,8 @@ import type { CoachEvent } from './events';
 export const MONEY_PARAM_KEYS: ReadonlySet<string> = new Set([
   'amount', 'over', 'left', 'remaining', 'before', 'monthly', 'total', 'income', 'budget', 'free', 'available', 'savings', 'goals',
   'committed', 'after', 'capacity', 'needed', 'gap', 'spent', 'saving', 'expense', 'incomeBefore', 'planned', 'need', 'target', 'outflows', 'shortfall',
+  // 1.6 : réserve famille et moments forts.
+  'balance', 'weekly',
 ]);
 
 export function hasMoneyParams(params: Record<string, unknown>): boolean {
