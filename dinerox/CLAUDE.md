@@ -70,3 +70,15 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
 16. **Session Firebase** : dans `onAuthStateChanged`, toutes les lectures
     asynchrones d'abord, puis l'état de session posé en une fois ; jamais de
     `setState` après un `await` qui pourrait écraser une donnée plus fraîche.
+17. **Coach (1.5, `docs/coach.md`).** Seuils, montants, pourcentages, alertes,
+    récompenses et score sont calculés dans `src/core/coach/` (purs, testés) ;
+    l'IA ne fait que reformuler un texte déjà calculé, sur demande et avec
+    consentement. Toute nouvelle écriture financière passe par `useActions()`,
+    qui prévient le coach (`notifyCoachWrite`). Ne jamais contourner
+    `planDelivery` (dédoublonnage, délais, quotas de voix). La voix PROACTIVE ne
+    prononce aucun montant sans `speakAmounts` ; le bouton « Écouter » (demande
+    explicite) lit le texte affiché, montants compris, et se place À CÔTÉ d'une zone cliquable, jamais dedans. Le coach ne suit
+    que les opérations saisies dans l'application (jamais « en temps réel »
+    Orange Money, Wave ou banque). Clé ElevenLabs : secret Functions
+    uniquement. La saisie vocale reste désactivée (`services/speechInput.ts`)
+    tant qu'un fournisseur n'est pas branché et la permission micro débloquée.

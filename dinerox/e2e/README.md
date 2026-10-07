@@ -9,6 +9,13 @@ saisie, effacement, modification, aucun remontage, et **structure du conteneur
 inchangée au focus** (équivalent web de la règle Fabric qui faisait clignoter
 les champs sur Android, voir CLAUDE.md §13).
 
+Coach (1.5) : `coach-budget.js` (seuils et réaction immédiate),
+`coach-open.js` (résumé à l'ouverture, déduplication), `coach-voice.js`
+(voix, sons, quotas), `coach-rewards.js`, `coach-score.js`,
+`coach-advice.js` (conseil du jour, boutons « Écouter », micro désactivé).
+La synthèse vocale et les sons sont **espionnés** (`speechSynthesis.speak`,
+`HTMLMediaElement.play`) : on vérifie ce qui serait lu ou joué, pas le son produit.
+
 ## Lancer
 
 ```bash

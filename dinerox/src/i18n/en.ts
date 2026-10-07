@@ -889,6 +889,9 @@ export const en: Record<TKey, string> = {
 
   'ai.title': 'Talk to {app}',
   'ai.placeholder': 'Write as you speak…',
+  'ai.mic.soon': 'Voice input: coming soon',
+  'ai.mic.start': 'Dictate a message',
+  'ai.mic.stop': 'Stop dictation',
   'ai.intro': 'Hi! Tell me what you spent or received, or ask me about your finances.',
   'ai.examples': 'Examples',
   'ai.ex1': 'I spent 5000 at the restaurant',

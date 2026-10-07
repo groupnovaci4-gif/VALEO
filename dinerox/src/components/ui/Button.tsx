@@ -83,17 +83,19 @@ export function Button({ label, onPress, variant = 'primary', icon, loading, dis
   );
 }
 
-export function IconButton({ icon, onPress, label, color, size = 22 }: { icon: string; onPress: () => void; label: string; color?: string; size?: number }) {
+export function IconButton({ icon, onPress, label, color, size = 22, disabled = false }: { icon: string; onPress: () => void; label: string; color?: string; size?: number; disabled?: boolean }) {
   const { colors } = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
       hitSlop={8}
       style={({ pressed }) => ({ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}
     >
-      <Icon name={icon} size={size} color={color ?? colors.text} />
+      <Icon name={icon} size={size} color={disabled ? colors.textSubtle : (color ?? colors.text)} />
     </Pressable>
   );
 }

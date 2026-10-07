@@ -7,7 +7,7 @@
  * facultative, soumise au consentement et à la formule Plus.
  * La conversation reste sur l'appareil (non stockée sur le serveur).
  */
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, Pressable, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { router } from 'expo-router';
@@ -18,7 +18,7 @@ import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useCategoryLabels, useFinance, useMoney } from '@/hooks/useFinance';
 import { useFormatParams } from '@/hooks/useInsightText';
-import { Button, Card, Chip, Icon, Text } from '@/components/ui';
+import { Button, Card, Chip, Icon, IconButton, Text } from '@/components/ui';
 import { parseIntent, type ParsedIntent } from '@/core/ai/parser';
 import { answerQuestion, type Answer } from '@/core/ai/answers';
 import { buildFinanceSummary } from '@/core/ai/summary';
@@ -32,6 +32,7 @@ import { askRemoteAssistant, resolveAccountHint } from '@/services/ai';
 import { analytics } from '@/services/analytics';
 import { brand } from '@/config/brand';
 import { ListenButton } from '@/features/coach/ListenButton';
+import { speechInput } from '@/services/speechInput';
 
 type Proposal =
   | { kind: 'tx'; type: 'expense' | 'income'; amount: number; categoryId: string | null; payee: string | null; date: string; accountId: string | null; allocation?: { envelopeId: string | null; amount: number }[] }
@@ -66,6 +67,33 @@ export default function Assistant() {
   const f = useFinance();
   const { data, currency, now, envelopes } = f;
   const [input, setInput] = useState('');
+  // Saisie vocale préparée, non activée : le micro reste désactivé tant
+  // qu'aucun fournisseur n'est branché (services/speechInput.ts).
+  const [micReady, setMicReady] = useState(false);
+  const [listening, setListening] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void speechInput()
+      .isAvailable()
+      .then((ok) => alive && setMicReady(ok))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+  /** La transcription n'est qu'un texte placé dans la zone de message : jamais envoyé ni enregistré sans l'utilisateur. */
+  const dictate = () => {
+    if (listening) {
+      void speechInput().stop();
+      return;
+    }
+    setListening(true);
+    speechInput()
+      .listen({ language: lang === 'en' ? 'en' : 'fr', onPartial: setInput })
+      .then((text) => setInput(text))
+      .catch(() => undefined)
+      .finally(() => setListening(false));
+  };
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState<Message[]>([{ id: 'intro', from: 'assistant', text: t('ai.intro') }]);
   const listRef = useRef<FlatList<Message>>(null);
@@ -351,6 +379,12 @@ export default function Assistant() {
             multiline
             onSubmitEditing={() => handle(input)}
             style={{ flex: 1, minHeight: 48, maxHeight: 120, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 10, color: colors.text, fontSize: 16 }}
+          />
+          <IconButton
+            icon={listening ? 'stop-circle-outline' : 'mic-outline'}
+            label={!micReady ? t('ai.mic.soon') : listening ? t('ai.mic.stop') : t('ai.mic.start')}
+            disabled={!micReady}
+            onPress={dictate}
           />
           <Pressable
             accessibilityRole="button"

@@ -910,6 +910,9 @@ export const fr = {
   // Assistant
   'ai.title': 'Parler à {app}',
   'ai.placeholder': 'Écrivez comme vous parlez…',
+  'ai.mic.soon': 'Saisie vocale : bientôt disponible',
+  'ai.mic.start': 'Dicter un message',
+  'ai.mic.stop': 'Arrêter la dictée',
   'ai.intro': "Bonjour ! Dites-moi ce que vous avez dépensé ou reçu, ou posez-moi une question sur vos finances.",
   'ai.examples': 'Exemples',
   'ai.ex1': "J'ai dépensé 5000 au restaurant",

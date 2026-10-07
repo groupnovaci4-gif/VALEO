@@ -27,12 +27,13 @@ des utilisateurs et ne se connecte (pour l'instant) à aucun opérateur.
 6. [Sécurité](#sécurité)
 7. [Mode hors-ligne et synchronisation](#mode-hors-ligne-et-synchronisation)
 8. [IA DineroX](#ia-dinerox)
-9. [Variables d'environnement et environnements](#variables-denvironnement-et-environnements)
-10. [Firebase : configuration et déploiement](#firebase--configuration-et-déploiement)
-11. [Tests](#tests)
-12. [Builds Android / iOS](#builds-android--ios)
-13. [Décisions techniques](#décisions-techniques)
-14. [Limites connues et feuille de route](#limites-connues-et-feuille-de-route)
+9. [Coach financier (1.5)](#coach-financier-15)
+10. [Variables d'environnement et environnements](#variables-denvironnement-et-environnements)
+11. [Firebase : configuration et déploiement](#firebase--configuration-et-déploiement)
+12. [Tests](#tests)
+13. [Builds Android / iOS](#builds-android--ios)
+14. [Décisions techniques](#décisions-techniques)
+15. [Limites connues et feuille de route](#limites-connues-et-feuille-de-route)
 
 ---
 
@@ -271,6 +272,31 @@ Couche distincte (`src/core/ai`, `src/services/ai.ts`, `firebase/functions/src/a
   signaler les estimations, pas de conseil réglementé), quota 30/jour.
 - La conversation reste sur l'appareil.
 
+## Coach financier (1.5)
+
+Détail complet : [`docs/coach.md`](docs/coach.md) (architecture, secrets,
+coûts, activation de la voix premium, builds).
+
+- **Alertes d'enveloppe** à 85 %, à 100 % et au-delà, dès l'enregistrement
+  d'une opération ; jamais deux fois le même message, délais minimaux,
+  un seul résumé à l'ouverture.
+- **Voix** : voix de l'appareil (gratuite, hors ligne) ; voix premium
+  facultative (ElevenLabs via la Cloud Function `speak`, formules Plus et
+  Famille). Sans montant prononcé par défaut ; bouton « Écouter » sur les
+  conseils, constats, réponses de l'assistant, plans d'objectif et budget
+  automatique.
+- **Récompenses** et **score de comportement** calculés par des règles
+  déterministes sur les mois clos (au moins 10 opérations).
+- **Conseil du jour** déterministe ; l'IA peut seulement le reformuler, sur
+  demande, avec consentement.
+- **Saisie vocale** : préparée (interface `SpeechInputProvider`), non activée.
+
+Le coach ne voit que les opérations saisies dans DineroX : il ne suit ni
+Orange Money, ni Wave, ni aucune banque.
+
+Secret supplémentaire (voix premium, facultatif) :
+`firebase functions:secrets:set ELEVENLABS_API_KEY --project <id>`.
+
 ## Variables d'environnement et environnements
 
 Voir [`.env.example`](.env.example). Trois environnements, chacun avec **son
@@ -311,8 +337,9 @@ Pour EAS, définir les variables `EXPO_PUBLIC_*` par environnement avec
 ## Tests
 
 ```bash
-npm test              # 120+ tests Vitest : domaine pur + moteur de synchro
-npm run test:rules    # 23 tests des règles Firestore sur l'émulateur (Java requis)
+npm test              # ~300 tests Vitest : domaine pur, moteur de synchro, coach
+npm run test:rules    # 30 tests des règles Firestore sur l'émulateur (Java requis)
+npm run e2e           # parcours de bout en bout (export web + émulateurs, voir e2e/README.md)
 npm run typecheck     # TypeScript strict
 npm run lint          # ESLint (expo)
 npm run check         # typecheck + lint + tests
@@ -337,9 +364,13 @@ npm i -g eas-cli && eas login
 eas init                                   # renseigne EAS_PROJECT_ID
 eas build --profile development --platform android   # client de dev (Face ID, push)
 eas build --profile staging --platform android       # APK interne
+eas build --profile apk --platform android           # APK interne, versionCode auto-incrémenté
 eas build --profile production --platform all        # AAB + IPA
 eas submit --platform android|ios
 ```
+
+La 1.5.0 ajoute des modules natifs (`expo-speech`, `expo-audio`) : un
+nouveau build natif est obligatoire (pas de mise à jour OTA).
 
 Expo Go suffit pour développer ; un **build de développement** est
 nécessaire pour tester les notifications push distantes, la biométrie iOS

@@ -89,6 +89,11 @@ let b;
 
   // Assistant : réponse lue.
   await go('/assistant'); await closeCelebration();
+  // Saisie vocale préparée mais NON activée : micro présent, désactivé, sans effet.
+  const mic = p.getByRole('button', { name: 'Saisie vocale : bientôt disponible', exact: true });
+  ok((await mic.count()) === 1 && (await mic.getAttribute('aria-disabled')) === 'true', 'micro de l’assistant présent et désactivé (saisie vocale non activée)');
+  await mic.click({ force: true }); await p.waitForTimeout(300);
+  ok((await p.getByPlaceholder('Écrivez comme vous parlez…').inputValue()) === '', 'appui sur le micro : aucun effet, aucune saisie');
   await p.getByPlaceholder('Écrivez comme vous parlez…').fill('Fais-moi un résumé du mois');
   const nBefore = await p.getByRole('button', { name: 'Écouter', exact: true }).count();
   await p.getByRole('button', { name: 'Confirmer', exact: true }).last().click(); await p.waitForTimeout(1500);
