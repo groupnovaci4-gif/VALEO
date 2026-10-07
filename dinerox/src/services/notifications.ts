@@ -99,7 +99,13 @@ export async function ensurePermission(): Promise<boolean> {
   return asked.granted;
 }
 
-type Translate = (key: 'notif.savingsReminder.title' | 'notif.savingsReminder.body' | 'notif.weekly.title' | 'notif.weekly.body' | 'notif.monthly.title' | 'notif.monthly.body' | 'notif.debtDue.title' | 'notif.debtDue.body', params?: Record<string, string | number>) => string;
+type Translate = (
+  key: 'notif.savingsReminder.title' | 'notif.savingsReminder.body' | 'notif.weekly.title' | 'notif.weekly.body' | 'notif.monthly.title' | 'notif.monthly.body' | 'notif.debtDue.title' | 'notif.debtDue.body' | 'notif.entry.title' | 'notif.entry.body',
+  params?: Record<string, string | number>,
+) => string;
+
+/** Chemin ouvert par le rappel du soir : la saisie vocale. */
+export const ENTRY_REMINDER_URL = '/entry?mode=voice&from=reminder';
 
 /** Reprogramme toutes les notifications locales récurrentes selon les préférences. */
 export async function scheduleLocalNotifications(
@@ -109,6 +115,8 @@ export async function scheduleLocalNotifications(
   payments: DebtPayment[],
   formatAmount: (n: number) => string,
   formatDate: (d: string) => string,
+  /** Rappels du soir (dates calculées par core/entry/reminder). */
+  entryReminders: Date[] = [],
 ): Promise<void> {
   const Notifications = getNotifications();
   if (!Notifications || !(await ensurePermission())) return;
@@ -130,6 +138,13 @@ export async function scheduleLocalNotifications(
     await Notifications.scheduleNotificationAsync({
       content: { title: t('notif.monthly.title'), body: t('notif.monthly.body'), data: { url: '/reports?period=month' } },
       trigger: { type: T.MONTHLY, day: 1, hour: 9, minute: 0 },
+    });
+  }
+  for (const when of entryReminders) {
+    if (when.getTime() <= Date.now()) continue;
+    await Notifications.scheduleNotificationAsync({
+      content: { title: t('notif.entry.title'), body: t('notif.entry.body'), data: { url: ENTRY_REMINDER_URL } },
+      trigger: { type: T.DATE, date: when },
     });
   }
   if (prefs.debtDue) {

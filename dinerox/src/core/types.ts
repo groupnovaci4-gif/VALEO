@@ -365,6 +365,10 @@ export interface NotificationPrefs {
   debtDue: boolean;
   weeklySummary: boolean;
   monthlySummary: boolean;
+  /** Rappel du soir « Qu'avez-vous dépensé aujourd'hui ? » (absent avant la 1.5 : actif). */
+  dailyEntryReminder?: boolean;
+  /** Heure du rappel du soir (0-23 ; défaut 20 h). */
+  dailyReminderHour?: number;
 }
 
 /** Coach financier : présentation des alertes (les types d'alertes restent gouvernés par NotificationPrefs). */

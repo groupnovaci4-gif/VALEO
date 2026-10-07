@@ -22,6 +22,8 @@ export const defaultPreferences = (): UserPreferences => ({
     debtDue: true,
     weeklySummary: true,
     monthlySummary: true,
+    dailyEntryReminder: true,
+    dailyReminderHour: 20,
   },
   appLock: false,
   autoLockMinutes: 1,

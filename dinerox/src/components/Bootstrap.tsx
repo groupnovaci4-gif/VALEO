@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useApp, useData, useSpaceReady } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useFinance, useMoney } from '@/hooks/useFinance';
@@ -7,6 +7,7 @@ import { analytics, enableFirestoreAnalytics } from '@/services/analytics';
 import { notifyNewInsights, registerPushToken, scheduleLocalNotifications } from '@/services/notifications';
 import { useInsightText } from '@/hooks/useInsightText';
 import { coachPrefs } from '@/core/coach/prefs';
+import { DEFAULT_REMINDER_HOUR, lastEntryAt, planEntryReminders } from '@/core/entry/reminder';
 import { buildDemoData } from '@/core/demo';
 import { systemCategories } from '@/core/defaults';
 import { subcategoryDocs } from '@/core/catalog';
@@ -113,11 +114,14 @@ export function Bootstrap() {
 
   // Notifications programmées (rappels, résumés, échéances).
   const prefs = profile?.preferences.notifications;
+  // Rappel du soir : replanifié à chaque saisie (le rappel du jour disparaît une fois une opération saisie).
+  const lastEntry = useMemo(() => (user ? lastEntryAt(data.transactions, user.uid) : null), [data.transactions, user]);
   useEffect(() => {
     if (!prefs || !profile?.onboarding.completed) return;
-    void scheduleLocalNotifications(prefs, t, data.debts, data.debtPayments, (n) => money(n), (d) => date(d)).catch(() => undefined);
+    const reminders = planEntryReminders({ now: Date.now(), enabled: prefs.dailyEntryReminder ?? true, hour: prefs.dailyReminderHour ?? DEFAULT_REMINDER_HOUR, lastEntryAt: lastEntry });
+    void scheduleLocalNotifications(prefs, t, data.debts, data.debtPayments, (n) => money(n), (d) => date(d), reminders).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefs, data.debts, data.debtPayments, profile?.onboarding.completed]);
+  }, [prefs, data.debts, data.debtPayments, profile?.onboarding.completed, lastEntry]);
 
   // Alertes immédiates (budget, dépense inhabituelle, objectif proche) en
   // notification système — seulement si le coach est désactivé : sinon c'est

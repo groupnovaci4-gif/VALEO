@@ -10,6 +10,8 @@ import { Button, Icon, Text } from '@/components/ui';
 import { useTheme } from '@/theme';
 import { useEntry } from './EntryProvider';
 import { useEntryStats } from './useEntryStats';
+import { useApp } from '@/store/app';
+import { entryPrefs } from '@/core/entry/prefs';
 
 const EXAMPLES: TKey[] = ['entry.example.1', 'entry.example.2', 'entry.example.3', 'entry.example.4', 'entry.example.5', 'entry.example.6'];
 export const COMPACT_AFTER = 10;
@@ -21,6 +23,8 @@ export function EntryPrompt() {
   const stats = useEntryStats();
   const [example] = useState(() => EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)]);
   const compact = (stats?.successes ?? 0) >= COMPACT_AFTER;
+  const { profile } = useApp();
+  const showExamples = entryPrefs(profile?.preferences).showExamples;
 
   if (compact) {
     return (
@@ -32,7 +36,7 @@ export function EntryPrompt() {
       >
         <Icon name="mic-outline" size={18} color={colors.primary} />
         <Text variant="small" tone="muted" style={{ flex: 1 }} numberOfLines={1}>
-          {t('entry.prompt.compact', { example: t(example) })}
+          {showExamples ? t('entry.prompt.compact', { example: t(example) }) : t('entry.prompt.title')}
         </Text>
         <Pressable accessibilityRole="button" accessibilityLabel={t('entry.prompt.type')} onPress={() => entry.open('keyboard')} hitSlop={10}>
           <Icon name="keypad-outline" size={20} color={colors.textMuted} />
@@ -48,9 +52,11 @@ export function EntryPrompt() {
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text variant="bodyStrong">{t('entry.prompt.title')}</Text>
-          <Text variant="small" tone="muted">
-            {t('entry.prompt.example', { example: t(example) })}
-          </Text>
+          {showExamples ? (
+            <Text variant="small" tone="muted">
+              {t('entry.prompt.example', { example: t(example) })}
+            </Text>
+          ) : null}
         </View>
       </View>
       <View style={{ flexDirection: 'row', gap: 8 }}>

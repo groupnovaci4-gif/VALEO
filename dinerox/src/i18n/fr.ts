@@ -1330,6 +1330,22 @@ export const fr = {
   'entry.ambiguous.question': "Poser la question",
   'sub.free.voice': "Saisie vocale : {count} enregistrements par jour (clavier et phrase écrite illimités)",
   'sub.voiceUnlimited': "Saisie vocale illimitée",
+  'entry.mic.labelKeyboard': "Saisir une opération",
+  'entry.mic.hintVoice': "Appui long : dicter",
+  'notif.entry.title': "Qu'avez-vous dépensé aujourd'hui ?",
+  'notif.entry.body': "Dites-le en une phrase, par exemple « Taxi 2 000, garba 500 ».",
+  'entry.settings.title': "Saisie",
+  'entry.settings.reminder': "Rappel du soir",
+  'entry.settings.reminderHint': "« Qu'avez-vous dépensé aujourd'hui ? », sauf si vous avez déjà saisi une opération ce jour-là. Après 7 jours sans saisie : une fois par semaine.",
+  'entry.settings.reminderHour': "Heure du rappel",
+  'entry.settings.defaultMethod': "Le bouton central ouvre d'abord",
+  'entry.settings.voiceLanguage': "Langue de la dictée",
+  'entry.settings.languageAuto': "Celle de l'application",
+  'entry.settings.onDevice': "Reconnaissance uniquement sur le téléphone",
+  'entry.settings.onDeviceHint': "Aucun audio ne quitte le téléphone (la langue doit être téléchargée sur l'appareil).",
+  'entry.settings.examples': "Afficher des exemples de phrases",
+  'entry.settings.testMic': "Tester le micro",
+  'entry.settings.heard': "J'ai entendu : « {text} »",
 } as const;
 
 export type TKey = keyof typeof fr;

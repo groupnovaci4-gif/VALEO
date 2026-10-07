@@ -8,6 +8,7 @@ import { brand } from "@/config/brand";
 import { useI18n } from "@/i18n";
 import { Icon } from "@/components/ui";
 import { useEntry } from "@/features/entry/EntryProvider";
+import { entryPrefs } from "@/core/entry/prefs";
 
 /**
  * Navigation principale : Accueil · Budget · 🎤 · Objectifs · Plus.
@@ -98,14 +99,17 @@ function MicTabButton() {
   const { colors, shadow } = useTheme();
   const { t } = useI18n();
   const entry = useEntry();
+  const { profile } = useApp();
+  // Méthode par défaut (réglages) : voix, ou saisie au clavier ; l'appui long ouvre l'autre.
+  const keyboardFirst = entryPrefs(profile?.preferences).defaultMethod === 'quick_manual';
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t("entry.mic.label")}
-        accessibilityHint={t("entry.mic.hint")}
-        onPress={() => entry.open("voice")}
-        onLongPress={() => entry.open("keyboard")}
+        accessibilityLabel={keyboardFirst ? t("entry.mic.labelKeyboard") : t("entry.mic.label")}
+        accessibilityHint={keyboardFirst ? t("entry.mic.hintVoice") : t("entry.mic.hint")}
+        onPress={() => entry.open(keyboardFirst ? "keyboard" : "voice")}
+        onLongPress={() => entry.open(keyboardFirst ? "voice" : "keyboard")}
         delayLongPress={350}
         style={({ pressed }) => ({
           width: 62,

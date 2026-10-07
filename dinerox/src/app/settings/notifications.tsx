@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
-import { Banner, Button, Card, Screen, SectionHeader, Segmented, SwitchRow, Text, useToast } from '@/components/ui';
-import type { CoachPrefs, NotificationPrefs } from '@/core/types';
+import { Banner, Button, Card, ChipGroup, Screen, SectionHeader, Segmented, SwitchRow, Text, useToast } from '@/components/ui';
+import type { CoachPrefs, EntryPrefs, NotificationPrefs } from '@/core/types';
+import { entryPrefs } from '@/core/entry/prefs';
+import { DEFAULT_REMINDER_HOUR } from '@/core/entry/reminder';
+import { speechInput } from '@/services/speechInput';
+
 import { coachPrefs } from '@/core/coach/prefs';
 import { hasFeature } from '@/core/subscription';
-import { speak } from '@/services/voice';
+import { speak, stopVoice } from '@/services/voice';
 import { ensurePermission, notificationsSupported, permissionStatus } from '@/services/notifications';
 
-const KEYS: (keyof NotificationPrefs)[] = ['budgetAlerts', 'goalProgress', 'incomeReceived', 'unusualSpending', 'savingsReminder', 'debtDue', 'weeklySummary', 'monthlySummary'];
+type BoolKey = Exclude<keyof NotificationPrefs, 'dailyEntryReminder' | 'dailyReminderHour'>;
+const KEYS: BoolKey[] = ['budgetAlerts', 'goalProgress', 'incomeReceived', 'unusualSpending', 'savingsReminder', 'debtDue', 'weeklySummary', 'monthlySummary'];
 
 export default function NotificationSettings() {
   const { t, lang } = useI18n();
@@ -24,6 +29,22 @@ export default function NotificationSettings() {
   const prefs = profile.preferences.notifications;
   const coach = coachPrefs(profile.preferences);
   const setCoach = (patch: Partial<CoachPrefs>) => void updateProfile({ preferences: { ...profile.preferences, coach: { ...coach, ...patch } } });
+  const entry = entryPrefs(profile.preferences);
+  const setEntry = (patch: Partial<EntryPrefs>) => void updateProfile({ preferences: { ...profile.preferences, entry: { ...entry, ...patch } } });
+  const setNotif = (patch: Partial<NotificationPrefs>) => void updateProfile({ preferences: { ...profile.preferences, notifications: { ...prefs, ...patch } } });
+  const reminderOn = prefs.dailyEntryReminder ?? true;
+  const reminderHour = prefs.dailyReminderHour ?? DEFAULT_REMINDER_HOUR;
+  /** « Tester le micro » : écoute une phrase et affiche ce qui a été compris (rien n'est enregistré). */
+  const testMic = async () => {
+    const provider = speechInput();
+    if (!(await provider.isAvailable())) return toast.show(t('entry.voice.unavailable'), 'info');
+    const allowed = (await provider.permission()) === 'granted' || (await provider.requestPermission()) === 'granted';
+    if (!allowed) return toast.show(t('entry.voice.denied'), 'warning');
+    await stopVoice().catch(() => undefined);
+    toast.show(t('entry.voice.listening'), 'info');
+    const heard = await provider.listen({ language: entry.voiceLanguage ?? (lang === 'en' ? 'en' : 'fr'), onDeviceOnly: entry.onDeviceOnly }).catch(() => '');
+    toast.show(heard ? t('entry.settings.heard', { text: heard }) : t('entry.voice.nothing'), heard ? 'success' : 'info');
+  };
   const premiumAllowed = mode === 'firebase' && hasFeature(plan, 'voice_premium');
   const VOLUMES: Record<string, number> = { off: 0, low: 0.3, mid: 0.6, high: 1 };
   const volumeKey = coach.soundVolume <= 0 ? 'off' : coach.soundVolume < 0.45 ? 'low' : coach.soundVolume < 0.8 ? 'mid' : 'high';
@@ -47,6 +68,54 @@ export default function NotificationSettings() {
             }}
           />
         ))}
+      </Card>
+
+      {/* Saisie : rappel du soir et réglages de la voix (dictée). */}
+      <SectionHeader title={t('entry.settings.title')} />
+      <Card>
+        <SwitchRow
+          title={t('entry.settings.reminder')}
+          subtitle={t('entry.settings.reminderHint')}
+          value={reminderOn}
+          onChange={(v) => {
+            if (v) void ensurePermission().then((ok) => setDenied(!ok));
+            setNotif({ dailyEntryReminder: v });
+          }}
+        />
+        {reminderOn ? (
+          <>
+            <Text variant="small" weight="600" style={{ marginTop: 6 }}>
+              {t('entry.settings.reminderHour')}
+            </Text>
+            <ChipGroup value={String(reminderHour)} onChange={(h) => setNotif({ dailyReminderHour: Number(h) })} options={['18', '19', '20', '21', '22'].map((h) => ({ value: h, label: `${h} h` }))} />
+          </>
+        ) : null}
+        <Text variant="small" weight="600" style={{ marginTop: 6 }}>
+          {t('entry.settings.defaultMethod')}
+        </Text>
+        <Segmented
+          value={entry.defaultMethod}
+          onChange={(defaultMethod) => setEntry({ defaultMethod })}
+          options={[
+            { value: 'voice', label: t('entry.mode.voice'), icon: 'mic-outline' },
+            { value: 'quick_manual', label: t('entry.mode.keyboard'), icon: 'keypad-outline' },
+          ]}
+        />
+        <Text variant="small" weight="600" style={{ marginTop: 6 }}>
+          {t('entry.settings.voiceLanguage')}
+        </Text>
+        <ChipGroup
+          value={entry.voiceLanguage ?? 'auto'}
+          onChange={(v) => setEntry({ voiceLanguage: v === 'auto' ? null : (v as 'fr' | 'en') })}
+          options={[
+            { value: 'auto', label: t('entry.settings.languageAuto') },
+            { value: 'fr', label: 'Français' },
+            { value: 'en', label: 'English' },
+          ]}
+        />
+        {speechInput().supportsOnDevice() ? <SwitchRow title={t('entry.settings.onDevice')} subtitle={t('entry.settings.onDeviceHint')} value={entry.onDeviceOnly} onChange={(v) => setEntry({ onDeviceOnly: v })} /> : null}
+        <SwitchRow title={t('entry.settings.examples')} value={entry.showExamples} onChange={(v) => setEntry({ showExamples: v })} />
+        <Button variant="secondary" icon="mic-outline" label={t('entry.settings.testMic')} onPress={() => void testMic()} style={{ marginTop: 8 }} />
       </Card>
 
       {/* Coach : comment il présente les alertes (les types d'alertes restent réglés ci-dessus). */}

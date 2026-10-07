@@ -56,6 +56,14 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     await p.getByPlaceholder('Ex. Acheter une machine à glace').fill('Temp'); await btn('Continuer', 700);
     await checkAllInputs(p, 'Objectif — formulaire', ok, { expectInputs: true });
   });
+  await step('Saisie (feuille du micro, clavier)', async () => {
+    await go('/entry?mode=keyboard', 3500);
+    await checkAllInputs(p, 'Saisie (phrase écrite)', ok, { expectInputs: true });
+    await p.getByLabel('Écrivez comme vous parlez').fill('Taxi'); await btn('Comprendre', 700);
+    await p.getByRole('button', { name: /^montant :/ }).click(); await p.waitForTimeout(300);
+    await checkAllInputs(p, 'Saisie (carte de confirmation)', ok, { expectInputs: true });
+    await btn('Annuler', 400);
+  });
   await step('Catégories (feuille)', async () => {
     await go('/categories'); await p.getByText('Ajouter une sous-catégorie').first().click(); await p.waitForTimeout(800);
     await checkAllInputs(p, 'Sous-catégorie (feuille)', ok, { expectInputs: true });
