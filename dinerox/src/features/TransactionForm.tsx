@@ -20,6 +20,8 @@ import { today } from '@/core/dates';
 import { canEditDoc } from '@/core/permissions';
 import type { Transaction, TransactionType } from '@/core/types';
 import { uploadReceipt } from '@/services/receipts';
+import { ReserveUseToggle } from '@/features/reserve/ReserveUseToggle';
+import { reserveEligible, reserveUseOf } from '@/core/reserve';
 
 export interface TxInitial {
   type?: TransactionType;
@@ -64,6 +66,9 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
   const [date, setDate] = useState<string>(existing?.date ?? initial?.date ?? today());
   const [receipt, setReceipt] = useState<string | null>(existing?.receiptUrl ?? null);
   const [recurring, setRecurring] = useState(false);
+  // Réserve : utilisation déjà liée à l'opération modifiée, ou choix fait ici.
+  const currentUse = existing ? reserveUseOf(existing.id, data.goalContributions) : undefined;
+  const [reserveId, setReserveId] = useState<string | null>(currentUse?.goalId ?? null);
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -119,6 +124,16 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
         goalId: existing?.goalId ?? null,
         debtId: existing?.debtId ?? null,
       });
+      // « Prendre sur la réserve ? » : utilisation liée (une modification la recalcule déjà).
+      const wantsReserve = !!reserveId && saved.type === 'expense' && reserveEligible(saved.categoryId);
+      try {
+        if (wantsReserve && reserveId !== currentUse?.goalId) actions.takeFromReserve(saved.id, reserveId);
+        else if (!wantsReserve && currentUse) actions.dropReserveUse(saved.id);
+      } catch (err) {
+        // Rien de partiel : une nouvelle opération dont la réserve échoue n'est pas gardée.
+        if (!existing) actions.remove('transactions', saved.id);
+        throw err;
+      }
       if (recurring && !existing && type !== 'transfer') {
         actions.saveRecurring({
           type,
@@ -245,6 +260,8 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
           ) : null}
         </>
       )}
+
+      <ReserveUseToggle type={type} categoryId={categoryId} amount={amount} value={reserveId} onChange={setReserveId} excludeTransactionId={existing?.id} style={{ marginBottom: 14 }} />
 
       {type === 'expense' && data.envelopes.length ? (
         <>

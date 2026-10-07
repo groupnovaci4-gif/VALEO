@@ -44,3 +44,22 @@ describe('démarrage rapide', () => {
     expect(quickPreview({ monthlyIncome: null, charges: [], currency: 'XOF', today: '2026-10-10' }).status).toBe('needs_income');
   });
 });
+
+describe('démarrage rapide : réserve facultative (1.6)', () => {
+  it('sans montant : aucune réserve ; avec montant : réserve rechargeable, plafond = 12 mois', async () => {
+    const { quickReserveGoal } = await import('../src/core/onboardingQuick');
+    const meta = { currency: 'XOF' as const, now: 1, uid: 'u', name: 'Réserve famille et cérémonies', id: 'r' };
+    expect(quickReserveGoal(null, meta)).toBeNull();
+    expect(quickReserveGoal(0, meta)).toBeNull();
+    const g = quickReserveGoal(20_000, meta)!;
+    expect([g.kind, g.targetAmount, g.monthlyContribution, g.targetDate]).toEqual(['reserve', 240_000, 20_000, null]);
+  });
+  it('aperçu : la mise de côté prévue est déduite du reste par jour', async () => {
+    const { quickPreview } = await import('../src/core/onboardingQuick');
+    const base = { monthlyIncome: 310_000, charges: [], currency: 'XOF' as const, today: '2026-10-01' };
+    const without = quickPreview(base);
+    const withReserve = quickPreview({ ...base, reserveMonthly: 31_000 });
+    expect(without.status === 'ok' && without.perDay).toBe(10_000);
+    expect(withReserve.status === 'ok' && withReserve.perDay).toBe(9_000);
+  });
+});

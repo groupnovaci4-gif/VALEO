@@ -19,6 +19,7 @@ import { CoachSummaryCard } from '@/features/coach/CoachSummaryCard';
 import { AdviceOfDay } from '@/features/coach/AdviceOfDay';
 import { RewardsTile } from '@/features/coach/RewardsTile';
 import { goalPlanFor, sortGoals } from '@/core/goals';
+import { isReserve } from '@/core/reserve';
 import { sortTransactions } from '@/core/transactions';
 import { formatMoney, type CurrencyCode } from '@/core/money';
 import { authErrorKey, resendVerification } from '@/services/auth';
@@ -37,7 +38,7 @@ export default function Home() {
   const { data, position, flows, envelopes, budget, insights, now } = f;
 
   const goals = useMemo(
-    () => sortGoals(data.goals.filter((g) => g.status === 'active')).slice(0, 3).map((g) => ({ g, plan: goalPlanFor(g, data.goalContributions, now) })),
+    () => sortGoals(data.goals.filter((g) => g.status === 'active' && !isReserve(g))).slice(0, 3).map((g) => ({ g, plan: goalPlanFor(g, data.goalContributions, now) })),
     [data.goals, data.goalContributions, now],
   );
   const recent = useMemo(() => sortTransactions(data.transactions).slice(0, 5), [data.transactions]);

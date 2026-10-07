@@ -51,3 +51,12 @@ export function canChangeRole(space: Pick<Space, 'members'>, actorUid: string, t
   const removingLastAdmin = admins.length === 1 && admins[0] === targetUid && next !== 'admin';
   return !removingLastAdmin;
 }
+
+/**
+ * Utiliser une réserve (prendre une dépense dessus) : administrateur et
+ * conjoint. Un enfant peut y faire un apport, jamais l'utiliser (miroir de
+ * firestore.rules : contribution négative refusée sur une réserve).
+ */
+export function canUseReserve(role: Role | null | undefined): boolean {
+  return role === 'admin' || role === 'partner';
+}

@@ -16,7 +16,9 @@ export type TxError =
   | 'transfer.currencyMismatch'
   | 'currency.mismatch'
   | 'goal.inactive'
-  | 'goal.withdrawTooMuch';
+  | 'goal.withdrawTooMuch'
+  | 'reserve.unavailable'
+  | 'reserve.category';
 
 export interface TxDraft {
   type: TransactionType;

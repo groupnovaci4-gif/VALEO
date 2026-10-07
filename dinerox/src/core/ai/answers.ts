@@ -12,6 +12,7 @@ import { budgetSummary, envelopeStatuses, resolveEnvelopeId } from '../budget';
 import { financialSnapshot, observedCapacity } from '../intelligence';
 import { expensesByCategory, monthFlows } from '../insights';
 import { goalPlanFor, sortGoals } from '../goals';
+import { isReserve } from '../reserve';
 
 export interface AnswerLine {
   key: string;
@@ -106,7 +107,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
 
     case 'goal_feasibility': {
       // Objectifs de la devise de l'espace uniquement (jamais d'addition de devises).
-      const goals = sortGoals(data.goals.filter((g) => !g.deleted && g.status === 'active' && g.targetAmount > 0 && g.currency === currency));
+      const goals = sortGoals(data.goals.filter((g) => !g.deleted && !isReserve(g) && g.status === 'active' && g.targetAmount > 0 && g.currency === currency));
       if (!goals.length) return { key: 'ai.a.noGoals' };
       const capacity = observedCapacity(data, currency, now);
       // Effort total calculé sur TOUS les objectifs ; seul le détail affiché est limité à 4.

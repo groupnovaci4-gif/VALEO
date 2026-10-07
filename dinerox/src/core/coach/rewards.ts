@@ -15,6 +15,7 @@ import { envelopeStatuses } from '../budget';
 import { debtStatus } from '../debts';
 import { goalSaved } from '../balance';
 import { hasEmergencyFund } from '../goals';
+import { isReserve } from '../reserve';
 import { monthKey, previousMonth, type ISODate, type MonthKey } from '../dates';
 import { MIN_OPERATIONS, operationsInMonth, savedInMonth } from './events';
 import { hasDefinedBudget } from './envelopeAlerts';
@@ -129,7 +130,7 @@ export const REWARDS: RewardDefinition[] = [
       // Même critère que la célébration de l'objectif (shouldCelebrate) : montant cible atteint.
       // Anti-triche : au moins une contribution enregistrée (un objectif créé « déjà rempli » ne compte pas).
       const contributed = (g: Goal) => ctx.data.goalContributions.some((c) => !c.deleted && c.goalId === g.id && c.amount > 0);
-      const reached = ctx.data.goals.filter((g: Goal) => !g.deleted && g.status !== 'abandoned' && g.targetAmount > 0 && g.currency === ctx.currency && contributed(g) && goalSaved(g, ctx.data.goalContributions) >= g.targetAmount);
+      const reached = ctx.data.goals.filter((g: Goal) => !g.deleted && !isReserve(g) && g.status !== 'abandoned' && g.targetAmount > 0 && g.currency === ctx.currency && contributed(g) && goalSaved(g, ctx.data.goalContributions) >= g.targetAmount);
       return reached.map((g) => ({ earned: true, progress: 1, period: g.id }));
     },
   },

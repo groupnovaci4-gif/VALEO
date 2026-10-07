@@ -22,33 +22,49 @@ export type Feature =
   /** Voix premium du coach (Cloud Function `speak`). */
   | 'voice_premium'
   /** Saisie vocale sans limite quotidienne (la saisie au clavier et la phrase écrite restent illimitées pour tous). */
-  | 'voice_entry_unlimited';
+  | 'voice_entry_unlimited'
+  /** Plusieurs réserves (famille, cérémonies…) ; la formule gratuite en a une. */
+  | 'reserve_multiple'
+  /** Simulateur « Puis-je contribuer ? » sans limite mensuelle. */
+  | 'contribution_simulator'
+  /** Moments forts de l'année sans limite (la formule gratuite en a un). */
+  | 'seasonal_planning'
+  /** Réserve partagée dans un espace familial. */
+  | 'family_reserve';
 
 export interface PlanDefinition {
   id: PlanId;
   /** Prix indicatif mensuel en FCFA (affichage). */
   priceXof: number;
   features: Feature[];
-  /** `voiceEntriesPerDay` : saisies vocales validées par jour (s'ajoute aux limites existantes). */
-  limits: { goals: number; accounts: number; envelopes: number; familyMembers: number; voiceEntriesPerDay: number };
+  /**
+   * `voiceEntriesPerDay` : saisies vocales validées par jour. `reserves`, `simulationsPerMonth`
+   * et `seasons` (1.6) : réserves, simulations « Puis-je contribuer ? » par mois et moments forts
+   * — comptés à part, ils ne réduisent jamais la limite d'objectifs existante.
+   */
+  limits: { goals: number; accounts: number; envelopes: number; familyMembers: number; voiceEntriesPerDay: number; reserves: number; simulationsPerMonth: number; seasons: number };
 }
 
 const UNLIMITED = Number.POSITIVE_INFINITY;
 /** Saisies vocales par jour en formule gratuite (constante facile à changer). */
 export const FREE_VOICE_ENTRIES_PER_DAY = 5;
+/** Formule gratuite, réserve famille (constantes faciles à changer). */
+export const FREE_RESERVES = 1;
+export const FREE_SIMULATIONS_PER_MONTH = 3;
+export const FREE_SEASONS = 1;
 
 export const PLANS: Record<PlanId, PlanDefinition> = {
   free: {
     id: 'free',
     priceXof: 0,
     features: ['export'],
-    limits: { goals: 2, accounts: 3, envelopes: 8, familyMembers: 0, voiceEntriesPerDay: FREE_VOICE_ENTRIES_PER_DAY },
+    limits: { goals: 2, accounts: 3, envelopes: 8, familyMembers: 0, voiceEntriesPerDay: FREE_VOICE_ENTRIES_PER_DAY, reserves: FREE_RESERVES, simulationsPerMonth: FREE_SIMULATIONS_PER_MONTH, seasons: FREE_SEASONS },
   },
   plus: {
     id: 'plus',
     priceXof: 1500,
-    features: ['export', 'ai_assistant', 'auto_budget', 'multiple_goals', 'advanced_insights', 'family', 'multiple_accounts', 'voice_premium', 'voice_entry_unlimited'],
-    limits: { goals: 20, accounts: 10, envelopes: 30, familyMembers: 2, voiceEntriesPerDay: UNLIMITED },
+    features: ['export', 'ai_assistant', 'auto_budget', 'multiple_goals', 'advanced_insights', 'family', 'multiple_accounts', 'voice_premium', 'voice_entry_unlimited', 'reserve_multiple', 'contribution_simulator', 'seasonal_planning'],
+    limits: { goals: 20, accounts: 10, envelopes: 30, familyMembers: 2, voiceEntriesPerDay: UNLIMITED, reserves: UNLIMITED, simulationsPerMonth: UNLIMITED, seasons: UNLIMITED },
   },
   family: {
     id: 'family',
@@ -66,8 +82,12 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       'advanced_reports',
       'voice_premium',
       'voice_entry_unlimited',
+      'reserve_multiple',
+      'contribution_simulator',
+      'seasonal_planning',
+      'family_reserve',
     ],
-    limits: { goals: UNLIMITED, accounts: UNLIMITED, envelopes: UNLIMITED, familyMembers: 8, voiceEntriesPerDay: UNLIMITED },
+    limits: { goals: UNLIMITED, accounts: UNLIMITED, envelopes: UNLIMITED, familyMembers: 8, voiceEntriesPerDay: UNLIMITED, reserves: UNLIMITED, simulationsPerMonth: UNLIMITED, seasons: UNLIMITED },
   },
 };
 

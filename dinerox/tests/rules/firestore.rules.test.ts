@@ -257,3 +257,54 @@ describe('autres collections', () => {
     await assertFails(setDoc(doc(db('u1'), 'usage/u1'), { ai: 0 }));
   });
 });
+
+describe('réserve famille et cérémonies (1.6)', () => {
+  const goalDoc = (id: string, by: string, over: Record<string, unknown> = {}) => ({ id, name: 'Réserve famille et cérémonies', targetAmount: 200_000, initialAmount: 0, status: 'active', priority: 'normal', createdAt: 1, updatedAt: 1, createdBy: by, syncedAt: serverTimestamp(), ...over });
+  const contrib = (id: string, by: string, over: Record<string, unknown> = {}) => ({ id, goalId: 'res', amount: 10_000, date: '2026-10-04', createdAt: 1, updatedAt: 1, createdBy: by, syncedAt: serverTimestamp(), ...over });
+  async function seedReserve() {
+    await seedFamily();
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore() as unknown as Firestore;
+      await setDoc(doc(fs, 'spaces/fam_1/goals/res'), { ...goalDoc('res', 'A', { kind: 'reserve' }), syncedAt: new Date() });
+      await setDoc(doc(fs, 'spaces/fam_1/goals/moto'), { ...goalDoc('moto', 'A', { name: 'Moto' }), syncedAt: new Date() });
+    });
+  }
+
+  it('objectif : kind absent, goal ou reserve accepté ; autre valeur refusée', async () => {
+    await setDoc(doc(db('u1'), 'spaces/u1'), personal('u1'));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/goals/g0'), goalDoc('g0', 'u1')));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/goals/g1'), goalDoc('g1', 'u1', { kind: 'goal' })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/goals/g2'), goalDoc('g2', 'u1', { kind: 'reserve' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/goals/g3'), goalDoc('g3', 'u1', { kind: 'tontine' })));
+  });
+
+  it('utilisation liée à une dépense : enregistrée par le propriétaire, identifiant borné', async () => {
+    await setDoc(doc(db('u1'), 'spaces/u1'), personal('u1'));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/goalContributions/c1'), contrib('c1', 'u1', { amount: -5_000, linkedTransactionId: 'tx_1' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/goalContributions/c2'), contrib('c2', 'u1', { amount: -5_000, linkedTransactionId: 'x'.repeat(200) })));
+    await assertFails(setDoc(doc(db('u2'), 'spaces/u1/goalContributions/c3'), contrib('c3', 'u2', { amount: -5_000, linkedTransactionId: 'tx_1' })));
+  });
+
+  it('espace familial : admin et conjoint apportent et utilisent ; l’enfant apporte mais n’utilise jamais', async () => {
+    await seedReserve();
+    await assertSucceeds(setDoc(doc(db('A'), 'spaces/fam_1/goalContributions/a1'), contrib('a1', 'A', { amount: -5_000, linkedTransactionId: 'tA' })));
+    await assertSucceeds(setDoc(doc(db('P'), 'spaces/fam_1/goalContributions/p1'), contrib('p1', 'P')));
+    await assertSucceeds(setDoc(doc(db('P'), 'spaces/fam_1/goalContributions/p2'), contrib('p2', 'P', { amount: -3_000 })));
+    // Enfant : apport accepté, utilisation (ou retrait) de la réserve refusée.
+    await assertSucceeds(setDoc(doc(db('C'), 'spaces/fam_1/goalContributions/c1'), contrib('c1', 'C', { amount: 2_000 })));
+    await assertFails(setDoc(doc(db('C'), 'spaces/fam_1/goalContributions/c2'), contrib('c2', 'C', { amount: -2_000, linkedTransactionId: 'tC' })));
+    await assertFails(setDoc(doc(db('C'), 'spaces/fam_1/goalContributions/c3'), contrib('c3', 'C', { amount: -2_000 })));
+    // Non-régression : un enfant peut toujours retirer d'un objectif classique.
+    await assertSucceeds(setDoc(doc(db('C'), 'spaces/fam_1/goalContributions/c4'), contrib('c4', 'C', { goalId: 'moto', amount: -1_000 })));
+    // Chaque mouvement porte son auteur : impossible d'écrire au nom d'un autre membre.
+    await assertFails(setDoc(doc(db('C'), 'spaces/fam_1/goalContributions/c5'), contrib('c5', 'A', { amount: 2_000 })));
+  });
+
+  it('catalogue des moments forts : lecture pour tout utilisateur connecté, écriture administrateur', async () => {
+    const item = { eventId: 'tabaski', country: 'CI', date: '2027-05-16' };
+    await assertFails(setDoc(doc(db('u1'), 'config/seasons/items/tabaski_2027_CI'), item));
+    await assertSucceeds(setDoc(doc(db('boss', { admin: true }), 'config/seasons/items/tabaski_2027_CI'), item));
+    await assertSucceeds(getDoc(doc(db('u1'), 'config/seasons/items/tabaski_2027_CI')));
+    await assertFails(getDoc(doc(db(null), 'config/seasons/items/tabaski_2027_CI')));
+  });
+});

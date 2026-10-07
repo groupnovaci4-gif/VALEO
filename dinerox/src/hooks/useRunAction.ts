@@ -15,6 +15,7 @@ export function useActionErrorMessage() {
         if (e.code === 'permission') return t('error.permission');
         if (e.code === 'limit') return t('error.limit', { limit: e.details.limit ?? '' });
         if (e.code === 'notReady') return t('error.network');
+        if (e.code === 'feature') return t('error.feature');
         const first = e.details.errors?.[0];
         if (first && hasKey(`error.${first}`)) return t(`error.${first}` as TKey);
         return t(fallback);

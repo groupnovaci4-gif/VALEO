@@ -33,6 +33,8 @@ export interface EntryDraft {
   uncertain: EntryField[];
   /** Extrait de la phrase à l'origine de la ligne. */
   source: string;
+  /** Réserve choisie sur la carte (« Prendre sur la réserve ? ») ; jamais déduite par le parseur. */
+  reserveId?: string | null;
 }
 
 export type EntryParse =

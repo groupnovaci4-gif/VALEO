@@ -12,7 +12,8 @@ import { buildDemoData } from '@/core/demo';
 import { systemCategories } from '@/core/defaults';
 import { subcategoryDocs } from '@/core/catalog';
 import { zoneOf } from '@/core/countries';
-import { today } from '@/core/dates';
+import { parseISODate, today } from '@/core/dates';
+import { reserveReminders } from '@/core/reserve';
 import { readJSON, storageKey, writeJSON } from '@/services/storage';
 import type { CollectionName, SyncedDoc } from '@/core/types';
 import type { TKey } from '@/i18n';
@@ -119,9 +120,17 @@ export function Bootstrap() {
   useEffect(() => {
     if (!prefs || !profile?.onboarding.completed) return;
     const reminders = planEntryReminders({ now: Date.now(), enabled: prefs.dailyEntryReminder ?? true, hour: prefs.dailyReminderHour ?? DEFAULT_REMINDER_HOUR, lastEntryAt: lastEntry });
-    void scheduleLocalNotifications(prefs, t, data.debts, data.debtPayments, (n) => money(n), (d) => date(d), reminders).catch(() => undefined);
+    // Réserve : « Mettre X de côté » le lendemain de la paie (rappels d'épargne activés), à 18 h.
+    const dated = prefs.savingsReminder
+      ? reserveReminders(data, { payDay: profile.financial?.payDay, today: today() }).map((r) => {
+          const when = parseISODate(r.date);
+          when.setHours(18, 0, 0, 0);
+          return { date: when, title: t('notif.reserve.title'), body: t('notif.reserve.body'), url: `/reserve/${r.reserveId}?refill=1` };
+        })
+      : [];
+    void scheduleLocalNotifications(prefs, t, data.debts, data.debtPayments, (n) => money(n), (d) => date(d), reminders, dated).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefs, data.debts, data.debtPayments, profile?.onboarding.completed, lastEntry]);
+  }, [prefs, data.debts, data.debtPayments, data.goals, data.goalContributions, profile?.onboarding.completed, profile?.financial?.payDay, lastEntry]);
 
   // Alertes immédiates (budget, dépense inhabituelle, objectif proche) en
   // notification système — seulement si le coach est désactivé : sinon c'est

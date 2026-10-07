@@ -151,13 +151,22 @@ service cloud.firestore {
             && optInt(d, 'toAmount')
             && optString(d, 'payee', 120) && optString(d, 'note', 1000) && optString(d, 'receiptUrl', 2000);
         }
+        // Un enfant fait un apport à une réserve familiale, il ne l'utilise jamais
+        // (contribution négative refusée sur une réserve ; miroir de canUseReserve).
+        function childMayContribute(d) {
+          return d.amount > 0
+            || get(/databases/$(database)/documents/spaces/$(spaceId)/goals/$(d.goalId)).data.get('kind', 'goal') != 'reserve';
+        }
         function validDoc(d) {
           return col == 'transactions' ? validTransaction(d)
             : col == 'accounts' ? (d.name is string && d.name.size() <= 80 && isInt(d.openingBalance) && d.currency is string && d.currency.size() == 3 && d.active is bool)
             : col == 'goals' ? (d.name is string && d.name.size() <= 120 && isInt(d.targetAmount) && d.targetAmount >= 0 && isInt(d.initialAmount) && d.initialAmount >= 0
                                 && d.status in ['active', 'paused', 'completed', 'abandoned', 'archived']
-                                && d.priority in ['low', 'normal', 'high', 'urgent'])
-            : col == 'goalContributions' ? (d.goalId is string && isInt(d.amount) && d.amount != 0 && isISODate(d.date))
+                                && d.priority in ['low', 'normal', 'high', 'urgent']
+                                // 1.6 : réserve rechargeable (absent = objectif classique).
+                                && (!('kind' in d) || d.kind == null || d.kind in ['goal', 'reserve']))
+            : col == 'goalContributions' ? (d.goalId is string && isInt(d.amount) && d.amount != 0 && isISODate(d.date)
+                                && optString(d, 'linkedTransactionId', 128))
             : col == 'envelopes' ? (d.name is string && d.name.size() <= 80 && isInt(d.monthlyBudget) && d.monthlyBudget >= 0)
             : col == 'debts' ? (d.direction in ['i_owe', 'owed_to_me'] && isInt(d.principal) && d.principal > 0 && d.counterparty is string && d.counterparty.size() <= 120)
             : col == 'debtPayments' ? (d.debtId is string && isInt(d.amount) && d.amount > 0 && isISODate(d.date))
@@ -177,7 +186,8 @@ service cloud.firestore {
             // Enfant : ses propres dépenses et contributions uniquement.
             || (roleOf() == 'child'
                 && request.resource.data.createdBy == me()
-                && ((col == 'transactions' && request.resource.data.type == 'expense') || col == 'goalContributions'))
+                && ((col == 'transactions' && request.resource.data.type == 'expense')
+                    || (col == 'goalContributions' && childMayContribute(request.resource.data))))
           );
 
         allow update: if knownCollection() && isMember()

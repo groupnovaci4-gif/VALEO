@@ -3,6 +3,8 @@
  * « Démo » séparé et local : jamais mélangées aux données réelles.
  * Scénario de référence : revenu 450 000, logement 100 000, nourriture
  * 80 000, transport 40 000, famille 50 000, objectif Moto 1 200 000.
+ * Réserve famille et cérémonies : 25 000 par mois, plafond 300 000, une
+ * cérémonie du mois dernier prise dessus.
  */
 import type { Account, Envelope, Goal, GoalContribution, SpaceData, Transaction } from './types';
 import { addMonths, lastMonths, type ISODate } from './dates';
@@ -52,6 +54,8 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
     if (ok(18)) t(d(18), 'expense', 10_000, 'demo_om', 'cat_leisure', 'Canal+');
     if (ok(20)) t(d(20), 'transfer', 50_000, 'demo_bank', null, 'Moto', { toAccountId: 'demo_sav', goalId: 'demo_goal_moto' });
     if (ok(22)) t(d(22), 'expense', 8_000, 'demo_cash', 'cat_communication', 'Crédit');
+    // Cérémonie du mois dernier, prise sur la réserve (utilisation liée plus bas).
+    if (i === months.length - 2) t(d(14), 'expense', 20_000, 'demo_om', 'cat_social', null, { id: 'demo_tx_ceremony', subcategoryId: 'sub_social_ceremonies' });
   });
   const goals: Goal[] = [
     {
@@ -65,9 +69,18 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
       scope: 'personal', status: 'active', history: [],
     },
   ];
+  goals.push({
+    ...base, id: 'demo_reserve', kind: 'reserve', name: meta.label('reserve.defaultName'), categoryId: 'family', templateId: 'family_reserve', type: 'family', icon: '🤝', currency: 'XOF',
+    targetAmount: 300_000, initialAmount: 50_000, targetDate: null, priority: 'normal', rank: 3, accountId: null, monthlyContribution: 25_000,
+    scope: 'personal', status: 'active', history: [],
+  });
   const goalContributions: GoalContribution[] = transactions
     .filter((x) => x.goalId === 'demo_goal_moto')
     .map((x, i) => ({ ...base, id: `demo_gc_${i}`, goalId: 'demo_goal_moto', amount: x.amount, date: x.date, accountId: 'demo_bank', transferId: x.id, note: null }));
+  // Réserve : apport le 2 de chaque mois écoulé, et la cérémonie du mois dernier prise dessus.
+  months.slice(0, -1).forEach((m, i) => goalContributions.push({ ...base, id: `demo_res_in_${i}`, goalId: 'demo_reserve', amount: 25_000, date: `${m}-02`, accountId: 'demo_bank', transferId: null, note: null }));
+  const ceremony = transactions.find((x) => x.id === 'demo_tx_ceremony');
+  if (ceremony) goalContributions.push({ ...base, id: 'demo_res_use', goalId: 'demo_reserve', amount: -ceremony.amount, date: ceremony.date, accountId: ceremony.accountId, transferId: null, linkedTransactionId: ceremony.id, note: null });
   return {
     accounts,
     categories: systemCategories(meta),

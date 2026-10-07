@@ -7,6 +7,7 @@ import type { Category, Debt, DebtPayment, Envelope, Goal, GoalContribution, Spa
 import type { CurrencyCode } from './money';
 import { envelopeStatuses, spentByEnvelope, envelopeBudgetFor } from './budget';
 import { hasEmergencyFund, goalPlanFor } from './goals';
+import { isReserve } from './reserve';
 import { observedCapacity } from './intelligence';
 import { debtStatus } from './debts';
 import { lastMonths, monthKey, previousMonth, type ISODate, type MonthKey } from './dates';
@@ -226,7 +227,8 @@ export function computeInsights({ data, currency, now, categoryName }: InsightIn
   // 7. Capacité d'épargne & suggestions d'objectifs.
   // Définition unique de la capacité (charges fixes connues comprises).
   const capacity = observedCapacity(data, currency, now);
-  const activeGoals = data.goals.filter((g) => !g.deleted && g.status === 'active');
+  // Les réserves (rechargeables, sans date) ont leurs propres messages : hors constats d'objectifs.
+  const activeGoals = data.goals.filter((g) => !g.deleted && g.status === 'active' && !isReserve(g));
   if (capacity !== null) {
     if (capacity > 0) {
       out.push({ id: `capacity_${month}`, kind: 'savings_capacity', severity: 'positive', params: { amount: capacity }, weight: 35 });

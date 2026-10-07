@@ -211,7 +211,12 @@ export interface PlannedContribution {
   monthly: number;
 }
 
+/** `reserve` : réserve rechargeable sans date de fin (famille et cérémonies) ; absent = objectif classique. */
+export type GoalKind = 'goal' | 'reserve';
+
 export interface Goal extends SyncedDoc {
+  /** Absent sur les objectifs créés avant la 1.6 : lire via `goalKind()` (absent = `goal`). */
+  kind?: GoalKind | null;
   name: string;
   /** Identifiant de catégorie d'objectif (voir goalCategories.ts) ou 'custom'. */
   categoryId: string;
@@ -247,6 +252,8 @@ export interface GoalContribution extends SyncedDoc {
   accountId?: ID | null;
   /** Si l'argent a été réellement déplacé : le transfert créé. */
   transferId?: ID | null;
+  /** Utilisation d'une réserve : la dépense qu'elle finance (supprimée avec elle). */
+  linkedTransactionId?: ID | null;
   note?: string | null;
 }
 

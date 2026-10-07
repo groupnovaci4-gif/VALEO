@@ -24,7 +24,7 @@ import type { CollectionName, SyncedDoc } from '@/core/types';
 import { ensurePersonalSpace, updateSpaceInfo } from '@/services/spaces';
 import { analytics } from '@/services/analytics';
 import { findSubcategory, subcategoryLabel } from '@/core/catalog';
-import { QUICK_MAX_CHARGES, quickChargeRules, quickPreview, type QuickCharge } from '@/core/onboardingQuick';
+import { QUICK_MAX_CHARGES, QUICK_RESERVE_MONTHS, quickChargeRules, quickPreview, quickReserveGoal, type QuickCharge } from '@/core/onboardingQuick';
 import { today } from '@/core/dates';
 import { formatMoney } from '@/core/money';
 
@@ -69,8 +69,10 @@ export default function Onboarding() {
   const [quick, setQuick] = useState<number | null>(null);
   const [incomeKind, setIncomeKind] = useState<IncomeKind>('inc_salary');
   const [charges, setCharges] = useState<QuickCharge[]>([]);
+  // Question facultative du démarrage rapide : mise de côté mensuelle pour la réserve famille.
+  const [reserveMonthly, setReserveMonthly] = useState<number | null>(null);
 
-  const finish = async (quickDraft?: FinancialDraft, quickCharges?: QuickCharge[]) => {
+  const finish = async (quickDraft?: FinancialDraft, quickCharges?: QuickCharge[], quickReserve?: number | null) => {
     const d = quickDraft ?? draft;
     if (!engine || !activeSpace || !user) {
       toast.show(t('error.network'), 'error');
@@ -105,6 +107,8 @@ export default function Onboarding() {
           });
           for (const doc of rules) items.push({ col: 'recurring', doc });
         }
+        const reserve = quickReserveGoal(quickReserve, { currency: d.currency, now, uid: user.uid, name: t('reserve.defaultName'), id: 'goal_reserve_quick' });
+        if (reserve) items.push({ col: 'goals', doc: reserve });
         engine.writeMany(activeSpace.id, items);
       }
       // Les données sont sauvegardées AVANT de marquer le profil comme terminé :
@@ -129,7 +133,7 @@ export default function Onboarding() {
 
   const next = () => (last ? void finish() : setIndex((i) => i + 1));
   // Le brouillon d'état n'est pas encore à jour à cet instant : la version finale est passée explicitement.
-  const finishQuick = (final: FinancialDraft) => void finish(final, charges);
+  const finishQuick = (final: FinancialDraft) => void finish(final, charges, reserveMonthly);
   const [title, hint] = TITLES[step];
 
   if (quick !== null) {
@@ -140,7 +144,7 @@ export default function Onboarding() {
       incomeSources: [incomeKind],
       charges: Object.fromEntries(charges.map((c) => [c.subcategoryId, c.amount])),
     });
-    const preview = quickPreview({ monthlyIncome: draft.monthlyIncome, charges, currency: draft.currency, today: today() });
+    const preview = quickPreview({ monthlyIncome: draft.monthlyIncome, charges, currency: draft.currency, today: today(), reserveMonthly });
     const fmt = (n: number) => formatMoney(n, draft.currency);
     const commonCharges = countryProfile(draft.country).commonCharges.map((id) => findSubcategory(id)).filter((x): x is NonNullable<typeof x> => !!x);
     const qTitle: Record<QuickStep, [TKey, TKey]> = { income: ['quick.ob.income.title', 'quick.ob.income.hint'], charges: ['quick.ob.charges.title', 'quick.ob.charges.hint'], result: ['quick.ob.result.title', 'quick.ob.result.hint'] };
@@ -239,6 +243,18 @@ export default function Onboarding() {
                 </Card>
               );
             })}
+            <Card style={{ marginTop: 6, gap: 6 }}>
+              <Text variant="bodyStrong">🤝 {t('quick.reserve.title')}</Text>
+              <Text variant="small" tone="muted">
+                {t('quick.reserve.body')}
+              </Text>
+              <AmountField label={t('quick.reserve.monthly')} value={reserveMonthly} onChange={setReserveMonthly} currency={draft.currency} />
+              {reserveMonthly && reserveMonthly > 0 ? (
+                <Text variant="caption" tone="subtle">
+                  {t('quick.reserve.ceilingNote', { months: QUICK_RESERVE_MONTHS, amount: fmt(reserveMonthly * QUICK_RESERVE_MONTHS) })}
+                </Text>
+              ) : null}
+            </Card>
           </>
         ) : null}
         {qStep === 'result' ? (

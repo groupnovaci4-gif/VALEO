@@ -25,8 +25,9 @@ import type {
 } from '@/core/types';
 import { validateTransaction, type TxError } from '@/core/transactions';
 import { applyGoalChanges } from '@/core/goals';
-import { withinLimit, type LimitKey } from '@/core/subscription';
-import { can, canEditDoc } from '@/core/permissions';
+import { hasFeature, withinLimit, type Feature, type LimitKey } from '@/core/subscription';
+import { can, canEditDoc, canUseReserve } from '@/core/permissions';
+import { isClassicGoal, isReserve, isSeason, reserveEligible, splitReserveUse } from '@/core/reserve';
 import { dueOccurrences, materialize } from '@/core/recurring';
 import { newId } from '@/core/sync';
 import { today } from '@/core/dates';
@@ -56,8 +57,8 @@ function budgetImpact(col: CollectionName, before: SyncedDoc | undefined, after:
 
 export class ActionError extends Error {
   constructor(
-    public readonly code: 'permission' | 'limit' | 'validation' | 'notReady',
-    public readonly details: { limit?: number; errors?: TxError[] } = {},
+    public readonly code: 'permission' | 'limit' | 'validation' | 'notReady' | 'feature',
+    public readonly details: { limit?: number; errors?: TxError[]; feature?: Feature } = {},
   ) {
     super(code);
   }
@@ -108,6 +109,13 @@ export function useActions() {
     [plan],
   );
 
+  const feature = useCallback(
+    (f: Feature) => {
+      if (!hasFeature(plan, f)) throw new ActionError('feature', { feature: f });
+    },
+    [plan],
+  );
+
   /** Création/modification générique d'un document d'une collection. */
   const save = useCallback(
     <T extends SyncedDoc>(col: CollectionName, draft: Draft<T> & { id?: string }): T => {
@@ -135,6 +143,12 @@ export function useActions() {
       if (col === 'transactions') {
         for (const p of d.debtPayments) if (p.transactionId === id) e.remove(spaceId, 'debtPayments', p.id);
         for (const c of d.goalContributions) if (c.transferId === id) e.remove(spaceId, 'goalContributions', c.id);
+        // Utilisation de réserve liée : annulée avec l'opération (et son transfert éventuel).
+        for (const c of d.goalContributions) {
+          if (c.linkedTransactionId !== id) continue;
+          e.remove(spaceId, 'goalContributions', c.id);
+          if (c.transferId) e.remove(spaceId, 'transactions', c.transferId);
+        }
       } else if (col === 'debtPayments' || col === 'goalContributions') {
         const doc = e.getDoc(spaceId, col, id) as { transactionId?: string | null; transferId?: string | null } | undefined;
         const txId = doc?.transactionId ?? doc?.transferId;
@@ -178,6 +192,47 @@ export function useActions() {
     [data, save, t],
   );
 
+  /** Retire l'utilisation de réserve liée à une opération (et son transfert éventuel). */
+  const dropReserveUse = useCallback(
+    (transactionId: string) => {
+      const { engine: e, spaceId } = ctx();
+      for (const c of e.getData(spaceId).goalContributions) {
+        if (c.linkedTransactionId !== transactionId) continue;
+        ensure('delete', 'goalContributions', c);
+        e.remove(spaceId, 'goalContributions', c.id);
+        if (c.transferId) e.remove(spaceId, 'transactions', c.transferId);
+      }
+    },
+    [ctx, ensure],
+  );
+
+  /**
+   * Prend une dépense (famille, cérémonies) sur une réserve : utilisation liée à
+   * l'opération, plafonnée au solde — le complément reste sur le budget du mois,
+   * rien n'est bloqué. Si la réserve est rangée sur un autre compte, l'argent
+   * en est réellement transféré vers le compte qui a payé.
+   */
+  const applyReserveUse = useCallback(
+    (tx: Transaction, reserveId: string): { fromReserve: number; complement: number } => {
+      if (!canUseReserve(role)) throw new ActionError('permission');
+      const d = data();
+      const g = d.goals.find((x) => x.id === reserveId && !x.deleted && isReserve(x) && x.status === 'active' && x.currency === tx.currency);
+      if (!g) throw new ActionError('validation', { errors: ['reserve.unavailable'] });
+      if (tx.type !== 'expense' || !reserveEligible(tx.categoryId)) throw new ActionError('validation', { errors: ['reserve.category'] });
+      const others = d.goalContributions.filter((c) => c.linkedTransactionId !== tx.id);
+      const split = splitReserveUse(tx.amount, goalSaved(g, others));
+      if (split.fromReserve <= 0) return split;
+      let transferId: string | null = null;
+      const from = g.accountId ? d.accounts.find((a) => a.id === g.accountId && a.active && !a.deleted) : undefined;
+      if (from && from.id !== tx.accountId) {
+        transferId = save<Transaction>('transactions', { type: 'transfer', amount: split.fromReserve, currency: tx.currency, date: tx.date, accountId: from.id, toAccountId: tx.accountId, toAmount: null, categoryId: null, envelopeId: null, goalId: g.id, payee: g.name, note: null }).id;
+      }
+      save<GoalContribution>('goalContributions', { goalId: g.id, amount: -split.fromReserve, date: tx.date, accountId: tx.accountId, transferId, linkedTransactionId: tx.id, note: null });
+      return split;
+    },
+    [role, data, save],
+  );
+
   const saveTransaction = useCallback(
     (input: Draft<Transaction>): Transaction => {
       let d = data();
@@ -206,10 +261,34 @@ export function useActions() {
         if (contribution && (Math.abs(contribution.amount) !== tx.amount || contribution.date !== tx.date)) {
           save<GoalContribution>('goalContributions', { ...contribution, amount: contribution.amount < 0 ? -tx.amount : tx.amount, date: tx.date });
         }
+        // Utilisation de réserve : recalculée sur le nouveau montant (jamais au-delà du
+        // solde), retirée si l'opération n'est plus une dépense famille ou cérémonie.
+        const use = d.goalContributions.find((c) => !c.deleted && c.linkedTransactionId === tx.id);
+        if (use) {
+          dropReserveUse(tx.id);
+          if (tx.type === 'expense' && reserveEligible(tx.categoryId)) {
+            try {
+              applyReserveUse(tx, use.goalId);
+            } catch {
+              // Réserve supprimée ou fermée entre-temps : la dépense reste sur le budget du mois.
+            }
+          }
+        }
       }
       return tx;
     },
-    [data, save, ensureCashAccount],
+    [data, save, ensureCashAccount, dropReserveUse, applyReserveUse],
+  );
+
+  /** Opération déjà enregistrée → prise sur une réserve (carte de confirmation, formulaire). */
+  const takeFromReserve = useCallback(
+    (transactionId: string, reserveId: string) => {
+      const tx = data().transactions.find((x) => x.id === transactionId && !x.deleted);
+      if (!tx) throw new ActionError('validation', { errors: ['reserve.unavailable'] });
+      dropReserveUse(tx.id);
+      return applyReserveUse(tx, reserveId);
+    },
+    [data, dropReserveUse, applyReserveUse],
   );
 
   // ─── Comptes ──────────────────────────────────────────────────────
@@ -295,15 +374,21 @@ export function useActions() {
   const createGoal = useCallback(
     (draft: Draft<Goal>): Goal => {
       const d = data();
-      const active = d.goals.filter((g) => g.status === 'active' || g.status === 'paused').length;
-      limit('goals', active);
+      const open = d.goals.filter((g) => !g.deleted && (g.status === 'active' || g.status === 'paused'));
+      // Réserves et moments forts ont leurs propres limites : la limite d'objectifs
+      // des formules existantes ne compte que les objectifs classiques.
+      if (isReserve(draft)) {
+        if (activeSpace?.kind === 'family') feature('family_reserve');
+        limit('reserves', open.filter(isReserve).length);
+      } else if (isSeason(draft)) limit('seasons', open.filter(isSeason).length);
+      else limit('goals', open.filter(isClassicGoal).length);
       const first = d.goals.length === 0;
       const rank = draft.rank || d.goals.filter((g) => g.status === 'active').length + 1;
       const goal = save<Goal>('goals', { ...draft, rank, history: [] });
       if (first) analytics.track('first_goal', { kind: goal.type });
       return goal;
     },
-    [data, limit, save],
+    [data, limit, save, feature, activeSpace?.kind],
   );
 
   const updateGoal = useCallback(
@@ -447,6 +532,8 @@ export function useActions() {
       save,
       remove,
       saveTransaction,
+      takeFromReserve,
+      dropReserveUse,
       saveAccount,
       deleteAccount,
       saveEnvelope,
@@ -464,7 +551,7 @@ export function useActions() {
       runRecurring,
       ensureCashAccount,
     }),
-    [save, remove, saveTransaction, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount],
+    [save, remove, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount],
   );
 }
 

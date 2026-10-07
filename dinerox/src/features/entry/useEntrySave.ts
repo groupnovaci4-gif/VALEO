@@ -16,6 +16,7 @@ import type { CurrencyCode } from '@/core/money';
 import type { EntryDraft } from '@/core/entry/parse';
 import { recordEntrySuccess } from '@/services/entryStats';
 import { analytics } from '@/services/analytics';
+import { reserveEligible } from '@/core/reserve';
 
 export type EntryMethod = 'voice' | 'text_phrase' | 'quick_manual' | 'full_form';
 export const UNDO_MS = 5000;
@@ -79,6 +80,8 @@ export function useEntrySave() {
             note: null,
           });
           ids.push(tx.id);
+          // « Prendre sur la réserve ? » accepté sur la carte : utilisation liée à l'opération.
+          if (d.reserveId && d.type === 'expense' && reserveEligible(d.categoryId)) actions.takeFromReserve(tx.id, d.reserveId);
         }
       } catch (e) {
         // Échec en cours de route : rien de partiel (les lignes déjà créées sont retirées).

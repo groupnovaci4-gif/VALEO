@@ -58,3 +58,51 @@ describe('permissions familiales (miroir des règles Firestore)', () => {
     expect(canChangeRole(s, 'b', 'a', null)).toBe(false);
   });
 });
+
+describe('réserve famille et cérémonies : formules (1.6)', () => {
+  it('prix inchangés : 0, 1 500 et 3 000 FCFA', async () => {
+    const { PLANS } = await import('../src/core/subscription');
+    expect([PLANS.free.priceXof, PLANS.plus.priceXof, PLANS.family.priceXof]).toEqual([0, 1500, 3000]);
+  });
+  it('droits existants inchangés (non-régression)', async () => {
+    const { PLANS } = await import('../src/core/subscription');
+    expect(PLANS.free.limits.goals).toBe(2);
+    expect(PLANS.plus.limits.goals).toBe(20);
+    for (const f of ['export'] as const) expect(hasFeature('free', f)).toBe(true);
+    for (const f of ['ai_assistant', 'auto_budget', 'multiple_goals', 'advanced_insights', 'family', 'multiple_accounts', 'voice_premium', 'voice_entry_unlimited'] as const) {
+      expect(hasFeature('free', f)).toBe(false);
+      expect(hasFeature('plus', f)).toBe(true);
+      expect(hasFeature('family', f)).toBe(true);
+    }
+    for (const f of ['family_advanced', 'net_worth', 'advanced_reports'] as const) expect([hasFeature('plus', f), hasFeature('family', f)]).toEqual([false, true]);
+  });
+  it('gratuit : 1 réserve, 3 simulations par mois, 1 moment fort', () => {
+    expect(withinLimit('free', 'reserves', 0)).toBe(true);
+    expect(withinLimit('free', 'reserves', 1)).toBe(false);
+    expect(withinLimit('free', 'simulationsPerMonth', 2)).toBe(true);
+    expect(withinLimit('free', 'simulationsPerMonth', 3)).toBe(false);
+    expect(withinLimit('free', 'seasons', 0)).toBe(true);
+    expect(withinLimit('free', 'seasons', 1)).toBe(false);
+    for (const f of ['reserve_multiple', 'contribution_simulator', 'seasonal_planning', 'family_reserve'] as const) expect(hasFeature('free', f)).toBe(false);
+  });
+  it('Plus : réserves multiples, simulateur et moments forts sans limite ; pas de réserve familiale', () => {
+    for (const f of ['reserve_multiple', 'contribution_simulator', 'seasonal_planning'] as const) expect(hasFeature('plus', f)).toBe(true);
+    expect(hasFeature('plus', 'family_reserve')).toBe(false);
+    expect(withinLimit('plus', 'reserves', 50)).toBe(true);
+    expect(withinLimit('plus', 'simulationsPerMonth', 500)).toBe(true);
+    expect(withinLimit('plus', 'seasons', 50)).toBe(true);
+  });
+  it('Famille : tout, dont la réserve partagée dans l’espace familial', () => {
+    for (const f of ['reserve_multiple', 'contribution_simulator', 'seasonal_planning', 'family_reserve'] as const) expect(hasFeature('family', f)).toBe(true);
+    expect(minimumPlanFor('family_reserve')).toBe('family');
+    expect(minimumPlanFor('reserve_multiple')).toBe('plus');
+  });
+  it('utiliser une réserve : admin et conjoint, jamais l’enfant ; l’enfant peut apporter', async () => {
+    const { canUseReserve } = await import('../src/core/permissions');
+    expect(canUseReserve('admin')).toBe(true);
+    expect(canUseReserve('partner')).toBe(true);
+    expect(canUseReserve('child')).toBe(false);
+    expect(canUseReserve(null)).toBe(false);
+    expect(can('child', 'create', 'goalContributions')).toBe(true);
+  });
+});

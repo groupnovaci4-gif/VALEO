@@ -7,7 +7,9 @@
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useI18n } from '@/i18n';
-import { useCategoryLabels, useMoney } from '@/hooks/useFinance';
+import { useCategoryLabels, useFinance, useMoney } from '@/hooks/useFinance';
+import { ReserveUseToggle } from '@/features/reserve/ReserveUseToggle';
+import { reserveBalance } from '@/core/reserve';
 import { AmountField, Button, Chip, ChipGroup, DateField, Icon, Text } from '@/components/ui';
 import { useTheme } from '@/theme';
 import type { EntryDraft, EntryField } from '@/core/entry/parse';
@@ -41,6 +43,15 @@ export function ConfirmCard({
   const cats = useCategoryLabels();
   const [editing, setEditing] = useState<Editing>(null);
   const missingAmount = drafts.some((d) => !d.amount || d.amount <= 0);
+  const { data } = useFinance();
+  // Plusieurs lignes sur la même réserve : chacune voit le solde laissé par les précédentes.
+  const taken: Record<string, number> = {};
+  const takenBefore = drafts.map((d) => {
+    const prev = d.reserveId ? (taken[d.reserveId] ?? 0) : 0;
+    const g = d.reserveId ? data.goals.find((x) => x.id === d.reserveId) : undefined;
+    if (g && d.reserveId && d.amount) taken[d.reserveId] = prev + Math.min(d.amount, Math.max(0, reserveBalance(g, data.goalContributions) - prev));
+    return prev;
+  });
 
   /** Modification d'un champ : il est alors confirmé (n'est plus surligné). */
   const patch = (i: number, p: Partial<EntryDraft>, confirmed: EntryField[]) =>
@@ -94,6 +105,7 @@ export function ConfirmCard({
               {field('account', t('entry.field.account'), acc?.name ?? t('entry.confirm.accountAuto'), acc?.icon ?? 'wallet-outline')}
               {field('date', t('entry.field.date'), date(d.date), 'calendar-outline')}
             </View>
+            <ReserveUseToggle type={d.type} categoryId={d.categoryId} amount={d.amount} value={d.reserveId ?? null} alreadyTaken={takenBefore[i]} onChange={(reserveId) => patch(i, { reserveId }, [])} />
             {d.uncertain.length ? (
               <Text variant="caption" tone="warning">
                 {t('entry.confirm.check', { fields: d.uncertain.map((f) => t(`entry.field.${f}`)).join(', ') })}

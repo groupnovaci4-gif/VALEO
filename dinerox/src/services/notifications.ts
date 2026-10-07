@@ -100,9 +100,20 @@ export async function ensurePermission(): Promise<boolean> {
 }
 
 type Translate = (
-  key: 'notif.savingsReminder.title' | 'notif.savingsReminder.body' | 'notif.weekly.title' | 'notif.weekly.body' | 'notif.monthly.title' | 'notif.monthly.body' | 'notif.debtDue.title' | 'notif.debtDue.body' | 'notif.entry.title' | 'notif.entry.body',
+  key: 'notif.savingsReminder.title' | 'notif.savingsReminder.body' | 'notif.weekly.title' | 'notif.weekly.body' | 'notif.monthly.title' | 'notif.monthly.body' | 'notif.debtDue.title' | 'notif.debtDue.body' | 'notif.entry.title' | 'notif.entry.body' | 'notif.reserve.title' | 'notif.reserve.body',
   params?: Record<string, string | number>,
 ) => string;
+
+/**
+ * Rappel daté déjà calculé par un module pur (réserve, moments forts…). Texte
+ * SOBRE : jamais de bénéficiaire, de décès ni de montant (écran verrouillé).
+ */
+export interface DatedReminder {
+  date: Date;
+  title: string;
+  body: string;
+  url: string;
+}
 
 /** Chemin ouvert par le rappel du soir : la saisie vocale. */
 export const ENTRY_REMINDER_URL = '/entry?mode=voice&from=reminder';
@@ -117,6 +128,8 @@ export async function scheduleLocalNotifications(
   formatDate: (d: string) => string,
   /** Rappels du soir (dates calculées par core/entry/reminder). */
   entryReminders: Date[] = [],
+  /** Rappels datés (réserve, moments forts). */
+  dated: DatedReminder[] = [],
 ): Promise<void> {
   const Notifications = getNotifications();
   if (!Notifications || !(await ensurePermission())) return;
@@ -146,6 +159,10 @@ export async function scheduleLocalNotifications(
       content: { title: t('notif.entry.title'), body: t('notif.entry.body'), data: { url: ENTRY_REMINDER_URL } },
       trigger: { type: T.DATE, date: when },
     });
+  }
+  for (const r of dated) {
+    if (r.date.getTime() <= Date.now()) continue;
+    await Notifications.scheduleNotificationAsync({ content: { title: r.title, body: r.body, data: { url: r.url } }, trigger: { type: T.DATE, date: r.date } });
   }
   if (prefs.debtDue) {
     const now = today();

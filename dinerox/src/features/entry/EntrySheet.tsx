@@ -33,6 +33,8 @@ import { readEntryStats, voiceToday } from '@/services/entryStats';
 import { stopVoice } from '@/services/voice';
 import { analytics } from '@/services/analytics';
 import { ActionError } from '@/store/actions';
+import { activeReserves, reserveBalance, reserveEligible } from '@/core/reserve';
+import { canUseReserve } from '@/core/permissions';
 import { ConfirmCard } from './ConfirmCard';
 import { useEntrySave, type EntryMethod } from './useEntrySave';
 import { useEntryStats } from './useEntryStats';
@@ -68,7 +70,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const fmt = useFormatParams();
   const cats = useCategoryLabels();
   const quick = useQuickAdd();
-  const { plan, profile, user } = useApp();
+  const { plan, profile, user, role } = useApp();
   const { data, currency, now } = useFinance();
   const stats = useEntryStats();
   const { saveDrafts } = useEntrySave();
@@ -217,8 +219,16 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       return;
     }
     const cat = data.categories.find((c) => c.id === categoryId);
+    const draft: EntryDraft = { type, amount: quickAmount, categoryId: cat?.parentId ?? categoryId, subcategoryId: cat?.parentId ? categoryId : null, accountId: defaultAccountId, date: now, payee: null, uncertain: [], source: '' };
+    // Dépense famille ou cérémonie avec une réserve non vide : la carte de confirmation
+    // propose « Prendre sur la réserve ? » (sinon, enregistrement direct comme avant).
+    const offerReserve = type === 'expense' && reserveEligible(draft.categoryId) && canUseReserve(role) && activeReserves(data.goals, currency as CurrencyCode).some((g) => reserveBalance(g, data.goalContributions) > 0);
+    if (offerReserve) {
+      setView({ kind: 'confirm', drafts: [draft], method: 'quick_manual', text: '', edited: false });
+      return;
+    }
     try {
-      saveDrafts([{ type, amount: quickAmount, categoryId: cat?.parentId ?? categoryId, subcategoryId: cat?.parentId ? categoryId : null, accountId: defaultAccountId, date: now, payee: null, uncertain: [], source: '' }], 'quick_manual');
+      saveDrafts([draft], 'quick_manual');
       onClose();
     } catch (e) {
       toast.show(e instanceof ActionError && e.code === 'permission' ? t('error.permission') : t('error.generic'), 'error');

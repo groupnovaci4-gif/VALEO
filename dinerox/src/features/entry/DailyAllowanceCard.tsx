@@ -30,6 +30,12 @@ export function DailyAllowanceCard({ hidden }: { hidden?: boolean }) {
       </Card>
     );
   }
+  // Dépenses prises sur une réserve : déjà mises de côté, elles ne réduisent pas le reste par jour.
+  const covered = r.reserveCovered > 0 ? (
+    <Text variant="caption" tone="subtle" style={{ marginTop: 2 }}>
+      {t('daily.reserveCovered', { amount: show(r.reserveCovered) })}
+    </Text>
+  ) : null;
   const detail = t('daily.detail', { income: show(r.income), expenses: show(r.expenses), upcoming: show(r.upcomingRecurring + r.goalsRemaining) });
   if (r.status === 'deficit') {
     return (
@@ -40,6 +46,7 @@ export function DailyAllowanceCard({ hidden }: { hidden?: boolean }) {
         <Text variant="caption" tone="subtle" style={{ marginTop: 6 }}>
           {detail}
         </Text>
+        {covered}
         {r.incomeSource === 'declared' ? <View style={{ marginTop: 6 }}><SourceTag source="declared" /></View> : null}
       </Card>
     );
@@ -57,6 +64,7 @@ export function DailyAllowanceCard({ hidden }: { hidden?: boolean }) {
       <Text variant="caption" tone="subtle" style={{ marginTop: 6 }}>
         {detail}
       </Text>
+      {covered}
       {r.incomeSource === 'declared' ? <View style={{ marginTop: 6 }}><SourceTag source="declared" /></View> : null}
     </Card>
   );

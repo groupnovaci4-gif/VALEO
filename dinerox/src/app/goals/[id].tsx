@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRunAction } from '@/hooks/useRunAction';
 import { Alert, Modal, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { isReserve } from '@/core/reserve';
 import { useTheme } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
@@ -39,6 +40,8 @@ function GoalDetail() {
     if (celebrate) void checkRewards({ overlay: false }).catch(() => undefined);
   }, [celebrate, checkRewards]);
 
+  // Une réserve a sa propre fiche (solde, utilisations, qui) : tous les liens y mènent.
+  if (goal && isReserve(goal)) return <Redirect href={`/reserve/${goal.id}`} />;
   if (!goal || !plan) {
     return (
       <Screen back>

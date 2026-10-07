@@ -79,15 +79,33 @@ describe('reste par jour', () => {
     expect(r.status === 'ok' && r.upcomingRecurring).toBe(3_000);
   });
 
-  it('contributions d’objectifs prévues restantes, moins ce qui est déjà versé ce mois-ci', () => {
+  // 1.6 : avant, la part déjà versée n'était plus déduite — mettre 20 000 de côté
+  // faisait MONTER le reste par jour de 20 000. La mise de côté prévue est désormais
+  // déduite tout le mois, versée ou non.
+  it('mise de côté prévue du mois déduite tout le mois, versée ou non (verser ne fait pas monter le reste par jour)', () => {
     const g = goal({ id: 'g1', targetAmount: 1_000_000, monthlyContribution: 50_000 });
-    const r = dailyAllowance({
-      data: { ...empty, transactions: [tx({ type: 'income', amount: 300_000, accountId: 'a', date: '2026-10-01' })], goals: [g], goalContributions: [contrib({ amount: 20_000, date: '2026-10-02' }), contrib({ id: 'old', amount: 50_000, date: '2026-09-02' })] },
+    const income = tx({ type: 'income', amount: 300_000, accountId: 'a', date: '2026-10-01' });
+    const before = dailyAllowance({ data: { ...empty, transactions: [income], goals: [g], goalContributions: [contrib({ id: 'old', amount: 50_000, date: '2026-09-02' })] }, currency: 'XOF', today: '2026-10-15' });
+    const after = dailyAllowance({
+      data: { ...empty, transactions: [income], goals: [g], goalContributions: [contrib({ amount: 20_000, date: '2026-10-02' }), contrib({ id: 'old', amount: 50_000, date: '2026-09-02' })] },
       currency: 'XOF',
       today: '2026-10-15',
     });
-    expect(r.status === 'ok' && r.goalsRemaining).toBe(30_000);
-    expect(r.status === 'ok' && r.available).toBe(270_000);
+    expect(before.status === 'ok' && before.goalsRemaining).toBe(50_000);
+    expect(after.status === 'ok' && after.goalsRemaining).toBe(50_000);
+    expect(after.status === 'ok' && after.available).toBe(250_000);
+    expect(before.status === 'ok' && after.status === 'ok' && after.perDay).toBe(before.status === 'ok' ? before.perDay : -1);
+  });
+
+  it('mise de côté bornée à ce qu’il restait à épargner au début du mois', () => {
+    const g = goal({ id: 'g1', targetAmount: 100_000, initialAmount: 0, monthlyContribution: 50_000 });
+    const r = dailyAllowance({
+      data: { ...empty, transactions: [tx({ type: 'income', amount: 300_000, accountId: 'a', date: '2026-10-01' })], goals: [g], goalContributions: [contrib({ id: 'old', amount: 80_000, date: '2026-09-02' }), contrib({ amount: 20_000, date: '2026-10-02' })] },
+      currency: 'XOF',
+      today: '2026-10-15',
+    });
+    // Il restait 20 000 au 1er octobre (atteint depuis) : 20 000 déduits, pas 50 000.
+    expect(r.status === 'ok' && r.goalsRemaining).toBe(20_000);
   });
 
   it('autre devise ignorée (aucune conversion)', () => {

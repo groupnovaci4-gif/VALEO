@@ -17,6 +17,8 @@ import { GoalCard, SpaceSwitcher } from '@/features/rows';
 import { allocateCapacity, goalPlanFor, sortGoals } from '@/core/goals';
 import { observedCapacity } from '@/core/intelligence';
 import { can } from '@/core/permissions';
+import { isReserve } from '@/core/reserve';
+import { ReserveSection } from '@/features/reserve/ReserveSection';
 
 export default function Goals() {
   const { t } = useI18n();
@@ -27,12 +29,14 @@ export default function Goals() {
   const actions = useActions();
   const run = useRunAction();
   const { data, now, currency, insights } = useFinance();
-  const active = useMemo(() => sortGoals(data.goals.filter((g) => g.status === 'active' || g.status === 'paused')), [data.goals]);
-  const closed = useMemo(() => data.goals.filter((g) => g.status === 'completed' || g.status === 'archived' || g.status === 'abandoned'), [data.goals]);
+  // Les réserves ont leur propre section (au-dessus) : hors liste, totaux et répartition des objectifs.
+  const goalsOnly = useMemo(() => data.goals.filter((g) => !isReserve(g)), [data.goals]);
+  const active = useMemo(() => sortGoals(goalsOnly.filter((g) => g.status === 'active' || g.status === 'paused')), [goalsOnly]);
+  const closed = useMemo(() => goalsOnly.filter((g) => g.status === 'completed' || g.status === 'archived' || g.status === 'abandoned'), [goalsOnly]);
   const detected = useMemo(() => observedCapacity(data, currency, now), [data, currency, now]);
   const [capacity, setCapacity] = useState<number | null>(null);
   const cap = capacity ?? (detected && detected > 0 ? detected : null);
-  const allocation = useMemo(() => (cap ? allocateCapacity(cap, data.goals, data.goalContributions, now, 1000, currency) : []), [cap, data.goals, data.goalContributions, now, currency]);
+  const allocation = useMemo(() => (cap ? allocateCapacity(cap, goalsOnly, data.goalContributions, now, 1000, currency) : []), [cap, goalsOnly, data.goalContributions, now, currency]);
   const suggestions = insights.filter((i) => i.kind === 'suggest_emergency_fund' || i.kind === 'suggest_goal_capacity' || i.kind === 'savings_capacity');
   const canCreate = can(role, 'create', 'goals');
   const canEdit = can(role, 'update', 'goals');
@@ -129,6 +133,8 @@ export default function Goals() {
           </View>
         </View>
       ) : null}
+
+      <ReserveSection />
 
       {canCreate ? <Button full icon="add-circle-outline" label={t('goal.createNew')} onPress={() => router.push('/goals/new')} style={{ marginBottom: 6 }} /> : null}
 
