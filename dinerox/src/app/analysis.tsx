@@ -70,6 +70,7 @@ function Analysis() {
 
       <SectionHeader title={t('intel.tools')} />
       <Card padded={false} style={{ paddingHorizontal: 14 }}>
+        <Row title={t('score.cta')} subtitle={t('score.ctaSub')} chevron onPress={() => router.push('/score')} />
         <Row title={t('cal.title')} subtitle={t('cal.sub')} chevron onPress={() => router.push('/calendar')} />
         <Row title={t('fi.title')} subtitle={t('fi.sub')} chevron onPress={() => router.push('/independence')} />
         <Row title={t('budget.personal')} subtitle={t('budget.personalSub')} chevron onPress={() => router.push('/budget/auto')} />

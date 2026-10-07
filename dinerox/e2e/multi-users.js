@@ -81,7 +81,9 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   await signUp(d1.p, B);
   s = await sees(d1.p, A);
   ok(!s.payee && !s.amount && !s.goal, 'B (même appareil) : AUCUNE donnée de A visible (opérations, montants, objectif)');
-  ok((await H(d1.p).text()).includes('Bonjour Bakary') && !(await H(d1.p).text()).includes('Adjoua'), 'B : profil de B, aucun nom de A');
+  const homeB = await H(d1.p).text();
+  if (!homeB.includes('Bonjour Bakary') || homeB.includes('Adjoua')) { console.log('DBG-B', JSON.stringify(homeB.slice(0, 900))); await d1.p.screenshot({ path: `${S}/multi-B-home.png` }); }
+  ok(homeB.includes('Bonjour Bakary') && !homeB.includes('Adjoua'), 'B : profil de B, aucun nom de A');
   await addData(d1.p, B);
   const sb = await sees(d1.p, B);
   ok(sb.payee && sb.amount && sb.goal, 'B : ses propres données sont enregistrées');
