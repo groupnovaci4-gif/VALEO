@@ -46,6 +46,7 @@ function AccountDetail() {
             <Text variant="caption" tone="subtle" style={{ marginTop: 8 }}>
               {t('acc.manualNotice')}
             </Text>
+            {txs.length ? <Button small variant="ghost" icon="list-outline" label={t('history.openFiltered')} onPress={() => router.push(`/transactions?from=account&accountId=${account.id}`)} style={{ marginTop: 6, alignSelf: 'flex-start' }} /> : null}
           </Card>
         }
         renderItem={({ item }) => <TransactionRow tx={item} />}

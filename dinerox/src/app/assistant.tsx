@@ -32,6 +32,7 @@ import { askRemoteAssistant, resolveAccountHint } from '@/services/ai';
 import { analytics } from '@/services/analytics';
 import { brand } from '@/config/brand';
 import { ListenButton } from '@/features/coach/ListenButton';
+import { goBack } from '@/hooks/goBack';
 import { speechInput } from '@/services/speechInput';
 
 type Proposal =
@@ -288,15 +289,18 @@ export default function Assistant() {
   };
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}>
-        <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
-          <Text variant="h2" accessibilityRole="header">
-            {t('ai.title')}
-          </Text>
-          <Text variant="caption" tone="subtle">
-            {t('ai.disclaimer')}
-          </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 4, paddingRight: 16, paddingVertical: 6 }}>
+          <IconButton icon="chevron-back" label={t('common.back')} onPress={goBack} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="h2" accessibilityRole="header">
+              {t('ai.title')}
+            </Text>
+            <Text variant="caption" tone="subtle">
+              {t('ai.disclaimer')}
+            </Text>
+          </View>
         </View>
         <FlatList
           ref={listRef}
@@ -368,7 +372,7 @@ export default function Assistant() {
             </View>
           )}
         />
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 12, paddingBottom: 90, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
           <TextInput
             maxFontSizeMultiplier={1.3}
             value={input}

@@ -38,6 +38,7 @@ export default function More() {
       title: 'more.money',
       aside: '',
       items: [
+        { key: 'history.menu', sub: 'more.sub.history', icon: 'list', color: colors.primary, path: '/transactions?from=more' },
         { key: 'acc.title', sub: 'more.sub.accounts', icon: 'wallet', color: colors.primary, path: '/accounts' },
         { key: 'sav.title', sub: 'more.sub.savings', icon: 'cash', color: colors.primary, path: '/savings' },
         { key: 'debt.title', sub: 'more.sub.debts', icon: 'receipt', color: colors.danger, path: '/debts', show: can(role, 'read', 'debts') },
@@ -49,6 +50,7 @@ export default function More() {
       title: 'more.intelligence',
       aside: '',
       items: [
+        { key: 'ai.title', sub: 'more.sub.assistant', icon: 'chatbubble-ellipses', color: colors.secondary, path: '/assistant' },
         { key: 'intel.title', sub: 'intel.sub', icon: 'analytics', color: colors.primary, path: '/analysis' },
         { key: 'cal.title', sub: 'cal.sub', icon: 'calendar', color: colors.info, path: '/calendar' },
         { key: 'fi.title', sub: 'fi.sub', icon: 'trending-up', color: colors.secondary, path: '/independence' },

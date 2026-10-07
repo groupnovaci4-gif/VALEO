@@ -19,7 +19,7 @@ import { minimumPlanFor, type Feature } from '@/core/subscription';
 import { findGoalCategory } from '@/core/goalCategories';
 import { ListenButton } from '@/features/coach/ListenButton';
 
-export function TransactionRow({ tx, onPress }: { tx: Transaction; onPress?: () => void }) {
+export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx: Transaction; onPress?: () => void; onLongPress?: () => void; longPressHint?: string }) {
   const { colors } = useTheme();
   const { t, date } = useI18n();
   const money = useMoney();
@@ -41,6 +41,8 @@ export function TransactionRow({ tx, onPress }: { tx: Transaction; onPress?: () 
         </Text>
       }
       onPress={onPress ?? (() => router.push(`/transaction/${tx.id}`))}
+      onLongPress={onLongPress}
+      accessibilityHint={longPressHint}
     />
   );
 }

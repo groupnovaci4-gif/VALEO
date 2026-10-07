@@ -14,6 +14,8 @@ import { ToastProvider, Button, Text } from '@/components/ui';
 import { LockGate } from '@/components/LockGate';
 import { Bootstrap } from '@/components/Bootstrap';
 import { CoachProvider } from '@/features/coach/CoachProvider';
+import { QuickAddProvider } from '@/features/QuickAdd';
+import { EntryProvider } from '@/features/entry/EntryProvider';
 import { listenNotificationTaps } from '@/services/notifications';
 import { installWebAlert } from '@/services/webAlert';
 
@@ -88,13 +90,18 @@ function Navigator() {
       <LockGate>
         <Bootstrap />
         <CoachProvider>
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="transaction/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-            <Stack.Screen name="goals/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-          </Stack>
+          {/* Saisie (micro, clavier, phrase) : disponible depuis la barre, l'accueil, l'Historique, une notification. */}
+          <QuickAddProvider>
+            <EntryProvider>
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen name="transaction/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+                <Stack.Screen name="goals/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+              </Stack>
+            </EntryProvider>
+          </QuickAddProvider>
         </CoachProvider>
       </LockGate>
     </View>

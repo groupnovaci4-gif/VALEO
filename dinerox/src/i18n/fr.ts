@@ -1220,6 +1220,23 @@ export const fr = {
 
   // Démo
   'demo.space': 'Démo',
+  'entry.mic': "Saisir",
+  'entry.mic.label': "Dicter une opération",
+  'entry.mic.hint': "Appui long : saisir au clavier",
+  'history.title': "Historique",
+  'history.menu': "Historique des opérations",
+  'more.sub.history': "Toutes vos opérations : filtres, recherche, totaux",
+  'more.sub.assistant': "Questions et saisie en langage courant",
+  'history.allMonths': "Tous les mois",
+  'history.allAccounts': "Tous les comptes",
+  'history.allCategories': "Toutes les catégories",
+  'history.total': "Période affichée : {count} opération(s)",
+  'history.in': "Entrées {amount}",
+  'history.out': "Sorties {amount}",
+  'history.net': "Solde {amount}",
+  'history.longPressHint': "Appui long pour supprimer",
+  'history.clearFilters': "Effacer les filtres",
+  'history.openFiltered': "Voir dans l'historique",
 } as const;
 
 export type TKey = keyof typeof fr;

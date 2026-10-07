@@ -157,8 +157,8 @@ export default function Home() {
       {/* Mois en cours */}
       <SectionHeader title={t('home.month')} action={monthLabel} onAction={() => router.push('/reports')} />
       <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
-        <Stat label={t('home.stat.income')} sub={t('home.stat.income.sub')} value={show(flows.income)} tone="income" icon="arrow-down" onPress={() => router.push('/transactions')} />
-        <Stat label={t('home.stat.expense')} sub={t('home.stat.expense.sub')} value={show(flows.expense)} tone="expense" icon="arrow-up" onPress={() => router.push('/transactions')} />
+        <Stat label={t('home.stat.income')} sub={t('home.stat.income.sub')} value={show(flows.income)} tone="income" icon="arrow-down" onPress={() => router.push('/transactions?from=home')} />
+        <Stat label={t('home.stat.expense')} sub={t('home.stat.expense.sub')} value={show(flows.expense)} tone="expense" icon="arrow-up" onPress={() => router.push('/transactions?from=home')} />
       </View>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Stat label={t('home.stat.savings')} sub={t('home.stat.savings.sub')} value={show(position.savings)} tone="ai" icon="wallet" onPress={() => router.push('/savings')} />
@@ -202,7 +202,7 @@ export default function Home() {
         </Card>
       )}
 
-      <SectionHeader title={t('home.recent')} action={recent.length ? t('common.seeAll') : undefined} onAction={() => router.push('/transactions')} />
+      <SectionHeader title={t('home.recent')} action={recent.length ? t('common.seeAll') : undefined} onAction={() => router.push('/transactions?from=home')} />
       <Card>
         {recent.length ? (
           recent.map((tx) => <TransactionRow key={tx.id} tx={tx} />)

@@ -11,6 +11,8 @@ export function Row({
   left,
   right,
   onPress,
+  onLongPress,
+  accessibilityHint,
   chevron,
   danger,
 }: {
@@ -19,6 +21,9 @@ export function Row({
   left?: React.ReactNode;
   right?: React.ReactNode;
   onPress?: () => void;
+  /** Action secondaire (ex. suppression avec confirmation) ; annoncée par `accessibilityHint`. */
+  onLongPress?: () => void;
+  accessibilityHint?: string;
   chevron?: boolean;
   danger?: boolean;
 }) {
@@ -42,7 +47,7 @@ export function Row({
   );
   if (!onPress) return content;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={subtitle ? `${title}, ${subtitle}` : title} onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+    <Pressable accessibilityRole="button" accessibilityLabel={subtitle ? `${title}, ${subtitle}` : title} accessibilityHint={accessibilityHint} onPress={onPress} onLongPress={onLongPress} delayLongPress={450} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
       {content}
     </Pressable>
   );

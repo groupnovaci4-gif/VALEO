@@ -55,7 +55,7 @@ function EnvelopeDetail() {
           summary={history.map((h) => `${short(h.month)} ${money(h.spent)} / ${money(h.budget)}`).join(', ')}
         />
       </Card>
-      <SectionHeader title={t('tx.title')} />
+      <SectionHeader title={t('tx.title')} action={t('history.title')} onAction={() => router.push('/transactions?from=envelope')} />
       <Card>{txs.length ? txs.map((tx) => <TransactionRow key={tx.id} tx={tx} />) : <EmptyState title={t('tx.empty.title')} />}</Card>
     </Screen>
   );
