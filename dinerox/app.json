@@ -1,3 +1,10 @@
 {
-  "expo": {}
+  "expo": {
+    "owner": "valeonova",
+    "extra": {
+      "eas": {
+        "projectId": "ae5ec4db-abd8-490c-91e5-440a48aee076"
+      }
+    }
+  }
 }
