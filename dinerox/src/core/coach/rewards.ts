@@ -69,6 +69,26 @@ function budgetRespect(ctx: RewardContext): number | null {
 
 const earnedIn = (history: RewardRecord[], id: string, month: MonthKey) => history.some((r) => r.rewardId === id && r.period === month);
 
+/** Saisie régulière : jours du mois où au moins une opération a été SAISIE. */
+export const REGULAR_ENTRY_DAYS = 20;
+
+/**
+ * Jours distincts du mois où l'utilisateur a saisi au moins une opération. On
+ * compte le jour de la SAISIE (`createdAt`), pas la date de l'opération : 20
+ * opérations antidatées saisies le même soir ne font pas une habitude. Les
+ * récurrences générées automatiquement ne comptent pas.
+ */
+export function entryDaysInMonth(data: Pick<SpaceData, 'transactions'>, month: MonthKey): number {
+  const days = new Set<string>();
+  for (const t of data.transactions) {
+    if (t.deleted || t.recurringId || !t.createdAt) continue;
+    const d = new Date(t.createdAt);
+    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (day.slice(0, 7) === month) days.add(day);
+  }
+  return days.size;
+}
+
 export const REWARDS: RewardDefinition[] = [
   {
     id: 'budget_master',
@@ -181,6 +201,19 @@ export const REWARDS: RewardDefinition[] = [
       const b = REWARDS[0].evaluate(ctx)[0];
       const s = REWARDS[1].evaluate(ctx)[0];
       return [{ earned: b.earned && s.earned, progress: (b.progress + s.progress) / 2 }];
+    },
+  },
+  {
+    id: 'regular_entry',
+    nameKey: 'reward.regular_entry.name',
+    descKey: 'reward.regular_entry.desc',
+    icon: 'create',
+    tier: 'bronze',
+    scope: 'month',
+    messageKey: 'reward.regular_entry.message',
+    evaluate(ctx) {
+      const days = entryDaysInMonth(ctx.data, ctx.month);
+      return [{ earned: enoughOps(ctx) && days >= REGULAR_ENTRY_DAYS, progress: clamp(days / REGULAR_ENTRY_DAYS) }];
     },
   },
 ];

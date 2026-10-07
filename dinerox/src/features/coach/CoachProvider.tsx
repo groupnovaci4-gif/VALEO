@@ -75,9 +75,9 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Valeurs courantes lues par les gestionnaires asynchrones.
-  const latest = useRef({ engine, uid: user?.uid ?? null, profile, mode, currency, label: labels.label, toast, text, spaceId: activeSpace?.id ?? null });
+  const latest = useRef({ engine, uid: user?.uid ?? null, profile, mode, currency, label: labels.label, toast, text, spaceId: activeSpace?.id ?? null, spaceKind: activeSpace?.kind ?? null });
   useEffect(() => {
-    latest.current = { engine, uid: user?.uid ?? null, profile, mode, currency, label: labels.label, toast, text, spaceId: activeSpace?.id ?? null };
+    latest.current = { engine, uid: user?.uid ?? null, profile, mode, currency, label: labels.label, toast, text, spaceId: activeSpace?.id ?? null, spaceKind: activeSpace?.kind ?? null };
   });
 
   /** Applique la politique puis présente : texte (toujours), son et voix (phase 3). */
@@ -130,8 +130,9 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
   // ─── Récompenses ─────────────────────────────────────────────────────
   /** Nouvelles récompenses → enregistrées + événements de célébration (même politique que le reste). */
   const awardRewards = useCallback(async (overlay: boolean): Promise<CoachEvent[]> => {
-    const { engine: e, uid, profile: p, mode: m, currency: cur, spaceId, text: txt } = latest.current;
-    if (!e || !uid || !spaceId || !e.isLoaded(spaceId)) return [];
+    const { engine: e, uid, profile: p, mode: m, currency: cur, spaceId, spaceKind, text: txt } = latest.current;
+    // Récompenses PERSONNELLES : évaluées sur l'espace personnel uniquement, jamais sur un espace familial.
+    if (!e || !uid || !spaceId || spaceKind !== 'personal' || !e.isLoaded(spaceId)) return [];
     const online = m === 'firebase';
     const history = await loadRewards(uid, online);
     const fresh = evaluateRewards({ data: e.getData(spaceId), currency: cur, month: monthToEvaluate(today()), history }, Date.now()).map((r) => ({ ...r, spaceId }));
@@ -184,7 +185,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
       ...env.alerts.map((a) => fromEnvelopeAlert(a, spaceId, p.firstName, now)),
       ...fromInsights(computeInsights({ data, currency: cur, now: day, categoryName: label }), spaceId, month, now),
       ...fromRecommendations(recommendations(snap, data.goals), spaceId, month, now),
-      ...detectPositiveEvents(data, cur, day, spaceId, now),
+      ...detectPositiveEvents(data, cur, day, spaceId, now, (id) => label(data.categories.find((c) => c.id === id), id)),
       ...(await awardRewards(true)),
     ];
     await deliver(events, 'open');

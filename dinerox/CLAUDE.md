@@ -89,7 +89,8 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     d'enregistrement sans « Tout valider », un champ incertain est surligné,
     jamais deviné. Le vocabulaire local vit dans `core/entry/vocabulary.json`
     (données) ; une unité argotique reste inactive tant que le fondateur ne
-    l'a pas validée. La voix du coach se tait quand le micro s'ouvre.
+    l'a pas validée. La voix du coach se tait quand le micro s'ouvre
+    (`services/voice/micGate.ts` : ni voix ni son micro ouvert).
     Événements d'usage : propriétés de `core/analyticsProps.ts` uniquement
     (jamais de montant, texte, bénéficiaire ni catégorie). Limite vocale
     gratuite : `FREE_VOICE_ENTRIES_PER_DAY`. « Reste par jour » :

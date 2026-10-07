@@ -78,3 +78,26 @@ describe('récompenses', () => {
     expect(ids(evaluateRewards({ data: data(month('2026-09', 3), { goals: [fresh], goalContributions: [c] }), currency: 'XOF', month: '2026-09', history: [] }, 1))).toEqual(['emergency_fund:fund']);
   });
 });
+
+describe('saisie régulière (Lot B)', () => {
+  const at = (day: string, h = 20) => new Date(`${day}T${String(h).padStart(2, '0')}:00:00`).getTime();
+  /** Une opération SAISIE chaque jour listé (createdAt = jour de saisie). */
+  const typed = (days: number[]) => days.map((d) => tx({ type: 'expense', amount: 500, accountId: 'a', categoryId: 'cat_food', date: `2026-09-${String(d).padStart(2, '0')}`, createdAt: at(`2026-09-${String(d).padStart(2, '0')}`) }));
+  const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+  it('20 jours de saisie dans le mois : récompense attribuée', () => {
+    expect(ids(evaluateRewards({ data: data(typed(range(1, 20))), currency: 'XOF', month: '2026-09', history: [] }, 1))).toContain('regular_entry:2026-09');
+  });
+  it('19 jours : pas encore (progression 95 %)', () => {
+    const d = data(typed(range(1, 19)));
+    expect(ids(evaluateRewards({ data: d, currency: 'XOF', month: '2026-09', history: [] }, 1))).not.toContain('regular_entry:2026-09');
+    expect(rewardProgress({ data: d, currency: 'XOF', month: '2026-09', history: [] }).regular_entry).toBeCloseTo(0.95);
+  });
+  it('anti-triche : 25 opérations antidatées saisies le même soir ne comptent que pour 1 jour', () => {
+    const same = range(1, 25).map((d) => tx({ type: 'expense', amount: 500, accountId: 'a', categoryId: 'cat_food', date: `2026-09-${String(d).padStart(2, '0')}`, createdAt: at('2026-09-30') }));
+    expect(ids(evaluateRewards({ data: data(same), currency: 'XOF', month: '2026-09', history: [] }, 1))).not.toContain('regular_entry:2026-09');
+  });
+  it('récurrences générées automatiquement : ne comptent pas comme saisies', () => {
+    const auto = typed(range(1, 20)).map((t) => ({ ...t, recurringId: 'rec1' }));
+    expect(ids(evaluateRewards({ data: data(auto), currency: 'XOF', month: '2026-09', history: [] }, 1))).not.toContain('regular_entry:2026-09');
+  });
+});

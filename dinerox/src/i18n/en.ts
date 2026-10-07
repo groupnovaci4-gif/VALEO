@@ -1323,4 +1323,10 @@ export const en: Record<TKey, string> = {
   'admin.entry.correction': "Voice entries corrected before saving",
   'admin.entry.failed': "Speech recognition failures",
   'admin.entry.reminder': "Evening reminders opened",
+  'coach.pos.category_down': "Well done: your “{category}” spending dropped by {percent}% last month compared with your average.",
+  'reward.regular_entry.name': "Regular tracking",
+  'reward.regular_entry.desc': "Record your transactions on at least 20 days in the month.",
+  'reward.regular_entry.message': "Well done {name}! You recorded your transactions almost every day last month. That's the foundation of good tracking, keep it up!",
+  'score.personalOnly': "Your score is personal: it is only computed on your personal space, never on a family space, and is shown to no one else.",
+  'score.openPersonal': "Open my personal space",
 };

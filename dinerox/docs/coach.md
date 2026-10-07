@@ -76,6 +76,8 @@ réarme ; un dépassement n'est rappelé (une fois par jour au plus) que s'il
 ### Voix
 
 File unique (`services/voice/queue.ts`) : jamais deux voix à la fois.
+Micro et voix ne se chevauchent jamais (`services/voice/micGate.ts`) :
+l'ouverture du micro coupe la voix, et ni voix ni son tant qu'il est ouvert.
 Repli : **premium → voix de l'appareil → texte seul** (le texte est toujours
 affiché). Délai de 5 s pour démarrer la voix premium.
 
@@ -132,6 +134,15 @@ langue) : une même phrase n'est payée qu'une fois.
   de données ; aucun score avant un mois complet d'au moins 10 opérations.
   Personnel, jamais partagé ; avertissement obligatoire (indicateur
   pédagogique, pas une notation de crédit).
+- Récompenses et score sont **strictement personnels** : rien n'est attribué
+  depuis un espace familial, et l'écran du score n'y affiche aucun calcul.
+- « Saisie régulière » (`regular_entry`) : au moins 20 jours distincts de
+  saisie dans le mois (date de création ; récurrences automatiques exclues).
+
+Événements positifs (`detectPositiveEvents`) : mois respecté, épargne
+régulière, dette soldée, échéance tenue, fonds d'urgence renforcé et
+**catégorie en baisse** (`categoryDown` : ≥ 20 % sous la moyenne des trois
+mois précédents, catégorie présente au moins deux de ces mois).
 
 ## Conseils et IA
 
@@ -147,7 +158,8 @@ confirmation.
 
 Activée en 1.5.0 (Lot A) : `expo-speech-recognition`, permission micro
 demandée au premier appui, texte → parseur local → carte de confirmation.
-Voir [`lot-a.md`](lot-a.md). La voix du coach se tait quand le micro s'ouvre.
+Voir [`lot-a.md`](lot-a.md) et [`lot-b.md`](lot-b.md). La voix du coach se
+tait quand le micro s'ouvre.
 
 ## Builds (EAS)
 

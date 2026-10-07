@@ -125,3 +125,38 @@ describe('texte prononcé (bouton « Écouter »)', () => {
     expect(speakable('')).toBe('');
   });
 });
+
+describe('micro et voix ne se chevauchent jamais (Lot B)', () => {
+  it('micro ouvert : la file abandonne le message, rien n’est lu ; micro fermé : lecture normale', async () => {
+    const { isMicOpen, setMicOpen, onMicChange } = await import('../src/services/voice/micGate');
+    const log: string[] = [];
+    const q = new VoiceQueue(() => [fake('device', { log })], 5000, isMicOpen);
+    const changes: boolean[] = [];
+    const off = onMicChange((o) => changes.push(o));
+    setMicOpen(true);
+    expect(await q.enqueue('Attention, budget dépassé', { language: 'fr' })).toEqual({ spoken: false, reason: 'stopped' });
+    expect(log).toEqual([]);
+    setMicOpen(false);
+    expect(await q.enqueue('Bravo', { language: 'fr' })).toEqual({ spoken: true, by: 'device' });
+    expect(changes).toEqual([true, false]);
+    off();
+  });
+  it('le micro s’ouvre PENDANT une lecture : elle est coupée (stop), le reste de la file abandonné', async () => {
+    const { isMicOpen, setMicOpen, onMicChange } = await import('../src/services/voice/micGate');
+    const log: string[] = [];
+    const dev = fake('device', { log, speakMs: 40 });
+    const q = new VoiceQueue(() => [dev], 5000, isMicOpen);
+    // Même câblage que services/voice : ouverture du micro ⇒ stop.
+    const off = onMicChange((o) => o && void q.stop());
+    const first = q.enqueue('un', { language: 'fr' });
+    const second = q.enqueue('deux', { language: 'fr' });
+    await new Promise((r) => setTimeout(r, 10));
+    setMicOpen(true);
+    expect((await first).spoken).toBe(false);
+    expect(await second).toEqual({ spoken: false, reason: 'stopped' });
+    expect(dev.stopped).toBe(1);
+    expect(log).not.toContain('device:start:deux');
+    setMicOpen(false);
+    off();
+  });
+});

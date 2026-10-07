@@ -138,11 +138,51 @@ export function savedInMonth(data: SpaceData, month: MonthKey, currency: Currenc
   );
 }
 
+/** Catégories dont la baisse n'est pas un « bon comportement » (épargne, investissement, dettes). */
+const NOT_A_SAVING = new Set(['cat_savings', 'cat_investment', 'cat_debts']);
+export const CATEGORY_DOWN_MIN_PERCENT = 20;
+
+/**
+ * Catégorie en baisse : le mois dernier (clos, ≥ 10 opérations), la dépense
+ * d'une catégorie a baissé d'au moins 20 % par rapport à la moyenne des trois
+ * mois précédents (catégorie présente au moins deux de ces mois). La plus
+ * forte baisse en valeur, une seule par mois.
+ */
+export function categoryDown(data: SpaceData, currency: CurrencyCode, today: ISODate): { categoryId: string; percent: number; month: MonthKey } | null {
+  const prev = previousMonth(monthKey(today));
+  if (operationsInMonth(data, prev, currency) < MIN_OPERATIONS) return null;
+  const base = [previousMonth(prev), previousMonth(previousMonth(prev)), previousMonth(previousMonth(previousMonth(prev)))];
+  const spend = (m: MonthKey) => {
+    const out = new Map<string, number>();
+    for (const t of data.transactions) {
+      if (t.deleted || t.type !== 'expense' || t.currency !== currency || !t.categoryId || NOT_A_SAVING.has(t.categoryId) || monthKey(t.date) !== m) continue;
+      out.set(t.categoryId, (out.get(t.categoryId) ?? 0) + t.amount);
+    }
+    return out;
+  };
+  const last = spend(prev);
+  const before = base.map(spend);
+  let best: { categoryId: string; percent: number; drop: number } | null = null;
+  for (const id of new Set(before.flatMap((m) => [...m.keys()]))) {
+    const present = before.filter((m) => (m.get(id) ?? 0) > 0);
+    if (present.length < 2) continue;
+    const avg = before.reduce((n, m) => n + (m.get(id) ?? 0), 0) / 3;
+    const cur = last.get(id) ?? 0;
+    const percent = Math.round(((avg - cur) / avg) * 100);
+    if (percent >= CATEGORY_DOWN_MIN_PERCENT && cur > 0 && (!best || avg - cur > best.drop)) best = { categoryId: id, percent, drop: avg - cur };
+  }
+  return best ? { categoryId: best.categoryId, percent: best.percent, month: prev } : null;
+}
+
 /** Bons comportements (félicitations), à partir des seules données enregistrées. */
-export function detectPositiveEvents(data: SpaceData, currency: CurrencyCode, today: ISODate, spaceId: string, now: number): CoachEvent[] {
+export function detectPositiveEvents(data: SpaceData, currency: CurrencyCode, today: ISODate, spaceId: string, now: number, categoryName: (id: string) => string = (id) => id): CoachEvent[] {
   const out: CoachEvent[] = [];
   const month = monthKey(today);
   const prev = previousMonth(month);
+  const down = categoryDown(data, currency, today);
+  if (down) {
+    out.push(ev({ id: `pos_category_down_${down.month}`, kind: 'category_down', severity: 'celebration', boost: 3, spaceId, period: down.month, textKey: 'coach.pos.category_down', params: { category: categoryName(down.categoryId), percent: down.percent }, pref: 'unusualSpending', createdAt: now }));
+  }
   if (monthRespected(data, prev, currency)) {
     out.push(ev({ id: `pos_month_respected_${prev}`, kind: 'month_respected', severity: 'celebration', boost: 5, spaceId, period: prev, textKey: 'coach.pos.month_respected', params: { month: prev }, pref: 'budgetAlerts', createdAt: now }));
   }

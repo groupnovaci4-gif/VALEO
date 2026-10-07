@@ -8,6 +8,8 @@
  * serveurs DineroX. Module chargé à la demande : s'il manque (Expo Go, test),
  * la saisie vocale se déclare indisponible et la phrase écrite prend le relais.
  */
+import { setMicOpen } from './voice/micGate';
+
 export type SpeechLanguage = 'fr' | 'en';
 export type SpeechPermission = 'granted' | 'denied' | 'undetermined';
 
@@ -127,8 +129,11 @@ export const deviceSpeechInput: SpeechInputProvider = {
         if (settled) return;
         settled = true;
         subs.forEach((s) => s.remove());
+        setMicOpen(false);
         fn();
       };
+      // Micro ouvert : la voix du coach se tait et reste muette pendant l'écoute.
+      setMicOpen(true);
       subs.push(
         M.addListener('result', (e) => {
           const text = e.results[0]?.transcript ?? '';

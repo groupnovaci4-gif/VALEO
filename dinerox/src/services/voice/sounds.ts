@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import type { CoachSound } from '@/core/coach/policy';
+import { isMicOpen } from './micGate';
 
 const FILES: Record<CoachSound, number> = {
   warning: require('../../../assets/sounds/warning.wav'),
@@ -27,7 +28,8 @@ function webAudioAllowed(): boolean {
 
 export async function playCoachSound(sound: CoachSound, volume: number): Promise<void> {
   if (Platform.OS !== 'web') await Haptics.notificationAsync(HAPTIC[sound]).catch(() => undefined);
-  if (volume <= 0 || (Platform.OS === 'web' && !webAudioAllowed())) return;
+  // Micro ouvert : aucun son (il serait entendu par la reconnaissance).
+  if (volume <= 0 || isMicOpen() || (Platform.OS === 'web' && !webAudioAllowed())) return;
   try {
     const p = createAudioPlayer(FILES[sound]);
     p.volume = Math.min(1, Math.max(0, volume));

@@ -1,6 +1,6 @@
 # Lot A — Saisie sans effort et « reste par jour » (1.5.0)
 
-Rapport de fin de Lot A. Le Lot B (coach) attend le feu vert du fondateur.
+Rapport de fin de Lot A. Lot B (coach) : voir [`lot-b.md`](lot-b.md).
 
 ## Écarts avec le relevé de la mission (le dépôt fait foi)
 

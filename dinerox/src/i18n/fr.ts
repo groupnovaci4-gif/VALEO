@@ -1355,6 +1355,12 @@ export const fr = {
   'admin.entry.correction': "Saisies vocales corrigées avant validation",
   'admin.entry.failed': "Échecs de reconnaissance vocale",
   'admin.entry.reminder': "Rappels du soir ouverts",
+  'coach.pos.category_down': "Bravo : vos dépenses « {category} » ont baissé de {percent} % le mois dernier par rapport à votre moyenne.",
+  'reward.regular_entry.name': "Saisie régulière",
+  'reward.regular_entry.desc': "Saisir ses opérations au moins 20 jours dans le mois.",
+  'reward.regular_entry.message': "Bravo {name} ! Vous avez noté vos opérations presque chaque jour le mois dernier. C'est la base d'un bon suivi, continuez comme ça !",
+  'score.personalOnly': "Votre score est personnel : il se calcule uniquement sur votre espace personnel, jamais sur un espace familial, et n'est montré à personne d'autre.",
+  'score.openPersonal': "Ouvrir mon espace personnel",
 } as const;
 
 export type TKey = keyof typeof fr;

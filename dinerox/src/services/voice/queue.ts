@@ -51,13 +51,15 @@ export class VoiceQueue {
   constructor(
     private readonly providers: () => PreparedProvider[],
     private readonly timeoutMs = 5000,
+    /** Vrai tant que la voix doit se taire (micro ouvert) : le message est abandonné. */
+    private readonly blocked: () => boolean = () => false,
   ) {}
 
   /** Ajoute un message à la file ; résout avec le résultat de SA lecture. */
   enqueue(text: string, opts: SpeakOptions): Promise<VoiceOutcome> {
     const gen = this.generation;
     const run = async (): Promise<VoiceOutcome> => {
-      if (gen !== this.generation) return { spoken: false, reason: 'stopped' };
+      if (gen !== this.generation || this.blocked()) return { spoken: false, reason: 'stopped' };
       const clean = text.trim();
       if (!clean) return { spoken: false, reason: 'empty' };
       for (const p of this.providers()) {
@@ -65,7 +67,7 @@ export class VoiceQueue {
         try {
           if (!(await withTimeout(p.isAvailable(), this.timeoutMs))) continue;
           if (p.prepare) await withTimeout(p.prepare(clean, opts), this.timeoutMs);
-          if (gen !== this.generation) return { spoken: false, reason: 'stopped' };
+          if (gen !== this.generation || this.blocked()) return { spoken: false, reason: 'stopped' };
           this.current = p;
           await p.speak(clean, opts);
           this.current = null;

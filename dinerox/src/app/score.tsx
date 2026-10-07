@@ -6,7 +6,8 @@ import React, { useMemo } from 'react';
 import { View } from 'react-native';
 import { useI18n, type TKey } from '@/i18n';
 import { useFinance } from '@/hooks/useFinance';
-import { Banner, Card, ProgressBar, Screen, SectionHeader, Text } from '@/components/ui';
+import { Banner, Button, Card, ProgressBar, Screen, SectionHeader, Text } from '@/components/ui';
+import { useApp } from '@/store/app';
 import { behaviorScore, explainChange, latestScore } from '@/core/coach/score';
 import { previousMonth } from '@/core/dates';
 import { withSpaceReady } from '@/components/SpaceReady';
@@ -14,6 +15,8 @@ import { withSpaceReady } from '@/components/SpaceReady';
 function Score() {
   const { t, monthYear } = useI18n();
   const { data, currency, now } = useFinance();
+  const { activeSpace, spaces, setActiveSpace } = useApp();
+  const personal = spaces.find((s) => s.kind === 'personal');
   const current = useMemo(() => latestScore(data, currency, now), [data, currency, now]);
   const before = useMemo(() => behaviorScore(data, currency, previousMonth(current.month)), [data, currency, current.month]);
   const why = useMemo(() => explainChange(before, current), [before, current]);
@@ -22,7 +25,13 @@ function Score() {
   return (
     <Screen back title={t('score.title')} subtitle={t('score.subtitle')}>
       <Banner tone="info" icon="information-circle-outline" text={t('score.disclaimer')} />
-      {current.score === null ? (
+      {/* Score PERSONNEL : jamais calculé sur un espace familial (ni montré à la famille). */}
+      {activeSpace?.kind === 'family' ? (
+        <Card>
+          <Text>{t('score.personalOnly')}</Text>
+          {personal ? <Button small icon="person-outline" label={t('score.openPersonal')} onPress={() => setActiveSpace(personal.id)} style={{ marginTop: 10, alignSelf: 'flex-start' }} /> : null}
+        </Card>
+      ) : current.score === null ? (
         <Card>
           <Text>{t('score.notEnough')}</Text>
         </Card>

@@ -146,3 +146,27 @@ describe('sources d’événements', () => {
     expect(detectPositiveEvents(onTime as never, 'XOF', '2026-10-05', 's', T0).map((x) => x.kind)).toContain('installment_on_time');
   });
 });
+
+describe('catégorie en baisse (Lot B)', () => {
+  /** Mois `m` : `food` en nourriture + 9 petites opérations (anti-triche : ≥ 10 opérations). */
+  const monthOf = (m: string, food: number) => [
+    tx({ type: 'expense', amount: food, accountId: 'a', categoryId: 'cat_food', date: `${m}-10` }),
+    ...Array.from({ length: 9 }, (_, i) => tx({ type: 'expense', amount: 100, accountId: 'a', categoryId: 'cat_transport', date: `${m}-${String(i + 1).padStart(2, '0')}` })),
+  ];
+  const data = (food: number[], last: number) => ({ ...emptySpaceData(), transactions: [...monthOf('2026-06', food[0]), ...monthOf('2026-07', food[1]), ...monthOf('2026-08', food[2]), ...monthOf('2026-09', last)] });
+  it('baisse de 25 % le mois dernier vs la moyenne des 3 mois précédents : félicitation', () => {
+    const r = detectPositiveEvents(data([100_000, 100_000, 100_000], 75_000), 'XOF', '2026-10-05', 's', T0, (id) => (id === 'cat_food' ? 'Nourriture' : id));
+    const ev = r.find((x) => x.kind === 'category_down');
+    expect(ev).toMatchObject({ id: 'pos_category_down_2026-09', severity: 'celebration', params: { category: 'Nourriture', percent: 25 } });
+  });
+  it('baisse de 10 % : rien ; mois de moins de 10 opérations : rien', () => {
+    expect(detectPositiveEvents(data([100_000, 100_000, 100_000], 90_000), 'XOF', '2026-10-05', 's', T0).some((x) => x.kind === 'category_down')).toBe(false);
+    const few = { ...emptySpaceData(), transactions: [...monthOf('2026-06', 100_000), ...monthOf('2026-07', 100_000), tx({ type: 'expense', amount: 10_000, accountId: 'a', categoryId: 'cat_food', date: '2026-09-10' })] };
+    expect(detectPositiveEvents(few, 'XOF', '2026-10-05', 's', T0).some((x) => x.kind === 'category_down')).toBe(false);
+  });
+  it('épargne en baisse : ce n’est pas une félicitation', () => {
+    const d = data([100_000, 100_000, 100_000], 100_000);
+    const sav = ['2026-06', '2026-07', '2026-08'].map((m) => tx({ type: 'expense', amount: 50_000, accountId: 'a', categoryId: 'cat_savings', date: `${m}-20` }));
+    expect(detectPositiveEvents({ ...d, transactions: [...d.transactions, ...sav] }, 'XOF', '2026-10-05', 's', T0).some((x) => x.kind === 'category_down')).toBe(false);
+  });
+});
