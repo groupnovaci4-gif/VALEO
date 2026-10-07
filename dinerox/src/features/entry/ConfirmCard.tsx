@@ -10,6 +10,7 @@ import { useI18n } from '@/i18n';
 import { useCategoryLabels, useFinance, useMoney } from '@/hooks/useFinance';
 import { ReserveUseToggle } from '@/features/reserve/ReserveUseToggle';
 import { reserveBalance } from '@/core/reserve';
+import { buildSchedule } from '@/core/tontine';
 import { AmountField, Button, Chip, ChipGroup, DateField, Icon, Text } from '@/components/ui';
 import { useTheme } from '@/theme';
 import type { EntryDraft, EntryField } from '@/core/entry/parse';
@@ -105,6 +106,23 @@ export function ConfirmCard({
               {field('account', t('entry.field.account'), acc?.name ?? t('entry.confirm.accountAuto'), acc?.icon ?? 'wallet-outline')}
               {field('date', t('entry.field.date'), date(d.date), 'calendar-outline')}
             </View>
+            {d.tontine
+              ? (() => {
+                  const tt = data.tontines.find((x) => x.id === d.tontine?.id);
+                  const item = tt ? buildSchedule(tt, { until: d.date > tt.startDate ? d.date : undefined }).find((x) => x.period === d.tontine?.period) : undefined;
+                  if (!tt) return null;
+                  const line = d.tontine.kind === 'payout' ? t('entry.tontine.payout', { name: tt.name, turn: item?.turn ?? d.tontine.period }) : t('entry.tontine.contribution', { name: tt.name, date: item ? date(item.date) : '' });
+                  return (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }} accessibilityLabel={line}>
+                      <Icon name="people" size={16} color={colors.primary} />
+                      <Text variant="small" weight="600" style={{ flexShrink: 1 }}>
+                        {line}
+                      </Text>
+                      <Chip label={t('entry.tontine.unlink')} onPress={() => patch(i, { tontine: null }, [])} />
+                    </View>
+                  );
+                })()
+              : null}
             <ReserveUseToggle type={d.type} categoryId={d.categoryId} amount={d.amount} value={d.reserveId ?? null} alreadyTaken={takenBefore[i]} onChange={(reserveId) => patch(i, { reserveId }, [])} />
             {d.uncertain.length ? (
               <Text variant="caption" tone="warning">

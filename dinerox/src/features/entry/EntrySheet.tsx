@@ -34,6 +34,7 @@ import { stopVoice } from '@/services/voice';
 import { analytics } from '@/services/analytics';
 import { ActionError } from '@/store/actions';
 import { activeReserves, reserveBalance, reserveEligible } from '@/core/reserve';
+import { applyTontine } from '@/core/tontineEntry';
 import { canUseReserve } from '@/core/permissions';
 import { ConfirmCard } from './ConfirmCard';
 import { useEntrySave, type EntryMethod } from './useEntrySave';
@@ -95,6 +96,23 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   // ─── Analyse d'un texte (voix ou phrase) ───────────────────────────
   const analyze = (text: string, method: 'voice' | 'text_phrase') => {
     const r: EntryParse = parseEntryText(text, { today: now, currency: currency as CurrencyCode, accounts, categories: data.categories, defaultAccountId });
+    // Tontine : « Tontine 10 000 », « J'ai cotisé ma tontine du bureau », « J'ai reçu la tontine »
+    // → la tontine correspondante est proposée sur la carte de confirmation.
+    const has = (id: string) => data.categories.some((c) => c.id === id && !c.deleted);
+    const withTontine = r.kind === 'question' ? null : applyTontine(r.kind === 'entries' ? r.items : [], {
+      text,
+      tontines: data.tontines,
+      entries: data.tontineEntries,
+      today: now,
+      defaultAccountId,
+      payoutCategory: has('inc_tontine') ? 'inc_tontine' : 'inc_other',
+      contributionCategory: has('cat_informal') ? 'cat_informal' : 'cat_other',
+    });
+    if (withTontine) {
+      analytics.track('mic_routed', { to: 'entry', method });
+      setView({ kind: 'confirm', drafts: withTontine, method, text, edited: false });
+      return;
+    }
     if (r.kind === 'empty') {
       setVoice(method === 'voice' ? 'nothing' : 'idle');
       return;

@@ -68,6 +68,12 @@ export function useEntrySave() {
       const ids: string[] = [];
       try {
         for (const d of drafts) {
+          // Ligne liée à une tontine : opération réelle + entrée de tontine, en une fois.
+          if (d.tontine && d.amount) {
+            const entry = actions.recordTontine({ tontineId: d.tontine.id, period: d.tontine.period, kind: d.tontine.kind, amount: d.amount, date: d.date, accountId: d.accountId });
+            if (entry.transactionId) ids.push(entry.transactionId);
+            continue;
+          }
           const tx = actions.saveTransaction({
             type: d.type,
             amount: d.amount as number,

@@ -10,6 +10,8 @@ import { useIntelligence } from '@/hooks/useIntelligence';
 import { AmountField, Banner, Card, Field, GradientCard, ProgressBar, Screen, SectionHeader, Text } from '@/components/ui';
 import { withSpaceReady } from '@/components/SpaceReady';
 import { useTheme } from '@/theme';
+import { tontinePositions } from '@/core/tontine';
+import { today } from '@/core/dates';
 import { netWorth } from '@/core/networth';
 import { simulateIndependence } from '@/core/independence';
 
@@ -24,7 +26,7 @@ function Independence() {
   const money = useMoney();
   const { data, currency } = useFinance();
   const { snapshot } = useIntelligence();
-  const capitalNow = useMemo(() => netWorth(data.assets, data.accounts, data.transactions, data.debts, data.debtPayments, currency).net, [data, currency]);
+  const capitalNow = useMemo(() => netWorth(data.assets, data.accounts, data.transactions, data.debts, data.debtPayments, currency, tontinePositions(data, currency, today())).net, [data, currency]);
   const [expenses, setExpenses] = useState<number | null>(snapshot.expenses.value || null);
   const [savings, setSavings] = useState<number | null>(Math.max(0, snapshot.savingsCapacity.value) || null);
   const [capital, setCapital] = useState<number | null>(capitalNow);

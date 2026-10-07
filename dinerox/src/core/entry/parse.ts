@@ -35,6 +35,8 @@ export interface EntryDraft {
   source: string;
   /** Réserve choisie sur la carte (« Prendre sur la réserve ? ») ; jamais déduite par le parseur. */
   reserveId?: string | null;
+  /** Tontine proposée par `applyTontine` (cotisation ou cagnotte d'une échéance) ; retirable sur la carte. */
+  tontine?: { id: string; period: number; kind: 'contribution' | 'payout' } | null;
 }
 
 export type EntryParse =

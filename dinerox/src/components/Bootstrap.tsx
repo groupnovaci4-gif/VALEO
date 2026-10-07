@@ -15,6 +15,7 @@ import { zoneOf } from '@/core/countries';
 import { parseISODate, today } from '@/core/dates';
 import { reserveReminders } from '@/core/reserve';
 import { seasonReminders } from '@/core/seasons';
+import { tontineReminders } from '@/core/tontine';
 import { readJSON, storageKey, writeJSON } from '@/services/storage';
 import type { CollectionName, SyncedDoc } from '@/core/types';
 import type { TKey } from '@/i18n';
@@ -132,10 +133,19 @@ export function Bootstrap() {
       ...(prefs.savingsReminder ? reserveReminders(data, { payDay: profile.financial?.payDay, today: today() }).map((r) => ({ date: at(r.date, 18), title: t('notif.reserve.title'), body: t('notif.reserve.body'), url: `/reserve/${r.reserveId}?refill=1` })) : []),
       // Moments forts : J-60, J-30 et J-7 (texte sobre, jamais le nom saisi).
       ...(prefs.goalProgress ? seasonReminders(data, today()).map((r) => ({ date: at(r.date, 9), title: t('notif.season.title'), body: t('notif.season.body'), url: `/goals/${r.goalId}` })) : []),
+      // Tontines : la veille (18 h) et le jour même (8 h) de chaque cotisation (actif par défaut).
+      ...((prefs.tontineDue ?? true)
+        ? tontineReminders(data, today()).map((r) => ({
+            date: at(r.date, r.when === 'eve' ? 18 : 8),
+            title: t(r.when === 'eve' ? 'notif.tontine.eve.title' : 'notif.tontine.day.title'),
+            body: t('notif.tontine.body', { name: data.tontines.find((x) => x.id === r.tontineId)?.name ?? '' }),
+            url: `/tontines/${r.tontineId}`,
+          }))
+        : []),
     ];
     void scheduleLocalNotifications(prefs, t, data.debts, data.debtPayments, (n) => money(n), (d) => date(d), reminders, dated).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefs, data.debts, data.debtPayments, data.goals, data.goalContributions, profile?.onboarding.completed, profile?.financial?.payDay, lastEntry]);
+  }, [prefs, data.debts, data.debtPayments, data.goals, data.goalContributions, data.tontines, data.tontineEntries, profile?.onboarding.completed, profile?.financial?.payDay, lastEntry]);
 
   // Alertes immédiates (budget, dépense inhabituelle, objectif proche) en
   // notification système — seulement si le coach est désactivé : sinon c'est

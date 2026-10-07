@@ -41,5 +41,14 @@
     { "word": "baton", "value": null, "statut": "valeur à valider par le fondateur", "actif": false },
     { "word": "barre", "value": null, "statut": "valeur à valider par le fondateur (le parseur de l'assistant l'interprète déjà comme 1 000 000 : à confirmer)", "actif": false },
     { "word": "brique", "value": null, "statut": "valeur à valider par le fondateur (le parseur de l'assistant l'interprète déjà comme 1 000 000 : à confirmer)", "actif": false }
+  ],
+  "_tontinePayout": "Expressions locales pour « recevoir la cagnotte » d'une tontine (1.7). À VALIDER PAR LE FONDATEUR : inactives tant que 'actif' est false. Les formulations standard (« j'ai reçu la tontine », « j'ai touché la cagnotte », « c'est mon tour ») sont reconnues dans le code (core/tontineEntry.ts).",
+  "tontinePayout": [
+    { "phrase": "j ai pris ma tontine", "statut": "à valider par le fondateur", "actif": false },
+    { "phrase": "prendre la tontine", "statut": "à valider par le fondateur", "actif": false },
+    { "phrase": "j ai bouffe la tontine", "statut": "à valider par le fondateur", "actif": false },
+    { "phrase": "j ai mange la tontine", "statut": "à valider par le fondateur", "actif": false },
+    { "phrase": "c est mon tour de bouffer", "statut": "à valider par le fondateur", "actif": false },
+    { "phrase": "j ai ramasse la tontine", "statut": "à valider par le fondateur", "actif": false }
   ]
 }

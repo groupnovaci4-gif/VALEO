@@ -2,7 +2,7 @@
  * Fiche d'une tontine : paramètres saisis et échéancier calculé (date,
  * cotisation, « Vous » ou « Tour n », cagnotte, statut de chaque échéance).
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
@@ -12,8 +12,11 @@ import { useAccountLabel, useFinance, useMoney } from '@/hooks/useFinance';
 import { useRunAction } from '@/hooks/useRunAction';
 import { Badge, Button, Card, EmptyState, Row, Screen, SectionHeader, Text } from '@/components/ui';
 import { withSpaceReady } from '@/components/SpaceReady';
-import { collectorTotals, potOf, scheduleState } from '@/core/tontine';
+import { collectorTotals, nextContribution, nextPayout, potOf, scheduleState, type ItemState } from '@/core/tontine';
+import { NetPositionText } from '@/features/tontine/NetPositionText';
+import { PostponeSheet, useTontineGestures } from '@/features/tontine/TontineActions';
 import { can } from '@/core/permissions';
+import type { Tontine } from '@/core/types';
 
 function TontineDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,6 +30,8 @@ function TontineDetail() {
   const tontine = data.tontines.find((x) => x.id === id && !x.deleted);
   const states = useMemo(() => (tontine ? scheduleState(tontine, data.tontineEntries, now) : []), [tontine, data.tontineEntries, now]);
   const canEdit = can(role, 'update', 'tontines');
+  const canRecord = can(role, 'create', 'transactions');
+  const [postponing, setPostponing] = useState<ItemState | null>(null);
   if (!tontine) {
     return (
       <Screen back>
@@ -68,6 +73,16 @@ function TontineDetail() {
         </Text>
       </Card>
 
+      <Card style={{ marginTop: 12, gap: 4 }} accessibilityLabel={t('tontine.net.title')}>
+        <Text variant="small" tone="muted">
+          {t('tontine.net.title')}
+        </Text>
+        <NetPositionText tontine={tontine} />
+      </Card>
+
+      {tontine.status === 'active' && canRecord ? <TodoList tontine={tontine} states={states} onPostpone={setPostponing} /> : null}
+      <PostponeSheet tontine={tontine} item={postponing} onClose={() => setPostponing(null)} />
+
       <SectionHeader title={t('tontine.schedule')} />
       <Card>
         {states.map((s) => (
@@ -94,6 +109,48 @@ function TontineDetail() {
         </View>
       ) : null}
     </Screen>
+  );
+}
+
+/** « À faire » : cotisations en retard (payée / reporter), prochaine cotisation, cagnotte à recevoir. */
+function TodoList({ tontine, states, onPostpone }: { tontine: Tontine; states: ItemState[]; onPostpone: (i: ItemState) => void }) {
+  const { t, date } = useI18n();
+  const money = useMoney();
+  const { now } = useFinance();
+  const { pay, receive } = useTontineGestures(tontine);
+  const late = states.filter((s) => s.status === 'late');
+  const next = nextContribution(states.filter((s) => s.status !== 'late'));
+  const payout = nextPayout(states);
+  if (!late.length && !next && !payout) return null;
+  return (
+    <>
+      <SectionHeader title={t('tontine.todo')} />
+      <Card style={{ gap: 10 }}>
+        {late.map((s) => (
+          <View key={`late${s.period}`} style={{ gap: 6 }}>
+            <Text variant="small" tone="danger">
+              {t('tontine.lateNote', { date: date(s.dueDate) })} {money(s.contribution)}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+              <Button small icon="checkmark" label={t('tontine.paidLate')} onPress={() => pay(s)} />
+              <Button small variant="secondary" icon="calendar-outline" label={t('tontine.postpone')} onPress={() => onPostpone(s)} />
+            </View>
+          </View>
+        ))}
+        {next ? (
+          <View style={{ gap: 6 }}>
+            <Text variant="small">{t('tontine.nextContribution', { amount: money(next.contribution), date: date(next.dueDate) })}</Text>
+            <Button small icon="checkmark" label={t('tontine.paid')} onPress={() => pay(next)} style={{ alignSelf: 'flex-start' }} />
+          </View>
+        ) : null}
+        {payout ? (
+          <View style={{ gap: 6 }}>
+            <Text variant="small">{t('tontine.nextPayout', { amount: money(payout.payout), date: date(payout.date) })}</Text>
+            {payout.date <= now ? <Button small variant="success" icon="cash-outline" label={t('tontine.gotPot')} onPress={() => receive(payout)} style={{ alignSelf: 'flex-start' }} /> : null}
+          </View>
+        ) : null}
+      </Card>
+    </>
   );
 }
 

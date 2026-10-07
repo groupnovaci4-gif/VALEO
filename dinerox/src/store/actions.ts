@@ -539,7 +539,8 @@ export function useActions() {
         amount: input.amount,
         currency: t.currency,
         date: input.date,
-        accountId: input.accountId ?? t.accountId ?? '',
+        // Compte choisi, sinon celui de la tontine, sinon un compte utilisable (« Espèces » créé si besoin).
+        accountId: input.accountId ?? (t.accountId && d.accounts.some((x) => x.id === t.accountId && x.active && !x.deleted) ? t.accountId : ensureCashAccount(t.currency)),
         categoryId: contribution ? categoryOr('cat_informal', 'cat_other') : categoryOr('inc_tontine', 'inc_other'),
         subcategoryId: contribution && d.categories.some((c) => c.id === 'sub_informal_tontine' && !c.deleted) ? 'sub_informal_tontine' : null,
         payee: t.name,
@@ -549,7 +550,7 @@ export function useActions() {
       const previous = d.tontineEntries.find((e) => !e.deleted && e.tontineId === t.id && e.kind === input.kind && e.period === input.period && !e.transactionId);
       return save<TontineEntry>('tontineEntries', { ...(previous ? { id: previous.id } : {}), tontineId: t.id, kind: input.kind, period: input.period, amount: input.amount, date: input.date, transactionId: tx.id, status: 'done', note: null });
     },
-    [data, saveTransaction, categoryOr, save],
+    [data, saveTransaction, categoryOr, save, ensureCashAccount],
   );
 
   /** « Reporter » une cotisation en retard : nouvelle date, rien n'est payé. */

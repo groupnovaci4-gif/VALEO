@@ -14,6 +14,7 @@ import { withSpaceReady } from '@/components/SpaceReady';
 import { useTheme } from '@/theme';
 import { convertibleRecurring, nextContribution, nextPayout, scheduleState } from '@/core/tontine';
 import { can } from '@/core/permissions';
+import { NetPositionText } from '@/features/tontine/NetPositionText';
 
 function Tontines() {
   const { t, date } = useI18n();
@@ -54,6 +55,7 @@ function Tontines() {
               </Text>
               {x.status === 'active' && next ? <Text variant="small">{t('tontine.nextContribution', { amount: money(next.contribution), date: date(next.dueDate) })}</Text> : null}
               {x.status === 'active' && payout ? <Text variant="small">{t('tontine.nextPayout', { amount: money(payout.payout), date: date(payout.date) })}</Text> : null}
+              <NetPositionText tontine={x} compact />
             </Pressable>
           );
         })

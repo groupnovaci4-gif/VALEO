@@ -5,6 +5,9 @@
  *              − dépenses du mois (hors part prise sur une réserve)
  *              − récurrences de dépense restant à payer ce mois-ci
  *              − mise de côté prévue du mois (objectifs et réserves)
+ *              − cotisations de tontine du mois pas encore versées
+ *   (une cagnotte de tontine attendue n'est JAMAIS comptée avant d'être reçue :
+ *   elle devient alors un revenu enregistré)
  *   reste par jour = disponible / jours restants (aujourd'hui inclus), arrondi vers le bas.
  *
  * Mise de côté : le rythme prévu du mois est déduit TOUT le mois, qu'il soit
@@ -19,6 +22,7 @@
  */
 import { endOfMonth, monthKey, parseISODate, type ISODate } from './dates';
 import { computeGoalPlan } from './goals';
+import { tontineDueThisMonth } from './tontine';
 import { occurrencesBetween } from './recurring';
 import type { CurrencyCode } from './money';
 import type { FinancialProfile, SpaceData } from './types';
@@ -29,8 +33,10 @@ interface Breakdown {
   income: number;
   incomeSource: IncomeSource;
   expenses: number;
-  /** Récurrences de dépense pas encore enregistrées d'ici la fin du mois. */
+  /** Récurrences de dépense pas encore enregistrées d'ici la fin du mois (cotisations de tontine comprises). */
   upcomingRecurring: number;
+  /** Dont : cotisations de tontine du mois pas encore versées. */
+  upcomingTontines: number;
   /** Mise de côté prévue du mois (objectifs et réserves), versée ou non. */
   goalsRemaining: number;
   /** Part des dépenses du mois prise sur une réserve (déjà mise de côté : non déduite). */
@@ -45,7 +51,7 @@ export type DailyAllowance =
   | { status: 'needs_income'; daysLeft: number; until: ISODate; expenses: number; reserveCovered: number };
 
 export interface AllowanceInput {
-  data: Pick<SpaceData, 'transactions' | 'recurring' | 'goals' | 'goalContributions'>;
+  data: Pick<SpaceData, 'transactions' | 'recurring' | 'goals' | 'goalContributions'> & Partial<Pick<SpaceData, 'tontines' | 'tontineEntries'>>;
   currency: CurrencyCode;
   today: ISODate;
   financial?: Pick<FinancialProfile, 'monthlyIncome'> | null;
@@ -92,6 +98,10 @@ export function dailyAllowance({ data, currency, today, financial }: AllowanceIn
     }
   }
 
+  // Tontines : cotisations du mois pas encore versées, comme des récurrences à venir.
+  const upcomingTontines = data.tontines ? tontineDueThisMonth({ tontines: data.tontines, tontineEntries: data.tontineEntries ?? [], recurring: data.recurring }, currency, today) : 0;
+  upcomingRecurring += upcomingTontines;
+
   // Objectifs et réserves : rythme prévu du mois (contribution déclarée, sinon
   // effort nécessaire pour la date), calculé sur la situation au DÉBUT du mois
   // (versements et utilisations du mois exclus) : le chiffre reste stable
@@ -109,7 +119,7 @@ export function dailyAllowance({ data, currency, today, financial }: AllowanceIn
   }
 
   const available = income - expenses - upcomingRecurring - goalsRemaining;
-  const base = { income, incomeSource, expenses, upcomingRecurring, goalsRemaining, reserveCovered, daysLeft, until };
+  const base = { income, incomeSource, expenses, upcomingRecurring, upcomingTontines, goalsRemaining, reserveCovered, daysLeft, until };
   if (available < 0) return { status: 'deficit', deficit: -available, ...base };
   return { status: 'ok', available, perDay: Math.floor(available / daysLeft), ...base };
 }

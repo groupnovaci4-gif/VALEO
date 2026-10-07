@@ -91,6 +91,55 @@ let b;
   await go('/recurring');
   t = await text();
   ok(/Tontine\n[^\n]*\n10 000 FCFA/.test(t) && !t.includes('Convertir en tontine complète'), 'récurrence d’origine conservée et toujours active ; conversion plus proposée');
+  if (PHASE >= 2) {
+    const position = async () => { await go('/tontines/demo_tontine'); return await text(); };
+    const paidOf = (s) => num((s.match(/Vous avez versé ([\d ]+) FCFA/) || [])[1]);
+    t = await position();
+    const paid0 = paidOf(t);
+    ok(paid0 >= 20_000 && /Vous avez versé [\d ]+ FCFA\. Vous recevrez 100 000 FCFA au tour 6 \(vers le/.test(t) && t.includes("C'est de l'épargne : le groupe vous doit"), `position nette avant mon tour : versé ${paid0}, recevra 100 000 au tour 6`);
+    ok(/Tour \d+ sur 10/.test(t), 'progression : tour actuel sur 10');
+    await btn("J'ai cotisé").click(); await p.waitForTimeout(800);
+    ok(/Enregistré ✓/.test(await text()), '« J’ai cotisé » (confirmé) : opération enregistrée');
+    t = await position();
+    ok(paidOf(t) === paid0 + 10_000, `position : versé ${paid0} → ${paidOf(t)}`);
+    await go('/transactions');
+    ok((await text()).includes('Tontine du bureau'), 'Historique : la cotisation est une vraie dépense « Tontine du bureau »');
+    await p.getByRole('button', { name: /Tontine du bureau/ }).first().click(); await p.waitForTimeout(2000);
+    await btn('Supprimer').click(); await p.waitForTimeout(1200);
+    ok(paidOf(await position()) === paid0, 'suppression de l’opération : la cotisation est annulée');
+    // Phrase (même parseur que la voix) : la tontine est proposée sur la carte de confirmation.
+    await go('/'); await closeCelebration();
+    const mic = btn('Dicter une opération'); const box = await mic.boundingBox();
+    await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up(); await p.waitForTimeout(600);
+    await p.getByLabel('Écrivez comme vous parlez').fill("J'ai cotisé ma tontine du bureau");
+    await btn('Comprendre').click(); await p.waitForTimeout(700);
+    t = await text();
+    ok(/Tontine « Tontine du bureau » : cotisation du/.test(t) && t.includes('10 000 FCFA') && t.includes('Tout valider'), '« J’ai cotisé ma tontine du bureau » : tontine et montant proposés, à valider');
+    await btn('Tout valider').click(); await p.waitForTimeout(800);
+    ok(paidOf(await position()) === paid0 + 10_000, 'validée : cotisation enregistrée et liée');
+    await go('/'); await closeCelebration();
+    await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up(); await p.waitForTimeout(600);
+    // Plusieurs tontines dans la démo : sans nom, la cagnotte la plus proche serait proposée ; on nomme celle du bureau.
+    await p.getByLabel('Écrivez comme vous parlez').fill("J'ai reçu la tontine du bureau");
+    await btn('Comprendre').click(); await p.waitForTimeout(700);
+    t = await text();
+    ok(t.includes('Tontine « Tontine du bureau » : cagnotte du tour 6') && t.includes('100 000 FCFA'), '« J’ai reçu la tontine » : cagnotte du tour 6 proposée (100 000)');
+    await btn('Tout valider').click(); await p.waitForTimeout(800);
+    t = await position();
+    ok(t.includes('Vous avez reçu 100 000 FCFA. Il vous reste') && t.includes('crédit sans intérêt'), 'après mon tour : « Vous avez reçu 100 000. Il vous reste … à verser » (crédit sans intérêt)');
+    await go('/calendar');
+    await p.getByRole('tab', { name: '60 jours' }).click(); await p.waitForTimeout(400);
+    ok((await text()).includes('Tontine du bureau'), 'calendrier : cotisations de la tontine');
+    // Retard : on avance l'horloge du navigateur de 70 jours.
+    await p.clock.install({ time: new Date(Date.now() + 70 * 86_400_000) });
+    t = await position();
+    ok(t.includes('En retard') && (await btn("Je l'ai payée").count()) > 0 && (await btn('Reporter').count()) > 0, 'échéance passée sans cotisation : « En retard », « Je l’ai payée » / « Reporter »');
+    await btn('Reporter').first().click(); await p.waitForTimeout(500);
+    await btn('Reporter à cette date').click(); await p.waitForTimeout(800);
+    ok((await text()).includes('Reporté'), '« Reporter » : échéance reportée (rien n’est payé)');
+    await go('/'); await closeCelebration();
+    ok(/Tontine « [^»]+ » : (cotisation de [\d ]+ FCFA en retard|[\d ]+ FCFA à cotiser)/.test(await text()), 'accueil : la cotisation en retard (la plus ancienne) est signalée');
+  }
   ok(errs.length === 0, 'démo : aucune erreur JS ' + errs.slice(0, 2).join(' | '));
   await ctx.close();
 

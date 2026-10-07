@@ -2,6 +2,8 @@
  * Patrimoine net = actifs − passifs, dans la devise principale.
  * Actifs : biens déclarés + soldes des comptes + créances (ce qu'on me doit).
  * Passifs : dettes restantes (ce que je dois).
+ * Tontines (1.7, facultatif) : position nette — créance avant mon tour, dette
+ * envers le groupe après (`tontinePositions`).
  */
 import type { Account, Asset, Debt, DebtPayment, Transaction } from './types';
 import { accountBalances } from './balance';
@@ -26,6 +28,7 @@ export function netWorth(
   debts: Debt[],
   payments: DebtPayment[],
   currency: CurrencyCode,
+  tontines: { receivable: number; liability: number } = { receivable: 0, liability: 0 },
 ): NetWorth {
   let assetTotal = 0;
   let skipped = 0;
@@ -62,6 +65,8 @@ export function netWorth(
     if (d.direction === 'i_owe') liabilities += r;
     else receivables += r;
   }
+  receivables += tontines.receivable;
+  liabilities += tontines.liability;
   const totalAssets = assetTotal + accountTotal + receivables;
   return {
     assets: assetTotal,

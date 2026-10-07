@@ -9,9 +9,10 @@ import { debtStatus } from './debts';
 import { goalPlanFor } from './goals';
 import { occurrencesBetween } from './recurring';
 import { isReserve, isSeason } from './reserve';
+import { activeTontines, countedByRecurring, scheduleState } from './tontine';
 
 /** `season` : moment fort de l'année (objectif à date de la catégorie « moments forts »). */
-export type CalendarKind = 'income' | 'expense' | 'tontine' | 'debt' | 'goal' | 'season';
+export type CalendarKind = 'income' | 'expense' | 'tontine' | 'tontine_payout' | 'debt' | 'goal' | 'season';
 
 export interface CalendarEvent {
   id: string;
@@ -23,7 +24,7 @@ export interface CalendarEvent {
   link: string;
 }
 
-export function financialCalendar(data: Pick<SpaceData, 'recurring' | 'debts' | 'debtPayments' | 'goals' | 'goalContributions'>, from: ISODate, days = 60): CalendarEvent[] {
+export function financialCalendar(data: Pick<SpaceData, 'recurring' | 'debts' | 'debtPayments' | 'goals' | 'goalContributions'> & Partial<Pick<SpaceData, 'tontines' | 'tontineEntries'>>, from: ISODate, days = 60): CalendarEvent[] {
   const until = addDays(from, days);
   const out: CalendarEvent[] = [];
   for (const r of data.recurring) {
@@ -53,6 +54,19 @@ export function financialCalendar(data: Pick<SpaceData, 'recurring' | 'debts' | 
     if (g.deleted || isReserve(g) || g.status !== 'active' || !g.targetDate || g.targetDate < from || g.targetDate > until) continue;
     const plan = goalPlanFor(g, data.goalContributions, from);
     out.push({ id: `goal_${g.id}`, date: g.targetDate, kind: isSeason(g) ? 'season' : 'goal', label: g.name, amount: plan.remaining, currency: g.currency, link: `/goals/${g.id}` });
+  }
+  // Tontines (carnet de suivi) : cotisations à faire et cagnottes que je dois recevoir.
+  for (const t of activeTontines(data.tontines ?? [])) {
+    // Récurrence d'origine encore active : elle figure déjà au calendrier (pas de doublon).
+    if (countedByRecurring(t, data.recurring)) continue;
+    for (const s of scheduleState(t, data.tontineEntries ?? [], from, { until })) {
+      if (s.status !== 'done' && s.contribution > 0 && s.dueDate >= from && s.dueDate <= until) {
+        out.push({ id: `ton_${t.id}_${s.period}`, date: s.dueDate, kind: 'tontine', label: t.name, amount: s.contribution, currency: t.currency, link: `/tontines/${t.id}` });
+      }
+      if (s.payout > 0 && !s.received && s.date >= from && s.date <= until) {
+        out.push({ id: `tonp_${t.id}_${s.period}`, date: s.date, kind: 'tontine_payout', label: t.name, amount: s.payout, currency: t.currency, link: `/tontines/${t.id}` });
+      }
+    }
   }
   return out.sort((a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label));
 }
