@@ -308,3 +308,44 @@ describe('réserve famille et cérémonies (1.6)', () => {
     await assertFails(getDoc(doc(db(null), 'config/seasons/items/tabaski_2027_CI')));
   });
 });
+
+describe('tontines — carnet personnel (1.7)', () => {
+  const base = (id: string, by: string) => ({ id, createdAt: 1, updatedAt: 1, createdBy: by, syncedAt: serverTimestamp() });
+  const tontine = (id: string, by: string, over: Record<string, unknown> = {}) => ({ ...base(id, by), type: 'rotating', name: 'Tontine du bureau', currency: 'XOF', amountPerShare: 10_000, sharesHeld: 1, frequency: 'monthly', startDate: '2026-01-05', membersCount: 10, myTurns: [6], status: 'active', ...over });
+  const entry = (id: string, by: string, over: Record<string, unknown> = {}) => ({ ...base(id, by), tontineId: 't1', kind: 'contribution', period: 1, amount: 10_000, date: '2026-01-05', transactionId: 'tx_1', status: 'done', ...over });
+
+  it('propriétaire : tontine et entrées valides acceptées, demi-main comprise', async () => {
+    await setDoc(doc(db('u1'), 'spaces/u1'), personal('u1'));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/tontines/t1'), tontine('t1', 'u1')));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/tontines/t2'), tontine('t2', 'u1', { type: 'collector', sharesHeld: 0.5, cycleDays: 31, collectorCommission: 1_000 })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/tontineEntries/e1'), entry('e1', 'u1')));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/tontineEntries/e2'), entry('e2', 'u1', { kind: 'payout', period: 6, amount: 100_000 })));
+  });
+
+  it('validation : type, fréquence, montant, statut', async () => {
+    await setDoc(doc(db('u1'), 'spaces/u1'), personal('u1'));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/tontines/a'), tontine('a', 'u1', { type: 'loterie' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/tontines/b'), tontine('b', 'u1', { frequency: 'yearly' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/tontines/c'), tontine('c', 'u1', { amountPerShare: 0 })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/tontines/d'), tontine('d', 'u1', { sharesHeld: 0 })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/tontineEntries/e'), entry('e', 'u1', { kind: 'gift' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/tontineEntries/f'), entry('f', 'u1', { period: 0 })));
+  });
+
+  it('isolation : un autre utilisateur ne lit ni n’écrit les tontines', async () => {
+    await setDoc(doc(db('u1'), 'spaces/u1'), personal('u1'));
+    await setDoc(doc(db('u1'), 'spaces/u1/tontines/t1'), tontine('t1', 'u1'));
+    await assertFails(getDoc(doc(db('u2'), 'spaces/u1/tontines/t1')));
+    await assertFails(setDoc(doc(db('u2'), 'spaces/u1/tontines/t9'), tontine('t9', 'u2')));
+    await assertFails(setDoc(doc(db('u2'), 'spaces/u1/tontineEntries/e9'), entry('e9', 'u2')));
+  });
+
+  it('espace familial : un enfant ne voit ni ne crée de tontine', async () => {
+    await seedFamily();
+    await assertSucceeds(setDoc(doc(db('A'), 'spaces/fam_1/tontines/t1'), tontine('t1', 'A')));
+    await assertFails(getDoc(doc(db('C'), 'spaces/fam_1/tontines/t1')));
+    await assertFails(setDoc(doc(db('C'), 'spaces/fam_1/tontines/t2'), tontine('t2', 'C')));
+    await assertFails(setDoc(doc(db('C'), 'spaces/fam_1/tontineEntries/e1'), entry('e1', 'C')));
+    await assertSucceeds(getDoc(doc(db('P'), 'spaces/fam_1/tontines/t1')));
+  });
+});

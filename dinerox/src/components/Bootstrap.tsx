@@ -41,7 +41,8 @@ export function Bootstrap() {
   useEffect(() => {
     if (!user || !profile?.onboarding.completed || !engine || !activeSpace || role !== 'admin') return;
     if (activeSpace.id.startsWith('demo_') || !engine.isLoaded(activeSpace.id) || catalogFor.current === activeSpace.id) return;
-    const key = storageKey(user.uid, `catalog1_${activeSpace.id}`);
+    // Version du catalogue : relevée quand une catégorie système est ajoutée (1.7 : « Tontine reçue »).
+    const key = storageKey(user.uid, `catalog2_${activeSpace.id}`);
     const spaceId = activeSpace.id;
     // Laisse la synchro initiale livrer l'existant (nouvel appareil) avant de compléter.
     const timer = setTimeout(() => void run().catch(() => undefined), 4000);

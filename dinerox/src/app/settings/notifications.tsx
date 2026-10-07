@@ -13,7 +13,7 @@ import { speak, stopVoice } from '@/services/voice';
 import { ensurePermission, notificationsSupported, permissionStatus } from '@/services/notifications';
 
 type BoolKey = Exclude<keyof NotificationPrefs, 'dailyEntryReminder' | 'dailyReminderHour'>;
-const KEYS: BoolKey[] = ['budgetAlerts', 'goalProgress', 'incomeReceived', 'unusualSpending', 'savingsReminder', 'debtDue', 'weeklySummary', 'monthlySummary'];
+const KEYS: BoolKey[] = ['budgetAlerts', 'goalProgress', 'incomeReceived', 'unusualSpending', 'savingsReminder', 'debtDue', 'tontineDue', 'weeklySummary', 'monthlySummary'];
 
 export default function NotificationSettings() {
   const { t, lang } = useI18n();
@@ -61,7 +61,7 @@ export default function NotificationSettings() {
           <SwitchRow
             key={k}
             title={t(`notif.${k}` as TKey)}
-            value={prefs[k]}
+            value={prefs[k] ?? true}
             onChange={(v) => {
               if (v) void ensurePermission().then((ok) => setDenied(!ok));
               void updateProfile({ preferences: { ...profile.preferences, notifications: { ...prefs, [k]: v } } });

@@ -7,7 +7,7 @@
  * cérémonie du mois dernier prise dessus. Deux soutiens réguliers (Maman,
  * scolarité d'un neveu) et la rentrée scolaire comme moment fort à préparer.
  */
-import type { Account, Envelope, Goal, GoalContribution, SpaceData, Transaction } from './types';
+import type { Account, Envelope, Goal, GoalContribution, SpaceData, Tontine, TontineEntry, Transaction } from './types';
 import { addDays, addMonths, lastMonths, type ISODate } from './dates';
 import { systemCategories } from './defaults';
 
@@ -55,6 +55,8 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
     if (ok(18)) t(d(18), 'expense', 10_000, 'demo_om', 'cat_leisure', 'Canal+');
     if (ok(20)) t(d(20), 'transfer', 50_000, 'demo_bank', null, 'Moto', { toAccountId: 'demo_sav', goalId: 'demo_goal_moto' });
     if (ok(22)) t(d(22), 'expense', 8_000, 'demo_cash', 'cat_communication', 'Crédit');
+    // Tontine du bureau : cotisation du 5, liée à l'entrée de tontine (plus bas).
+    if (ok(5)) t(d(5), 'expense', 10_000, 'demo_om', 'cat_informal', 'Tontine du bureau', { id: `demo_tx_tontine_${i + 1}`, subcategoryId: 'sub_informal_tontine' });
     // Cérémonie du mois dernier, prise sur la réserve (utilisation liée plus bas).
     if (i === months.length - 2) t(d(14), 'expense', 20_000, 'demo_om', 'cat_social', null, { id: 'demo_tx_ceremony', subcategoryId: 'sub_social_ceremonies' });
   });
@@ -88,6 +90,14 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
   months.slice(0, -1).forEach((m, i) => goalContributions.push({ ...base, id: `demo_res_in_${i}`, goalId: 'demo_reserve', amount: 25_000, date: `${m}-02`, accountId: 'demo_bank', transferId: null, note: null }));
   const ceremony = transactions.find((x) => x.id === 'demo_tx_ceremony');
   if (ceremony) goalContributions.push({ ...base, id: 'demo_res_use', goalId: 'demo_reserve', amount: -ceremony.amount, date: ceremony.date, accountId: ceremony.accountId, transferId: null, linkedTransactionId: ceremony.id, note: null });
+  // Tontine tournante (carnet de suivi) : 10 mains × 10 000 par mois, mon tour au 6e.
+  const tontine: Tontine = {
+    ...base, id: 'demo_tontine', type: 'rotating', name: 'Tontine du bureau', organizerName: null, currency: 'XOF', amountPerShare: 10_000, sharesHeld: 1,
+    frequency: 'monthly', startDate: `${months[0]}-05`, membersCount: 10, myTurns: [6], potAmount: null, accountId: 'demo_om', status: 'active',
+  };
+  const tontineEntries: TontineEntry[] = transactions
+    .filter((x) => x.id.startsWith('demo_tx_tontine_'))
+    .map((x) => ({ ...base, id: `demo_te_${x.id.slice(-1)}`, tontineId: 'demo_tontine', kind: 'contribution', period: Number(x.id.slice(-1)), amount: x.amount, date: x.date, transactionId: x.id, status: 'done' }));
   return {
     accounts,
     categories: systemCategories(meta),
@@ -110,5 +120,7 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
     ],
     debtPayments: [{ ...base, id: 'demo_dp', debtId: 'demo_debt', amount: 50_000, date: addMonths(meta.today, -1), accountId: null, transactionId: null }],
     assets: [{ ...base, id: 'demo_asset', name: 'Terrain Bingerville', type: 'land', value: 3_000_000, currency: 'XOF', acquiredAt: '2024-05-01' }],
+    tontines: [tontine],
+    tontineEntries,
   };
 }

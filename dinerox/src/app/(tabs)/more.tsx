@@ -41,6 +41,7 @@ export default function More() {
         { key: 'history.menu', sub: 'more.sub.history', icon: 'list', color: colors.primary, path: '/transactions?from=more' },
         { key: 'acc.title', sub: 'more.sub.accounts', icon: 'wallet', color: colors.primary, path: '/accounts' },
         { key: 'sav.title', sub: 'more.sub.savings', icon: 'cash', color: colors.primary, path: '/savings' },
+        { key: 'tontine.title', sub: 'more.sub.tontines', icon: 'people', color: colors.secondary, path: '/tontines', show: can(role, 'read', 'tontines') },
         { key: 'obl.title', sub: 'more.sub.obligations', icon: 'heart', color: colors.danger, path: '/obligations', show: can(role, 'read', 'recurring') },
         { key: 'season.title', sub: 'more.sub.seasons', icon: 'calendar-number', color: colors.secondary, path: '/seasons' },
         { key: 'sim.title', sub: 'more.sub.simulate', icon: 'calculator', color: colors.info, path: '/simulate' },

@@ -19,6 +19,8 @@ import type {
   GoalContribution,
   GoalStatus,
   RecurringRule,
+  Tontine,
+  TontineEntry,
   SpaceData,
   SyncedDoc,
   Transaction,
@@ -78,6 +80,8 @@ const PREFIX: Record<CollectionName, string> = {
   debts: 'debt_',
   debtPayments: 'dp_',
   assets: 'ast_',
+  tontines: 'ton_',
+  tontineEntries: 'tne_',
 };
 
 export function useActions() {
@@ -143,6 +147,8 @@ export function useActions() {
       if (col === 'transactions') {
         for (const p of d.debtPayments) if (p.transactionId === id) e.remove(spaceId, 'debtPayments', p.id);
         for (const c of d.goalContributions) if (c.transferId === id) e.remove(spaceId, 'goalContributions', c.id);
+        // Tontine : l'entrée (cotisation ou cagnotte) part avec son opération.
+        for (const te of d.tontineEntries) if (te.transactionId === id) e.remove(spaceId, 'tontineEntries', te.id);
         // Utilisation de réserve liée : annulée avec l'opération (et son transfert éventuel).
         for (const c of d.goalContributions) {
           if (c.linkedTransactionId !== id) continue;
@@ -257,6 +263,8 @@ export function useActions() {
       if (draft.id) {
         const payment = d.debtPayments.find((p) => p.transactionId === tx.id);
         if (payment && (payment.amount !== tx.amount || payment.date !== tx.date)) save<DebtPayment>('debtPayments', { ...payment, amount: tx.amount, date: tx.date });
+        const te = d.tontineEntries.find((x) => !x.deleted && x.transactionId === tx.id);
+        if (te && (te.amount !== tx.amount || te.date !== tx.date)) save<TontineEntry>('tontineEntries', { ...te, amount: tx.amount, date: tx.date });
         const contribution = d.goalContributions.find((c) => c.transferId === tx.id);
         if (contribution && (Math.abs(contribution.amount) !== tx.amount || contribution.date !== tx.date)) {
           save<GoalContribution>('goalContributions', { ...contribution, amount: contribution.amount < 0 ? -tx.amount : tx.amount, date: tx.date });
@@ -496,6 +504,79 @@ export function useActions() {
     [data, save, saveTransaction],
   );
 
+  // ─── Tontines (carnet de suivi : aucun argent n'est détenu par l'application) ──
+
+  /** Création ou modification. Gratuit : une tontine active ; Plus et Famille : illimité. */
+  const saveTontine = useCallback(
+    (draft: Draft<Tontine>): Tontine => {
+      if (!draft.name.trim() || !isValidAmount(draft.amountPerShare) || !(draft.sharesHeld > 0)) throw new ActionError('validation', { errors: ['amount.invalid'] });
+      const d = data();
+      const existing = draft.id ? d.tontines.find((x) => x.id === draft.id) : undefined;
+      const becomesActive = draft.status === 'active' && existing?.status !== 'active';
+      if (becomesActive) limit('tontines', d.tontines.filter((x) => !x.deleted && x.status === 'active').length);
+      return save<Tontine>('tontines', draft);
+    },
+    [data, limit, save],
+  );
+
+  /** Catégorie existante chez l'utilisateur, sinon le repli (« Autres »). */
+  const categoryOr = useCallback((id: string, fallback: string) => (data().categories.some((c) => c.id === id && !c.deleted) ? id : fallback), [data]);
+
+  /**
+   * « J'ai cotisé » / « J'ai reçu la cagnotte » (après confirmation) : crée
+   * l'opération RÉELLE dans l'espace (dépense « Tontine / cotisation » ou
+   * revenu « Tontine reçue ») et l'entrée liée. Supprimer l'opération
+   * supprimera l'entrée.
+   */
+  const recordTontine = useCallback(
+    (input: { tontineId: string; period: number; kind: 'contribution' | 'payout'; amount: number; date: string; accountId?: string | null; note?: string | null }) => {
+      const d = data();
+      const t = d.tontines.find((x) => x.id === input.tontineId && !x.deleted);
+      if (!t || !isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
+      const contribution = input.kind === 'contribution';
+      const tx = saveTransaction({
+        type: contribution ? 'expense' : 'income',
+        amount: input.amount,
+        currency: t.currency,
+        date: input.date,
+        accountId: input.accountId ?? t.accountId ?? '',
+        categoryId: contribution ? categoryOr('cat_informal', 'cat_other') : categoryOr('inc_tontine', 'inc_other'),
+        subcategoryId: contribution && d.categories.some((c) => c.id === 'sub_informal_tontine' && !c.deleted) ? 'sub_informal_tontine' : null,
+        payee: t.name,
+        note: input.note ?? null,
+      });
+      // Une échéance reportée (entrée « planned ») devient l'entrée payée.
+      const previous = d.tontineEntries.find((e) => !e.deleted && e.tontineId === t.id && e.kind === input.kind && e.period === input.period && !e.transactionId);
+      return save<TontineEntry>('tontineEntries', { ...(previous ? { id: previous.id } : {}), tontineId: t.id, kind: input.kind, period: input.period, amount: input.amount, date: input.date, transactionId: tx.id, status: 'done', note: null });
+    },
+    [data, saveTransaction, categoryOr, save],
+  );
+
+  /** « Reporter » une cotisation en retard : nouvelle date, rien n'est payé. */
+  const postponeTontine = useCallback(
+    (input: { tontineId: string; period: number; amount: number; date: string }) => {
+      const d = data();
+      const previous = d.tontineEntries.find((e) => !e.deleted && e.tontineId === input.tontineId && e.kind === 'contribution' && e.period === input.period);
+      if (previous?.status === 'done') return previous;
+      return save<TontineEntry>('tontineEntries', { ...(previous ? { id: previous.id } : {}), tontineId: input.tontineId, kind: 'contribution', period: input.period, amount: input.amount, date: input.date, transactionId: null, status: 'planned', note: null });
+    },
+    [data, save],
+  );
+
+  /**
+   * Conversion d'une récurrence de tontine en tontine complète. La récurrence
+   * d'origine est conservée ; elle n'est désactivée que si l'utilisateur l'a confirmé.
+   */
+  const convertRecurringToTontine = useCallback(
+    (draft: Draft<Tontine>, deactivateRule: boolean): Tontine => {
+      const t = saveTontine(draft);
+      const rule = draft.linkedRecurringId ? data().recurring.find((r) => r.id === draft.linkedRecurringId) : undefined;
+      if (rule && deactivateRule && rule.active) save<RecurringRule>('recurring', { ...rule, active: false });
+      return t;
+    },
+    [saveTontine, data, save],
+  );
+
   // ─── Patrimoine & récurrences ─────────────────────────────────────
 
   const saveAsset = useCallback((draft: Draft<Asset>) => save<Asset>('assets', draft), [save]);
@@ -550,8 +631,12 @@ export function useActions() {
       saveRecurring,
       runRecurring,
       ensureCashAccount,
+      saveTontine,
+      recordTontine,
+      postponeTontine,
+      convertRecurringToTontine,
     }),
-    [save, remove, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount],
+    [save, remove, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, postponeTontine, convertRecurringToTontine],
   );
 }
 

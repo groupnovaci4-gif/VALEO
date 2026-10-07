@@ -303,6 +303,65 @@ export interface Asset extends SyncedDoc {
   note?: string | null;
 }
 
+// ─── Tontines (1.7) ───────────────────────────────────────────────────
+
+/**
+ * Carnet de suivi : l'application ne collecte, ne détient ni ne transfère
+ * jamais d'argent. Une tontine décrit ce que l'utilisateur verse et reçoit ;
+ * les opérations réelles restent des `Transaction` de son espace.
+ */
+export type TontineType = 'rotating' | 'collector' | 'fixed_contribution';
+export type TontineFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'custom';
+
+export interface Tontine extends SyncedDoc {
+  type: TontineType;
+  name: string;
+  /** Texte libre, facultatif (jamais envoyé à l'IA). */
+  organizerName?: string | null;
+  currency: CurrencyCode;
+  /** Mise d'une main (part) par échéance, unités mineures. */
+  amountPerShare: number;
+  /** Mains détenues : 0,5 (demi-main), 1, 2… */
+  sharesHeld: number;
+  frequency: TontineFrequency;
+  /** `custom` : une échéance tous les N jours. */
+  customDays?: number | null;
+  startDate: ISODate;
+  /** Tournante : nombre de mains (tours) au total, les miennes comprises. */
+  membersCount?: number | null;
+  /** Tournante : mes numéros de tour (1 = premier), un par main. */
+  myTurns?: number[];
+  /** Cagnotte d'un tour si l'organisateur retient des frais (sinon calculée). */
+  potAmount?: number | null;
+  /** Informatifs, saisis par l'utilisateur. */
+  organizerFee?: number | null;
+  latePenalty?: number | null;
+  /** Collecteur : durée du cycle (jours) et commission retenue (montant saisi). */
+  cycleDays?: number | null;
+  collectorCommission?: number | null;
+  /** Compte utilisé par défaut pour cotiser et recevoir. */
+  accountId?: ID | null;
+  status: 'active' | 'finished' | 'paused';
+  /** Récurrence d'origine (conversion) : conservée, désactivée seulement si l'utilisateur le confirme. */
+  linkedRecurringId?: ID | null;
+}
+
+export type TontineEntryKind = 'contribution' | 'payout' | 'fee' | 'penalty';
+
+export interface TontineEntry extends SyncedDoc {
+  tontineId: ID;
+  kind: TontineEntryKind;
+  /** Numéro d'échéance (1 = première) dans l'échéancier. */
+  period: number;
+  amount: number;
+  date: ISODate;
+  /** Opération réelle liée (supprimée → entrée supprimée). */
+  transactionId?: ID | null;
+  /** `planned` : échéance reportée à `date` ; `done` : payé ou reçu. `late` est aussi calculé. */
+  status: 'planned' | 'done' | 'late';
+  note?: string | null;
+}
+
 // ─── Collections synchronisées ────────────────────────────────────────
 
 /** Toutes les collections d'un espace. Ajouter une entité ⇒ l'ajouter ici ET dans firestore.rules. */
@@ -318,6 +377,8 @@ export interface SpaceCollections {
   debts: Debt;
   debtPayments: DebtPayment;
   assets: Asset;
+  tontines: Tontine;
+  tontineEntries: TontineEntry;
 }
 
 export type CollectionName = keyof SpaceCollections;
@@ -334,6 +395,8 @@ export const COLLECTIONS: CollectionName[] = [
   'debts',
   'debtPayments',
   'assets',
+  'tontines',
+  'tontineEntries',
 ];
 
 /** Vue en mémoire d'un espace : listes sans les enregistrements supprimés. */
@@ -352,6 +415,8 @@ export function emptySpaceData(): SpaceData {
     debts: [],
     debtPayments: [],
     assets: [],
+    tontines: [],
+    tontineEntries: [],
   };
 }
 
@@ -376,6 +441,8 @@ export interface NotificationPrefs {
   dailyEntryReminder?: boolean;
   /** Heure du rappel du soir (0-23 ; défaut 20 h). */
   dailyReminderHour?: number;
+  /** Cotisations de tontine : la veille et le jour même (absent avant la 1.7 : actif). */
+  tontineDue?: boolean;
 }
 
 /** Coach financier : présentation des alertes (les types d'alertes restent gouvernés par NotificationPrefs). */

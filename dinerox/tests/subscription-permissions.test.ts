@@ -106,3 +106,20 @@ describe('réserve famille et cérémonies : formules (1.6)', () => {
     expect(can('child', 'create', 'goalContributions')).toBe(true);
   });
 });
+
+describe('tontines : formules (1.7)', () => {
+  it('gratuit : une tontine active ; Plus et Famille : illimité ; créer un groupe : Plus et Famille', async () => {
+    const { FREE_TONTINES } = await import('../src/core/subscription');
+    expect(FREE_TONTINES).toBe(1);
+    expect(withinLimit('free', 'tontines', 0)).toBe(true);
+    expect(withinLimit('free', 'tontines', 1)).toBe(false);
+    expect(withinLimit('plus', 'tontines', 99)).toBe(true);
+    expect([hasFeature('free', 'tontine_multiple'), hasFeature('plus', 'tontine_multiple'), hasFeature('family', 'tontine_multiple')]).toEqual([false, true, true]);
+    expect([hasFeature('free', 'tontine_group_create'), hasFeature('plus', 'tontine_group_create'), hasFeature('family', 'tontine_group_create')]).toEqual([false, true, true]);
+  });
+  it('un enfant ne voit pas les tontines de l’espace familial', () => {
+    expect(can('child', 'read', 'tontines')).toBe(false);
+    expect(can('child', 'create', 'tontineEntries')).toBe(false);
+    expect(can('partner', 'create', 'tontines')).toBe(true);
+  });
+});

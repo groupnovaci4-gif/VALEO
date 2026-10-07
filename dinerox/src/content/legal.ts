@@ -31,6 +31,7 @@ const termsFr: LegalDoc = {
     { title: 'Objet', body: "{app} est un outil d'organisation financière. Les informations et suggestions affichées (budgets, estimations, réponses de l'assistant) sont des repères calculés à partir de vos données ; elles ne constituent pas un conseil financier, fiscal ou juridique réglementé." },
     { title: 'Compte', body: "Vous êtes responsable de l'exactitude des données saisies et de la confidentialité de vos identifiants. Activez le verrouillage de l'application sur un téléphone partagé." },
     { title: 'Comptes et Mobile Money', body: "Les comptes sont suivis manuellement. {app} n'initie aucun paiement et ne se connecte à aucun opérateur. Toute future intégration fera l'objet d'un consentement explicite." },
+    { title: 'Tontines et cotisations', body: "{app} vous aide à suivre votre tontine. {app} ne collecte ni ne garde d'argent et ne garantit pas les paiements des membres. Le carnet de tontine est un outil de suivi : les cotisations et les cagnottes sont versées entre les membres, en dehors de l'application, et les règles (montants, frais, commissions, pénalités, ordre des tours) sont celles que vous saisissez." },
     { title: 'Formules', body: "Une formule gratuite est proposée. Les formules payantes, lorsqu'elles seront disponibles, seront présentées avec leur prix avant tout paiement ; aucun prélèvement n'est effectué sans votre accord." },
     { title: 'Famille', body: "L'administrateur d'une famille invite les membres et attribue les rôles. Chaque membre peut quitter la famille à tout moment." },
     { title: 'Responsabilité', body: "{app} met tout en œuvre pour la disponibilité et l'exactitude des calculs, sans garantie d'absence d'erreur. Vérifiez les décisions importantes auprès d'un professionnel." },
@@ -54,6 +55,7 @@ const termsEn: LegalDoc = {
   sections: [
     { title: 'Purpose', body: '{app} is a money-organisation tool. Suggestions are guidance computed from your data, not regulated financial advice.' },
     { title: 'Accounts', body: 'Accounts are tracked manually. {app} never initiates payments or connects to providers.' },
+    { title: 'Tontines and contributions', body: "{app} helps you keep track of your tontine. {app} does not collect or hold any money and does not guarantee members' payments. The tontine notebook is a tracking tool: contributions and pots are paid between members, outside the app, and the rules (amounts, fees, commissions, penalties, round order) are the ones you enter." },
     { title: 'Plans', body: 'A free plan is offered. Paid plans will be shown with their price before any payment.' },
     { title: 'Termination', body: 'You can delete your account at any time from the app.' },
   ],

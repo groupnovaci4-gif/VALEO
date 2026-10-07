@@ -3,7 +3,8 @@ import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { useData } from '@/store/app';
 import { useMoney } from '@/hooks/useFinance';
-import { Badge, Card, EmptyState, IconButton, Row, Screen, Text } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, IconButton, Row, Screen, Text } from '@/components/ui';
+import { convertibleRecurring } from '@/core/tontine';
 import { upcomingOccurrence } from '@/core/recurring';
 import { today } from '@/core/dates';
 
@@ -11,6 +12,8 @@ export default function Recurring() {
   const { t, date } = useI18n();
   const data = useData();
   const money = useMoney();
+  // Récurrences de tontine : conversion PROPOSÉE en tontine complète (jamais imposée).
+  const convertible = new Set(convertibleRecurring(data).map((r) => r.id));
   return (
     <Screen back title={t('rec.title')} right={<IconButton icon="add-circle" size={30} label={t('rec.new')} onPress={() => router.push('/recurring/edit')} />}>
       <Card>
@@ -18,14 +21,16 @@ export default function Recurring() {
           data.recurring.map((r) => {
             const next = upcomingOccurrence(r, today());
             return (
+              <React.Fragment key={r.id}>
               <Row
-                key={r.id}
                 title={r.label}
                 subtitle={[t(`rec.freq.${r.frequency}` as TKey), next ? t('rec.next', { date: date(next) }) : null].filter(Boolean).join(' · ')}
                 right={r.active ? <Text weight="700" tone={r.type === 'income' ? 'income' : 'expense'}>{money(r.amount)}</Text> : <Badge label={t('common.inactive')} />}
                 chevron
                 onPress={() => router.push(`/recurring/edit?id=${r.id}`)}
               />
+              {convertible.has(r.id) ? <Button small variant="ghost" icon="people-outline" label={t('tontine.convert.cta')} onPress={() => router.push(`/tontines/new?fromRecurring=${r.id}`)} style={{ alignSelf: 'flex-start', marginBottom: 6 }} /> : null}
+              </React.Fragment>
             );
           })
         ) : (

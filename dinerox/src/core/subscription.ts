@@ -30,7 +30,11 @@ export type Feature =
   /** Moments forts de l'année sans limite (la formule gratuite en a un). */
   | 'seasonal_planning'
   /** Réserve partagée dans un espace familial. */
-  | 'family_reserve';
+  | 'family_reserve'
+  /** Tontines personnelles illimitées (la formule gratuite en suit une active). */
+  | 'tontine_multiple'
+  /** Créer et organiser un groupe de tontine partagé (Lot T2). Rejoindre reste gratuit. */
+  | 'tontine_group_create';
 
 export interface PlanDefinition {
   id: PlanId;
@@ -42,7 +46,7 @@ export interface PlanDefinition {
    * et `seasons` (1.6) : réserves, simulations « Puis-je contribuer ? » par mois et moments forts
    * — comptés à part, ils ne réduisent jamais la limite d'objectifs existante.
    */
-  limits: { goals: number; accounts: number; envelopes: number; familyMembers: number; voiceEntriesPerDay: number; reserves: number; simulationsPerMonth: number; seasons: number };
+  limits: { goals: number; accounts: number; envelopes: number; familyMembers: number; voiceEntriesPerDay: number; reserves: number; simulationsPerMonth: number; seasons: number; tontines: number };
 }
 
 const UNLIMITED = Number.POSITIVE_INFINITY;
@@ -52,19 +56,21 @@ export const FREE_VOICE_ENTRIES_PER_DAY = 5;
 export const FREE_RESERVES = 1;
 export const FREE_SIMULATIONS_PER_MONTH = 3;
 export const FREE_SEASONS = 1;
+/** Tontines personnelles ACTIVES en formule gratuite. */
+export const FREE_TONTINES = 1;
 
 export const PLANS: Record<PlanId, PlanDefinition> = {
   free: {
     id: 'free',
     priceXof: 0,
     features: ['export'],
-    limits: { goals: 2, accounts: 3, envelopes: 8, familyMembers: 0, voiceEntriesPerDay: FREE_VOICE_ENTRIES_PER_DAY, reserves: FREE_RESERVES, simulationsPerMonth: FREE_SIMULATIONS_PER_MONTH, seasons: FREE_SEASONS },
+    limits: { goals: 2, accounts: 3, envelopes: 8, familyMembers: 0, voiceEntriesPerDay: FREE_VOICE_ENTRIES_PER_DAY, reserves: FREE_RESERVES, simulationsPerMonth: FREE_SIMULATIONS_PER_MONTH, seasons: FREE_SEASONS, tontines: FREE_TONTINES },
   },
   plus: {
     id: 'plus',
     priceXof: 1500,
-    features: ['export', 'ai_assistant', 'auto_budget', 'multiple_goals', 'advanced_insights', 'family', 'multiple_accounts', 'voice_premium', 'voice_entry_unlimited', 'reserve_multiple', 'contribution_simulator', 'seasonal_planning'],
-    limits: { goals: 20, accounts: 10, envelopes: 30, familyMembers: 2, voiceEntriesPerDay: UNLIMITED, reserves: UNLIMITED, simulationsPerMonth: UNLIMITED, seasons: UNLIMITED },
+    features: ['export', 'ai_assistant', 'auto_budget', 'multiple_goals', 'advanced_insights', 'family', 'multiple_accounts', 'voice_premium', 'voice_entry_unlimited', 'reserve_multiple', 'contribution_simulator', 'seasonal_planning', 'tontine_multiple', 'tontine_group_create'],
+    limits: { goals: 20, accounts: 10, envelopes: 30, familyMembers: 2, voiceEntriesPerDay: UNLIMITED, reserves: UNLIMITED, simulationsPerMonth: UNLIMITED, seasons: UNLIMITED, tontines: UNLIMITED },
   },
   family: {
     id: 'family',
@@ -86,8 +92,10 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       'contribution_simulator',
       'seasonal_planning',
       'family_reserve',
+      'tontine_multiple',
+      'tontine_group_create',
     ],
-    limits: { goals: UNLIMITED, accounts: UNLIMITED, envelopes: UNLIMITED, familyMembers: 8, voiceEntriesPerDay: UNLIMITED, reserves: UNLIMITED, simulationsPerMonth: UNLIMITED, seasons: UNLIMITED },
+    limits: { goals: UNLIMITED, accounts: UNLIMITED, envelopes: UNLIMITED, familyMembers: 8, voiceEntriesPerDay: UNLIMITED, reserves: UNLIMITED, simulationsPerMonth: UNLIMITED, seasons: UNLIMITED, tontines: UNLIMITED },
   },
 };
 

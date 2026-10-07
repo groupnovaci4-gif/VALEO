@@ -77,7 +77,8 @@ let b;
   const short = (t.match(/Avec 30 000 FCFA, il manquerait ([\d ]+) FCFA ce mois-ci\./) || [])[1];
   ok(noRes !== undefined ? num(noRes) < d0 : short !== undefined, `sans la réserve : ${noRes !== undefined ? `reste par jour ${d0} → ${num(noRes)}` : `il manquerait ${short} FCFA ce mois-ci`}`);
   await p.getByLabel('Comparer avec un autre montant (facultatif)').fill('20000'); await p.waitForTimeout(400);
-  ok(/Avec 20 000 FCFA, il vous resterait [\d ]+ FCFA par jour/.test(await text()), 'comparaison : « Avec 20 000 FCFA, il vous resterait … »');
+  // Selon le mois de la démo, le résultat est un reste par jour ou un manque (les deux sont des chiffres, sans jugement).
+  ok(/Avec 20 000 FCFA, il (vous resterait [\d ]+ FCFA par jour|manquerait [\d ]+ FCFA ce mois-ci)/.test(await text()), 'comparaison : « Avec 20 000 FCFA, il vous resterait … » (ou « il manquerait … »)');
   await btn('Oui, sur la réserve').click(); await p.waitForTimeout(200);
   await btn("Voir l'effet").click(); await p.waitForTimeout(400);
   await btn('Enregistrer cette contribution').click(); await p.waitForTimeout(2000);

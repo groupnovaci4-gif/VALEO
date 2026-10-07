@@ -125,7 +125,9 @@ service cloud.firestore {
       match /{col}/{docId} {
         function knownCollection() {
           return col in ['accounts', 'categories', 'transactions', 'recurring', 'envelopes', 'budgets',
-                         'goals', 'goalContributions', 'debts', 'debtPayments', 'assets'];
+                         'goals', 'goalContributions', 'debts', 'debtPayments', 'assets',
+                         // 1.7 : carnet de tontines (suivi seulement, aucun argent détenu).
+                         'tontines', 'tontineEntries'];
         }
         function canRead() {
           let r = roleOf();
@@ -174,6 +176,16 @@ service cloud.firestore {
             : col == 'recurring' ? (d.type in ['income', 'expense'] && isInt(d.amount) && d.amount > 0 && d.frequency in ['weekly', 'monthly', 'yearly'] && isISODate(d.startDate))
             : col == 'budgets' ? (d.month is string && d.month.matches('^[0-9]{4}-[0-9]{2}$') && d.id == d.month)
             : col == 'categories' ? (d.kind in ['income', 'expense'] && d.name is string && d.name.size() <= 60)
+            : col == 'tontines' ? (d.type in ['rotating', 'collector', 'fixed_contribution'] && d.name is string && d.name.size() <= 120
+                                && isInt(d.amountPerShare) && d.amountPerShare > 0
+                                && d.sharesHeld is number && d.sharesHeld > 0 && d.sharesHeld <= 50
+                                && d.frequency in ['daily', 'weekly', 'biweekly', 'monthly', 'custom']
+                                && isISODate(d.startDate) && d.status in ['active', 'finished', 'paused']
+                                && d.currency is string && d.currency.size() == 3
+                                && optString(d, 'organizerName', 80) && optInt(d, 'membersCount') && optInt(d, 'potAmount'))
+            : col == 'tontineEntries' ? (d.tontineId is string && d.kind in ['contribution', 'payout', 'fee', 'penalty']
+                                && isInt(d.period) && d.period > 0 && isInt(d.amount) && d.amount >= 0
+                                && isISODate(d.date) && d.status in ['planned', 'done', 'late'])
             : false;
         }
 

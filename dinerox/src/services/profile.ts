@@ -23,6 +23,7 @@ export const defaultPreferences = (): UserPreferences => ({
     weeklySummary: true,
     monthlySummary: true,
     dailyEntryReminder: true,
+    tontineDue: true,
     dailyReminderHour: 20,
   },
   appLock: false,

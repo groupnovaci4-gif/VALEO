@@ -66,6 +66,8 @@ export const INCOME_CATEGORIES: CatSeed[] = [
   { id: 'inc_sale', key: 'inc.sale', icon: 'pricetags', color: '#F97316' },
   { id: 'inc_side', key: 'inc.side', icon: 'construct', color: '#6366F1' },
   { id: 'inc_gift', key: 'inc.gift', icon: 'gift', color: '#EC4899' },
+  // 1.7 : cagnotte de tontine reçue (les cotisations restent dans « Tontines et cotisations »).
+  { id: 'inc_tontine', key: 'inc.tontine', icon: 'people', color: '#0D9488', zones: ['africa'] },
   { id: 'inc_refund', key: 'inc.refund', icon: 'return-down-back', color: '#64748B' },
   { id: 'inc_other', key: 'inc.other', icon: 'add-circle', color: '#94A3B8' },
 ];
