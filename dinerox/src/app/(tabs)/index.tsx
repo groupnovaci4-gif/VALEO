@@ -22,6 +22,9 @@ import { goalPlanFor, sortGoals } from '@/core/goals';
 import { sortTransactions } from '@/core/transactions';
 import { formatMoney, type CurrencyCode } from '@/core/money';
 import { authErrorKey, resendVerification } from '@/services/auth';
+import { DailyAllowanceCard } from '@/features/entry/DailyAllowanceCard';
+import { EntryPrompt } from '@/features/entry/EntryPrompt';
+import { useEntry } from '@/features/entry/EntryProvider';
 
 export default function Home() {
   const { colors, radius } = useTheme();
@@ -29,6 +32,7 @@ export default function Home() {
   const { profile, user, mode, online, activeSpace, signOutLocal } = useApp();
   const money = useMoney();
   const toast = useToast();
+  const entry = useEntry();
   const f = useFinance();
   const { data, position, flows, envelopes, budget, insights, now } = f;
 
@@ -84,6 +88,20 @@ export default function Home() {
           }
         />
       ) : null}
+
+      {/* 1. Le repère : ce qu'il reste par jour jusqu'à la fin du mois. */}
+      <DailyAllowanceCard hidden={hidden} />
+      {/* 2. Saisir en parlant (ou au clavier). */}
+      <EntryPrompt />
+      {/* 3. Dernières opérations (Historique complet : « Tout voir »). */}
+      <SectionHeader title={t('home.recent')} action={recent.length ? t('common.seeAll') : undefined} onAction={() => router.push('/transactions?from=home')} />
+      <Card style={{ marginBottom: 14 }}>
+        {recent.length ? (
+          recent.map((tx) => <TransactionRow key={tx.id} tx={tx} />)
+        ) : (
+          <EmptyState emoji="🧾" title={t('tx.empty.title')} body={t('tx.empty.body')} action={t('quick.expense')} onAction={() => entry.open('keyboard')} />
+        )}
+      </Card>
 
       {/* Coach : ce qu'il faut savoir depuis la dernière ouverture (un seul résumé). */}
       <CoachSummaryCard />
@@ -202,14 +220,6 @@ export default function Home() {
         </Card>
       )}
 
-      <SectionHeader title={t('home.recent')} action={recent.length ? t('common.seeAll') : undefined} onAction={() => router.push('/transactions?from=home')} />
-      <Card>
-        {recent.length ? (
-          recent.map((tx) => <TransactionRow key={tx.id} tx={tx} />)
-        ) : (
-          <EmptyState emoji="🧾" title={t('tx.empty.title')} body={t('tx.empty.body')} action={t('quick.expense')} onAction={() => router.push('/transaction/new?type=expense')} />
-        )}
-      </Card>
       {recent.length ? <Button variant="ghost" label={t('rep.title')} icon="bar-chart-outline" onPress={() => router.push('/reports')} style={{ marginTop: 12 }} /> : null}
     </Screen>
   );

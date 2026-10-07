@@ -79,9 +79,12 @@ let b;
 
   // Accueil : « Tout voir » des dernières opérations → Historique.
   await go('/'); await closeCelebration();
-  await p.getByText('Dernières opérations').scrollIntoViewIfNeeded();
-  const seeAll = p.getByRole('button', { name: /Tout voir/ }).last();
-  await seeAll.click(); await p.waitForTimeout(1200);
+  // Le « Tout voir » de la section « Dernières opérations » (le plus proche du titre).
+  const yTitle = (await p.getByText('Dernières opérations', { exact: true }).first().boundingBox()).y;
+  const seeAlls = p.getByRole('button', { name: /Tout voir/ });
+  let best = 0, bestGap = Infinity;
+  for (let i = 0; i < (await seeAlls.count()); i++) { const g = Math.abs((await seeAlls.nth(i).boundingBox()).y - yTitle); if (g < bestGap) { bestGap = g; best = i; } }
+  await seeAlls.nth(best).click(); await p.waitForTimeout(1200);
   ok(p.url().includes('/transactions'), 'accueil « Tout voir » → Historique');
 
   // Lien profond /mic : ouvre la saisie sur l'accueil.
