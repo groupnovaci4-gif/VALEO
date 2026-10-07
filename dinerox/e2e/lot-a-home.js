@@ -41,6 +41,15 @@ let b;
   // Montants masqués : le reste par jour aussi.
   await p.getByRole('button', { name: 'Masquer les montants' }).click(); await p.waitForTimeout(300);
   ok(/Il vous reste •+ par jour/.test(await text()), 'montants masqués : le reste par jour est masqué aussi');
+  // Après 10 saisies réussies, la bulle se réduit à une ligne (compteur local du compte).
+  await p.evaluate(() => {
+    const k = Object.keys(localStorage).find((x) => x.endsWith(':entryStats')) ?? 'dinerox:v1:local:entryStats';
+    const cur = JSON.parse(localStorage.getItem(k) || '{}');
+    localStorage.setItem(k, JSON.stringify({ ...cur, successes: 10 }));
+  });
+  await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(3500); await closeCelebration();
+  t = await text();
+  ok(/Dites « .+ »/.test(t) && !t.includes('Par exemple :') && (await btn('Parler').count()) === 0, 'après 10 saisies : bulle réduite à une ligne discrète');
   await p.screenshot({ path: `${S}/lot-a-home.png` });
   ok(errs.length === 0, 'démo : aucune erreur JS ' + errs.slice(0, 2).join(' | '));
   await ctx.close();

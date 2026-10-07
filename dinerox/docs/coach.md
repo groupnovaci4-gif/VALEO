@@ -42,7 +42,7 @@ src/services/
   coachHistory.ts        users/{uid}/coachEvents (déduplication entre appareils)
   rewards.ts             users/{uid}/rewards
   voice/                 file vocale, voix appareil, voix premium, sons
-  speechInput.ts         saisie vocale PRÉPARÉE, non activée
+  speechInput.ts         dictée (expo-speech-recognition), voir lot-a.md
 firebase/functions/src/
   voice.ts               validation, requête ElevenLabs, quota (pur, testé)
   index.ts               callable `speak`
@@ -143,25 +143,11 @@ et la fonctionnalité `ai_assistant` : il envoie **le texte déjà calculé**
 reformule ; elle ne décide de rien et aucune action n'est exécutée sans
 confirmation.
 
-## Saisie vocale (préparée, non activée)
+## Saisie vocale (dictée)
 
-L'assistant affiche un micro **désactivé**. `services/speechInput.ts` définit
-l'interface `SpeechInputProvider` ; le fournisseur par défaut est
-indisponible. Aucune dépendance n'est installée et la permission
-`RECORD_AUDIO` est bloquée (`app.config.ts`).
-
-Pour l'activer plus tard :
-
-1. Installer un module de reconnaissance (ex. `expo-speech-recognition`) :
-   `EXPO_OFFLINE=1 npx expo install expo-speech-recognition`.
-2. Retirer `android.permission.RECORD_AUDIO` de `blockedPermissions`, ajouter
-   les textes de permission iOS (micro + reconnaissance vocale).
-3. Écrire un fournisseur qui implémente `SpeechInputProvider` et l'enregistrer
-   au démarrage avec `setSpeechInputProvider`.
-4. Le micro s'active de lui-même quand `isAvailable()` répond vrai. La
-   transcription n'est qu'un texte placé dans la zone de message : même
-   analyseur, même confirmation obligatoire.
-5. Nouveau build natif obligatoire.
+Activée en 1.5.0 (Lot A) : `expo-speech-recognition`, permission micro
+demandée au premier appui, texte → parseur local → carte de confirmation.
+Voir [`lot-a.md`](lot-a.md). La voix du coach se tait quand le micro s'ouvre.
 
 ## Builds (EAS)
 

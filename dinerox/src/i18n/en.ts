@@ -1314,4 +1314,13 @@ export const en: Record<TKey, string> = {
   'entry.settings.examples': "Show example sentences",
   'entry.settings.testMic': "Test the microphone",
   'entry.settings.heard': "I heard: “{text}”",
+  'admin.entry.title': "Transaction entry",
+  'admin.entry.hint': "{count} entries measured (users who accepted anonymous statistics; no amount or text is collected).",
+  'admin.entry.voice': "Voice",
+  'admin.entry.text_phrase': "Typed sentence",
+  'admin.entry.quick_manual': "Quick entry",
+  'admin.entry.full_form': "Full form",
+  'admin.entry.correction': "Voice entries corrected before saving",
+  'admin.entry.failed': "Speech recognition failures",
+  'admin.entry.reminder': "Evening reminders opened",
 };

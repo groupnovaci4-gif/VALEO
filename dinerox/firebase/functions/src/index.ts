@@ -15,6 +15,7 @@ import { setGlobalOptions, logger } from 'firebase-functions/v2';
 import { defineSecret, defineString } from 'firebase-functions/params';
 import { effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium } from './plans';
 import { elevenLabsRequest, nextVoiceUsage, validateSpeak } from './voice';
+import { collectEntryCounts, entryUsage, firestoreCounter } from './usage';
 import { answerWithClaude } from './assistant';
 
 initializeApp();
@@ -298,11 +299,14 @@ export const adminStats = onCall(async (req) => {
     users.where('subscription.plan', '==', 'family').count().get(),
   ]);
   const total = all.data().count;
+  // Saisie (1.5) : comptages d'événements anonymes, par méthode / destination / origine.
+  const entry = entryUsage(await collectEntryCounts(firestoreCounter(db.collection('analyticsEvents') as never)));
   return {
     users: total,
     active7: active.data().count,
     families: families.data().count,
     plans: { free: total - plus.data().count - family.data().count, plus: plus.data().count, family: family.data().count },
+    entry,
     generatedAt: Date.now(),
   };
 });

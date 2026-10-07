@@ -4,7 +4,7 @@
  * catégorie et recherche, total de la période, modification au toucher et
  * suppression par appui long (avec confirmation).
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { Alert, SectionList, View } from 'react-native';
 import { useI18n } from '@/i18n';
@@ -18,6 +18,7 @@ import { ALL_HISTORY, filterHistory, historyCategories, historyMonths, isFiltere
 import { formatMoney } from '@/core/money';
 import type { Transaction } from '@/core/types';
 import { useTheme } from '@/theme';
+import { analytics } from '@/services/analytics';
 
 export default function History() {
   const { t, date, monthYear } = useI18n();
@@ -33,6 +34,11 @@ export default function History() {
   const params = useLocalSearchParams<{ from?: string; accountId?: string }>();
   const [f, setF] = useState<HistoryFilter>(() => ({ ...ALL_HISTORY, accountId: typeof params.accountId === 'string' && params.accountId ? params.accountId : 'all' }));
   const set = (patch: Partial<HistoryFilter>) => setF((cur) => ({ ...cur, ...patch }));
+  // Mesure d'usage : d'où l'Historique est ouvert (aucun contenu).
+  useEffect(() => {
+    const from = typeof params.from === 'string' ? params.from : '';
+    if (['home', 'toast', 'more', 'account', 'envelope'].includes(from)) analytics.track('history_opened', { source: from });
+  }, [params.from]);
 
   const months = useMemo(() => historyMonths(data.transactions), [data.transactions]);
   const categories = useMemo(() => historyCategories(data.transactions), [data.transactions]);

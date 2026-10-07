@@ -80,5 +80,17 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     explicite) lit le texte affiché, montants compris, et se place À CÔTÉ d'une zone cliquable, jamais dedans. Le coach ne suit
     que les opérations saisies dans l'application (jamais « en temps réel »
     Orange Money, Wave ou banque). Clé ElevenLabs : secret Functions
-    uniquement. La saisie vocale reste désactivée (`services/speechInput.ts`)
-    tant qu'un fournisseur n'est pas branché et la permission micro débloquée.
+    uniquement. Dictée (saisie vocale) : voir la règle 18.
+18. **Saisie (1.5, `docs/lot-a.md`).** Une seule feuille de saisie
+    (`features/entry`, ouverte par `useEntry().open()` ou le lien
+    `/entry?mode=voice|keyboard`) et un seul chemin d'enregistrement
+    (`useEntrySave` → `useActions`). Voix et phrase écrite → texte → parseur
+    PUR `core/entry/parse.ts` → carte de confirmation : jamais
+    d'enregistrement sans « Tout valider », un champ incertain est surligné,
+    jamais deviné. Le vocabulaire local vit dans `core/entry/vocabulary.json`
+    (données) ; une unité argotique reste inactive tant que le fondateur ne
+    l'a pas validée. La voix du coach se tait quand le micro s'ouvre.
+    Événements d'usage : propriétés de `core/analyticsProps.ts` uniquement
+    (jamais de montant, texte, bénéficiaire ni catégorie). Limite vocale
+    gratuite : `FREE_VOICE_ENTRIES_PER_DAY`. « Reste par jour » :
+    `core/dailyAllowance.ts`, jamais recalculé dans un écran.

@@ -27,7 +27,7 @@ des utilisateurs et ne se connecte (pour l'instant) à aucun opérateur.
 6. [Sécurité](#sécurité)
 7. [Mode hors-ligne et synchronisation](#mode-hors-ligne-et-synchronisation)
 8. [IA DineroX](#ia-dinerox)
-9. [Coach financier (1.5)](#coach-financier-15)
+9. [Coach financier (1.5)](#coach-financier-15) · [Saisie et reste par jour (1.5)](#saisie-et-reste-par-jour-15)
 10. [Variables d'environnement et environnements](#variables-denvironnement-et-environnements)
 11. [Firebase : configuration et déploiement](#firebase--configuration-et-déploiement)
 12. [Tests](#tests)
@@ -272,6 +272,24 @@ Couche distincte (`src/core/ai`, `src/services/ai.ts`, `firebase/functions/src/a
   signaler les estimations, pas de conseil réglementé), quota 30/jour.
 - La conversation reste sur l'appareil.
 
+## Saisie et reste par jour (1.5)
+
+Détail, tests et liste des essais sur téléphone : [`docs/lot-a.md`](docs/lot-a.md).
+
+- **Barre du bas** : Accueil · Budget · 🎤 · Objectifs · Plus. Le micro
+  central ouvre la saisie (voix ; appui long : clavier). L'Historique
+  (`/transactions`) et l'assistant (`/assistant`) sont des écrans à part.
+- **Reste par jour** (`core/dailyAllowance.ts`) en haut de l'accueil.
+- **Saisie** : pavé numérique (3 gestes), phrase écrite, voix
+  (`expo-speech-recognition`, reconnaissance du téléphone). Le texte passe
+  par un parseur local déterministe (`core/entry/parse.ts`, vocabulaire dans
+  `core/entry/vocabulary.json`) puis par une **carte de confirmation** :
+  rien n'est enregistré sans validation. L'audio n'est jamais stocké ni
+  envoyé aux serveurs.
+- **Rappel du soir**, réglable, jamais le jour d'une saisie.
+- **Formules** : 5 saisies vocales par jour en gratuit (clavier et phrase
+  illimités) ; illimité en Plus et Famille.
+
 ## Coach financier (1.5)
 
 Détail complet : [`docs/coach.md`](docs/coach.md) (architecture, secrets,
@@ -289,7 +307,7 @@ coûts, activation de la voix premium, builds).
   déterministes sur les mois clos (au moins 10 opérations).
 - **Conseil du jour** déterministe ; l'IA peut seulement le reformuler, sur
   demande, avec consentement.
-- **Saisie vocale** : préparée (interface `SpeechInputProvider`), non activée.
+- **Saisie vocale** : activée en 1.5 (dictée → carte de confirmation), voir ci-dessus.
 
 Le coach ne voit que les opérations saisies dans DineroX : il ne suit ni
 Orange Money, ni Wave, ni aucune banque.

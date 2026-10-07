@@ -16,6 +16,15 @@ interface Stats {
   active7: number;
   families: number;
   plans: Record<string, number>;
+  /** Saisie (1.5) : comptages agrégés d'événements anonymes (absent sur un serveur antérieur). */
+  entry?: {
+    total: number;
+    shares: Record<'voice' | 'text_phrase' | 'quick_manual' | 'full_form', number>;
+    created: Record<'voice' | 'text_phrase' | 'quick_manual' | 'full_form', number>;
+    voiceCorrectionRate: number | null;
+    voiceFailed: number;
+    reminderOpened: number;
+  };
   generatedAt: number;
 }
 
@@ -62,6 +71,22 @@ export default function Admin() {
             <Row key={p} title={`${t('admin.plans')} · ${p}`} right={<Text weight="700">{n}</Text>} />
           ))}
         </Card>
+      ) : null}
+      {stats?.entry ? (
+        <>
+          <SectionHeader title={t('admin.entry.title')} />
+          <Text variant="caption" tone="subtle" style={{ marginBottom: 8 }}>
+            {t('admin.entry.hint', { count: stats.entry.total })}
+          </Text>
+          <Card>
+            {(['voice', 'text_phrase', 'quick_manual', 'full_form'] as const).map((m) => (
+              <Row key={m} title={t(`admin.entry.${m}`)} right={<Text weight="700">{`${stats.entry!.shares[m]} % · ${stats.entry!.created[m]}`}</Text>} />
+            ))}
+            <Row title={t('admin.entry.correction')} right={<Text weight="700">{stats.entry.voiceCorrectionRate === null ? '—' : `${stats.entry.voiceCorrectionRate} %`}</Text>} />
+            <Row title={t('admin.entry.failed')} right={<Text weight="700">{stats.entry.voiceFailed}</Text>} />
+            <Row title={t('admin.entry.reminder')} right={<Text weight="700">{stats.entry.reminderOpened}</Text>} />
+          </Card>
+        </>
       ) : null}
       <SectionHeader title={t('admin.categories')} />
       <Text variant="caption" tone="subtle" style={{ marginBottom: 8 }}>

@@ -1346,6 +1346,15 @@ export const fr = {
   'entry.settings.examples': "Afficher des exemples de phrases",
   'entry.settings.testMic': "Tester le micro",
   'entry.settings.heard': "J'ai entendu : « {text} »",
+  'admin.entry.title': "Saisie des opérations",
+  'admin.entry.hint': "{count} saisies mesurées (utilisateurs ayant accepté les statistiques anonymes ; aucun montant ni texte n'est collecté).",
+  'admin.entry.voice': "Voix",
+  'admin.entry.text_phrase': "Phrase écrite",
+  'admin.entry.quick_manual': "Saisie rapide",
+  'admin.entry.full_form': "Formulaire complet",
+  'admin.entry.correction': "Saisies vocales corrigées avant validation",
+  'admin.entry.failed': "Échecs de reconnaissance vocale",
+  'admin.entry.reminder': "Rappels du soir ouverts",
 } as const;
 
 export type TKey = keyof typeof fr;

@@ -11,6 +11,7 @@
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { firebase } from './firebase';
 import { isFirebaseConfigured, env } from '@/config/env';
+import { sanitize, type Props } from '@/core/analyticsProps';
 
 export type AnalyticsEvent =
   | 'sign_up'
@@ -33,10 +34,7 @@ export type AnalyticsEvent =
   | 'history_opened'
   | 'mic_routed';
 
-/** Seules ces propriétés, non identifiantes, peuvent être transmises. */
-const ALLOWED_PROPS = new Set(['method', 'plan', 'intent', 'source', 'step', 'kind', 'count', 'reason', 'to']);
-
-type Props = Record<string, string | number | boolean>;
+export { sanitize } from '@/core/analyticsProps';
 type Sink = (event: AnalyticsEvent, props: Props) => void;
 
 let consent = false;
@@ -44,14 +42,6 @@ let sink: Sink = (event, props) => {
   if (__DEV__) console.log('[analytics]', event, props);
 };
 
-export function sanitize(props: Record<string, unknown> = {}): Props {
-  const out: Props = {};
-  for (const [k, v] of Object.entries(props)) {
-    if (!ALLOWED_PROPS.has(k)) continue;
-    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') out[k] = typeof v === 'string' ? v.slice(0, 40) : v;
-  }
-  return out;
-}
 
 export const analytics = {
   setConsent(v: boolean) {
