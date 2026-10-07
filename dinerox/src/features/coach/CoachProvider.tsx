@@ -26,6 +26,7 @@ import { moneyPosition } from '@/core/balance';
 import { alertsAfterWrite, evaluateEnvelopeAlerts } from '@/core/coach/envelopeAlerts';
 import { detectPositiveEvents, fromEnvelopeAlert, fromInsights, fromRecommendations, type CoachEvent } from '@/core/coach/events';
 import { familyEvents } from '@/core/coach/familyEvents';
+import { tontineEvents } from '@/core/coach/tontineEvents';
 import { SEASON_EVENTS } from '@/core/seasons';
 import type { TKey } from '@/i18n';
 import { planDelivery, type CoachTrigger } from '@/core/coach/policy';
@@ -191,6 +192,8 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
       ...fromRecommendations(recommendations(snap, data.goals), spaceId, month, now),
       ...detectPositiveEvents(data, cur, day, spaceId, now, (id) => label(data.categories.find((c) => c.id === id), id)),
       // Réserve famille, moments forts, soutiens réguliers : libellés du catalogue, jamais un nom saisi.
+      // Tontines : cotisation demain, retard, cagnotte proche, mois à l'heure.
+      ...tontineEvents(data, cur, day, spaceId, now, { firstName: p.firstName }),
       ...familyEvents(data, cur, day, spaceId, now, { firstName: p.firstName, seasonLabel: (id) => (SEASON_EVENTS.some((e) => e.id === id) ? t(`season.event.${id}` as TKey) : t('season.generic')) }),
       ...(await awardRewards(true)),
     ];

@@ -41,6 +41,10 @@ let b;
   t = await text();
   ok((t.match(/· 10 000 FCFA\n/g) || []).length === 10 && t.includes('Vous · vous recevez 100 000 FCFA') && t.includes('Tour 7'), 'échéancier : 10 tours, « Vous » au tour 6, « Tour n » sinon');
   ok((t.match(/Payé/g) || []).length >= 2, 'cotisations passées de la démo : « Payé »');
+  if (PHASE >= 3) {
+    ok(t.includes('Comprendre ma tontine') && t.includes('Recevoir tôt revient à un crédit sans intérêt') && t.includes('Pour l\'instant, vous épargnez'), 'Comprendre ma tontine (tournante) : crédit / épargne sans intérêt, texte neutre');
+    ok(!/quitter|devriez|déconseill|arrêtez/i.test(t), 'aucun conseil de quitter la tontine, aucun jugement');
+  }
 
   // Création : collecteur 1 000 / jour, 31 jours, commission 1 000.
   await go('/tontines/new');
@@ -59,6 +63,9 @@ let b;
   await btn('Créer la tontine').click(); await p.waitForTimeout(2000);
   t = await text();
   ok(p.url().includes('/tontines/ton_') && t.includes('Collecteur du marché') && t.includes('Fin de cycle : 30 000 FCFA rendus'), 'collecteur créé : 31 mises, 30 000 rendus en fin de cycle');
+  if (PHASE >= 3) {
+    ok(t.includes('Comprendre ma tontine') && t.includes('Commission : 1 000 FCFA sur 31 000 FCFA, soit 3,2 %.'), 'Comprendre ma tontine (collecteur) : « Commission : 1 000 sur 31 000, soit 3,2 % »');
+  }
 
   // Tournante avec demi-main : la moitié de la cagnotte du tour partagé.
   await go('/tontines/new');
@@ -132,6 +139,9 @@ let b;
     ok((await text()).includes('Tontine du bureau'), 'calendrier : cotisations de la tontine');
     // Retard : on avance l'horloge du navigateur de 70 jours.
     await p.clock.install({ time: new Date(Date.now() + 70 * 86_400_000) });
+    // Le coach présente son résumé UNE fois à l'ouverture (dédoublonnage) : on regarde l'accueil d'abord.
+    await go('/', 5000); await closeCelebration();
+    if (PHASE >= 3) ok(/Cotisation « [^»]+ » pas encore enregistrée depuis \d+ jours/.test(await text()), 'coach à l’ouverture : « Cotisation … pas encore enregistrée » (tontine_late)');
     t = await position();
     ok(t.includes('En retard') && (await btn("Je l'ai payée").count()) > 0 && (await btn('Reporter').count()) > 0, 'échéance passée sans cotisation : « En retard », « Je l’ai payée » / « Reporter »');
     await btn('Reporter').first().click(); await p.waitForTimeout(500);

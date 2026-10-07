@@ -14,6 +14,7 @@ import { Badge, Button, Card, EmptyState, Row, Screen, SectionHeader, Text } fro
 import { withSpaceReady } from '@/components/SpaceReady';
 import { collectorTotals, nextContribution, nextPayout, potOf, scheduleState, type ItemState } from '@/core/tontine';
 import { NetPositionText } from '@/features/tontine/NetPositionText';
+import { UnderstandCard } from '@/features/tontine/UnderstandCard';
 import { PostponeSheet, useTontineGestures } from '@/features/tontine/TontineActions';
 import { can } from '@/core/permissions';
 import type { Tontine } from '@/core/types';
@@ -79,6 +80,8 @@ function TontineDetail() {
         </Text>
         <NetPositionText tontine={tontine} />
       </Card>
+
+      <UnderstandCard tontine={tontine} />
 
       {tontine.status === 'active' && canRecord ? <TodoList tontine={tontine} states={states} onPostpone={setPostponing} /> : null}
       <PostponeSheet tontine={tontine} item={postponing} onClose={() => setPostponing(null)} />

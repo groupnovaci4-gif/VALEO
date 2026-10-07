@@ -146,6 +146,11 @@ retard), `obligation_due` (soutien régulier à verser demain). Jamais de
 bénéficiaire, de défunt ni de nom saisi dans les paramètres : libellés du
 catalogue et montants seulement (montants jamais lus sans `speakAmounts`).
 
+Tontines (1.7, `tontineEvents`, voir [`tontines.md`](tontines.md)) :
+`tontine_due` (cotisation demain), `tontine_late`, `tontine_payout_soon`
+(ma cagnotte dans 7 jours), `tontine_all_on_time` (célébration). Préférence
+`tontineDue` ; voix sans montant ni nom de tontine sans `speakAmounts`.
+
 Événements positifs (`detectPositiveEvents`) : mois respecté, épargne
 régulière, dette soldée, échéance tenue, fonds d'urgence renforcé et
 **catégorie en baisse** (`categoryDown` : ≥ 20 % sous la moyenne des trois

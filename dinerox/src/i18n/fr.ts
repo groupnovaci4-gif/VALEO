@@ -1642,6 +1642,21 @@ export const fr = {
   "nw.tontines": "Tontines (position nette)",
   "tontine.todo": "À faire",
   "cal.kind.tontine_payout": "Cagnotte de tontine",
+  "coach.tontine.due": "Cotisation « {name} » demain : {amount}.",
+  "coach.tontine.due.voice": "Une cotisation de tontine est prévue demain.",
+  "coach.tontine.late": "Cotisation « {name} » pas encore enregistrée depuis {days} jours ({amount}).",
+  "coach.tontine.late.voice": "Une cotisation de tontine n'est pas encore enregistrée.",
+  "coach.tontine.payout": "Votre cagnotte « {name} » est prévue dans {days} jours : {amount}.",
+  "coach.tontine.payout.voice": "Votre cagnotte de tontine arrive bientôt.",
+  "coach.tontine.onTime": "Bravo {name} : toutes vos cotisations de tontine du mois dernier ont été faites à l'heure.",
+  "tontine.understand.title": "Comprendre ma tontine",
+  "tontine.understand.rotating": "Chacun verse la même somme à chaque échéance et reçoit la cagnotte une fois par main. Recevoir tôt revient à un crédit sans intérêt accordé par le groupe ; recevoir tard revient à une épargne sans intérêt.",
+  "tontine.understand.before": "Pour l'instant, vous épargnez : ce que vous versez vous revient à votre tour.",
+  "tontine.understand.after": "Vous avez reçu votre cagnotte : les cotisations suivantes remboursent ce que le groupe vous a avancé.",
+  "tontine.understand.finished": "Le cycle est terminé : vous avez versé autant que vous avez reçu, hors frais éventuels.",
+  "tontine.understand.collector": "Le collecteur garde vos mises pendant le cycle et vous les rend à la fin, moins sa commission.",
+  "tontine.understand.commission": "Commission : {commission} sur {total}, soit {percent} %.",
+  "tontine.understand.fixed": "Cotisation sans redistribution : c'est une dépense régulière, sans cagnotte à recevoir.",
 } as const;
 
 export type TKey = keyof typeof fr;

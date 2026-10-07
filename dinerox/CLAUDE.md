@@ -107,3 +107,14 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     récurrences `cat_family`. Bénéficiaires, défunts et noms saisis ne vont
     jamais dans un texte du coach, une notification, la voix ni le résumé IA.
     Ton : des chiffres et des options, jamais de jugement sur ce qu'on donne.
+20. **Tontines (1.7, `docs/tontines.md`).** Carnet de SUIVI : l'application ne
+    collecte, ne détient ni ne transfère jamais d'argent (mention obligatoire à
+    la création et dans les CGU), aucune connexion à un opérateur. Calculs dans
+    `core/tontine.ts` (`buildSchedule`, statuts, position nette, reste par jour,
+    rappels) ; frais, commission, pénalités et ordre des tours sont SAISIS, jamais
+    inventés. Une cotisation ou une cagnotte confirmée = une opération réelle +
+    une entrée liée (`recordTontine`) ; supprimer l'opération supprime l'entrée.
+    Une cagnotte attendue n'est jamais comptée avant d'être reçue. Une récurrence
+    convertie reste active tant que l'utilisateur ne la désactive pas (pas de
+    double comptage : `countedByRecurring`). Expressions locales de la saisie :
+    inactives tant que le fondateur ne les a pas validées.
