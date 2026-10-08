@@ -1,0 +1,1707 @@
+{
+ "_lisezmoi": "Catalogue de catégories de DÉPENSES de départ (v2) : Côte d'Ivoire et Afrique de l'Ouest francophone. Fichier de DONNÉES (aussi publiable à distance : config/categories/items/v2). Identifiants STABLES : ne jamais renommer un id. Mots-clés en minuscules SANS accents. 'countries' vide = tous les pays du catalogue. 'profileRules' : 'children' = masquée par défaut si le profil déclare une situation familiale ET 0 enfant ET 0 personne à charge (jamais supprimée). 'legacyParentMap' : ancien parent d'une sous-catégorie rattachée ailleurs (les opérations passées gardent leurs identifiants et sont comptées sous le nouveau parent). Pas de catégorie Épargne : épargner n'est pas dépenser.",
+ "catalogVersion": 2,
+ "countries": [
+  "CI",
+  "SN",
+  "BJ",
+  "TG",
+  "BF",
+  "ML",
+  "NE",
+  "GW",
+  "GN"
+ ],
+ "entries": [
+  {
+   "id": "cat_family",
+   "parentId": null,
+   "label": {
+    "fr": "Famille",
+    "en": "Family"
+   },
+   "emoji": "👨‍👩‍👧",
+   "icon": "heart",
+   "color": "#EC4899",
+   "sortOrder": 1,
+   "bucket": "obligation",
+   "envelope": "family",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_family_parents",
+   "parentId": "cat_family",
+   "label": {
+    "fr": "Aide aux parents",
+    "en": "Support for parents"
+   },
+   "sortOrder": 1,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "maman",
+    "papa",
+    "mere",
+    "pere",
+    "parents"
+   ]
+  },
+  {
+   "id": "sub_family_siblings",
+   "parentId": "cat_family",
+   "label": {
+    "fr": "Aide aux frères/sœurs",
+    "en": "Support for siblings"
+   },
+   "sortOrder": 2,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "frere",
+    "soeur",
+    "petit frere",
+    "grande soeur"
+   ]
+  },
+  {
+   "id": "sub_family_children",
+   "parentId": "cat_family",
+   "label": {
+    "fr": "Enfants",
+    "en": "Children"
+   },
+   "sortOrder": 3,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [
+    "children"
+   ],
+   "defaultEnabled": true,
+   "keywords": [
+    "enfant",
+    "enfants",
+    "bebe"
+   ]
+  },
+  {
+   "id": "sub_family_transfers",
+   "parentId": "cat_family",
+   "label": {
+    "fr": "Soutien familial",
+    "en": "Family support"
+   },
+   "sortOrder": 4,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "envoi",
+    "village",
+    "soutien familial",
+    "cotisation familiale"
+   ]
+  },
+  {
+   "id": "sub_family_other",
+   "parentId": "cat_family",
+   "label": {
+    "fr": "Autres dépenses familiales",
+    "en": "Other family expenses"
+   },
+   "sortOrder": 5,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "cat_housing",
+   "parentId": null,
+   "label": {
+    "fr": "Maison & logement",
+    "en": "Home & housing"
+   },
+   "emoji": "🏠",
+   "icon": "home",
+   "color": "#6366F1",
+   "sortOrder": 2,
+   "bucket": "need",
+   "envelope": "housing",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_housing_rent",
+   "parentId": "cat_housing",
+   "label": {
+    "fr": "Loyer",
+    "en": "Rent"
+   },
+   "sortOrder": 1,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "loyer"
+   ],
+   "fixed": true
+  },
+  {
+   "id": "sub_housing_electricity",
+   "parentId": "cat_housing",
+   "label": {
+    "fr": "Électricité",
+    "en": "Electricity"
+   },
+   "sortOrder": 2,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "electricite",
+    "courant",
+    "cie",
+    "senelec",
+    "facture d electricite"
+   ],
+   "fixed": true
+  },
+  {
+   "id": "sub_housing_water",
+   "parentId": "cat_housing",
+   "label": {
+    "fr": "Eau",
+    "en": "Water"
+   },
+   "sortOrder": 3,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "sodeci",
+    "facture d eau"
+   ],
+   "fixed": true
+  },
+  {
+   "id": "sub_housing_gas",
+   "parentId": "cat_housing",
+   "label": {
+    "fr": "Gaz",
+    "en": "Gas"
+   },
+   "sortOrder": 4,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "gaz",
+    "bouteille de gaz"
+   ]
+  },
+  {
+   "id": "sub_housing_charcoal",
+   "parentId": "cat_housing",
+   "label": {
+    "fr": "Charbon",
+    "en": "Charcoal"
+   },
+   "sortOrder": 5,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "charbon"
+   ]
+  },
+  {
+   "id": "sub_housing_maintenance",
+   "parentId": "cat_housing",
+   "label": {
+    "fr": "Entretien / réparations",
+    "en": "Maintenance / repairs"
+   },
+   "sortOrder": 6,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "reparation",
+    "reparations",
+    "plombier",
+    "electricien",
+    "entretien maison"
+   ]
+  },
+  {
+   "id": "sub_housing_furniture",
+   "parentId": "cat_housing",
+   "label": {
+    "fr": "Ameublement",
+    "en": "Furniture"
+   },
+   "sortOrder": 7,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "meuble",
+    "meubles",
+    "matelas"
+   ]
+  },
+  {
+   "id": "sub_housing_other",
+   "parentId": "cat_housing",
+   "label": {
+    "fr": "Autres",
+    "en": "Other"
+   },
+   "sortOrder": 8,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "cat_food",
+   "parentId": null,
+   "label": {
+    "fr": "Alimentation & boissons",
+    "en": "Food & drinks"
+   },
+   "emoji": "🍛",
+   "icon": "restaurant",
+   "color": "#F59E0B",
+   "sortOrder": 3,
+   "bucket": "need",
+   "envelope": "food",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_food_market",
+   "parentId": "cat_food",
+   "label": {
+    "fr": "Marché",
+    "en": "Market"
+   },
+   "sortOrder": 1,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "marche",
+    "courses"
+   ]
+  },
+  {
+   "id": "sub_food_supermarket",
+   "parentId": "cat_food",
+   "label": {
+    "fr": "Supermarché",
+    "en": "Supermarket"
+   },
+   "sortOrder": 2,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "supermarche",
+    "carrefour",
+    "prosuma"
+   ]
+  },
+  {
+   "id": "sub_food_restaurant",
+   "parentId": "cat_food",
+   "label": {
+    "fr": "Restaurant",
+    "en": "Restaurant"
+   },
+   "sortOrder": 3,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "restaurant",
+    "resto"
+   ]
+  },
+  {
+   "id": "sub_food_maquis",
+   "parentId": "cat_food",
+   "label": {
+    "fr": "Maquis",
+    "en": "Maquis"
+   },
+   "sortOrder": 4,
+   "bucket": "want",
+   "countries": [
+    "CI",
+    "BF",
+    "TG",
+    "BJ"
+   ],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "maquis"
+   ]
+  },
+  {
+   "id": "sub_food_delivery",
+   "parentId": "cat_food",
+   "label": {
+    "fr": "Livraison",
+    "en": "Delivery"
+   },
+   "sortOrder": 5,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "livraison",
+    "glovo",
+    "yango food"
+   ]
+  },
+  {
+   "id": "sub_food_streetfood",
+   "parentId": "cat_food",
+   "label": {
+    "fr": "Snacks",
+    "en": "Snacks"
+   },
+   "sortOrder": 6,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "garba",
+    "alloco",
+    "snack",
+    "snacks",
+    "beignet",
+    "beignets",
+    "brochette"
+   ]
+  },
+  {
+   "id": "sub_food_drinks",
+   "parentId": "cat_food",
+   "label": {
+    "fr": "Boissons",
+    "en": "Drinks"
+   },
+   "sortOrder": 7,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "boisson",
+    "boissons",
+    "sucrerie",
+    "jus",
+    "biere"
+   ]
+  },
+  {
+   "id": "sub_food_water",
+   "parentId": "cat_food",
+   "label": {
+    "fr": "Eau",
+    "en": "Water"
+   },
+   "sortOrder": 8,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "eau minerale",
+    "sachet d eau",
+    "pure water"
+   ]
+  },
+  {
+   "id": "sub_food_other",
+   "parentId": "cat_food",
+   "label": {
+    "fr": "Autres",
+    "en": "Other"
+   },
+   "sortOrder": 9,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "cat_health",
+   "parentId": null,
+   "label": {
+    "fr": "Santé",
+    "en": "Health"
+   },
+   "emoji": "🏥",
+   "icon": "medkit",
+   "color": "#EF4444",
+   "sortOrder": 4,
+   "bucket": "need",
+   "envelope": "family",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_health_consultation",
+   "parentId": "cat_health",
+   "label": {
+    "fr": "Consultation",
+    "en": "Consultation"
+   },
+   "sortOrder": 1,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "consultation",
+    "docteur",
+    "medecin"
+   ]
+  },
+  {
+   "id": "sub_health_pharmacy",
+   "parentId": "cat_health",
+   "label": {
+    "fr": "Médicaments / pharmacie",
+    "en": "Medicines / pharmacy"
+   },
+   "sortOrder": 2,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "pharmacie",
+    "medicament",
+    "medicaments",
+    "ordonnance"
+   ]
+  },
+  {
+   "id": "sub_health_lab",
+   "parentId": "cat_health",
+   "label": {
+    "fr": "Analyses médicales",
+    "en": "Medical tests"
+   },
+   "sortOrder": 3,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "analyse",
+    "analyses",
+    "laboratoire",
+    "prise de sang"
+   ]
+  },
+  {
+   "id": "sub_health_hospital",
+   "parentId": "cat_health",
+   "label": {
+    "fr": "Hospitalisation",
+    "en": "Hospitalisation"
+   },
+   "sortOrder": 4,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "hopital",
+    "clinique",
+    "hospitalisation"
+   ]
+  },
+  {
+   "id": "sub_health_dental",
+   "parentId": "cat_health",
+   "label": {
+    "fr": "Soins dentaires",
+    "en": "Dental care"
+   },
+   "sortOrder": 5,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "dentiste",
+    "dents"
+   ]
+  },
+  {
+   "id": "sub_health_optical",
+   "parentId": "cat_health",
+   "label": {
+    "fr": "Lunettes / optique",
+    "en": "Glasses / optician"
+   },
+   "sortOrder": 6,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "lunettes",
+    "opticien"
+   ]
+  },
+  {
+   "id": "sub_health_mutual",
+   "parentId": "cat_health",
+   "label": {
+    "fr": "Assurance / mutuelle santé",
+    "en": "Health insurance"
+   },
+   "sortOrder": 7,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "mutuelle",
+    "cmu",
+    "assurance sante"
+   ],
+   "fixed": true
+  },
+  {
+   "id": "sub_health_children",
+   "parentId": "cat_health",
+   "label": {
+    "fr": "Santé des enfants",
+    "en": "Children's health"
+   },
+   "sortOrder": 8,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [
+    "children"
+   ],
+   "defaultEnabled": true,
+   "keywords": [
+    "pediatre",
+    "vaccin"
+   ]
+  },
+  {
+   "id": "sub_health_family",
+   "parentId": "cat_health",
+   "label": {
+    "fr": "Santé familiale",
+    "en": "Family health"
+   },
+   "sortOrder": 9,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_health_other",
+   "parentId": "cat_health",
+   "label": {
+    "fr": "Autres",
+    "en": "Other"
+   },
+   "sortOrder": 10,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "cat_transport",
+   "parentId": null,
+   "label": {
+    "fr": "Transport",
+    "en": "Transport"
+   },
+   "emoji": "🚕",
+   "icon": "car",
+   "color": "#0EA5E9",
+   "sortOrder": 5,
+   "bucket": "need",
+   "envelope": "transport",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_transport_taxi",
+   "parentId": "cat_transport",
+   "label": {
+    "fr": "Taxi",
+    "en": "Taxi"
+   },
+   "sortOrder": 1,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "taxi",
+    "woro-woro",
+    "woro woro",
+    "woro",
+    "cab"
+   ]
+  },
+  {
+   "id": "sub_transport_vtc",
+   "parentId": "cat_transport",
+   "label": {
+    "fr": "Yango / VTC",
+    "en": "Yango / ride-hailing"
+   },
+   "sortOrder": 2,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "yango",
+    "vtc",
+    "uber",
+    "heetch",
+    "bolt"
+   ]
+  },
+  {
+   "id": "sub_transport_mototaxi",
+   "parentId": "cat_transport",
+   "label": {
+    "fr": "Moto-taxi",
+    "en": "Motorbike taxi"
+   },
+   "sortOrder": 3,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "moto-taxi",
+    "moto taxi",
+    "zemidjan",
+    "okada",
+    "benskin"
+   ]
+  },
+  {
+   "id": "sub_transport_bus",
+   "parentId": "cat_transport",
+   "label": {
+    "fr": "Bus",
+    "en": "Bus"
+   },
+   "sortOrder": 4,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "bus",
+    "gbaka",
+    "sotra",
+    "car rapide"
+   ]
+  },
+  {
+   "id": "sub_transport_fuel",
+   "parentId": "cat_transport",
+   "label": {
+    "fr": "Carburant",
+    "en": "Fuel"
+   },
+   "sortOrder": 5,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "carburant",
+    "essence",
+    "gasoil",
+    "gazoil"
+   ]
+  },
+  {
+   "id": "sub_transport_maintenance",
+   "parentId": "cat_transport",
+   "label": {
+    "fr": "Entretien / réparation",
+    "en": "Maintenance / repair"
+   },
+   "sortOrder": 6,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "garage",
+    "mecanicien",
+    "vidange",
+    "pneu"
+   ]
+  },
+  {
+   "id": "sub_transport_insurance",
+   "parentId": "cat_transport",
+   "label": {
+    "fr": "Assurance",
+    "en": "Insurance"
+   },
+   "sortOrder": 7,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "assurance auto",
+    "assurance moto",
+    "assurance voiture"
+   ],
+   "fixed": true
+  },
+  {
+   "id": "sub_transport_parking",
+   "parentId": "cat_transport",
+   "label": {
+    "fr": "Parking",
+    "en": "Parking"
+   },
+   "sortOrder": 8,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "parking"
+   ]
+  },
+  {
+   "id": "sub_transport_tolls",
+   "parentId": "cat_transport",
+   "label": {
+    "fr": "Péage",
+    "en": "Tolls"
+   },
+   "sortOrder": 9,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "peage"
+   ]
+  },
+  {
+   "id": "sub_transport_other",
+   "parentId": "cat_transport",
+   "label": {
+    "fr": "Autres",
+    "en": "Other"
+   },
+   "sortOrder": 10,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "cat_social",
+   "parentId": null,
+   "label": {
+    "fr": "Finance sociale & obligations",
+    "en": "Social finance & obligations"
+   },
+   "emoji": "🤝",
+   "icon": "people-circle",
+   "color": "#DB2777",
+   "sortOrder": 6,
+   "bucket": "obligation",
+   "envelope": "family",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_informal_tontine",
+   "parentId": "cat_social",
+   "label": {
+    "fr": "Tontine",
+    "en": "Tontine"
+   },
+   "sortOrder": 1,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "tontine",
+    "susu",
+    "njangi"
+   ],
+   "fixed": true
+  },
+  {
+   "id": "sub_informal_dues",
+   "parentId": "cat_social",
+   "label": {
+    "fr": "Cotisation",
+    "en": "Contribution"
+   },
+   "sortOrder": 2,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "cotisation",
+    "cotise",
+    "cotiser"
+   ],
+   "fixed": true
+  },
+  {
+   "id": "sub_social_weddings",
+   "parentId": "cat_social",
+   "label": {
+    "fr": "Contribution mariage",
+    "en": "Wedding contribution"
+   },
+   "sortOrder": 3,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "mariage",
+    "dot"
+   ]
+  },
+  {
+   "id": "sub_social_baptisms",
+   "parentId": "cat_social",
+   "label": {
+    "fr": "Baptême",
+    "en": "Baptism"
+   },
+   "sortOrder": 4,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "bapteme"
+   ]
+  },
+  {
+   "id": "sub_social_funerals",
+   "parentId": "cat_social",
+   "label": {
+    "fr": "Funérailles",
+    "en": "Funerals"
+   },
+   "sortOrder": 5,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "funerailles",
+    "deuil",
+    "enterrement",
+    "obseques"
+   ]
+  },
+  {
+   "id": "sub_social_ceremonies",
+   "parentId": "cat_social",
+   "label": {
+    "fr": "Cérémonies",
+    "en": "Ceremonies"
+   },
+   "sortOrder": 6,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "ceremonie",
+    "ceremonies"
+   ]
+  },
+  {
+   "id": "sub_informal_association",
+   "parentId": "cat_social",
+   "label": {
+    "fr": "Association / communauté",
+    "en": "Association / community"
+   },
+   "sortOrder": 7,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "association",
+    "communaute"
+   ]
+  },
+  {
+   "id": "sub_social_other",
+   "parentId": "cat_social",
+   "label": {
+    "fr": "Autres",
+    "en": "Other"
+   },
+   "sortOrder": 8,
+   "bucket": "obligation",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "cat_education",
+   "parentId": null,
+   "label": {
+    "fr": "Éducation & formation",
+    "en": "Education & training"
+   },
+   "emoji": "🎓",
+   "icon": "school",
+   "color": "#8B5CF6",
+   "sortOrder": 7,
+   "bucket": "need",
+   "envelope": "family",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_education_fees",
+   "parentId": "cat_education",
+   "label": {
+    "fr": "Scolarité",
+    "en": "School fees"
+   },
+   "sortOrder": 1,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [
+    "children"
+   ],
+   "defaultEnabled": true,
+   "keywords": [
+    "scolarite",
+    "ecole",
+    "inscription scolaire"
+   ],
+   "fixed": true
+  },
+  {
+   "id": "sub_education_supplies",
+   "parentId": "cat_education",
+   "label": {
+    "fr": "Fournitures scolaires",
+    "en": "School supplies"
+   },
+   "sortOrder": 2,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "fournitures",
+    "cahier",
+    "cahiers"
+   ]
+  },
+  {
+   "id": "sub_education_books",
+   "parentId": "cat_education",
+   "label": {
+    "fr": "Livres",
+    "en": "Books"
+   },
+   "sortOrder": 3,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "livre",
+    "livres"
+   ]
+  },
+  {
+   "id": "sub_education_training",
+   "parentId": "cat_education",
+   "label": {
+    "fr": "Formation professionnelle",
+    "en": "Professional training"
+   },
+   "sortOrder": 4,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "formation"
+   ]
+  },
+  {
+   "id": "sub_education_certifications",
+   "parentId": "cat_education",
+   "label": {
+    "fr": "Certifications",
+    "en": "Certifications"
+   },
+   "sortOrder": 5,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "certification",
+    "examen"
+   ]
+  },
+  {
+   "id": "sub_education_tutoring",
+   "parentId": "cat_education",
+   "label": {
+    "fr": "Cours particuliers",
+    "en": "Private lessons"
+   },
+   "sortOrder": 6,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "cours particuliers",
+    "repetiteur",
+    "cours a domicile"
+   ]
+  },
+  {
+   "id": "sub_education_other",
+   "parentId": "cat_education",
+   "label": {
+    "fr": "Autres",
+    "en": "Other"
+   },
+   "sortOrder": 7,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "cat_communication",
+   "parentId": null,
+   "label": {
+    "fr": "Communication & numérique",
+    "en": "Communication & digital"
+   },
+   "emoji": "📱",
+   "icon": "call",
+   "color": "#14B8A6",
+   "sortOrder": 8,
+   "bucket": "need",
+   "envelope": "free",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_comm_airtime",
+   "parentId": "cat_communication",
+   "label": {
+    "fr": "Crédit téléphonique",
+    "en": "Phone credit"
+   },
+   "sortOrder": 1,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "credit",
+    "unites",
+    "recharge",
+    "airtime"
+   ]
+  },
+  {
+   "id": "sub_comm_data",
+   "parentId": "cat_communication",
+   "label": {
+    "fr": "Internet / data",
+    "en": "Internet / data"
+   },
+   "sortOrder": 2,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "data",
+    "pass internet",
+    "forfait internet",
+    "forfait",
+    "megas"
+   ]
+  },
+  {
+   "id": "sub_internet_fiber",
+   "parentId": "cat_communication",
+   "label": {
+    "fr": "Fibre",
+    "en": "Fibre"
+   },
+   "sortOrder": 3,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "fibre",
+    "wifi",
+    "box internet"
+   ],
+   "fixed": true
+  },
+  {
+   "id": "sub_comm_digital",
+   "parentId": "cat_communication",
+   "label": {
+    "fr": "Abonnements numériques",
+    "en": "Digital subscriptions"
+   },
+   "sortOrder": 4,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "abonnement numerique",
+    "icloud",
+    "google one"
+   ]
+  },
+  {
+   "id": "sub_comm_phone",
+   "parentId": "cat_communication",
+   "label": {
+    "fr": "Téléphone / accessoires",
+    "en": "Phone / accessories"
+   },
+   "sortOrder": 5,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "chargeur",
+    "ecouteurs",
+    "coque",
+    "smartphone"
+   ]
+  },
+  {
+   "id": "sub_comm_other",
+   "parentId": "cat_communication",
+   "label": {
+    "fr": "Autres",
+    "en": "Other"
+   },
+   "sortOrder": 6,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "cat_leisure",
+   "parentId": null,
+   "label": {
+    "fr": "Loisirs & divertissement",
+    "en": "Leisure & entertainment"
+   },
+   "emoji": "🎉",
+   "icon": "game-controller",
+   "color": "#F97316",
+   "sortOrder": 9,
+   "bucket": "want",
+   "envelope": "free",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_leisure_outings",
+   "parentId": "cat_leisure",
+   "label": {
+    "fr": "Sorties",
+    "en": "Outings"
+   },
+   "sortOrder": 1,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "sortie",
+    "sorties",
+    "concert",
+    "boite"
+   ]
+  },
+  {
+   "id": "sub_leisure_cinema",
+   "parentId": "cat_leisure",
+   "label": {
+    "fr": "Cinéma",
+    "en": "Cinema"
+   },
+   "sortOrder": 2,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "cinema"
+   ]
+  },
+  {
+   "id": "sub_leisure_games",
+   "parentId": "cat_leisure",
+   "label": {
+    "fr": "Jeux",
+    "en": "Games"
+   },
+   "sortOrder": 3,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "jeu",
+    "jeux",
+    "console"
+   ]
+  },
+  {
+   "id": "sub_leisure_travel",
+   "parentId": "cat_leisure",
+   "label": {
+    "fr": "Voyages",
+    "en": "Travel"
+   },
+   "sortOrder": 4,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "voyage",
+    "voyages",
+    "billet d avion"
+   ]
+  },
+  {
+   "id": "sub_leisure_sport",
+   "parentId": "cat_leisure",
+   "label": {
+    "fr": "Sports",
+    "en": "Sports"
+   },
+   "sortOrder": 5,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "sport",
+    "salle de sport",
+    "foot",
+    "match"
+   ]
+  },
+  {
+   "id": "sub_leisure_subscriptions",
+   "parentId": "cat_leisure",
+   "label": {
+    "fr": "Abonnements streaming",
+    "en": "Streaming subscriptions"
+   },
+   "sortOrder": 6,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "canal+",
+    "canal plus",
+    "canal",
+    "netflix",
+    "spotify",
+    "showmax",
+    "youtube premium"
+   ],
+   "fixed": true
+  },
+  {
+   "id": "sub_leisure_other",
+   "parentId": "cat_leisure",
+   "label": {
+    "fr": "Autres",
+    "en": "Other"
+   },
+   "sortOrder": 7,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "cat_clothing",
+   "parentId": null,
+   "label": {
+    "fr": "Personnel",
+    "en": "Personal"
+   },
+   "emoji": "👔",
+   "icon": "shirt",
+   "color": "#A855F7",
+   "sortOrder": 10,
+   "bucket": "want",
+   "envelope": "free",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_clothing_clothes",
+   "parentId": "cat_clothing",
+   "label": {
+    "fr": "Vêtements",
+    "en": "Clothes"
+   },
+   "sortOrder": 1,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "habit",
+    "habits",
+    "vetement",
+    "vetements",
+    "pagne"
+   ]
+  },
+  {
+   "id": "sub_clothing_shoes",
+   "parentId": "cat_clothing",
+   "label": {
+    "fr": "Chaussures",
+    "en": "Shoes"
+   },
+   "sortOrder": 2,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "chaussure",
+    "chaussures",
+    "sandales"
+   ]
+  },
+  {
+   "id": "sub_clothing_beauty",
+   "parentId": "cat_clothing",
+   "label": {
+    "fr": "Coiffure / beauté",
+    "en": "Hair / beauty"
+   },
+   "sortOrder": 3,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "coiffure",
+    "tresses",
+    "salon",
+    "coiffeur",
+    "maquillage"
+   ]
+  },
+  {
+   "id": "sub_clothing_hygiene",
+   "parentId": "cat_clothing",
+   "label": {
+    "fr": "Hygiène",
+    "en": "Hygiene"
+   },
+   "sortOrder": 4,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "savon",
+    "hygiene",
+    "dentifrice",
+    "creme"
+   ]
+  },
+  {
+   "id": "sub_clothing_accessories",
+   "parentId": "cat_clothing",
+   "label": {
+    "fr": "Accessoires",
+    "en": "Accessories"
+   },
+   "sortOrder": 5,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "sac",
+    "montre",
+    "bijou",
+    "bijoux"
+   ]
+  },
+  {
+   "id": "sub_clothing_other",
+   "parentId": "cat_clothing",
+   "label": {
+    "fr": "Autres",
+    "en": "Other"
+   },
+   "sortOrder": 6,
+   "bucket": "want",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "cat_debts",
+   "parentId": null,
+   "label": {
+    "fr": "Dettes & remboursements",
+    "en": "Debts & repayments"
+   },
+   "emoji": "💳",
+   "icon": "receipt",
+   "color": "#64748B",
+   "sortOrder": 11,
+   "bucket": "debt",
+   "envelope": null,
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "sub_debts_loan",
+   "parentId": "cat_debts",
+   "label": {
+    "fr": "Remboursement de prêt",
+    "en": "Loan repayment"
+   },
+   "sortOrder": 1,
+   "bucket": "debt",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "remboursement de pret",
+    "pret",
+    "echeance"
+   ],
+   "fixed": true
+  },
+  {
+   "id": "sub_debts_family",
+   "parentId": "cat_debts",
+   "label": {
+    "fr": "Dette familiale",
+    "en": "Family debt"
+   },
+   "sortOrder": 2,
+   "bucket": "debt",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "dette familiale"
+   ]
+  },
+  {
+   "id": "sub_debts_personal",
+   "parentId": "cat_debts",
+   "label": {
+    "fr": "Dette personnelle",
+    "en": "Personal debt"
+   },
+   "sortOrder": 3,
+   "bucket": "debt",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "dette",
+    "dettes"
+   ]
+  },
+  {
+   "id": "sub_debts_card",
+   "parentId": "cat_debts",
+   "label": {
+    "fr": "Crédit",
+    "en": "Credit"
+   },
+   "sortOrder": 4,
+   "bucket": "debt",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "carte de credit",
+    "credit bancaire",
+    "microcredit"
+   ]
+  },
+  {
+   "id": "sub_debts_interest",
+   "parentId": "cat_debts",
+   "label": {
+    "fr": "Intérêts",
+    "en": "Interest"
+   },
+   "sortOrder": 5,
+   "bucket": "debt",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "interet",
+    "interets",
+    "agios"
+   ]
+  },
+  {
+   "id": "sub_debts_other",
+   "parentId": "cat_debts",
+   "label": {
+    "fr": "Autres",
+    "en": "Other"
+   },
+   "sortOrder": 6,
+   "bucket": "debt",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  },
+  {
+   "id": "cat_other",
+   "parentId": null,
+   "label": {
+    "fr": "Autres dépenses",
+    "en": "Other expenses"
+   },
+   "emoji": "🛍️",
+   "icon": "ellipsis-horizontal",
+   "color": "#94A3B8",
+   "sortOrder": 12,
+   "bucket": "want",
+   "envelope": "free",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": []
+  }
+ ],
+ "legacyParentMap": {
+  "sub_informal_tontine": "cat_informal",
+  "sub_informal_dues": "cat_informal",
+  "sub_informal_association": "cat_informal",
+  "sub_internet_fiber": "cat_internet"
+ },
+ "subAliases": {
+  "sub_housing_repairs": "sub_housing_maintenance"
+ },
+ "retired": [
+  "cat_savings",
+  "cat_investment"
+ ]
+}

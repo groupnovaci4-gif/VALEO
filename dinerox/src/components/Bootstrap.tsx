@@ -17,6 +17,7 @@ import { reserveReminders } from '@/core/reserve';
 import { seasonReminders } from '@/core/seasons';
 import { tontineReminders } from '@/core/tontine';
 import { readJSON, storageKey, writeJSON } from '@/services/storage';
+import { loadCategoryCatalog } from '@/services/categoryCatalog';
 import type { CollectionName, SyncedDoc } from '@/core/types';
 import type { TKey } from '@/i18n';
 
@@ -84,6 +85,12 @@ export function Bootstrap() {
       setActiveSpace(id);
     })().catch(() => undefined);
   }, [user, engine, addLocalSpace, setActiveSpace, t]);
+
+  // Catalogue de catégories publié par l'administrateur (sinon : catalogue embarqué).
+  useEffect(() => {
+    if (!user) return;
+    void loadCategoryCatalog(mode === 'firebase');
+  }, [user, mode]);
 
   // Consentement analytique.
   useEffect(() => {

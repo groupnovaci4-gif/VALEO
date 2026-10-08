@@ -242,7 +242,10 @@ export function useActions() {
   const saveTransaction = useCallback(
     (input: Draft<Transaction>): Transaction => {
       let d = data();
-      let draft = input;
+      // 1.8 : `legacyCategoryId` n'existe que dans la VUE des calculs (alias) : jamais enregistré.
+      const { legacyCategoryId: _view, ...clean } = input as Draft<Transaction> & { legacyCategoryId?: unknown };
+      void _view;
+      let draft: Draft<Transaction> = clean;
       const hasAccount = d.accounts.some((a) => a.id === draft.accountId && !a.deleted);
       if (!hasAccount && draft.type !== 'transfer' && !d.accounts.some((a) => a.active && !a.deleted)) {
         draft = { ...draft, accountId: ensureCashAccount(draft.currency) };

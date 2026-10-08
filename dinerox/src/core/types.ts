@@ -109,7 +109,26 @@ export interface Category extends SyncedDoc {
   parentId?: string | null;
   /** Charge habituellement fixe (loyer, électricité, tontine…) : sert à l'analyse des charges fixes. */
   fixed?: boolean;
+  /** 1.8 — Emoji (prioritaire sur l'icône à l'affichage). */
+  emoji?: string;
+  /**
+   * 1.8 — Désactivée : absente des listes de choix, gardée dans l'historique et les
+   * rapports. `false` = affichée même si le profil la masquerait par défaut ;
+   * absente = règle par défaut (catalogue, profil).
+   */
+  disabled?: boolean;
+  /** 1.8 — Type de dépense (budget automatique) : besoin, envie, obligation, dette. */
+  spendKind?: SpendKind;
+  /** 1.8 — Mots de la saisie vocale et écrite (« quand je dis… »), en minuscules sans accents. */
+  keywords?: string[];
+  /** 1.8 — Mots appris des corrections de l'utilisateur (mêmes règles ; effaçables). */
+  learnedWords?: string[];
+  /** 1.8 — Version du catalogue qui a installé ou mis à jour cette catégorie. */
+  catalogVersion?: number;
 }
+
+/** Type de dépense d'une catégorie (sert au budget automatique). */
+export type SpendKind = 'need' | 'want' | 'obligation' | 'debt';
 
 // ─── Opérations ───────────────────────────────────────────────────────
 

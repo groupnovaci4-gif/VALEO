@@ -8,9 +8,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { Alert, SectionList, View } from 'react-native';
 import { useI18n } from '@/i18n';
-import { useData } from '@/store/app';
 import { useActions, ActionError } from '@/store/actions';
-import { useCategoryLabels, useCurrency, useMoney } from '@/hooks/useFinance';
+import { useCategoryLabels, useCurrency, useFinance, useMoney } from '@/hooks/useFinance';
 import { ChipGroup, EmptyState, Field, Screen, Segmented, Text, useToast } from '@/components/ui';
 import { TransactionRow } from '@/features/rows';
 import { useEntry } from '@/features/entry/EntryProvider';
@@ -23,7 +22,8 @@ import { analytics } from '@/services/analytics';
 export default function History() {
   const { t, date, monthYear } = useI18n();
   const { colors, radius } = useTheme();
-  const data = useData();
+  // Opérations vues sous leur catégorie actuelle (alias 1.8) : le filtre par catégorie les retrouve.
+  const { data } = useFinance();
   const money = useMoney();
   const currency = useCurrency();
   const cats = useCategoryLabels();

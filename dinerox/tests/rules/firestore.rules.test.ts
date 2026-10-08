@@ -307,6 +307,16 @@ describe('réserve famille et cérémonies (1.6)', () => {
     await assertSucceeds(getDoc(doc(db('u1'), 'config/seasons/items/tabaski_2027_CI')));
     await assertFails(getDoc(doc(db(null), 'config/seasons/items/tabaski_2027_CI')));
   });
+
+  it('catalogue de catégories (1.8) : lecture pour tout utilisateur connecté, écriture administrateur', async () => {
+    const catalog = { catalogVersion: 2, countries: ['CI'], entries: [{ id: 'cat_food', parentId: null, label: { fr: 'Alimentation', en: 'Food' } }] };
+    await assertFails(setDoc(doc(db('u1'), 'config/categories/items/v2'), catalog));
+    await assertSucceeds(setDoc(doc(db('boss', { admin: true }), 'config/categories/items/v2'), catalog));
+    await assertSucceeds(getDoc(doc(db('u1'), 'config/categories/items/v2')));
+    await assertFails(getDoc(doc(db(null), 'config/categories/items/v2')));
+    // Un membre d'espace (même administrateur de son espace) ne peut pas le modifier.
+    await assertFails(setDoc(doc(db('A'), 'config/categories/items/v2'), { ...catalog, catalogVersion: 3 }));
+  });
 });
 
 describe('tontines — carnet personnel (1.7)', () => {

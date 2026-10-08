@@ -13,6 +13,8 @@ import { formatMoney, type CurrencyCode } from '@/core/money';
 import type { Account, Category } from '@/core/types';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/core/defaults';
 import { budgetTransactions } from '@/core/reserve';
+import { CATALOG_LABEL_PREFIX, catalogLabel, effectiveTransactions } from '@/core/categoryCatalog';
+import { useCategoryCatalog } from '@/services/categoryCatalog';
 
 export function useCurrency(): CurrencyCode {
   const { activeSpace, profile } = useApp();
@@ -27,12 +29,15 @@ export function useMoney() {
 
 /** Libellés des catégories : système (traduits) ou personnalisées (nom saisi). */
 export function useCategoryLabels() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const data = useData();
+  const catalog = useCategoryCatalog();
   return useMemo(() => {
     const byId = new Map<string, Category>(data.categories.map((c) => [c.id, c]));
     const fallback = new Map<string, string>([...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES].map((c) => [c.id, c.key]));
     const label = (c: Category | undefined, id: string): string => {
+      // 1.8 : libellé du catalogue (traduit, corrigeable à distance) ; un nom saisi par l'utilisateur prime.
+      if (c?.labelKey?.startsWith(CATALOG_LABEL_PREFIX)) return c.name || catalogLabel(id, lang === 'en' ? 'en' : 'fr', catalog) || t('tx.uncategorized');
       if (c?.labelKey && hasKey(c.labelKey)) return c.name || t(c.labelKey);
       if (c?.name) return c.name;
       const key = fallback.get(id);
@@ -42,7 +47,7 @@ export function useCategoryLabels() {
     const meta = (id: string | null | undefined) => {
       const c = id ? byId.get(id) : undefined;
       const seed = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES].find((s) => s.id === id);
-      return { name: label(c, id ?? ''), icon: c?.icon ?? seed?.icon ?? 'pricetag', color: c?.color ?? seed?.color ?? '#94A3B8' };
+      return { name: label(c, id ?? ''), icon: c?.icon ?? seed?.icon ?? 'pricetag', color: c?.color ?? seed?.color ?? '#94A3B8', emoji: c?.emoji };
     };
     // Catégories principales uniquement (les sous-catégories s'affichent sous leur parent).
     const sorted = (kind: 'income' | 'expense') =>
@@ -57,10 +62,10 @@ export function useCategoryLabels() {
       return data.categories
         .filter((c) => c.parentId === parentId)
         .sort((a, b) => a.order - b.order || label(a, a.id).localeCompare(label(b, b.id)))
-        .map((c) => ({ id: c.id, name: label(c, c.id), icon: parent.icon, color: parent.color, fixed: !!c.fixed }));
+        .map((c) => ({ id: c.id, name: label(c, c.id), icon: parent.icon, color: parent.color, emoji: parent.emoji, fixed: !!c.fixed }));
     };
     return { label, byId: (id: string) => label(byId.get(id), id), meta, list: sorted, children };
-  }, [data.categories, t]);
+  }, [data.categories, t, lang, catalog]);
 }
 
 export function useAccountLabel() {
@@ -76,7 +81,14 @@ export function useAccountLabel() {
 }
 
 export function useFinance() {
-  const data = useData();
+  const raw = useData();
+  const catalog = useCategoryCatalog();
+  // Calculs (rapports, budgets, analyses, export) : une opération dont la sous-catégorie a
+  // changé de parent est comptée sous le nouveau parent. Rien n'est réécrit en base.
+  const data = useMemo(() => {
+    const transactions = effectiveTransactions(raw.transactions, raw.categories, catalog);
+    return transactions === raw.transactions ? raw : { ...raw, transactions };
+  }, [raw, catalog]);
   const currency = useCurrency();
   const labels = useCategoryLabels();
   const now = today();

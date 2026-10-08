@@ -74,11 +74,16 @@ export function envelopeBudgetFor(envelope: Envelope, month: MonthKey, plans: Bu
  * Enveloppe d'une dépense : celle choisie explicitement, sinon celle à
  * laquelle sa catégorie est rattachée.
  */
-export function resolveEnvelopeId(t: Pick<Transaction, 'envelopeId' | 'categoryId'>, envelopes: Envelope[]): string | null {
+export function resolveEnvelopeId(t: Pick<Transaction, 'envelopeId' | 'categoryId'> & { legacyCategoryId?: string | null }, envelopes: Envelope[]): string | null {
   if (t.envelopeId) return t.envelopeId;
-  if (!t.categoryId) return null;
-  const e = envelopes.find((x) => !x.deleted && x.active && x.categoryIds.includes(t.categoryId!));
-  return e?.id ?? null;
+  // 1.8 : une enveloppe qui cite l'identifiant ENREGISTRÉ garde ses opérations, même si la
+  // sous-catégorie a changé de parent (alias) — le budget d'un utilisateur existant ne bouge pas.
+  for (const id of [t.legacyCategoryId, t.categoryId]) {
+    if (!id) continue;
+    const e = envelopes.find((x) => !x.deleted && x.active && x.categoryIds.includes(id));
+    if (e) return e.id;
+  }
+  return null;
 }
 
 /** Dépensé par enveloppe pour un mois (dans une devise). */

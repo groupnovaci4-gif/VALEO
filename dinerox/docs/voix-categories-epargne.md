@@ -75,3 +75,30 @@ reste celle du téléphone (sur l'appareil quand il le permet).
 pause de 10 secondes au milieu ; puis 30 secondes ; un appel entrant pendant
 l'enregistrement ; le bip éventuel à chaque relance ; Android 12 (pas de mode
 continu, la relance fait tout).
+
+## Partie 2 — Catalogue de catégories
+
+### Phase 1 — Le catalogue est une donnée
+
+- `src/core/categoryCatalog.v2.json` : **fichier de catalogue versionné**
+  (`catalogVersion: 2`) : 12 catégories, 82 sous-catégories. Pour chacune :
+  `id` stable, libellés FR et EN, emoji (catégories), `parentId`,
+  `sortOrder`, `bucket` (besoin / envie / obligation / dette), `envelope`
+  (compartiment du budget automatique), `countries`, `profileRules`,
+  `defaultEnabled`, `keywords`.
+- `src/core/categoryCatalog.ts` (pur) : `sanitizeCatalog` (rien d'invalide
+  n'est accepté), `catalogStarterDocs`, `maskedByProfile`,
+  `effectiveCategoryId` / `effectiveTransactions` (alias).
+- **Mise à jour à distance** : `config/categories/items/v2` (lecture pour tout
+  utilisateur connecté, écriture administrateur ; règle existante
+  `config/{doc}/items/{id}`, testée). `services/categoryCatalog.ts` le charge
+  au démarrage, le met en cache ; hors connexion, le cache puis le catalogue
+  embarqué s'appliquent. Les catégories installées par le catalogue ont un
+  libellé `catalog:<id>` : une correction publiée s'affiche partout, sauf si
+  l'utilisateur a renommé la catégorie (son nom prime).
+- **Alias, aucune réécriture** : une opération est comptée sous le parent
+  ACTUEL de sa sous-catégorie (`effectiveTransactions`, appliqué dans
+  `useFinance` → rapports, budgets, analyses, export CSV, Historique). Une
+  enveloppe qui citait l'ancien identifiant garde ses opérations
+  (`resolveEnvelopeId` lit d'abord l'identifiant enregistré). Le champ de vue
+  `legacyCategoryId` n'est jamais écrit (`saveTransaction` le retire).
