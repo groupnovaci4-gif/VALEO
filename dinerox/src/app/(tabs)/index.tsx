@@ -25,6 +25,7 @@ import { formatMoney, type CurrencyCode } from '@/core/money';
 import { authErrorKey, resendVerification } from '@/services/auth';
 import { DailyAllowanceCard } from '@/features/entry/DailyAllowanceCard';
 import { TontineDueCard } from '@/features/tontine/TontineDueCard';
+import { CatalogUpdateCard } from '@/features/categories/CatalogUpdateCard';
 import { EntryPrompt } from '@/features/entry/EntryPrompt';
 import { useEntry } from '@/features/entry/EntryProvider';
 
@@ -94,6 +95,7 @@ export default function Home() {
       {/* 1. Le repère : ce qu'il reste par jour jusqu'à la fin du mois. */}
       <DailyAllowanceCard hidden={hidden} />
       <TontineDueCard hidden={hidden} />
+      <CatalogUpdateCard dismissible />
       {/* 2. Saisir en parlant (ou au clavier). */}
       <EntryPrompt />
       {/* 3. Dernières opérations (Historique complet : « Tout voir »). */}

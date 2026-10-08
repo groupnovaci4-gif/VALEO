@@ -13,6 +13,7 @@
 import type { Account, Goal, GoalContribution, Transaction } from './types';
 import type { CurrencyCode } from './money';
 import { inPeriod, type ISODate } from './dates';
+import { isSavingExpense } from './savingsFlows';
 
 export function accountBalance(account: Account, transactions: Transaction[]): number {
   let balance = account.openingBalance;
@@ -57,6 +58,8 @@ export interface FlowTotals {
   /** income − expense. */
   net: number;
   count: number;
+  /** 1.8 — Anciennes « dépenses » d'épargne (cat_savings, cat_investment) : de l'épargne, hors dépenses. */
+  savedAsExpense: number;
 }
 
 /**
@@ -71,6 +74,7 @@ export function flowTotals(
 ): FlowTotals & { otherCurrencyCount: number } {
   let income = 0;
   let expense = 0;
+  let savedAsExpense = 0;
   let count = 0;
   let otherCurrencyCount = 0;
   for (const t of transactions) {
@@ -81,9 +85,10 @@ export function flowTotals(
     }
     count++;
     if (t.type === 'income') income += t.amount;
+    else if (isSavingExpense(t)) savedAsExpense += t.amount;
     else expense += t.amount;
   }
-  return { income, expense, net: income - expense, count, otherCurrencyCount };
+  return { income, expense, net: income - expense, count, otherCurrencyCount, savedAsExpense };
 }
 
 /** Montant actuellement affecté à un objectif = déjà disponible + contributions nettes. */

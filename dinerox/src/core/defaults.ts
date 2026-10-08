@@ -20,6 +20,8 @@ import { today, type ISODate } from './dates';
 import { DEFAULT_GOAL_CATEGORIES } from './goalCategories';
 import type { Zone } from './countries';
 import { findSubcategory, subcategoryDocs } from './catalog';
+import { catalogStarterDocs, usesCatalog } from './categoryCatalog';
+import { SAVING_CATEGORY_IDS } from './savingsFlows';
 
 interface CatSeed {
   id: string;
@@ -72,10 +74,14 @@ export const INCOME_CATEGORIES: CatSeed[] = [
   { id: 'inc_other', key: 'inc.other', icon: 'add-circle', color: '#94A3B8' },
 ];
 
-/** Catégories système proposées dans une zone (toutes si la zone est inconnue). */
+/**
+ * Catégories système proposées dans une zone (toutes si la zone est inconnue).
+ * 1.8 : « Épargne » et « Investissement » ne sont plus proposées comme
+ * dépenses (épargner n'est pas dépenser : voir « Mon épargne »).
+ */
 export function categorySeedsFor(zone?: Zone | null): { expense: CatSeed[]; income: CatSeed[] } {
   const keep = (c: CatSeed) => !zone || !c.zones || c.zones.includes(zone);
-  return { expense: EXPENSE_CATEGORIES.filter(keep), income: INCOME_CATEGORIES.filter(keep) };
+  return { expense: EXPENSE_CATEGORIES.filter((c) => keep(c) && !SAVING_CATEGORY_IDS.has(c.id)), income: INCOME_CATEGORIES.filter(keep) };
 }
 
 export function systemCategories(meta: { now: number; uid: string; zone?: Zone | null }): Category[] {
@@ -284,8 +290,12 @@ export function buildInitialStructure(
     })
     .filter((g): g is Goal => !!g);
 
-  const categories = systemCategories({ ...meta, zone: answers.zone });
-  if (answers.country && answers.zone) {
+  let categories = systemCategories({ ...meta, zone: answers.zone });
+  if (usesCatalog(answers.country)) {
+    // 1.8 — Afrique de l'Ouest francophone : catalogue de départ v2 (dépenses) ;
+    // les catégories de revenus restent celles d'aujourd'hui.
+    categories = [...catalogStarterDocs(answers.country!, meta), ...categories.filter((c) => c.kind === 'income')];
+  } else if (answers.country && answers.zone) {
     const parents = new Set(categories.map((c) => c.id));
     categories.push(...subcategoryDocs(answers.country, answers.zone, { now: meta.now, uid: meta.uid, lang: meta.lang ?? 'fr', parents }));
   }

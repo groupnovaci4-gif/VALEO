@@ -71,6 +71,7 @@ export function materialize(
     date,
     accountId: rule.accountId,
     categoryId: rule.categoryId ?? null,
+    ...(rule.subcategoryId ? { subcategoryId: rule.subcategoryId } : {}),
     envelopeId: rule.envelopeId ?? null,
     payee: rule.label,
     note: null,

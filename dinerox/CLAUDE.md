@@ -125,3 +125,17 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     convertie reste active tant que l'utilisateur ne la désactive pas (pas de
     double comptage : `countedByRecurring`). Expressions locales de la saisie :
     inactives tant que le fondateur ne les a pas validées.
+21. **Catégories (1.8, `docs/voix-categories-epargne.md`).** Le catalogue de
+    départ est une DONNÉE (`core/categoryCatalog.v2.json`, publiable dans
+    `config/categories/items/v2`) ; identifiants stables, jamais renommés.
+    Un changement de parent ne réécrit JAMAIS l'historique : les calculs lisent
+    `effectiveTransactions` (via `useFinance`), une enveloppe qui cite l'ancien
+    identifiant garde ses opérations. Un utilisateur existant ne voit rien
+    changer sans la carte « Nouvelles catégories disponibles » (confirmation,
+    rien de supprimé, noms personnalisés gardés). Catégorie système : jamais
+    supprimée (masquée, « Rétablir par défaut ») ; catégorie utilisée :
+    fusion ou désactivation. Retrouver une catégorie PAR IDENTIFIANT, jamais
+    par libellé (tontine : `tontineContributionCategory`, réserve :
+    `reserveEligible`). Pas de catégorie « Épargne » : épargner n'est pas
+    dépenser (`core/savingsFlows.ts` ; anciennes opérations intactes, hors
+    consommation).

@@ -97,7 +97,7 @@ export function useFinance() {
     const balances = accountBalances(data.accounts, data.transactions);
     const position = moneyPosition(data.accounts, data.transactions, data.goals, data.goalContributions, currency);
     const flows = flowTotals(data.transactions, periodOf('month', now), currency);
-    const envelopes = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency);
+    const envelopes = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency, data.accounts);
     const budget = budgetSummary(envelopes, flows.expense);
     const insights = computeInsights({ data, currency, now, categoryName: labels.label });
     const activeAccounts: Account[] = data.accounts.filter((a) => a.active).sort((a, b) => a.order - b.order);

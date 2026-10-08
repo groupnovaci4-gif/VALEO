@@ -13,7 +13,7 @@
  *  - aucune alerte sur une enveloppe dont l'utilisateur n'a jamais fixé de
  *    budget (enveloppe de départ à 0) : « dépassé » serait faux.
  */
-import type { BudgetPlan, Envelope, GoalContribution, Transaction } from '../types';
+import type { Account, BudgetPlan, Envelope, GoalContribution, Transaction } from '../types';
 import { budgetTransactions } from '../reserve';
 import { LEVEL_RANK, envelopeStatuses, resolveEnvelopeId, type EnvelopeLevel, type EnvelopeStatus } from '../budget';
 import { monthKey, type ISODate, type MonthKey } from '../dates';
@@ -139,7 +139,7 @@ export function touchedByWrite(versions: (Pick<Transaction, 'type' | 'date' | 'e
  * touchés, sur les données APRÈS l'écriture, dans la devise de l'espace.
  */
 export function alertsAfterWrite(input: {
-  data: { envelopes: Envelope[]; transactions: Transaction[]; budgets: BudgetPlan[]; goalContributions?: GoalContribution[] };
+  data: { envelopes: Envelope[]; transactions: Transaction[]; budgets: BudgetPlan[]; goalContributions?: GoalContribution[]; accounts?: Account[] };
   touched: Map<MonthKey, Set<string>>;
   currency: CurrencyCode;
   memory: EnvelopeAlertMemory;
@@ -148,7 +148,7 @@ export function alertsAfterWrite(input: {
   let memory = input.memory;
   const alerts: EnvelopeAlert[] = [];
   for (const [month, ids] of input.touched) {
-    const statuses = envelopeStatuses(input.data.envelopes, budgetTransactions(input.data.transactions, input.data.goalContributions ?? []), input.data.budgets, month, input.currency);
+    const statuses = envelopeStatuses(input.data.envelopes, budgetTransactions(input.data.transactions, input.data.goalContributions ?? []), input.data.budgets, month, input.currency, input.data.accounts);
     const r = evaluateEnvelopeAlerts({ statuses, month, plans: input.data.budgets, memory, today: input.today, only: ids });
     memory = r.memory;
     alerts.push(...r.alerts);

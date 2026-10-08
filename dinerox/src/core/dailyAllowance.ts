@@ -26,6 +26,7 @@ import { tontineDueThisMonth } from './tontine';
 import { occurrencesBetween } from './recurring';
 import type { CurrencyCode } from './money';
 import type { FinancialProfile, SpaceData } from './types';
+import { isSavingExpense, isSavingsDeposit, isSavingsWithdrawal, savingsAccountIds } from './savingsFlows';
 
 export type IncomeSource = 'user' | 'declared';
 
@@ -41,6 +42,12 @@ interface Breakdown {
   goalsRemaining: number;
   /** Part des dépenses du mois prise sur une réserve (déjà mise de côté : non déduite). */
   reserveCovered: number;
+  /**
+   * 1.8 — Épargne versée ce mois (versements vers les comptes d'épargne − retraits,
+   * + anciennes « dépenses » Épargne). Cet argent n'est plus disponible : il est
+   * déduit, sans double compte avec la mise de côté prévue (le plus grand des deux).
+   */
+  savedThisMonth: number;
   daysLeft: number;
   until: ISODate;
 }
@@ -51,7 +58,7 @@ export type DailyAllowance =
   | { status: 'needs_income'; daysLeft: number; until: ISODate; expenses: number; reserveCovered: number };
 
 export interface AllowanceInput {
-  data: Pick<SpaceData, 'transactions' | 'recurring' | 'goals' | 'goalContributions'> & Partial<Pick<SpaceData, 'tontines' | 'tontineEntries'>>;
+  data: Pick<SpaceData, 'transactions' | 'recurring' | 'goals' | 'goalContributions'> & Partial<Pick<SpaceData, 'tontines' | 'tontineEntries' | 'accounts'>>;
   currency: CurrencyCode;
   today: ISODate;
   financial?: Pick<FinancialProfile, 'monthlyIncome'> | null;
@@ -72,9 +79,14 @@ export function dailyAllowance({ data, currency, today, financial }: AllowanceIn
   let recordedIncome = 0;
   let expenses = 0;
   let reserveCovered = 0;
+  let savedThisMonth = 0;
+  const savings = savingsAccountIds(data.accounts ?? []);
   for (const t of data.transactions) {
     if (t.deleted || t.currency !== currency || monthKey(t.date) !== month) continue;
     if (t.type === 'income') recordedIncome += t.amount;
+    else if (isSavingExpense(t)) savedThisMonth += t.amount;
+    else if (isSavingsDeposit(t, savings)) savedThisMonth += t.amount;
+    else if (isSavingsWithdrawal(t, savings)) savedThisMonth -= t.amount;
     else if (t.type === 'expense') {
       const fromReserve = Math.min(t.amount, covered.get(t.id) ?? 0);
       reserveCovered += fromReserve;
@@ -118,8 +130,10 @@ export function dailyAllowance({ data, currency, today, financial }: AllowanceIn
     goalsRemaining += Math.min(planned, plan.remaining);
   }
 
-  const available = income - expenses - upcomingRecurring - goalsRemaining;
-  const base = { income, incomeSource, expenses, upcomingRecurring, upcomingTontines, goalsRemaining, reserveCovered, daysLeft, until };
+  // Mise de côté du mois : la prévue (objectifs, réserves) ou celle déjà versée si elle est plus grande.
+  const setAside = Math.max(goalsRemaining, savedThisMonth);
+  const available = income - expenses - upcomingRecurring - setAside;
+  const base = { income, incomeSource, expenses, upcomingRecurring, upcomingTontines, goalsRemaining, reserveCovered, savedThisMonth: Math.max(0, savedThisMonth), daysLeft, until };
   if (available < 0) return { status: 'deficit', deficit: -available, ...base };
   return { status: 'ok', available, perDay: Math.floor(available / daysLeft), ...base };
 }

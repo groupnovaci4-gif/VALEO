@@ -63,7 +63,7 @@ const opsProgress = (ctx: RewardContext) => clamp(operationsInMonth(ctx.data, ct
 
 /** Part des enveloppes budgétées tenues dans le mois (null : aucun budget fixé). */
 function budgetRespect(ctx: RewardContext): number | null {
-  const s = envelopeStatuses(ctx.data.envelopes, budgetTransactions(ctx.data.transactions, ctx.data.goalContributions), ctx.data.budgets, ctx.month, ctx.currency).filter((x) => x.budget > 0 && hasDefinedBudget(x.envelope, ctx.month, ctx.data.budgets));
+  const s = envelopeStatuses(ctx.data.envelopes, budgetTransactions(ctx.data.transactions, ctx.data.goalContributions), ctx.data.budgets, ctx.month, ctx.currency, ctx.data.accounts).filter((x) => x.budget > 0 && hasDefinedBudget(x.envelope, ctx.month, ctx.data.budgets));
   if (!s.length) return null;
   return s.filter((x) => x.spent <= x.budget).length / s.length;
 }

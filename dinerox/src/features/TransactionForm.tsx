@@ -15,6 +15,7 @@ import { useApp, useData } from '@/store/app';
 import { ActionError, useActions } from '@/store/actions';
 import { useCategoryLabels, useCurrency } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, Segmented, SwitchRow, Text, useToast } from '@/components/ui';
+import { CategoryPicker } from '@/features/categories/CategoryPicker';
 import { resolveEnvelopeId } from '@/core/budget';
 import { today } from '@/core/dates';
 import { canEditDoc } from '@/core/permissions';
@@ -79,7 +80,6 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
   const txCurrency = from?.currency ?? currency;
   const crossCurrency = type === 'transfer' && from && to && from.currency !== to.currency;
   const readOnly = !!existing && !canEditDoc(role, 'transactions', existing.createdBy, user?.uid ?? '');
-  const categories = cats.list(type === 'income' ? 'income' : 'expense');
   const autoEnvelope = useMemo(() => {
     const id = resolveEnvelopeId({ categoryId, envelopeId: null }, data.envelopes);
     return data.envelopes.find((e) => e.id === id)?.name;
@@ -127,7 +127,7 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
         debtId: existing?.debtId ?? null,
       });
       // « Prendre sur la réserve ? » : utilisation liée (une modification la recalcule déjà).
-      const wantsReserve = !!reserveId && saved.type === 'expense' && reserveEligible(saved.categoryId);
+      const wantsReserve = !!reserveId && saved.type === 'expense' && reserveEligible(saved.categoryId, saved.subcategoryId);
       try {
         if (wantsReserve && reserveId !== currentUse?.goalId) actions.takeFromReserve(saved.id, reserveId);
         else if (!wantsReserve && currentUse) actions.dropReserveUse(saved.id);
@@ -246,24 +246,12 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
           <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
             {t('tx.category')}
           </Text>
-          <ChipGroup options={categories.map((c) => ({ value: c.id, label: c.name, icon: c.icon, color: c.color }))} value={categoryId} onChange={setCategoryId} />
-          {cats.children(categoryId).length ? (
-            <>
-              <Text variant="small" weight="600" style={{ marginBottom: 8 }}>
-                {t('tx.subcategory')}
-              </Text>
-              <ChipGroup
-                scroll
-                options={cats.children(categoryId).map((c) => ({ value: c.id, label: c.name }))}
-                value={subcategoryId}
-                onChange={(v) => setSubcategoryId(subcategoryId === v ? null : v)}
-              />
-            </>
-          ) : null}
+          {/* Recherche, récentes en premier, « Afficher toutes », « Nouvelle catégorie… » (1.8). */}
+          <CategoryPicker kind={type === 'income' ? 'income' : 'expense'} value={categoryId} onChange={setCategoryId} subValue={subcategoryId} onSubChange={setSubcategoryId} />
         </>
       )}
 
-      <ReserveUseToggle type={type} categoryId={categoryId} amount={amount} value={reserveId} onChange={setReserveId} excludeTransactionId={existing?.id} style={{ marginBottom: 14 }} />
+      <ReserveUseToggle type={type} categoryId={categoryId} subcategoryId={subcategoryId} amount={amount} value={reserveId} onChange={setReserveId} excludeTransactionId={existing?.id} style={{ marginBottom: 14 }} />
 
       {type === 'expense' && data.envelopes.length ? (
         <>

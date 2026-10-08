@@ -57,7 +57,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   const bdev = await mk();
   await go(bdev.p, '/sign-in'); await bdev.p.getByLabel('Adresse e-mail').fill(email); await bdev.p.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123');
   await bdev.p.getByRole('button', { name: 'Se connecter' }).click(); await bdev.p.getByText('Bonjour Awa').first().waitFor({ timeout: 12000 }); await bdev.p.waitForTimeout(3500);
-  await go(bdev.p, '/transaction/new?type=expense'); await bdev.p.getByLabel('Montant').first().fill('120000'); await bdev.p.getByText('Nourriture', { exact: true }).first().click();
+  await go(bdev.p, '/transaction/new?type=expense'); await bdev.p.getByLabel('Montant').first().fill('120000'); await bdev.p.getByText('Alimentation & boissons', { exact: true }).first().click();
   await bdev.p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click();
   let toast = '';
   for (let i = 0; i < 20 && !toast; i++) { toast = (await bdev.p.locator('[role=alert][aria-live]').allInnerTexts()).join(' '); await bdev.p.waitForTimeout(150); }

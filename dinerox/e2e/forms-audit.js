@@ -81,7 +81,7 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   });
   await step('dépense', async () => {
     await go('/transaction/new?type=expense');
-    await fill('Montant', '18500'); await tap('Nourriture'); await tap('Marché'); await tap('Aujourd\'hui');
+    await fill('Montant', '18500'); await tap('Alimentation & boissons'); await tap('Marché'); await tap('Aujourd\'hui');
     await fill('Bénéficiaire / commerçant', 'Marché Cocody'); await btn('Enregistrer');
     await go('/transactions'); await has('Marché Cocody', 'dépense enregistrée'); await has('-18 500', 'montant de la dépense');
   });
@@ -125,16 +125,16 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   });
   await step('dépense récurrente', async () => {
     await go('/recurring/edit'); await tap('Dépense'); await fill('Libellé', 'Loyer audit'); await fill('Montant', '100000');
-    await tap('Logement'); await tap('Chaque mois'); await btn('Enregistrer');
+    await tap('Maison & logement'); await tap('Chaque mois'); await btn('Enregistrer');
     await go('/recurring'); await has('Loyer audit', 'dépense récurrente créée');
   });
   await step('enveloppe', async () => {
-    await go('/envelopes/edit'); await fill('Nom', 'Enveloppe audit', true); await fill('Budget mensuel', '30000'); await tap('Loisirs'); await btn('Enregistrer');
+    await go('/envelopes/edit'); await fill('Nom', 'Enveloppe audit', true); await fill('Budget mensuel', '30000'); await tap('Loisirs & divertissement'); await btn('Enregistrer');
     await go('/budget'); await has('Enveloppe audit', 'enveloppe créée');
   });
   await step('sous-catégorie', async () => {
     await go('/categories'); await p.getByText('Ajouter une sous-catégorie').first().click(); await p.waitForTimeout(800);
-    await p.locator('input:visible').last().fill('Sous-cat audit'); await btn('Enregistrer');
+    await p.getByLabel('Nom', { exact: true }).last().fill('Sous-cat audit'); await btn('Enregistrer');
     await has('Sous-cat audit', 'sous-catégorie créée');
   });
   await step('patrimoine (formule gratuite)', async () => {

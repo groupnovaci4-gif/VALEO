@@ -182,7 +182,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
     const month = monthKey(day);
     const now = Date.now();
     const memory = await envelopeMemory(uid, spaceId);
-    const env = evaluateEnvelopeAlerts({ statuses: envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, cur), month, plans: data.budgets, memory, today: day });
+    const env = evaluateEnvelopeAlerts({ statuses: envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, cur, data.accounts), month, plans: data.budgets, memory, today: day });
     await saveEnvelopeMemory(uid, spaceId, env.memory);
     const free = moneyPosition(data.accounts, data.transactions, data.goals, data.goalContributions, cur).free;
     const snap = financialSnapshot({ data, currency: cur, now: day, available: free, financial: p.financial });

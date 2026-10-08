@@ -17,7 +17,7 @@ import { currencyInfo, type CurrencyCode } from './money';
 import { addDays, diffDays, type ISODate } from './dates';
 import { computeGoalPlan, type GoalPlan } from './goals';
 import { goalSaved } from './balance';
-import { SEASON_GOAL_CATEGORY, isSeason } from './reserve';
+import { NOT_CEREMONY_SUBCATEGORIES, SEASON_GOAL_CATEGORY, isSeason } from './reserve';
 
 export type SeasonEventId = 'school_start' | 'tabaski' | 'ramadan_end' | 'christmas' | 'easter';
 
@@ -86,7 +86,7 @@ export const SEASON_WINDOW = { before: 21, after: 3 };
 export function lastYearSpending(data: Pick<SpaceData, 'transactions'>, event: SeasonEvent, lastDate: ISODate, currency: CurrencyCode): number | null {
   const from = addDays(lastDate, -SEASON_WINDOW.before);
   const to = addDays(lastDate, SEASON_WINDOW.after);
-  const inWindow = (t: Transaction) => !t.deleted && t.type === 'expense' && t.currency === currency && t.date >= from && t.date <= to && !!t.categoryId && event.categories.includes(t.categoryId);
+  const inWindow = (t: Transaction) => !t.deleted && t.type === 'expense' && t.currency === currency && t.date >= from && t.date <= to && !!t.categoryId && event.categories.includes(t.categoryId) && !(t.subcategoryId && NOT_CEREMONY_SUBCATEGORIES.includes(t.subcategoryId));
   const total = data.transactions.filter(inWindow).reduce((n, t) => n + t.amount, 0);
   return total > 0 ? total : null;
 }

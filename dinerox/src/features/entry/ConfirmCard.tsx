@@ -16,6 +16,7 @@ import { useTheme } from '@/theme';
 import type { EntryDraft, EntryField } from '@/core/entry/parse';
 import type { Account } from '@/core/types';
 import type { CurrencyCode } from '@/core/money';
+import { CategoryPicker } from '@/features/categories/CategoryPicker';
 
 type Editing = { index: number; field: EntryField | 'date' } | null;
 
@@ -138,11 +139,17 @@ export function ConfirmCard({
             ) : null}
             {editing?.index === i && editing.field === 'amount' ? <AmountField label={t('entry.field.amount')} value={d.amount} onChange={(amount) => patch(i, { amount }, amount && amount > 0 ? ['amount'] : [])} currency={currency} autoFocus /> : null}
             {editing?.index === i && editing.field === 'category' ? (
-              <ChipGroup
+              <CategoryPicker
                 scroll
+                kind={d.type}
                 value={d.categoryId}
-                onChange={(categoryId) => (patch(i, { categoryId, subcategoryId: null }, ['category', 'type']), setEditing(null))}
-                options={cats.list(d.type).map((c) => ({ value: c.id, label: c.name, icon: c.icon, color: c.color }))}
+                subValue={d.subcategoryId}
+                onChange={(categoryId) => {
+                  patch(i, { categoryId, subcategoryId: null }, ['category', 'type']);
+                  // Pas de sous-catégorie à préciser : la ligne se referme.
+                  if (!data.categories.some((c) => c.parentId === categoryId && !c.deleted && c.disabled !== true)) setEditing(null);
+                }}
+                onSubChange={(subcategoryId) => (patch(i, { subcategoryId }, ['category', 'type']), setEditing(null))}
               />
             ) : null}
             {editing?.index === i && editing.field === 'account' ? (

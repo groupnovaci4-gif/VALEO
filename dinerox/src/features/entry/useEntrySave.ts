@@ -87,7 +87,7 @@ export function useEntrySave() {
           });
           ids.push(tx.id);
           // « Prendre sur la réserve ? » accepté sur la carte : utilisation liée à l'opération.
-          if (d.reserveId && d.type === 'expense' && reserveEligible(d.categoryId)) actions.takeFromReserve(tx.id, d.reserveId);
+          if (d.reserveId && d.type === 'expense' && reserveEligible(d.categoryId, d.subcategoryId)) actions.takeFromReserve(tx.id, d.reserveId);
         }
       } catch (e) {
         // Échec en cours de route : rien de partiel (les lignes déjà créées sont retirées).

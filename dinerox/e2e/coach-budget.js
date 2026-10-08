@@ -14,7 +14,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   const toastAfter = async () => { for (let i = 0; i < 20; i++) { const t = await p.locator('[role=alert][aria-live]').allInnerTexts().catch(() => []); if (t.length) return t.join(' ').replace(/[  ]/g, ' '); await p.waitForTimeout(150); } return ''; };
   const expense = async (amount) => {
     await go('/transaction/new?type=expense');
-    await p.getByLabel('Montant').first().fill(String(amount)); await p.getByText('Nourriture', { exact: true }).first().click();
+    await p.getByLabel('Montant').first().fill(String(amount)); await p.getByText('Alimentation & boissons', { exact: true }).first().click();
     await btn('Enregistrer', 100);
     return toastAfter();
   };

@@ -35,11 +35,14 @@ import { analytics } from '@/services/analytics';
 import { ActionError } from '@/store/actions';
 import { activeReserves, reserveBalance, reserveEligible } from '@/core/reserve';
 import { applyTontine } from '@/core/tontineEntry';
+import { tontineContributionCategory } from '@/core/tontine';
 import { canUseReserve } from '@/core/permissions';
 import { ConfirmCard } from './ConfirmCard';
 import { useEntrySave, type EntryMethod } from './useEntrySave';
 import { useEntryStats } from './useEntryStats';
 import { useVoiceRecorder } from './useVoiceRecorder';
+import { useCategoryPick } from '@/features/categories/CategoryPicker';
+import { pickCategories } from '@/core/categoryOps';
 import { liveTranscript } from '@/core/entry/recorder';
 import { RecorderBar } from './RecorderBar';
 import type { EntryMode } from './EntryProvider';
@@ -95,7 +98,10 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     const last = accounts.find((a) => a.id === stats?.lastAccountId && a.currency === currency);
     return last?.id ?? accounts.find((a) => !a.isSavings && a.currency === currency)?.id ?? accounts.find((a) => a.currency === currency)?.id ?? null;
   }, [accounts, stats?.lastAccountId, currency]);
-  const recent = useMemo(() => recentCategories(stats?.recent[type] ?? [], cats.list(type).map((c) => c.id), data.categories, 6), [stats?.recent, type, cats, data.categories]);
+  // Saisie rapide : catégories PROPOSÉES (ni désactivées, ni masquées par défaut), récentes en premier.
+  const pick = useCategoryPick(type);
+  const visibleIds = useMemo(() => pickCategories(pick.categories, { ...pick.base, kind: type, showAll: false, query: '', recent: [] }).map((c) => c.id), [pick.categories, pick.base, type]);
+  const recent = useMemo(() => recentCategories(stats?.recent[type] ?? [], visibleIds, data.categories.filter((c) => visibleIds.includes(c.id) || !!c.parentId), 6), [stats?.recent, type, visibleIds, data.categories]);
 
   // ─── Analyse d'un texte (voix ou phrase) ───────────────────────────
   /** Analyse un texte ; faux si rien n'a été compris (« Je n'ai rien entendu »). */
@@ -104,6 +110,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     // Tontine : « Tontine 10 000 », « J'ai cotisé ma tontine du bureau », « J'ai reçu la tontine »
     // → la tontine correspondante est proposée sur la carte de confirmation.
     const has = (id: string) => data.categories.some((c) => c.id === id && !c.deleted);
+    const tontineCat = tontineContributionCategory(data.categories);
     const withTontine = r.kind === 'question' ? null : applyTontine(r.kind === 'entries' ? r.items : [], {
       text,
       tontines: data.tontines,
@@ -111,7 +118,9 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       today: now,
       defaultAccountId,
       payoutCategory: has('inc_tontine') ? 'inc_tontine' : 'inc_other',
-      contributionCategory: has('cat_informal') ? 'cat_informal' : 'cat_other',
+      // Cotisation : catégorie retrouvée par identifiant (parent actuel de la sous-catégorie « Tontine »).
+      contributionCategory: tontineCat.categoryId,
+      contributionSubcategory: tontineCat.subcategoryId,
     });
     if (withTontine) {
       analytics.track('mic_routed', { to: 'entry', method });
@@ -254,7 +263,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     const draft: EntryDraft = { type, amount: quickAmount, categoryId: cat?.parentId ?? categoryId, subcategoryId: cat?.parentId ? categoryId : null, accountId: defaultAccountId, date: now, payee: null, uncertain: [], source: '' };
     // Dépense famille ou cérémonie avec une réserve non vide : la carte de confirmation
     // propose « Prendre sur la réserve ? » (sinon, enregistrement direct comme avant).
-    const offerReserve = type === 'expense' && reserveEligible(draft.categoryId) && canUseReserve(role) && activeReserves(data.goals, currency as CurrencyCode).some((g) => reserveBalance(g, data.goalContributions) > 0);
+    const offerReserve = type === 'expense' && reserveEligible(draft.categoryId, draft.subcategoryId) && canUseReserve(role) && activeReserves(data.goals, currency as CurrencyCode).some((g) => reserveBalance(g, data.goalContributions) > 0);
     if (offerReserve) {
       setView({ kind: 'confirm', drafts: [draft], method: 'quick_manual', text: '', edited: false });
       return;

@@ -44,7 +44,7 @@ let b;
   t = await text();
   ok(b0 === 80_000, `fiche : solde = 50 000 + 2 × 25 000 − 20 000 = ${b0}`);
   ok(t.includes('sur un plafond de 300 000 FCFA') && t.includes('Mise de côté prévue : 25 000 FCFA par mois'), 'fiche : plafond et mise de côté mensuelle');
-  ok(/Utilisation · Obligations sociales · .* · par vous/.test(t) && /Apport · .* · par vous/.test(t), 'historique : apports et utilisation liée, avec « qui »');
+  ok(/Utilisation · Finance sociale & obligations · .* · par vous/.test(t) && /Apport · .* · par vous/.test(t), 'historique : apports et utilisation liée, avec « qui »');
   await go('/goals/demo_reserve');
   ok(p.url().includes('/reserve/demo_reserve'), 'un lien d’objectif vers la réserve ouvre sa fiche');
 

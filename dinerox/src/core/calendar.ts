@@ -9,7 +9,7 @@ import { debtStatus } from './debts';
 import { goalPlanFor } from './goals';
 import { occurrencesBetween } from './recurring';
 import { isReserve, isSeason } from './reserve';
-import { activeTontines, countedByRecurring, scheduleState } from './tontine';
+import { activeTontines, countedByRecurring, isTontineCategory, scheduleState } from './tontine';
 
 /** `season` : moment fort de l'année (objectif à date de la catégorie « moments forts »). */
 export type CalendarKind = 'income' | 'expense' | 'tontine' | 'tontine_payout' | 'debt' | 'goal' | 'season';
@@ -30,7 +30,7 @@ export function financialCalendar(data: Pick<SpaceData, 'recurring' | 'debts' | 
   for (const r of data.recurring) {
     if (r.deleted || !r.active) continue;
     for (const d of occurrencesBetween(r, from, until)) {
-      const kind: CalendarKind = r.type === 'income' ? 'income' : r.categoryId === 'cat_informal' ? 'tontine' : 'expense';
+      const kind: CalendarKind = r.type === 'income' ? 'income' : isTontineCategory(r.categoryId, r.subcategoryId) ? 'tontine' : 'expense';
       out.push({ id: `${r.id}_${d}`, date: d, kind, label: r.label, amount: r.amount, currency: r.currency, link: `/recurring/edit?id=${r.id}` });
     }
   }

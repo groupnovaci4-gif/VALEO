@@ -1,7 +1,8 @@
 /**
  * Budget & enveloppes : consommation, alertes de seuil, budget automatique.
  */
-import type { BudgetMethod, BudgetPlan, Category, Envelope, Transaction } from './types';
+import type { Account, BudgetMethod, BudgetPlan, Category, Envelope, Transaction } from './types';
+import { isSavingExpense, isSavingsDeposit, isSavingsWithdrawal, savingsAccountIds } from './savingsFlows';
 import type { CurrencyCode } from './money';
 import { roundTo } from './money';
 import { monthKey, type MonthKey } from './dates';
@@ -43,6 +44,8 @@ export interface EnvelopeStatus {
   envelope: Envelope;
   budget: number;
   spent: number;
+  /** 1.8 — Part de `spent` qui est de l'épargne (versements, anciennes dépenses Épargne). */
+  saved?: number;
   /** budget − spent (négatif en cas de dépassement). */
   remaining: number;
   /** Pourcentage consommé (peut dépasser 100). 0 si budget nul et rien dépensé. */
@@ -92,6 +95,7 @@ export function spentByEnvelope(
   envelopes: Envelope[],
   month: MonthKey,
   currency: CurrencyCode,
+  accounts?: Account[],
 ): Record<string, number> {
   const out: Record<string, number> = {};
   for (const t of transactions) {
@@ -99,6 +103,52 @@ export function spentByEnvelope(
     const id = resolveEnvelopeId(t, envelopes);
     if (id) out[id] = (out[id] ?? 0) + t.amount;
   }
+  for (const [id, amount] of Object.entries(savedByEnvelope(transactions, envelopes, month, currency, accounts))) {
+    const deposits = amount.deposits;
+    if (deposits) out[id] = (out[id] ?? 0) + deposits;
+  }
+  return out;
+}
+
+/**
+ * 1.8 — Épargne du mois par enveloppe d'épargne (« Épargne », « Projets ») :
+ * versements vers les comptes d'épargne moins retraits (jamais négatif), plus
+ * les anciennes « dépenses » Épargne / Investissement. Sans catégorie
+ * « Épargne » au départ, c'est ce qui remplit l'enveloppe d'épargne.
+ */
+export function savedByEnvelope(
+  transactions: Transaction[],
+  envelopes: Envelope[],
+  month: MonthKey,
+  currency: CurrencyCode,
+  accounts?: Account[],
+): Record<string, { deposits: number; legacy: number }> {
+  const out: Record<string, { deposits: number; legacy: number }> = {};
+  const active = envelopes.filter((e) => !e.deleted && e.active);
+  const savingsEnv = active.find((e) => e.categoryIds.includes('cat_savings'));
+  const projectEnv = active.find((e) => e.categoryIds.includes('cat_investment'));
+  const slot = (id: string) => (out[id] = out[id] ?? { deposits: 0, legacy: 0 });
+  for (const t of transactions) {
+    if (t.deleted || t.currency !== currency || monthKey(t.date) !== month) continue;
+    if (isSavingExpense(t)) {
+      const id = resolveEnvelopeId(t, envelopes);
+      if (id) slot(id).legacy += t.amount;
+    }
+  }
+  if (!accounts?.length || (!savingsEnv && !projectEnv)) return out;
+  const savings = savingsAccountIds(accounts);
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  for (const t of transactions) {
+    if (t.deleted || t.currency !== currency || monthKey(t.date) !== month) continue;
+    const dep = isSavingsDeposit(t, savings);
+    const wit = !dep && isSavingsWithdrawal(t, savings);
+    if (!dep && !wit) continue;
+    const savingsAccount = byId.get(dep ? t.toAccountId! : t.accountId);
+    const target = (savingsAccount?.type === 'investment' ? projectEnv : undefined) ?? savingsEnv ?? projectEnv;
+    if (!target) continue;
+    slot(target.id).deposits += dep ? t.amount : -t.amount;
+  }
+  for (const v of Object.values(out)) v.deposits = Math.max(0, v.deposits);
   return out;
 }
 
@@ -108,8 +158,11 @@ export function envelopeStatuses(
   plans: BudgetPlan[],
   month: MonthKey,
   currency: CurrencyCode,
+  /** 1.8 — Comptes : les versements vers l'épargne remplissent l'enveloppe d'épargne. */
+  accounts?: Account[],
 ): EnvelopeStatus[] {
-  const spent = spentByEnvelope(transactions, envelopes, month, currency);
+  const spent = spentByEnvelope(transactions, envelopes, month, currency, accounts);
+  const saved = savedByEnvelope(transactions, envelopes, month, currency, accounts);
   return envelopes
     .filter((e) => !e.deleted && e.active)
     .sort((a, b) => a.order - b.order)
@@ -120,6 +173,7 @@ export function envelopeStatuses(
         envelope,
         budget,
         spent: s,
+        saved: (saved[envelope.id]?.deposits ?? 0) + (saved[envelope.id]?.legacy ?? 0),
         remaining: budget - s,
         percent: budget > 0 ? Math.round((s / budget) * 100) : s > 0 ? 100 : 0,
         level: envelopeLevel(s, budget),
@@ -139,7 +193,9 @@ export interface BudgetSummary {
 export function budgetSummary(statuses: EnvelopeStatus[], monthExpenses: number): BudgetSummary {
   const planned = statuses.reduce((s, x) => s + x.budget, 0);
   const spent = statuses.reduce((s, x) => s + x.spent, 0);
-  return { planned, spent, remaining: planned - spent, unassigned: Math.max(0, monthExpenses - spent) };
+  // Les dépenses du mois n'incluent pas l'épargne (1.8) : on la retire avant de chercher le hors-enveloppe.
+  const consumed = spent - statuses.reduce((s, x) => s + (x.saved ?? 0), 0);
+  return { planned, spent, remaining: planned - spent, unassigned: Math.max(0, monthExpenses - consumed) };
 }
 
 /** Consommation d'une enveloppe sur les derniers mois (historique). */

@@ -21,6 +21,7 @@
 import RAW from './categoryCatalog.v2.json';
 import type { Category, FinancialProfile, SpendKind, Transaction } from './types';
 import type { BudgetBucket } from './budget';
+import { findSubcategory } from './catalog';
 
 type L = { fr: string; en: string };
 
@@ -245,4 +246,116 @@ export function effectiveTransactions(transactions: Transaction[], categories: C
     return { ...t, categoryId: eff, legacyCategoryId: t.categoryId ?? null };
   });
   return changed ? out : transactions;
+}
+
+// ─── Utilisateur existant : « Nouvelles catégories disponibles » ─────────
+
+export interface CatalogUpdatePlan {
+  /** Mise à jour proposée (pays du catalogue, et quelque chose à ajouter ou à mettre à niveau). */
+  needed: boolean;
+  /** Nouveaux documents (catégories et sous-catégories ajoutées). */
+  add: Category[];
+  /** Documents existants mis à niveau (libellé du catalogue, emoji, parent). Jamais supprimés. */
+  patch: Category[];
+  /** Aperçu : ce qui sera ajouté, renommé, rattaché ailleurs. */
+  added: { id: string; parentId: string | null }[];
+  renamed: { id: string; from: string; to: string }[];
+  moved: { id: string; from: string | null; to: string }[];
+}
+
+/** Libellés par défaut d'une ancienne sous-catégorie (FR, EN, mots locaux) : non renommée si son nom en fait partie. */
+function defaultNamesV1(id: string): string[] {
+  const sc = findSubcategory(id);
+  if (!sc) return [];
+  return [sc.label.fr, sc.label.en, ...Object.values(sc.local ?? {}).flatMap((l) => [l.fr, l.en])];
+}
+
+/**
+ * Prépare la mise à jour du catalogue pour un espace EXISTANT. Rien n'est
+ * supprimé ; les catégories personnelles ne sont pas touchées ; une catégorie
+ * renommée par l'utilisateur garde son nom, son emoji et sa couleur ; une
+ * catégorie qu'il a supprimée n'est jamais recréée. Les opérations ne sont
+ * jamais réécrites : une sous-catégorie rattachée ailleurs (Tontine) compte
+ * ses opérations passées sous son nouveau parent (`effectiveTransactions`).
+ */
+export function planCatalogUpdate(
+  categories: Category[],
+  opts: { country: string | null | undefined; lang: 'fr' | 'en'; now: number; uid: string; currentLabel: (c: Category) => string },
+  cat: CategoryCatalog = EMBEDDED_CATALOG,
+): CatalogUpdatePlan {
+  const plan: CatalogUpdatePlan = { needed: false, add: [], patch: [], added: [], renamed: [], moved: [] };
+  if (!usesCatalog(opts.country, cat)) return plan;
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  let nextOrder = Math.max(0, ...categories.filter((c) => c.kind === 'expense' && !c.parentId).map((c) => c.order)) + 1;
+  const parents = cat.entries.filter((e) => !e.parentId && offeredIn(e, opts.country) && !cat.retired.includes(e.id)).sort((a, b) => a.sortOrder - b.sortOrder);
+  const entries = parents.flatMap((p) => [p, ...cat.entries.filter((e) => e.parentId === p.id && offeredIn(e, opts.country)).sort((a, b) => a.sortOrder - b.sortOrder)]);
+  for (const e of entries) {
+    const doc = byId.get(e.id);
+    const to = e.label[opts.lang];
+    if (!doc) {
+      plan.add.push(catalogDoc(e, { now: opts.now, uid: opts.uid, order: e.parentId ? e.sortOrder : nextOrder++ }, cat));
+      plan.added.push({ id: e.id, parentId: e.parentId });
+      continue;
+    }
+    // Supprimée par l'utilisateur : jamais recréée.
+    if (doc.deleted) continue;
+    if ((doc.catalogVersion ?? 0) >= cat.catalogVersion && (doc.parentId ?? null) === e.parentId) continue;
+    const name = (doc.name ?? '').trim();
+    const renamed = !!name && (!e.parentId || !defaultNamesV1(e.id).includes(name));
+    const next: Category = { ...doc, system: true, labelKey: CATALOG_LABEL_PREFIX + e.id, catalogVersion: cat.catalogVersion, spendKind: doc.spendKind ?? e.bucket };
+    if (!renamed) {
+      next.name = '';
+      if (!e.parentId && e.emoji) next.emoji = e.emoji;
+      const from = opts.currentLabel(doc);
+      if (from !== to) plan.renamed.push({ id: e.id, from, to });
+    }
+    if (e.parentId && (doc.parentId ?? null) !== e.parentId) {
+      next.parentId = e.parentId;
+      plan.moved.push({ id: e.id, from: doc.parentId ?? null, to: e.parentId });
+    }
+    plan.patch.push(next);
+  }
+  plan.needed = plan.add.length > 0 || plan.patch.length > 0;
+  return plan;
+}
+
+// ─── Listes de choix : visibilité par défaut ─────────────────────────────
+
+/**
+ * Catégorie proposée par défaut dans les listes de choix ?
+ *  - désactivée par l'utilisateur → non (`disabled: false` = toujours proposée) ;
+ *  - masquée d'après le profil déclaré (Enfants, Scolarité…) → non ;
+ *  - ancienne catégorie hors du catalogue, dans un espace mis à jour, et qui ne
+ *    sert plus (aucune opération ni récurrence) → non.
+ * Jamais supprimée : « Afficher toutes les catégories » la montre.
+ */
+export function shownByDefault(
+  c: Pick<Category, 'id' | 'disabled' | 'deleted' | 'system' | 'catalogVersion'> & Partial<Pick<Category, 'kind'>>,
+  ctx: { profile?: Pick<FinancialProfile, 'familyStatus' | 'children' | 'dependents'> | null; spaceOnCatalog: boolean; used: Set<string> },
+  cat: CategoryCatalog = EMBEDDED_CATALOG,
+): boolean {
+  if (c.deleted) return false;
+  if (c.disabled === true) return false;
+  if (c.disabled === false) return true;
+  const e = catalogEntry(c.id, cat);
+  if (e && maskedByProfile(e, ctx.profile)) return false;
+  // Le catalogue ne couvre que les DÉPENSES : les catégories de revenus ne sont jamais « anciennes ».
+  if (ctx.spaceOnCatalog && c.system && c.kind !== 'income' && !e && !ctx.used.has(c.id)) return false;
+  return true;
+}
+
+/** Identifiants de catégories qui servent (opérations, récurrences, sous-catégories comprises). */
+export function usedCategoryIds(data: { transactions: Pick<Transaction, 'categoryId' | 'subcategoryId' | 'deleted'>[]; recurring: { categoryId?: string | null; subcategoryId?: string | null; deleted?: boolean }[] }): Set<string> {
+  const out = new Set<string>();
+  for (const t of data.transactions) {
+    if (t.deleted) continue;
+    if (t.categoryId) out.add(t.categoryId);
+    if (t.subcategoryId) out.add(t.subcategoryId);
+  }
+  for (const r of data.recurring) {
+    if (r.deleted) continue;
+    if (r.categoryId) out.add(r.categoryId);
+    if (r.subcategoryId) out.add(r.subcategoryId);
+  }
+  return out;
 }

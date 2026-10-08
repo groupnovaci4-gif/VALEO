@@ -89,7 +89,12 @@ describe('environnement de départ par pays', () => {
   it('Côte d’Ivoire : sous-catégories africaines, catégories tontines et obligations sociales', () => {
     const s = starterStructure({ firstName: 'Awa', currency: 'XOF', country: 'CI', zone: 'africa', accounts: ['acc.cash', 'acc.orange', 'acc.mtn', 'acc.bank'] }, meta);
     const cats = s.categories!.map((c) => c.id);
-    expect(cats).toEqual(expect.arrayContaining(['cat_informal', 'cat_social', 'sub_informal_tontine', 'sub_food_maquis']));
+    // 1.8 : catalogue de départ v2 — la Tontine est dans « Finance sociale & obligations » (cat_social).
+    expect(cats).toEqual(expect.arrayContaining(['cat_social', 'sub_informal_tontine', 'sub_food_maquis', 'inc_tontine']));
+    expect(cats).not.toContain('cat_informal');
+    expect(cats).not.toContain('cat_savings');
+    expect(cats).not.toContain('cat_investment');
+    expect(s.categories!.find((c) => c.id === 'sub_informal_tontine')!.parentId).toBe('cat_social');
     expect(s.accounts!.map((a) => a.name)).toEqual(['acc.cash', 'acc.orange', 'acc.mtn', 'acc.bank']);
   });
   it('France : pas de tontine, impôts et assurances présents', () => {

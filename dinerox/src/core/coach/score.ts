@@ -49,7 +49,7 @@ const lastDay = (m: MonthKey): ISODate => {
 
 /** Respect des budgets : moyenne par enveloppe budgétée de min(1, budget / dépensé). */
 function budgets(data: SpaceData, m: MonthKey, cur: CurrencyCode): number | null {
-  const s = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, m, cur).filter((x) => x.budget > 0 && hasDefinedBudget(x.envelope, m, data.budgets));
+  const s = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, m, cur, data.accounts).filter((x) => x.budget > 0 && hasDefinedBudget(x.envelope, m, data.budgets));
   if (!s.length) return null;
   return pct(s.reduce((n, x) => n + (x.spent <= x.budget ? 1 : x.budget / x.spent), 0) / s.length);
 }

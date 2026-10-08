@@ -14,16 +14,17 @@ import { activeReserves, reserveBalance, reserveEligible, splitReserveUse } from
 import { canUseReserve } from '@/core/permissions';
 
 /** Réserves proposables pour une dépense (vide : rien n'est proposé). */
-export function useReserveChoices(type: string, categoryId: string | null | undefined) {
+export function useReserveChoices(type: string, categoryId: string | null | undefined, subcategoryId?: string | null) {
   const { role } = useApp();
   const { data, currency } = useFinance();
-  if (type !== 'expense' || !reserveEligible(categoryId) || !canUseReserve(role)) return [];
+  if (type !== 'expense' || !reserveEligible(categoryId, subcategoryId) || !canUseReserve(role)) return [];
   return activeReserves(data.goals, currency);
 }
 
 export function ReserveUseToggle({
   type,
   categoryId,
+  subcategoryId,
   amount,
   value,
   onChange,
@@ -33,6 +34,8 @@ export function ReserveUseToggle({
 }: {
   type: string;
   categoryId: string | null | undefined;
+  /** 1.8 — Tontine, cotisation, association : jamais prises sur la réserve. */
+  subcategoryId?: string | null;
   amount: number | null;
   /** Réserve choisie (null : budget du mois). */
   value: string | null;
@@ -46,7 +49,7 @@ export function ReserveUseToggle({
   const { t } = useI18n();
   const money = useMoney();
   const { data } = useFinance();
-  const reserves = useReserveChoices(type, categoryId);
+  const reserves = useReserveChoices(type, categoryId, subcategoryId);
   if (!reserves.length) return null;
   const chosen = reserves.find((r) => r.id === value) ?? null;
   const others = data.goalContributions.filter((c) => !excludeTransactionId || c.linkedTransactionId !== excludeTransactionId);

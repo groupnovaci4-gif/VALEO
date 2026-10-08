@@ -43,8 +43,15 @@ export function isClassicGoal(g: KindOf & Pick<Goal, 'categoryId'>): boolean {
 }
 
 /** La réserve peut-elle financer une dépense de cette catégorie ? */
-export function reserveEligible(categoryId: string | null | undefined): boolean {
-  return !!categoryId && RESERVE_CATEGORY_IDS.includes(categoryId);
+/**
+ * 1.8 — Sous-catégories de « Finance sociale & obligations » qui ne sont NI des
+ * cérémonies NI un soutien familial (tontine, cotisation, association) : jamais
+ * prises sur la réserve, jamais comptées dans un moment fort. Par identifiant.
+ */
+export const NOT_CEREMONY_SUBCATEGORIES: readonly string[] = ['sub_informal_tontine', 'sub_informal_dues', 'sub_informal_association'];
+
+export function reserveEligible(categoryId: string | null | undefined, subcategoryId?: string | null): boolean {
+  return !!categoryId && RESERVE_CATEGORY_IDS.includes(categoryId) && !(subcategoryId && NOT_CEREMONY_SUBCATEGORIES.includes(subcategoryId));
 }
 
 /** Réserves utilisables (actives, non supprimées), dans la devise donnée. */
@@ -149,7 +156,7 @@ export function ceilingHelp(data: Pick<SpaceData, 'transactions'>, currency: Cur
   if (!tx.length) return { kind: 'ask' };
   const first = tx.reduce((m, t) => (monthKey(t.date) < m ? monthKey(t.date) : m), window[window.length - 1]);
   const months = window.length - window.indexOf(first);
-  const total = tx.filter((t) => t.type === 'expense' && reserveEligible(t.categoryId)).reduce((n, t) => n + t.amount, 0);
+  const total = tx.filter((t) => t.type === 'expense' && reserveEligible(t.categoryId, t.subcategoryId)).reduce((n, t) => n + t.amount, 0);
   if (months < CEILING_MIN_MONTHS || total <= 0) return { kind: 'ask' };
   return { kind: 'history', months, total, monthly: Math.round(total / months) };
 }

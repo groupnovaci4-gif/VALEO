@@ -93,9 +93,11 @@ describe('tableau de la mission', () => {
   it('« Tontine 10 000 » → sortie, catégorie tontine si elle existe, sinon la suivante', () => {
     const [d] = items('Tontine 10 000');
     expect([d.type, d.amount, d.categoryId, d.subcategoryId]).toEqual(['expense', 10_000, 'cat_informal', 'sub_informal_tontine']);
-    // Sans catégories africaines : épargne.
+    // Sans catégories africaines : plus de repli sur « Épargne » (1.8, épargner n'est pas dépenser) —
+    // la catégorie est demandée (surlignée), jamais devinée.
     const [e] = items('Tontine 10 000', ctx({ categories: systemCategories({ now: 1, uid: 'u1', zone: 'europe' }) }));
-    expect([e.categoryId, e.subcategoryId]).toEqual(['cat_savings', null]);
+    expect([e.categoryId, e.subcategoryId]).toEqual([null, null]);
+    expect(e.uncertain).toContain('category');
   });
   it('« Payé 5 000 par Orange Money » → compte Orange Money ; sans ce compte : compte par défaut, surligné', () => {
     const [d] = items('Payé 5 000 par Orange Money');

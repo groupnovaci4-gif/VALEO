@@ -18,7 +18,8 @@ export type TxError =
   | 'goal.inactive'
   | 'goal.withdrawTooMuch'
   | 'reserve.unavailable'
-  | 'reserve.category';
+  | 'reserve.category'
+  | 'category.merge';
 
 export interface TxDraft {
   type: TransactionType;

@@ -101,7 +101,7 @@ type DraftLike = {
  */
 export function applyTontine<D extends DraftLike>(
   drafts: D[],
-  input: { text: string; tontines: Tontine[]; entries: TontineEntry[]; today: ISODate; defaultAccountId: string | null; payoutCategory: string; contributionCategory: string },
+  input: { text: string; tontines: Tontine[]; entries: TontineEntry[]; today: ISODate; defaultAccountId: string | null; payoutCategory: string; contributionCategory: string; contributionSubcategory?: string | null },
 ): D[] | null {
   const kind = tontineIntent(input.text);
   if (!kind) return null;
@@ -115,7 +115,7 @@ export function applyTontine<D extends DraftLike>(
     type: kind === 'payout' ? 'income' : 'expense',
     amount,
     categoryId: kind === 'payout' ? input.payoutCategory : input.contributionCategory,
-    subcategoryId: kind === 'payout' ? null : base.subcategoryId,
+    subcategoryId: kind === 'payout' ? null : input.contributionSubcategory !== undefined ? input.contributionSubcategory : base.subcategoryId,
     accountId: base.accountId ?? match.tontine.accountId ?? input.defaultAccountId,
     payee: match.tontine.name,
     // Le sens et la catégorie viennent de la tontine retrouvée : ils ne sont plus « à vérifier ».

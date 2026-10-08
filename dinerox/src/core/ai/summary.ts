@@ -48,7 +48,7 @@ export function buildFinanceSummary(
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6)
       .map(([id, amount]) => ({ name: categoryName(id), amount })),
-    envelopes: envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, m, currency).map((s) => ({ name: s.envelope.name.slice(0, 40), budget: s.budget, spent: s.spent })),
+    envelopes: envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, m, currency, data.accounts).map((s) => ({ name: s.envelope.name.slice(0, 40), budget: s.budget, spent: s.spent })),
     goals: data.goals
       .filter((g) => g.status === 'active' && g.currency === currency)
       .slice(0, 8)

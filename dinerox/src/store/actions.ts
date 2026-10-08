@@ -35,6 +35,9 @@ import { newId } from '@/core/sync';
 import { today } from '@/core/dates';
 import { isValidAmount } from '@/core/money';
 import { goalSaved } from '@/core/balance';
+import { tontineContributionCategory } from '@/core/tontine';
+import { deleteMode, planMerge, restoreDefaults } from '@/core/categoryOps';
+import { currentCatalog } from '@/services/categoryCatalog';
 import { analytics } from '@/services/analytics';
 import { useI18n } from '@/i18n';
 import { monthKey, type MonthKey } from '@/core/dates';
@@ -224,7 +227,7 @@ export function useActions() {
       const d = data();
       const g = d.goals.find((x) => x.id === reserveId && !x.deleted && isReserve(x) && x.status === 'active' && x.currency === tx.currency);
       if (!g) throw new ActionError('validation', { errors: ['reserve.unavailable'] });
-      if (tx.type !== 'expense' || !reserveEligible(tx.categoryId)) throw new ActionError('validation', { errors: ['reserve.category'] });
+      if (tx.type !== 'expense' || !reserveEligible(tx.categoryId, tx.subcategoryId)) throw new ActionError('validation', { errors: ['reserve.category'] });
       const others = d.goalContributions.filter((c) => c.linkedTransactionId !== tx.id);
       const split = splitReserveUse(tx.amount, goalSaved(g, others));
       if (split.fromReserve <= 0) return split;
@@ -277,7 +280,7 @@ export function useActions() {
         const use = d.goalContributions.find((c) => !c.deleted && c.linkedTransactionId === tx.id);
         if (use) {
           dropReserveUse(tx.id);
-          if (tx.type === 'expense' && reserveEligible(tx.categoryId)) {
+          if (tx.type === 'expense' && reserveEligible(tx.categoryId, tx.subcategoryId)) {
             try {
               applyReserveUse(tx, use.goalId);
             } catch {
@@ -379,6 +382,102 @@ export function useActions() {
   // ─── Catégories ───────────────────────────────────────────────────
 
   const saveCategory = useCallback((draft: Draft<Category>) => save<Category>('categories', draft), [save]);
+
+  /**
+   * 1.8 — Supprimer une catégorie selon son cas (core/categoryOps : deleteMode) :
+   * jamais utilisée → supprimée ; système → masquée (identifiants stables) ;
+   * utilisée → refus (l'écran propose la fusion ou la désactivation).
+   */
+  const deleteCategory = useCallback(
+    (id: string): 'deleted' | 'hidden' | 'in_use' => {
+      const d = data();
+      const c = d.categories.find((x) => x.id === id && !x.deleted);
+      if (!c) return 'deleted';
+      const mode = deleteMode(c, d);
+      if (mode === 'merge_or_disable') return 'in_use';
+      if (mode === 'hide') {
+        save<Category>('categories', { ...c, disabled: true });
+        return 'hidden';
+      }
+      // Ses sous-catégories (jamais utilisées non plus) partent avec elle.
+      for (const ch of d.categories.filter((x) => x.parentId === id && !x.deleted)) remove('categories', ch.id);
+      remove('categories', id);
+      return 'deleted';
+    },
+    [data, save, remove],
+  );
+
+  /** Désactiver (absente des choix, gardée dans l'historique) / réactiver. */
+  const setCategoryDisabled = useCallback(
+    (id: string, disabled: boolean) => {
+      const c = data().categories.find((x) => x.id === id && !x.deleted);
+      if (c) save<Category>('categories', { ...c, disabled: disabled ? true : false });
+    },
+    [data, save],
+  );
+
+  /**
+   * « Déplacer ses opérations vers… » : écrit le plan de `planMerge`
+   * (opérations, récurrences, enveloppes, sous-catégories, mots de saisie), puis
+   * supprime la source si elle est personnelle (masquée si système). Les droits
+   * sont vérifiés AVANT toute écriture : rien de partiel.
+   */
+  const mergeCategories = useCallback(
+    (fromId: string, toId: string): number => {
+      const d = data();
+      const plan = planMerge(fromId, toId, d);
+      if (!plan) throw new ActionError('validation', { errors: ['category.merge'] });
+      const { engine: e, spaceId } = ctx();
+      for (const t of plan.transactions) ensure('update', 'transactions', e.getDoc(spaceId, 'transactions', t.id));
+      for (const r of plan.recurring) ensure('update', 'recurring', e.getDoc(spaceId, 'recurring', r.id));
+      for (const env of plan.envelopes) ensure('update', 'envelopes', e.getDoc(spaceId, 'envelopes', env.id));
+      ensure('update', 'categories');
+      for (const t of plan.transactions) save<Transaction>('transactions', t);
+      for (const r of plan.recurring) save<RecurringRule>('recurring', r);
+      for (const env of plan.envelopes) save<Envelope>('envelopes', env);
+      for (const c of plan.children) save<Category>('categories', c);
+      save<Category>('categories', plan.target);
+      if (plan.source.system) save<Category>('categories', plan.source);
+      else remove('categories', plan.source.id);
+      return plan.transactions.length;
+    },
+    [data, ctx, ensure, save, remove],
+  );
+
+  /** Nouvel ordre (glisser-déposer) : seules les catégories déplacées sont écrites. */
+  const reorderCategories = useCallback(
+    (changes: { id: string; order: number }[]) => {
+      const d = data();
+      for (const ch of changes) {
+        const c = d.categories.find((x) => x.id === ch.id && !x.deleted);
+        if (c && c.order !== ch.order) save<Category>('categories', { ...c, order: ch.order });
+      }
+    },
+    [data, save],
+  );
+
+  /** « Rétablir par défaut » : libellé, emoji, couleur d'origine ; à nouveau proposée. */
+  const restoreCategory = useCallback(
+    (id: string) => {
+      const c = data().categories.find((x) => x.id === id && !x.deleted);
+      if (c?.system) save<Category>('categories', restoreDefaults(c, currentCatalog()));
+    },
+    [data, save],
+  );
+
+  /**
+   * 1.8 — « Nouvelles catégories disponibles » : écrit le plan préparé par
+   * `planCatalogUpdate` (ajouts et mises à niveau ; JAMAIS de suppression,
+   * aucune opération réécrite). Confirmation obligatoire côté écran.
+   */
+  const applyCatalogUpdate = useCallback(
+    (plan: { add: Category[]; patch: Category[] }) => {
+      ensure('update', 'categories');
+      for (const c of [...plan.add, ...plan.patch]) save<Category>('categories', c);
+      return plan.add.length + plan.patch.length;
+    },
+    [save, ensure],
+  );
 
   // ─── Objectifs ────────────────────────────────────────────────────
 
@@ -544,8 +643,8 @@ export function useActions() {
         date: input.date,
         // Compte choisi, sinon celui de la tontine, sinon un compte utilisable (« Espèces » créé si besoin).
         accountId: input.accountId ?? (t.accountId && d.accounts.some((x) => x.id === t.accountId && x.active && !x.deleted) ? t.accountId : ensureCashAccount(t.currency)),
-        categoryId: contribution ? categoryOr('cat_informal', 'cat_other') : categoryOr('inc_tontine', 'inc_other'),
-        subcategoryId: contribution && d.categories.some((c) => c.id === 'sub_informal_tontine' && !c.deleted) ? 'sub_informal_tontine' : null,
+        // Cotisation : catégorie retrouvée PAR IDENTIFIANT (parent actuel de la sous-catégorie « Tontine »).
+        ...(contribution ? tontineContributionCategory(d.categories) : { categoryId: categoryOr('inc_tontine', 'inc_other'), subcategoryId: null }),
         payee: t.name,
         note: input.note ?? null,
       });
@@ -620,6 +719,12 @@ export function useActions() {
       takeFromReserve,
       dropReserveUse,
       saveAccount,
+      applyCatalogUpdate,
+      deleteCategory,
+      setCategoryDisabled,
+      mergeCategories,
+      reorderCategories,
+      restoreCategory,
       deleteAccount,
       saveEnvelope,
       applyBudget,
@@ -640,7 +745,7 @@ export function useActions() {
       postponeTontine,
       convertRecurringToTontine,
     }),
-    [save, remove, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, postponeTontine, convertRecurringToTontine],
+    [save, remove, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, postponeTontine, convertRecurringToTontine],
   );
 }
 

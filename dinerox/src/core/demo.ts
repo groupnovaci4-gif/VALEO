@@ -10,6 +10,7 @@
 import type { Account, Envelope, Goal, GoalContribution, SpaceData, Tontine, TontineEntry, Transaction } from './types';
 import { addDays, addMonths, lastMonths, type ISODate } from './dates';
 import { systemCategories } from './defaults';
+import { catalogStarterDocs } from './categoryCatalog';
 
 export function buildDemoData(meta: { now: number; uid: string; today: ISODate; label: (k: string) => string }): SpaceData {
   const base = { createdAt: meta.now, updatedAt: meta.now, createdBy: meta.uid };
@@ -48,7 +49,8 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
     if (ok(3)) t(d(3), 'transfer', 150_000, 'demo_bank', null, null, { toAccountId: 'demo_om' });
     if (ok(4)) t(d(4), 'expense', 25_000, 'demo_om', 'cat_housing', 'CIE');
     if (ok(5)) t(d(5), 'expense', 30_000 + i * 6_000, 'demo_om', 'cat_food', 'Marché');
-    if (ok(8)) t(d(8), 'expense', 15_000, 'demo_om', 'cat_internet', 'Internet');
+    // Internet (fibre) : « Communication & numérique » (catalogue 1.8), toujours suivi dans l'enveloppe Logement.
+    if (ok(8)) t(d(8), 'expense', 15_000, 'demo_om', 'cat_communication', 'Internet', { subcategoryId: 'sub_internet_fiber', envelopeId: 'demo_env_home' });
     if (ok(10)) t(d(10), 'expense', 50_000, 'demo_om', 'cat_family', 'Maman');
     if (ok(12)) t(d(12), 'expense', 28_000 + i * 2_500, 'demo_cash', 'cat_transport', 'Taxi');
     if (ok(15)) t(d(15), 'expense', 35_000 + i * 8_000, 'demo_cash', 'cat_food', 'Restaurant');
@@ -56,7 +58,7 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
     if (ok(20)) t(d(20), 'transfer', 50_000, 'demo_bank', null, 'Moto', { toAccountId: 'demo_sav', goalId: 'demo_goal_moto' });
     if (ok(22)) t(d(22), 'expense', 8_000, 'demo_cash', 'cat_communication', 'Crédit');
     // Tontine du bureau : cotisation du 5, liée à l'entrée de tontine (plus bas).
-    if (ok(5)) t(d(5), 'expense', 10_000, 'demo_om', 'cat_informal', 'Tontine du bureau', { id: `demo_tx_tontine_${i + 1}`, subcategoryId: 'sub_informal_tontine' });
+    if (ok(5)) t(d(5), 'expense', 10_000, 'demo_om', 'cat_social', 'Tontine du bureau', { id: `demo_tx_tontine_${i + 1}`, subcategoryId: 'sub_informal_tontine' });
     // Cérémonie du mois dernier, prise sur la réserve (utilisation liée plus bas).
     if (i === months.length - 2) t(d(14), 'expense', 20_000, 'demo_om', 'cat_social', null, { id: 'demo_tx_ceremony', subcategoryId: 'sub_social_ceremonies' });
   });
@@ -100,7 +102,8 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
     .map((x) => ({ ...base, id: `demo_te_${x.id.slice(-1)}`, tontineId: 'demo_tontine', kind: 'contribution', period: Number(x.id.slice(-1)), amount: x.amount, date: x.date, transactionId: x.id, status: 'done' }));
   return {
     accounts,
-    categories: systemCategories(meta),
+    // Catalogue de départ 1.8 (Côte d'Ivoire) ; revenus inchangés.
+    categories: [...catalogStarterDocs('CI', meta), ...systemCategories({ ...meta, zone: 'africa' }).filter((c) => c.kind === 'income')],
     transactions,
     recurring: [
       // Échéances récurrentes (calendrier financier) : aucune génération rétroactive.
@@ -109,7 +112,7 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
       // Soutiens réguliers (Famille et obligations) : l'échéance du mois est déjà enregistrée.
       { ...base, id: 'demo_rec_mum', type: 'expense', label: 'Maman', amount: 50_000, currency: 'XOF', accountId: 'demo_om', categoryId: 'cat_family', frequency: 'monthly', startDate: `${meta.today.slice(0, 7)}-10`, active: true, lastGenerated: `${meta.today.slice(0, 7)}-10` },
       { ...base, id: 'demo_rec_school', type: 'expense', label: 'Scolarité neveu', amount: 15_000, currency: 'XOF', accountId: 'demo_om', categoryId: 'cat_family', frequency: 'monthly', startDate: `${meta.today.slice(0, 7)}-28`, active: true, lastGenerated: `${meta.today.slice(0, 7)}-28` },
-      { ...base, id: 'demo_rec_tontine', type: 'expense', label: meta.label('acc.tontine'), amount: 10_000, currency: 'XOF', accountId: 'demo_cash', categoryId: 'cat_informal', frequency: 'weekly', startDate: meta.today, active: true, lastGenerated: meta.today },
+      { ...base, id: 'demo_rec_tontine', type: 'expense', label: meta.label('acc.tontine'), amount: 10_000, currency: 'XOF', accountId: 'demo_cash', categoryId: 'cat_social', subcategoryId: 'sub_informal_tontine', frequency: 'weekly', startDate: meta.today, active: true, lastGenerated: meta.today },
     ],
     envelopes,
     budgets: [],

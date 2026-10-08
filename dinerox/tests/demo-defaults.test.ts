@@ -7,7 +7,7 @@ import { envelopeStatuses } from '../src/core/budget';
 describe('données de démonstration', () => {
   const d = buildDemoData({ now: 1, uid: 'u', today: '2026-10-20', label: (k) => k });
   it('identifiants préfixés demo_ (séparés des vraies données)', () => {
-    for (const list of Object.values(d)) for (const x of list as { id: string }[]) expect(x.id.startsWith('demo_') || x.id.startsWith('cat_') || x.id.startsWith('inc_')).toBe(true);
+    for (const list of Object.values(d)) for (const x of list as { id: string }[]) expect(x.id.startsWith('demo_') || x.id.startsWith('cat_') || x.id.startsWith('sub_') || x.id.startsWith('inc_')).toBe(true);
   });
   it('soldes cohérents et budget réaliste', () => {
     const b = accountBalances(d.accounts, d.transactions);

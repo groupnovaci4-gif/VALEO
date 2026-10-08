@@ -14,7 +14,7 @@
  * Aucune règle locale n'est inventée : frais, commission, pénalités et ordre
  * des tours viennent de l'utilisateur.
  */
-import type { RecurringRule, SpaceData, Tontine, TontineEntry, TontineFrequency } from './types';
+import type { Category, RecurringRule, SpaceData, Tontine, TontineEntry, TontineFrequency } from './types';
 import type { CurrencyCode } from './money';
 import { addDays, addMonths, diffDays, endOfMonth, monthKey, type ISODate, type MonthKey } from './dates';
 
@@ -357,8 +357,34 @@ export function tontineFromRecurring(rule: RecurringRule): Omit<Tontine, 'id' | 
   };
 }
 
-/** Récurrence de tontine (catégorie « Tontines et cotisations ») pas encore convertie. */
+/** Sous-catégorie « Tontine » (identifiant stable, quel que soit son parent). */
+export const TONTINE_SUBCATEGORY = 'sub_informal_tontine';
+
+/**
+ * Opération ou récurrence de tontine, reconnue PAR IDENTIFIANT : ancienne
+ * catégorie « Tontines et cotisations » (`cat_informal`), ou sous-catégorie
+ * « Tontine », quel que soit son parent (1.8 : « Finance sociale & obligations »).
+ */
+export function isTontineCategory(categoryId?: string | null, subcategoryId?: string | null): boolean {
+  return categoryId === 'cat_informal' || subcategoryId === TONTINE_SUBCATEGORY;
+}
+
+/**
+ * Catégorie d'une cotisation, retrouvée par identifiant : le parent ACTUEL de
+ * la sous-catégorie « Tontine » (avant la mise à jour 1.8 : `cat_informal` ;
+ * après, ou pour un nouvel utilisateur : `cat_social`), sinon l'ancienne
+ * catégorie, sinon « Finance sociale », sinon « Autres ». Jamais par libellé.
+ */
+export function tontineContributionCategory(categories: Pick<Category, 'id' | 'parentId' | 'deleted'>[]): { categoryId: string; subcategoryId: string | null } {
+  const live = (id: string) => categories.find((c) => c.id === id && !c.deleted);
+  const sub = live(TONTINE_SUBCATEGORY);
+  if (sub?.parentId && live(sub.parentId)) return { categoryId: sub.parentId, subcategoryId: TONTINE_SUBCATEGORY };
+  for (const id of ['cat_informal', 'cat_social']) if (live(id)) return { categoryId: id, subcategoryId: null };
+  return { categoryId: 'cat_other', subcategoryId: null };
+}
+
+/** Récurrence de tontine pas encore convertie. */
 export function convertibleRecurring(data: Pick<SpaceData, 'recurring' | 'tontines'>): RecurringRule[] {
   const linked = new Set(data.tontines.filter((t) => !t.deleted).map((t) => t.linkedRecurringId));
-  return data.recurring.filter((r) => !r.deleted && r.type === 'expense' && r.categoryId === 'cat_informal' && !linked.has(r.id));
+  return data.recurring.filter((r) => !r.deleted && r.type === 'expense' && isTontineCategory(r.categoryId, r.subcategoryId) && !linked.has(r.id));
 }

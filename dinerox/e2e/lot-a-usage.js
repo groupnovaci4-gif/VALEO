@@ -54,7 +54,7 @@ let b;
   // Enregistrement « comme WhatsApp » : il ne s'arrête qu'au toucher ■.
   await btn("Terminer l'enregistrement").click(); await p.waitForTimeout(900);
   await p.getByRole('button', { name: /^catégorie :/ }).first().click(); await p.waitForTimeout(300);
-  await p.getByRole('button', { name: 'Nourriture', exact: true }).last().click(); await p.waitForTimeout(300);
+  await p.getByRole('button', { name: 'Alimentation & boissons', exact: true }).last().click(); await p.waitForTimeout(300);
   await btn('Tout valider').click(); await p.waitForTimeout(500);
   // Échec de reconnaissance, question, doute.
   await go('/'); await closeCelebration();

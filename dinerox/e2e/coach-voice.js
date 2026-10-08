@@ -27,7 +27,7 @@ const SPY = () => {
   const reset = () => p.evaluate(() => { window.__spoken = []; window.__sounds = []; });
   const expense = async (amount) => {
     await go('/transaction/new?type=expense', 2500);
-    await p.getByLabel('Montant').first().fill(String(amount)); await p.getByText('Nourriture', { exact: true }).first().click();
+    await p.getByLabel('Montant').first().fill(String(amount)); await p.getByText('Alimentation & boissons', { exact: true }).first().click();
     await p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click(); await p.waitForTimeout(1800);
   };
   await go('/'); await p.getByText('Créer mon compte').first().click(); await p.waitForTimeout(500);

@@ -102,3 +102,80 @@ continu, la relance fait tout).
   enveloppe qui citait l'ancien identifiant garde ses opérations
   (`resolveEnvelopeId` lit d'abord l'identifiant enregistré). Le champ de vue
   `legacyCategoryId` n'est jamais écrit (`saveTransaction` le retire).
+
+### Phase 2 — Nouveaux et anciens utilisateurs
+
+- **Nouvel utilisateur** (pays du catalogue) : `buildInitialStructure` /
+  `starterStructure` installent `catalogStarterDocs(pays)` (dépenses) + les
+  catégories de revenus habituelles. Autres pays : catégories actuelles du
+  pays, sans « Épargne » ni « Investissement » (`categorySeedsFor`).
+- **Utilisateur existant** : rien ne change automatiquement. La mise à niveau
+  automatique d'avant (Bootstrap, clé `catalog2`) ne complète plus que les
+  revenus dans les pays du catalogue. Carte discrète **« Nouvelles catégories
+  disponibles »** (accueil, avec « Plus tard » ; écran Catégories) :
+  `planCatalogUpdate` → aperçu (ajoutées, renommées, rattachées ailleurs),
+  confirmation obligatoire, `applyCatalogUpdate`. Rien n'est supprimé ; une
+  catégorie personnelle n'est pas touchée ; une catégorie renommée garde son
+  nom, son emoji et sa couleur ; une catégorie supprimée n'est jamais recréée ;
+  aucune opération n'est réécrite (alias).
+- **Espace famille** : les catégories appartiennent à l'espace ; la carte et
+  l'écran ne proposent d'écrire qu'aux rôles qui ont le droit (`can`).
+- **Démo** (`buildDemoData`) : catalogue v2 (Côte d'Ivoire) ; la tontine du
+  bureau est en « Finance sociale & obligations › Tontine ».
+
+### Phase 3 — Pays et profil
+
+- Catalogue v2 : CI, SN, BJ, TG, BF, ML, NE, GW, GN (décision 6). Autres pays :
+  catégories actuelles. Règles `countries` : **Maquis** (CI, BF, TG, BJ). Charbon
+  et Moto-taxi sont dans le catalogue de ces 9 pays (aucun catalogue inventé
+  pour d'autres pays).
+- Profil (décision 4) : « Enfants », « Santé des enfants », « Scolarité »
+  masquées PAR DÉFAUT seulement si la situation familiale est renseignée ET
+  0 enfant ET 0 personne à charge. Information inconnue → rien de masqué.
+  Jamais supprimées : « Afficher toutes les catégories » dans les listes.
+- Ancienne catégorie hors du catalogue (`cat_internet`, `cat_informal`,
+  `cat_taxes`, `cat_insurance`…) : dans un espace mis à jour, proposée tant
+  qu'elle sert (opérations ou récurrences) ; toujours visible dans l'écran
+  Catégories et l'historique. Revenus : jamais concernés.
+
+### Phase 4 — Tout est modifiable
+
+`core/categoryOps.ts` (pur) + écran `categories` + `CategoryEditSheet` +
+`CategoryPicker` :
+- **Créer ma catégorie** / une sous-catégorie : nom, emoji (ou icône),
+  couleur, parent, type de dépense (besoin, envie, obligation, dette), mots de
+  la saisie vocale. Aussi depuis le formulaire, la carte de confirmation et
+  les récurrences (« Nouvelle catégorie… »).
+- **Modifier, réordonner** (glisser-déposer ≡, flèches pour l'accessibilité),
+  **désactiver / réactiver**.
+- **Supprimer** (`deleteMode`) : jamais utilisée → supprimée après
+  confirmation ; utilisée → « Déplacer ses opérations vers… » (`planMerge` :
+  opérations, récurrences, enveloppes, sous-catégories, mots ; aperçu du
+  nombre ; confirmation) ou « Désactiver plutôt » ; système → masquée,
+  « Rétablir par défaut » (`restoreDefaults`).
+- **Listes de choix** (`pickCategories`) : recherche (nom, sous-catégorie,
+  mot-clé ; accents ignorés), récentes en premier, désactivées absentes,
+  masquées accessibles par « Afficher toutes les catégories ».
+- **Bibliothèque** « Ajouter une catégorie du catalogue » (`libraryItems`) :
+  catalogue + anciennes catégories (ex. « Impôts et cotisations »), jamais
+  Épargne ni Investissement.
+
+### Réserve et tontine : par identifiant
+
+- Cotisation de tontine : `tontineContributionCategory` (parent ACTUEL de
+  `sub_informal_tontine`) ; récurrence ou opération de tontine :
+  `isTontineCategory` (ancienne `cat_informal` ou sous-catégorie Tontine).
+- Réserve et moments forts : `cat_family` / `cat_social`, sauf Tontine,
+  Cotisation et Association (`NOT_CEREMONY_SUBCATEGORIES`).
+
+### Épargne ≠ consommation (décisions 2 et 3)
+
+`core/savingsFlows.ts` : les anciennes « dépenses » `cat_savings` /
+`cat_investment` restent intactes et visibles mais sont de l'épargne :
+exclues des dépenses (`flowTotals`), des analyses (`expensesByCategory`,
+`monthStats`), du rapport par catégorie (comptées dans « épargné »), du reste
+par jour. L'enveloppe « Épargne » (et « Projets » pour un compte
+d'investissement) compte les **versements vers les comptes d'épargne** du mois
+(`savedByEnvelope`) ; le hors-enveloppe ne les compte pas.
+Reste par jour : la mise de côté du mois = le plus grand de la mise de côté
+prévue (objectifs, réserves) et de l'épargne versée (`savedThisMonth`).

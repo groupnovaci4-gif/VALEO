@@ -18,6 +18,7 @@ import { seasonReminders } from '@/core/seasons';
 import { tontineReminders } from '@/core/tontine';
 import { readJSON, storageKey, writeJSON } from '@/services/storage';
 import { loadCategoryCatalog } from '@/services/categoryCatalog';
+import { usesCatalog } from '@/core/categoryCatalog';
 import type { CollectionName, SyncedDoc } from '@/core/types';
 import type { TKey } from '@/i18n';
 
@@ -56,8 +57,11 @@ export function Bootstrap() {
       const zone = zoneOf(country);
       const now = Date.now();
       const parents = systemCategories({ now, uid: user.uid, zone });
-      const subs = subcategoryDocs(country, zone, { now, uid: user.uid, lang, parents: new Set(parents.map((c) => c.id)) });
-      const missing = [...parents, ...subs].filter((c) => !engine.getDoc(spaceId, 'categories', c.id));
+      // 1.8 — Pays du catalogue v2 : rien ne change automatiquement côté dépenses (carte
+      // « Nouvelles catégories disponibles », avec confirmation) ; seuls les revenus sont complétés.
+      const v2 = usesCatalog(country);
+      const subs = v2 ? [] : subcategoryDocs(country, zone, { now, uid: user.uid, lang, parents: new Set(parents.map((c) => c.id)) });
+      const missing = [...parents.filter((c) => !v2 || c.kind === 'income'), ...subs].filter((c) => !engine.getDoc(spaceId, 'categories', c.id));
       if (missing.length) engine.writeMany(spaceId, missing.map((doc) => ({ col: 'categories' as const, doc })));
       await writeJSON(key, true);
     };

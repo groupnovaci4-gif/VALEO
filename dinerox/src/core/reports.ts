@@ -4,6 +4,7 @@
 import type { Account, Category, SpaceData, Transaction } from './types';
 import type { CurrencyCode } from './money';
 import { flowTotals } from './balance';
+import { isConsumption, isSavingExpense } from './savingsFlows';
 import { addDays, inPeriod, monthKey, periodOf, previousPeriod, type ISODate, type Period, type PeriodKind } from './dates';
 
 export interface SeriesPoint {
@@ -57,10 +58,11 @@ export function buildReport(data: SpaceData, kind: PeriodKind, ref: ISODate, cur
     // Épargne NETTE : versements vers l'épargne moins retraits de l'épargne.
     if (t.type === 'transfer' && t.toAccountId && savingsIds.has(t.toAccountId) && !savingsIds.has(t.accountId)) saved += t.amount;
     if (t.type === 'transfer' && t.toAccountId && savingsIds.has(t.accountId) && !savingsIds.has(t.toAccountId)) saved -= t.amount;
-    if (t.type === 'expense') {
+    // Anciennes « dépenses » Épargne / Investissement : de l'épargne, pas de la consommation.
+    if (isSavingExpense(t)) saved += t.amount;
+    else if (isConsumption(t)) {
       const k = t.categoryId ?? 'uncategorized';
       cats[k] = (cats[k] ?? 0) + t.amount;
-      if (t.categoryId === 'cat_savings') saved += t.amount;
     }
   }
   const byCategory = Object.entries(cats)

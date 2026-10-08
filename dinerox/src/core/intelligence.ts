@@ -20,6 +20,7 @@ import { debtStatus } from './debts';
 import { goalPlanFor, hasEmergencyFund } from './goals';
 import { occurrencesBetween } from './recurring';
 import { findSubcategory } from './catalog';
+import { isSavingExpense } from './savingsFlows';
 
 export type DataSource = 'user' | 'declared' | 'estimate' | 'external';
 
@@ -69,7 +70,8 @@ function monthStats(transactions: Transaction[], month: MonthKey, currency: Curr
     if (t.deleted || t.currency !== currency || monthKey(t.date) !== month || t.type === 'transfer') continue;
     // Un transfert entre ses propres comptes n'est NI un revenu NI une dépense.
     if (t.type === 'income') s.income += t.amount;
-    else {
+    else if (!isSavingExpense(t)) {
+      // Anciennes « dépenses » Épargne / Investissement : hors consommation (1.8).
       s.expense += t.amount;
       if (isFixedExpense(t, categories)) s.fixed += t.amount;
       const k = t.categoryId ?? 'none';

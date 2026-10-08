@@ -11,6 +11,7 @@ import { budgetTransactions, isReserve } from './reserve';
 import { observedCapacity } from './intelligence';
 import { debtStatus } from './debts';
 import { lastMonths, monthKey, previousMonth, type ISODate, type MonthKey } from './dates';
+import { isConsumption } from './savingsFlows';
 
 export type InsightSeverity = 'info' | 'positive' | 'warning' | 'danger';
 
@@ -47,7 +48,7 @@ export interface Insight {
 export function expensesByCategory(transactions: Transaction[], month: MonthKey, currency: CurrencyCode): Record<string, number> {
   const out: Record<string, number> = {};
   for (const t of transactions) {
-    if (t.deleted || t.type !== 'expense' || t.currency !== currency || monthKey(t.date) !== month) continue;
+    if (t.deleted || !isConsumption(t) || t.currency !== currency || monthKey(t.date) !== month) continue;
     const k = t.categoryId ?? 'uncategorized';
     out[k] = (out[k] ?? 0) + t.amount;
   }
@@ -60,7 +61,7 @@ export function monthFlows(transactions: Transaction[], month: MonthKey, currenc
   for (const t of transactions) {
     if (t.deleted || t.type === 'transfer' || t.currency !== currency || monthKey(t.date) !== month) continue;
     if (t.type === 'income') income += t.amount;
-    else expense += t.amount;
+    else if (isConsumption(t)) expense += t.amount;
   }
   return { income, expense, net: income - expense };
 }
@@ -123,7 +124,7 @@ export function computeInsights({ data, currency, now, categoryName }: InsightIn
   const budgetTx = budgetTransactions(tx, data.goalContributions as GoalContribution[]);
 
   // 1. Seuils d'enveloppes (85 % / 100 % / dépassement).
-  for (const s of envelopeStatuses(data.envelopes, budgetTx, data.budgets, month, currency)) {
+  for (const s of envelopeStatuses(data.envelopes, budgetTx, data.budgets, month, currency, data.accounts)) {
     if (s.level === 'ok' || s.budget <= 0) continue;
     const severity: InsightSeverity = s.level === 'critical' ? 'danger' : 'warning';
     out.push({
@@ -193,12 +194,12 @@ export function computeInsights({ data, currency, now, categoryName }: InsightIn
   const window = new Set(lastMonths(4, now));
   const byCat = new Map<string, number[]>();
   for (const t of tx) {
-    if (t.deleted || t.type !== 'expense' || t.currency !== currency || !window.has(monthKey(t.date))) continue;
+    if (t.deleted || !isConsumption(t) || t.currency !== currency || !window.has(monthKey(t.date))) continue;
     const k = t.categoryId ?? 'uncategorized';
     byCat.set(k, [...(byCat.get(k) ?? []), t.amount]);
   }
   for (const t of tx) {
-    if (t.deleted || t.type !== 'expense' || t.currency !== currency || monthKey(t.date) !== month) continue;
+    if (t.deleted || !isConsumption(t) || t.currency !== currency || monthKey(t.date) !== month) continue;
     const values = byCat.get(t.categoryId ?? 'uncategorized') ?? [];
     if (values.length < 4) continue;
     const med = median(values);

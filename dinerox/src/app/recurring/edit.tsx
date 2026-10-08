@@ -5,12 +5,12 @@ import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp, useData } from '@/store/app';
 import { useActions } from '@/store/actions';
-import { useCategoryLabels } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, Segmented, SwitchRow, Text, useToast } from '@/components/ui';
 import { today } from '@/core/dates';
 import { lastOccurrenceBefore } from '@/core/recurring';
 import type { Frequency } from '@/core/types';
 import { useRunAction } from '@/hooks/useRunAction';
+import { CategoryPicker } from '@/features/categories/CategoryPicker';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 function RecurringEdit() {
@@ -22,14 +22,19 @@ function RecurringEdit() {
   const { activeSpace } = useApp();
   const actions = useActions();
   const run = useRunAction();
-  const cats = useCategoryLabels();
   const existing = data.recurring.find((r) => r.id === id);
   const [type, setType] = useState<'income' | 'expense'>(existing?.type ?? (typeParam === 'expense' ? 'expense' : 'income'));
   const [label, setLabel] = useState(existing?.label ?? '');
   const [amount, setAmount] = useState<number | null>(existing?.amount ?? null);
   const [chosenAccount, setAccountId] = useState<string | null>(existing?.accountId ?? null);
   const accountId = chosenAccount ?? data.accounts.find((a) => a.active)?.id ?? null;
-  const [categoryId, setCategoryId] = useState<string | null>(existing?.categoryId ?? categoryParam ?? null);
+  const [categoryId, setCategoryIdRaw] = useState<string | null>(existing?.categoryId ?? categoryParam ?? null);
+  const [subcategoryId, setSubcategoryId] = useState<string | null>(existing?.subcategoryId ?? null);
+  // Changer de catégorie efface la sous-catégorie (elle appartient à l'ancienne).
+  const setCategoryId = (v: string | null) => {
+    setCategoryIdRaw(v);
+    setSubcategoryId(null);
+  };
   const isObligation = obligation === '1';
   const [frequency, setFrequency] = useState<Frequency>(existing?.frequency ?? 'monthly');
   const [startDate, setStartDate] = useState(existing?.startDate ?? today());
@@ -45,7 +50,8 @@ function RecurringEdit() {
     const accCurrency = account?.currency ?? activeSpace?.currency ?? 'XOF';
     // Pas de génération rétroactive : une règle commencée dans le passé démarre à la prochaine échéance.
     const lastGenerated = existing && existing.startDate === startDate ? (existing.lastGenerated ?? null) : lastOccurrenceBefore({ frequency, startDate }, today());
-    const ok = run(() => actions.saveRecurring({ id: existing?.id, type, label: label.trim(), amount, currency: accCurrency, accountId: accId, categoryId, envelopeId: null, frequency, startDate, endDate, active, lastGenerated }));
+    // Les champs non affichés ici (enveloppe choisie, liens) sont CONSERVÉS lors d'une modification.
+    const ok = run(() => actions.saveRecurring({ ...(existing ?? {}), id: existing?.id, type, label: label.trim(), amount, currency: accCurrency, accountId: accId, categoryId, subcategoryId, envelopeId: existing?.envelopeId ?? null, frequency, startDate, endDate, active, lastGenerated }));
     if (!ok) return;
     toast.show(t('common.saved'));
     goBack();
@@ -77,7 +83,7 @@ function RecurringEdit() {
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('tx.category')}
       </Text>
-      <ChipGroup value={categoryId} onChange={setCategoryId} options={cats.list(type).map((c) => ({ value: c.id, label: c.name, icon: c.icon, color: c.color }))} />
+      <CategoryPicker kind={type} value={categoryId} onChange={setCategoryId} subValue={subcategoryId} onSubChange={setSubcategoryId} />
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('rec.frequency')}
       </Text>

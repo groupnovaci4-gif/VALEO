@@ -171,6 +171,8 @@ export interface RecurringRule extends SyncedDoc {
   currency: CurrencyCode;
   accountId: ID;
   categoryId?: ID | null;
+  /** 1.8 — Sous-catégorie (ex. Tontine), recopiée sur chaque opération générée. */
+  subcategoryId?: ID | null;
   envelopeId?: ID | null;
   frequency: Frequency;
   /** Première échéance. Les suivantes en découlent. */

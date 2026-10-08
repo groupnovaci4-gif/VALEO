@@ -66,8 +66,8 @@ export function simulateContribution(input: SimulationInput): Simulation {
   const before = dailyAllowance({ data, currency, today, financial });
   const after = dailyAllowance({ data: sim.data, currency, today, financial });
   const month = monthKey(today);
-  const statusesBefore = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency);
-  const statusesAfter = envelopeStatuses(sim.data.envelopes, budgetTransactions(sim.data.transactions, sim.data.goalContributions), sim.data.budgets, month, currency);
+  const statusesBefore = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency, data.accounts);
+  const statusesAfter = envelopeStatuses(sim.data.envelopes, budgetTransactions(sim.data.transactions, sim.data.goalContributions), sim.data.budgets, month, currency, sim.data.accounts);
   const envelopes = statusesAfter
     .map((s) => ({ s, b: statusesBefore.find((x) => x.envelope.id === s.envelope.id) }))
     .filter(({ s, b }) => b && s.spent !== b.spent && s.budget > 0 && LEVEL_RANK[s.level] > LEVEL_RANK[b.level])

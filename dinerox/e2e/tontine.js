@@ -170,7 +170,9 @@ let b;
   await go('/recurring/edit');
   await p.getByRole('tab', { name: 'Dépense', exact: true }).click(); await p.waitForTimeout(300);
   await fill('Libellé', 'Tontine marché'); await fill('Montant', '5000');
-  await p.getByText('Tontines et cotisations', { exact: true }).first().click();
+  // 1.8 : la Tontine est une sous-catégorie de « Finance sociale & obligations » (reconnue par identifiant).
+  await p.getByText('Finance sociale & obligations', { exact: true }).first().click(); await p.waitForTimeout(300);
+  await p.getByText('Tontine', { exact: true }).first().click();
   await p.getByText('Chaque semaine', { exact: true }).first().click();
   await btn('Enregistrer').click(); await p.waitForTimeout(1500);
   await go('/recurring');
