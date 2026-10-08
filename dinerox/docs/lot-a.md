@@ -86,7 +86,8 @@ Rapport de fin de Lot A. Lot B (coach) : voir [`lot-b.md`](lot-b.md).
 7. Bruit : au marché, dans un taxi. Noter les erreurs de transcription.
 8. Mode avion : la dictée fonctionne-t-elle ? Tester l'option
    « Reconnaissance uniquement sur le téléphone ».
-9. Silence : « Je n'ai rien entendu » ; rien n'est enregistré.
+9. Rien dit puis ■ : « Je n'ai rien entendu » ; rien n'est enregistré. (1.8 : un
+   silence n'arrête plus l'enregistrement, voir `docs/voix-categories-epargne.md`.)
 10. Le coach parle (dépassement d'enveloppe) puis appui sur le micro : la voix
     du coach doit s'arrêter.
 11. Compte gratuit : 6e saisie vocale du jour refusée, clavier et phrase OK.

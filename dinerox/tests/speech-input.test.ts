@@ -1,6 +1,9 @@
 /** Saisie vocale (Lot A, phase 3) : fournisseur interchangeable, permission micro déclarée, dépendance présente. */
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('react-native', () => ({ Platform: { OS: 'android', Version: 34 }, AppState: { addEventListener: () => ({ remove: () => undefined }) } }));
+vi.mock('expo-haptics', () => ({ impactAsync: async () => undefined, ImpactFeedbackStyle: { Medium: 'm', Light: 'l' } }));
 import { noSpeechInput, setSpeechInputProvider, speechInput, SpeechInputUnavailable, type SpeechInputProvider } from '../src/services/speechInput';
 
 const root = new URL('../', import.meta.url);
@@ -20,6 +23,9 @@ describe('saisie vocale', () => {
       supportsOnDevice: () => true,
       permission: async () => 'granted',
       requestPermission: async () => 'granted',
+      startEngine: () => undefined,
+      stopEngine: () => undefined,
+      abortEngine: () => undefined,
       listen: async ({ onPartial }) => (onPartial?.('Taxi'), 'Taxi 2 000'),
       stop: async () => undefined,
     };

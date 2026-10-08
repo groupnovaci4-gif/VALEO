@@ -1625,4 +1625,11 @@ export const en: Record<TKey, string> = {
   "tontine.understand.collector": "The collector keeps your payments during the cycle and returns them at the end, minus the fee.",
   "tontine.understand.commission": "Fee: {commission} out of {total}, i.e. {percent}%.",
   "tontine.understand.fixed": "Contribution without payout: it is a regular expense, with no pot to receive.",
+  "entry.voice.recording": "Recording",
+  "entry.voice.cancel": "Cancel the recording",
+  "entry.voice.finish": "Finish the recording",
+  "entry.voice.stopHint": "Speak freely, pauses are fine. Tap ■ when you are done.",
+  "entry.voice.processing": "Preparing your entry…",
+  "entry.voice.limitSoon": "30 seconds left: recording stops at 5 minutes.",
+  "entry.voice.elapsed": "Recording time: {time}",
 };

@@ -28,7 +28,7 @@ import { entryPrefs } from '@/core/entry/prefs';
 import { answerQuestion } from '@/core/ai/answers';
 import { FREE_VOICE_ENTRIES_PER_DAY, hasFeature, withinLimit } from '@/core/subscription';
 import { currencyInfo, parseAmountInput, toMinor, type CurrencyCode } from '@/core/money';
-import { speechInput, SpeechInputError, type SpeechPermission } from '@/services/speechInput';
+import { speechInput, type SpeechPermission } from '@/services/speechInput';
 import { readEntryStats, voiceToday } from '@/services/entryStats';
 import { stopVoice } from '@/services/voice';
 import { analytics } from '@/services/analytics';
@@ -39,6 +39,9 @@ import { canUseReserve } from '@/core/permissions';
 import { ConfirmCard } from './ConfirmCard';
 import { useEntrySave, type EntryMethod } from './useEntrySave';
 import { useEntryStats } from './useEntryStats';
+import { useVoiceRecorder } from './useVoiceRecorder';
+import { liveTranscript } from '@/core/entry/recorder';
+import { RecorderBar } from './RecorderBar';
 import type { EntryMode } from './EntryProvider';
 
 type View_ =
@@ -47,7 +50,8 @@ type View_ =
   | { kind: 'answer'; text: string; bullets: string[]; question: string }
   | { kind: 'ambiguous'; text: string };
 
-type VoiceState = 'idle' | 'explain' | 'listening' | 'denied' | 'unavailable' | 'limit' | 'nothing';
+/** Message sous le micro (l'état de l'enregistrement lui-même vit dans `core/entry/recorder`). */
+type VoiceState = 'idle' | 'explain' | 'denied' | 'unavailable' | 'limit' | 'nothing';
 
 /** Thèmes de question accessibles en formule gratuite (comme l'assistant). */
 const FREE_TOPICS = new Set(['spent_month', 'income_month', 'remaining_category', 'balance', 'spent_category']);
@@ -94,7 +98,8 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const recent = useMemo(() => recentCategories(stats?.recent[type] ?? [], cats.list(type).map((c) => c.id), data.categories, 6), [stats?.recent, type, cats, data.categories]);
 
   // ─── Analyse d'un texte (voix ou phrase) ───────────────────────────
-  const analyze = (text: string, method: 'voice' | 'text_phrase') => {
+  /** Analyse un texte ; faux si rien n'a été compris (« Je n'ai rien entendu »). */
+  const analyze = (text: string, method: 'voice' | 'text_phrase'): boolean => {
     const r: EntryParse = parseEntryText(text, { today: now, currency: currency as CurrencyCode, accounts, categories: data.categories, defaultAccountId });
     // Tontine : « Tontine 10 000 », « J'ai cotisé ma tontine du bureau », « J'ai reçu la tontine »
     // → la tontine correspondante est proposée sur la carte de confirmation.
@@ -111,16 +116,16 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     if (withTontine) {
       analytics.track('mic_routed', { to: 'entry', method });
       setView({ kind: 'confirm', drafts: withTontine, method, text, edited: false });
-      return;
+      return true;
     }
     if (r.kind === 'empty') {
       setVoice(method === 'voice' ? 'nothing' : 'idle');
-      return;
+      return false;
     }
     if (r.kind === 'entries') {
       analytics.track('mic_routed', { to: 'entry', method });
       setView({ kind: 'confirm', drafts: r.items, method, text, edited: false });
-      return;
+      return true;
     }
     if (r.kind === 'question' && r.intent.topic === 'contribution_sim') {
       // « Si je donne 30 000… » : le simulateur calcule l'effet (rien n'est enregistré).
@@ -128,13 +133,13 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       onClose();
       const category = r.intent.categoryId === 'cat_family' || r.intent.categoryId === 'cat_social' ? r.intent.categoryId : undefined;
       router.push({ pathname: '/simulate', params: { ...(r.intent.amount ? { amount: String(toMinor(r.intent.amount, currency)) } : {}), ...(category ? { category } : {}) } });
-      return;
+      return true;
     }
     if (r.kind === 'question') {
       analytics.track('mic_routed', { to: 'assistant', method });
       if (!hasFeature(plan, 'ai_assistant') && !FREE_TOPICS.has(r.intent.topic)) {
         setView({ kind: 'answer', text: t('ai.locked'), bullets: [], question: text });
-        return;
+        return true;
       }
       const a = answerQuestion({ ...r.intent, amount: r.intent.amount === null ? null : toMinor(r.intent.amount, currency) }, { data, currency: currency as CurrencyCode, now, categoryName: cats.byId });
       setView({
@@ -143,44 +148,50 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
         bullets: (a.bullets ?? []).map((b) => (hasKey(b.key) ? t(b.key as TKey, fmt(b.params, { monthDates: true })) : '')).filter(Boolean),
         question: text,
       });
-      return;
+      return true;
     }
     if (r.kind === 'assistant') {
       analytics.track('mic_routed', { to: 'assistant', method });
       onClose();
       router.push({ pathname: '/assistant', params: { q: text } });
-      return;
+      return true;
     }
     analytics.track('mic_routed', { to: 'ambiguous', method });
     setView({ kind: 'ambiguous', text });
+    return true;
   };
 
-  // ─── Voix ──────────────────────────────────────────────────────────
+  // ─── Voix : enregistrement « comme WhatsApp » ─────────────────────
+  // Toucher = démarrer ; toucher ■ = arrêter. Un silence n'arrête JAMAIS l'enregistrement
+  // (le moteur du téléphone est relancé et les morceaux raccordés : core/entry/recorder).
+  const recorder = useVoiceRecorder(
+    { language: ePrefs.voiceLanguage ?? (lang === 'en' ? 'en' : 'fr'), onDeviceOnly: ePrefs.onDeviceOnly, contextualStrings: entryVocabularyWords() },
+    {
+      onDeliver: (text) => {
+        setPartial(text);
+        const understood = analyze(text, 'voice');
+        if (!understood) analytics.track('voice_entry_failed', { reason: 'no_speech' });
+        recorder.processed(understood);
+      },
+      onWarn: () => toast.show(t('entry.voice.limitSoon')),
+      // Fin sans texte : message clair, la phrase écrite reste disponible.
+      onNotice: (n, code) => {
+        setVoice(n);
+        analytics.track('voice_entry_failed', { reason: n === 'nothing' ? 'no_speech' : n === 'denied' ? 'permission' : (code ?? 'unavailable') });
+      },
+    },
+  );
+  const rec = recorder.state;
+  const recording = rec.status === 'recording';
+  // Pendant l'enregistrement : le texte en direct (morceaux raccordés).
+  const shownText = recording ? liveTranscript(rec) : partial;
+
   const listen = async () => {
     // La voix du coach se tait quand le micro s'ouvre (jamais les deux à la fois).
     await stopVoice().catch(() => undefined);
     setPartial('');
-    setVoice('listening');
-    try {
-      const text = await speechInput().listen({
-        language: ePrefs.voiceLanguage ?? (lang === 'en' ? 'en' : 'fr'),
-        onPartial: setPartial,
-        onDeviceOnly: ePrefs.onDeviceOnly,
-        contextualStrings: entryVocabularyWords(),
-      });
-      setPartial(text);
-      setVoice('idle');
-      if (!text.trim()) {
-        setVoice('nothing');
-        analytics.track('voice_entry_failed', { reason: 'no_speech' });
-        return;
-      }
-      analyze(text, 'voice');
-    } catch (e) {
-      const code = e instanceof SpeechInputError ? e.code : 'unavailable';
-      analytics.track('voice_entry_failed', { reason: code });
-      setVoice(code === 'not-allowed' ? 'denied' : 'unavailable');
-    }
+    setVoice('idle');
+    recorder.tap();
   };
 
   const startVoice = async () => {
@@ -210,6 +221,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       .catch(() => 'denied' as const);
     if (p === 'granted') return void listen();
     analytics.track('voice_entry_failed', { reason: 'permission' });
+    recorder.denied();
     setVoice('denied');
   };
 
@@ -220,12 +232,6 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     void Promise.resolve().then(startVoice);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
-  useEffect(
-    () => () => {
-      void speechInput().stop();
-    },
-    [],
-  );
 
   // ─── Saisie rapide ─────────────────────────────────────────────────
   const decimals = currencyInfo(currency).decimals;
@@ -352,33 +358,57 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
 
   const voiceBlock = (
     <View style={{ alignItems: 'center', gap: 10, paddingVertical: 6 }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={voice === 'listening' ? t('entry.voice.stop') : t('entry.voice.start')}
-        onPress={() => (voice === 'listening' ? void speechInput().stop() : void startVoice())}
-        style={({ pressed }) => ({
-          width: 84,
-          height: 84,
-          borderRadius: 42,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: voice === 'listening' ? colors.danger : colors.primary,
-          opacity: pressed ? 0.85 : 1,
-        })}
-      >
-        <Icon name={voice === 'listening' ? 'stop' : 'mic'} size={38} color={colors.onPrimary} />
-      </Pressable>
-      <Text variant="bodyStrong" align="center" accessibilityLiveRegion="polite">
-        {voice === 'listening' ? t('entry.voice.listening') : t('entry.voice.tap')}
-      </Text>
-      {partial ? (
-        <Text variant="body" align="center" style={{ fontStyle: 'italic' }} accessibilityLiveRegion="polite">
-          « {partial} »
+      {recording ? (
+        <>
+          <Text variant="small" tone="muted" align="center">
+            {t('entry.voice.stopHint')}
+          </Text>
+          {shownText ? (
+            <Text variant="body" align="center" style={{ fontStyle: 'italic' }}>
+              « {shownText} »
+            </Text>
+          ) : (
+            <Text variant="bodyStrong" align="center">
+              {t('entry.voice.listening')}
+            </Text>
+          )}
+          <RecorderBar elapsed={rec.elapsed} levels={recorder.levels} hasVolume={recorder.hasVolume} bars={recorder.bars} onCancel={recorder.cancel} onStop={recorder.tap} />
+        </>
+      ) : rec.status === 'processing' ? (
+        <Text variant="bodyStrong" align="center" accessibilityLiveRegion="polite">
+          {t('entry.voice.processing')}
         </Text>
       ) : (
-        <Text variant="small" tone="muted" align="center">
-          {t('entry.voice.hint')}
-        </Text>
+        <>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('entry.voice.start')}
+            onPress={() => void startVoice()}
+            style={({ pressed }) => ({
+              width: 84,
+              height: 84,
+              borderRadius: 42,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: colors.primary,
+              opacity: pressed ? 0.85 : 1,
+            })}
+          >
+            <Icon name="mic" size={38} color={colors.onPrimary} />
+          </Pressable>
+          <Text variant="bodyStrong" align="center" accessibilityLiveRegion="polite">
+            {t('entry.voice.tap')}
+          </Text>
+          {partial ? (
+            <Text variant="body" align="center" style={{ fontStyle: 'italic' }} accessibilityLiveRegion="polite">
+              « {partial} »
+            </Text>
+          ) : (
+            <Text variant="small" tone="muted" align="center">
+              {t('entry.voice.hint')}
+            </Text>
+          )}
+        </>
       )}
       {voice === 'explain' ? (
         <View style={{ backgroundColor: colors.infoBg, borderRadius: radius.md, padding: 12, gap: 8, alignSelf: 'stretch' }}>
@@ -466,7 +496,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       <Segmented
         value={mode}
         onChange={(m) => {
-          if (m === 'keyboard') void speechInput().stop();
+          if (m === 'keyboard') recorder.cancel();
           onModeChange(m);
         }}
         options={[

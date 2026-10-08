@@ -1657,6 +1657,13 @@ export const fr = {
   "tontine.understand.collector": "Le collecteur garde vos mises pendant le cycle et vous les rend à la fin, moins sa commission.",
   "tontine.understand.commission": "Commission : {commission} sur {total}, soit {percent} %.",
   "tontine.understand.fixed": "Cotisation sans redistribution : c'est une dépense régulière, sans cagnotte à recevoir.",
+  "entry.voice.recording": "Enregistrement en cours",
+  "entry.voice.cancel": "Annuler l'enregistrement",
+  "entry.voice.finish": "Terminer l'enregistrement",
+  "entry.voice.stopHint": "Parlez librement, même avec des pauses. Touchez ■ quand vous avez fini.",
+  "entry.voice.processing": "Je prépare votre saisie…",
+  "entry.voice.limitSoon": "Encore 30 secondes : l'enregistrement s'arrêtera à 5 minutes.",
+  "entry.voice.elapsed": "Durée de l'enregistrement : {time}",
 } as const;
 
 export type TKey = keyof typeof fr;

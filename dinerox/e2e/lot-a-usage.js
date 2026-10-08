@@ -51,6 +51,8 @@ let b;
   await go('/entry?mode=keyboard', 3500); await phrase('Taxi 1 000 et garba 500 pour Maman Awa'); await btn('Tout valider').click(); await p.waitForTimeout(500);
   // Voix, corrigée avant validation.
   await go('/entry?mode=voice', 3500);
+  // Enregistrement « comme WhatsApp » : il ne s'arrête qu'au toucher ■.
+  await btn("Terminer l'enregistrement").click(); await p.waitForTimeout(900);
   await p.getByRole('button', { name: /^catégorie :/ }).first().click(); await p.waitForTimeout(300);
   await p.getByRole('button', { name: 'Nourriture', exact: true }).last().click(); await p.waitForTimeout(300);
   await btn('Tout valider').click(); await p.waitForTimeout(500);

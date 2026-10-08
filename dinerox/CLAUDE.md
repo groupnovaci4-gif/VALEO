@@ -91,6 +91,13 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     (données) ; une unité argotique reste inactive tant que le fondateur ne
     l'a pas validée. La voix du coach se tait quand le micro s'ouvre
     (`services/voice/micGate.ts` : ni voix ni son micro ouvert).
+    **Enregistreur (1.8)** : comme une note vocale WhatsApp. SEUL le toucher
+    arrête (aussi : corbeille, arrière-plan/appel en gardant le texte, limite
+    invisible de 5 min avec message à 4:30). Jamais d'arrêt sur silence : aucune
+    option `*_SILENCE_LENGTH_MILLIS`, et quand le moteur du téléphone s'arrête
+    de lui-même il est relancé (`core/entry/recorder.ts`, machine d'états pure ;
+    `services/voiceRecorder.ts` l'exécute ; morceaux raccordés par
+    `stitchTranscript`). L'audio n'est jamais envoyé à un serveur DineroX.
     Événements d'usage : propriétés de `core/analyticsProps.ts` uniquement
     (jamais de montant, texte, bénéficiaire ni catégorie). Limite vocale
     gratuite : `FREE_VOICE_ENTRIES_PER_DAY`. « Reste par jour » :

@@ -8,11 +8,18 @@ const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
 
-/** Remplace la reconnaissance vocale du navigateur : renvoie `window.__say` (ou l'erreur `window.__sayError`). */
+/**
+ * Remplace la reconnaissance vocale du navigateur par un moteur qui se comporte comme
+ * Android : chaque session livre la phrase en attente (`window.__pending`, posée par
+ * `dictate`) puis s'arrête ; sans parole, elle s'arrête d'elle-même au bout de 3 s
+ * (`no-speech`). L'enregistreur DOIT la relancer : seul le toucher ■ arrête.
+ * `window.__sayError` simule une erreur du service.
+ */
 const FAKE_SPEECH = () => {
-  window.__say = 'Taxi 2 000';
+  window.__pending = null;
   window.__sayError = null;
   window.__cancels = 0;
+  window.__starts = 0;
   if (window.speechSynthesis) {
     window.speechSynthesis.speak = () => undefined;
     const c = window.speechSynthesis.cancel.bind(window.speechSynthesis);
@@ -21,24 +28,46 @@ const FAKE_SPEECH = () => {
   const ev = (type, extra) => Object.assign(new Event(type), extra);
   class FakeRecognition extends EventTarget {
     start() {
-      setTimeout(() => this.dispatchEvent(ev('start')), 20);
+      window.__starts++;
+      const timers = (this.__timers = []);
+      const at = (ms, fn) => timers.push(setTimeout(fn, ms));
+      at(20, () => this.dispatchEvent(ev('start')));
       if (window.__sayError) {
-        setTimeout(() => this.dispatchEvent(ev('error', { error: window.__sayError, message: '' })), 120);
-        setTimeout(() => this.dispatchEvent(ev('end')), 160);
+        const delay = window.__sayError === 'no-speech' ? 3000 : 120;
+        at(delay, () => this.dispatchEvent(ev('error', { error: window.__sayError, message: '' })));
+        at(delay + 40, () => this.dispatchEvent(ev('end')));
         return;
       }
-      const words = window.__say.split(' ');
+      const say = window.__pending;
+      window.__pending = null;
+      if (!say) {
+        // Silence : le service s'arrête de lui-même (comme Android).
+        at(3000, () => this.dispatchEvent(ev('error', { error: 'no-speech', message: '' })));
+        at(3040, () => this.dispatchEvent(ev('end')));
+        return;
+      }
+      const words = say.split(' ');
       const partial = [Object.assign([{ transcript: words.slice(0, 1).join(' '), confidence: 0.5 }], { isFinal: false })];
-      setTimeout(() => this.dispatchEvent(ev('result', { results: partial, resultIndex: 0 })), 150);
-      const final = [Object.assign([{ transcript: window.__say, confidence: 0.9 }], { isFinal: true })];
-      setTimeout(() => this.dispatchEvent(ev('result', { results: final, resultIndex: 0 })), 450);
-      setTimeout(() => this.dispatchEvent(ev('end')), 550);
+      at(150, () => this.dispatchEvent(ev('result', { results: partial, resultIndex: 0 })));
+      const final = [Object.assign([{ transcript: say, confidence: 0.9 }], { isFinal: true })];
+      at(450, () => this.dispatchEvent(ev('result', { results: final, resultIndex: 0 })));
+      at(550, () => this.dispatchEvent(ev('end')));
     }
-    stop() { setTimeout(() => this.dispatchEvent(ev('end')), 30); }
-    abort() { this.stop(); }
+    stop() { (this.__timers || []).forEach(clearTimeout); setTimeout(() => this.dispatchEvent(ev('end')), 30); }
+    abort() { (this.__timers || []).forEach(clearTimeout); setTimeout(() => this.dispatchEvent(ev('end')), 10); }
   }
   window.webkitSpeechRecognition = FakeRecognition;
   window.SpeechRecognition = FakeRecognition;
+};
+
+/** Dicte `say` : toucher le micro, parler, toucher ■ (l'enregistrement ne s'arrête jamais seul). */
+const dictate = async (pg, say, { speakFor = 1300 } = {}) => {
+  await pg.evaluate((s) => { window.__pending = s; }, say);
+  await pg.getByRole('button', { name: 'Dicter une opération', exact: true }).click();
+  await pg.waitForTimeout(speakFor);
+  const stop = pg.getByRole('button', { name: "Terminer l'enregistrement", exact: true });
+  if (await stop.count()) await stop.click();
+  await pg.waitForTimeout(900);
 };
 
 let b;
@@ -125,8 +154,8 @@ let b;
 
   // ── Voix (reconnaissance simulée) ──
   await home();
-  await p.evaluate(() => { window.__say = 'Taxi 2 000 et garba 500'; window.__cancels = 0; });
-  await btn('Dicter une opération').click(); await p.waitForTimeout(1500);
+  await p.evaluate(() => { window.__cancels = 0; });
+  await dictate(p, 'Taxi 2 000 et garba 500');
   t = await text();
   ok(t.includes("J'ai compris 2 opérations"), 'voix : « Taxi 2 000 et garba 500 » → 2 opérations à confirmer');
   ok((await p.evaluate(() => window.__cancels)) > 0, 'micro ouvert : la voix du coach est coupée (jamais les deux à la fois)');
@@ -140,9 +169,9 @@ let b;
   await btn('Dicter une opération').click(); await p.waitForTimeout(1200);
   t = await text();
   ok(t.includes("La reconnaissance vocale n'est pas disponible") && (await p.getByLabel('Écrivez comme vous parlez').count()) > 0, 'erreur de reconnaissance : message + phrase écrite disponible');
-  await home(); await p.evaluate(() => { window.__sayError = 'no-speech'; });
-  await btn('Dicter une opération').click(); await p.waitForTimeout(1200);
-  ok((await text()).includes("Je n'ai rien entendu"), 'silence : « Je n’ai rien entendu », rien d’enregistré');
+  await home(); await p.evaluate(() => { window.__sayError = null; });
+  await dictate(p, null, { speakFor: 4500 });
+  ok((await text()).includes("Je n'ai rien entendu"), 'rien dit puis ■ : « Je n’ai rien entendu », rien d’enregistré');
   await home(); await p.evaluate(() => { window.__sayError = 'not-allowed'; });
   await btn('Dicter une opération').click(); await p.waitForTimeout(1200);
   ok((await text()).includes("Le micro n'est pas autorisé"), 'micro refusé : bascule vers la phrase écrite, sans blocage');
@@ -173,6 +202,7 @@ let b;
   const qhome = async () => { await q.goto(BASE + '/', { waitUntil: 'load' }); await q.waitForTimeout(3000); };
   for (let i = 1; i <= 5; i++) {
     await qhome();
+    await q.evaluate(() => { window.__pending = 'Taxi 2 000'; });
     await qbtn('Dicter une opération').click();
     // Pendant l'écoute (avant la carte de confirmation) : quota restant affiché.
     if (i === 1 || i === 5) {
@@ -180,7 +210,8 @@ let b;
       const left = 6 - i;
       ok((await qtext()).includes(`Saisies vocales gratuites restantes aujourd'hui : ${left} sur 5`), `formule gratuite : « ${left} sur 5 » affiché pendant l’écoute`);
     }
-    await q.waitForTimeout(1500);
+    await q.waitForTimeout(1300);
+    await qbtn("Terminer l'enregistrement").click(); await q.waitForTimeout(900);
     await qbtn('Tout valider').click(); await q.waitForTimeout(800);
   }
   await qhome(); await qbtn('Dicter une opération').click(); await q.waitForTimeout(1500);
