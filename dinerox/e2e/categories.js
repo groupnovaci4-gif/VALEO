@@ -133,6 +133,33 @@ let b;
   await p.keyboard.press('Escape'); await p.waitForTimeout(400);
   ok((await text()).includes('Impôts et cotisations'), 'catégorie ajoutée depuis la bibliothèque');
 
+  // ── Saisie : mots-clés du catalogue, puis apprentissage après correction (phase 5) ──
+  const openKeyboard = async () => { await go('/'); await closeCelebration(); const mic = btn('Dicter une opération'); const box = await mic.boundingBox(); await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up(); await p.waitForTimeout(600); };
+  const phrase = async (s) => { await p.getByLabel('Écrivez comme vous parlez').fill(s); await btn('Comprendre').click(); await p.waitForTimeout(700); };
+  await openKeyboard(); await phrase('Yango 2 500');
+  t = await text();
+  ok(t.includes('Yango / VTC'), 'phrase « Yango 2 500 » → Yango / VTC (mot-clé du catalogue)');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(400);
+  await openKeyboard(); await phrase('Pressing 2 000');
+  t = await text();
+  ok(t.includes('À vérifier') || t.includes('catégorie') , 'phrase « Pressing 2 000 » : catégorie à préciser');
+  await p.getByRole('button', { name: /^catégorie :/ }).first().click(); await p.waitForTimeout(400);
+  await p.getByRole('button', { name: 'Personnel', exact: true }).last().click(); await p.waitForTimeout(400);
+  await p.getByRole('button', { name: 'Vêtements', exact: true }).last().click(); await p.waitForTimeout(400);
+  await btn('Tout valider').click(); await p.waitForTimeout(1200);
+  await openKeyboard(); await phrase('Pressing 1 500');
+  t = await text();
+  ok(t.includes('Vêtements'), 'après la correction : « Pressing » proposé en Vêtements (appris)');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(400);
+  // Effacer l'association depuis l'écran Catégories.
+  await go('/categories'); await tap('Vêtements', 600);
+  ok((await text()).includes('Mots appris de vos corrections'), 'mot appris visible dans la catégorie');
+  await btn('Oublier « pressing »').click(); await p.waitForTimeout(800);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(400);
+  await openKeyboard(); await phrase('Pressing 1 500');
+  ok(!(await text()).includes('Vêtements'), 'association effacée : plus proposée');
+  await p.keyboard.press('Escape');
+
   ok(errs.length === 0, 'aucune erreur JS ' + errs.slice(0, 2).join(' | '));
   process.exitCode = fails ? 1 : 0;
   console.log(fails ? `ÉCHECS ${fails}` : 'CATÉGORIES : TOUT EST OK');

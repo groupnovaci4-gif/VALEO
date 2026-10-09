@@ -37,6 +37,7 @@ import { isValidAmount } from '@/core/money';
 import { goalSaved } from '@/core/balance';
 import { tontineContributionCategory } from '@/core/tontine';
 import { deleteMode, planMerge, restoreDefaults } from '@/core/categoryOps';
+import { learnWord } from '@/core/entry/keywords';
 import { currentCatalog } from '@/services/categoryCatalog';
 import { analytics } from '@/services/analytics';
 import { useI18n } from '@/i18n';
@@ -444,6 +445,21 @@ export function useActions() {
     [data, ctx, ensure, save, remove],
   );
 
+  /**
+   * 1.8 — Apprentissage (sur l'appareil, déterministe) : après une correction sur
+   * la carte de confirmation, le mot rejoint la catégorie choisie et quitte les
+   * autres. Effaçable depuis l'écran Catégories.
+   */
+  const learnCategoryWord = useCallback(
+    (word: string, categoryId: string) => {
+      if (!can(role, 'update', 'categories')) return 0;
+      const changes = learnWord(data().categories, word, categoryId);
+      for (const c of changes) save<Category>('categories', c);
+      return changes.length;
+    },
+    [data, save, role],
+  );
+
   /** Nouvel ordre (glisser-déposer) : seules les catégories déplacées sont écrites. */
   const reorderCategories = useCallback(
     (changes: { id: string; order: number }[]) => {
@@ -725,6 +741,7 @@ export function useActions() {
       mergeCategories,
       reorderCategories,
       restoreCategory,
+      learnCategoryWord,
       deleteAccount,
       saveEnvelope,
       applyBudget,
@@ -745,7 +762,7 @@ export function useActions() {
       postponeTontine,
       convertRecurringToTontine,
     }),
-    [save, remove, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, postponeTontine, convertRecurringToTontine],
+    [save, remove, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, learnCategoryWord, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, postponeTontine, convertRecurringToTontine],
   );
 }
 

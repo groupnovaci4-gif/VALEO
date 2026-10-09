@@ -179,3 +179,29 @@ d'investissement) compte les **versements vers les comptes d'épargne** du mois
 (`savedByEnvelope`) ; le hors-enveloppe ne les compte pas.
 Reste par jour : la mise de côté du mois = le plus grand de la mise de côté
 prévue (objectifs, réserves) et de l'épargne versée (`savedThisMonth`).
+
+### Phase 5 — Saisie vocale et écrite
+
+`core/entry/keywords.ts` (pur, déterministe, sur l'appareil) branché dans le
+parseur (`parse.ts`). Pour chaque segment, priorité :
+1. mots **appris** des corrections (`Category.learnedWords`, le plus récent gagne) ;
+2. mots saisis par l'utilisateur (« quand je dis… », `Category.keywords`) ;
+3. **mots-clés du catalogue** (`keywords` du JSON), seulement pour les
+   catégories installées par le catalogue 1.8 — un espace pas encore mis à jour
+   garde exactement le comportement d'avant ;
+4. vocabulaire local (`vocabulary.json`, inchangé).
+À rang égal, le mot le plus long l'emporte. Une catégorie désactivée n'est
+jamais proposée.
+
+Exemples du catalogue : Yango / VTC / Uber → Yango / VTC ; woro-woro → Taxi
+(taxi collectif) ; gbaka → Bus (minibus) ; pharmacie, médicaments →
+Médicaments ; garba, alloco → Snacks ; crédit, unités → Crédit téléphonique ;
+Canal+, Netflix → Abonnements streaming ; tontine, cotisation, funérailles,
+mariage, baptême → Finance sociale & obligations.
+
+**Apprentissage** : chaque ligne garde la catégorie proposée (`suggested`) ; si
+l'utilisateur la remplace sur la carte de confirmation, le premier mot porteur
+de sens de l'extrait (`learnableWord` : ni nombre, ni montant, ni liaison) est
+mémorisé dans la catégorie choisie (`learnCategoryWord`) et retiré des
+autres. Visible et effaçable dans la fiche de la catégorie (« Mots appris de
+vos corrections »).

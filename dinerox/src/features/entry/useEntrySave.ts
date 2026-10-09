@@ -3,6 +3,7 @@
  * (validation, droits, outbox hors ligne), puis message « Enregistré ✓ — il
  * vous reste X par jour » avec « Voir » et « Annuler » pendant 5 secondes.
  */
+import { learnableWord } from '@/core/entry/keywords';
 import { useCallback } from 'react';
 import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
@@ -93,6 +94,15 @@ export function useEntrySave() {
         // Échec en cours de route : rien de partiel (les lignes déjà créées sont retirées).
         for (const id of ids) actions.remove('transactions', id);
         throw e;
+      }
+      // 1.8 — Correction de catégorie sur la carte : le mot est retenu pour la prochaine fois
+      // (sur l'appareil, dans l'espace ; effaçable depuis Catégories). Jamais bloquant.
+      for (const d of drafts) {
+        const chosen = d.subcategoryId ?? d.categoryId;
+        if (!chosen || !d.source || !d.suggested) continue;
+        if (d.suggested.categoryId === d.categoryId && d.suggested.subcategoryId === d.subcategoryId) continue;
+        const word = learnableWord(d.source);
+        if (word) actions.learnCategoryWord(word, chosen);
       }
       analytics.track('entry_created', { method, count: drafts.length });
       if (method === 'voice' && corrected) analytics.track('voice_entry_corrected', { method });

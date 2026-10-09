@@ -70,3 +70,26 @@ describe('mots personnels et apprentissage', () => {
     expect(learnWord(learnWord(cats, 'garba', 'sub_food_maquis').reduce((acc, c) => acc.map((x) => (x.id === c.id ? c : x)), cats), 'garba', 'sub_food_maquis')).toEqual([]);
   });
 });
+
+describe('parseur : mots-clés et apprentissage dans la phrase', () => {
+  const ctx = (categories: Category[]) => ({ today: '2026-10-08', currency: 'XOF' as const, accounts: [], categories, defaultAccountId: null });
+  it('« Yango 2 500 et garba 500 » → Yango / VTC et Snacks (catalogue)', async () => {
+    const { parseEntryText } = await import('../src/core/entry/parse');
+    const r = parseEntryText('Yango 2 500 et garba 500', ctx(v2()));
+    expect(r.kind === 'entries' && r.items.map((d) => [d.categoryId, d.subcategoryId, d.amount])).toEqual([
+      ['cat_transport', 'sub_transport_vtc', 2_500],
+      ['cat_food', 'sub_food_streetfood', 500],
+    ]);
+    // La proposition est mémorisée sur la ligne (pour apprendre d'une correction).
+    expect(r.kind === 'entries' && r.items[0].suggested).toEqual({ categoryId: 'cat_transport', subcategoryId: 'sub_transport_vtc' });
+  });
+  it('mot personnel puis mot appris : proposés en premier', async () => {
+    const { parseEntryText } = await import('../src/core/entry/parse');
+    const mine: Category[] = [...v2(), { id: 'cat_u_moto', kind: 'expense', name: 'Moto', icon: 'x', color: '#000', order: 99, keywords: ['djakarta'], createdAt: 1, updatedAt: 1, createdBy: 'u' }];
+    let r = parseEntryText('Djakarta 1 000', ctx(mine));
+    expect(r.kind === 'entries' && r.items[0].categoryId).toBe('cat_u_moto');
+    const learned = mine.map((c) => (c.id === 'sub_clothing_clothes' ? { ...c, learnedWords: ['pressing'] } : c));
+    r = parseEntryText('Pressing 2 000', ctx(learned));
+    expect(r.kind === 'entries' && [r.items[0].categoryId, r.items[0].subcategoryId, r.items[0].uncertain.includes('category')]).toEqual(['cat_clothing', 'sub_clothing_clothes', false]);
+  });
+});

@@ -43,6 +43,7 @@ import { useEntryStats } from './useEntryStats';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { useCategoryPick } from '@/features/categories/CategoryPicker';
 import { pickCategories } from '@/core/categoryOps';
+import { useCategoryCatalog } from '@/services/categoryCatalog';
 import { liveTranscript } from '@/core/entry/recorder';
 import { RecorderBar } from './RecorderBar';
 import type { EntryMode } from './EntryProvider';
@@ -91,6 +92,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const [busy, setBusy] = useState(false);
   const started = useRef(false);
   const ePrefs = entryPrefs(profile?.preferences);
+  const catalog = useCategoryCatalog();
 
   const accounts = useMemo(() => data.accounts.filter((a) => a.active && !a.deleted), [data.accounts]);
   // Compte par défaut : le dernier utilisé (s'il existe encore), sinon le premier compte courant.
@@ -106,7 +108,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   // ─── Analyse d'un texte (voix ou phrase) ───────────────────────────
   /** Analyse un texte ; faux si rien n'a été compris (« Je n'ai rien entendu »). */
   const analyze = (text: string, method: 'voice' | 'text_phrase'): boolean => {
-    const r: EntryParse = parseEntryText(text, { today: now, currency: currency as CurrencyCode, accounts, categories: data.categories, defaultAccountId });
+    const r: EntryParse = parseEntryText(text, { today: now, currency: currency as CurrencyCode, accounts, categories: data.categories, defaultAccountId, catalog });
     // Tontine : « Tontine 10 000 », « J'ai cotisé ma tontine du bureau », « J'ai reçu la tontine »
     // → la tontine correspondante est proposée sur la carte de confirmation.
     const has = (id: string) => data.categories.some((c) => c.id === id && !c.deleted);

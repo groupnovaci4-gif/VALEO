@@ -46,7 +46,7 @@ let b;
   // Saisie rapide.
   await go('/entry?mode=keyboard', 3500);
   for (const k of ['2', '000']) await btn(k).click();
-  await p.locator('[role=button][aria-selected]').filter({ hasNotText: /Sortie|Entrée|Parler|Clavier/ }).first().click(); await p.waitForTimeout(500);
+  await p.locator('[role=button][aria-selected]').filter({ hasNotText: /Sortie|Entrée|Parler|Clavier|Famille|Finance sociale/ }).first().click(); await p.waitForTimeout(500);
   // Phrase écrite (2 opérations).
   await go('/entry?mode=keyboard', 3500); await phrase('Taxi 1 000 et garba 500 pour Maman Awa'); await btn('Tout valider').click(); await p.waitForTimeout(500);
   // Voix, corrigée avant validation.

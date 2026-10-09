@@ -16,6 +16,8 @@ import { addDays, parseISODate, type ISODate } from '../dates';
 import { toMinor, type CurrencyCode } from '../money';
 import type { Account, Category } from '../types';
 import { amountSpans, hasUnvalidatedUnit } from './numbers';
+import { keywordIndex, matchKeyword } from './keywords';
+import type { CategoryCatalog } from '../categoryCatalog';
 import VOCAB from './vocabulary.json';
 
 export type EntryField = 'amount' | 'type' | 'category' | 'account';
@@ -37,6 +39,8 @@ export interface EntryDraft {
   reserveId?: string | null;
   /** Tontine proposée par `applyTontine` (cotisation ou cagnotte d'une échéance) ; retirable sur la carte. */
   tontine?: { id: string; period: number; kind: 'contribution' | 'payout' } | null;
+  /** 1.8 — Catégorie proposée par le parseur (pour apprendre d'une correction sur la carte). */
+  suggested?: { categoryId: string | null; subcategoryId: string | null };
 }
 
 export type EntryParse =
@@ -55,6 +59,8 @@ export interface EntryContext {
   categories: Category[];
   /** Compte par défaut (dernier utilisé, sinon premier compte courant). */
   defaultAccountId: string | null;
+  /** 1.8 — Catalogue en vigueur (mots-clés) ; défaut : catalogue embarqué. */
+  catalog?: CategoryCatalog;
 }
 
 interface VocabEntry {
@@ -160,6 +166,9 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
   if (intent.kind === 'transfer' || intent.kind === 'goal') return { kind: 'assistant', intent };
 
   const accounts = ctx.accounts.filter((a) => !a.deleted && a.active);
+  // 1.8 : mots appris, mots de l'utilisateur, mots-clés du catalogue (avant le vocabulaire local).
+  const keywords = keywordIndex(ctx.categories, ctx.catalog);
+  const kw = (seg: string, kind: 'expense' | 'income') => matchKeyword(seg, keywords, kind);
   const sentenceDirection = direction(text);
   const segments = splitSegments(text);
 
@@ -167,7 +176,7 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
   const merged: string[] = [];
   let carry = '';
   for (const seg of segments) {
-    const meaningful = amountSpans(seg).length > 0 || findVocab(seg, vocab.expense) || findVocab(seg, vocab.income);
+    const meaningful = amountSpans(seg).length > 0 || findVocab(seg, vocab.expense) || findVocab(seg, vocab.income) || kw(seg, 'expense') || kw(seg, 'income');
     if (!meaningful) {
       carry = `${carry} ${seg}`.trim();
       continue;
@@ -193,8 +202,10 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
     const amount = spans.length && !slang ? toMinor(spans[0].value, ctx.currency) : null;
     if (amount === null) uncertain.add('amount');
 
-    const expenseHit = findVocab(seg, vocab.expense);
-    const incomeHit = findVocab(seg, vocab.income);
+    const expenseKw = kw(seg, 'expense');
+    const incomeKw = kw(seg, 'income');
+    const expenseHit = expenseKw ?? findVocab(seg, vocab.expense);
+    const incomeHit = incomeKw ?? findVocab(seg, vocab.income);
     // Sens : marqueur du segment, sinon celui d'un segment précédent de la même phrase.
     const explicit: Direction = direction(seg) ?? lastDirection ?? (merged.length === 1 ? sentenceDirection : null);
     let type: 'expense' | 'income';
@@ -207,8 +218,9 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
     }
     if (explicit) lastDirection = explicit;
 
+    const own_ = type === 'income' ? incomeKw : expenseKw;
     const hit = type === 'income' ? incomeHit : expenseHit;
-    const resolved = hit ? resolveTarget(hit.targets, ctx.categories) : null;
+    const resolved = own_ ? { categoryId: own_.categoryId, subcategoryId: own_.subcategoryId } : hit && 'targets' in hit ? resolveTarget(hit.targets, ctx.categories) : null;
     if (!resolved || uncertain.has('type')) uncertain.add('category');
 
     // Compte : celui cité s'il existe chez l'utilisateur ; sinon compte par défaut, à confirmer.
@@ -227,10 +239,12 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
     if (ownDate) lastDate = ownDate;
     const date = ownDate ?? lastDate ?? ctx.today;
     const payee = type === 'expense' ? extractPayeeFrom(original, seg) : null;
-    items.push({ type, amount, categoryId: resolved?.categoryId ?? null, subcategoryId: resolved?.subcategoryId ?? null, accountId, date, payee, uncertain: [...uncertain], source: seg });
+    const categoryId = resolved?.categoryId ?? null;
+    const subcategoryId = resolved?.subcategoryId ?? null;
+    items.push({ type, amount, categoryId, subcategoryId, accountId, date, payee, uncertain: [...uncertain], source: seg, suggested: { categoryId, subcategoryId } });
   }
 
-  if (items.length === 1 && items[0].amount === null && items[0].categoryId === null && !findVocab(text, vocab.expense) && !findVocab(text, vocab.income)) return { kind: 'ambiguous' };
+  if (items.length === 1 && items[0].amount === null && items[0].categoryId === null && !findVocab(text, vocab.expense) && !findVocab(text, vocab.income) && !kw(text, 'expense') && !kw(text, 'income')) return { kind: 'ambiguous' };
   return items.length ? { kind: 'entries', items } : { kind: 'ambiguous' };
 }
 
