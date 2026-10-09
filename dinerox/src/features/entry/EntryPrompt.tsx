@@ -2,6 +2,8 @@
  * Bulle d'accueil « Dites-moi ce que vous avez dépensé ou reçu » : renvoie au
  * micro central (voix) ou à la saisie au clavier. L'exemple change à chaque
  * ouverture ; après 10 saisies réussies, la bulle se réduit à une ligne.
+ * Design system v2 : « Parler » est le bouton principal du contenu de l'accueil (même
+ * action que le micro central) ; « Saisir » (clavier) est tertiaire.
  */
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -28,40 +30,43 @@ export function EntryPrompt() {
 
   if (compact) {
     return (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t('entry.prompt.title')}
-        onPress={() => entry.open('voice')}
-        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, marginBottom: 8, opacity: pressed ? 0.7 : 1 })}
-      >
-        <Icon name="mic-outline" size={18} color={colors.primary} />
-        <Text variant="small" tone="muted" style={{ flex: 1 }} numberOfLines={1}>
-          {showExamples ? t('entry.prompt.compact', { example: t(example) }) : t('entry.prompt.title')}
-        </Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('entry.prompt.type')} onPress={() => entry.open('keyboard')} hitSlop={10}>
-          <Icon name="keypad-outline" size={20} color={colors.textMuted} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('entry.prompt.title')}
+          onPress={() => entry.open('voice')}
+          style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingLeft: 8, borderRadius: 12, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
+        >
+          <Icon name="mic-outline" size={22} color={colors.primary} />
+          <Text variant="small" tone="muted" style={{ flex: 1 }} numberOfLines={2}>
+            {showExamples ? t('entry.prompt.compact', { example: t(example) }) : t('entry.prompt.title')}
+          </Text>
         </Pressable>
-      </Pressable>
+        {/* À côté de la zone cliquable, jamais dedans (pas de bouton dans un bouton). */}
+        <Button small variant="tertiary" icon="keypad-outline" label={t('entry.prompt.type')} onPress={() => entry.open('keyboard')} />
+      </View>
     );
   }
   return (
-    <View style={{ backgroundColor: colors.primaryLight, borderRadius: radius.lg, padding: 14, marginBottom: 12, gap: 8 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="mic" size={20} color={colors.onPrimary} />
+    <View style={{ backgroundColor: colors.primaryContainer, borderRadius: radius.lg, padding: 16, marginBottom: 4, gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Icon name="mic" size={22} color={colors.onPrimary} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="bodyStrong">{t('entry.prompt.title')}</Text>
+          <Text variant="bodyStrong" style={{ color: colors.onPrimaryContainer }}>
+            {t('entry.prompt.title')}
+          </Text>
           {showExamples ? (
-            <Text variant="small" tone="muted">
+            <Text variant="small" style={{ color: colors.onPrimaryContainer }}>
               {t('entry.prompt.example', { example: t(example) })}
             </Text>
           ) : null}
         </View>
       </View>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Button small icon="mic" label={t('entry.prompt.speak')} onPress={() => entry.open('voice')} style={{ flex: 1 }} />
-        <Button small variant="secondary" icon="keypad-outline" label={t('entry.prompt.type')} onPress={() => entry.open('keyboard')} style={{ flex: 1 }} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <Button icon="mic" label={t('entry.prompt.speak')} onPress={() => entry.open('voice')} style={{ flexGrow: 1 }} />
+        <Button variant="tertiary" icon="keypad-outline" label={t('entry.prompt.type')} onPress={() => entry.open('keyboard')} style={{ flexGrow: 1 }} />
       </View>
     </View>
   );

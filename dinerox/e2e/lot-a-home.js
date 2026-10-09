@@ -20,6 +20,10 @@ let b;
   const closeCelebration = async () => { const c = btn('Continuer'); if (await c.count()) { await c.first().click(); await p.waitForTimeout(300); } };
   await p.goto(BASE + '/', { waitUntil: 'load' }); await p.waitForTimeout(3000);
   await p.getByText('Tester sans données (démonstration)').click(); await p.waitForTimeout(5500); await closeCelebration();
+  // Design v2 : le détail du calcul est replié derrière « Comment c'est calculé ? » (texte validé).
+  const how = p.getByRole('button', { name: "Comment c'est calculé ?", exact: true });
+  ok((await how.count()) > 0, 'accueil : repli « Comment c’est calculé ? »');
+  await how.first().click(); await p.waitForTimeout(300);
   let t = await text();
   const iDaily = t.indexOf('Reste par jour'), iBubble = t.indexOf('Dites-moi ce que vous avez dépensé ou reçu'), iRecent = t.indexOf('Dernières opérations'), iCoach = t.indexOf('Votre coach');
   ok(iDaily >= 0 && iDaily < iBubble && iBubble < iRecent && iRecent < iCoach, `ordre : reste par jour → bulle → dernières opérations → autres blocs (${[iDaily, iBubble, iRecent, iCoach].join(' < ')})`);

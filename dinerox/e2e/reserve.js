@@ -26,7 +26,8 @@ let b;
   const btn = (name) => p.getByRole('button', { name, exact: true });
   const go = async (path, w = 3000) => { await p.goto(BASE + path, { waitUntil: 'load' }); await p.waitForTimeout(w); };
   const closeCelebration = async () => { const c = btn('Continuer'); if (await c.count()) { await c.first().click(); await p.waitForTimeout(300); } };
-  const home = async () => { await go('/'); await closeCelebration(); };
+  // Design v2 : le détail du calcul (« … − dépenses X − à venir … ») est replié derrière « Comment c'est calculé ? ».
+  const home = async () => { await go('/'); await closeCelebration(); const how = btn("Comment c'est calculé ?"); if (await how.count()) { await how.first().click(); await p.waitForTimeout(300); } };
   const perDay = async () => { await home(); return num(((await text()).match(/Il vous reste ([\d ]+) FCFA par jour/) || [])[1]); };
   const balance = async () => { await go('/reserve/demo_reserve'); return num(((await text()).match(/Solde de la réserve\s*\n\s*([\d ]+) FCFA/) || [])[1]); };
   const openKeyboard = async () => { const mic = btn('Dicter une opération'); const box = await mic.boundingBox(); await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up(); await p.waitForTimeout(600); };

@@ -206,7 +206,7 @@ export const typography = {
   numeric: { fontSize: 14, lineHeight: 18, fontWeight: '500' as const, role: 'numeric' as const },
 };
 
-export type TypographyVariant = keyof typeof typography;
+export type TypographyVariant = keyof typeof typography | keyof typeof typographyV2;
 
 /** Cible tactile minimale (WCAG / Material : 44–48 dp). */
 export const MIN_TOUCH = 48;
@@ -216,7 +216,210 @@ export const shadow = {
   card: { shadowColor: '#1A1B21', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
   fab: { shadowColor: '#F59E0B', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 10 },
   glowGreen: { shadowColor: '#14B8A6', shadowOpacity: 0.3, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
+  /** v2 — élévation 2, ombre NEUTRE (bouton central, feuilles). */
+  raised: { shadowColor: '#121A17', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
 };
 
 /** Palette pour comptes/enveloppes/catégories créés par l'utilisateur. */
 export const pickableColors = ['#14B8A6', '#F59E0B', '#38BDF8', '#10B981', '#0EA5E9', '#6366F1', '#8B5CF6', '#EC4899', '#F97316', '#EAB308', '#0D9488', '#334155', '#EF4444'];
+
+/* ───────────────────────── Design system v2 (docs/design-system.md) ─────────────────────────
+ * Migration écran par écran : un écran passé en v2 est enveloppé dans `<DesignV2>`
+ * (src/theme/index.tsx), qui fournit ces couleurs, cette typographie et `theme.v2 = true`.
+ * Les composants communs lisent `theme.v2` pour adopter le nouveau style ; les écrans
+ * pas encore migrés restent strictement identiques. Contrastes vérifiés par
+ * tests/design-tokens.test.ts (texte ≥ 4,5:1, contours et graphiques ≥ 3:1).
+ */
+
+/** Rôles ajoutés par la v2 (les anciens rôles restent, en alias, le temps de la migration). */
+export interface ColorSchemeV2 extends ColorScheme {
+  /** Contour des contrôles (champs, puces) : ≥ 3:1. `border` reste décoratif. */
+  borderStrong: string;
+  primaryPressed: string;
+  primaryContainer: string;
+  onPrimaryContainer: string;
+  /** Or : réussites et récompenses (ex-`secondary`). */
+  accent: string;
+  accentContainer: string;
+  onAccentContainer: string;
+  onSuccess: string;
+  onDanger: string;
+  heroFrom: string;
+  heroTo: string;
+  onHeroMuted: string;
+  /** Fond des barres et pastilles posées sur la carte héros. */
+  heroTrack: string;
+  disabledBg: string;
+  onDisabled: string;
+  medalGold: string;
+  medalSilver: string;
+  medalBronze: string;
+  onMedal: string;
+}
+
+const lightV2Base = {
+  background: '#F5F7F6',
+  surface: '#FFFFFF',
+  surfaceAlt: '#ECF0EE',
+  border: '#DDE3E0',
+  borderStrong: '#7D8984',
+  text: '#121A17',
+  textMuted: '#3F4A45',
+  textSubtle: '#56625C',
+  primary: '#00685F',
+  primaryPressed: '#004F48',
+  onPrimary: '#FFFFFF',
+  primaryContainer: '#D3EFEA',
+  onPrimaryContainer: '#00413B',
+  accent: '#8A5300',
+  accentContainer: '#FFD9A8',
+  onAccentContainer: '#2B1700',
+  income: '#1E6B3A',
+  expense: '#B3261E',
+  success: '#1E6B3A',
+  successBg: '#D7F0DF',
+  onSuccess: '#FFFFFF',
+  warning: '#8A5300',
+  warningBg: '#FFEBCF',
+  danger: '#B3261E',
+  dangerBg: '#FDE2DE',
+  onDanger: '#FFFFFF',
+  info: '#3949AB',
+  infoBg: '#E3E6FA',
+  heroFrom: '#0B6B61',
+  heroTo: '#06504A',
+  onHero: '#FFFFFF',
+  onHeroMuted: 'rgba(255,255,255,0.88)',
+  heroTrack: 'rgba(255,255,255,0.28)',
+  track: '#DDE3E0',
+  disabledBg: '#E3E7E5',
+  onDisabled: '#5E6A64',
+  inverseSurface: '#1F2724',
+  onInverse: '#F2F6F4',
+  overlay: 'rgba(18,26,23,0.5)',
+  chartIncome: '#1E6B3A',
+  chartExpense: '#C2570C',
+};
+
+const darkV2Base = {
+  background: '#0E1412',
+  surface: '#161D1A',
+  surfaceAlt: '#212A26',
+  border: '#2C3632',
+  borderStrong: '#75827C',
+  text: '#EEF3F0',
+  textMuted: '#BAC5BF',
+  textSubtle: '#9AA6A0',
+  primary: '#4FD1C0',
+  primaryPressed: '#7FE0D3',
+  onPrimary: '#00201C',
+  primaryContainer: '#0F3D37',
+  onPrimaryContainer: '#B6F1E8',
+  accent: '#FFC266',
+  accentContainer: '#4A3000',
+  onAccentContainer: '#FFDDB0',
+  income: '#5BD6A0',
+  expense: '#FF8A80',
+  success: '#5BD6A0',
+  successBg: '#123826',
+  onSuccess: '#00210F',
+  warning: '#FFC266',
+  warningBg: '#3A2A0E',
+  danger: '#FF8A80',
+  dangerBg: '#3D1714',
+  onDanger: '#3B0906',
+  info: '#A5B4FF',
+  infoBg: '#1E2547',
+  heroFrom: '#0D5C53',
+  heroTo: '#08413B',
+  onHero: '#FFFFFF',
+  onHeroMuted: 'rgba(255,255,255,0.86)',
+  heroTrack: 'rgba(255,255,255,0.24)',
+  track: '#2C3632',
+  disabledBg: '#28322E',
+  onDisabled: '#97A39D',
+  inverseSurface: '#E3EAE6',
+  onInverse: '#17201C',
+  overlay: 'rgba(0,0,0,0.7)',
+  chartIncome: '#5BD6A0',
+  chartExpense: '#FFA45C',
+};
+
+/** Métaux des récompenses : pastille pleine + glyphe `onMedal` (identiques dans les deux thèmes). */
+const medals = { medalGold: '#F5B301', medalSilver: '#C3CCD3', medalBronze: '#C27C46', onMedal: '#2B1700' };
+
+/** Anciens rôles, branchés sur les rôles v2 (supprimés au dernier lot de migration). */
+function withAliases(c: typeof lightV2Base): ColorSchemeV2 {
+  return {
+    ...c,
+    ...medals,
+    primaryDark: c.primaryPressed,
+    primaryLight: c.primaryContainer,
+    primaryBorder: c.borderStrong,
+    secondary: c.accent,
+    onSecondary: c.surface,
+    secondaryContainer: c.accentContainer,
+    onSecondaryContainer: c.onAccentContainer,
+    heroGradient: [c.heroFrom, c.heroTo],
+    hero: c.heroFrom,
+    heroMuted: c.onHeroMuted,
+    ai: c.accent,
+    aiBg: c.warningBg,
+    tabBar: c.surface,
+    grid: c.border,
+  };
+}
+
+export const lightColorsV2: ColorSchemeV2 = withAliases(lightV2Base);
+export const darkColorsV2: ColorSchemeV2 = withAliases(darkV2Base);
+
+/** Échelle d'espacements v2 (pas de 4). */
+export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 } as const;
+export const radiusV2 = { sm: 8, md: 12, lg: 16, xl: 24, pill: 999 } as const;
+
+/**
+ * Typographie v2. Les anciens noms (`display`, `h1`…) sont redirigés vers la nouvelle
+ * échelle pour les composants pas encore réécrits. Plancher : 13 px.
+ * `cap` : plafond d'agrandissement du texte système (§2.3) — 160 % pour le texte courant.
+ */
+export const typographyV2 = {
+  amountHero: { fontSize: 36, lineHeight: 44, fontWeight: '800' as const, letterSpacing: -0.5, role: 'heading' as const, cap: 1.15, tabular: true },
+  amountL: { fontSize: 28, lineHeight: 34, fontWeight: '700' as const, letterSpacing: -0.3, role: 'heading' as const, cap: 1.25, tabular: true },
+  amountM: { fontSize: 20, lineHeight: 26, fontWeight: '700' as const, role: 'body' as const, cap: 1.4, tabular: true },
+  amountS: { fontSize: 16, lineHeight: 22, fontWeight: '600' as const, role: 'body' as const, cap: 1.6, tabular: true },
+  titleL: { fontSize: 24, lineHeight: 30, fontWeight: '700' as const, role: 'heading' as const, cap: 1.25 },
+  titleM: { fontSize: 20, lineHeight: 26, fontWeight: '700' as const, role: 'heading' as const, cap: 1.4 },
+  titleS: { fontSize: 17, lineHeight: 24, fontWeight: '700' as const, role: 'heading' as const, cap: 1.4 },
+  body: { fontSize: 16, lineHeight: 24, fontWeight: '400' as const, role: 'body' as const, cap: 1.6 },
+  bodyStrong: { fontSize: 16, lineHeight: 24, fontWeight: '600' as const, role: 'body' as const, cap: 1.6 },
+  label: { fontSize: 15, lineHeight: 20, fontWeight: '600' as const, role: 'body' as const, cap: 1.6 },
+  small: { fontSize: 14, lineHeight: 20, fontWeight: '400' as const, role: 'body' as const, cap: 1.6 },
+  caption: { fontSize: 13, lineHeight: 18, fontWeight: '500' as const, role: 'body' as const, cap: 1.6 },
+  tab: { fontSize: 12, lineHeight: 16, fontWeight: '600' as const, role: 'body' as const, cap: 1.6 },
+  // Anciens noms → nouvelle échelle (alias de migration).
+  display: { fontSize: 36, lineHeight: 44, fontWeight: '800' as const, letterSpacing: -0.5, role: 'heading' as const, cap: 1.15 },
+  h1: { fontSize: 24, lineHeight: 30, fontWeight: '700' as const, role: 'heading' as const, cap: 1.25 },
+  h2: { fontSize: 20, lineHeight: 26, fontWeight: '700' as const, role: 'heading' as const, cap: 1.4 },
+  h3: { fontSize: 17, lineHeight: 24, fontWeight: '700' as const, role: 'heading' as const, cap: 1.4 },
+  overline: { fontSize: 13, lineHeight: 18, fontWeight: '600' as const, role: 'body' as const, cap: 1.6 },
+  numericLg: { fontSize: 20, lineHeight: 26, fontWeight: '700' as const, role: 'body' as const, cap: 1.4, tabular: true },
+  numeric: { fontSize: 16, lineHeight: 22, fontWeight: '600' as const, role: 'body' as const, cap: 1.6, tabular: true },
+};
+
+export type TypographyVariantV2 = keyof typeof typographyV2;
+
+/** Style typographique commun aux deux échelles. */
+export interface TypeStyle {
+  fontSize: number;
+  lineHeight: number;
+  fontWeight: '400' | '500' | '600' | '700' | '800';
+  letterSpacing?: number;
+  role: 'heading' | 'body' | 'numeric';
+  /** Plafond d'agrandissement du texte système (v2 uniquement). */
+  cap?: number;
+  /** Chiffres alignés (`tabular-nums`). */
+  tabular?: boolean;
+}
+
+/** Au-delà de ce facteur de texte système, les lignes et grilles passent en un seul étage (§2.3). */
+export const BIG_TEXT = 1.3;

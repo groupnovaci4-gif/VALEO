@@ -7,7 +7,7 @@ import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/theme';
 import { useI18n } from '@/i18n';
-import { Badge, Button, Card, Icon, IconCircle, ProgressBar, Row, Sheet, Text, levelTone } from '@/components/ui';
+import { Amount, Badge, Button, Card, Icon, IconCircle, ProgressBar, Row, Sheet, Text, levelTone } from '@/components/ui';
 import { useAccountLabel, useCategoryLabels, useMoney } from '@/hooks/useFinance';
 import { useInsightText } from '@/hooks/useInsightText';
 import { useApp } from '@/store/app';
@@ -20,7 +20,7 @@ import { findGoalCategory } from '@/core/goalCategories';
 import { ListenButton } from '@/features/coach/ListenButton';
 
 export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx: Transaction; onPress?: () => void; onLongPress?: () => void; longPressHint?: string }) {
-  const { colors } = useTheme();
+  const { colors, v2 } = useTheme();
   const { t, date } = useI18n();
   const money = useMoney();
   const cats = useCategoryLabels();
@@ -36,6 +36,22 @@ export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx
         ? money(tx.amount, { currency: tx.currency, signed: true })
         : money(tx.amount, { currency: tx.currency });
   const tone = tx.type === 'expense' ? 'expense' : tx.type === 'income' ? 'income' : 'muted';
+  if (v2) {
+    // v2 : emoji de la catégorie conservé ; le montant (signe + couleur) est lu avec la ligne.
+    const subtitle = `${sub} · ${date(tx.date)}`;
+    return (
+      <Row
+        title={title}
+        subtitle={subtitle}
+        accessibilityLabel={`${title}, ${amount}, ${subtitle}`}
+        left={<IconCircle icon={meta.icon} emoji={'emoji' in meta ? meta.emoji : undefined} color={meta.color} />}
+        right={<Amount text={amount} size="S" tone={tone} align="right" />}
+        onPress={onPress ?? (() => router.push(`/transaction/${tx.id}`))}
+        onLongPress={onLongPress}
+        accessibilityHint={longPressHint}
+      />
+    );
+  }
   return (
     <Row
       title={title}
@@ -80,7 +96,7 @@ export function EnvelopeRow({ s, onPress }: { s: EnvelopeStatus; onPress?: () =>
 export function GoalCard({ goal, plan, compact, rank }: { goal: Goal; plan: GoalPlan; compact?: boolean; rank?: number }) {
   const { t, monthYear, lang } = useI18n();
   const money = useMoney();
-  const { colors, radius } = useTheme();
+  const { colors, radius, v2 } = useTheme();
   const tone = plan.reached ? 'success' : plan.overdue ? 'danger' : 'primary';
   const accent = plan.overdue ? colors.danger : colors.primary;
   const category = findGoalCategory(goal.categoryId)?.label[lang];
@@ -92,7 +108,12 @@ export function GoalCard({ goal, plan, compact, rank }: { goal: Goal; plan: Goal
         ? t('goal.atPaceChip', { date: monthYear(plan.estimatedDate) })
         : null;
   return (
-    <Card onPress={() => router.push(`/goals/${goal.id}`)} accessibilityLabel={goal.name} style={{ marginBottom: 12 }}>
+    <Card
+      onPress={() => router.push(`/goals/${goal.id}`)}
+      // v2 : le lecteur d'écran entend aussi le montant et la progression (pas seulement le nom).
+      accessibilityLabel={v2 && goal.targetAmount > 0 ? `${goal.name}, ${money(plan.saved)} / ${money(plan.target)}, ${plan.percent} %` : goal.name}
+      style={{ marginBottom: 12 }}
+    >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <IconCircle emoji={goal.icon} color={colors.primary} size={48} />
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -100,7 +121,7 @@ export function GoalCard({ goal, plan, compact, rank }: { goal: Goal; plan: Goal
             <Text variant="h3" numberOfLines={2} style={{ flexShrink: 1 }}>
               {goal.name}
             </Text>
-            {rank ? <Badge tone={rank === 1 ? 'danger' : 'neutral'} label={t('goal.rank', { rank }).toUpperCase()} /> : null}
+            {rank ? (v2 ? <Badge tone={rank === 1 ? 'info' : 'neutral'} label={t('goal.rank', { rank })} /> : <Badge tone={rank === 1 ? 'danger' : 'neutral'} label={t('goal.rank', { rank }).toUpperCase()} />) : null}
           </View>
           {category ? (
             <Text variant="small" tone="muted" numberOfLines={1}>
@@ -112,9 +133,13 @@ export function GoalCard({ goal, plan, compact, rank }: { goal: Goal; plan: Goal
       </View>
       {goal.targetAmount > 0 ? (
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: 8 }}>
-          <Text variant="h2" numberOfLines={1} adjustsFontSizeToFit style={{ color: accent, flexShrink: 1 }}>
-            {money(plan.saved)}
-          </Text>
+          {v2 ? (
+            <Amount text={money(plan.saved)} size="M" style={{ color: accent, flexShrink: 1 }} />
+          ) : (
+            <Text variant="h2" numberOfLines={1} adjustsFontSizeToFit style={{ color: accent, flexShrink: 1 }}>
+              {money(plan.saved)}
+            </Text>
+          )}
           <Text variant="small" tone="muted" numberOfLines={1} style={{ flexShrink: 1, marginBottom: 3 }}>
             / {money(plan.target)}
           </Text>
@@ -172,7 +197,7 @@ export function AccountRow({ account, balance, onPress }: { account: Account; ba
 }
 
 export function InsightCard({ insight }: { insight: Insight }) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, v2 } = useTheme();
   const render = useInsightText();
   const map = {
     info: [colors.infoBg, colors.info, 'information-circle'],
@@ -189,6 +214,26 @@ export function InsightCard({ insight }: { insight: Insight }) {
       }
     : undefined;
   // « Écouter » à côté de la zone cliquable (jamais un bouton dans un bouton).
+  if (v2) {
+    return (
+      <View style={{ backgroundColor: bg, borderRadius: radius.md, borderLeftWidth: 4, borderLeftColor: fg, marginBottom: 8, paddingBottom: 4 }}>
+        <Pressable
+          accessibilityRole={onPress ? 'button' : 'text'}
+          onPress={onPress}
+          style={({ pressed }) => ({ flexDirection: 'row', gap: 10, alignItems: 'flex-start', padding: 12, paddingBottom: 4, borderTopRightRadius: radius.md, backgroundColor: pressed && onPress ? colors.surfaceAlt : 'transparent' })}
+        >
+          <Icon name={icon} size={20} color={fg} />
+          <Text variant="small" style={{ flex: 1 }}>
+            {render(insight)}
+          </Text>
+          {onPress ? <Icon name="chevron-forward" size={20} color={colors.textSubtle} /> : null}
+        </Pressable>
+        <View style={{ alignItems: 'flex-start', paddingLeft: 30 }}>
+          <ListenButton text={render(insight)} />
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: bg, borderRadius: radius.md, marginBottom: 8 }}>
       <Pressable accessibilityRole={onPress ? 'button' : 'text'} onPress={onPress} style={{ flex: 1, minWidth: 0, flexDirection: 'row', gap: 10, alignItems: 'flex-start', padding: 12, paddingRight: 4 }}>
@@ -208,19 +253,26 @@ export function InsightCard({ insight }: { insight: Insight }) {
 export function SpaceSwitcher() {
   const { spaces, activeSpace, setActiveSpace } = useApp();
   const { t } = useI18n();
-  const { colors, radius } = useTheme();
+  const { colors, radius, v2 } = useTheme();
   const [open, setOpen] = useState(false);
   if (spaces.length <= 1 || !activeSpace) return null;
-  const label = (id: string, kind: string, name: string) => (id.startsWith('demo_') ? `🧪 ${name}` : kind === 'personal' ? t('fam.private') : `👨‍👩‍👧 ${name}`);
+  // v2 : plus d'emoji dans l'interface — l'espace est repéré par une icône à côté de son nom.
+  const label = (id: string, kind: string, name: string) => (v2 ? (kind === 'personal' && !id.startsWith('demo_') ? t('fam.private') : name) : id.startsWith('demo_') ? `🧪 ${name}` : kind === 'personal' ? t('fam.private') : `👨‍👩‍👧 ${name}`);
+  const iconOf = (id: string, kind: string) => (id.startsWith('demo_') ? 'flask-outline' : kind === 'personal' ? 'person-outline' : 'people-outline');
   return (
     <>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${t('fam.switch')} : ${label(activeSpace.id, activeSpace.kind, activeSpace.name)}`}
         onPress={() => setOpen(true)}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, marginBottom: 12 }}
+        style={
+          v2
+            ? ({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', minHeight: 48, maxWidth: '100%', paddingHorizontal: 12, borderRadius: 12, borderWidth: 1.5, borderColor: colors.borderStrong, backgroundColor: pressed ? colors.surfaceAlt : colors.surface, marginBottom: 12 })
+            : { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, marginBottom: 12 }
+        }
       >
-        <Text variant="small" weight="600">
+        {v2 ? <Icon name={iconOf(activeSpace.id, activeSpace.kind)} size={20} color={colors.primary} /> : null}
+        <Text variant={v2 ? 'label' : 'small'} weight="600" style={{ flexShrink: 1 }}>
           {label(activeSpace.id, activeSpace.kind, activeSpace.name)}
         </Text>
         <Icon name="chevron-down" size={14} color={colors.textMuted} />
@@ -230,6 +282,7 @@ export function SpaceSwitcher() {
           <Row
             key={s.id}
             title={label(s.id, s.kind, s.name)}
+            left={v2 ? <Icon name={iconOf(s.id, s.kind)} size={22} color={colors.primary} /> : undefined}
             right={s.id === activeSpace.id ? <Icon name="checkmark-circle" size={22} color={colors.success} /> : undefined}
             onPress={() => {
               setActiveSpace(s.id);
