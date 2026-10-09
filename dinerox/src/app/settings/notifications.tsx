@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { Banner, Button, Card, ChipGroup, Screen, SectionHeader, Segmented, SwitchRow, Text, useToast } from '@/components/ui';
@@ -25,6 +25,16 @@ export default function NotificationSettings() {
       .then((p) => setDenied(!!p && !p.granted && !p.canAskAgain))
       .catch(() => setDenied(false));
   }, []);
+  // Test du micro (1.8) : comme tout enregistrement, seul le toucher l'arrête — le bouton
+  // devient « Terminer l'enregistrement » ; quitter l'écran l'arrête aussi.
+  const [testing, setTesting] = useState(false);
+  const testingRef = useRef(false);
+  useEffect(
+    () => () => {
+      if (testingRef.current) void speechInput().stop();
+    },
+    [],
+  );
   if (!profile) return null;
   const prefs = profile.preferences.notifications;
   const coach = coachPrefs(profile.preferences);
@@ -36,13 +46,18 @@ export default function NotificationSettings() {
   const reminderHour = prefs.dailyReminderHour ?? DEFAULT_REMINDER_HOUR;
   /** « Tester le micro » : écoute une phrase et affiche ce qui a été compris (rien n'est enregistré). */
   const testMic = async () => {
+    if (testingRef.current) return void speechInput().stop();
     const provider = speechInput();
     if (!(await provider.isAvailable())) return toast.show(t('entry.voice.unavailable'), 'info');
     const allowed = (await provider.permission()) === 'granted' || (await provider.requestPermission()) === 'granted';
     if (!allowed) return toast.show(t('entry.voice.denied'), 'warning');
     await stopVoice().catch(() => undefined);
     toast.show(t('entry.voice.listening'), 'info');
+    testingRef.current = true;
+    setTesting(true);
     const heard = await provider.listen({ language: entry.voiceLanguage ?? (lang === 'en' ? 'en' : 'fr'), onDeviceOnly: entry.onDeviceOnly }).catch(() => '');
+    testingRef.current = false;
+    setTesting(false);
     toast.show(heard ? t('entry.settings.heard', { text: heard }) : t('entry.voice.nothing'), heard ? 'success' : 'info');
   };
   const premiumAllowed = mode === 'firebase' && hasFeature(plan, 'voice_premium');
@@ -115,7 +130,7 @@ export default function NotificationSettings() {
         />
         {speechInput().supportsOnDevice() ? <SwitchRow title={t('entry.settings.onDevice')} subtitle={t('entry.settings.onDeviceHint')} value={entry.onDeviceOnly} onChange={(v) => setEntry({ onDeviceOnly: v })} /> : null}
         <SwitchRow title={t('entry.settings.examples')} value={entry.showExamples} onChange={(v) => setEntry({ showExamples: v })} />
-        <Button variant="secondary" icon="mic-outline" label={t('entry.settings.testMic')} onPress={() => void testMic()} style={{ marginTop: 8 }} />
+        <Button variant="secondary" icon={testing ? 'stop' : 'mic-outline'} label={t(testing ? 'entry.voice.finish' : 'entry.settings.testMic')} onPress={() => void testMic()} style={{ marginTop: 8 }} />
       </Card>
 
       {/* Coach : comment il présente les alertes (les types d'alertes restent réglés ci-dessus). */}

@@ -59,7 +59,7 @@ export function monthFlows(transactions: Transaction[], month: MonthKey, currenc
   let income = 0;
   let expense = 0;
   for (const t of transactions) {
-    if (t.deleted || t.type === 'transfer' || t.currency !== currency || monthKey(t.date) !== month) continue;
+    if (t.deleted || (t.type !== 'income' && t.type !== 'expense') || t.currency !== currency || monthKey(t.date) !== month) continue;
     if (t.type === 'income') income += t.amount;
     else if (isConsumption(t)) expense += t.amount;
   }

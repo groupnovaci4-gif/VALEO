@@ -92,7 +92,8 @@ let b;
   await p.getByLabel('Écrivez comme vous parlez').fill('Si je donne 20 000 pour les funérailles, il me reste combien ?');
   await btn('Comprendre').click(); await p.waitForTimeout(2500);
   t = await text();
-  ok(p.url().includes('/simulate') && /Avec 20 000 FCFA, il vous resterait [\d ]+ FCFA par jour/.test(t), '« Si je donne 20 000 pour les funérailles… » → simulateur calculé');
+  // Selon le jour du mois de la démo : reste par jour ou manque (deux résultats chiffrés).
+  ok(p.url().includes('/simulate') && /Avec 20 000 FCFA, il (vous resterait [\d ]+ FCFA par jour|manquerait [\d ]+ FCFA ce mois-ci)/.test(t), '« Si je donne 20 000 pour les funérailles… » → simulateur calculé');
 
   // ── Moments forts ──
   await go('/goals');

@@ -19,7 +19,8 @@ import { useActions } from '@/store/actions';
 import { useCategoryLabels, useFinance, useMoney } from '@/hooks/useFinance';
 import { useFormatParams } from '@/hooks/useInsightText';
 import { Button, Card, Chip, Icon, IconButton, Text } from '@/components/ui';
-import { parseIntent, type ParsedIntent } from '@/core/ai/parser';
+import { normalizeText, parseIntent, type ParsedIntent } from '@/core/ai/parser';
+import { parseSavingsDeposit } from '@/core/entry/parse';
 import { answerQuestion, type Answer } from '@/core/ai/answers';
 import { buildFinanceSummary } from '@/core/ai/summary';
 import { proposeIncomeAllocation } from '@/core/budget';
@@ -124,6 +125,14 @@ export default function Assistant() {
     setInput('');
     push({ id: mid(), from: 'user', text });
     analytics.track('ai_used', { source: 'assistant' });
+    // 1.8 — « J'ai épargné 20 000 » : un versement d'épargne, jamais une dépense ; il est
+    // confirmé sur l'écran de versement (compte, source, objectif), rien n'est enregistré ici.
+    const d = parseSavingsDeposit(normalizeText(text), { today: now, currency, accounts: data.accounts, categories: data.categories, defaultAccountId: null, goals: data.goals });
+    if (d) {
+      push({ id: mid(), from: 'assistant', text: t('sav.ai.route') });
+      router.push({ pathname: '/savings/move', params: { mode: 'deposit', ask: '1', ...(d.amount ? { amount: String(d.amount) } : {}), ...(d.savingsAccountId ? { accountId: d.savingsAccountId } : {}), ...(d.goalId ? { goalId: d.goalId } : {}), ...(d.fromAccountId ? { fromId: d.fromAccountId } : {}), date: d.date } });
+      return;
+    }
     const intent: ParsedIntent = parseIntent(text, now);
     switch (intent.kind) {
       case 'expense':

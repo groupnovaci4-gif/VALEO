@@ -138,4 +138,9 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     par libellé (tontine : `tontineContributionCategory`, réserve :
     `reserveEligible`). Pas de catégorie « Épargne » : épargner n'est pas
     dépenser (`core/savingsFlows.ts` ; anciennes opérations intactes, hors
-    consommation).
+    consommation). « Mon épargne » : verser / retirer / ajuster via
+    `depositToSavings` / `withdrawFromSavings` / `adjustSavingsBalance`
+    (contrôles purs `core/savings.ts`). Un AJUSTEMENT de solde
+    (`type: 'adjustment'`, `direction`) n'est ni revenu ni dépense : toute
+    nouvelle somme de revenus/dépenses doit l'exclure. « J'ai épargné… » =
+    versement (`parseSavingsDeposit`), jamais une dépense.

@@ -132,7 +132,11 @@ export type SpendKind = 'need' | 'want' | 'obligation' | 'debt';
 
 // ─── Opérations ───────────────────────────────────────────────────────
 
-export type TransactionType = 'income' | 'expense' | 'transfer';
+/**
+ * 1.8 — `adjustment` : AJUSTEMENT DE SOLDE d'un compte (argent déjà présent,
+ * solde réel corrigé). Ni revenu ni dépense : seul le solde du compte bouge.
+ */
+export type TransactionType = 'income' | 'expense' | 'transfer' | 'adjustment';
 
 export interface Transaction extends SyncedDoc {
   type: TransactionType;
@@ -159,6 +163,8 @@ export interface Transaction extends SyncedDoc {
   goalId?: ID | null;
   /** Remboursement de dette. */
   debtId?: ID | null;
+  /** 1.8 — Ajustement de solde : `in` (+) ou `out` (−). */
+  direction?: 'in' | 'out' | null;
 }
 
 export type Frequency = 'weekly' | 'monthly' | 'yearly';

@@ -136,7 +136,7 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
         if (!existing) actions.remove('transactions', saved.id);
         throw err;
       }
-      if (recurring && !existing && type !== 'transfer') {
+      if (recurring && !existing && (type === 'income' || type === 'expense')) {
         actions.saveRecurring({
           type,
           label: payee.trim() || cats.byId(categoryId ?? ''),

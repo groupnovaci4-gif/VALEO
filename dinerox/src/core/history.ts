@@ -52,7 +52,7 @@ export interface PeriodTotals {
 export function periodTotals(list: Transaction[]): Record<string, PeriodTotals> {
   const out: Record<string, PeriodTotals> = {};
   for (const t of list) {
-    if (t.deleted || t.type === 'transfer') continue;
+    if (t.deleted || (t.type !== 'income' && t.type !== 'expense')) continue;
     const r = (out[t.currency] ??= { income: 0, expense: 0, net: 0, count: 0 });
     if (t.type === 'income') r.income += t.amount;
     else r.expense += t.amount;

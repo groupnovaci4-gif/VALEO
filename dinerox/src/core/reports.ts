@@ -103,7 +103,7 @@ export function buildSeries(transactions: Transaction[], period: Period, currenc
     for (let d = period.start; d <= period.end; d = addDays(d, 1)) points.set(d, { key: d, income: 0, expense: 0 });
   }
   for (const t of transactions) {
-    if (t.deleted || t.type === 'transfer' || t.currency !== currency || !inPeriod(t.date, period)) continue;
+    if (t.deleted || (t.type !== 'income' && t.type !== 'expense') || t.currency !== currency || !inPeriod(t.date, period)) continue;
     const p = points.get(byYear ? monthKey(t.date) : t.date);
     if (!p) continue;
     if (t.type === 'income') p.income += t.amount;
@@ -117,7 +117,8 @@ export function buildSeries(transactions: Transaction[], period: Period, currenc
 function csvCell(v: unknown): string {
   const s = v === null || v === undefined ? '' : String(v);
   // Neutralise les formules (injection CSV dans un tableur).
-  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  // Un nombre seul (« -5000.00 ») n'est jamais une formule : il reste un nombre pour le tableur.
+  const safe = /^[=+\-@\t\r]/.test(s) && !/^-\d+(\.\d+)?$/.test(s) ? `'${s}` : s;
   return /[";\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
@@ -140,7 +141,8 @@ export function transactionsToCsv(
   const sorted = [...transactions].filter((t) => !t.deleted).sort((a, b) => a.date.localeCompare(b.date));
   for (const t of sorted) {
     const dec = ctx.decimals(t.currency);
-    const amount = (t.amount / 10 ** dec).toFixed(dec);
+    // Ajustement de solde (1.8) : le type ne dit pas le sens — un ajustement à la baisse est négatif.
+    const amount = ((t.type === 'adjustment' && t.direction === 'out' ? -t.amount : t.amount) / 10 ** dec).toFixed(dec);
     rows.push(
       [
         t.date,

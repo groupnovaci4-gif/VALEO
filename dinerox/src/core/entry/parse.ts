@@ -9,12 +9,14 @@
  *  - dates relatives (« hier », « ce matin », « lundi ») ;
  *  - compte cité (« par Wave ») s'il correspond à un compte de l'utilisateur ;
  *  - sens entrée / sortie (« reçu », « salaire », « on m'a remboursé » = entrée) ;
- *  - questions (« Combien j'ai dépensé… ? ») reconnues et renvoyées à l'assistant.
+ *  - questions (« Combien j'ai dépensé… ? ») reconnues et renvoyées à l'assistant ;
+ *  - 1.8 : « J'ai épargné 20 000 », « Verse 10 000 dans mon épargne » → VERSEMENT
+ *    d'épargne (`kind: 'savings'`), jamais une dépense : épargner n'est pas dépenser.
  */
 import { accountHints, normalizeText, parseIntent, extractPayee, resolveAccountHint, type ParsedIntent } from '../ai/parser';
 import { addDays, parseISODate, type ISODate } from '../dates';
 import { toMinor, type CurrencyCode } from '../money';
-import type { Account, Category } from '../types';
+import type { Account, Category, Goal } from '../types';
 import { amountSpans, hasUnvalidatedUnit } from './numbers';
 import { keywordIndex, matchKeyword } from './keywords';
 import type { CategoryCatalog } from '../categoryCatalog';
@@ -43,11 +45,28 @@ export interface EntryDraft {
   suggested?: { categoryId: string | null; subcategoryId: string | null };
 }
 
+export interface SavingsDepositDraft {
+  /** Unités mineures ; null = montant non compris. */
+  amount: number | null;
+  date: ISODate;
+  /** Compte d'épargne cité (ou seul compte d'épargne) ; null = à choisir. */
+  savingsAccountId: string | null;
+  /** Objectif cité par son nom ; null = aucun. */
+  goalId: string | null;
+  /** Compte d'où vient l'argent, s'il est cité (« depuis Wave ») ; sinon choisi à l'écran. */
+  fromAccountId: string | null;
+}
+
 export type EntryParse =
   | { kind: 'entries'; items: EntryDraft[] }
   | { kind: 'question'; intent: Extract<ParsedIntent, { kind: 'question' }> }
   /** Transfert ou projet : pris en charge par l'assistant (même confirmation). */
   | { kind: 'assistant'; intent: ParsedIntent }
+  /**
+   * 1.8 — Versement d'épargne (« J'ai épargné 20 000 ») : ouvert sur l'écran de
+   * versement pour confirmation. Compte ou objectif null = à choisir (jamais deviné).
+   */
+  | { kind: 'savings'; deposit: SavingsDepositDraft }
   /** Ni montant ni catégorie reconnus : « opération ou question ? ». */
   | { kind: 'ambiguous' }
   | { kind: 'empty' };
@@ -61,6 +80,8 @@ export interface EntryContext {
   defaultAccountId: string | null;
   /** 1.8 — Catalogue en vigueur (mots-clés) ; défaut : catalogue embarqué. */
   catalog?: CategoryCatalog;
+  /** 1.8 — Objectifs (un versement d'épargne peut citer un objectif par son nom). */
+  goals?: Goal[];
 }
 
 interface VocabEntry {
@@ -161,6 +182,9 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
   const text = normalizeText(original);
   if (!text) return { kind: 'empty' };
 
+  const deposit = parseSavingsDeposit(text, ctx);
+  if (deposit) return { kind: 'savings', deposit };
+
   const intent = parseIntent(original, ctx.today);
   if (intent.kind === 'question') return { kind: 'question', intent };
   if (intent.kind === 'transfer' || intent.kind === 'goal') return { kind: 'assistant', intent };
@@ -249,6 +273,54 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
 }
 
 /** Bénéficiaire (« envoyé 20 000 à maman » → « maman ») : uniquement pour une phrase d'une seule opération. */
+// ─── Versement d'épargne (1.8) ─────────────────────────────────────
+
+/** Verbes qui, seuls, disent « mettre de côté » (texte normalisé, sans accents). */
+const SAVE_VERB = /\b(j ai |je viens d |on a )?(epargne|epargnes|economise|economises|mis de cote|mets de cote|mettre de cote|mis en epargne|i saved|saved|put aside|set aside)\b/;
+/** Verbes de dépôt : un versement seulement s'il est question d'épargne, d'un compte d'épargne ou d'un objectif. */
+const DEPOSIT_VERB = /\b(verse|verser|versez|depose|deposer|deposez|place|placer|mis|mets|mettre|ajoute|ajouter|deposit|deposited)\b/;
+const SAVINGS_WORD = /\b(epargne|de cote|savings)\b/;
+/** Ni une question, ni un projet (« Je veux épargner pour… » = objectif), ni un retrait, ni une tontine. */
+const NOT_A_DEPOSIT = /\?|^(combien|pourquoi|comment|est ce que|quel|quelle|quand|how|why)\b|\b(je veux|je voudrais|j aimerais|je souhaite|je vais|je compte|epargner pour|economiser pour|retire|retirer|retrait|sorti|tontine|cotis)/;
+/** Source citée : « depuis Wave », « de mon Orange Money », « par la banque ». */
+const FROM_WORD = /\b(depuis|via|avec|par|de mon|de ma|du compte|from)\b/;
+
+const nameIn = (text: string, name: string) => {
+  const n = normalizeText(name);
+  return n.length >= 3 && wordRe(n).test(text);
+};
+
+/**
+ * « J'ai épargné 20 000 », « J'ai mis 15 000 de côté sur Ma banque »,
+ * « Verse 10 000 dans mon épargne », « … pour l'objectif Moto » → versement.
+ * Rien n'est deviné : un compte d'épargne n'est retenu que s'il est cité (ou
+ * s'il est le seul), un objectif que s'il est cité par son nom.
+ */
+export function parseSavingsDeposit(text: string, ctx: EntryContext): SavingsDepositDraft | null {
+  if (NOT_A_DEPOSIT.test(text)) return null;
+  const live = ctx.accounts.filter((a) => !a.deleted && a.active);
+  const savings = live.filter((a) => a.isSavings);
+  const goals = (ctx.goals ?? []).filter((g) => !g.deleted && (g.status === 'active' || g.status === 'paused') && g.kind !== 'reserve');
+  const namedSavings = savings.filter((a) => nameIn(text, a.name));
+  const namedGoal = goals.find((g) => nameIn(text, g.name)) ?? null;
+  const isDeposit = SAVE_VERB.test(text) || (DEPOSIT_VERB.test(text) && (SAVINGS_WORD.test(text) || namedSavings.length > 0 || !!namedGoal));
+  if (!isDeposit) return null;
+
+  const spans = amountSpans(text);
+  const amount = spans.length && !hasUnvalidatedUnit(text, SLANG_OFF) ? toMinor(spans[0].value, ctx.currency) : null;
+  const goalAccount = namedGoal?.accountId ? savings.find((a) => a.id === namedGoal.accountId) : undefined;
+  const savingsAccountId = namedSavings.length === 1 ? namedSavings[0].id : goalAccount ? goalAccount.id : savings.length === 1 ? savings[0].id : null;
+  // Source : seulement si elle est explicitement citée, et jamais un compte d'épargne.
+  let fromAccountId: string | null = null;
+  if (FROM_WORD.test(text)) {
+    const current = live.filter((a) => !a.isSavings);
+    const named = current.find((a) => nameIn(text, a.name));
+    const hinted = accountHints(text).map((h) => resolveAccountHint(h, current)).find(Boolean);
+    fromAccountId = (named ?? hinted)?.id ?? null;
+  }
+  return { amount, date: relativeDate(text, ctx.today) ?? ctx.today, savingsAccountId, goalId: namedGoal?.id ?? null, fromAccountId };
+}
+
 function extractPayeeFrom(original: string, segment: string): string | null {
   const p = extractPayee(original);
   return p && normalizeText(segment).includes(normalizeText(p)) ? p : null;

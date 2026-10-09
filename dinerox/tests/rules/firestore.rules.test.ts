@@ -183,6 +183,14 @@ describe('validation des écritures', () => {
     await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/t3'), tx('t3', 'u1', { type: 'gift' })));
     await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/t4'), tx('t4', 'u1', { date: '04/10/2026' })));
   });
+  it('ajustement de solde (1.8) : sens obligatoire (in / out)', async () => {
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/transactions/a1'), tx('a1', 'u1', { type: 'adjustment', direction: 'in' })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/transactions/a2'), tx('a2', 'u1', { type: 'adjustment', direction: 'out' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/a3'), tx('a3', 'u1', { type: 'adjustment' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/a4'), tx('a4', 'u1', { type: 'adjustment', direction: 'up' })));
+    // Isolation : jamais dans l'espace d'un autre.
+    await assertFails(setDoc(doc(db('u2'), 'spaces/u1/transactions/a5'), tx('a5', 'u2', { type: 'adjustment', direction: 'in' })));
+  });
   it("l'horodatage serveur est obligatoire et l'identifiant doit correspondre", async () => {
     await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/t1'), { ...tx('t1', 'u1'), syncedAt: new Date(0) }));
     await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/t1'), tx('autre', 'u1')));

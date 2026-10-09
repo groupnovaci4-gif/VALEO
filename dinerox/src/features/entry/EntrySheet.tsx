@@ -108,7 +108,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   // ─── Analyse d'un texte (voix ou phrase) ───────────────────────────
   /** Analyse un texte ; faux si rien n'a été compris (« Je n'ai rien entendu »). */
   const analyze = (text: string, method: 'voice' | 'text_phrase'): boolean => {
-    const r: EntryParse = parseEntryText(text, { today: now, currency: currency as CurrencyCode, accounts, categories: data.categories, defaultAccountId, catalog });
+    const r: EntryParse = parseEntryText(text, { today: now, currency: currency as CurrencyCode, accounts, categories: data.categories, defaultAccountId, catalog, goals: data.goals });
     // Tontine : « Tontine 10 000 », « J'ai cotisé ma tontine du bureau », « J'ai reçu la tontine »
     // → la tontine correspondante est proposée sur la carte de confirmation.
     const has = (id: string) => data.categories.some((c) => c.id === id && !c.deleted);
@@ -132,6 +132,18 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     if (r.kind === 'empty') {
       setVoice(method === 'voice' ? 'nothing' : 'idle');
       return false;
+    }
+    if (r.kind === 'savings') {
+      // « J'ai épargné 20 000 » : un VERSEMENT d'épargne, jamais une dépense. L'écran de
+      // versement (prérempli) fait confirmer le compte, la source et l'objectif éventuel.
+      analytics.track('mic_routed', { to: 'savings', method });
+      onClose();
+      const d = r.deposit;
+      router.push({
+        pathname: '/savings/move',
+        params: { mode: 'deposit', ask: '1', ...(d.amount ? { amount: String(d.amount) } : {}), ...(d.savingsAccountId ? { accountId: d.savingsAccountId } : {}), ...(d.goalId ? { goalId: d.goalId } : {}), ...(d.fromAccountId ? { fromId: d.fromAccountId } : {}), date: d.date },
+      });
+      return true;
     }
     if (r.kind === 'entries') {
       analytics.track('mic_routed', { to: 'entry', method });

@@ -144,7 +144,9 @@ service cloud.firestore {
             && d.keys().size() <= 40;
         }
         function validTransaction(d) {
-          return d.type in ['income', 'expense', 'transfer']
+          // 1.8 : `adjustment` = ajustement de solde (sens obligatoire), ni revenu ni dépense.
+          return d.type in ['income', 'expense', 'transfer', 'adjustment']
+            && (d.type != 'adjustment' || (d.get('direction', null) in ['in', 'out']))
             && isInt(d.amount) && d.amount > 0 && d.amount < 1000000000000000
             && d.currency is string && d.currency.size() == 3
             && isISODate(d.date)

@@ -205,3 +205,69 @@ de sens de l'extrait (`learnableWord` : ni nombre, ni montant, ni liaison) est
 mémorisé dans la catégorie choisie (`learnCategoryWord`) et retiré des
 autres. Visible et effaçable dans la fiche de la catégorie (« Mots appris de
 vos corrections »).
+
+## Partie 3 — Mon épargne
+
+### Deux notions distinctes
+
+- **Mon épargne** = l'ACTION et l'ENDROIT : les comptes d'épargne. On y
+  **verse**, on en **retire**, on en **ajuste le solde** (écran « Épargne »,
+  boutons par compte, `app/savings/move.tsx`).
+- **Objectif d'épargne** = le DÉFI (cible, date). Un versement PEUT
+  l'alimenter : la part affectée est une contribution liée au mouvement
+  (`transferId`), donc jamais comptée deux fois.
+
+### Les mouvements (`core/savings.ts`, `useActions`)
+
+| Mouvement | Écriture | Effet |
+|---|---|---|
+| Verser depuis un de mes comptes | transfert source → épargne | source ↓, épargne ↑, reste par jour ↓, dépenses inchangées |
+| Verser de l'argent « déjà sur ce compte » (virement direct de l'employeur, solde jamais saisi) | **ajustement de solde** (`type: 'adjustment'`, `direction: 'in'`) | épargne ↑, ni revenu ni dépense, analyses et reste par jour inchangés |
+| Ajuster le solde (solde réel saisi) | ajustement de l'écart (`in` ou `out`) | idem |
+| Retirer vers un compte courant | transfert épargne → compte | jamais plus que le solde |
+| Retirer en dépense directe | dépense (catégorie) sur le compte d'épargne | une consommation, comptée comme telle |
+| Part d'un objectif | contribution liée (± ) | retrait d'objectif jamais au-delà de ce qui y est (`goal.withdrawTooMuch`) |
+
+L'ajustement de solde est un nouveau type d'opération (règles Firestore :
+`direction` obligatoire). Il est exclu partout où l'on additionne revenus et
+dépenses (`flowTotals`, historique, analyses, rapports, intelligence) et
+affiché « Ajustement de solde » (signé, ton neutre) ; sa fiche se consulte et
+se supprime (pas de formulaire d'opération).
+
+**Création d'un compte d'épargne** : « Combien y a-t-il déjà sur ce
+compte ? » (solde d'ouverture) + « Montant à verser maintenant (facultatif) »
+qui crée un VRAI versement (transfert depuis un compte, ou ajustement si
+l'argent y est déjà), visible dans l'historique. Si le versement échoue, le
+compte existe déjà : l'écran de versement s'ouvre prérempli (jamais de
+doublon de compte).
+
+**Phrase ou voix** : « J'ai épargné 20 000 », « J'ai mis 15 000 de côté sur
+Ma banque », « Verse 10 000 dans mon épargne depuis Wave », « Verse 5 000
+pour la Moto » → `parseSavingsDeposit` (pur) → écran de versement prérempli,
+à confirmer. Jamais une dépense. Compte d'épargne retenu seulement s'il est
+cité (ou s'il est le seul), objectif seulement s'il est cité par son nom ;
+sinon l'utilisateur choisit (« Sur quel compte d'épargne ? », « Quel
+objectif ? »). Une question (« Combien j'ai épargné ? »), un projet (« Je veux
+épargner pour… »), une tontine ou un retrait ne sont pas des versements.
+Même règle dans l'assistant.
+
+### Phase 7 — Tableau des blocages (test du fondateur, APK 1.4.2)
+
+Reproduits sur l'application réelle (`e2e/savings-repro.js`) avant correction,
+puis vérifiés corrigés (`e2e/savings.js`, `tests/savings.test.ts`).
+
+| # | Blocage constaté | Cause | Correction | Test |
+|---|---|---|---|---|
+| E1 | « Créer un compte d'épargne » → toucher le modèle « Compte bancaire » : le compte n'est plus un compte d'épargne, « Mon épargne » reste à 0 | le modèle remplaçait l'option `isSavings` par la sienne (`false`) | depuis « Créer un compte d'épargne », un modèle ne retire jamais l'option | e2e savings §1 |
+| E2 | Aucun champ « montant à ajouter » : le montant saisi n'allait nulle part | champ absent ; seul « Solde actuel » existait | « Combien y a-t-il déjà ? » + « Montant à verser maintenant » → vrai versement | e2e savings §1 ; unit « scénario du fondateur » |
+| E3 | Pas de façon simple de verser : il fallait passer par un transfert générique | aucun écran dédié | « Verser de l'argent » + Verser / Retirer / Ajuster / Historique par compte | e2e savings §2-5 |
+| E4 | Argent déjà sur le compte (virement de l'employeur) impossible à enregistrer sans fausse dépense ou faux revenu | pas d'opération neutre | ajustement de solde (`adjustment`) | unit « ajustement » ; e2e §3 |
+| E5 | Limite de la formule gratuite : message « Limite … () » incompréhensible | paramètre `limit` vide | « Votre formule gratuite permet 3 comptes et vous en avez déjà 3… » + UpgradeCard (limite inchangée, décision 5) | e2e savings §7 |
+| E6 | « J'ai épargné 20 000 » → proposé en DÉPENSE | aucun sens « versement » dans le parseur | `parseSavingsDeposit` → écran de versement | unit « J'ai épargné » ; e2e §6 |
+| E7 | Versement affecté à un objectif sans objectif choisi : enregistré SANS l'objectif, en silence (trouvé pendant les tests) | objectif présélectionné seulement s'il était lié au compte | seul objectif présélectionné ; plusieurs → choix obligatoire (« Quel objectif ? ») | e2e savings §4 |
+| E8 | Retrait d'un objectif au-delà de ce qui y est | pas de contrôle à l'écran | `validateWithdraw` (`goal.withdrawTooMuch`, `savings.insufficient`) | unit « retrait » ; e2e §5 |
+| E9 | Anciennes « dépenses » Épargne comptées comme consommation | catégorie `cat_savings` traitée comme une dépense | `savingsFlows` (décisions 2 et 3, phase 3) | unit « anciennes dépenses Épargne » |
+
+Hors ligne : un versement fait sans connexion est enregistré tout de suite,
+« Mon épargne » est à jour sur l'appareil, puis il est synchronisé au retour
+de la connexion (vu d'un 2e appareil, e2e §8).

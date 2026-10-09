@@ -21,6 +21,7 @@ export function accountBalance(account: Account, transactions: Transaction[]): n
     if (t.deleted) continue;
     if (t.type === 'income' && t.accountId === account.id) balance += t.amount;
     else if (t.type === 'expense' && t.accountId === account.id) balance -= t.amount;
+    else if (t.type === 'adjustment' && t.accountId === account.id) balance += t.direction === 'out' ? -t.amount : t.amount;
     else if (t.type === 'transfer') {
       if (t.accountId === account.id) balance -= t.amount;
       if (t.toAccountId === account.id) balance += t.toAmount ?? t.amount;
@@ -37,6 +38,7 @@ export function accountBalances(accounts: Account[], transactions: Transaction[]
     if (t.deleted) continue;
     if (t.type === 'income' && t.accountId in out) out[t.accountId] += t.amount;
     else if (t.type === 'expense' && t.accountId in out) out[t.accountId] -= t.amount;
+    else if (t.type === 'adjustment' && t.accountId in out) out[t.accountId] += t.direction === 'out' ? -t.amount : t.amount;
     else if (t.type === 'transfer') {
       if (t.accountId in out) out[t.accountId] -= t.amount;
       if (t.toAccountId && t.toAccountId in out) out[t.toAccountId] += t.toAmount ?? t.amount;
@@ -78,7 +80,8 @@ export function flowTotals(
   let count = 0;
   let otherCurrencyCount = 0;
   for (const t of transactions) {
-    if (t.deleted || t.type === 'transfer' || !inPeriod(t.date, period)) continue;
+    // Transferts et ajustements de solde : ni revenu ni dépense.
+    if (t.deleted || (t.type !== 'income' && t.type !== 'expense') || !inPeriod(t.date, period)) continue;
     if (t.currency !== currency) {
       otherCurrencyCount++;
       continue;

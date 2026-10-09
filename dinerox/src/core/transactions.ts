@@ -19,7 +19,11 @@ export type TxError =
   | 'goal.withdrawTooMuch'
   | 'reserve.unavailable'
   | 'reserve.category'
-  | 'category.merge';
+  | 'category.merge'
+  | 'category.missing'
+  | 'savings.notSavings'
+  | 'savings.goalPartTooBig'
+  | 'savings.insufficient';
 
 export interface TxDraft {
   type: TransactionType;
@@ -29,6 +33,8 @@ export interface TxDraft {
   toAccountId?: string | null;
   toAmount?: number | null;
   currency: string;
+  /** Ajustement de solde. */
+  direction?: 'in' | 'out' | null;
 }
 
 /**
@@ -46,6 +52,8 @@ export function validateTransaction(draft: TxDraft, accounts: Account[]): TxErro
     if (!from.active) errors.push('account.inactive');
     if (from.currency !== draft.currency) errors.push('currency.mismatch');
   }
+  // Ajustement de solde : un sens obligatoire, rien d'autre.
+  if (draft.type === 'adjustment' && draft.direction !== 'in' && draft.direction !== 'out') errors.push('amount.invalid');
   if (draft.type === 'transfer') {
     if (!draft.toAccountId) errors.push('transfer.missingTarget');
     else if (draft.toAccountId === draft.accountId) errors.push('transfer.sameAccount');

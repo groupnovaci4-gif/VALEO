@@ -14,20 +14,32 @@ import { useRunAction } from '@/hooks/useRunAction';
 import { Button, Card, Text, useToast } from '@/components/ui';
 import { planCatalogUpdate } from '@/core/categoryCatalog';
 import { can } from '@/core/permissions';
+import type { Category } from '@/core/types';
 import { useCategoryCatalog } from '@/services/categoryCatalog';
 import { readJSON, storageKey, writeJSON } from '@/services/storage';
 
 export function useCatalogUpdate() {
   const { lang } = useI18n();
-  const { profile, user, role } = useApp();
+  const { profile, user, role, engine, activeSpace } = useApp();
   const data = useData();
   const cats = useCategoryLabels();
   const catalog = useCategoryCatalog();
+  // Les catégories SUPPRIMÉES par l'utilisateur ne sont pas dans les données visibles :
+  // on les ajoute (marquées supprimées) pour qu'elles ne soient jamais recréées.
+  const withDeleted = useMemo(() => {
+    if (!engine || !activeSpace) return data.categories;
+    const present = new Set(data.categories.map((c) => c.id));
+    const gone = catalog.entries
+      .filter((e) => !present.has(e.id))
+      .map((e) => engine.getDoc(activeSpace.id, 'categories', e.id) as Category | undefined)
+      .filter((c): c is Category => !!c && !!c.deleted);
+    return gone.length ? [...data.categories, ...gone] : data.categories;
+  }, [engine, activeSpace, data.categories, catalog]);
   // Horodatage des documents ajoutés : figé à l'ouverture (le moteur de synchro horodate l'écriture).
   const [now] = useState(() => Date.now());
   const plan = useMemo(
-    () => planCatalogUpdate(data.categories, { country: profile?.country, lang: lang === 'en' ? 'en' : 'fr', now, uid: user?.uid ?? '', currentLabel: (c) => cats.label(c, c.id) }, catalog),
-    [data.categories, profile?.country, lang, now, user?.uid, cats, catalog],
+    () => planCatalogUpdate(withDeleted, { country: profile?.country, lang: lang === 'en' ? 'en' : 'fr', now, uid: user?.uid ?? '', currentLabel: (c) => cats.label(c, c.id) }, catalog),
+    [withDeleted, profile?.country, lang, now, user?.uid, cats, catalog],
   );
   return { plan, allowed: can(role, 'update', 'categories') };
 }

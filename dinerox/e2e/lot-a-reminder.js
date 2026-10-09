@@ -11,8 +11,13 @@ const FAKE_SPEECH = () => {
   const ev = (type, extra) => Object.assign(new Event(type), extra);
   class FakeRecognition extends EventTarget {
     start() {
-      const final = [Object.assign([{ transcript: 'Taxi 2 000', confidence: 0.9 }], { isFinal: true })];
-      setTimeout(() => this.dispatchEvent(ev('result', { results: final, resultIndex: 0 })), 300);
+      // La phrase est dite une fois ; ensuite le moteur s'arrête seul (silence) et l'enregistreur
+      // le relance (1.8 : seul le toucher ■ arrête) — d'où le flag `__said`, remis à zéro par le test.
+      if (!window.__said) {
+        window.__said = true;
+        const final = [Object.assign([{ transcript: 'Taxi 2 000', confidence: 0.9 }], { isFinal: true })];
+        setTimeout(() => this.dispatchEvent(ev('result', { results: final, resultIndex: 0 })), 300);
+      }
       setTimeout(() => this.dispatchEvent(ev('end')), 400);
     }
     stop() { setTimeout(() => this.dispatchEvent(ev('end')), 30); }
@@ -36,6 +41,9 @@ let b;
 
   // Toucher la notification du rappel du soir = ouvrir /entry?mode=voice&from=reminder.
   await go('/entry?mode=voice&from=reminder', 3500);
+  // L'enregistrement continue jusqu'au toucher ■ (1.8).
+  ok((await btn("Terminer l'enregistrement").count()) > 0, 'rappel du soir → l’enregistrement démarre directement (bouton ■)');
+  await btn("Terminer l'enregistrement").click(); await p.waitForTimeout(1500);
   let t = await text();
   ok(!p.url().includes('/entry') && t.includes("J'ai compris 1 opération"), 'rappel du soir → saisie vocale ouverte directement (« Taxi 2 000 » compris)');
   await btn('Annuler').click(); await p.waitForTimeout(300);
@@ -51,6 +59,8 @@ let b;
   await go('/settings/notifications');
   ok((await p.getByRole('button', { name: '21 h', exact: true }).getAttribute('aria-selected')) === 'true', 'heure du rappel enregistrée (21 h)');
   await btn('Tester le micro').click(); await p.waitForTimeout(1200);
+  ok((await btn("Terminer l'enregistrement").count()) > 0, '« Tester le micro » : seul le toucher arrête (bouton « Terminer l’enregistrement »)');
+  await btn("Terminer l'enregistrement").click(); await p.waitForTimeout(1500);
   ok((await text()).includes("J'ai entendu : « Taxi 2 000 »"), '« Tester le micro » : texte compris affiché, rien d’enregistré');
   // Méthode par défaut : clavier → le bouton central ouvre le pavé ; exemples masqués.
   await p.getByRole('tab', { name: 'Clavier', exact: true }).first().click(); await p.waitForTimeout(500);

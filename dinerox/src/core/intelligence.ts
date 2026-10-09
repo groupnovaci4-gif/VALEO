@@ -67,7 +67,7 @@ interface MonthStats {
 function monthStats(transactions: Transaction[], month: MonthKey, currency: CurrencyCode, categories: Category[]): MonthStats {
   const s: MonthStats = { month, income: 0, expense: 0, fixed: 0, byCategory: {} };
   for (const t of transactions) {
-    if (t.deleted || t.currency !== currency || monthKey(t.date) !== month || t.type === 'transfer') continue;
+    if (t.deleted || t.currency !== currency || monthKey(t.date) !== month || (t.type !== 'income' && t.type !== 'expense')) continue;
     // Un transfert entre ses propres comptes n'est NI un revenu NI une dépense.
     if (t.type === 'income') s.income += t.amount;
     else if (!isSavingExpense(t)) {

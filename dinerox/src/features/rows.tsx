@@ -25,10 +25,16 @@ export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx
   const money = useMoney();
   const cats = useCategoryLabels();
   const accountLabel = useAccountLabel();
-  const meta = tx.type === 'transfer' ? { name: t('tx.transfer'), icon: 'swap-horizontal', color: colors.info } : cats.meta(tx.categoryId);
+  // Ajustement de solde (1.8) : ni revenu ni dépense, signé selon son sens, en ton neutre.
+  const meta = tx.type === 'transfer' ? { name: t('tx.transfer'), icon: 'swap-horizontal', color: colors.info } : tx.type === 'adjustment' ? { name: t('tx.adjustment'), icon: 'create-outline', color: colors.info } : cats.meta(tx.categoryId);
   const title = tx.payee || meta.name;
-  const sub = tx.type === 'transfer' ? `${accountLabel(tx.accountId)} → ${accountLabel(tx.toAccountId)}` : `${meta.name} · ${accountLabel(tx.accountId)}`;
-  const amount = tx.type === 'expense' ? `-${money(tx.amount, { currency: tx.currency })}` : tx.type === 'income' ? money(tx.amount, { currency: tx.currency, signed: true }) : money(tx.amount, { currency: tx.currency });
+  const sub = tx.type === 'transfer' ? `${accountLabel(tx.accountId)} → ${accountLabel(tx.toAccountId)}` : tx.type === 'adjustment' ? accountLabel(tx.accountId) : `${meta.name} · ${accountLabel(tx.accountId)}`;
+  const amount =
+    tx.type === 'expense' || (tx.type === 'adjustment' && tx.direction === 'out')
+      ? `-${money(tx.amount, { currency: tx.currency })}`
+      : tx.type === 'income' || tx.type === 'adjustment'
+        ? money(tx.amount, { currency: tx.currency, signed: true })
+        : money(tx.amount, { currency: tx.currency });
   const tone = tx.type === 'expense' ? 'expense' : tx.type === 'income' ? 'income' : 'muted';
   return (
     <Row

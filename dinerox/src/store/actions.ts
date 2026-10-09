@@ -38,6 +38,7 @@ import { goalSaved } from '@/core/balance';
 import { tontineContributionCategory } from '@/core/tontine';
 import { deleteMode, planMerge, restoreDefaults } from '@/core/categoryOps';
 import { learnWord } from '@/core/entry/keywords';
+import { linkedPartAfterEdit, validateDeposit, validateWithdraw, type DepositInput, type WithdrawInput } from '@/core/savings';
 import { currentCatalog } from '@/services/categoryCatalog';
 import { analytics } from '@/services/analytics';
 import { useI18n } from '@/i18n';
@@ -273,8 +274,11 @@ export function useActions() {
         const te = d.tontineEntries.find((x) => !x.deleted && x.transactionId === tx.id);
         if (te && (te.amount !== tx.amount || te.date !== tx.date)) save<TontineEntry>('tontineEntries', { ...te, amount: tx.amount, date: tx.date });
         const contribution = d.goalContributions.find((c) => c.transferId === tx.id);
-        if (contribution && (Math.abs(contribution.amount) !== tx.amount || contribution.date !== tx.date)) {
-          save<GoalContribution>('goalContributions', { ...contribution, amount: contribution.amount < 0 ? -tx.amount : tx.amount, date: tx.date });
+        if (contribution) {
+          // Part complète : suit le montant ; part partielle (versement 1.8) : gardée, plafonnée.
+          const before = d.transactions.find((x) => x.id === tx.id)?.amount ?? null;
+          const amount = linkedPartAfterEdit(contribution.amount, before, tx.amount);
+          if (amount !== contribution.amount || contribution.date !== tx.date) save<GoalContribution>('goalContributions', { ...contribution, amount, date: tx.date });
         }
         // Utilisation de réserve : recalculée sur le nouveau montant (jamais au-delà du
         // solde), retirée si l'opération n'est plus une dépense famille ou cérémonie.
@@ -592,6 +596,66 @@ export function useActions() {
     [data, save, saveTransaction],
   );
 
+  // ─── Épargne (1.8) : verser, retirer, ajuster ───────────────────────
+
+  /**
+   * Verser sur un compte d'épargne : TRANSFERT depuis un de mes comptes, ou
+   * AJUSTEMENT DE SOLDE si l'argent y est déjà (ni revenu ni dépense). Part
+   * affectée à un objectif : contribution LIÉE au mouvement (`transferId`),
+   * donc jamais comptée deux fois. Contrôles avant toute écriture.
+   */
+  const depositToSavings = useCallback(
+    (input: DepositInput): Transaction => {
+      const d = data();
+      const errors: TxError[] = validateDeposit(input, d);
+      if (errors.length) throw new ActionError('validation', { errors });
+      const sav = d.accounts.find((a) => a.id === input.savingsAccountId)!;
+      const goal = input.goal ? d.goals.find((g) => g.id === input.goal!.goalId) : undefined;
+      const tx = input.fromAccountId
+        ? saveTransaction({ type: 'transfer', amount: input.amount, currency: sav.currency, date: input.date, accountId: input.fromAccountId, toAccountId: sav.id, goalId: goal?.id ?? null, payee: null, note: null })
+        : save<Transaction>('transactions', { type: 'adjustment', direction: 'in', amount: input.amount, currency: sav.currency, date: input.date, accountId: sav.id, toAccountId: null, categoryId: null, payee: null, note: null });
+      if (goal && input.goal) {
+        save<GoalContribution>('goalContributions', { goalId: goal.id, amount: input.goal.amount, date: input.date, accountId: sav.id, transferId: tx.id, note: null });
+      }
+      return tx;
+    },
+    [data, save, saveTransaction],
+  );
+
+  /**
+   * Retirer d'un compte d'épargne : transfert vers un compte courant, ou
+   * dépense directe (catégorie). Jamais plus que le solde ; une part retirée
+   * d'un objectif jamais plus que ce qui y est affecté (`goal.withdrawTooMuch`).
+   */
+  const withdrawFromSavings = useCallback(
+    (input: WithdrawInput & { subcategoryId?: string | null }): Transaction => {
+      const d = data();
+      const errors: TxError[] = [...validateWithdraw(input, d)];
+      if (!input.toAccountId && !input.categoryId) errors.push('category.missing');
+      if (errors.length) throw new ActionError('validation', { errors });
+      const sav = d.accounts.find((a) => a.id === input.savingsAccountId)!;
+      const goal = input.goal ? d.goals.find((g) => g.id === input.goal!.goalId) : undefined;
+      const tx = input.toAccountId
+        ? saveTransaction({ type: 'transfer', amount: input.amount, currency: sav.currency, date: input.date, accountId: sav.id, toAccountId: input.toAccountId, goalId: goal?.id ?? null, payee: null, note: null })
+        : saveTransaction({ type: 'expense', amount: input.amount, currency: sav.currency, date: input.date, accountId: sav.id, categoryId: input.categoryId ?? null, subcategoryId: input.subcategoryId ?? null, payee: null, note: null });
+      if (goal && input.goal) {
+        save<GoalContribution>('goalContributions', { goalId: goal.id, amount: -input.goal.amount, date: input.date, accountId: sav.id, transferId: tx.id, note: null });
+      }
+      return tx;
+    },
+    [data, save, saveTransaction],
+  );
+
+  /** Ajuster le solde : l'écart entre le solde réel et le solde calculé (ni revenu ni dépense). */
+  const adjustSavingsBalance = useCallback(
+    (input: { accountId: string; date: string; direction: 'in' | 'out'; amount: number }): Transaction => {
+      const acc = data().accounts.find((a) => a.id === input.accountId && !a.deleted);
+      if (!acc || !isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
+      return save<Transaction>('transactions', { type: 'adjustment', direction: input.direction, amount: input.amount, currency: acc.currency, date: input.date, accountId: acc.id, toAccountId: null, categoryId: null, payee: null, note: null });
+    },
+    [data, save],
+  );
+
   // ─── Dettes ───────────────────────────────────────────────────────
 
   const saveDebt = useCallback((draft: Draft<Debt>) => save<Debt>('debts', draft), [save]);
@@ -742,6 +806,9 @@ export function useActions() {
       reorderCategories,
       restoreCategory,
       learnCategoryWord,
+      depositToSavings,
+      withdrawFromSavings,
+      adjustSavingsBalance,
       deleteAccount,
       saveEnvelope,
       applyBudget,
@@ -762,7 +829,7 @@ export function useActions() {
       postponeTontine,
       convertRecurringToTontine,
     }),
-    [save, remove, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, learnCategoryWord, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, postponeTontine, convertRecurringToTontine],
+    [save, remove, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, learnCategoryWord, depositToSavings, withdrawFromSavings, adjustSavingsBalance, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, postponeTontine, convertRecurringToTontine],
   );
 }
 

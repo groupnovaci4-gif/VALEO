@@ -45,7 +45,7 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   // ── 3. Tous les écrans de saisie : contrôle générique de chaque champ ──
   const screens = [
     ['/transaction/new?type=expense', 'Dépense'], ['/transaction/new?type=income', 'Revenu'], ['/transaction/new?type=transfer', 'Transfert'],
-    ['/accounts/edit', 'Compte'], ['/envelopes/edit', 'Enveloppe'], ['/debts/edit', 'Dette'], ['/recurring/edit', 'Récurrence'],
+    ['/accounts/edit', 'Compte'], ['/accounts/edit?savings=1', 'Compte d’épargne'], ['/envelopes/edit', 'Enveloppe'], ['/debts/edit', 'Dette'], ['/recurring/edit', 'Récurrence'],
     ['/settings/profile', 'Profil'], ['/settings/financial', 'Profil financier'], ['/settings/security', 'Sécurité'],
     ['/independence', 'Indépendance financière'], ['/transactions', 'Recherche d’opérations'], ['/assistant', 'Assistant'],
     ['/reserve/new', 'Réserve famille'], ['/simulate', 'Puis-je contribuer'], ['/seasons/new?event=tabaski', 'Moment fort'],
@@ -93,6 +93,12 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     await go('/transaction/new?type=transfer'); await fill('Montant', '40000');
     await p.getByText('Wave', { exact: true }).last().click(); await p.waitForTimeout(300); await btn('Enregistrer');
     await go('/accounts'); await has('191 500 FCFA', 'Cash après transfert (250 000 − 18 500 − 40 000)'); await has('50 000 FCFA', 'Wave après transfert');
+  });
+  await step('épargne (versement, retrait, ajustement)', async () => {
+    await go('/accounts/edit?savings=1'); await fill('Nom du compte', 'Épargne audit'); await btn('Enregistrer');
+    for (const [mode, n] of [['deposit', 'Versement'], ['withdraw', 'Retrait'], ['adjust', 'Ajustement de solde']]) {
+      await go(`/savings/move?mode=${mode}`); await checkAllInputs(p, `${n} d’épargne`, ok, { expectInputs: true });
+    }
   });
   await step('objectif', async () => {
     await go('/goals/new'); await tap('✏️ Créer mon propre objectif', { exact: false });
