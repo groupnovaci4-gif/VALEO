@@ -23,15 +23,18 @@ export interface VoiceParseRequest {
   spaceId?: string;
 }
 
-/** Réponse brute (revérifiée par `core/entry/aiGuard`), ou null. */
-export async function parseVoiceRemotely(req: VoiceParseRequest): Promise<unknown | null> {
+/**
+ * Réponse brute (revérifiée par `core/entry/aiGuard`), `'quota'` si le quota du
+ * jour est atteint, ou null (hors ligne, délai, erreur).
+ */
+export async function parseVoiceRemotely(req: VoiceParseRequest): Promise<unknown | 'quota' | null> {
   if (!isFirebaseConfigured) return null;
   try {
     const fn = httpsCallable<VoiceParseRequest, unknown>(firebase().functions, 'parseVoiceEntry', { timeout: VOICE_PARSE_TIMEOUT_MS });
     const timeout = new Promise<null>((r) => setTimeout(() => r(null), VOICE_PARSE_TIMEOUT_MS));
     const res = await Promise.race([fn({ ...req, transcript: req.transcript.slice(0, 2000) }), timeout]);
     return res ? res.data : null;
-  } catch {
-    return null;
+  } catch (e) {
+    return (e as { code?: string })?.code === 'functions/resource-exhausted' ? 'quota' : null;
   }
 }

@@ -220,3 +220,14 @@ describe('vocabulaire courant ajouté (1.9)', () => {
     }
   });
 });
+
+describe('usage du jour renvoyé par parseVoiceEntry', () => {
+  it('« 2/3 » accepté ; absent ou incohérent → aucune note', async () => {
+    const { aiUsage } = await import('../src/core/entry/aiGuard');
+    expect(aiUsage({ lines: [], used: 2, limit: 3 })).toEqual({ used: 2, limit: 3 });
+    expect(aiUsage({ lines: [] })).toBeNull();
+    expect(aiUsage({ used: 4, limit: 3 })).toBeNull();
+    expect(aiUsage({ used: '2', limit: 3 })).toBeNull();
+    expect(aiUsage(null)).toBeNull();
+  });
+});

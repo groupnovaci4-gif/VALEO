@@ -1438,6 +1438,8 @@ export const fr = {
   'conv.offer.no': "Non merci",
   'conv.offer.salary.hint': "Proposition seulement : rien n'est modifié dans vos enveloppes.",
   'conv.thinking': "Je réfléchis…",
+  'conv.aiQuota': "Performance avancée : {used}/{limit} aujourd'hui",
+  'conv.aiQuotaReached': "Vous avez atteint votre quota de performance avancée pour aujourd'hui. D'accord, je continue quand même.",
   'conv.you': "Vous",
   'conv.edit': "Modifier le texte",
   'conv.reanalyze': "Relancer",

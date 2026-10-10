@@ -54,7 +54,7 @@ import { RecorderBar } from './RecorderBar';
 import type { EntryMode } from './EntryProvider';
 import { ConversationView } from './ConversationView';
 import { useConversation } from './useConversation';
-import { chooseUnderstanding } from '@/core/entry/aiGuard';
+import { aiUsage, chooseUnderstanding } from '@/core/entry/aiGuard';
 import { parseVoiceRemotely } from '@/services/voiceParse';
 
 type View_ =
@@ -135,6 +135,9 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   /** IA autorisée : en ligne, compte connecté, consentement donné (sinon parseur local seul). */
   const aiAllowed = appMode === 'firebase' && online && !!profile?.preferences.aiConsent;
 
+  /** « Performance avancée : 2/3 aujourd'hui » (après un appel à l'IA seulement). */
+  const [aiNote, setAiNote] = useState<string | null>(null);
+
   const converse = (text: string, drafts: EntryDraft[], method: 'voice' | 'text_phrase') => {
     setView({ kind: 'conversation', method, text, edited: false });
     conv.start(text, drafts, method);
@@ -151,7 +154,11 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       categories: data.categories.filter((c) => !c.deleted && c.disabled !== true).map((c) => ({ id: c.id, label: cats.byId(c.id), kind: c.kind, parentId: c.parentId ?? null })),
       accounts: accounts.map((a) => a.name),
       spaceId: activeSpace?.id,
-    }).then((raw) => {
+    }).then((res) => {
+      // Note discrète, seulement quand l'IA a été sollicitée : usage du jour, ou quota atteint.
+      const usage = res === 'quota' ? null : aiUsage(res);
+      setAiNote(res === 'quota' ? t('conv.aiQuotaReached') : usage ? t('conv.aiQuota', { used: usage.used, limit: usage.limit }) : null);
+      const raw = res === 'quota' ? null : res;
       const chosen = chooseUnderstanding(local, raw, text, entryCtx);
       analytics.track('voice_understood', { source: chosen.source });
       if (chosen.drafts.length) converse(text, chosen.drafts, method);
@@ -432,6 +439,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
         currency={currency as CurrencyCode}
         busy={busy}
         thinking={!!view.thinking}
+        aiNote={aiNote}
         mic={{
           recording,
           processing: rec.status === 'processing',
@@ -448,6 +456,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
         onCancel={onClose}
         onReply={(text) => replyInConversation(text, false)}
         onRestart={(text) => {
+          setAiNote(null);
           setView({ kind: 'input' });
           analyze(text, view.method === 'voice' ? 'voice' : 'text_phrase');
         }}

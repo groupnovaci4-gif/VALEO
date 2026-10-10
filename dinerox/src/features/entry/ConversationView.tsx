@@ -50,6 +50,7 @@ export function ConversationView({
   onClose,
   envelopeName,
   onUndo,
+  aiNote,
 }: {
   conv: Conv;
   accounts: Account[];
@@ -67,6 +68,8 @@ export function ConversationView({
   envelopeName: (id: string) => string;
   /** « Annuler » tout le groupe enregistré (5 secondes après « oui »), sinon null. */
   onUndo: (() => void) | null;
+  /** Note discrète après un appel à l'IA (usage du jour, ou quota atteint). */
+  aiNote?: string | null;
 }) {
   const { t } = useI18n();
   const { colors, radius } = useTheme();
@@ -184,6 +187,12 @@ export function ConversationView({
       {thinking ? (
         <Text variant="bodyStrong" accessibilityLiveRegion="polite">
           {t('conv.thinking')}
+        </Text>
+      ) : null}
+
+      {aiNote ? (
+        <Text variant="caption" tone="subtle" accessibilityLiveRegion="polite">
+          {aiNote}
         </Text>
       ) : null}
 

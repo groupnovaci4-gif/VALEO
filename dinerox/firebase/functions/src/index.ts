@@ -13,7 +13,7 @@ import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { setGlobalOptions, logger } from 'firebase-functions/v2';
 import { defineSecret, defineString } from 'firebase-functions/params';
-import { bestPlan, effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium, nextVoiceParseUsage, refundVoiceParseUsage } from './plans';
+import { bestPlan, effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium, nextVoiceParseUsage, refundVoiceParseUsage, VOICE_PARSE_DAILY_LIMIT } from './plans';
 import { elevenLabsRequest, nextVoiceUsage, validateSpeak } from './voice';
 import { collectEntryCounts, entryUsage, firestoreCounter } from './usage';
 import { answerWithClaude } from './assistant';
@@ -283,11 +283,12 @@ export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSec
   // puis RENDU si l'appel échoue : seul un appel réussi compte.
   const day = new Date().toISOString().slice(0, 10);
   const usageRef = db.doc(`usage/${uid}`);
-  await db.runTransaction(async (tx) => {
+  const used = await db.runTransaction(async (tx) => {
     const u = await tx.get(usageRef);
     const next = nextVoiceParseUsage({ day: u.get('voiceParseDay'), count: u.get('voiceParse') }, day, plan);
     if (!next.allowed) throw new HttpsError('resource-exhausted', 'voiceParse/quota');
     tx.set(usageRef, next.patch, { merge: true });
+    return next.patch.voiceParse;
   });
   const refund = () =>
     db
@@ -311,7 +312,8 @@ export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSec
     await refund();
     throw new HttpsError('unavailable', 'voiceParse/unreadable');
   }
-  return { lines };
+  // Usage du jour (affiché : « Performance avancée : 2/3 aujourd'hui »).
+  return { lines, used, limit: VOICE_PARSE_DAILY_LIMIT[plan] };
 });
 
 // ─── Voix premium du coach ────────────────────────────────────────────

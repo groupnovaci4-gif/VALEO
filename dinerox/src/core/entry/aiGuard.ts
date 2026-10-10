@@ -187,3 +187,11 @@ export function chooseUnderstanding(local: EntryDraft[], aiRaw: unknown, transcr
   if (!drafts.some((d) => d.amount !== null)) return { drafts: local, source: 'local' };
   return { drafts, source: 'ai' };
 }
+
+/** Usage du jour renvoyé par `parseVoiceEntry` (« 2/3 »), ou null s'il est absent ou incohérent. */
+export function aiUsage(raw: unknown): { used: number; limit: number } | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const { used, limit } = raw as { used?: unknown; limit?: unknown };
+  if (!Number.isInteger(used) || !Number.isInteger(limit) || (limit as number) <= 0 || (used as number) < 0 || (used as number) > (limit as number)) return null;
+  return { used: used as number, limit: limit as number };
+}
