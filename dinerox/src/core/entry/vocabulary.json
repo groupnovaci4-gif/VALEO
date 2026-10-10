@@ -5,8 +5,10 @@
     { "targets": ["sub_transport_mototaxi", "cat_transport"], "words": ["moto-taxi", "moto taxi", "moto", "zemidjan", "okada", "benskin"] },
     { "targets": ["sub_transport_taxi", "cat_transport"], "words": ["taxi", "yango", "uber", "heetch", "cab"] },
     { "targets": ["sub_transport_fuel", "cat_transport"], "words": ["carburant", "essence", "gasoil", "gazoil", "fuel", "gas"] },
-    { "targets": ["sub_transport_bus", "cat_transport"], "words": ["bus", "sotra", "transport"] },
-    { "targets": ["cat_food"], "words": ["garba", "alloco", "attieke", "placali", "foutou", "maquis", "marche", "restaurant", "resto", "repas", "dejeuner", "diner", "petit dejeuner", "pain", "riz", "courses", "nourriture", "manger", "cantine", "lunch", "breakfast", "dinner", "food", "groceries"] },
+    { "targets": ["sub_transport_bus", "cat_transport"], "words": ["bus", "sotra"] },
+    { "targets": ["cat_transport"], "words": ["transport", "transports", "deplacement", "deplacements"] },
+    { "targets": ["sub_food_market", "cat_food"], "words": ["marche", "popote", "courses"] },
+    { "targets": ["cat_food"], "words": ["garba", "alloco", "attieke", "placali", "foutou", "maquis", "restaurant", "resto", "repas", "dejeuner", "diner", "petit dejeuner", "pain", "riz", "nourriture", "manger", "cantine", "alimentation", "lunch", "breakfast", "dinner", "food", "groceries"] },
     { "targets": ["sub_comm_data", "cat_communication", "cat_internet"], "words": ["pass internet", "forfait internet", "forfait", "pass", "data", "megas"] },
     { "targets": ["sub_comm_airtime", "cat_communication"], "words": ["credit", "unites", "recharge", "airtime", "telephone", "appel"] },
     { "targets": ["sub_informal_tontine", "cat_informal", "cat_savings"], "words": ["tontine", "susu", "njangi"] },
@@ -17,8 +19,12 @@
     { "targets": ["sub_family_transfers", "cat_family"], "words": ["cotisation familiale", "village", "envoi"] },
     { "targets": ["sub_family_parents", "cat_family"], "words": ["maman", "papa", "mere", "pere", "parents", "mom", "dad", "mother", "father"] },
     { "targets": ["cat_family"], "words": ["famille", "frere", "soeur", "tante", "oncle", "cousin", "enfant", "enfants", "bebe", "family"] },
-    { "targets": ["cat_housing"], "words": ["loyer", "electricite", "cie", "sodeci", "eau", "courant", "gaz", "rent", "electricity", "water"] },
-    { "targets": ["cat_health"], "words": ["pharmacie", "medicament", "medicaments", "hopital", "clinique", "docteur", "medecin", "consultation", "pharmacy", "medicine", "doctor"] },
+    { "targets": ["sub_housing_electricity", "cat_housing"], "words": ["facture d electricite", "facture electricite", "facture de courant", "facture cie", "electricite", "courant", "cie", "senelec", "electricity"] },
+    { "targets": ["sub_housing_water", "cat_housing"], "words": ["facture d eau", "facture eau", "facture sodeci", "sodeci", "water bill"] },
+    { "targets": ["sub_housing_rent", "cat_housing"], "words": ["loyer", "rent"] },
+    { "targets": ["sub_housing_gas", "cat_housing"], "words": ["bouteille de gaz", "gaz"] },
+    { "targets": ["cat_housing"], "words": ["maison", "logement", "housing"] },
+    { "targets": ["cat_health"], "words": ["sante", "soins", "pharmacie", "medicament", "medicaments", "hopital", "clinique", "docteur", "medecin", "consultation", "pharmacy", "medicine", "doctor", "health"] },
     { "targets": ["cat_education"], "words": ["ecole", "scolarite", "fournitures", "livre", "livres", "cours", "school"] },
     { "targets": ["cat_clothing"], "words": ["habit", "habits", "vetement", "vetements", "chaussure", "chaussures", "pagne", "coiffure", "tresses", "clothes", "shoes"] },
     { "targets": ["cat_leisure"], "words": ["cinema", "sortie", "biere", "fete", "concert", "match", "loisir"] },
@@ -40,7 +46,8 @@
   "slangUnits": [
     { "word": "baton", "value": null, "statut": "valeur à valider par le fondateur", "actif": false },
     { "word": "barre", "value": null, "statut": "valeur à valider par le fondateur (le parseur de l'assistant l'interprète déjà comme 1 000 000 : à confirmer)", "actif": false },
-    { "word": "brique", "value": null, "statut": "valeur à valider par le fondateur (le parseur de l'assistant l'interprète déjà comme 1 000 000 : à confirmer)", "actif": false }
+    { "word": "brique", "value": null, "statut": "valeur à valider par le fondateur (le parseur de l'assistant l'interprète déjà comme 1 000 000 : à confirmer)", "actif": false },
+    { "word": "balle", "value": null, "statut": "valeur à valider par le fondateur (« 30 balles » : francs ? milliers ?)", "actif": false }
   ],
   "_tontinePayout": "Expressions locales pour « recevoir la cagnotte » d'une tontine (1.7). À VALIDER PAR LE FONDATEUR : inactives tant que 'actif' est false. Les formulations standard (« j'ai reçu la tontine », « j'ai touché la cagnotte », « c'est mon tour ») sont reconnues dans le code (core/tontineEntry.ts).",
   "tontinePayout": [
@@ -50,5 +57,13 @@
     { "phrase": "j ai mange la tontine", "statut": "à valider par le fondateur", "actif": false },
     { "phrase": "c est mon tour de bouffer", "statut": "à valider par le fondateur", "actif": false },
     { "phrase": "j ai ramasse la tontine", "statut": "à valider par le fondateur", "actif": false }
+  ],
+  "_fillers": "Mots de remplissage (texte normalisé) : retirés avant l'analyse, ils ne créent AUCUNE ligne (« ainsi de suite », « etc. », « euh »).",
+  "fillers": ["ainsi de suite", "et ainsi de suite", "et cetera", "etc", "euh", "heu", "hum", "voila", "d accord", "bref", "and so on"],
+  "_corrections": "Marqueurs d'auto-correction entre deux montants (« 30 000, non pardon 35 000 ») : le second montant remplace le premier.",
+  "corrections": ["non pardon", "pardon", "non", "plutot", "je veux dire", "je voulais dire", "enfin", "je me suis trompe", "correction", "i mean", "sorry", "no"],
+  "_ambiguous": "Mots ambigus : sans précision ni mot appris, UNE question courte avec des boutons (jamais deviné). 'options' : cibles essayées dans l'ordre, comme pour 'expense'. 'id' sert aux libellés (entry.ask.<id>, entry.ask.<id>.<option>).",
+  "ambiguous": [
+    { "id": "water", "words": ["eau", "water"], "options": [{"id": "bill", "targets": ["sub_housing_water", "cat_housing"]}, {"id": "drink", "targets": ["sub_food_water", "cat_food"]}] }
   ]
 }

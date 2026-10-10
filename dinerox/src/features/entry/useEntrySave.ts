@@ -8,7 +8,7 @@ import { useCallback } from 'react';
 import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
-import { useActions } from '@/store/actions';
+import { ActionError, useActions } from '@/store/actions';
 import { useMoney } from '@/hooks/useFinance';
 import { useToast } from '@/components/ui';
 import { dailyAllowance } from '@/core/dailyAllowance';
@@ -75,6 +75,14 @@ export function useEntrySave() {
             if (entry.transactionId) ids.push(entry.transactionId);
             continue;
           }
+          // 1.9 — Versement d'épargne dans une liste : logique de « Mon épargne » (transfert, jamais une dépense).
+          if (d.type === 'savings') {
+            if (!d.savings?.savingsAccountId || !d.amount) throw new ActionError('validation');
+            const fromAccountId = d.accountId && d.accountId !== d.savings.savingsAccountId ? d.accountId : null;
+            const tx = actions.depositToSavings({ savingsAccountId: d.savings.savingsAccountId, amount: d.amount, date: d.date, fromAccountId, goal: d.savings.goalId ? { goalId: d.savings.goalId, amount: d.amount } : null });
+            ids.push(tx.id);
+            continue;
+          }
           const tx = actions.saveTransaction({
             type: d.type,
             amount: d.amount as number,
@@ -106,7 +114,7 @@ export function useEntrySave() {
       }
       analytics.track('entry_created', { method, count: drafts.length });
       if (method === 'voice' && corrected) analytics.track('voice_entry_corrected', { method });
-      if (user) void recordEntrySuccess(user.uid, { voice: method === 'voice', items: drafts.map((d) => ({ type: d.type, categoryId: d.categoryId, accountId: d.accountId })) }).catch(() => undefined);
+      if (user) void recordEntrySuccess(user.uid, { voice: method === 'voice', items: drafts.map((d) => ({ type: d.type === 'savings' ? ('transfer' as const) : d.type, categoryId: d.categoryId, accountId: d.accountId })) }).catch(() => undefined);
       undoToast(ids);
       return ids;
     },

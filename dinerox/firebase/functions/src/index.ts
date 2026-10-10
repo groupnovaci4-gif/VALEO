@@ -17,6 +17,7 @@ import { effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium } f
 import { elevenLabsRequest, nextVoiceUsage, validateSpeak } from './voice';
 import { collectEntryCounts, entryUsage, firestoreCounter } from './usage';
 import { answerWithClaude } from './assistant';
+import { parseWithClaude, validateParseInput, VOICE_PARSE_DAILY_CAP } from './voiceEntry';
 
 initializeApp();
 const db = getFirestore();
@@ -249,6 +250,41 @@ export const financeAssistant = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSe
   } catch (e) {
     logger.error('assistant failed', { status: (e as { status?: number })?.status });
     throw new HttpsError('unavailable', 'ai/unavailable');
+  }
+});
+
+// ─── Saisie vocale : compréhension par l'IA (1.9) ─────────────────────
+
+/**
+ * Note vocale complexe → lignes structurées. Appelée par l'application seulement
+ * si le parseur local est peu sûr, en ligne, avec consentement. La transcription
+ * (jamais l'audio) n'est ni stockée ni journalisée. Toute erreur : l'application
+ * garde son parseur local (aucun blocage).
+ */
+export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 15, memory: '256MiB' }, async (req) => {
+  const { uid } = requireAuth(req);
+  const input = validateParseInput(req.data);
+  if ('error' in input) throw new HttpsError('invalid-argument', input.error);
+  const user = await db.doc(`users/${uid}`).get();
+  if (user.get('preferences.aiConsent') !== true) throw new HttpsError('failed-precondition', 'consent/ai');
+  // Compteur quotidien (suivi des coûts) et plafond anti-abus.
+  const day = new Date().toISOString().slice(0, 10);
+  const usageRef = db.doc(`usage/${uid}`);
+  await db.runTransaction(async (tx) => {
+    const u = await tx.get(usageRef);
+    const count = u.get('voiceParseDay') === day ? Number(u.get('voiceParse') ?? 0) : 0;
+    if (count >= VOICE_PARSE_DAILY_CAP) throw new HttpsError('resource-exhausted', 'voiceParse/quota');
+    tx.set(usageRef, { voiceParseDay: day, voiceParse: count + 1 }, { merge: true });
+  });
+  try {
+    const lines = await parseWithClaude(ANTHROPIC_API_KEY.value(), input);
+    if (!lines) throw new HttpsError('unavailable', 'voiceParse/unreadable');
+    return { lines };
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    // Jamais la transcription dans les journaux : seulement le statut.
+    logger.warn('voiceParse failed', { status: (e as { status?: number })?.status ?? 'timeout' });
+    throw new HttpsError('unavailable', 'voiceParse/unavailable');
   }
 });
 

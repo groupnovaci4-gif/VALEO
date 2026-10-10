@@ -144,3 +144,14 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     (`type: 'adjustment'`, `direction`) n'est ni revenu ni dépense : toute
     nouvelle somme de revenus/dépenses doit l'exclure. « J'ai épargné… » =
     versement (`parseSavingsDeposit`), jamais une dépense.
+22. **Mini-conversation vocale (1.9, `docs/conversation-vocale.md`).** Compréhension
+    LOCALE d'abord (`core/entry/parse.ts` : listes, mots de remplissage, auto-
+    corrections, mot ambigu → UNE question, score de confiance) ; l'IA
+    (`parseVoiceEntry`, Functions) seulement si `needsAi`, en ligne et avec
+    `aiConsent` — entrée minimale (transcription écrite, catégories actives, NOMS
+    des comptes, date), jamais l'audio, ni soldes ni historique, rien de journalisé.
+    Toute sortie de l'IA passe par `core/entry/aiGuard.ts` : schéma (sinon parseur
+    local), montant RÉELLEMENT prononcé (sinon « à vérifier »), catégorie existante,
+    active et du bon sens (sinon question « Autres ou créer X ? »). Les ambiguïtés
+    sont des DONNÉES (`vocabulary.json` › `ambiguous`) ; un mot appris tranche sans
+    redemander.
