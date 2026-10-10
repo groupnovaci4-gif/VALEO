@@ -8,7 +8,7 @@
     { "targets": ["sub_transport_bus", "cat_transport"], "words": ["bus", "sotra"] },
     { "targets": ["cat_transport"], "words": ["transport", "transports", "deplacement", "deplacements"] },
     { "targets": ["sub_food_market", "cat_food"], "words": ["marche", "popote", "courses"] },
-    { "targets": ["cat_food"], "words": ["garba", "alloco", "attieke", "placali", "foutou", "maquis", "restaurant", "resto", "repas", "dejeuner", "diner", "petit dejeuner", "pain", "riz", "nourriture", "manger", "cantine", "alimentation", "lunch", "breakfast", "dinner", "food", "groceries"] },
+    { "targets": ["cat_food"], "words": ["garba", "alloco", "attieke", "placali", "foutou", "maquis", "restaurant", "resto", "repas", "dejeuner", "diner", "petit dejeuner", "pain", "riz", "nourriture", "manger", "cantine", "alimentation", "poisson", "viande", "poulet", "oeufs", "lait", "huile", "sucre", "sel", "tomate", "tomates", "oignon", "oignons", "legumes", "fruits", "banane", "igname", "manioc", "farine", "cafe", "lunch", "breakfast", "dinner", "food", "groceries"] },
     { "targets": ["sub_comm_data", "cat_communication", "cat_internet"], "words": ["pass internet", "forfait internet", "forfait", "pass", "data", "megas"] },
     { "targets": ["sub_comm_airtime", "cat_communication"], "words": ["credit", "unites", "recharge", "airtime", "telephone", "appel"] },
     { "targets": ["sub_informal_tontine", "cat_informal", "cat_savings"], "words": ["tontine", "susu", "njangi"] },
@@ -26,7 +26,7 @@
     { "targets": ["cat_housing"], "words": ["maison", "logement", "housing"] },
     { "targets": ["cat_health"], "words": ["sante", "soins", "pharmacie", "medicament", "medicaments", "hopital", "clinique", "docteur", "medecin", "consultation", "pharmacy", "medicine", "doctor", "health"] },
     { "targets": ["cat_education"], "words": ["ecole", "scolarite", "fournitures", "livre", "livres", "cours", "school"] },
-    { "targets": ["cat_clothing"], "words": ["habit", "habits", "vetement", "vetements", "chaussure", "chaussures", "pagne", "coiffure", "tresses", "clothes", "shoes"] },
+    { "targets": ["cat_clothing"], "words": ["habit", "habits", "vetement", "vetements", "chaussure", "chaussures", "pagne", "coiffure", "tresses", "tailleur", "couture", "couturier", "savon", "parfum", "clothes", "shoes"] },
     { "targets": ["cat_leisure"], "words": ["cinema", "sortie", "biere", "fete", "concert", "match", "loisir"] },
     { "targets": ["cat_debts"], "words": ["dette", "echeance", "pret"] }
   ],

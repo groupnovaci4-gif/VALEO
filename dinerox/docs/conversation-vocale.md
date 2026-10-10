@@ -109,3 +109,41 @@ affichée et lue ; question ouverte → « Ouvrir la conversation » (assistant,
 
 Tests : `tests/voice-conversation.test.ts` (pur), `e2e/voice-conversation.js`
 (écran réel, reconnaissance simulée, synthèse captée).
+
+## Phase 5 — Limites, coûts, confidentialité
+
+- **Formules** : une conversation consomme le MÊME compteur que la saisie vocale
+  (une note = une saisie ; les réponses dans la même conversation ne recomptent
+  pas). Saisie écrite et manuelle : illimitées. Aucun prix ni limite modifié.
+- **Consentement** : `ai.remoteConsent` et `set.aiConsentHint` disent désormais que
+  la transcription ÉCRITE d'une phrase complexe (jamais l'audio) peut être envoyée,
+  avec les catégories et le nom des comptes, sans soldes ni historique. Sans
+  consentement : parseur local seul.
+- **Confidentialité** : audio jamais stocké ni envoyé ; transcription jamais
+  journalisée ; échange gardé en mémoire le temps de la feuille, jamais synchronisé.
+- **Mesure** : événement anonyme `voice_understood` (`source` : `local` ou `ai`),
+  sans texte ni montant, pour compter les appels évités.
+
+### Coût estimé d'un appel `parseVoiceEntry` (à confirmer sur la grille officielle)
+
+Tarif relevé (sources tierces, octobre 2026) pour `claude-haiku-5-5` : 0,10 $ par
+million de jetons en entrée, 0,50 $ en sortie.
+- Entrée mesurée (catalogue Côte d'Ivoire, 110 catégories) : ≈ 5 600 caractères de
+  message + 1 300 de consignes + schéma ≈ **2 600 jetons** → 0,00026 $.
+- Sortie : ≈ 200 à 500 jetons (2 à 6 lignes) → 0,0001 à 0,00025 $.
+- **≈ 0,0004 à 0,0005 $ par appel, soit ≈ 0,3 FCFA** (1 $ ≈ 600 FCFA).
+
+Appels évités : sur un corpus de 44 phrases réalistes (écrit pour ce test, donc
+optimiste), le parseur local en comprend seul 39 (89 %) avant enrichissement du
+vocabulaire, 42 (95 %) après. Le vrai taux se lira dans `voice_understood`.
+
+### Quotas quotidiens proposés (À VALIDER — non appliqués)
+
+| Formule | Proposition `parseVoiceEntry` / jour | Coût maximal / utilisateur / mois |
+|---|---|---|
+| free | 3 (sur ses 5 saisies vocales) | ≈ 0,045 $ |
+| plus | 20 | ≈ 0,30 $ |
+| family | 20 par membre | ≈ 0,30 $ par membre |
+
+En place aujourd'hui : un plafond anti-abus de 50 appels par jour, toutes formules
+(`VOICE_PARSE_DAILY_CAP`), au-delà duquel le parseur local reste seul.

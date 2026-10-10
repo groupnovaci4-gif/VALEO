@@ -210,3 +210,13 @@ describe('vocabulaire non validé', () => {
     expect(d.uncertain).toContain('amount');
   });
 });
+
+describe('vocabulaire courant ajouté (1.9)', () => {
+  it('produits du marché et tailleur : catégorie trouvée sans IA', () => {
+    for (const t of ['riz 18 000, huile 4 000, sucre 1 500', 'marché 15 000 et poisson 3 000', 'dépensé 3 000 chez le tailleur']) {
+      const r = parseEntryText(t, ctx());
+      expect(r.kind === 'entries' && r.items.every((d) => d.categoryId)).toBe(true);
+      expect(needsAi(r, t)).toBe(false);
+    }
+  });
+});

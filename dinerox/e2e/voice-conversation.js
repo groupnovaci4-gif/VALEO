@@ -178,6 +178,23 @@ let b;
   await btn('Envoyer').click(); await p.waitForTimeout(600);
   ok((await text()).includes("C'est une question ouverte") && (await btn('Ouvrir la conversation').count()) > 0, 'question ouverte : renvoyée à l’assistant (bouton à côté de la bulle)');
 
+  // ── 7. Réglages : montants non lus, puis mode silencieux (texte seul) ──
+  const toggle = async (label) => { await p.getByRole('switch', { name: label }).first().click(); await p.waitForTimeout(500); };
+  await go('/settings/notifications');
+  await toggle('Lire les montants pendant la saisie vocale');
+  await go('/'); await closeCelebration();
+  await mark();
+  await dictate('Taxi 2 000 et loyer 100 000');
+  said = await spoken();
+  ok(said.length === 1 && !/\d/.test(said[0]) && said[0].includes('Je les enregistre ?'), `montants non lus si le réglage est coupé : « ${(said[0] || '').slice(0, 120)} »`);
+  ok((await text()).includes('Soit 102 000 FCFA au total'), '… mais toujours affichés');
+  await go('/settings/notifications');
+  await toggle('Mode silencieux (texte seulement)');
+  await go('/'); await closeCelebration();
+  await mark();
+  await dictate('Taxi 2 000');
+  ok((await spoken()).length === 0 && (await text()).includes("Je l'enregistre ?"), 'mode silencieux : réponse écrite seulement, rien n’est lu');
+
   ok(errs.length === 0, 'aucune erreur JS ' + errs.slice(0, 2).join(' | '));
   process.exitCode = fails ? 1 : 0;
   console.log(fails ? `ÉCHECS ${fails}` : 'CONVERSATION VOCALE : TOUT EST OK');
