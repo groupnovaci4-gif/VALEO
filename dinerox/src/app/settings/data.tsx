@@ -2,6 +2,7 @@
  * Mes données : export complet, consentements, données de démonstration
  * (développement), suppression du compte.
  */
+import { withConsent } from '@/core/aiConsent';
 import React, { useState } from 'react';
 import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
@@ -86,7 +87,7 @@ export default function DataSettings() {
       </Card>
       <SectionHeader title={t('set.preferences')} />
       <Card>
-        <SwitchRow title={t('set.aiConsent')} subtitle={t('set.aiConsentHint')} value={prefs.aiConsent} onChange={(v) => void updateProfile({ preferences: { ...prefs, aiConsent: v } })} />
+        <SwitchRow title={t('set.aiConsent')} subtitle={t('set.aiConsentHint')} value={prefs.aiConsent} onChange={(v) => void updateProfile({ preferences: v ? withConsent(prefs) : { ...prefs, aiConsent: false } })} />
         <SwitchRow title={t('set.analyticsConsent')} subtitle={t('set.analyticsConsentHint')} value={prefs.analyticsConsent} onChange={(v) => void updateProfile({ preferences: { ...prefs, analyticsConsent: v } })} />
       </Card>
       {demoAllowed ? (

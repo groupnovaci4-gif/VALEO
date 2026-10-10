@@ -151,4 +151,17 @@ parseur local reste seul : la saisie n'est jamais bloquée. Seul un appel RÉUSS
 compte : l'essai est réservé avant l'appel, puis rendu si le modèle échoue, dépasse
 le délai, refuse ou répond de façon illisible (`refundVoiceParseUsage`).
 
+**Plafond anti-abus**, en plus du quota : 50 tentatives par utilisateur et par jour,
+toutes formules, échecs COMPRIS (jamais rendues) — `VOICE_PARSE_DAILY_ATTEMPTS`.
+
+**Modèle** : `claude-haiku-5-5`, réflexion désactivée (`thinking: { type: 'disabled' }`,
+`buildParseRequest`) : extraction rapide, sans jetons de réflexion facturés.
+
+**Consentement versionné** (`core/aiConsent.ts`, `preferences.aiConsentVersion`) :
+version 2 = texte de la 1.9 (transcription écrite). Un utilisateur qui avait accepté
+AVANT la 1.9 voit le nouveau texte la première fois qu'une phrase devrait partir à
+l'IA ; rien n'est envoyé avant « J'accepte » (refus : parseur local seul, texte
+reproposé plus tard). Le serveur refuse aussi tout appel sans la version 2.
+L'accord donné dans Réglages ou dans l'assistant enregistre la version 2.
+
 Fiche de test complète : `docs/conversation-vocale-tests.md`.

@@ -55,6 +55,7 @@ import type { EntryMode } from './EntryProvider';
 import { ConversationView } from './ConversationView';
 import { useConversation } from './useConversation';
 import { aiUsage, chooseUnderstanding } from '@/core/entry/aiGuard';
+import { needsConsentRenewal, transcriptConsent, withConsent } from '@/core/aiConsent';
 import { parseVoiceRemotely } from '@/services/voiceParse';
 
 type View_ =
@@ -90,7 +91,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const fmt = useFormatParams();
   const cats = useCategoryLabels();
   const quick = useQuickAdd();
-  const { plan, profile, user, role, mode: appMode, online, activeSpace } = useApp();
+  const { plan, profile, user, role, mode: appMode, online, activeSpace, updateProfile } = useApp();
   const { data, currency, now } = useFinance();
   const stats = useEntryStats();
   const { saveDrafts, undo } = useEntrySave();
@@ -133,7 +134,25 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     talking.current = isTalking;
   }, [isTalking]);
   /** IA autorisée : en ligne, compte connecté, consentement donné (sinon parseur local seul). */
-  const aiAllowed = appMode === 'firebase' && online && !!profile?.preferences.aiConsent;
+  const aiOnline = appMode === 'firebase' && online;
+  const aiAllowed = aiOnline && transcriptConsent(profile?.preferences);
+  /** Accord donné avant la 1.9 : le nouveau texte est montré une fois avant tout envoi. */
+  const aiRenewal = aiOnline && needsConsentRenewal(profile?.preferences);
+  const [consentAsk, setConsentAsk] = useState<{ text: string; local: EntryDraft[]; method: 'voice' | 'text_phrase'; fallback: () => void } | null>(null);
+
+  /** IA si l'utilisateur a accepté le texte actuel ; accord ancien : le nouveau texte d'abord ; sinon local. */
+  const maybeAskAi = (text: string, local: EntryDraft[], method: 'voice' | 'text_phrase', fallback: () => void): boolean => {
+    if (aiAllowed) {
+      askAi(text, local, method, fallback);
+      return true;
+    }
+    if (aiRenewal) {
+      setView({ kind: 'conversation', method, text, edited: false });
+      setConsentAsk({ text, local, method, fallback });
+      return true;
+    }
+    return false;
+  };
 
   /** « Compréhension avancée : 2/3 aujourd'hui » (après un appel à l'IA seulement). */
   const [aiNote, setAiNote] = useState<string | null>(null);
@@ -218,8 +237,9 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     }
     if (r.kind === 'entries') {
       analytics.track('mic_routed', { to: 'entry', method });
-      if (aiAllowed && needsAi(r, text)) askAi(text, r.items, method, () => converse(text, r.items, method));
-      else {
+      // IA consultée (ou nouveau consentement demandé d'abord) ; sinon compris sur l'appareil.
+      const viaAi = needsAi(r, text) && maybeAskAi(text, r.items, method, () => converse(text, r.items, method));
+      if (!viaAi) {
         analytics.track('voice_understood', { source: 'local' });
         converse(text, r.items, method);
       }
@@ -252,8 +272,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     }
     analytics.track('mic_routed', { to: 'ambiguous', method });
     // Rien compris localement : l'IA peut proposer des lignes (revérifiées), sinon « opération ou question ? ».
-    if (aiAllowed && needsAi(r, text)) askAi(text, [], method, () => setView({ kind: 'ambiguous', text }));
-    else setView({ kind: 'ambiguous', text });
+    if (!(needsAi(r, text) && maybeAskAi(text, [], method, () => setView({ kind: 'ambiguous', text })))) setView({ kind: 'ambiguous', text });
     return true;
   };
 
@@ -439,6 +458,25 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
         currency={currency as CurrencyCode}
         busy={busy}
         thinking={!!view.thinking}
+        consent={
+          consentAsk
+            ? {
+                text: t('ai.remoteConsent'),
+                onAccept: () => {
+                  const ask = consentAsk;
+                  setConsentAsk(null);
+                  if (profile) void updateProfile({ preferences: withConsent(profile.preferences) });
+                  askAi(ask.text, ask.local, ask.method, ask.fallback);
+                },
+                onDecline: () => {
+                  // Refus : rien n'est envoyé, le parseur local seul (le texte sera reproposé plus tard).
+                  const ask = consentAsk;
+                  setConsentAsk(null);
+                  ask.fallback();
+                },
+              }
+            : null
+        }
         aiNote={aiNote}
         mic={{
           recording,

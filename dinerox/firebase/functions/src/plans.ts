@@ -59,3 +59,16 @@ export function refundVoiceParseUsage(prev: { day?: unknown; count?: unknown }, 
   const count = prev.day === day ? Number(prev.count ?? 0) : 0;
   return count > 0 ? { voiceParseDay: day, voiceParse: count - 1 } : null;
 }
+
+/**
+ * Plafond ANTI-ABUS, en plus du quota : 50 tentatives par utilisateur et par jour,
+ * échecs compris (jamais rendues), toutes formules.
+ */
+export const VOICE_PARSE_DAILY_ATTEMPTS = 50;
+
+/** Tentative du jour : autorisée ? et nouvelles valeurs à écrire. PUR. */
+export function nextVoiceParseAttempt(prev: { day?: unknown; tries?: unknown }, day: string): { allowed: boolean; patch: { voiceParseTriesDay: string; voiceParseTries: number } } {
+  const tries = prev.day === day ? Number(prev.tries ?? 0) : 0;
+  if (tries >= VOICE_PARSE_DAILY_ATTEMPTS) return { allowed: false, patch: { voiceParseTriesDay: day, voiceParseTries: tries } };
+  return { allowed: true, patch: { voiceParseTriesDay: day, voiceParseTries: tries + 1 } };
+}

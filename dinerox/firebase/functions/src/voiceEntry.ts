@@ -13,6 +13,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 export const VOICE_PARSE_MODEL = 'claude-haiku-5-5';
+/**
+ * Version du texte de consentement qui mentionne l'envoi de la transcription
+ * écrite (1.9). Miroir : `AI_CONSENT_VERSION` dans src/core/aiConsent.ts.
+ */
+export const AI_CONSENT_VERSION = 2;
 /** Délai maximal de l'appel au modèle (l'application abandonne de son côté à 8 s). */
 export const VOICE_PARSE_TIMEOUT_MS = 7000;
 const MAX_LINES = 30;
@@ -123,16 +128,25 @@ export function sanitizeLines(raw: unknown, input: ParseInput): unknown[] | null
   return out;
 }
 
-/** Appel au modèle (sortie structurée). null = refus ou réponse illisible : l'application garde le parseur local. */
-export async function parseWithClaude(apiKey: string, input: ParseInput): Promise<unknown[] | null> {
-  const client = new Anthropic({ apiKey, maxRetries: 0, timeout: VOICE_PARSE_TIMEOUT_MS });
-  const response = await client.beta.messages.create({
+/**
+ * Requête au modèle. Réflexion DÉSACTIVÉE (`thinking: disabled`) : une extraction
+ * simple et rapide (moins de 8 s), sans jetons de réflexion facturés.
+ */
+export function buildParseRequest(input: ParseInput): Anthropic.Beta.Messages.MessageCreateParamsNonStreaming {
+  return {
     model: VOICE_PARSE_MODEL,
     max_tokens: 2000,
+    thinking: { type: 'disabled' },
     system: SYSTEM,
     output_config: { format: { type: 'json_schema', schema: LINES_SCHEMA as unknown as Record<string, unknown> } },
     messages: [{ role: 'user', content: buildUserMessage(input) }],
-  });
+  };
+}
+
+/** Appel au modèle (sortie structurée). null = refus ou réponse illisible : l'application garde le parseur local. */
+export async function parseWithClaude(apiKey: string, input: ParseInput): Promise<unknown[] | null> {
+  const client = new Anthropic({ apiKey, maxRetries: 0, timeout: VOICE_PARSE_TIMEOUT_MS });
+  const response = await client.beta.messages.create(buildParseRequest(input));
   if (response.stop_reason === 'refusal') return null;
   const text = response.content
     .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')

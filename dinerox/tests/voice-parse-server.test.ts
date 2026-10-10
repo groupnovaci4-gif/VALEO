@@ -81,3 +81,40 @@ describe('parseVoiceEntry : seul un appel réussi compte', () => {
     expect(refundVoiceParseUsage({ day: '2026-10-09', count: 3 }, day)).toBeNull();
   });
 });
+
+describe('parseVoiceEntry : réflexion désactivée, plafond anti-abus, consentement 1.9', () => {
+  it('requête au modèle : Haiku 5.5, réflexion désactivée, sortie structurée', async () => {
+    const { buildParseRequest, VOICE_PARSE_MODEL } = await import('../firebase/functions/src/voiceEntry');
+    const r = buildParseRequest(input);
+    expect(VOICE_PARSE_MODEL).toBe('claude-haiku-5-5');
+    expect(r.model).toBe('claude-haiku-5-5');
+    expect(r.thinking).toEqual({ type: 'disabled' });
+    expect(r.output_config?.format?.type).toBe('json_schema');
+  });
+  it('50 tentatives par jour, échecs compris (jamais rendues), en plus du quota', async () => {
+    const { nextVoiceParseAttempt, VOICE_PARSE_DAILY_ATTEMPTS, refundVoiceParseUsage } = await import('../firebase/functions/src/plans');
+    const day = '2026-10-10';
+    expect(VOICE_PARSE_DAILY_ATTEMPTS).toBe(50);
+    expect(nextVoiceParseAttempt({}, day)).toEqual({ allowed: true, patch: { voiceParseTriesDay: day, voiceParseTries: 1 } });
+    expect(nextVoiceParseAttempt({ day, tries: 49 }, day).allowed).toBe(true);
+    expect(nextVoiceParseAttempt({ day, tries: 50 }, day).allowed).toBe(false);
+    expect(nextVoiceParseAttempt({ day: '2026-10-09', tries: 50 }, day).allowed).toBe(true);
+    // Un échec rend l'essai du QUOTA, jamais la tentative : 50 échecs de suite épuisent le plafond.
+    let tries = 0;
+    let quota = 0;
+    for (let i = 0; i < 60; i++) {
+      const a = nextVoiceParseAttempt({ day, tries }, day);
+      if (!a.allowed) break;
+      tries = a.patch.voiceParseTries;
+      quota += 1;
+      quota = refundVoiceParseUsage({ day, count: quota }, day)?.voiceParse ?? 0; // échec du modèle
+    }
+    expect(tries).toBe(50);
+    expect(quota).toBe(0);
+  });
+  it('version du consentement : identique côté serveur et application', async () => {
+    const server = await import('../firebase/functions/src/voiceEntry');
+    const app = await import('../src/core/aiConsent');
+    expect(server.AI_CONSENT_VERSION).toBe(app.AI_CONSENT_VERSION);
+  });
+});

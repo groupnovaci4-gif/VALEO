@@ -520,6 +520,11 @@ export interface UserPreferences {
   autoLockMinutes: number;
   /** Consentement explicite à l'analyse des données par l'assistant IA distant. */
   aiConsent: boolean;
+  /**
+   * 1.9 — Version du texte accepté (2 = envoi possible de la transcription écrite).
+   * Absente : accord antérieur, à renouveler avant tout envoi (`core/aiConsent.ts`).
+   */
+  aiConsentVersion?: number;
   /** Consentement aux statistiques d'usage anonymes. */
   analyticsConsent: boolean;
   budgetMethod: BudgetMethod;

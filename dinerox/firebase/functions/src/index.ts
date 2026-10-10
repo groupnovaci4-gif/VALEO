@@ -13,11 +13,11 @@ import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { setGlobalOptions, logger } from 'firebase-functions/v2';
 import { defineSecret, defineString } from 'firebase-functions/params';
-import { bestPlan, effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium, nextVoiceParseUsage, refundVoiceParseUsage, VOICE_PARSE_DAILY_LIMIT } from './plans';
+import { bestPlan, effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium, nextVoiceParseAttempt, nextVoiceParseUsage, refundVoiceParseUsage, VOICE_PARSE_DAILY_LIMIT } from './plans';
 import { elevenLabsRequest, nextVoiceUsage, validateSpeak } from './voice';
 import { collectEntryCounts, entryUsage, firestoreCounter } from './usage';
 import { answerWithClaude } from './assistant';
-import { parseWithClaude, validateParseInput } from './voiceEntry';
+import { AI_CONSENT_VERSION, parseWithClaude, validateParseInput } from './voiceEntry';
 
 initializeApp();
 const db = getFirestore();
@@ -266,7 +266,8 @@ export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSec
   const input = validateParseInput(req.data);
   if ('error' in input) throw new HttpsError('invalid-argument', input.error);
   const user = await db.doc(`users/${uid}`).get();
-  if (user.get('preferences.aiConsent') !== true) throw new HttpsError('failed-precondition', 'consent/ai');
+  // Consentement au texte de la 1.9 (transcription écrite) : un accord antérieur ne suffit pas.
+  if (user.get('preferences.aiConsent') !== true || Number(user.get('preferences.aiConsentVersion') ?? 0) < AI_CONSENT_VERSION) throw new HttpsError('failed-precondition', 'consent/ai');
   // Formule : la sienne, ou celle du propriétaire d'un espace familial dont il est membre.
   let plan = effectivePlan(user.get('subscription'));
   const spaceId = (req.data ?? {}).spaceId;
@@ -285,6 +286,10 @@ export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSec
   const usageRef = db.doc(`usage/${uid}`);
   const used = await db.runTransaction(async (tx) => {
     const u = await tx.get(usageRef);
+    // Plafond anti-abus d'abord : 50 tentatives par jour, échecs compris (jamais rendues).
+    const attempt = nextVoiceParseAttempt({ day: u.get('voiceParseTriesDay'), tries: u.get('voiceParseTries') }, day);
+    if (!attempt.allowed) throw new HttpsError('resource-exhausted', 'voiceParse/attempts');
+    tx.set(usageRef, attempt.patch, { merge: true });
     const next = nextVoiceParseUsage({ day: u.get('voiceParseDay'), count: u.get('voiceParse') }, day, plan);
     if (!next.allowed) throw new HttpsError('resource-exhausted', 'voiceParse/quota');
     tx.set(usageRef, next.patch, { merge: true });

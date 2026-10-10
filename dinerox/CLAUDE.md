@@ -163,5 +163,9 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     toucher ou par le micro ; montants selon `EntryPrefs.speakAmounts` (distinct de
     `CoachPrefs.speakAmounts`). L'échange n'est ni stocké ni synchronisé.
     Une conversation = UNE saisie vocale (même compteur). Quotas `parseVoiceEntry`
-    par jour : free 3, plus 20, family 20 par membre (`plans.ts` ↔ `subscription.ts`).
+    par jour : free 3, plus 20, family 20 par membre (`plans.ts` ↔ `subscription.ts`),
+    seul un appel réussi compte ; plafond anti-abus de 50 tentatives/jour échecs
+    compris. Réflexion du modèle désactivée. Consentement VERSIONNÉ
+    (`core/aiConsent.ts`, version 2 = transcription) : un accord antérieur à la 1.9
+    ne suffit pas, le nouveau texte est accepté une fois avant tout envoi.
     Chaque scénario : `docs/conversation-vocale-tests.md` + `e2e/voice-conversation.js`.

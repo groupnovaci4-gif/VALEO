@@ -51,6 +51,7 @@ export function ConversationView({
   envelopeName,
   onUndo,
   aiNote,
+  consent,
 }: {
   conv: Conv;
   accounts: Account[];
@@ -70,6 +71,8 @@ export function ConversationView({
   onUndo: (() => void) | null;
   /** Note discrète après un appel à l'IA (usage du jour, ou quota atteint). */
   aiNote?: string | null;
+  /** Accord donné avant la 1.9 : le NOUVEAU texte de consentement, à accepter une fois avant tout envoi. */
+  consent?: { text: string; onAccept: () => void; onDecline: () => void } | null;
 }) {
   const { t } = useI18n();
   const { colors, radius } = useTheme();
@@ -178,6 +181,18 @@ export function ConversationView({
     setAnswer('');
     onReply(text);
   };
+
+  if (consent) {
+    return (
+      <View style={{ gap: 10 }} accessibilityRole="alert">
+        <Text variant="body">{consent.text}</Text>
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+          <Button icon="checkmark" label={t('ai.remoteConsentYes')} onPress={consent.onAccept} />
+          <Button variant="ghost" label={t('conv.offer.no')} onPress={consent.onDecline} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={{ gap: 10 }}>
