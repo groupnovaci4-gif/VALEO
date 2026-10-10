@@ -28,3 +28,24 @@ export function hasAiAssistant(plan: PlanId): boolean {
 export function hasVoicePremium(plan: PlanId): boolean {
   return plan === 'plus' || plan === 'family';
 }
+
+/**
+ * 1.9 — Compréhension des notes vocales complexes par l'IA (`parseVoiceEntry`),
+ * appels par utilisateur et par jour (validés par le fondateur le 2026-10-10).
+ * Famille : par membre. Au-delà : le parseur local de l'application reste seul.
+ * Miroir : `AI_VOICE_PARSE_PER_DAY` dans src/core/subscription.ts.
+ */
+export const VOICE_PARSE_DAILY_LIMIT: Record<PlanId, number> = { free: 3, plus: 20, family: 20 };
+
+const RANK: Record<PlanId, number> = { free: 0, plus: 1, family: 2 };
+/** Meilleure des deux formules (membre d'un espace familial : formule du propriétaire). */
+export function bestPlan(a: PlanId, b: PlanId): PlanId {
+  return RANK[a] >= RANK[b] ? a : b;
+}
+
+/** Compteur du jour : autorisé ? et nouvelles valeurs à écrire. PUR. */
+export function nextVoiceParseUsage(prev: { day?: unknown; count?: unknown }, day: string, plan: PlanId): { allowed: boolean; patch: { voiceParseDay: string; voiceParse: number } } {
+  const count = prev.day === day ? Number(prev.count ?? 0) : 0;
+  if (count >= VOICE_PARSE_DAILY_LIMIT[plan]) return { allowed: false, patch: { voiceParseDay: day, voiceParse: count } };
+  return { allowed: true, patch: { voiceParseDay: day, voiceParse: count + 1 } };
+}

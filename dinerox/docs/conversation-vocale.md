@@ -137,13 +137,16 @@ Appels évités : sur un corpus de 44 phrases réalistes (écrit pour ce test, d
 optimiste), le parseur local en comprend seul 39 (89 %) avant enrichissement du
 vocabulaire, 42 (95 %) après. Le vrai taux se lira dans `voice_understood`.
 
-### Quotas quotidiens proposés (À VALIDER — non appliqués)
+### Quotas quotidiens (validés par le fondateur le 2026-10-10, appliqués)
 
-| Formule | Proposition `parseVoiceEntry` / jour | Coût maximal / utilisateur / mois |
+| Formule | `parseVoiceEntry` / jour | Coût maximal / utilisateur / mois |
 |---|---|---|
 | free | 3 (sur ses 5 saisies vocales) | ≈ 0,045 $ |
 | plus | 20 | ≈ 0,30 $ |
-| family | 20 par membre | ≈ 0,30 $ par membre |
+| family | 20 par membre (formule du propriétaire de l'espace) | ≈ 0,30 $ par membre |
 
-En place aujourd'hui : un plafond anti-abus de 50 appels par jour, toutes formules
-(`VOICE_PARSE_DAILY_CAP`), au-delà duquel le parseur local reste seul.
+Serveur : `VOICE_PARSE_DAILY_LIMIT` (`firebase/functions/src/plans.ts`), miroir
+`AI_VOICE_PARSE_PER_DAY` (`src/core/subscription.ts`, test d'égalité). Au-delà, le
+parseur local reste seul : la saisie n'est jamais bloquée.
+
+Fiche de test complète : `docs/conversation-vocale-tests.md`.

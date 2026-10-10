@@ -162,5 +162,6 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     pour les enveloppes. Voix : seulement si l'utilisateur a parlé, coupée par un
     toucher ou par le micro ; montants selon `EntryPrefs.speakAmounts` (distinct de
     `CoachPrefs.speakAmounts`). L'échange n'est ni stocké ni synchronisé.
-    Une conversation = UNE saisie vocale (même compteur). Coût et quotas proposés
-    de `parseVoiceEntry` : `docs/conversation-vocale.md` (non appliqués sans accord).
+    Une conversation = UNE saisie vocale (même compteur). Quotas `parseVoiceEntry`
+    par jour : free 3, plus 20, family 20 par membre (`plans.ts` ↔ `subscription.ts`).
+    Chaque scénario : `docs/conversation-vocale-tests.md` + `e2e/voice-conversation.js`.

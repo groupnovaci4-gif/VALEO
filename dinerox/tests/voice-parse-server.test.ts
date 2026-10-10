@@ -46,3 +46,21 @@ describe('parseVoiceEntry : sortie', () => {
     expect(LINES_SCHEMA.properties.lines.items.required).toEqual(expect.arrayContaining(['type', 'amount', 'categoryId', 'sourceText', 'confidence']));
   });
 });
+
+describe('parseVoiceEntry : quotas par formule (validés le 2026-10-10)', () => {
+  it('free 3, plus 20, family 20 par membre ; nouveau jour = compteur remis à zéro', async () => {
+    const { VOICE_PARSE_DAILY_LIMIT, nextVoiceParseUsage, bestPlan } = await import('../firebase/functions/src/plans');
+    const { AI_VOICE_PARSE_PER_DAY } = await import('../src/core/subscription');
+    expect(VOICE_PARSE_DAILY_LIMIT).toEqual({ free: 3, plus: 20, family: 20 });
+    expect(AI_VOICE_PARSE_PER_DAY).toEqual(VOICE_PARSE_DAILY_LIMIT); // miroir application ↔ serveur
+    const day = '2026-10-10';
+    expect(nextVoiceParseUsage({ day, count: 2 }, day, 'free')).toEqual({ allowed: true, patch: { voiceParseDay: day, voiceParse: 3 } });
+    expect(nextVoiceParseUsage({ day, count: 3 }, day, 'free').allowed).toBe(false);
+    expect(nextVoiceParseUsage({ day, count: 19 }, day, 'plus').allowed).toBe(true);
+    expect(nextVoiceParseUsage({ day, count: 20 }, day, 'family').allowed).toBe(false);
+    expect(nextVoiceParseUsage({ day: '2026-10-09', count: 3 }, day, 'free')).toEqual({ allowed: true, patch: { voiceParseDay: day, voiceParse: 1 } });
+    // Membre gratuit d'un espace Famille : quota Famille.
+    expect(bestPlan('free', 'family')).toBe('family');
+    expect(bestPlan('plus', 'free')).toBe('plus');
+  });
+});

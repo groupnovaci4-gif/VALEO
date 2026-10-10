@@ -130,7 +130,8 @@ function lineSentence(d: EntryDraft, labels: ConvLabels): Sentence {
  * Après une correction : le nouveau total seulement.
  */
 function totalSentences(drafts: EntryDraft[], labels: ConvLabels, prefix: 'total' | 'newTotal'): Sentence[] {
-  if (!drafts.length) return [];
+  // Aucun montant compris : pas de « Soit 0 F au total » (la ligne est « à vérifier »).
+  if (!drafts.length || !drafts.some((d) => d.amount !== null)) return [];
   const types = [...new Set(drafts.map((d) => d.type))];
   const accounts = [...new Set(drafts.map((d) => d.accountId))];
   const account = accounts.map((a) => labels.account(a)).join(', ');

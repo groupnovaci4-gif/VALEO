@@ -19,6 +19,8 @@ export interface VoiceParseRequest {
   currency: string;
   categories: { id: string; label: string; kind: 'expense' | 'income'; parentId: string | null }[];
   accounts: string[];
+  /** Espace actif : un membre d'un espace familial profite du quota de la formule Famille. */
+  spaceId?: string;
 }
 
 /** Réponse brute (revérifiée par `core/entry/aiGuard`), ou null. */

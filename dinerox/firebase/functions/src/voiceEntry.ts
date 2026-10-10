@@ -15,8 +15,6 @@ import Anthropic from '@anthropic-ai/sdk';
 export const VOICE_PARSE_MODEL = 'claude-haiku-5-5';
 /** Délai maximal de l'appel au modèle (l'application abandonne de son côté à 8 s). */
 export const VOICE_PARSE_TIMEOUT_MS = 7000;
-/** Plafond anti-abus par utilisateur et par jour (toutes formules), en attendant les quotas validés par le fondateur. */
-export const VOICE_PARSE_DAILY_CAP = 50;
 const MAX_LINES = 30;
 
 export interface ParseInput {

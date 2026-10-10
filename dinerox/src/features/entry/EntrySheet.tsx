@@ -90,7 +90,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const fmt = useFormatParams();
   const cats = useCategoryLabels();
   const quick = useQuickAdd();
-  const { plan, profile, user, role, mode: appMode, online } = useApp();
+  const { plan, profile, user, role, mode: appMode, online, activeSpace } = useApp();
   const { data, currency, now } = useFinance();
   const stats = useEntryStats();
   const { saveDrafts, undo } = useEntrySave();
@@ -150,6 +150,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       currency,
       categories: data.categories.filter((c) => !c.deleted && c.disabled !== true).map((c) => ({ id: c.id, label: cats.byId(c.id), kind: c.kind, parentId: c.parentId ?? null })),
       accounts: accounts.map((a) => a.name),
+      spaceId: activeSpace?.id,
     }).then((raw) => {
       const chosen = chooseUnderstanding(local, raw, text, entryCtx);
       analytics.track('voice_understood', { source: chosen.source });

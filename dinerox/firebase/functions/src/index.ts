@@ -13,11 +13,11 @@ import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { setGlobalOptions, logger } from 'firebase-functions/v2';
 import { defineSecret, defineString } from 'firebase-functions/params';
-import { effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium } from './plans';
+import { bestPlan, effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium, nextVoiceParseUsage } from './plans';
 import { elevenLabsRequest, nextVoiceUsage, validateSpeak } from './voice';
 import { collectEntryCounts, entryUsage, firestoreCounter } from './usage';
 import { answerWithClaude } from './assistant';
-import { parseWithClaude, validateParseInput, VOICE_PARSE_DAILY_CAP } from './voiceEntry';
+import { parseWithClaude, validateParseInput } from './voiceEntry';
 
 initializeApp();
 const db = getFirestore();
@@ -267,14 +267,25 @@ export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSec
   if ('error' in input) throw new HttpsError('invalid-argument', input.error);
   const user = await db.doc(`users/${uid}`).get();
   if (user.get('preferences.aiConsent') !== true) throw new HttpsError('failed-precondition', 'consent/ai');
-  // Compteur quotidien (suivi des coûts) et plafond anti-abus.
+  // Formule : la sienne, ou celle du propriétaire d'un espace familial dont il est membre.
+  let plan = effectivePlan(user.get('subscription'));
+  const spaceId = (req.data ?? {}).spaceId;
+  if (typeof spaceId === 'string' && spaceId.startsWith('fam_')) {
+    const space = await db.doc(`spaces/${spaceId}`).get();
+    const members = (space.get('memberIds') as string[] | undefined) ?? [];
+    if (space.exists && members.includes(uid)) {
+      const owner = await db.doc(`users/${space.get('ownerId')}`).get();
+      plan = bestPlan(plan, effectivePlan(owner.get('subscription')));
+    }
+  }
+  // Quota quotidien par formule (free 3, plus 20, family 20 par membre) ; au-delà, parseur local.
   const day = new Date().toISOString().slice(0, 10);
   const usageRef = db.doc(`usage/${uid}`);
   await db.runTransaction(async (tx) => {
     const u = await tx.get(usageRef);
-    const count = u.get('voiceParseDay') === day ? Number(u.get('voiceParse') ?? 0) : 0;
-    if (count >= VOICE_PARSE_DAILY_CAP) throw new HttpsError('resource-exhausted', 'voiceParse/quota');
-    tx.set(usageRef, { voiceParseDay: day, voiceParse: count + 1 }, { merge: true });
+    const next = nextVoiceParseUsage({ day: u.get('voiceParseDay'), count: u.get('voiceParse') }, day, plan);
+    if (!next.allowed) throw new HttpsError('resource-exhausted', 'voiceParse/quota');
+    tx.set(usageRef, next.patch, { merge: true });
   });
   try {
     const lines = await parseWithClaude(ANTHROPIC_API_KEY.value(), input);

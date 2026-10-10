@@ -178,6 +178,67 @@ let b;
   await btn('Envoyer').click(); await p.waitForTimeout(600);
   ok((await text()).includes("C'est une question ouverte") && (await btn('Ouvrir la conversation').count()) > 0, 'question ouverte : renvoyée à l’assistant (bouton à côté de la bulle)');
 
+  // ── Scénarios de la mission, un par un (phrase écrite : même compréhension que la voix) ──
+  const openKeyboard = async () => {
+    const mic = btn('Dicter une opération'); const box = await mic.boundingBox();
+    await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up(); await p.waitForTimeout(600);
+  };
+  const typed = async (phrase) => {
+    await go('/'); await closeCelebration(); await openKeyboard();
+    await p.getByLabel('Écrivez comme vous parlez').fill(phrase); await btn('Comprendre').click(); await p.waitForTimeout(700);
+    return text();
+  };
+  const reply = async (r) => { await p.getByLabel('Votre réponse').fill(r); await btn('Envoyer').click(); await p.waitForTimeout(600); return text(); };
+
+  t = await typed('30 000, non pardon 35 000 en électricité');
+  ok(t.includes("J'ai compris 1 opération") && t.includes('Soit 35 000 FCFA au total'), 'auto-correction : 35 000 retenu (pas 30 000)');
+  t = await typed('taxi 1 000, garba 500, crédit 1 000, loyer 100 000, pharmacie 2 000, marché 15 000, essence 5 000, école 20 000, coiffure 3 000 et facture d’électricité 12 000');
+  ok(t.includes("J'ai compris 10 opérations") && t.includes('Soit 159 500 FCFA au total'), 'liste de 10 lignes : 159 500');
+  t = await typed('trente mille au marché et deux mille cinq cents de crédit');
+  ok(t.includes('Soit 32 500 FCFA au total'), 'montants en lettres : 30 000 + 2 500');
+  t = await typed('pharmacie');
+  ok(t.includes('À vérifier : montant') && (await btn('Tout valider').getAttribute('aria-disabled')) === 'true' && !t.includes('Soit 0 FCFA'), 'ligne sans montant : « à vérifier », validation impossible');
+  t = await typed('2 000 pour djakarta');
+  ok(t.includes('À vérifier : catégorie') && t.includes("Lignes à vérifier avant d'enregistrer : 1"), 'catégorie inconnue (sans IA) : « à vérifier »');
+  t = await typed('hier taxi 2 000 par Orange Money');
+  ok(t.includes('payés depuis Orange Money') && /Taxi/.test(t), 'compte cité : Orange Money');
+  t = await reply('Paie le taxi avec le compte bancaire');
+  ok(t.includes("D'accord, Taxi payé avec Compte bancaire."), 'réponse « paie le taxi avec le compte bancaire »');
+  t = await reply('bof');
+  ok(t.includes("Je n'ai pas bien compris"), 'réponse incomprise : on le dit, sans rien changer');
+  t = await reply('laisse tomber');
+  ok(t.includes("C'est annulé : rien n'a été enregistré."), '« laisse tomber » : annulé');
+  t = await typed('30 000 en eau, 2 000 eau, 500 eau');
+  ok((t.match(/Pour l'eau/g) || []).length === 1, '3 mots ambigus : une question à la fois');
+  await btn("Facture d'eau").click(); await p.waitForTimeout(400);
+  await btn('Eau à boire').click(); await p.waitForTimeout(400);
+  t = await text();
+  ok(t.includes("Lignes à vérifier avant d'enregistrer : 1") && (await btn('Eau à boire').count()) === 0, 'au plus 2 questions : la 3e ligne reste « à vérifier »');
+
+  // Mélange revenu + épargne + dépense, puis proposition de répartition du salaire.
+  const n2 = await historyCount();
+  t = await typed("J'ai reçu mon salaire 250 000, j'ai mis 50 000 de côté et payé 10 000 de transport hier avec le compte bancaire");
+  ok(t.includes('Revenus : 250 000 FCFA.') && t.includes('Épargne : 50 000 FCFA.') && t.includes('Dépenses : 10 000 FCFA.') && t.includes('Je les enregistre ?'), 'mélange : revenu + épargne + dépense, compte d’épargne trouvé');
+  await btn('Tout valider').click(); await p.waitForTimeout(800);
+  t = await text();
+  ok(t.includes("C'est fait : 3 opérations enregistrées.") && t.includes('Voulez-vous répartir ce salaire dans vos enveloppes ?'), 'salaire : répartition PROPOSÉE');
+  await btn('Voir la répartition').click(); await p.waitForTimeout(300);
+  ok((await text()).includes("Proposition seulement : rien n'est modifié dans vos enveloppes."), 'répartition affichée, jamais appliquée');
+  // Le compteur de l'Historique ne compte que entrées et sorties : le versement (transfert) n'y est pas.
+  ok((await historyCount()) === n2 + 2, 'Historique : revenu et dépense comptés (le versement d’épargne est un transfert)');
+  ok(/Compte épargne/.test(await text()), 'versement d’épargne visible dans l’Historique (transfert vers le compte épargne)');
+
+  // Catégorie sans enveloppe : « En créer une ? », une seule fois.
+  t = await typed('dette 5 000');
+  await btn('Tout valider').click(); await p.waitForTimeout(800);
+  t = await text();
+  ok(/Vous n'avez pas d'enveloppe pour .+\. En créer une \?/.test(t), 'catégorie sans enveloppe : « En créer une ? »');
+  await btn("Créer l'enveloppe").click(); await p.waitForTimeout(1500);
+  ok((await text()).includes('Nouvelle enveloppe') || (await text()).includes('Enregistrer'), 'écran d’enveloppe ouvert, prérempli');
+  t = await typed('dette 2 000');
+  await btn('Tout valider').click(); await p.waitForTimeout(800);
+  ok(!(await text()).includes("Vous n'avez pas d'enveloppe pour"), '« En créer une ? » n’est proposé qu’une fois par catégorie');
+
   // ── 7. Réglages : montants non lus, puis mode silencieux (texte seul) ──
   const toggle = async (label) => { await p.getByRole('switch', { name: label }).first().click(); await p.waitForTimeout(500); };
   await go('/settings/notifications');
