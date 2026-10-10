@@ -312,7 +312,7 @@ export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSec
     await refund();
     throw new HttpsError('unavailable', 'voiceParse/unreadable');
   }
-  // Usage du jour (affiché : « Performance avancée : 2/3 aujourd'hui »).
+  // Usage du jour (affiché : « Compréhension avancée : 2/3 aujourd'hui »).
   return { lines, used, limit: VOICE_PARSE_DAILY_LIMIT[plan] };
 });
 

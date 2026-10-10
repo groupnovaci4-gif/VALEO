@@ -135,7 +135,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   /** IA autorisée : en ligne, compte connecté, consentement donné (sinon parseur local seul). */
   const aiAllowed = appMode === 'firebase' && online && !!profile?.preferences.aiConsent;
 
-  /** « Performance avancée : 2/3 aujourd'hui » (après un appel à l'IA seulement). */
+  /** « Compréhension avancée : 2/3 aujourd'hui » (après un appel à l'IA seulement). */
   const [aiNote, setAiNote] = useState<string | null>(null);
 
   const converse = (text: string, drafts: EntryDraft[], method: 'voice' | 'text_phrase') => {
