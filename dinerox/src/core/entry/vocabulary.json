@@ -63,7 +63,9 @@
   "_corrections": "Marqueurs d'auto-correction entre deux montants (« 30 000, non pardon 35 000 ») : le second montant remplace le premier.",
   "corrections": ["non pardon", "pardon", "non", "plutot", "je veux dire", "je voulais dire", "enfin", "je me suis trompe", "correction", "i mean", "sorry", "no"],
   "_ambiguous": "Mots ambigus : sans précision ni mot appris, UNE question courte avec des boutons (jamais deviné). 'options' : cibles essayées dans l'ordre, comme pour 'expense'. 'id' sert aux libellés (entry.ask.<id>, entry.ask.<id>.<option>).",
+  "_answers": "Réponses à une question : 'answers' des options d'une ambiguïté ; 'other' / 'create' pour une catégorie inconnue.",
+  "unknownCategoryAnswers": { "other": ["autre", "autres", "divers", "other"], "create": ["cree", "creer", "creez", "nouvelle", "nouvelle categorie", "create", "new"] },
   "ambiguous": [
-    { "id": "water", "words": ["eau", "water"], "options": [{"id": "bill", "targets": ["sub_housing_water", "cat_housing"]}, {"id": "drink", "targets": ["sub_food_water", "cat_food"]}] }
+    { "id": "water", "words": ["eau", "water"], "options": [{"id": "bill", "targets": ["sub_housing_water", "cat_housing"], "answers": ["facture", "sodeci", "maison", "robinet", "bill"]}, {"id": "drink", "targets": ["sub_food_water", "cat_food"], "answers": ["boire", "minerale", "sachet", "bouteille", "bidon", "drink", "drinking"]}] }
   ]
 }

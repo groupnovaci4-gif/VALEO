@@ -155,3 +155,10 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     active et du bon sens (sinon question « Autres ou créer X ? »). Les ambiguïtés
     sont des DONNÉES (`vocabulary.json` › `ambiguous`) ; un mot appris tranche sans
     redemander.
+    Conversation (`core/entry/conversation.ts`) : PHRASES-MODÈLES uniquement (clé
+    i18n + paramètres calculés), jamais de texte rédigé par l'IA ; au plus 2
+    questions par note ; rien n'est enregistré sans « oui » / « Tout valider » ;
+    enregistrement groupé (tout ou rien, un seul « Annuler ») ; bilan : UNE phrase
+    pour les enveloppes. Voix : seulement si l'utilisateur a parlé, coupée par un
+    toucher ou par le micro ; montants selon `EntryPrefs.speakAmounts` (distinct de
+    `CoachPrefs.speakAmounts`). L'échange n'est ni stocké ni synchronisé.

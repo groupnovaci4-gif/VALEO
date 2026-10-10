@@ -500,6 +500,11 @@ export interface EntryPrefs {
   onDeviceOnly: boolean;
   /** Exemples de phrases dans la bulle de l'accueil. */
   showExamples: boolean;
+  /**
+   * 1.9 — Mini-conversation : relire à voix haute les montants que l'utilisateur
+   * vient de dire (vrai par défaut). Distinct de `CoachPrefs.speakAmounts` (alertes).
+   */
+  speakAmounts: boolean;
 }
 
 export interface UserPreferences {

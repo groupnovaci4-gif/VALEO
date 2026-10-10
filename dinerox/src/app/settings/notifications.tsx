@@ -130,6 +130,7 @@ export default function NotificationSettings() {
         />
         {speechInput().supportsOnDevice() ? <SwitchRow title={t('entry.settings.onDevice')} subtitle={t('entry.settings.onDeviceHint')} value={entry.onDeviceOnly} onChange={(v) => setEntry({ onDeviceOnly: v })} /> : null}
         <SwitchRow title={t('entry.settings.examples')} value={entry.showExamples} onChange={(v) => setEntry({ showExamples: v })} />
+        <SwitchRow title={t('entry.settings.speakAmounts')} subtitle={t('entry.settings.speakAmountsHint')} value={entry.speakAmounts} onChange={(v) => setEntry({ speakAmounts: v })} />
         <Button variant="secondary" icon={testing ? 'stop' : 'mic-outline'} label={t(testing ? 'entry.voice.finish' : 'entry.settings.testMic')} onPress={() => void testMic()} style={{ marginTop: 8 }} />
       </Card>
 

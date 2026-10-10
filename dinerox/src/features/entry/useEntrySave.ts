@@ -4,6 +4,7 @@
  * vous reste X par jour » avec « Voir » et « Annuler » pendant 5 secondes.
  */
 import { learnableWord } from '@/core/entry/keywords';
+import { normalizeWord } from '@/core/categoryCatalog';
 import { useCallback } from 'react';
 import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
@@ -36,6 +37,21 @@ export function useEntrySave() {
     return r.status === 'ok' ? t('entry.savedPerDay', { amount: money(r.perDay) }) : t('entry.saved');
   }, [engine, activeSpace, profile?.financial, t, money]);
 
+  /** Annule tout le groupe d'opérations créées (un seul « Annuler »). */
+  const undo = useCallback(
+    (ids: string[]) => {
+      try {
+        for (const id of ids) actions.remove('transactions', id);
+        toast.show(t('entry.undone'), 'info');
+        return true;
+      } catch {
+        toast.show(t('error.generic'), 'error');
+        return false;
+      }
+    },
+    [actions, toast, t],
+  );
+
   /** « Voir » (Historique) et « Annuler » (suppression des opérations créées), 5 secondes. */
   const undoToast = useCallback(
     (ids: string[]) =>
@@ -46,28 +62,28 @@ export function useEntrySave() {
             label: t('entry.toast.view'),
             onPress: () => router.push('/transactions?from=toast'),
           },
-          {
-            label: t('entry.toast.undo'),
-            onPress: () => {
-              try {
-                for (const id of ids) actions.remove('transactions', id);
-                toast.show(t('entry.undone'), 'info');
-              } catch {
-                toast.show(t('error.generic'), 'error');
-              }
-            },
-          },
+          { label: t('entry.toast.undo'), onPress: () => void undo(ids) },
         ],
       }),
-    [toast, confirmation, actions, t],
+    [toast, confirmation, undo, t],
   );
 
   /** Enregistre les lignes confirmées ; renvoie les identifiants créés. */
   const saveDrafts = useCallback(
-    (drafts: EntryDraft[], method: EntryMethod, corrected = false): string[] => {
+    /** `inline` : la conversation affiche elle-même le bilan et « Annuler » (le message serait caché par la feuille). */
+    (drafts: EntryDraft[], method: EntryMethod, corrected = false, inline = false): string[] => {
       if (!activeSpace) throw new Error('notReady');
       const ids: string[] = [];
+      const createdCategories: string[] = [];
       try {
+        // 1.9 — « Je crée la catégorie X » (réponse dans la conversation) : créée ici, à la validation,
+        // avec le mot entendu comme mot-clé (la prochaine fois, plus de question).
+        drafts = drafts.map((d) => {
+          if (d.categoryId || !d.newCategoryName || d.type === 'savings') return d;
+          const cat = actions.saveCategory({ kind: d.type, name: d.newCategoryName, icon: 'pricetag', color: '#64748B', order: 999, parentId: null, keywords: [normalizeWord(d.newCategoryName)] });
+          createdCategories.push(cat.id);
+          return { ...d, categoryId: cat.id, subcategoryId: null, suggested: { categoryId: cat.id, subcategoryId: null } };
+        });
         for (const d of drafts) {
           // Ligne liée à une tontine : opération réelle + entrée de tontine, en une fois.
           if (d.tontine && d.amount) {
@@ -99,8 +115,9 @@ export function useEntrySave() {
           if (d.reserveId && d.type === 'expense' && reserveEligible(d.categoryId, d.subcategoryId)) actions.takeFromReserve(tx.id, d.reserveId);
         }
       } catch (e) {
-        // Échec en cours de route : rien de partiel (les lignes déjà créées sont retirées).
+        // Échec en cours de route : rien de partiel (les lignes et catégories déjà créées sont retirées).
         for (const id of ids) actions.remove('transactions', id);
+        for (const id of createdCategories) actions.remove('categories', id);
         throw e;
       }
       // 1.8 — Correction de catégorie sur la carte : le mot est retenu pour la prochaine fois
@@ -115,11 +132,11 @@ export function useEntrySave() {
       analytics.track('entry_created', { method, count: drafts.length });
       if (method === 'voice' && corrected) analytics.track('voice_entry_corrected', { method });
       if (user) void recordEntrySuccess(user.uid, { voice: method === 'voice', items: drafts.map((d) => ({ type: d.type === 'savings' ? ('transfer' as const) : d.type, categoryId: d.categoryId, accountId: d.accountId })) }).catch(() => undefined);
-      undoToast(ids);
+      if (!inline) undoToast(ids);
       return ids;
     },
     [actions, activeSpace, user, undoToast],
   );
 
-  return { saveDrafts, undoToast };
+  return { saveDrafts, undoToast, undo };
 }
