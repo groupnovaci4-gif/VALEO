@@ -80,7 +80,7 @@ export interface DraftTontine {
 }
 
 type DraftLike = {
-  type: 'expense' | 'income';
+  type: 'expense' | 'income' | 'savings';
   amount: number | null;
   categoryId: string | null;
   subcategoryId: string | null;

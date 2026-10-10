@@ -18,7 +18,7 @@ import type { Account } from '@/core/types';
 import type { CurrencyCode } from '@/core/money';
 import { CategoryPicker } from '@/features/categories/CategoryPicker';
 
-type Editing = { index: number; field: EntryField | 'date' } | null;
+type Editing = { index: number; field: EntryField | 'date' | 'savingsTo' } | null;
 
 export function ConfirmCard({
   drafts,
@@ -45,6 +45,8 @@ export function ConfirmCard({
   const cats = useCategoryLabels();
   const [editing, setEditing] = useState<Editing>(null);
   const missingAmount = drafts.some((d) => !d.amount || d.amount <= 0);
+  // Versement d'épargne : le compte d'épargne visé doit être choisi (jamais deviné).
+  const missingSavings = drafts.some((d) => d.type === 'savings' && !d.savings?.savingsAccountId);
   const { data } = useFinance();
   // Plusieurs lignes sur la même réserve : chacune voit le solde laissé par les précédentes.
   const taken: Record<string, number> = {};
@@ -71,8 +73,9 @@ export function ConfirmCard({
         const unsure = (f: EntryField) => d.uncertain.includes(f);
         const meta = cats.meta(d.categoryId);
         const acc = accounts.find((a) => a.id === d.accountId);
-        const field = (f: EntryField | 'date', label: string, value: string, icon?: string) => {
-          const hl = f !== 'date' && unsure(f);
+        const savingsTo = d.type === 'savings' ? accounts.find((a) => a.id === d.savings?.savingsAccountId) : undefined;
+        const field = (f: EntryField | 'date' | 'savingsTo', label: string, value: string, icon?: string) => {
+          const hl = f === 'savingsTo' ? !savingsTo : f !== 'date' && unsure(f);
           return (
             <Pressable
               accessibilityRole="button"
@@ -101,10 +104,12 @@ export function ConfirmCard({
         return (
           <View key={i} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: 10, marginBottom: 8, gap: 8 }}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-              {field('type', t('entry.field.type'), d.type === 'expense' ? t('entry.type.expense') : t('entry.type.income'), d.type === 'expense' ? 'arrow-up' : 'arrow-down')}
+              {field('type', t('entry.field.type'), d.type === 'expense' ? t('entry.type.expense') : d.type === 'savings' ? t('entry.type.savings') : t('entry.type.income'), d.type === 'expense' ? 'arrow-up' : d.type === 'savings' ? 'shield-checkmark-outline' : 'arrow-down')}
               {field('amount', t('entry.field.amount'), d.amount ? money(d.amount) : t('entry.confirm.amountMissing'), 'cash-outline')}
-              {field('category', t('entry.field.category'), d.categoryId ? cats.byId(d.subcategoryId ?? d.categoryId) : t('entry.confirm.categoryMissing'), meta.icon)}
-              {field('account', t('entry.field.account'), acc?.name ?? t('entry.confirm.accountAuto'), acc?.icon ?? 'wallet-outline')}
+              {d.type === 'savings'
+                ? field('savingsTo', t('entry.field.savingsTo'), savingsTo?.name ?? t('entry.confirm.savingsMissing'), 'shield-checkmark-outline')
+                : field('category', t('entry.field.category'), d.categoryId ? cats.byId(d.subcategoryId ?? d.categoryId) : t('entry.confirm.categoryMissing'), meta.icon)}
+              {field('account', d.type === 'savings' ? t('entry.field.savingsFrom') : t('entry.field.account'), acc?.name ?? t('entry.confirm.accountAuto'), acc?.icon ?? 'wallet-outline')}
               {field('date', t('entry.field.date'), date(d.date), 'calendar-outline')}
             </View>
             {d.tontine
@@ -124,7 +129,7 @@ export function ConfirmCard({
                   );
                 })()
               : null}
-            <ReserveUseToggle type={d.type} categoryId={d.categoryId} amount={d.amount} value={d.reserveId ?? null} alreadyTaken={takenBefore[i]} onChange={(reserveId) => patch(i, { reserveId }, [])} />
+            <ReserveUseToggle type={d.type === 'savings' ? 'income' : d.type} categoryId={d.categoryId} amount={d.amount} value={d.reserveId ?? null} alreadyTaken={takenBefore[i]} onChange={(reserveId) => patch(i, { reserveId }, [])} />
             {d.uncertain.length ? (
               <Text variant="caption" tone="warning">
                 {t('entry.confirm.check', { fields: d.uncertain.map((f) => t(`entry.field.${f}`)).join(', ') })}
@@ -133,12 +138,20 @@ export function ConfirmCard({
             {editing?.index === i && editing.field === 'type' ? (
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {(['expense', 'income'] as const).map((ty) => (
-                  <Chip key={ty} label={ty === 'expense' ? t('entry.type.expense') : t('entry.type.income')} selected={d.type === ty} onPress={() => (patch(i, { type: ty, ...(ty !== d.type ? { categoryId: null, subcategoryId: null } : {}) }, ['type']), setEditing(null))} />
+                  <Chip key={ty} label={ty === 'expense' ? t('entry.type.expense') : t('entry.type.income')} selected={d.type === ty} onPress={() => (patch(i, { type: ty, savings: null, ...(ty !== d.type ? { categoryId: null, subcategoryId: null } : {}) }, ['type']), setEditing(null))} />
                 ))}
               </View>
             ) : null}
             {editing?.index === i && editing.field === 'amount' ? <AmountField label={t('entry.field.amount')} value={d.amount} onChange={(amount) => patch(i, { amount }, amount && amount > 0 ? ['amount'] : [])} currency={currency} autoFocus /> : null}
-            {editing?.index === i && editing.field === 'category' ? (
+            {editing?.index === i && editing.field === 'savingsTo' ? (
+              <ChipGroup
+                scroll
+                value={d.savings?.savingsAccountId ?? null}
+                onChange={(savingsAccountId) => (patch(i, { savings: { savingsAccountId, goalId: d.savings?.goalId ?? null } }, ['account']), setEditing(null))}
+                options={accounts.filter((a) => a.isSavings).map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))}
+              />
+            ) : null}
+            {editing?.index === i && editing.field === 'category' && d.type !== 'savings' ? (
               <CategoryPicker
                 scroll
                 kind={d.type}
@@ -166,13 +179,18 @@ export function ConfirmCard({
           </View>
         );
       })}
+      {missingSavings ? (
+        <Text variant="small" tone="danger" style={{ marginBottom: 8 }} accessibilityRole="alert">
+          {t('entry.confirm.needSavings')}
+        </Text>
+      ) : null}
       {missingAmount ? (
         <Text variant="small" tone="danger" style={{ marginBottom: 8 }} accessibilityRole="alert">
           {t('entry.confirm.needAmount')}
         </Text>
       ) : null}
       <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        <Button icon="checkmark" label={t('entry.confirm.validate')} onPress={onValidate} disabled={missingAmount || !drafts.length || busy} loading={busy} style={{ flexGrow: 1 }} />
+        <Button icon="checkmark" label={t('entry.confirm.validate')} onPress={onValidate} disabled={missingAmount || missingSavings || !drafts.length || busy} loading={busy} style={{ flexGrow: 1 }} />
         <Button variant="secondary" label={t('entry.confirm.correct')} onPress={onCorrect} />
         <Button variant="ghost" label={t('common.cancel')} onPress={onCancel} />
       </View>

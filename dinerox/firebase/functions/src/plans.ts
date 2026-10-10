@@ -28,3 +28,47 @@ export function hasAiAssistant(plan: PlanId): boolean {
 export function hasVoicePremium(plan: PlanId): boolean {
   return plan === 'plus' || plan === 'family';
 }
+
+/**
+ * 1.9 — Compréhension des notes vocales complexes par l'IA (`parseVoiceEntry`),
+ * appels par utilisateur et par jour (validés par le fondateur le 2026-10-10).
+ * Famille : par membre. Au-delà : le parseur local de l'application reste seul.
+ * Miroir : `AI_VOICE_PARSE_PER_DAY` dans src/core/subscription.ts.
+ */
+export const VOICE_PARSE_DAILY_LIMIT: Record<PlanId, number> = { free: 3, plus: 20, family: 20 };
+
+const RANK: Record<PlanId, number> = { free: 0, plus: 1, family: 2 };
+/** Meilleure des deux formules (membre d'un espace familial : formule du propriétaire). */
+export function bestPlan(a: PlanId, b: PlanId): PlanId {
+  return RANK[a] >= RANK[b] ? a : b;
+}
+
+/** Compteur du jour : autorisé ? et nouvelles valeurs à écrire. PUR. */
+export function nextVoiceParseUsage(prev: { day?: unknown; count?: unknown }, day: string, plan: PlanId): { allowed: boolean; patch: { voiceParseDay: string; voiceParse: number } } {
+  const count = prev.day === day ? Number(prev.count ?? 0) : 0;
+  if (count >= VOICE_PARSE_DAILY_LIMIT[plan]) return { allowed: false, patch: { voiceParseDay: day, voiceParse: count } };
+  return { allowed: true, patch: { voiceParseDay: day, voiceParse: count + 1 } };
+}
+
+/**
+ * Essai RENDU quand l'appel au modèle échoue (erreur, délai dépassé, refus, réponse
+ * illisible) : seul un appel réussi compte dans le quota. null = rien à rendre
+ * (compteur déjà à zéro, ou jour changé entre-temps). PUR.
+ */
+export function refundVoiceParseUsage(prev: { day?: unknown; count?: unknown }, day: string): { voiceParseDay: string; voiceParse: number } | null {
+  const count = prev.day === day ? Number(prev.count ?? 0) : 0;
+  return count > 0 ? { voiceParseDay: day, voiceParse: count - 1 } : null;
+}
+
+/**
+ * Plafond ANTI-ABUS, en plus du quota : 50 tentatives par utilisateur et par jour,
+ * échecs compris (jamais rendues), toutes formules.
+ */
+export const VOICE_PARSE_DAILY_ATTEMPTS = 50;
+
+/** Tentative du jour : autorisée ? et nouvelles valeurs à écrire. PUR. */
+export function nextVoiceParseAttempt(prev: { day?: unknown; tries?: unknown }, day: string): { allowed: boolean; patch: { voiceParseTriesDay: string; voiceParseTries: number } } {
+  const tries = prev.day === day ? Number(prev.tries ?? 0) : 0;
+  if (tries >= VOICE_PARSE_DAILY_ATTEMPTS) return { allowed: false, patch: { voiceParseTriesDay: day, voiceParseTries: tries } };
+  return { allowed: true, patch: { voiceParseTriesDay: day, voiceParseTries: tries + 1 } };
+}

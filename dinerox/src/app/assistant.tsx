@@ -7,6 +7,7 @@
  * facultative, soumise au consentement et à la formule Plus.
  * La conversation reste sur l'appareil (non stockée sur le serveur).
  */
+import { withConsent } from '@/core/aiConsent';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, Pressable, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
@@ -378,7 +379,7 @@ export default function Assistant() {
                     label={t('ai.remoteConsentYes')}
                     onPress={() => {
                       update(m.id, { status: 'done' });
-                      void updateProfile({ preferences: { ...profile!.preferences, aiConsent: true } })
+                      void updateProfile({ preferences: withConsent(profile!.preferences) })
                         .then(() => askRemote(m, true))
                         .catch(() => push({ id: mid(), from: 'assistant', text: t('ai.remoteUnavailable') }));
                     }}

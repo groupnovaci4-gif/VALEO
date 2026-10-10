@@ -14,7 +14,8 @@ import { withSpaceReady } from '@/components/SpaceReady';
 const ICONS = ['home', 'restaurant', 'car', 'heart', 'wallet', 'rocket', 'sparkles', 'school', 'medkit', 'shirt', 'game-controller', 'call', 'gift', 'people'];
 
 function EnvelopeEdit() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  // `categoryId` : proposé par la conversation de saisie (« Vous n'avez pas d'enveloppe pour la Santé »).
+  const { id, categoryId } = useLocalSearchParams<{ id?: string; categoryId?: string }>();
   const { t } = useI18n();
   const errorMessage = useActionErrorMessage();
   const toast = useToast();
@@ -24,11 +25,11 @@ function EnvelopeEdit() {
   const run = useRunAction();
   const cats = useCategoryLabels();
   const existing = data.envelopes.find((e) => e.id === id);
-  const [name, setName] = useState(existing?.name ?? '');
+  const [name, setName] = useState(existing?.name ?? (categoryId ? cats.byId(categoryId) : ''));
   const [budget, setBudget] = useState<number | null>(existing?.monthlyBudget ?? null);
   const [icon, setIcon] = useState(existing?.icon ?? 'wallet');
   const [color, setColor] = useState(existing?.color ?? pickableColors[0]);
-  const [categoryIds, setCategoryIds] = useState<string[]>(existing?.categoryIds ?? []);
+  const [categoryIds, setCategoryIds] = useState<string[]>(existing?.categoryIds ?? (categoryId ? [categoryId] : []));
   const [error, setError] = useState<string | null>(null);
 
   const save = () => {

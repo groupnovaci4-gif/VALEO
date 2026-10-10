@@ -32,7 +32,9 @@ export type AnalyticsEvent =
   | 'voice_entry_failed'
   | 'daily_reminder_opened'
   | 'history_opened'
-  | 'mic_routed';
+  | 'mic_routed'
+  // 1.9 : qui a compris la note vocale (`source` : local, ai) — mesure des appels à l'IA évités.
+  | 'voice_understood';
 
 export { sanitize } from '@/core/analyticsProps';
 type Sink = (event: AnalyticsEvent, props: Props) => void;

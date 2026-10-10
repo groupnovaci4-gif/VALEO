@@ -58,6 +58,12 @@ export const FREE_SIMULATIONS_PER_MONTH = 3;
 export const FREE_SEASONS = 1;
 /** Tontines personnelles ACTIVES en formule gratuite. */
 export const FREE_TONTINES = 1;
+/**
+ * 1.9 — Notes vocales complexes comprises par l'IA, par jour (et par membre en Famille).
+ * Appliqué par le SERVEUR (`parseVoiceEntry`, miroir de `VOICE_PARSE_DAILY_LIMIT`) ;
+ * au-delà, le parseur local reste seul : la saisie n'est jamais bloquée.
+ */
+export const AI_VOICE_PARSE_PER_DAY: Record<PlanId, number> = { free: 3, plus: 20, family: 20 };
 
 export const PLANS: Record<PlanId, PlanDefinition> = {
   free: {

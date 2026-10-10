@@ -13,10 +13,11 @@ import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { setGlobalOptions, logger } from 'firebase-functions/v2';
 import { defineSecret, defineString } from 'firebase-functions/params';
-import { effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium } from './plans';
+import { bestPlan, effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium, nextVoiceParseAttempt, nextVoiceParseUsage, refundVoiceParseUsage, VOICE_PARSE_DAILY_LIMIT } from './plans';
 import { elevenLabsRequest, nextVoiceUsage, validateSpeak } from './voice';
 import { collectEntryCounts, entryUsage, firestoreCounter } from './usage';
 import { answerWithClaude } from './assistant';
+import { AI_CONSENT_VERSION, parseWithClaude, validateParseInput } from './voiceEntry';
 
 initializeApp();
 const db = getFirestore();
@@ -250,6 +251,74 @@ export const financeAssistant = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSe
     logger.error('assistant failed', { status: (e as { status?: number })?.status });
     throw new HttpsError('unavailable', 'ai/unavailable');
   }
+});
+
+// ─── Saisie vocale : compréhension par l'IA (1.9) ─────────────────────
+
+/**
+ * Note vocale complexe → lignes structurées. Appelée par l'application seulement
+ * si le parseur local est peu sûr, en ligne, avec consentement. La transcription
+ * (jamais l'audio) n'est ni stockée ni journalisée. Toute erreur : l'application
+ * garde son parseur local (aucun blocage).
+ */
+export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 15, memory: '256MiB' }, async (req) => {
+  const { uid } = requireAuth(req);
+  const input = validateParseInput(req.data);
+  if ('error' in input) throw new HttpsError('invalid-argument', input.error);
+  const user = await db.doc(`users/${uid}`).get();
+  // Consentement au texte de la 1.9 (transcription écrite) : un accord antérieur ne suffit pas.
+  if (user.get('preferences.aiConsent') !== true || Number(user.get('preferences.aiConsentVersion') ?? 0) < AI_CONSENT_VERSION) throw new HttpsError('failed-precondition', 'consent/ai');
+  // Formule : la sienne, ou celle du propriétaire d'un espace familial dont il est membre.
+  let plan = effectivePlan(user.get('subscription'));
+  const spaceId = (req.data ?? {}).spaceId;
+  if (typeof spaceId === 'string' && spaceId.startsWith('fam_')) {
+    const space = await db.doc(`spaces/${spaceId}`).get();
+    const members = (space.get('memberIds') as string[] | undefined) ?? [];
+    if (space.exists && members.includes(uid)) {
+      const owner = await db.doc(`users/${space.get('ownerId')}`).get();
+      plan = bestPlan(plan, effectivePlan(owner.get('subscription')));
+    }
+  }
+  // Quota quotidien par formule (free 3, plus 20, family 20 par membre) ; au-delà, parseur local.
+  // L'essai est RÉSERVÉ avant l'appel (deux appels simultanés ne dépassent jamais le quota),
+  // puis RENDU si l'appel échoue : seul un appel réussi compte.
+  const day = new Date().toISOString().slice(0, 10);
+  const usageRef = db.doc(`usage/${uid}`);
+  const used = await db.runTransaction(async (tx) => {
+    const u = await tx.get(usageRef);
+    // Plafond anti-abus d'abord : 50 tentatives par jour, échecs compris (jamais rendues).
+    const attempt = nextVoiceParseAttempt({ day: u.get('voiceParseTriesDay'), tries: u.get('voiceParseTries') }, day);
+    if (!attempt.allowed) throw new HttpsError('resource-exhausted', 'voiceParse/attempts');
+    tx.set(usageRef, attempt.patch, { merge: true });
+    const next = nextVoiceParseUsage({ day: u.get('voiceParseDay'), count: u.get('voiceParse') }, day, plan);
+    if (!next.allowed) throw new HttpsError('resource-exhausted', 'voiceParse/quota');
+    tx.set(usageRef, next.patch, { merge: true });
+    return next.patch.voiceParse;
+  });
+  const refund = () =>
+    db
+      .runTransaction(async (tx) => {
+        const u = await tx.get(usageRef);
+        const patch = refundVoiceParseUsage({ day: u.get('voiceParseDay'), count: u.get('voiceParse') }, day);
+        if (patch) tx.set(usageRef, patch, { merge: true });
+      })
+      .catch(() => logger.warn('voiceParse refund failed'));
+  let lines: unknown[] | null;
+  try {
+    lines = await parseWithClaude(ANTHROPIC_API_KEY.value(), input);
+  } catch (e) {
+    // Erreur ou délai dépassé : l'essai est rendu. Jamais la transcription dans les journaux.
+    await refund();
+    logger.warn('voiceParse failed', { status: (e as { status?: number })?.status ?? 'timeout' });
+    throw new HttpsError('unavailable', 'voiceParse/unavailable');
+  }
+  if (!lines) {
+    // Refus ou réponse illisible : l'essai est rendu aussi.
+    await refund();
+    throw new HttpsError('unavailable', 'voiceParse/unreadable');
+  }
+  // Usage du jour (affiché : « Compréhension avancée : 2/3 aujourd'hui »).
+  return { lines, used, limit: VOICE_PARSE_DAILY_LIMIT[plan] };
 });
 
 // ─── Voix premium du coach ────────────────────────────────────────────

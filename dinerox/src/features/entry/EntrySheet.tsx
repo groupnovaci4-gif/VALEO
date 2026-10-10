@@ -10,6 +10,11 @@
  * sans « Tout valider ». Une question est répondue ici (ou ouverte dans
  * l'assistant) ; un doute (« opération ou question ? ») est demandé.
  * Si la voix échoue, la saisie manuelle et la phrase restent disponibles.
+ *
+ * 1.9 — Voix et phrase ouvrent une MINI-CONVERSATION (`ConversationView`) :
+ * reformulation lue à voix haute, questions, corrections dites (« le loyer c'est
+ * 120 000 »), puis « oui ». L'IA (`parseVoiceEntry`) n'est appelée que si le
+ * parseur local est peu sûr, en ligne et avec consentement.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -21,7 +26,7 @@ import { useFormatParams } from '@/hooks/useInsightText';
 import { Button, Chip, Field, Icon, Segmented, Sheet, Text, useToast } from '@/components/ui';
 import { useTheme } from '@/theme';
 import { useQuickAdd } from '@/features/QuickAdd';
-import { parseEntryText, type EntryDraft, type EntryParse } from '@/core/entry/parse';
+import { needsAi, parseEntryText, type EntryContext, type EntryDraft, type EntryParse } from '@/core/entry/parse';
 import { entryVocabularyWords } from '@/core/entry/vocabularyWords';
 import { recentCategories } from '@/core/entry/recent';
 import { entryPrefs } from '@/core/entry/prefs';
@@ -38,7 +43,7 @@ import { applyTontine } from '@/core/tontineEntry';
 import { tontineContributionCategory } from '@/core/tontine';
 import { canUseReserve } from '@/core/permissions';
 import { ConfirmCard } from './ConfirmCard';
-import { useEntrySave, type EntryMethod } from './useEntrySave';
+import { UNDO_MS, useEntrySave, type EntryMethod } from './useEntrySave';
 import { useEntryStats } from './useEntryStats';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { useCategoryPick } from '@/features/categories/CategoryPicker';
@@ -47,9 +52,16 @@ import { useCategoryCatalog } from '@/services/categoryCatalog';
 import { liveTranscript } from '@/core/entry/recorder';
 import { RecorderBar } from './RecorderBar';
 import type { EntryMode } from './EntryProvider';
+import { ConversationView } from './ConversationView';
+import { useConversation } from './useConversation';
+import { aiUsage, chooseUnderstanding } from '@/core/entry/aiGuard';
+import { needsConsentRenewal, transcriptConsent, withConsent } from '@/core/aiConsent';
+import { parseVoiceRemotely } from '@/services/voiceParse';
 
 type View_ =
   | { kind: 'input' }
+  /** 1.9 — Mini-conversation (voix ou phrase) ; `thinking` : l'IA est consultée. */
+  | { kind: 'conversation'; method: EntryMethod; text: string; edited: boolean; thinking?: boolean }
   | { kind: 'confirm'; drafts: EntryDraft[]; method: EntryMethod; text: string; edited: boolean }
   | { kind: 'answer'; text: string; bullets: string[]; question: string }
   | { kind: 'ambiguous'; text: string };
@@ -79,10 +91,17 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const fmt = useFormatParams();
   const cats = useCategoryLabels();
   const quick = useQuickAdd();
-  const { plan, profile, user, role } = useApp();
+  const { plan, profile, user, role, mode: appMode, online, activeSpace, updateProfile } = useApp();
   const { data, currency, now } = useFinance();
   const stats = useEntryStats();
-  const { saveDrafts } = useEntrySave();
+  const { saveDrafts, undo } = useEntrySave();
+  /** Opérations du dernier « oui » : « Annuler » les retire toutes, pendant 5 secondes. */
+  const [undoIds, setUndoIds] = useState<string[] | null>(null);
+  useEffect(() => {
+    if (!undoIds) return;
+    const timer = setTimeout(() => setUndoIds(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [undoIds]);
   const [view, setView] = useState<View_>({ kind: 'input' });
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amountText, setAmountText] = useState('');
@@ -105,10 +124,81 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const visibleIds = useMemo(() => pickCategories(pick.categories, { ...pick.base, kind: type, showAll: false, query: '', recent: [] }).map((c) => c.id), [pick.categories, pick.base, type]);
   const recent = useMemo(() => recentCategories(stats?.recent[type] ?? [], visibleIds, data.categories.filter((c) => visibleIds.includes(c.id) || !!c.parentId), 6), [stats?.recent, type, visibleIds, data.categories]);
 
+  // ─── Mini-conversation (1.9) ───────────────────────────────────────
+  const entryCtx: EntryContext = { today: now, currency: currency as CurrencyCode, accounts, categories: data.categories, defaultAccountId, catalog, goals: data.goals };
+  const conv = useConversation(entryCtx);
+  /** Vrai pendant la conversation : une note vocale est alors une RÉPONSE, pas une nouvelle saisie. */
+  const talking = useRef(false);
+  const isTalking = view.kind === 'conversation' && conv.phase === 'talking';
+  useEffect(() => {
+    talking.current = isTalking;
+  }, [isTalking]);
+  /** IA autorisée : en ligne, compte connecté, consentement donné (sinon parseur local seul). */
+  const aiOnline = appMode === 'firebase' && online;
+  const aiAllowed = aiOnline && transcriptConsent(profile?.preferences);
+  /** Accord donné avant la 1.9 : le nouveau texte est montré une fois avant tout envoi. */
+  const aiRenewal = aiOnline && needsConsentRenewal(profile?.preferences);
+  const [consentAsk, setConsentAsk] = useState<{ text: string; local: EntryDraft[]; method: 'voice' | 'text_phrase'; fallback: () => void } | null>(null);
+
+  /** IA si l'utilisateur a accepté le texte actuel ; accord ancien : le nouveau texte d'abord ; sinon local. */
+  const maybeAskAi = (text: string, local: EntryDraft[], method: 'voice' | 'text_phrase', fallback: () => void): boolean => {
+    if (aiAllowed) {
+      askAi(text, local, method, fallback);
+      return true;
+    }
+    if (aiRenewal) {
+      setView({ kind: 'conversation', method, text, edited: false });
+      setConsentAsk({ text, local, method, fallback });
+      return true;
+    }
+    return false;
+  };
+
+  /** « Compréhension avancée : 2/3 aujourd'hui » (après un appel à l'IA seulement). */
+  const [aiNote, setAiNote] = useState<string | null>(null);
+
+  const converse = (text: string, drafts: EntryDraft[], method: 'voice' | 'text_phrase') => {
+    setView({ kind: 'conversation', method, text, edited: false });
+    conv.start(text, drafts, method);
+  };
+
+  /** Le parseur local est peu sûr : l'IA est consultée (8 s au plus), sa réponse est revérifiée. */
+  const askAi = (text: string, local: EntryDraft[], method: 'voice' | 'text_phrase', fallback: () => void) => {
+    setView({ kind: 'conversation', method, text, edited: false, thinking: true });
+    void parseVoiceRemotely({
+      transcript: text,
+      language: lang === 'en' ? 'en' : 'fr',
+      today: now,
+      currency,
+      categories: data.categories.filter((c) => !c.deleted && c.disabled !== true).map((c) => ({ id: c.id, label: cats.byId(c.id), kind: c.kind, parentId: c.parentId ?? null })),
+      accounts: accounts.map((a) => a.name),
+      spaceId: activeSpace?.id,
+    }).then((res) => {
+      // Note discrète, seulement quand l'IA a été sollicitée : usage du jour, ou quota atteint.
+      const usage = res === 'quota' ? null : aiUsage(res);
+      setAiNote(res === 'quota' ? t('conv.aiQuotaReached') : usage ? t('conv.aiQuota', { used: usage.used, limit: usage.limit }) : null);
+      const raw = res === 'quota' ? null : res;
+      const chosen = chooseUnderstanding(local, raw, text, entryCtx);
+      analytics.track('voice_understood', { source: chosen.source });
+      if (chosen.drafts.length) converse(text, chosen.drafts, method);
+      else fallback();
+    });
+  };
+
+  /** Réponse à une question posée à la place d'une saisie : calculée par le code (thèmes gratuits) ou verrouillée. */
+  const answerFor = (intent: Extract<EntryParse, { kind: 'question' }>['intent']): { text: string; bullets: string[] } => {
+    if (!hasFeature(plan, 'ai_assistant') && !FREE_TOPICS.has(intent.topic)) return { text: t('ai.locked'), bullets: [] };
+    const a = answerQuestion({ ...intent, amount: intent.amount === null ? null : toMinor(intent.amount, currency) }, { data, currency: currency as CurrencyCode, now, categoryName: cats.byId });
+    return {
+      text: hasKey(a.key) ? t(a.key, fmt(a.params, { monthDates: true })) : '',
+      bullets: (a.bullets ?? []).map((b) => (hasKey(b.key) ? t(b.key as TKey, fmt(b.params, { monthDates: true })) : '')).filter(Boolean),
+    };
+  };
+
   // ─── Analyse d'un texte (voix ou phrase) ───────────────────────────
   /** Analyse un texte ; faux si rien n'a été compris (« Je n'ai rien entendu »). */
   const analyze = (text: string, method: 'voice' | 'text_phrase'): boolean => {
-    const r: EntryParse = parseEntryText(text, { today: now, currency: currency as CurrencyCode, accounts, categories: data.categories, defaultAccountId, catalog, goals: data.goals });
+    const r: EntryParse = parseEntryText(text, entryCtx);
     // Tontine : « Tontine 10 000 », « J'ai cotisé ma tontine du bureau », « J'ai reçu la tontine »
     // → la tontine correspondante est proposée sur la carte de confirmation.
     const has = (id: string) => data.categories.some((c) => c.id === id && !c.deleted);
@@ -126,7 +216,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     });
     if (withTontine) {
       analytics.track('mic_routed', { to: 'entry', method });
-      setView({ kind: 'confirm', drafts: withTontine, method, text, edited: false });
+      converse(text, withTontine, method);
       return true;
     }
     if (r.kind === 'empty') {
@@ -147,7 +237,12 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     }
     if (r.kind === 'entries') {
       analytics.track('mic_routed', { to: 'entry', method });
-      setView({ kind: 'confirm', drafts: r.items, method, text, edited: false });
+      // IA consultée (ou nouveau consentement demandé d'abord) ; sinon compris sur l'appareil.
+      const viaAi = needsAi(r, text) && maybeAskAi(text, r.items, method, () => converse(text, r.items, method));
+      if (!viaAi) {
+        analytics.track('voice_understood', { source: 'local' });
+        converse(text, r.items, method);
+      }
       return true;
     }
     if (r.kind === 'question' && r.intent.topic === 'contribution_sim') {
@@ -164,13 +259,9 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
         setView({ kind: 'answer', text: t('ai.locked'), bullets: [], question: text });
         return true;
       }
-      const a = answerQuestion({ ...r.intent, amount: r.intent.amount === null ? null : toMinor(r.intent.amount, currency) }, { data, currency: currency as CurrencyCode, now, categoryName: cats.byId });
-      setView({
-        kind: 'answer',
-        text: hasKey(a.key) ? t(a.key, fmt(a.params, { monthDates: true })) : '',
-        bullets: (a.bullets ?? []).map((b) => (hasKey(b.key) ? t(b.key as TKey, fmt(b.params, { monthDates: true })) : '')).filter(Boolean),
-        question: text,
-      });
+      const a = answerFor(r.intent);
+      setView({ kind: 'answer', text: a.text, bullets: a.bullets, question: text });
+      if (method === 'voice') conv.speakNow([a.text, ...a.bullets]);
       return true;
     }
     if (r.kind === 'assistant') {
@@ -180,8 +271,29 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       return true;
     }
     analytics.track('mic_routed', { to: 'ambiguous', method });
-    setView({ kind: 'ambiguous', text });
+    // Rien compris localement : l'IA peut proposer des lignes (revérifiées), sinon « opération ou question ? ».
+    if (!(needsAi(r, text) && maybeAskAi(text, [], method, () => setView({ kind: 'ambiguous', text })))) setView({ kind: 'ambiguous', text });
     return true;
+  };
+
+  /** Réponse dite ou écrite pendant la conversation. */
+  const replyInConversation = (text: string, aloud: boolean) => {
+    const next = conv.reply(text, aloud);
+    if (next === 'confirm') validateConversation(aloud);
+    else if (next === 'cancel') {
+      toast.show(t('conv.cancelled'), 'info');
+      onClose();
+    } else if (next === 'question') {
+      // Question dans la conversation : même réponse calculée que l'assistant.
+      const q = parseEntryText(text, entryCtx);
+      if (q.kind === 'question') {
+        const a = answerFor(q.intent);
+        conv.sayText(a.text, a.bullets, aloud);
+      } else {
+        // Question ouverte : l'assistant (analyse détaillée par financeAssistant, avec consentement).
+        conv.sayText(t('conv.openQuestion'), [], aloud, text);
+      }
+    }
   };
 
   // ─── Voix : enregistrement « comme WhatsApp » ─────────────────────
@@ -191,6 +303,12 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     { language: ePrefs.voiceLanguage ?? (lang === 'en' ? 'en' : 'fr'), onDeviceOnly: ePrefs.onDeviceOnly, contextualStrings: entryVocabularyWords() },
     {
       onDeliver: (text) => {
+        // Pendant la conversation, la note vocale est une RÉPONSE (« oui », « le loyer c'est 120 000 »).
+        if (talking.current) {
+          replyInConversation(text, true);
+          recorder.processed(true);
+          return;
+        }
         setPartial(text);
         const understood = analyze(text, 'voice');
         if (!understood) analytics.track('voice_entry_failed', { reason: 'no_speech' });
@@ -214,14 +332,17 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     await stopVoice().catch(() => undefined);
     setPartial('');
     setVoice('idle');
+    // Réponse dans la conversation : l'enregistreur sort de l'état « livré » de la note précédente.
+    if (rec.status === 'confirm') recorder.reset();
     recorder.tap();
   };
 
-  const startVoice = async () => {
+  /** `reply` : réponse dans une conversation déjà commencée (même saisie : le compteur n'est pas reconsulté). */
+  const startVoice = async (reply = false) => {
     // Compteur relu à la source : l'écoute peut démarrer avant que les compteurs ne soient chargés.
-    const fresh = user ? await readEntryStats(user.uid).catch(() => null) : null;
+    const fresh = user && !reply ? await readEntryStats(user.uid).catch(() => null) : null;
     const used = fresh ? voiceToday(fresh) : stats ? voiceToday(stats) : 0;
-    if (!withinLimit(plan, 'voiceEntriesPerDay', used)) {
+    if (!reply && !withinLimit(plan, 'voiceEntriesPerDay', used)) {
       setVoice('limit');
       analytics.track('voice_entry_failed', { reason: 'limit' });
       return;
@@ -252,7 +373,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   useEffect(() => {
     if (mode !== 'voice' || started.current) return;
     started.current = true;
-    void Promise.resolve().then(startVoice);
+    void Promise.resolve().then(() => startVoice());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
@@ -291,6 +412,30 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   };
 
   // ─── Confirmation ──────────────────────────────────────────────────
+  /**
+   * « Oui » ou « Tout valider » dans la conversation : enregistrement GROUPÉ
+   * (tout ou rien, un seul « Annuler »), puis bilan calculé, lu et affiché.
+   */
+  const validateConversation = (aloud: boolean) => {
+    if (view.kind !== 'conversation' || !conv.state) return;
+    const drafts = conv.state.drafts;
+    if (!drafts.length || drafts.some((d) => !d.amount || d.amount <= 0 || (d.type === 'savings' && !d.savings?.savingsAccountId))) {
+      conv.sayText(t('conv.toCheck', { count: drafts.filter((d) => !d.amount || (d.type === 'savings' && !d.savings?.savingsAccountId)).length }), [], aloud);
+      return;
+    }
+    setBusy(true);
+    try {
+      const before = conv.statusesNow();
+      const ids = saveDrafts(drafts, view.method, view.edited, true);
+      conv.saved(drafts, before, aloud);
+      setUndoIds(ids);
+    } catch (e) {
+      toast.show(e instanceof ActionError && e.code === 'permission' ? t('error.permission') : t('error.generic'), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const validate = () => {
     if (view.kind !== 'confirm') return;
     setBusy(true);
@@ -305,6 +450,67 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   };
 
   // ─── Rendu ─────────────────────────────────────────────────────────
+  if (view.kind === 'conversation') {
+    return (
+      <ConversationView
+        conv={conv}
+        accounts={accounts}
+        currency={currency as CurrencyCode}
+        busy={busy}
+        thinking={!!view.thinking}
+        consent={
+          consentAsk
+            ? {
+                text: t('ai.remoteConsent'),
+                onAccept: () => {
+                  const ask = consentAsk;
+                  setConsentAsk(null);
+                  if (profile) void updateProfile({ preferences: withConsent(profile.preferences) });
+                  askAi(ask.text, ask.local, ask.method, ask.fallback);
+                },
+                onDecline: () => {
+                  // Refus : rien n'est envoyé, le parseur local seul (le texte sera reproposé plus tard).
+                  const ask = consentAsk;
+                  setConsentAsk(null);
+                  ask.fallback();
+                },
+              }
+            : null
+        }
+        aiNote={aiNote}
+        mic={{
+          recording,
+          processing: rec.status === 'processing',
+          live: recording ? liveTranscript(rec) : '',
+          elapsed: rec.elapsed,
+          levels: recorder.levels,
+          hasVolume: recorder.hasVolume,
+          bars: recorder.bars,
+          start: () => void startVoice(true),
+          stop: recorder.tap,
+          cancel: recorder.cancel,
+        }}
+        onValidate={() => validateConversation(false)}
+        onCancel={onClose}
+        onReply={(text) => replyInConversation(text, false)}
+        onRestart={(text) => {
+          setAiNote(null);
+          setView({ kind: 'input' });
+          analyze(text, view.method === 'voice' ? 'voice' : 'text_phrase');
+        }}
+        onClose={onClose}
+        envelopeName={(id) => data.envelopes.find((e) => e.id === id)?.name ?? ''}
+        onUndo={
+          undoIds
+            ? () => {
+                if (undo(undoIds)) conv.undone();
+                setUndoIds(null);
+              }
+            : null
+        }
+      />
+    );
+  }
   if (view.kind === 'confirm') {
     return (
       <ConfirmCard

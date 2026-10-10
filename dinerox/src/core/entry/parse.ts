@@ -12,6 +12,11 @@
  *  - questions (« Combien j'ai dépensé… ? ») reconnues et renvoyées à l'assistant ;
  *  - 1.8 : « J'ai épargné 20 000 », « Verse 10 000 dans mon épargne » → VERSEMENT
  *    d'épargne (`kind: 'savings'`), jamais une dépense : épargner n'est pas dépenser.
+ *  - 1.9 (mini-conversation, `docs/conversation-vocale.md`) : longues listes (« , »,
+ *    « et », « puis », « aussi »), mots de remplissage ignorés (« ainsi de suite »),
+ *    auto-corrections (« 30 000, non pardon 35 000 »), mot ambigu → UNE question
+ *    (`question`, jamais deviné), versement d'épargne dans une liste (`type: 'savings'`),
+ *    score de confiance par ligne (`confidence`).
  */
 import { accountHints, normalizeText, parseIntent, extractPayee, resolveAccountHint, type ParsedIntent } from '../ai/parser';
 import { addDays, parseISODate, type ISODate } from '../dates';
@@ -24,8 +29,18 @@ import VOCAB from './vocabulary.json';
 
 export type EntryField = 'amount' | 'type' | 'category' | 'account';
 
+/** Question courte posée au lieu de deviner (« Pour l'eau : la facture d'eau ou de l'eau à boire ? »). */
+export interface EntryQuestion {
+  /** Identifiant de l'ambiguïté (libellés `entry.ask.<id>`), ou `unknownCategory`. */
+  id: string;
+  /** Mot entendu (« eau », ou nom d'une catégorie inexistante). */
+  word: string;
+  options: { id: string; categoryId: string | null; subcategoryId: string | null }[];
+}
+
 export interface EntryDraft {
-  type: 'expense' | 'income';
+  /** `savings` : versement vers l'épargne (1.9, dans une liste) — jamais une dépense. */
+  type: 'expense' | 'income' | 'savings';
   /** Unités mineures ; null = montant non compris (enregistrement impossible). */
   amount: number | null;
   categoryId: string | null;
@@ -43,6 +58,14 @@ export interface EntryDraft {
   tontine?: { id: string; period: number; kind: 'contribution' | 'payout' } | null;
   /** 1.8 — Catégorie proposée par le parseur (pour apprendre d'une correction sur la carte). */
   suggested?: { categoryId: string | null; subcategoryId: string | null };
+  /** 1.9 — Confiance de 0 à 1 (calculée : champs incertains, question en attente). */
+  confidence?: number;
+  /** 1.9 — Question à poser pour cette ligne (au plus 2 par note vocale). */
+  question?: EntryQuestion | null;
+  /** 1.9 — Versement d'épargne (`type: 'savings'`) : compte d'épargne visé (null = à choisir) et objectif cité. */
+  savings?: { savingsAccountId: string | null; goalId: string | null } | null;
+  /** 1.9 — Catégorie à créer à la validation (réponse « Créer la catégorie X »). */
+  newCategoryName?: string | null;
 }
 
 export interface SavingsDepositDraft {
@@ -95,6 +118,9 @@ const vocab = VOCAB as unknown as {
   expenseMarkers: string[];
   todayWords: string[];
   slangUnits: { word: string; actif: boolean }[];
+  fillers: string[];
+  corrections: string[];
+  ambiguous: { id: string; words: string[]; options: { id: string; targets: string[] }[] }[];
 };
 
 const escape = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -150,10 +176,41 @@ export function relativeDate(text: string, today: ISODate): ISODate | null {
   return null;
 }
 
-/** Découpe une phrase en segments d'opération : virgules, points-virgules, « et », « puis », puis un segment par montant. */
+/** Mots de remplissage retirés (« ainsi de suite », « etc. », « euh ») : ils ne créent aucune ligne. */
+export function stripFillers(text: string): string {
+  let out = text;
+  for (const w of [...vocab.fillers].sort((a, b) => b.length - a.length)) out = out.replace(new RegExp(`(^|[^a-z0-9])${escape(w)}(?=$|[^a-z0-9])\\.?`, 'g'), '$1 ');
+  return out.replace(/\s+([,.;])/g, '$1').replace(/([,.;])(\s*[,.;])+/g, '$1').replace(/\s+/g, ' ').trim();
+}
+
+const CORRECTION = new RegExp(`^[\\s,.;:!-]*(?:(?:${vocab.corrections.map(escape).join('|')})[\\s,.;:!-]*)+$`);
+
+/**
+ * Auto-correction dans la phrase : « 30 000, non pardon 35 000 en électricité » →
+ * « 35 000 en électricité ». Seuls des marqueurs de correction séparent les deux
+ * montants ; le premier est alors retiré (il a bien été prononcé, mais corrigé).
+ */
+export function applySelfCorrections(text: string): string {
+  let out = text;
+  for (;;) {
+    const spans = amountSpans(out);
+    let changed = false;
+    for (let i = 0; i + 1 < spans.length; i++) {
+      const between = out.slice(spans[i].end, spans[i + 1].start);
+      if (between.trim() && CORRECTION.test(between)) {
+        out = `${out.slice(0, spans[i].start)}${out.slice(spans[i + 1].start)}`;
+        changed = true;
+        break;
+      }
+    }
+    if (!changed) return out;
+  }
+}
+
+/** Découpe une phrase en segments d'opération : virgules, points-virgules, « et », « puis », « aussi », puis un segment par montant. */
 export function splitSegments(text: string): string[] {
   const coarse = text
-    .split(/,(?!\d)|;|\.(?!\d)|\s+(?:et|puis|and|then)\s+/)
+    .split(/,(?!\d)|;|\.(?!\d)|\s+(?:et|puis|aussi|and|then|also)\s+/)
     .map((s) => s.trim())
     .filter(Boolean);
   const out: string[] = [];
@@ -179,15 +236,19 @@ export function splitSegments(text: string): string[] {
  * bénéficiaire garde sa casse) ; tout le reste travaille sur le texte normalisé.
  */
 export function parseEntryText(original: string, ctx: EntryContext): EntryParse {
-  const text = normalizeText(original);
+  // Mots de remplissage retirés, auto-corrections appliquées (« 30 000, non pardon 35 000 »).
+  const text = applySelfCorrections(stripFillers(normalizeText(original)));
   if (!text) return { kind: 'empty' };
 
-  const deposit = parseSavingsDeposit(text, ctx);
+  // Un SEUL versement (« J'ai mis 50 000 de côté ») : écran « Mon épargne ». Dans une liste
+  // de plusieurs montants, le versement devient une ligne de la liste (plus bas).
+  const deposit = amountSpans(text).length <= 1 ? parseSavingsDeposit(text, ctx) : null;
   if (deposit) return { kind: 'savings', deposit };
 
   const intent = parseIntent(original, ctx.today);
   if (intent.kind === 'question') return { kind: 'question', intent };
-  if (intent.kind === 'transfer' || intent.kind === 'goal') return { kind: 'assistant', intent };
+  // Une liste de plusieurs montants est une suite d'opérations, pas un transfert ni un projet.
+  if ((intent.kind === 'transfer' || intent.kind === 'goal') && amountSpans(text).length <= 1) return { kind: 'assistant', intent };
 
   const accounts = ctx.accounts.filter((a) => !a.deleted && a.active);
   // 1.8 : mots appris, mots de l'utilisateur, mots-clés du catalogue (avant le vocabulaire local).
@@ -200,7 +261,7 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
   const merged: string[] = [];
   let carry = '';
   for (const seg of segments) {
-    const meaningful = amountSpans(seg).length > 0 || findVocab(seg, vocab.expense) || findVocab(seg, vocab.income) || kw(seg, 'expense') || kw(seg, 'income');
+    const meaningful = amountSpans(seg).length > 0 || findVocab(seg, vocab.expense) || findVocab(seg, vocab.income) || kw(seg, 'expense') || kw(seg, 'income') || findAmbiguous(seg);
     if (!meaningful) {
       carry = `${carry} ${seg}`.trim();
       continue;
@@ -226,6 +287,28 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
     const amount = spans.length && !slang ? toMinor(spans[0].value, ctx.currency) : null;
     if (amount === null) uncertain.add('amount');
 
+    // Versement d'épargne au milieu d'une liste (« … et j'ai mis 50 000 de côté »).
+    const dep = merged.length > 1 ? parseSavingsDeposit(seg, ctx) : null;
+    if (dep) {
+      const ownDate = relativeDate(seg, ctx.today);
+      if (ownDate) lastDate = ownDate;
+      if (!dep.savingsAccountId) uncertain.add('account');
+      const draft: EntryDraft = {
+        type: 'savings',
+        amount,
+        categoryId: null,
+        subcategoryId: null,
+        accountId: dep.fromAccountId ?? ctx.defaultAccountId,
+        date: ownDate ?? lastDate ?? ctx.today,
+        payee: null,
+        uncertain: [...uncertain],
+        source: seg,
+        savings: { savingsAccountId: dep.savingsAccountId, goalId: dep.goalId },
+      };
+      items.push({ ...draft, confidence: lineConfidence(draft) });
+      continue;
+    }
+
     const expenseKw = kw(seg, 'expense');
     const incomeKw = kw(seg, 'income');
     const expenseHit = expenseKw ?? findVocab(seg, vocab.expense);
@@ -244,7 +327,15 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
 
     const own_ = type === 'income' ? incomeKw : expenseKw;
     const hit = type === 'income' ? incomeHit : expenseHit;
-    const resolved = own_ ? { categoryId: own_.categoryId, subcategoryId: own_.subcategoryId } : hit && 'targets' in hit ? resolveTarget(hit.targets, ctx.categories) : null;
+    let resolved = own_ ? { categoryId: own_.categoryId, subcategoryId: own_.subcategoryId } : hit && 'targets' in hit ? resolveTarget(hit.targets, ctx.categories) : null;
+    // Mot ambigu (« 30 000 en eau ») sans mot plus précis ni mot appris : on DEMANDE.
+    let question: EntryQuestion | null = null;
+    const amb = type === 'expense' && !own_ && !hit ? findAmbiguous(seg) : null;
+    if (amb) {
+      const options = amb.entry.options.map((o) => ({ id: o.id, ...resolveTarget(o.targets, ctx.categories) })).filter((o): o is { id: string; categoryId: string; subcategoryId: string | null } => !!o.categoryId);
+      if (options.length >= 2) question = { id: amb.entry.id, word: amb.word, options };
+      else if (options.length === 1) resolved = { categoryId: options[0].categoryId, subcategoryId: options[0].subcategoryId };
+    }
     if (!resolved || uncertain.has('type')) uncertain.add('category');
 
     // Compte : celui cité s'il existe chez l'utilisateur ; sinon compte par défaut, à confirmer.
@@ -265,11 +356,57 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
     const payee = type === 'expense' ? extractPayeeFrom(original, seg) : null;
     const categoryId = resolved?.categoryId ?? null;
     const subcategoryId = resolved?.subcategoryId ?? null;
-    items.push({ type, amount, categoryId, subcategoryId, accountId, date, payee, uncertain: [...uncertain], source: seg, suggested: { categoryId, subcategoryId } });
+    const draft: EntryDraft = { type, amount, categoryId, subcategoryId, accountId, date, payee, uncertain: [...uncertain], source: seg, suggested: { categoryId, subcategoryId }, question };
+    items.push({ ...draft, confidence: lineConfidence(draft) });
   }
 
   if (items.length === 1 && items[0].amount === null && items[0].categoryId === null && !findVocab(text, vocab.expense) && !findVocab(text, vocab.income) && !kw(text, 'expense') && !kw(text, 'income')) return { kind: 'ambiguous' };
   return items.length ? { kind: 'entries', items } : { kind: 'ambiguous' };
+}
+
+/** Mot ambigu présent dans le texte (« eau »), ou null. */
+function findAmbiguous(text: string): { entry: (typeof vocab.ambiguous)[number]; word: string } | null {
+  for (const entry of vocab.ambiguous) {
+    const word = entry.words.find((w) => hasWord(text, w));
+    if (word) return { entry, word };
+  }
+  return null;
+}
+
+// ─── Confiance (1.9) ───────────────────────────────────────────────
+
+/** Poids d'un champ incertain dans la confiance d'une ligne. */
+const FIELD_WEIGHT: Record<EntryField, number> = { amount: 0.5, category: 0.3, type: 0.2, account: 0.1 };
+
+/** Confiance d'une ligne, de 0 à 1 : 1 = tout est compris, sans question. PUR. */
+export function lineConfidence(d: Pick<EntryDraft, 'uncertain' | 'question'>): number {
+  let c = 1;
+  for (const f of new Set(d.uncertain)) c -= FIELD_WEIGHT[f];
+  if (d.question) c -= 0.1;
+  return Math.max(0, Math.round(c * 100) / 100);
+}
+
+/** Confiance d'ensemble : celle de la ligne la moins sûre (0 sans ligne). */
+export function overallConfidence(items: Pick<EntryDraft, 'uncertain' | 'question' | 'confidence'>[]): number {
+  if (!items.length) return 0;
+  return Math.min(...items.map((d) => d.confidence ?? lineConfidence(d)));
+}
+
+/**
+ * L'analyse locale est-elle assez sûre ? Sinon (et seulement si l'utilisateur l'a
+ * accepté), la transcription peut être envoyée à l'IA (`parseVoiceEntry`).
+ * Peu sûr : rien compris, une ligne sans montant ou sans catégorie (hors question
+ * d'ambiguïté : on demande, l'IA ne ferait que deviner), ou des montants dits mais
+ * absents des lignes. PUR.
+ */
+export function needsAi(parse: EntryParse, original: string): boolean {
+  if (parse.kind === 'ambiguous') return true;
+  if (parse.kind !== 'entries') return false;
+  const text = applySelfCorrections(stripFillers(normalizeText(original)));
+  const spoken = amountSpans(text).length;
+  const withAmount = parse.items.filter((d) => d.amount !== null).length;
+  if (spoken > withAmount) return true;
+  return parse.items.some((d) => d.uncertain.includes('amount') || (d.uncertain.includes('category') && !d.question) || overallConfidence([d]) < 0.6);
 }
 
 /** Bénéficiaire (« envoyé 20 000 à maman » → « maman ») : uniquement pour une phrase d'une seule opération. */
