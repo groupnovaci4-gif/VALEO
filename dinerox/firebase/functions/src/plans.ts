@@ -49,3 +49,13 @@ export function nextVoiceParseUsage(prev: { day?: unknown; count?: unknown }, da
   if (count >= VOICE_PARSE_DAILY_LIMIT[plan]) return { allowed: false, patch: { voiceParseDay: day, voiceParse: count } };
   return { allowed: true, patch: { voiceParseDay: day, voiceParse: count + 1 } };
 }
+
+/**
+ * Essai RENDU quand l'appel au modèle échoue (erreur, délai dépassé, refus, réponse
+ * illisible) : seul un appel réussi compte dans le quota. null = rien à rendre
+ * (compteur déjà à zéro, ou jour changé entre-temps). PUR.
+ */
+export function refundVoiceParseUsage(prev: { day?: unknown; count?: unknown }, day: string): { voiceParseDay: string; voiceParse: number } | null {
+  const count = prev.day === day ? Number(prev.count ?? 0) : 0;
+  return count > 0 ? { voiceParseDay: day, voiceParse: count - 1 } : null;
+}

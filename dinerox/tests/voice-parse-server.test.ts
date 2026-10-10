@@ -64,3 +64,20 @@ describe('parseVoiceEntry : quotas par formule (validés le 2026-10-10)', () => 
     expect(bestPlan('plus', 'free')).toBe('plus');
   });
 });
+
+describe('parseVoiceEntry : seul un appel réussi compte', () => {
+  it('échec ou délai dépassé : l’essai réservé est rendu', async () => {
+    const { nextVoiceParseUsage, refundVoiceParseUsage } = await import('../firebase/functions/src/plans');
+    const day = '2026-10-10';
+    // Gratuit : 3 essais. Réservation du 3e, puis échec du modèle → rendu.
+    const reserved = nextVoiceParseUsage({ day, count: 2 }, day, 'free');
+    expect(reserved.patch.voiceParse).toBe(3);
+    const refunded = refundVoiceParseUsage({ day, count: reserved.patch.voiceParse }, day);
+    expect(refunded).toEqual({ voiceParseDay: day, voiceParse: 2 });
+    // Le 3e essai reste donc disponible.
+    expect(nextVoiceParseUsage({ day, count: refunded!.voiceParse }, day, 'free').allowed).toBe(true);
+    // Rien à rendre : compteur à zéro, ou jour changé entre la réservation et l'échec.
+    expect(refundVoiceParseUsage({ day, count: 0 }, day)).toBeNull();
+    expect(refundVoiceParseUsage({ day: '2026-10-09', count: 3 }, day)).toBeNull();
+  });
+});

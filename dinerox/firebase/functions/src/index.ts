@@ -13,7 +13,7 @@ import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { setGlobalOptions, logger } from 'firebase-functions/v2';
 import { defineSecret, defineString } from 'firebase-functions/params';
-import { bestPlan, effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium, nextVoiceParseUsage } from './plans';
+import { bestPlan, effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium, nextVoiceParseUsage, refundVoiceParseUsage } from './plans';
 import { elevenLabsRequest, nextVoiceUsage, validateSpeak } from './voice';
 import { collectEntryCounts, entryUsage, firestoreCounter } from './usage';
 import { answerWithClaude } from './assistant';
@@ -279,6 +279,8 @@ export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSec
     }
   }
   // Quota quotidien par formule (free 3, plus 20, family 20 par membre) ; au-delà, parseur local.
+  // L'essai est RÉSERVÉ avant l'appel (deux appels simultanés ne dépassent jamais le quota),
+  // puis RENDU si l'appel échoue : seul un appel réussi compte.
   const day = new Date().toISOString().slice(0, 10);
   const usageRef = db.doc(`usage/${uid}`);
   await db.runTransaction(async (tx) => {
@@ -287,16 +289,29 @@ export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSec
     if (!next.allowed) throw new HttpsError('resource-exhausted', 'voiceParse/quota');
     tx.set(usageRef, next.patch, { merge: true });
   });
+  const refund = () =>
+    db
+      .runTransaction(async (tx) => {
+        const u = await tx.get(usageRef);
+        const patch = refundVoiceParseUsage({ day: u.get('voiceParseDay'), count: u.get('voiceParse') }, day);
+        if (patch) tx.set(usageRef, patch, { merge: true });
+      })
+      .catch(() => logger.warn('voiceParse refund failed'));
+  let lines: unknown[] | null;
   try {
-    const lines = await parseWithClaude(ANTHROPIC_API_KEY.value(), input);
-    if (!lines) throw new HttpsError('unavailable', 'voiceParse/unreadable');
-    return { lines };
+    lines = await parseWithClaude(ANTHROPIC_API_KEY.value(), input);
   } catch (e) {
-    if (e instanceof HttpsError) throw e;
-    // Jamais la transcription dans les journaux : seulement le statut.
+    // Erreur ou délai dépassé : l'essai est rendu. Jamais la transcription dans les journaux.
+    await refund();
     logger.warn('voiceParse failed', { status: (e as { status?: number })?.status ?? 'timeout' });
     throw new HttpsError('unavailable', 'voiceParse/unavailable');
   }
+  if (!lines) {
+    // Refus ou réponse illisible : l'essai est rendu aussi.
+    await refund();
+    throw new HttpsError('unavailable', 'voiceParse/unreadable');
+  }
+  return { lines };
 });
 
 // ─── Voix premium du coach ────────────────────────────────────────────

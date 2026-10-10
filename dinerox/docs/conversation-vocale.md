@@ -147,6 +147,8 @@ vocabulaire, 42 (95 %) après. Le vrai taux se lira dans `voice_understood`.
 
 Serveur : `VOICE_PARSE_DAILY_LIMIT` (`firebase/functions/src/plans.ts`), miroir
 `AI_VOICE_PARSE_PER_DAY` (`src/core/subscription.ts`, test d'égalité). Au-delà, le
-parseur local reste seul : la saisie n'est jamais bloquée.
+parseur local reste seul : la saisie n'est jamais bloquée. Seul un appel RÉUSSI
+compte : l'essai est réservé avant l'appel, puis rendu si le modèle échoue, dépasse
+le délai, refuse ou répond de façon illisible (`refundVoiceParseUsage`).
 
 Fiche de test complète : `docs/conversation-vocale-tests.md`.
