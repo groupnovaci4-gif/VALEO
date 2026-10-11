@@ -121,6 +121,9 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amountText, setAmountText] = useState('');
   const [phrase, setPhrase] = useState('');
+  // Mode clavier : phrase écrite, simulateur, formulaire complet et autres actions sont repliés sous
+  // « Autres façons de saisir » (ouvert d'un toucher ; ouvert d'office quand on revient corriger une phrase).
+  const [moreOpen, setMoreOpen] = useState(false);
   const [voice, setVoice] = useState<VoiceState>('idle');
   const [partial, setPartial] = useState('');
   const [busy, setBusy] = useState(false);
@@ -537,6 +540,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
         onValidate={validate}
         onCorrect={() => {
           setPhrase(view.text);
+          setMoreOpen(true);
           setView({ kind: 'input' });
           onModeChange('keyboard');
         }}
@@ -587,6 +591,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
           label={t('entry.ambiguous.entry')}
           onPress={() => {
             setPhrase(view.text);
+            setMoreOpen(true);
             setView({ kind: 'input' });
             onModeChange('keyboard');
           }}
@@ -726,6 +731,12 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
           return <Chip key={id} label={cats.byId(id)} icon={m.icon} color={m.color} onPress={() => saveQuick(id)} />;
         })}
       </View>
+    </View>
+  );
+
+  /** Simulateur et formulaire complet (mode clavier, dans le repli). */
+  const keyboardExtras = (
+    <>
       <Button
         small
         variant="tertiary"
@@ -746,7 +757,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
           router.push({ pathname: '/transaction/new', params: { type, ...(quickAmount ? { amount: String(quickAmount) } : {}) } });
         }}
       />
-    </View>
+    </>
   );
 
   return (
@@ -763,32 +774,52 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
         ]}
       />
       {mode === 'voice' ? voiceBlock : keyboardBlock}
-      {/* Phrase écrite : même parseur que la voix, pour ceux qui ne veulent pas parler en public. */}
-      {/* Texte agrandi : « Comprendre » passe sous le champ, pleine largeur. Sinon à droite, centré sur le champ
-          (champ v2 de 52 dp + marge 16 sous le champ). */}
-      <View style={{ flexDirection: big ? 'column' : 'row', alignItems: big ? 'stretch' : 'flex-end', gap: big ? 0 : 8 }}>
-        <View style={{ flex: big ? undefined : 1 }}>
-          <Field
-            label={t('entry.phrase.label')}
-            placeholder={t('entry.phrase.placeholder')}
-            value={phrase}
-            onChangeText={setPhrase}
-            returnKeyType="send"
-            onSubmitEditing={() => phrase.trim() && analyze(phrase, 'text_phrase')}
+      {mode === 'keyboard' ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('entry.otherWays')}
+          accessibilityState={{ expanded: moreOpen }}
+          aria-expanded={moreOpen}
+          onPress={() => setMoreOpen((o) => !o)}
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, alignSelf: 'flex-start', paddingHorizontal: 8, marginLeft: -8, borderRadius: 12, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
+        >
+          <Icon name={moreOpen ? 'chevron-up' : 'chevron-down'} size={20} color={colors.primary} />
+          <Text variant="label" tone="primary" style={{ flexShrink: 1 }}>
+            {t('entry.otherWays')}
+          </Text>
+        </Pressable>
+      ) : null}
+      {mode === 'voice' || moreOpen ? (
+        <>
+          {/* Phrase écrite : même parseur que la voix, pour ceux qui ne veulent pas parler en public. */}
+          {/* Texte agrandi : « Comprendre » passe sous le champ, pleine largeur. Sinon à droite, centré sur le champ
+              (champ v2 de 52 dp + marge 16 sous le champ). */}
+          <View style={{ flexDirection: big ? 'column' : 'row', alignItems: big ? 'stretch' : 'flex-end', gap: big ? 0 : 8 }}>
+            <View style={{ flex: big ? undefined : 1 }}>
+              <Field
+                label={t('entry.phrase.label')}
+                placeholder={t('entry.phrase.placeholder')}
+                value={phrase}
+                onChangeText={setPhrase}
+                returnKeyType="send"
+                onSubmitEditing={() => phrase.trim() && analyze(phrase, 'text_phrase')}
+              />
+            </View>
+            <Button icon="arrow-forward" label={t('entry.phrase.go')} onPress={() => phrase.trim() && analyze(phrase, 'text_phrase')} disabled={!phrase.trim()} full={big} style={big ? { marginBottom: 8 } : { marginBottom: 18 }} />
+          </View>
+          <Button
+            small
+            variant="tertiary"
+            icon="ellipsis-horizontal"
+            label={t('entry.otherActions')}
+            onPress={() => {
+              onClose();
+              quick.open();
+            }}
           />
-        </View>
-        <Button icon="arrow-forward" label={t('entry.phrase.go')} onPress={() => phrase.trim() && analyze(phrase, 'text_phrase')} disabled={!phrase.trim()} full={big} style={big ? { marginBottom: 8 } : { marginBottom: 18 }} />
-      </View>
-      <Button
-        small
-        variant="tertiary"
-        icon="ellipsis-horizontal"
-        label={t('entry.otherActions')}
-        onPress={() => {
-          onClose();
-          quick.open();
-        }}
-      />
+          {mode === 'keyboard' ? keyboardExtras : null}
+        </>
+      ) : null}
     </View>
   );
 }

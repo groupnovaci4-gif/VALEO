@@ -46,3 +46,17 @@ module.exports.launch = async ({ date } = {}) => {
   return browser;
 };
 
+
+/**
+ * Champ « Écrivez comme vous parlez » de la feuille de saisie. En mode clavier (design v2),
+ * il est replié sous « Autres façons de saisir » : on ouvre le repli s'il est fermé.
+ * En mode voix, le champ est toujours visible (rien à ouvrir).
+ */
+module.exports.phraseField = async (page) => {
+  const more = page.getByRole('button', { name: 'Autres façons de saisir', exact: true });
+  if ((await more.count()) && (await more.first().getAttribute('aria-expanded')) !== 'true') {
+    await more.first().click();
+    await page.waitForTimeout(300);
+  }
+  return page.getByLabel('Écrivez comme vous parlez');
+};

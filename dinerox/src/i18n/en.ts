@@ -1271,6 +1271,7 @@ export const en: Record<TKey, string> = {
   'entry.quick.amount': "Amount: {amount}",
   'entry.quick.erase': "Delete",
   'entry.quick.pickCategory': "Tap a category to save",
+  'entry.otherWays': "Other ways to enter",
   'entry.quick.needAmount': "Enter the amount first.",
   'entry.quick.more': "More details (full form)",
   'entry.otherActions': "Other actions: transfer, savings, goal…",

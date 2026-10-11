@@ -6,7 +6,7 @@
  *  Phase 2 (si PHASE >= 2) : cotiser, recevoir, retard, reporter, suppression,
  *  phrase, reste par jour, calendrier, accueil.
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, phraseField } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 const PHASE = Number(process.env.TONTINE_PHASE || 3);
@@ -118,7 +118,7 @@ let b;
     await go('/'); await closeCelebration();
     const mic = btn('Dicter une opération'); const box = await mic.boundingBox();
     await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up(); await p.waitForTimeout(600);
-    await p.getByLabel('Écrivez comme vous parlez').fill("J'ai cotisé ma tontine du bureau");
+    await (await phraseField(p)).fill("J'ai cotisé ma tontine du bureau");
     await btn('Comprendre').click(); await p.waitForTimeout(700);
     t = await text();
     ok(/Tontine « Tontine du bureau » : cotisation du/.test(t) && t.includes('10 000 FCFA') && t.includes('Tout valider'), '« J’ai cotisé ma tontine du bureau » : tontine et montant proposés, à valider');
@@ -127,7 +127,7 @@ let b;
     await go('/'); await closeCelebration();
     await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up(); await p.waitForTimeout(600);
     // Plusieurs tontines dans la démo : sans nom, la cagnotte la plus proche serait proposée ; on nomme celle du bureau.
-    await p.getByLabel('Écrivez comme vous parlez').fill("J'ai reçu la tontine du bureau");
+    await (await phraseField(p)).fill("J'ai reçu la tontine du bureau");
     await btn('Comprendre').click(); await p.waitForTimeout(700);
     t = await text();
     ok(t.includes('Tontine « Tontine du bureau » : cagnotte du tour 6') && t.includes('100 000 FCFA'), '« J’ai reçu la tontine » : cagnotte du tour 6 proposée (100 000)');

@@ -1303,6 +1303,7 @@ export const fr = {
   'entry.quick.amount': "Montant : {amount}",
   'entry.quick.erase': "Effacer",
   'entry.quick.pickCategory': "Touchez une catégorie pour enregistrer",
+  'entry.otherWays': "Autres façons de saisir",
   'entry.quick.needAmount': "Indiquez d'abord le montant.",
   'entry.quick.more': "Plus de détails (formulaire complet)",
   'entry.otherActions': "Autres actions : transfert, épargne, objectif…",

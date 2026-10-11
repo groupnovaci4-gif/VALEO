@@ -4,7 +4,7 @@
  * utilisée, utilisée → fusion, système → masquage) / rétablir par défaut / réordonner,
  * bibliothèque, et listes de choix (recherche, « Nouvelle catégorie… », désactivée absente).
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, phraseField } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -135,7 +135,7 @@ let b;
 
   // ── Saisie : mots-clés du catalogue, puis apprentissage après correction (phase 5) ──
   const openKeyboard = async () => { await go('/'); await closeCelebration(); const mic = btn('Dicter une opération'); const box = await mic.boundingBox(); await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up(); await p.waitForTimeout(600); };
-  const phrase = async (s) => { await p.getByLabel('Écrivez comme vous parlez').fill(s); await btn('Comprendre').click(); await p.waitForTimeout(700); };
+  const phrase = async (s) => { await (await phraseField(p)).fill(s); await btn('Comprendre').click(); await p.waitForTimeout(700); };
   await openKeyboard(); await phrase('Yango 2 500');
   t = await text();
   ok(t.includes('Yango / VTC'), 'phrase « Yango 2 500 » → Yango / VTC (mot-clé du catalogue)');

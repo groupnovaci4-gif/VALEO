@@ -2,7 +2,7 @@
  * Lot A, phases 2-3 — saisie rapide, phrase écrite, saisie vocale (reconnaissance SIMULÉE :
  * le navigateur de test n'a pas de micro), carte de confirmation, routage, limite gratuite, « Annuler ».
  */
-const { BASE, launch, dayOfMonth } = require('./env.js');
+const { BASE, launch, dayOfMonth, phraseField } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -86,7 +86,7 @@ let b;
   const historyCount = async () => { await go('/transactions'); return Number(((await text()).match(/Période affichée : (\d+)/) || [])[1] || 0); };
   const home = async () => { await go('/'); await closeCelebration(); };
   const openKeyboard = async () => { const mic = btn('Dicter une opération'); const box = await mic.boundingBox(); await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up(); await p.waitForTimeout(600); };
-  const phrase = async (s) => { await p.getByLabel('Écrivez comme vous parlez').fill(s); await btn('Comprendre').click(); await p.waitForTimeout(600); };
+  const phrase = async (s) => { await (await phraseField(p)).fill(s); await btn('Comprendre').click(); await p.waitForTimeout(600); };
 
   await go('/'); await p.getByText('Tester sans données (démonstration)').click(); await p.waitForTimeout(5500); await closeCelebration();
   const n0 = await historyCount();
@@ -94,8 +94,14 @@ let b;
   // ── Saisie rapide : montant au pavé → catégorie → enregistré (3 gestes) ──
   await home(); await openKeyboard();
   ok((await text()).includes('Touchez une catégorie pour enregistrer'), 'appui long sur le micro : saisie au clavier (pavé numérique)');
+  // Repli « Autres façons de saisir » (design v2, T-2) : fermé par défaut, tout est visible en un toucher.
+  const more = btn('Autres façons de saisir');
+  ok((await more.getAttribute('aria-expanded')) === 'false' && (await p.getByLabel('Écrivez comme vous parlez').count()) === 0, 'mode clavier : phrase écrite et options repliées sous « Autres façons de saisir »');
+  await more.click(); await p.waitForTimeout(300);
+  ok((await p.getByLabel('Écrivez comme vous parlez').count()) > 0 && (await btn("Simuler avant d'enregistrer").count()) > 0 && (await btn('Plus de détails (formulaire complet)').count()) > 0 && (await btn('Autres actions : transfert, épargne, objectif…').count()) > 0, 'un toucher : phrase écrite, simulateur, formulaire complet, autres actions');
+  await phraseField(p); // mode clavier : la phrase écrite est dans le repli « Autres façons de saisir »
   await checkAllInputs(p, 'Saisie › phrase écrite', ok, { expectInputs: true });
-  await p.getByLabel('Écrivez comme vous parlez').fill('');
+  await (await phraseField(p)).fill('');
   for (const k of ['2', '000']) await btn(k).click();
   ok((await text()).includes('2 000 FCFA'), 'pavé : montant affiché (2 000 FCFA)');
   const firstCat = p.locator('[role=button][aria-selected]').filter({ hasNotText: /Sortie|Entrée|Parler|Clavier|Famille|Finance sociale/ }).first();
@@ -220,7 +226,7 @@ let b;
   let u = await qtext();
   ok(u.includes('Vous avez utilisé vos 5 saisies vocales gratuites') && !u.includes("J'ai compris"), '6e saisie vocale : refusée (limite gratuite), proposition de Plus');
   ok((await qbtn('Voir la formule Plus').count()) > 0, 'invitation douce vers Plus');
-  await q.getByLabel('Écrivez comme vous parlez').fill('Garba 500'); await qbtn('Comprendre').click(); await q.waitForTimeout(600);
+  await (await phraseField(q)).fill('Garba 500'); await qbtn('Comprendre').click(); await q.waitForTimeout(600);
   ok((await qtext()).includes("J'ai compris 1 opération"), 'après la limite : la phrase écrite reste disponible');
   await qbtn('Annuler').click(); await q.waitForTimeout(300);
   // Clavier : appui long sur le micro.

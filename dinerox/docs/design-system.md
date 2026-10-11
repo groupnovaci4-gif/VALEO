@@ -664,6 +664,8 @@ pour information.
 
 Déjà acceptés (décision 3) : « Saisir » sous le micro (clé existante), « Montant masqué »
 (nouvelle clé, fr + en), badge « PRO » via `t()` (nouvelle clé, fr + en).
+T-2 accepté le 2026-10-11 : « Autres façons de saisir » / « Other ways to enter » (clé
+`entry.otherWays`) ; chaque option repliée reste à un toucher une fois le repli ouvert.
 
 ---
 
