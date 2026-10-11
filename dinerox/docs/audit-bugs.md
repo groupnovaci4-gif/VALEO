@@ -59,6 +59,7 @@ perte d'usage), **mineur** (gêne, contournable).
 | O5 | Déconnexion avec saisies non synchronisées | mineur | aucun avertissement ; les saisies restent sur l'appareil (rangées par compte) et partent à la reconnexion, mais sont perdues si l'app est désinstallée entre-temps | ajout d'un texte = votre accord | décision D3 |
 | O6 | Version web : retour du réseau | mineur (web seulement) | dans le navigateur, NetInfo écoute `navigator.connection` : après une coupure simulée, le bandeau « Hors connexion » peut rester jusqu'au rechargement. Sur téléphone, NetInfo suit le réseau natif. | le web n'est pas la cible principale | décision D4 |
 | O7 | Historique › filtre par type | mineur | les ajustements de solde apparaissent sous « Tout » mais n'ont pas de bouton de filtre propre | ajouter un 5e bouton change le design | décision D5 |
+| O8 | Saisie › alerte de budget après l'enregistrement | mineur | quand une saisie fait dépasser une enveloppe, l'alerte du coach (« Attention, vous avez dépassé votre budget … ») remplace la confirmation « Enregistré ✓ — il vous reste … par jour » : les boutons « Voir » et « Annuler » (5 s) disparaissent avec elle. Comportement de la 1.9, identique avec et sans la refonte (constaté par les parcours e2e, 2026-10-11). | décision du fondateur : garder le fonctionnement de la 1.9 pendant la refonte design | garder « Annuler » dans l'alerte ; à corriger dans une mission séparée |
 
 ## Décisions pour le fondateur
 
