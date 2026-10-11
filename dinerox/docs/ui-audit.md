@@ -304,4 +304,144 @@ Conformément à la consigne, **aucun texte n'a été modifié**. Pistes pour l'
    problèmes critiques partout d'un coup.
 2. Composants (`Button` 48 dp, `Field`, `Badge`, `EmptyState`/`Loading`/`ErrorState`, `<Amount>`).
 3. Accueil (pilote).
-4. Saisie → Budget → Historique → Objectifs/Réserve/Épargne → Tontines → Réglages/Plus.
+4. Saisie (voir §10.9 : trois commits) → Budget → Historique → Objectifs/Réserve/Épargne → Tontines → Réglages/Plus.
+
+---
+
+## 10. Écrans de la 1.9 — conversation vocale (ajout du 2026-10-11)
+
+> Ajouté après la fusion de `dinerox-main` (1.9) dans `design-v2` (commit `8823b84`).
+> Comme le reste de l'audit : **aucune ligne de code modifiée, aucun texte modifié.**
+> Chaque proposition applique le design system validé (`docs/design-system.md`) ; les renvois
+> « §8.x » pointent vers lui.
+> Périmètre : `EntrySheet.tsx` (vues ajoutées ou modifiées par la 1.9), `ConversationView.tsx`,
+> `ConfirmCard.tsx`, `RecorderBar.tsx`, les messages de quota et le consentement à l'IA.
+
+### 10.0 Point de départ technique
+
+- Le style v2 n'est actif que sous `<DesignV2>` : la feuille de saisie (montée au niveau de
+  l'application, `EntryProvider`) est **encore entièrement en style v1**, même ouverte depuis
+  l'accueil migré.
+- Les composants v2 déjà prêts (lot 0) : `Button`, `Amount`, `Card` (tons), `Row`, `Banner`
+  (= `InlineMessage` §8.10), états d'écran, `Text`.
+- **Pas encore migrés**, alors que la saisie en dépend : `Chip` (40 dp), `Segmented` (40 dp sans
+  icône), `Field`/`AmountField`, `DateField` (40 dp), `Sheet` (poignée 1,3:1), `Toast` (2,2 s).
+  Le lot « saisie » doit commencer par eux (§8.6–8.8, 8.12, 8.15).
+
+### 10.1 `EntrySheet` — ce que la 1.9 ajoute
+
+La feuille réunit désormais **cinq vues** sous le même titre « Nouvelle opération » : saisie
+(voix / clavier / phrase), **conversation** (1.9), confirmation (saisie rapide avec réserve),
+**réponse** à une question et **ambiguïté** (« opération ou question ? »). Les constats S1–S6
+(§3.2) restent valables pour la vue de saisie ; ci-dessous, ce qui est propre aux autres vues.
+
+| # | Problème | Gravité | Proposition (design system) |
+|---|---|---|---|
+| S7 | Vues « réponse » et « ambiguïté » : la phrase de l'utilisateur est rappelée en `caption` 12 px gris (« « combien j'ai dépensé ? » ») ; les puces de la réponse en `small` 14 px alors qu'elles portent les montants. | Moyenne | Phrase rappelée en `small` `textMuted` ; réponse en `bodyStrong` ; puces en `body` 16. Les montants sont inclus dans des phrases traduites : on ne les découpe pas (pas de `Amount` ici, textes inchangés). |
+| S8 | Vue « réponse » : aucun bouton n'est principal (« Ouvrir la conversation » `secondary`, « Fermer » `ghost`). | Faible | Garder : `secondary` + `tertiary`, pleine largeur empilés à ≥ 130 %. |
+| S9 | Bouton micro 84 dp : retour de pression par **opacité** 0,85 (invisible au soleil, C7). | Faible | Couleur `primaryPressed` au toucher (§8.1). Le bouton n'englobe aucun champ : règle 13 non concernée. |
+| S10 | Explication avant la demande du micro (`entry.voice.why`) : boîte `infoBg` faite main, sans icône, bouton `small` 40 dp. | Moyenne | `Banner tone="info"` + icône `mic-outline` ; « Autoriser le micro » en `Button secondary` 48 dp sous le texte (le grand micro reste l'action principale de la vue). |
+| S11 | Messages « micro refusé / indisponible / rien entendu / limite » : boîte `warningBg` faite main, **sans icône**, et toutes en `accessibilityRole="alert"` (interrompent le lecteur d'écran alors que ce ne sont pas des erreurs bloquantes — C14). | Moyenne | `Banner tone="warning"` + icône (`mic-off-outline`, `alert-circle-outline`, `volume-mute-outline`, `hourglass-outline`), annonce **polie** ; `alert` réservé aux erreurs (§8.10). |
+
+### 10.2 `ConversationView` — mini-conversation
+
+Ordre affiché : bulle « Vous » (transcription) → bulle DineroX (reformulation) → « Je
+réfléchis… » → note de quota IA → « Arrêter la voix » → boutons de réponse à la question →
+**carte de confirmation** → bulles suivantes → zone de réponse (« Répondre à la voix », champ
+« Votre réponse » + « Envoyer »). Après « oui » : « Annuler », propositions (enveloppe, salaire),
+« Fermer ».
+
+| # | Problème | Gravité | Proposition (design system) |
+|---|---|---|---|
+| V1 | **Trois boutons pleins** en même temps : « Tout valider » (carte), « Répondre à la voix » et « Envoyer ». L'œil ne sait pas lequel est l'action principale (principe 2). | **Élevée** | « Tout valider » seul `primary`. « Répondre à la voix » → `secondary` (icône `mic-outline`) ; « Envoyer » → `secondary`. Après « oui » : « Fermer » reste le seul `primary`. |
+| V2 | « Arrêter la voix » **apparaît puis disparaît** au-dessus de la carte de confirmation : à la fin de la lecture, la carte remonte de ~48 dp sous le doigt. Un toucher prévu sur « Arrêter la voix » peut tomber sur un bouton de réponse ou sur « Tout valider » (rattrapable 5 s par « Annuler », mais l'enregistrement est involontaire). | **Élevée** | Réserver l'emplacement (48 dp) tant qu'une lecture à voix haute est possible dans cette conversation (méthode voix, ou voix activée pour la saisie) ; hors lecture, l'emplacement reste vide. Aucun texte nouveau, aucun changement de logique. Règle 17 respectée : le bouton reste **à côté** des bulles, jamais dedans. |
+| V3 | Bulles : texte DineroX sur `infoBg` (bleu-violet) ; nom « DineroX » en `caption` 12 px gras gris ; puces (qui contiennent les montants) en `small` 14 px. | Moyenne | Bulle DineroX : `infoBg` v2 (contraste vérifié par `design-tokens.test.ts`), rayon `lg` 16 avec coin `xs` 4 ; nom en `caption` 13 `textMuted` ; texte et puces en `body` 16. Bulle « Vous » : `surfaceAlt`, `body`. Espacements sur l'échelle de 4 (aujourd'hui 12 / 8 / 6). |
+| V4 | Bulle « Vous » : `View` avec `accessibilityLabel` mais sans `accessible` (§5) — le libellé « Vous : … » peut être ignoré sur Android. Bulle DineroX : `Pressable` sans rôle ; l'indice « Arrêter la voix » n'existe que pendant la lecture. | Moyenne | `accessible` sur la bulle « Vous » ; rôle `button` sur la bulle DineroX **pendant la lecture seulement** (c'est alors qu'un toucher a un effet). Rôle et libellé ne créent pas de « stacking context » : compatible règle 13. |
+| V5 | « Je réfléchis… » (appel à l'IA, jusqu'à 8 s) : texte seul, aucun signe d'activité. | Moyenne | État de chargement en ligne (§8.11) : roue `primary` + texte existant, annonce polie. |
+| V6 | Zone de réponse : champ + « Envoyer » côte à côte, avec `marginBottom: 14` pour aligner le bouton sur la boîte du champ. À 320 dp et 160 %, le champ tombe sous ~150 dp et « Envoyer » passe sur deux lignes. Même montage pour la phrase écrite de la vue de saisie. | Moyenne | Au-dessus de 1,3 (taille de texte du système, lue une fois à l'ouverture — pas un état qui varie pendant la frappe, règle 13), « Envoyer » passe **sous** le champ, pleine largeur. Sinon côte à côte, aligné par le composant `Field` (plus de marge magique). |
+| V7 | « Modifier le texte » (sous la bulle) et « Relancer » / « Annuler » en `small` 40 dp. | Moyenne | 48 dp (`small` = padding seulement, §8.1) ; « Modifier le texte » en `tertiary`, « Relancer » `secondary`, « Annuler » `tertiary`. |
+| V8 | Boutons de réponse à la question (« Autres » / « Créer … ») : `secondary`, en ligne qui se replie : bon. | — | Garder ; 48 dp, texte sur 2 lignes si besoin, jamais tronqué. |
+| V9 | Après « oui » : propositions « Créer l'enveloppe » (`primary small`) et « Voir la répartition » (`primary small`) à côté de « Fermer » (`primary`) : jusqu'à 3 boutons pleins. | Moyenne | Propositions en `secondary`, « Non merci » en `tertiary`, « Fermer » seul `primary` en bas. |
+| V10 | Répartition du salaire : montants en `small` 14 gras, cadre `border` 1,3:1, aide en `caption` 12 gris. | Moyenne | Lignes `ListRow` sans chevron, montant `Amount size="S"` (16) à droite ; deux étages à ≥ 130 % (§2.3) ; aide en `caption` 13 `textSubtle`. Seul endroit de la conversation où les montants sont isolés : c'est là qu'ils passent par `Amount`. |
+| V11 | Bilan après « oui » (bulle DineroX) : rien ne distingue visuellement « c'est enregistré » d'une simple réponse. | Faible | Bulle du bilan avec icône `checkmark-circle` `success` à gauche du nom (état « succès » dans la page, §8.11). Texte du bilan inchangé. |
+
+### 10.3 `ConfirmCard` — carte de confirmation
+
+| # | Problème | Gravité | Proposition (design system) |
+|---|---|---|---|
+| K1 | **Champ incertain signalé par la couleur seule** (contour et texte `warning`, fond `warningBg`) ; l'icône reste celle du champ. Le mot « à vérifier » n'existe que pour le lecteur d'écran. En plein soleil, l'orange sur orange clair se distingue mal du gris (audit S5). | **Élevée** | Pastille incertaine : icône `help-circle` à la place de l'icône du champ **et** mot « à vérifier » (clé existante `entry.confirm.toCheck`) après la valeur, contour `warning` 2 dp. Libellé d'accessibilité inchangé (les tests e2e qui cherchent « à vérifier » continuent de passer). |
+| K2 | Le **montant** est une pastille de 14 px parmi cinq (type, montant, catégorie, compte, date) : ce que l'utilisateur doit vérifier en premier n'est pas plus visible qu'une date (principe 1). | **Élevée** | Première rangée de chaque ligne : pastille montant pleine largeur, montant en `amountM` (20) avec le signe et l'icône du type ; puis les autres pastilles. Même `Pressable`, même libellé, même comportement d'édition. |
+| K3 | Pastilles : 40 dp de haut, texte `small` 14, contour `border` 1,3:1 (T3) : on ne voit pas qu'elles se touchent. | **Élevée** | 48 dp, texte `label` 15, contour `borderStrong` 1,5 dp (§8.7). Seules les couleurs varient selon l'état (règle 13 : ces pastilles n'englobent pas de champ, mais on garde la même discipline). |
+| K4 | « Retirer cette ligne » : lien `caption` 12 px rouge, zone visible ~18 dp (élargie par `hitSlop`). | Moyenne | `Button variant="destructive" small` 48 dp, icône `trash-outline`, aligné à droite. |
+| K5 | « À vérifier : catégorie, compte » : `caption` 12 px orange (4,5:1 au mieux) ; messages « montant manquant » / « compte d'épargne à choisir » en `small` rouge sans icône. | Moyenne | Ligne « À vérifier » en `small` 14 + icône `help-circle` ; messages manquants en `Banner tone="danger"` **juste au-dessus** de « Tout valider » : ils expliquent pourquoi le bouton est désactivé (§8.1, état désactivé). |
+| K6 | Boutons « Tout valider » (`flexGrow`), « Corriger », « Annuler » sur une rangée qui se replie au hasard à 320 dp. | Moyenne | « Tout valider » `primary` pleine largeur (52 dp, pied de carte) ; dessous, « Corriger » `secondary` + « Annuler » `tertiary` côte à côte, empilés à ≥ 130 %. |
+| K7 | Titre « J'ai compris 1 opération » en `bodyStrong`, aide « Touchez un élément… » en `caption` 12 gris ; cadre de chaque ligne `border` 1 dp rayon 16, padding 10. | Faible | Titre `titleS` ; aide `small` `textMuted` ; chaque ligne = `Card` niveau 0 (filet `border`, padding 16, espacement 8 entre pastilles). |
+| K8 | Éditeurs ouverts sous la ligne (`Chip` type, `AmountField`, `ChipGroup` comptes, `CategoryPicker`, `DateField`) et « Ce n'est pas cette tontine » (`Chip`) : tous en v1 (40 dp). | Moyenne | Hérités des composants v2 (§10.0). Le `AmountField` apparaît **au toucher** de la pastille montant : c'est voulu (règle 15 vise les champs qui disparaissent selon une donnée différée, pas une action de l'utilisateur) — inchangé. |
+
+### 10.4 `RecorderBar` — enregistreur (voix et réponse à la voix)
+
+| # | Problème | Gravité | Proposition (design system) |
+|---|---|---|---|
+| R1 | Corbeille : icône 22 + padding 8 ≈ 38 dp visibles (< 48). | Élevée | Zone 48 × 48. |
+| R2 | Corbeille et bouton d'arrêt : **icônes seules** (principe 3), avec de bons libellés d'accessibilité (« Annuler l'enregistrement », « Terminer l'enregistrement »). | Moyenne | **Décision à prendre (D-1 ci-dessous).** |
+| R3 | Icône d'arrêt en `onPrimary` sur `danger` : en v2 le jeton dédié est `onDanger`. Retour de pression par opacité. | Faible | `onDanger` ; pression = couleur. La pastille rouge qui clignote (opacité animée) ne contient aucun champ : compatible règle 13. |
+
+### 10.5 Messages de quota
+
+Quatre messages, deux familles : quota de **saisies vocales** (formule gratuite) et quota de
+**compréhension avancée** (appels à l'IA, 1.9).
+
+| # | Message (clé) | Aujourd'hui | Gravité | Proposition |
+|---|---|---|---|---|
+| Q1 | Restant du jour — `entry.voice.quota` | `caption` 12 px gris sous le micro | Faible | `caption` 13 `textSubtle`, icône `mic-outline` 16 devant (information, pas d'alerte). |
+| Q2 | Limite atteinte — `entry.voice.limit` + bouton `entry.voice.upgrade` | boîte `warningBg` sans icône, rôle `alert`, bouton `secondary small` 40 dp | Moyenne | `Banner tone="warning"`, icône `hourglass-outline`, annonce polie ; « Voir la formule Plus » en action `tertiary` du message (§8.10). Le message dit déjà que clavier et phrase restent illimités : la feuille garde ces deux chemins visibles juste dessous (aucun blocage, règle 10). |
+| Q3 | Usage IA — `conv.aiQuota` (« Compréhension avancée : 2/3 aujourd'hui ») | `caption` 12 px gris | Faible | `caption` 13 `textSubtle` + icône `sparkles-outline` (l'étincelle désigne l'IA dans toute l'app, cf. M3). |
+| Q4 | Quota IA atteint — `conv.aiQuotaReached` (phrase de 2 lignes, la conversation continue en local) | `caption` 12 px **gris** : une information qui change le comportement est écrite en plus petit et plus pâle que tout le reste | Moyenne | `Banner tone="info"` (pas `warning` : rien n'est bloqué, la saisie continue), icône `sparkles-outline`, texte `small` 14 contraste plein, annonce polie. |
+
+### 10.6 Consentement à l'IA (renouvellement 1.9)
+
+Affiché **à la place** de la conversation quand un accord antérieur à la 1.9 existe : le texte
+`ai.remoteConsent` (≈ 430 caractères, une seule clé), « J'accepte » (`primary`) et « Non merci »
+(`ghost`).
+
+| # | Problème | Gravité | Proposition |
+|---|---|---|---|
+| C1 | **Choix déséquilibré** : « J'accepte » plein et coloré, « Non merci » en texte nu (sans fond ni contour en v1). Pour un consentement, le refus doit être aussi visible et aussi facile que l'accord. | **Élevée** | Les deux boutons pleine largeur, 48 dp, empilés, **même poids visuel**. **Décision à prendre (D-2).** |
+| C2 | Bloc entier en `accessibilityRole="alert"` : le lecteur d'écran lit d'un trait 430 caractères en interrompant l'utilisateur ; ce n'est pas une erreur. | Moyenne | Annonce polie ; le texte reste lu en entier à la navigation. |
+| C3 | Texte de 430 caractères en `body` dans un bloc sans repère : on ne voit pas qu'il s'agit d'une demande d'autorisation. | Moyenne | `Card` niveau 1 avec pastille `shield-checkmark-outline` (icône `primary` sur `primaryContainer`) au-dessus du texte, texte `body` 16 interligne 24, boutons sous la carte. Aucun titre ajouté (ce serait un texte nouveau). |
+| C4 | L'utilisateur ne voit pas la phrase concernée au moment de décider (la conversation n'a pas commencé). | Faible | *Optionnel* : rappeler la phrase dictée au-dessus de la carte, dans une bulle « Vous » (même rendu que la conversation, texte de l'utilisateur, aucune clé nouvelle). |
+| C5 | À 160 % sur 320 dp, le texte occupe ~2 écrans ; les boutons sont en bas. | Moyenne | Normal pour un consentement (le texte doit être lu) ; la feuille défile déjà. Vérifier que les deux boutons restent atteignables avec le clavier fermé. |
+
+### 10.7 Décisions à prendre
+
+| # | Question | Options | Recommandation |
+|---|---|---|---|
+| D-1 | Enregistreur : corbeille et arrêt restent-ils en icônes seules ? | **A.** Exception au principe 3, comme « Retour » et « Fermer » : convention WhatsApp voulue par la règle 18, libellés d'accessibilité déjà présents. **B.** Mot sous chaque icône — mais les clés existantes (« Annuler l'enregistrement », « Terminer l'enregistrement ») sont trop longues pour 320 dp à 160 % ; il faudrait deux textes courts nouveaux. | **A** (pas de nouveau texte, convention connue de la cible). |
+| D-2 | Consentement : poids des deux boutons. | **A.** Deux `secondary` identiques (neutralité totale, mais aucun bouton principal). **B.** « J'accepte » `primary`, « Non merci » `secondary` plein (fond teinté, 48 dp, pleine largeur) : le refus reste un vrai bouton, pas un lien. | **B** (lisible, conforme au principe 2, refus visible) — **A** si vous voulez une neutralité stricte. |
+| D-3 | Bilan après « oui » (V11) : icône de succès ? | Oui / non. | Oui (aucun texte nouveau). |
+| D-4 | Consentement : rappeler la phrase de l'utilisateur (C4) ? | Oui / non. | Oui, si vous êtes d'accord pour que la feuille montre la phrase avant l'accord. |
+
+### 10.8 Contraintes vérifiées
+
+- **Textes** : aucune clé ajoutée ni modifiée dans les propositions ci-dessus (seule l'option B de
+  D-1 en demanderait, et elle n'est pas recommandée).
+- **Logique 1.9** : aucune proposition ne touche `useConversation`, `useEntrySave`,
+  `core/entry/*`, `core/aiConsent.ts`, les quotas (`plans.ts` ↔ `subscription.ts`) ni l'ordre
+  « rien sans oui / Tout valider ». Seul le rendu change.
+- **e2e** : `voice-conversation.js` et les parcours de saisie s'appuient sur des textes visibles
+  (« Tout valider », « Annuler », « Votre réponse », « Envoyer », « à vérifier ») : tous
+  conservés. K1 ajoute « à vérifier » **visible** dans la pastille : les sélecteurs qui comptent
+  ce mot seront relus dans le même commit.
+- **Règle 13** : les seuls conteneurs de `TextInput` concernés (zone de réponse, phrase écrite,
+  `AmountField` de la carte) ne reçoivent aucune propriété variable selon un état ; V6 dépend de
+  la taille de texte du système, fixe pendant la saisie.
+- **Règle 17** : « Arrêter la voix » reste à côté des bulles, jamais dans une zone cliquable (V2).
+
+### 10.9 Effet sur l'ordre des lots (§9)
+
+Le lot **Saisie** devient le plus gros :
+1. composants restants : `Chip`, `Segmented`, `Field`/`AmountField`, `DateField`, `Sheet`, `Toast` ;
+2. `EntrySheet` (S1–S11, avec le repli T-2 « Autres façons de saisir » à valider) + `RecorderBar` ;
+3. `ConfirmCard` + `ConversationView` + quotas + consentement.
+
+Je propose de le découper en **trois commits** dans cet ordre, avec un arrêt après chacun.
