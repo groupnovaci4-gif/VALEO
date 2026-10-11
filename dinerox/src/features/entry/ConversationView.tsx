@@ -47,6 +47,7 @@ export function ConversationView({
   onCancel,
   onReply,
   onRestart,
+  onEdit,
   onClose,
   envelopeName,
   onUndo,
@@ -65,6 +66,8 @@ export function ConversationView({
   onReply: (text: string) => void;
   /** Transcription modifiée : nouvelle analyse complète. */
   onRestart: (text: string) => void;
+  /** La carte a été modifiée par l'utilisateur (saisie « corrigée »). */
+  onEdit: () => void;
   onClose: () => void;
   envelopeName: (id: string) => string;
   /** « Annuler » tout le groupe enregistré (5 secondes après « oui »), sinon null. */
@@ -226,7 +229,10 @@ export function ConversationView({
       {talking && s && s.drafts.length ? (
         <ConfirmCard
           drafts={s.drafts}
-          onChange={conv.setDrafts}
+          onChange={(drafts) => {
+            conv.setDrafts(drafts);
+            onEdit();
+          }}
           onValidate={onValidate}
           onCorrect={() => setEditing(conv.bubbles[firstUser]?.text ?? '')}
           onCancel={onCancel}
