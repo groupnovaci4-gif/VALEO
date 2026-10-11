@@ -17,14 +17,14 @@
  * parseur local est peu sûr, en ligne et avec consentement.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n, hasKey, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useCategoryLabels, useMoney } from '@/hooks/useFinance';
 import { useFormatParams } from '@/hooks/useInsightText';
-import { Button, Chip, Field, Icon, Segmented, Sheet, Text, useToast } from '@/components/ui';
-import { useTheme } from '@/theme';
+import { Banner, Button, Chip, Field, Icon, Segmented, Sheet, Text, useToast } from '@/components/ui';
+import { BIG_TEXT, DesignV2, useTheme } from '@/theme';
 import { useQuickAdd } from '@/features/QuickAdd';
 import { needsAi, parseEntryText, type EntryContext, type EntryDraft, type EntryParse } from '@/core/entry/parse';
 import { entryVocabularyWords } from '@/core/entry/vocabularyWords';
@@ -70,6 +70,14 @@ type View_ =
 /** Message sous le micro (l'état de l'enregistrement lui-même vit dans `core/entry/recorder`). */
 type VoiceState = 'idle' | 'explain' | 'denied' | 'unavailable' | 'limit' | 'nothing';
 
+/** Icône de chaque message du micro (design v2 : jamais un message sans icône). */
+const VOICE_ICON: Record<'denied' | 'unavailable' | 'nothing' | 'limit', string> = {
+  denied: 'mic-off-outline',
+  unavailable: 'alert-circle-outline',
+  nothing: 'volume-mute-outline',
+  limit: 'hourglass-outline',
+};
+
 /** Thèmes de question accessibles en formule gratuite (comme l'assistant). */
 const FREE_TOPICS = new Set(['spent_month', 'income_month', 'remaining_category', 'balance', 'spent_category']);
 
@@ -77,16 +85,21 @@ export function EntrySheet({ mode, onClose, onModeChange }: { mode: EntryMode | 
   const { t } = useI18n();
   const visible = mode !== null;
   // Contenu monté seulement à l'ouverture : chaque saisie repart d'un état propre.
+  // Design system v2 (docs/design-system.md §10.2) : toute la feuille, conversation comprise.
   return (
-    <Sheet visible={visible} onClose={onClose} title={t('entry.title')}>
-      {visible ? <EntryBody mode={mode} onClose={onClose} onModeChange={onModeChange} /> : null}
-    </Sheet>
+    <DesignV2>
+      <Sheet visible={visible} onClose={onClose} title={t('entry.title')}>
+        {visible ? <EntryBody mode={mode} onClose={onClose} onModeChange={onModeChange} /> : null}
+      </Sheet>
+    </DesignV2>
   );
 }
 
 function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: () => void; onModeChange: (m: EntryMode) => void }) {
   const { t, lang } = useI18n();
   const { colors, radius } = useTheme();
+  // Texte système agrandi (≥ 130 %) : boutons empilés pleine largeur. Fixe pendant la saisie.
+  const big = useWindowDimensions().fontScale >= BIG_TEXT;
   const toast = useToast();
   const money = useMoney();
   const fmt = useFormatParams();
@@ -534,26 +547,27 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   if (view.kind === 'answer') {
     return (
       <View style={{ gap: 8 }}>
-        <Text variant="caption" tone="subtle">
+        <Text variant="small" tone="muted">
           « {view.question} »
         </Text>
         <Text variant="bodyStrong">{view.text}</Text>
         {view.bullets.map((b) => (
-          <Text key={b} variant="small">
+          <Text key={b} variant="body">
             • {b}
           </Text>
         ))}
-        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+        <View style={{ flexDirection: big ? 'column' : 'row', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
           <Button
             variant="secondary"
             icon="chatbubble-ellipses-outline"
             label={t('entry.answer.open')}
+            full={big}
             onPress={() => {
               onClose();
               router.push({ pathname: '/assistant', params: { q: view.question } });
             }}
           />
-          <Button variant="ghost" label={t('common.close')} onPress={onClose} />
+          <Button variant="tertiary" label={t('common.close')} full={big} onPress={onClose} />
         </View>
       </View>
     );
@@ -561,7 +575,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   if (view.kind === 'ambiguous') {
     return (
       <View style={{ gap: 10 }}>
-        <Text variant="caption" tone="subtle">
+        <Text variant="small" tone="muted">
           « {view.text} »
         </Text>
         <Text variant="bodyStrong">{t('entry.ambiguous')}</Text>
@@ -621,8 +635,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
               borderRadius: 42,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: colors.primary,
-              opacity: pressed ? 0.85 : 1,
+              backgroundColor: pressed ? colors.primaryPressed : colors.primary,
             })}
           >
             <Icon name="mic" size={38} color={colors.onPrimary} />
@@ -642,21 +655,31 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
         </>
       )}
       {voice === 'explain' ? (
-        <View style={{ backgroundColor: colors.infoBg, borderRadius: radius.md, padding: 12, gap: 8, alignSelf: 'stretch' }}>
-          <Text variant="small">{t('entry.voice.why')}</Text>
-          <Button small icon="mic-outline" label={t('entry.voice.allow')} onPress={() => void allowMic()} />
+        // Explication avant la demande du micro : message + « Autoriser le micro » dessous (le grand micro reste l'action principale).
+        <View style={{ alignSelf: 'stretch' }}>
+          <Banner tone="info" icon="mic-outline" text={t('entry.voice.why')} />
+          <Button variant="secondary" icon="mic-outline" label={t('entry.voice.allow')} onPress={() => void allowMic()} style={{ alignSelf: 'flex-start', marginTop: -4 }} />
         </View>
       ) : null}
       {voice === 'denied' || voice === 'unavailable' || voice === 'nothing' || voice === 'limit' ? (
-        <View style={{ backgroundColor: colors.warningBg, borderRadius: radius.md, padding: 12, gap: 6, alignSelf: 'stretch' }} accessibilityRole="alert">
-          <Text variant="small">{voice === 'limit' ? t('entry.voice.limit', { count: FREE_VOICE_ENTRIES_PER_DAY }) : t(`entry.voice.${voice}` as TKey)}</Text>
-          {voice === 'limit' ? <Button small variant="secondary" label={t('entry.voice.upgrade')} onPress={() => (onClose(), router.push('/subscription'))} /> : null}
+        // Pas une erreur bloquante : annonce polie (le clavier et la phrase restent juste dessous).
+        <View style={{ alignSelf: 'stretch' }}>
+          <Banner
+            tone="warning"
+            icon={VOICE_ICON[voice]}
+            text={voice === 'limit' ? t('entry.voice.limit', { count: FREE_VOICE_ENTRIES_PER_DAY }) : t(`entry.voice.${voice}` as TKey)}
+            action={voice === 'limit' ? t('entry.voice.upgrade') : undefined}
+            onAction={voice === 'limit' ? () => (onClose(), router.push('/subscription')) : undefined}
+          />
         </View>
       ) : null}
       {stats && !hasFeature(plan, 'voice_entry_unlimited') && voice !== 'limit' ? (
-        <Text variant="caption" tone="subtle">
-          {t('entry.voice.quota', { left: Math.max(0, FREE_VOICE_ENTRIES_PER_DAY - voiceToday(stats)), count: FREE_VOICE_ENTRIES_PER_DAY })}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Icon name="mic-outline" size={16} color={colors.textSubtle} />
+          <Text variant="caption" tone="subtle" style={{ flexShrink: 1 }}>
+            {t('entry.voice.quota', { left: Math.max(0, FREE_VOICE_ENTRIES_PER_DAY - voiceToday(stats)), count: FREE_VOICE_ENTRIES_PER_DAY })}
+          </Text>
+        </View>
       ) : null}
       <Text variant="caption" tone="subtle" align="center">
         {speechInput().supportsOnDevice() ? t('entry.voice.privacyDevice') : t('entry.voice.privacyOnline')}
@@ -674,7 +697,8 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
           { value: 'income', label: t('entry.type.income'), icon: 'arrow-down' },
         ]}
       />
-      <Text variant="display" align="center" accessibilityLabel={t('entry.quick.amount', { amount: amountLabel })} style={{ color: type === 'expense' ? colors.expense : colors.income }} numberOfLines={1} adjustsFontSizeToFit>
+      {/* Montant : réduction bornée à 0,85 (jamais un montant illisible), agrandissement plafonné à 1,15. */}
+      <Text variant="amountHero" align="center" accessibilityLabel={t('entry.quick.amount', { amount: amountLabel })} style={{ color: type === 'expense' ? colors.expense : colors.income }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
         {amountText ? amountLabel : money(0)}
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 8 }}>
@@ -684,15 +708,15 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
             accessibilityRole="button"
             accessibilityLabel={k === '⌫' ? t('entry.quick.erase') : k}
             onPress={() => press(k)}
-            style={({ pressed }) => ({ width: '31.5%', height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? colors.border : colors.surfaceAlt })}
+            style={({ pressed }) => ({ width: '31.5%', minHeight: 58, paddingVertical: 6, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? colors.border : colors.surfaceAlt })}
           >
-            <Text variant="h3">{k}</Text>
+            <Text variant="titleL" numeric>
+              {k}
+            </Text>
           </Pressable>
         ))}
       </View>
-      <Text variant="small" weight="700">
-        {t('entry.quick.pickCategory')}
-      </Text>
+      <Text variant="label">{t('entry.quick.pickCategory')}</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {recent.map((id) => {
           const m = cats.meta(id);
@@ -701,7 +725,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       </View>
       <Button
         small
-        variant="ghost"
+        variant="tertiary"
         icon="calculator-outline"
         label={t('sim.fromEntry')}
         onPress={() => {
@@ -711,7 +735,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       />
       <Button
         small
-        variant="ghost"
+        variant="tertiary"
         icon="create-outline"
         label={t('entry.quick.more')}
         onPress={() => {
@@ -737,8 +761,10 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       />
       {mode === 'voice' ? voiceBlock : keyboardBlock}
       {/* Phrase écrite : même parseur que la voix, pour ceux qui ne veulent pas parler en public. */}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
-        <View style={{ flex: 1 }}>
+      {/* Texte agrandi : « Comprendre » passe sous le champ, pleine largeur. Sinon à droite, centré sur le champ
+          (champ v2 de 52 dp + marge 16 sous le champ). */}
+      <View style={{ flexDirection: big ? 'column' : 'row', alignItems: big ? 'stretch' : 'flex-end', gap: big ? 0 : 8 }}>
+        <View style={{ flex: big ? undefined : 1 }}>
           <Field
             label={t('entry.phrase.label')}
             placeholder={t('entry.phrase.placeholder')}
@@ -748,11 +774,11 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
             onSubmitEditing={() => phrase.trim() && analyze(phrase, 'text_phrase')}
           />
         </View>
-        <Button icon="arrow-forward" label={t('entry.phrase.go')} onPress={() => phrase.trim() && analyze(phrase, 'text_phrase')} disabled={!phrase.trim()} style={{ marginBottom: 14 }} />
+        <Button icon="arrow-forward" label={t('entry.phrase.go')} onPress={() => phrase.trim() && analyze(phrase, 'text_phrase')} disabled={!phrase.trim()} full={big} style={big ? { marginBottom: 8 } : { marginBottom: 18 }} />
       </View>
       <Button
         small
-        variant="ghost"
+        variant="tertiary"
         icon="ellipsis-horizontal"
         label={t('entry.otherActions')}
         onPress={() => {

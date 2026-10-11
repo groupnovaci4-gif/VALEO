@@ -3,12 +3,15 @@
  * d'écran plein) : pastille rouge qui clignote + chronomètre à gauche, onde
  * qui suit la voix (ou animation neutre si le niveau sonore n'est pas
  * fourni), corbeille pour annuler, bouton d'arrêt bien visible à droite.
+ * Design v2 (décision D-1) : corbeille et arrêt restent des icônes seules, comme
+ * WhatsApp, avec leurs libellés d'accessibilité et une zone de toucher d'au moins
+ * 48 dp ; retour de pression par la couleur (jamais par l'opacité).
  */
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, Pressable, View } from 'react-native';
 import { useI18n } from '@/i18n';
 import { Icon, Text } from '@/components/ui';
-import { useTheme } from '@/theme';
+import { MIN_TOUCH, useTheme } from '@/theme';
 import { formatElapsed } from '@/core/entry/recorder';
 
 export function RecorderBar({ elapsed, levels, hasVolume, bars, onCancel, onStop }: { elapsed: number; levels: number[]; hasVolume: boolean; bars: number; onCancel: () => void; onStop: () => void }) {
@@ -58,16 +61,21 @@ export function RecorderBar({ elapsed, levels, hasVolume, bars, onCancel, onStop
           ),
         )}
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel={t('entry.voice.cancel')} onPress={onCancel} hitSlop={8} style={{ padding: 8 }}>
-        <Icon name="trash-outline" size={22} color={colors.danger} />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('entry.voice.cancel')}
+        onPress={onCancel}
+        style={({ pressed }) => ({ width: MIN_TOUCH, height: MIN_TOUCH, borderRadius: MIN_TOUCH / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? colors.dangerBg : 'transparent' })}
+      >
+        <Icon name="trash-outline" size={24} color={colors.danger} />
       </Pressable>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('entry.voice.finish')}
         onPress={onStop}
-        style={({ pressed }) => ({ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.danger, opacity: pressed ? 0.85 : 1 })}
+        style={({ pressed }) => ({ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? colors.dangerBg : colors.danger })}
       >
-        <Icon name="stop" size={24} color={colors.onPrimary} />
+        {({ pressed }) => <Icon name="stop" size={24} color={pressed ? colors.danger : colors.onDanger} />}
       </Pressable>
     </View>
   );
