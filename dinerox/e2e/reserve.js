@@ -7,7 +7,7 @@
  *  2. Compte réel (formule gratuite) : question facultative du démarrage rapide,
  *     réserve créée, limite d'une réserve.
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, dayOfMonth } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -16,8 +16,10 @@ const num = (s) => Number(String(s ?? '').replace(/[^\d-]/g, ''));
 
 let b;
 (async () => {
-  b = await launch();
-  const now = new Date();
+  // Jour fixé : la démonstration est générée à partir de la date du jour (le 11, elle est en déficit ;
+  // le 3, une saisie dépasse le budget Maison et l'alerte remplace « Enregistré ✓ »).
+  const now = dayOfMonth(1);
+  b = await launch({ date: now });
   const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1;
   let ctx = await b.newContext({ viewport: { width: 390, height: 844 }, locale: 'fr-FR' });
   let p = await ctx.newPage();
@@ -57,7 +59,10 @@ let b;
   await btn('Oui, sur la réserve').click(); await p.waitForTimeout(300);
   ok((await text()).includes('15 000 FCFA pris sur la réserve : votre reste par jour ne change pas.'), 'carte : part prise sur la réserve annoncée');
   await btn('Tout valider').click(); await p.waitForTimeout(700);
-  ok(/Enregistré ✓ — il vous reste [\d ]+ FCFA par jour/.test(await text()), 'toast : enregistré');
+  // 1.9 : une seule opération confirmée par « Tout valider » passe par la conversation, qui affiche
+  // elle-même le bilan (« C'est fait : … Il vous reste … par jour ») au lieu du message « Enregistré ✓ ».
+  t = await text();
+  ok(/Enregistré ✓ — il vous reste [\d ]+ FCFA par jour/.test(t) || /C'est fait : 1 dépense enregistrée, 15 000 FCFA\. Il vous reste [\d ]+ FCFA par jour/.test(t), 'enregistré : bilan avec le reste par jour');
   const d1 = await perDay();
   ok(d1 === d0, `reste par jour inchangé après une dépense prise sur la réserve (${d0} → ${d1})`);
   ok((await text()).includes('Pris sur la réserve : 15 000 FCFA (déjà mis de côté)'), 'accueil : « Pris sur la réserve : 15 000 FCFA »');

@@ -1,5 +1,5 @@
 /* Lot A, phase 1 — « reste par jour », accueil réordonné, démarrage rapide (compte réel sur émulateurs). */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, dayOfMonth } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -7,8 +7,10 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
 const num = (s) => Number(String(s).replace(/[^\d-]/g, ''));
 let b;
 (async () => {
-  b = await launch();
-  const now = new Date();
+  // Jour fixé : la démonstration est générée à partir de la date du jour (le 11, elle est en déficit ;
+  // le 3, une saisie dépasse le budget Maison et l'alerte remplace « Enregistré ✓ »).
+  const now = dayOfMonth(1);
+  b = await launch({ date: now });
   const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1;
 
   // ── 1. Démonstration : ordre de l'accueil et cohérence du calcul affiché ──
