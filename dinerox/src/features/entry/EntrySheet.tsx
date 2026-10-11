@@ -54,6 +54,7 @@ import { RecorderBar } from './RecorderBar';
 import type { EntryMode } from './EntryProvider';
 import { ConversationView } from './ConversationView';
 import { useConversation } from './useConversation';
+import { markEdited } from './edited';
 import { aiUsage, chooseUnderstanding } from '@/core/entry/aiGuard';
 import { needsConsentRenewal, transcriptConsent, withConsent } from '@/core/aiConsent';
 import { parseVoiceRemotely } from '@/services/voiceParse';
@@ -493,6 +494,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
         onValidate={() => validateConversation(false)}
         onCancel={onClose}
         onReply={(text) => replyInConversation(text, false)}
+        onEdit={() => setView(markEdited)}
         onRestart={(text) => {
           setAiNote(null);
           setView({ kind: 'input' });
@@ -515,7 +517,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     return (
       <ConfirmCard
         drafts={view.drafts}
-        onChange={(drafts) => setView({ ...view, drafts, edited: true })}
+        onChange={(drafts) => setView(markEdited({ ...view, drafts }))}
         onValidate={validate}
         onCorrect={() => {
           setPhrase(view.text);
