@@ -8,13 +8,15 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   const errs = [];
   const mk = async () => { const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, locale: 'fr-FR' }); const p = await ctx.newPage(); p.on('pageerror', (e) => errs.push(e.message)); p.on('dialog', (d) => d.accept()); return { ctx, p }; };
   const go = async (p, path, w = 3000) => { await p.goto(BASE + path, { waitUntil: 'load' }); await p.waitForTimeout(w); };
-  // Lignes de la carte « Votre coach » (null si absente).
+  // Lignes de la carte « Votre coach » (null si absente). Design v2 : le bouton « Écouter » est
+  // écrit en toutes lettres dans l'en-tête de la carte ; c'est un bouton, pas un point du résumé.
+  const LISTEN = ['Écouter', 'Arrêter la lecture'];
   const card = async (p) => {
     const t = (await p.locator('body').innerText()).replace(/[  ]/g, ' ');
     const i = t.indexOf('Votre coach');
     if (i < 0) return null;
     const j = t.indexOf('Selon les opérations enregistrées', i);
-    return t.slice(i, j).split('\n').slice(1).map((l) => l.trim()).filter((l) => /[A-Za-zÀ-ÿ]/.test(l));
+    return t.slice(i, j).split('\n').slice(1).map((l) => l.trim()).filter((l) => /[A-Za-zÀ-ÿ]/.test(l) && !LISTEN.includes(l));
   };
 
   // ── 1. Démonstration (local) : résumé à l'ouverture ──

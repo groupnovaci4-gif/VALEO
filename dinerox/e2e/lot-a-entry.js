@@ -2,7 +2,7 @@
  * Lot A, phases 2-3 — saisie rapide, phrase écrite, saisie vocale (reconnaissance SIMULÉE :
  * le navigateur de test n'a pas de micro), carte de confirmation, routage, limite gratuite, « Annuler ».
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, dayOfMonth } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -72,7 +72,9 @@ const dictate = async (pg, say, { speakFor = 1300 } = {}) => {
 
 let b;
 (async () => {
-  b = await launch();
+  // Jour fixé : la démonstration est générée à partir de la date du jour (le 11, elle est en déficit ;
+  // le 3, une saisie dépasse le budget Maison et l'alerte remplace « Enregistré ✓ »).
+  b = await launch({ date: dayOfMonth(1) });
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, locale: 'fr-FR' });
   await ctx.addInitScript(FAKE_SPEECH);
   const p = await ctx.newPage();
