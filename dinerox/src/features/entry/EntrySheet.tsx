@@ -58,6 +58,7 @@ import { markEdited } from './edited';
 import { aiUsage, chooseUnderstanding } from '@/core/entry/aiGuard';
 import { needsConsentRenewal, transcriptConsent, withConsent } from '@/core/aiConsent';
 import { parseVoiceRemotely } from '@/services/voiceParse';
+import { coachPrefs } from '@/core/coach/prefs';
 
 type View_ =
   | { kind: 'input' }
@@ -169,7 +170,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   };
 
   /** « Compréhension avancée : 2/3 aujourd'hui » (après un appel à l'IA seulement). */
-  const [aiNote, setAiNote] = useState<string | null>(null);
+  const [aiNote, setAiNote] = useState<{ text: string; reached: boolean } | null>(null);
 
   const converse = (text: string, drafts: EntryDraft[], method: 'voice' | 'text_phrase') => {
     setView({ kind: 'conversation', method, text, edited: false });
@@ -190,7 +191,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     }).then((res) => {
       // Note discrète, seulement quand l'IA a été sollicitée : usage du jour, ou quota atteint.
       const usage = res === 'quota' ? null : aiUsage(res);
-      setAiNote(res === 'quota' ? t('conv.aiQuotaReached') : usage ? t('conv.aiQuota', { used: usage.used, limit: usage.limit }) : null);
+      setAiNote(res === 'quota' ? { text: t('conv.aiQuotaReached'), reached: true } : usage ? { text: t('conv.aiQuota', { used: usage.used, limit: usage.limit }), reached: false } : null);
       const raw = res === 'quota' ? null : res;
       const chosen = chooseUnderstanding(local, raw, text, entryCtx);
       analytics.track('voice_understood', { source: chosen.source });
@@ -472,10 +473,12 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
         currency={currency as CurrencyCode}
         busy={busy}
         thinking={!!view.thinking}
+        voiceSlot={view.method === 'voice' && !coachPrefs(profile?.preferences).silent}
         consent={
           consentAsk
             ? {
                 text: t('ai.remoteConsent'),
+                phrase: consentAsk.text,
                 onAccept: () => {
                   const ask = consentAsk;
                   setConsentAsk(null);
