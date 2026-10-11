@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { fieldBoxProps } from '../src/components/ui/fieldStyle';
-import { darkColors, lightColors } from '../src/theme/tokens';
+import { darkColors, darkColorsV2, lightColors, lightColorsV2 } from '../src/theme/tokens';
 
 type Props = ReturnType<typeof fieldBoxProps>;
 const meaningful = (c: unknown) => typeof c === 'string' && c !== 'transparent' && c !== '';
@@ -32,7 +32,8 @@ function nativeTraits(p: Props & { style: Record<string, unknown> }) {
 }
 
 describe('champ de saisie : arbre natif stable au focus', () => {
-  const palettes = [lightColors, darkColors];
+  // v2 : le champ reçoit `borderStrong` comme contour (Field.tsx) ; même règle de structure.
+  const palettes = [lightColors, darkColors, { ...lightColorsV2, border: lightColorsV2.borderStrong }, { ...darkColorsV2, border: darkColorsV2.borderStrong }];
   const states = [
     { focused: false, error: false },
     { focused: true, error: false },

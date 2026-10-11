@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '@/theme';
+import { useTheme, MIN_TOUCH } from '@/theme';
 import { Text } from './Text';
 import { Icon } from './Icon';
 
@@ -29,8 +29,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const show = useCallback((message: string, tone: ToastTone = 'success', opts?: ToastOptions) => {
     setToast({ message, tone, actions: opts?.actions ?? [] });
     if (timer.current) clearTimeout(timer.current);
-    // Les alertes se lisent plus longtemps qu'une simple confirmation.
-    timer.current = setTimeout(() => setToast(null), opts?.duration ?? (tone === 'error' || tone === 'warning' ? 6000 : 2200));
+    // Les alertes se lisent plus longtemps qu'une simple confirmation ; 4 s au moins pour
+    // un lecteur lent (docs/design-system.md §8.12). Monté à la racine : vaut pour tous les écrans.
+    timer.current = setTimeout(() => setToast(null), opts?.duration ?? (tone === 'error' || tone === 'warning' ? 6000 : 4000));
   }, []);
   const press = (a: ToastAction) => {
     if (timer.current) clearTimeout(timer.current);
@@ -57,7 +58,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               {toast.message}
             </Text>
             {toast.actions.map((a) => (
-              <Pressable key={a.label} accessibilityRole="button" accessibilityLabel={a.label} onPress={() => press(a)} hitSlop={8} style={{ paddingHorizontal: 6, minHeight: 32, justifyContent: 'center' }}>
+              <Pressable key={a.label} accessibilityRole="button" accessibilityLabel={a.label} onPress={() => press(a)} style={{ paddingHorizontal: 8, minHeight: MIN_TOUCH, justifyContent: 'center' }}>
                 <Text variant="small" weight="700" style={{ color: colors.secondaryContainer }}>
                   {a.label}
                 </Text>

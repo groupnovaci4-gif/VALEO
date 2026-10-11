@@ -3,6 +3,7 @@ import { Platform, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme, MIN_TOUCH } from '@/theme';
 import { fontFor } from '@/theme/fonts';
 import { Text } from './Text';
+import { Icon } from './Icon';
 import { fieldBoxProps } from './fieldStyle';
 import { currencyInfo, formatMoney, parseAmountInput, toMajor } from '@/core/money';
 
@@ -13,24 +14,35 @@ export interface FieldProps extends TextInputProps {
   suffix?: string;
   /** Référence vers le champ natif (enchaînement « Suivant » au clavier). */
   inputRef?: React.Ref<TextInput>;
+  /** Aperçu de la valeur (montant formaté) : en v2, lisible au contraste plein (§8.6). */
+  preview?: string;
 }
 
-export function Field({ label, hint, error, suffix, style, inputRef, onFocus, onBlur, ...rest }: FieldProps) {
-  const { colors, radius } = useTheme();
+export function Field({ label, hint, error, suffix, preview, style, inputRef, onFocus, onBlur, ...rest }: FieldProps) {
+  const { colors, radius, v2 } = useTheme();
   const [focused, setFocused] = useState(false);
+  // v2 (§8.6) : contour des contrôles `borderStrong` (≥ 3:1), boîte de 52 dp. Seule la
+  // COULEUR du contour change selon l'état : la structure native reste fixe (règle 13).
+  const boxColors = v2 ? { ...colors, border: colors.borderStrong } : colors;
   return (
-    <View style={{ marginBottom: 14 }}>
+    <View style={{ marginBottom: v2 ? 16 : 14 }}>
       {label ? (
-        <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
-          {label}
-        </Text>
+        v2 ? (
+          <Text variant="label" style={{ marginBottom: 8 }}>
+            {label}
+          </Text>
+        ) : (
+          <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
+            {label}
+          </Text>
+        )
       ) : null}
       {/* Structure native fixe au focus : voir fieldStyle.ts (cause du clignotement Android). */}
-      <View {...fieldBoxProps({ focused, error: !!error }, colors, radius.md, MIN_TOUCH)}>
+      <View {...fieldBoxProps({ focused, error: !!error }, boxColors, radius.md, v2 ? 52 : MIN_TOUCH)}>
         <TextInput
           ref={inputRef}
           accessibilityLabel={label}
-          maxFontSizeMultiplier={1.3}
+          maxFontSizeMultiplier={v2 ? 1.6 : 1.3}
           placeholderTextColor={colors.textSubtle}
           {...rest}
           // Après {...rest} : le suivi du focus ne peut pas être écrasé par l'écran appelant.
@@ -46,13 +58,24 @@ export function Field({ label, hint, error, suffix, style, inputRef, onFocus, on
         />
         {suffix ? <Text tone="muted">{suffix}</Text> : null}
       </View>
-      {error ? (
+      {error && v2 ? (
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 4 }} accessibilityLiveRegion="polite">
+          <Icon name="alert-circle" size={16} color={colors.danger} />
+          <Text variant="caption" tone="danger" style={{ flex: 1 }}>
+            {error}
+          </Text>
+        </View>
+      ) : error ? (
         <Text variant="caption" tone="danger" style={{ marginTop: 4 }} accessibilityLiveRegion="polite">
           {error}
         </Text>
-      ) : hint ? (
+      ) : preview && v2 ? (
+        <Text variant="small" style={{ marginTop: 4 }}>
+          {preview}
+        </Text>
+      ) : preview || hint ? (
         <Text variant="caption" tone="subtle" style={{ marginTop: 4 }}>
-          {hint}
+          {preview || hint}
         </Text>
       ) : null}
     </View>
@@ -82,7 +105,7 @@ export function AmountField({
   big?: boolean;
   autoFocus?: boolean;
 }) {
-  const { colors } = useTheme();
+  const { colors, v2 } = useTheme();
   const info = currencyInfo(currency);
   const toText = (v: number | null) => (v === null ? '' : info.decimals ? String(toMajor(v, currency)).replace('.', ',') : String(v));
   const [text, setText] = useState(toText(value));
@@ -102,8 +125,10 @@ export function AmountField({
       placeholder="0"
       suffix={info.symbol}
       error={error}
-      hint={value ? formatMoney(value, currency) : hint}
-      style={big ? { fontSize: 30, fontFamily: fontFor('heading', 800), color: colors.text } : undefined}
+      preview={value ? formatMoney(value, currency) : undefined}
+      hint={hint}
+      // v2 (§8.6) : le nombre en `amountL`, chiffres alignés ; v1 : grand seulement si `big`.
+      style={v2 ? { fontSize: 28, lineHeight: 34, fontFamily: fontFor('heading', 700), fontVariant: ['tabular-nums'], color: colors.text } : big ? { fontSize: 30, fontFamily: fontFor('heading', 800), color: colors.text } : undefined}
       onChangeText={(s) => {
         setText(s);
         onChange(parseAmountInput(s, currency));
