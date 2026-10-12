@@ -111,7 +111,8 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   });
   await step('contribution', async () => {
     await go('/goals'); await tap('Moto Audit', { exact: false }); await p.waitForTimeout(800);
-    await tap('Ajouter de l’argent', { exact: false });
+    // Bouton de la FICHE (nom exact, visible) : l'onglet Objectifs, resté monté sous la fiche, a aussi le sien (« …, Moto Audit »).
+    await p.getByRole('button', { name: 'Ajouter de l’argent', exact: true }).filter({ visible: true }).first().click(); await p.waitForTimeout(400);
     await checkAllInputs(p, 'Contribution', ok, { expectInputs: true });
     await fill('Montant', '100000'); await btn('Enregistrer');
     await go('/goals'); await has('25 %', 'contribution : 300 000 / 1 200 000');
