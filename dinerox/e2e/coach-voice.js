@@ -62,7 +62,8 @@ const SPY = () => {
   // 4. Lire les montants activé → le montant est prononcé ; le dépassement suivant (lendemain) n'existe pas ici,
   //    on vérifie donc avec le bouton de test du message réel via une nouvelle enveloppe.
   await go('/settings/notifications');
-  await p.getByRole('switch', { name: /Lire les montants/ }).click(); await p.waitForTimeout(1200);
+  // Nom exact : depuis la 1.9, « Lire les montants pendant la saisie vocale » est sur le même écran.
+  await p.getByRole('switch', { name: 'Lire les montants à voix haute', exact: true }).click(); await p.waitForTimeout(1200);
   await go('/budget'); await p.getByText('Transport', { exact: true }).first().click(); await p.waitForTimeout(1200);
   await p.getByText('Modifier', { exact: true }).first().click(); await p.waitForTimeout(1200);
   await p.getByLabel('Budget mensuel').first().fill('10000'); await p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click(); await p.waitForTimeout(2000);
@@ -70,7 +71,8 @@ const SPY = () => {
   await go('/transaction/new?type=expense', 2500); await p.getByLabel('Montant').first().fill('12000'); await p.getByText('Transport', { exact: true }).first().click();
   await p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click(); await p.waitForTimeout(1800);
   s = await spoken();
-  ok(s.length === 1 && s[0].includes('2 000') && s[0].includes('Transport'), `montants autorisés : « ${s[0]} »`);
+  // Voix : montant d'un seul nombre et « francs CFA » (speakable, 1fa1e92).
+  ok(s.length === 1 && s[0].includes('2000 francs CFA') && s[0].includes('Transport'), `montants autorisés : « ${s[0]} »`);
 
   // 5. Mode silencieux : ni voix ni son, le texte reste affiché.
   await go('/settings/notifications');
