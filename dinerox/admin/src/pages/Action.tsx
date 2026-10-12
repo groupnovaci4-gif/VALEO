@@ -93,7 +93,7 @@ export default function Action({ href = window.location.href }: { href?: string 
     setBusy(true);
     try {
       await confirmPasswordReset(auth, oob, pw);
-      setView({ kind: 'done', title: 'resetTitle', text: 'resetDone' });
+      setView({ kind: 'done', title: 'resetDoneTitle', text: 'resetDone' });
     } catch (e) {
       const code = (e as { code?: string }).code ?? '';
       if (code === 'auth/weak-password') setError(t('weak'));

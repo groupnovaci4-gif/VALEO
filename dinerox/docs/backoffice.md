@@ -43,6 +43,7 @@ qu'elles touchent. Détail de la barre au §1.1.
 |---|---|---|---|
 | E1 | **Connexion** | e-mail + mot de passe, puis code à 6 chiffres (double vérification, §8). Mot de passe oublié. Aucun lien d'inscription. | — |
 | E1b | **Activer la double vérification** (1re connexion) | QR code à scanner, saisie d'un code, 8 codes de secours affichés une seule fois. | — |
+| E1d | **Page d'action des e-mails** (`/action`, D18) | sans connexion, pour TOUS les comptes : choisir un nouveau mot de passe (mot de passe oublié de l'app), confirmer une adresse, confirmer un changement d'adresse, rétablir une adresse ; FR ou EN selon le lien. Un e-mail d'invitation y ouvre l'invitation. Textes : `admin/src/pages/actionTexts.ts` (à valider). | lien valide |
 | E1c | **Accepter l'invitation** (lien reçu par e-mail ou copié) | sans connexion : qui invite, pour quel rôle, adresse invitée (masquée), date limite ; l'invité retape son adresse, choisit son mot de passe, accepte → puis E1 + E1b (double vérification). Lien expiré, annulé, déjà utilisé ou remplacé : message clair, aucune donnée affichée. Textes au §1.3. | lien valide |
 | E2 | **Tableau de bord** | cartes de chiffres clés (utilisateurs, actifs 7 j, formules, suspendus), courbe des inscriptions, courbe des actifs, répartition des formules, accès rapides (selon les droits), dernières actions du journal (si `audit.view`). | `stats.view` |
 | E2b | **Statistiques** | vue détaillée, filtres période et pays : inscriptions, actifs 7 j, comptes par pays, formules, familles, part des méthodes de saisie (statistiques anonymes déjà collectées par l'app). « Voir en tableau » sous chaque graphique. Chiffres agrégés uniquement. | `stats.view` |
@@ -731,7 +732,21 @@ membres d'une famille quand une opération partagée est supprimée.*
 12. `npm run check`, `npm run test:rules`, `npm --prefix firebase/functions run typecheck`,
     compilation des Functions : verts, lint à zéro.
 
-### Étape 3 — portail et app
+### Étape 3 — portail et app (fait)
+
+- `admin/e2e/portal.mjs` (émulateurs Auth, Firestore, Functions) : 63 vérifications — connexion
+  (refus clairs, activation, codes de secours), barre latérale et page d'accueil de chaque rôle,
+  « accès refusé », suspension/réactivation, opérations avec motif (Administratrice : aucun
+  bouton « Supprimer »), suppression avec effets liés (Super Admin), journal, invitation complète
+  (copier, accepter, mot de passe de 12 caractères, double vérification, lien déjà utilisé,
+  annulation), création d'un utilisateur, page d'action (resetPassword EN, verifyEmail FR,
+  verifyAndChangeEmail, recoverEmail EN, lien non valable, invitation par e-mail), thème sombre,
+  ordinateur / tablette / téléphone sans défilement horizontal, tiroir qui se referme.
+- `npm --prefix admin run check` : types + tests unitaires (aucun import de Firestore, aucune
+  marque écrite en dur, liens d'invitation, textes FR/EN de la page d'action).
+- App : `e2e/suspended.js` (message D16, déconnexion, refus de connexion, réactivation sans perte).
+
+Liste d'origine :
 
 - Bout en bout sur l'export web + émulateurs (style `e2e/`) : connexion + code, chaque écran,
   chaque action, refus visibles, états vide/erreur. Une Administratrice ouvre les opérations
