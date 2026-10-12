@@ -70,7 +70,8 @@ const SPY = () => {
   await go('/transaction/new?type=expense', 2500); await p.getByLabel('Montant').first().fill('12000'); await p.getByText('Transport', { exact: true }).first().click();
   await p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click(); await p.waitForTimeout(1800);
   s = await spoken();
-  ok(s.length === 1 && s[0].includes('2 000') && s[0].includes('Transport'), `montants autorisés : « ${s[0]} »`);
+  // Voix : montant d'un seul nombre et « francs CFA » (speakable, 1fa1e92).
+  ok(s.length === 1 && s[0].includes('2000 francs CFA') && s[0].includes('Transport'), `montants autorisés : « ${s[0]} »`);
 
   // 5. Mode silencieux : ni voix ni son, le texte reste affiché.
   await go('/settings/notifications');
