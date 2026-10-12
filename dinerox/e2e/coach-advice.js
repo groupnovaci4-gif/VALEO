@@ -55,7 +55,9 @@ let b;
     await clickAndHear(p.locator('[data-e2e-listen="1"]'));
     return [norm(found.text), await lastSpoken()];
   };
-  const readsOne = (card, spoken) => { const r = !!card && spoken.length > 15 && card.includes(spoken.split(/[.:] /)[0].slice(0, 40)); if (!r && process.env.DBG) console.log('  carte:', JSON.stringify((card || '').slice(0, 300)), '\n  lu:', JSON.stringify(spoken.slice(0, 200))); return r; };
+  /** Le texte affiché tel que la voix le dit : montant d'un seul nombre, « FCFA » lu « francs CFA » (speakable, 1fa1e92). */
+  const voiced = (s) => s.replace(/(?<![\d,.])\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?!\d)/g, (n) => n.replace(/[ \u00a0\u202f]/g, '')).replace(/\bFCFA\b/g, 'francs CFA');
+  const readsOne = (card, spoken) => { const r = !!card && spoken.length > 15 && voiced(card).includes(spoken.split(/[.:] /)[0].slice(0, 40)); if (!r && process.env.DBG) console.log('  carte:', JSON.stringify((card || '').slice(0, 300)), '\n  lu:', JSON.stringify(spoken.slice(0, 200))); return r; };
   /** La lecture demandée est la DERNIÈRE de la file (après une éventuelle voix proactive). */
   const reads = (card, spoken) => readsOne(card, spoken);
 
