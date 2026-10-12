@@ -11,7 +11,7 @@
  * l'application s'ouvre même sans réseau.
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { AppState } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { isFirebaseConfigured } from '@/config/env';
@@ -28,6 +28,9 @@ import { analytics } from '@/services/analytics';
 import { forgetDeviceNotifications } from '@/services/notifications';
 import { resetCoachMemoryCache } from '@/services/coachMemory';
 import { applyPending, pendingOf, queuePatch, type OwnedPending, type PendingProfile } from '@/core/profilePending';
+import { isSuspendedAuthError, type AccountCheckTrigger } from '@/core/accountStatus';
+import { signOut as authSignOut } from '@/services/auth';
+import { deviceLanguage, translate } from '@/i18n';
 
 export type AppMode = 'firebase' | 'local';
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
@@ -177,6 +180,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, [mode, resetSession]);
 
+  // 2 bis. Compte suspendu par le back-office (D5) : au démarrage, au retour au premier
+  // plan et au retour du réseau, le jeton est renouvelé. Si Firebase répond que le
+  // compte est désactivé, message clair puis déconnexion ; le cache local du compte
+  // est conservé (rangé par uid) : à la réactivation, tout revient. Une autre erreur
+  // (hors ligne…) ne change rien.
+  const suspensionShown = useRef(false);
+  const checkAccount = useCallback(
+    async (trigger: AccountCheckTrigger) => {
+      void trigger;
+      if (mode !== 'firebase') return;
+      const current = firebase().auth.currentUser;
+      if (!current) return;
+      try {
+        await current.getIdToken(true);
+        suspensionShown.current = false;
+      } catch (e) {
+        if (!isSuspendedAuthError(e) || suspensionShown.current) return;
+        suspensionShown.current = true;
+        const lang = profileRef.current?.language ?? deviceLanguage();
+        Alert.alert(translate(lang, 'auth.suspended.title'), translate(lang, 'auth.suspended.body'));
+        await authSignOut().catch(() => undefined);
+      }
+    },
+    [mode],
+  );
+  useEffect(() => {
+    if (user && mode === 'firebase') void checkAccount('start');
+  }, [user, mode, checkAccount]);
+
   // 3. Profil + espaces distants.
   useEffect(() => {
     if (mode !== 'firebase' || !user) return;
@@ -248,15 +280,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     engine?.setOnline(online);
     if (online && mode === 'firebase' && user) void pushPendingProfile(user);
   }, [engine, online, mode, user, pushPendingProfile]);
+  const wasOnline = useRef(online);
+  useEffect(() => {
+    if (online && !wasOnline.current && user) void checkAccount('online');
+    wasOnline.current = online;
+  }, [online, user, checkAccount]);
   // Au retour au premier plan : tenter de vider l'outbox.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') void engine?.flush();
+      if (s === 'active') {
+        void engine?.flush();
+        void checkAccount('foreground');
+      }
       // Mise en arrière-plan : sauvegarde locale immédiate (le système peut fermer l'app).
       else void engine?.persistNow();
     });
     return () => sub.remove();
-  }, [engine]);
+  }, [engine, checkAccount]);
 
   const spaces = useMemo(() => {
     let base: Space[] = mode === 'local' && user ? [personalSpace(LOCAL_UID, profile?.firstName ?? '', profile?.currency ?? 'XOF')].map((s) => ({ ...s, id: 'local' })) : remoteSpaces;

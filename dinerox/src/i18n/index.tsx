@@ -23,6 +23,8 @@ export function translate(lang: Language, key: TKey, params?: Params): string {
   const raw = DICTS[lang]?.[key] ?? fr[key] ?? key;
   return raw.replace(/\{(\w+)\}/g, (_, k: string) => {
     if (k === 'app') return brand.name;
+    // Adresse de contact (brand.ts), comme le nom : jamais écrite en dur dans un texte.
+    if (k === 'supportEmail') return brand.supportEmail;
     const v = params?.[k];
     return v === null || v === undefined ? '' : String(v);
   });
