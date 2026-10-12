@@ -1,5 +1,6 @@
+/** Créer ou modifier une enveloppe (design system v2). */
 import React, { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { goBack } from '@/hooks/goBack';
 import { useI18n } from '@/i18n';
@@ -7,7 +8,7 @@ import { useData } from '@/store/app';
 import { ActionError, useActions } from '@/store/actions';
 import { useCategoryLabels, useCurrency } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, ChipGroup, Field, Screen, Text, useToast } from '@/components/ui';
-import { pickableColors } from '@/theme';
+import { BIG_TEXT, DesignV2, pickableColors } from '@/theme';
 import { useActionErrorMessage, useRunAction } from '@/hooks/useRunAction';
 import { withSpaceReady } from '@/components/SpaceReady';
 
@@ -17,6 +18,7 @@ function EnvelopeEdit() {
   // `categoryId` : proposé par la conversation de saisie (« Vous n'avez pas d'enveloppe pour la Santé »).
   const { id, categoryId } = useLocalSearchParams<{ id?: string; categoryId?: string }>();
   const { t } = useI18n();
+  const big = useWindowDimensions().fontScale >= BIG_TEXT;
   const errorMessage = useActionErrorMessage();
   const toast = useToast();
   const data = useData();
@@ -52,16 +54,18 @@ function EnvelopeEdit() {
       back
       title={existing ? t('env.edit') : t('env.new')}
       footer={
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          {existing ? <Button variant="secondary" icon="trash-outline" label={t('common.delete')} onPress={remove} /> : null}
-          <Button style={{ flex: 1 }} label={t('common.save')} onPress={save} />
+        // « Enregistrer » est la seule action principale ; « Supprimer » est destructive (teintée),
+        // dessous en texte agrandi pour garder les deux libellés entiers.
+        <View style={{ flexDirection: big ? 'column-reverse' : 'row', gap: 10 }}>
+          {existing ? <Button variant="destructive" icon="trash-outline" label={t('common.delete')} onPress={remove} /> : null}
+          <Button style={big ? undefined : { flex: 1 }} label={t('common.save')} onPress={save} />
         </View>
       }
     >
       {error ? <Banner tone="danger" icon="alert-circle" text={error} /> : null}
       <Field label={t('common.name')} value={name} onChangeText={setName} maxLength={80} />
       <AmountField label={t('env.budget')} value={budget} onChange={setBudget} currency={currency} />
-      <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
+      <Text variant="label" style={{ marginBottom: 8 }}>
         {t('env.categories')}
       </Text>
       <ChipGroup
@@ -70,13 +74,21 @@ function EnvelopeEdit() {
         value={categoryIds}
         onChange={(c) => setCategoryIds((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]))}
       />
-      <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
+      <Text variant="label" style={{ marginBottom: 8 }}>
         {t('acc.color')}
       </Text>
-      <ChipGroup scroll options={pickableColors.map((c, i) => ({ value: c, label: '●', color: c, icon: 'ellipse', a11yLabel: `${t('acc.color')} ${i + 1}` }))} value={color} onChange={setColor} />
+      <ChipGroup scroll options={pickableColors.map((c, i) => ({ value: c, label: '', color: c, icon: 'ellipse', a11yLabel: `${t('acc.color')} ${i + 1}` }))} value={color} onChange={setColor} />
       <ChipGroup scroll options={ICONS.map((i) => ({ value: i, label: '', icon: i, a11yLabel: `${t('common.icon')} ${i}` }))} value={icon} onChange={setIcon} />
     </Screen>
   );
 }
 
-export default withSpaceReady(EnvelopeEdit);
+const Ready = withSpaceReady(EnvelopeEdit);
+
+export default function EnvelopeEditScreen() {
+  return (
+    <DesignV2>
+      <Ready />
+    </DesignV2>
+  );
+}

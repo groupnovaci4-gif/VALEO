@@ -38,7 +38,7 @@ export const MAX_CONTENT_WIDTH = 680;
 
 /** Conteneur d'écran standard : zone sûre, en-tête, défilement, clavier. */
 export function Screen({ title, subtitle, back, right, leading, brandSection, children, scroll = true, edges = ['top'], contentStyle, onRefresh, refreshing, footer, syncBanner = true }: ScreenProps) {
-  const { colors } = useTheme();
+  const { colors, v2 } = useTheme();
   const { t } = useI18n();
   const header = brandSection ? (
     <AppHeader section={brandSection} />
@@ -48,7 +48,8 @@ export function Screen({ title, subtitle, back, right, leading, brandSection, ch
         {leading ? <View style={{ marginRight: 10 }}>{leading}</View> : null}
         <View style={{ flex: 1 }}>
           {title ? (
-            <Text variant="h2" accessibilityRole="header" numberOfLines={1}>
+            // v2 (§8.14) : titre `titleM` sur 2 lignes au plus (plus de nom d'enveloppe coupé).
+            <Text variant={v2 ? 'titleM' : 'h2'} accessibilityRole="header" numberOfLines={v2 ? 2 : 1}>
               {title}
             </Text>
           ) : null}

@@ -12,7 +12,8 @@ import { useMoney } from '@/hooks/useFinance';
 import { Card, Icon, IconCircle, ProgressBar, Text, levelTone } from '@/components/ui';
 import type { EnvelopeStatus } from '@/core/budget';
 
-const LEVEL_ICON = { ok: 'checkmark-circle', warning: 'warning', reached: 'warning', critical: 'alert-circle' } as const;
+/** Icône de chaque état d'enveloppe (accompagne toujours le mot). */
+export const LEVEL_ICON = { ok: 'checkmark-circle', warning: 'warning', reached: 'warning', critical: 'alert-circle' } as const;
 
 /** Enveloppe : nom, reste (ou dépassement), barre, et l'état ÉCRIT avec une icône (jamais la couleur seule). */
 export function EnvelopeCard({ s, hidden = false }: { s: EnvelopeStatus; hidden?: boolean }) {
