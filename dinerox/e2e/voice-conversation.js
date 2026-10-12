@@ -97,8 +97,9 @@ let b;
   ok(t.includes('Je les enregistre ?'), '« Je les enregistre ? »');
   ok(t.includes("J'ai compris 6 opérations") && t.includes('Tout valider'), 'carte de confirmation intégrée : 6 lignes');
   ok(!/Pour l'eau/.test(t), '« facture d’eau » : aucune question');
+  // Voix : un montant groupé est prononcé d'un seul nombre (« 205000 », pas « 205 » puis « 000 »).
   let said = await spoken();
-  ok(said.length === 1 && said[0].includes('205 000 francs') && said[0].includes('Je les enregistre ?'), `réponse lue à voix haute (montants compris) : « ${(said[0] || '').slice(0, 90)}… »`);
+  ok(said.length === 1 && said[0].includes('205000 francs') && said[0].includes('Je les enregistre ?'), `réponse lue à voix haute (montants compris) : « ${(said[0] || '').slice(0, 90)}… »`);
   ok(said[0] && !said[0].includes('ainsi de suite'), '« ainsi de suite » : ni ligne ni lecture');
   ok((await historyCount()) === before, 'rien n’est enregistré avant « oui »');
 
@@ -118,7 +119,7 @@ let b;
   t = await text();
   ok(t.includes('D\'accord, Loyer corrigé à 120 000 FCFA.') && t.includes('Nouveau total : 225 000 FCFA.'), 'correction dite : loyer 120 000, nouveau total 225 000 (reformulation courte)');
   said = await spoken();
-  ok(said.at(-1).includes('Loyer corrigé à 120 000 francs') && said.at(-1).includes('225 000 francs'), 'la correction est lue aussi');
+  ok(said.at(-1).includes('Loyer corrigé à 120000 francs') && said.at(-1).includes('225000 francs'), 'la correction est lue aussi');
   // Micro et voix jamais en même temps : ouvrir le micro coupe la voix.
   const c1 = await p.evaluate(() => window.__cancels);
   await dictate('Enlève la santé', 'Répondre à la voix');
