@@ -1,0 +1,1134 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Back-office — maquette</title>
+<link rel="icon" href="../assets/favicon.png">
+<!--
+  Maquette du back-office (docs/backoffice.md, étape 1). Fichier autonome : il ne fait pas
+  partie de l'application ni du portail, et n'en modifie aucun code.
+  - Marque : copie de src/config/brand.ts (objet BRAND ci-dessous). Dans le portail réel,
+    nom, couleurs et e-mail de support seront LUS dans brand.ts, jamais écrits en dur.
+    Le vert de marque #14B8A6 n'est utilisé que sur fond sombre (barre latérale, connexion).
+  - Jetons : copie du design system v2 (branche design-v2, docs/design-system.md §1).
+  - Polices : Google Fonts (maquette) ; le portail les auto-hébergera.
+  - Icônes : Ionicons, même jeu que @expo/vector-icons dans l'app.
+  - Le panneau « Outils de la maquette » (en bas à droite) sert uniquement à tester la
+    maquette : il n'existera pas dans le portail.
+  - Toutes les personnes, adresses et montants sont FICTIFS.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<style>
+  /* ───────── Jetons du design system v2 (miroir de docs/design-system.md §1, branche design-v2) ───────── */
+  .t-light {
+    --background:#F5F7F6; --surface:#FFFFFF; --surfaceAlt:#ECF0EE; --border:#DDE3E0; --borderStrong:#7D8984;
+    --text:#121A17; --textMuted:#3F4A45; --textSubtle:#56625C;
+    --primary:#00685F; --primaryPressed:#004F48; --onPrimary:#FFFFFF; --primaryContainer:#D3EFEA; --onPrimaryContainer:#00413B;
+    --accent:#8A5300; --accentContainer:#FFD9A8; --onAccentContainer:#2B1700;
+    --income:#1E6B3A; --expense:#B3261E;
+    --success:#1E6B3A; --successBg:#D7F0DF; --onSuccess:#FFFFFF;
+    --warning:#8A5300; --warningBg:#FFEBCF;
+    --danger:#B3261E; --dangerBg:#FDE2DE; --onDanger:#FFFFFF;
+    --info:#3949AB; --infoBg:#E3E6FA;
+    --heroFrom:#0B6B61; --heroTo:#06504A; --onHero:#FFFFFF; --onHeroMuted:rgba(255,255,255,.88); --heroTrack:rgba(255,255,255,.28);
+    --track:#DDE3E0; --disabledBg:#E3E7E5; --onDisabled:#5E6A64;
+    --inverseSurface:#1F2724; --onInverse:#F2F6F4;
+    --overlay:rgba(18,26,23,.5);
+    --shadow1:0 1px 2px rgba(18,26,23,.04), 0 2px 8px rgba(18,26,23,.06);
+    --shadow2:0 6px 16px rgba(18,26,23,.12), 0 1px 3px rgba(18,26,23,.08);
+    --chartArea:rgba(0,104,95,.10);
+    color-scheme: light;
+  }
+  .t-dark {
+    --background:#0E1412; --surface:#161D1A; --surfaceAlt:#212A26; --border:#2C3632; --borderStrong:#75827C;
+    --text:#EEF3F0; --textMuted:#BAC5BF; --textSubtle:#9AA6A0;
+    --primary:#4FD1C0; --primaryPressed:#7FE0D3; --onPrimary:#00201C; --primaryContainer:#0F3D37; --onPrimaryContainer:#B6F1E8;
+    --accent:#FFC266; --accentContainer:#4A3000; --onAccentContainer:#FFDDB0;
+    --income:#5BD6A0; --expense:#FF8A80;
+    --success:#5BD6A0; --successBg:#123826; --onSuccess:#00210F;
+    --warning:#FFC266; --warningBg:#3A2A0E;
+    --danger:#FF8A80; --dangerBg:#3D1714; --onDanger:#3B0906;
+    --info:#A5B4FF; --infoBg:#1E2547;
+    --heroFrom:#0D5C53; --heroTo:#08413B; --onHero:#FFFFFF; --onHeroMuted:rgba(255,255,255,.86); --heroTrack:rgba(255,255,255,.24);
+    --track:#2C3632; --disabledBg:#28322E; --onDisabled:#97A39D;
+    --inverseSurface:#E3EAE6; --onInverse:#17201C;
+    --overlay:rgba(0,0,0,.7);
+    --shadow1:none; --shadow2:0 0 0 1px var(--border);
+    --chartArea:rgba(79,209,192,.12);
+    color-scheme: dark;
+  }
+  /* Couleurs de marque (injectées depuis BRAND = brand.ts) : fond nuit de la barre latérale et de la connexion.
+     Le vert de marque n'apparaît QUE sur ce fond sombre (contraste ≈ 7,9:1). */
+  :root { --brandNight:#020617; --brandGreen:#14B8A6; --brandGold:#FBBF24; --onNight:#E6EEF0; --onNightMuted:#A7B4BC; --nightLine:rgba(255,255,255,.08); --nightHover:rgba(255,255,255,.06); }
+
+  /* ───────── Base ───────── */
+  * { box-sizing:border-box; }
+  html, body { margin:0; }
+  body { font-family:Inter, system-ui, sans-serif; background:#E4E9E7; color:#121A17; -webkit-font-smoothing:antialiased; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  [hidden] { display:none !important; }
+  .sr { position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .tnum { font-variant-numeric:tabular-nums; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition:none !important; animation:none !important; } }
+
+  .stage { padding:24px 16px 120px; display:grid; gap:28px; justify-items:center; }
+  .stage-label { font:600 13px Inter; color:#3F4A45; justify-self:start; }
+
+  /* ───────── Cadre du portail (requêtes de conteneur : la mise en page suit la largeur du cadre) ───────── */
+  .frame { width:100%; max-width:1440px; height:900px; border-radius:16px; overflow:hidden; position:relative; container-type:inline-size; container-name:portal; box-shadow:0 10px 40px rgba(18,26,23,.18); background:var(--background); color:var(--text); }
+  .frame.vp-tablet { max-width:820px; height:1000px; }
+  .frame.vp-phone { max-width:390px; height:820px; border-radius:28px; }
+  .app { display:grid; grid-template-columns:272px 1fr; grid-template-rows:minmax(0,1fr); height:100%; position:relative; }
+  .main { min-width:0; height:100%; overflow:auto; }
+  .content { padding:32px 32px 56px; }
+  .content-inner { max-width:1240px; margin:0 auto; display:grid; gap:24px; }
+  .content-inner > * { min-width:0; }
+  :focus-visible { outline:2px solid var(--primary); outline-offset:2px; border-radius:6px; }
+  .skip { position:absolute; left:8px; top:-60px; z-index:30; background:var(--primary); color:var(--onPrimary); padding:10px 14px; border-radius:10px; font-weight:600; text-decoration:none; }
+  .skip:focus { top:8px; }
+
+  /* ───────── Barre latérale (fond nuit de la marque, dans les deux thèmes) ───────── */
+  .side { background:var(--brandNight); color:var(--onNight); display:flex; flex-direction:column; padding:20px 14px 14px; gap:4px; overflow-y:auto; min-height:0; border-right:1px solid var(--nightLine); z-index:20; }
+  .side :focus-visible { outline-color:var(--brandGreen); }
+  .brandrow { display:flex; align-items:center; gap:12px; padding:2px 8px 16px; }
+  .brandrow img { width:40px; height:40px; border-radius:10px; flex:none; }
+  .brandrow .nm { font:800 18px/1.1 'Plus Jakarta Sans',sans-serif; letter-spacing:-.2px; }
+  .brandrow .sub { font:500 12px/1.3 Inter; color:var(--onNightMuted); }
+  .btn.side-close { display:none; margin-left:auto; }
+  .ssearch { position:relative; margin:0 2px 6px; }
+  .ssearch ion-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--onNightMuted); font-size:17px; pointer-events:none; }
+  .ssearch input { width:100%; height:42px; border-radius:10px; border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.04); color:var(--onNight); padding:0 12px 0 38px; font-size:14px; }
+  .ssearch input::placeholder { color:var(--onNightMuted); }
+  .ssearch input:focus { outline:none; border-color:var(--brandGreen); box-shadow:0 0 0 3px rgba(20,184,166,.25); }
+  .navgroup { display:grid; gap:2px; }
+  .navsec { font:600 12px Inter; color:var(--onNightMuted); padding:14px 12px 6px; letter-spacing:.1px; }
+  .navlink { display:flex; align-items:center; gap:12px; min-height:44px; padding:0 12px; border-radius:10px; color:var(--onNight); text-decoration:none; font:500 15px Inter; position:relative; background:none; border:0; width:100%; text-align:left; cursor:pointer; }
+  .navlink ion-icon { font-size:20px; color:var(--onNightMuted); flex:none; }
+  .navlink:hover { background:var(--nightHover); }
+  .navlink[aria-current="page"] { background:rgba(20,184,166,.16); font-weight:600; }
+  .navlink[aria-current="page"] ion-icon { color:var(--brandGreen); }
+  .navlink[aria-current="page"]::before { content:""; position:absolute; left:-14px; top:10px; bottom:10px; width:3px; border-radius:0 3px 3px 0; background:var(--brandGreen); }
+  .navlink .lbl { flex:1; }
+  .navlink.danger:hover { background:rgba(255,138,128,.10); }
+  .side-bottom { margin-top:auto; padding-top:12px; border-top:1px solid var(--nightLine); display:grid; gap:2px; }
+  .profile-mini { display:flex; gap:12px; align-items:center; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.04); margin-bottom:6px; }
+  .profile-mini .avatar { background:rgba(20,184,166,.18); color:#B6F1E8; }
+  .profile-mini .who { font:600 14px/1.25 Inter; } .profile-mini .rl { font:500 12px/1.3 Inter; color:var(--onNightMuted); display:flex; gap:5px; align-items:center; }
+  .profile-mini .rl ion-icon { color:var(--brandGreen); font-size:13px; }
+  .settings { margin:4px 2px 6px; padding:12px; border-radius:12px; background:rgba(255,255,255,.04); display:grid; gap:10px; min-width:0; }
+  .settings .btn { white-space:normal; text-align:left; min-height:40px; }
+  .settings .t { font:600 12px Inter; color:var(--onNightMuted); }
+  .themeseg { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; background:rgba(255,255,255,.05); border-radius:10px; padding:3px; }
+  .themeseg button { border:0; background:transparent; color:var(--onNight); min-height:40px; border-radius:8px; font:600 13px Inter; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+  .themeseg button ion-icon { font-size:16px; color:var(--onNightMuted); }
+  .themeseg button[aria-checked="true"] { background:rgba(20,184,166,.22); }
+  .themeseg button[aria-checked="true"] ion-icon { color:var(--brandGreen); }
+  .settings .session { font:500 12px/1.4 Inter; color:var(--onNightMuted); display:flex; gap:6px; align-items:flex-start; }
+  .settings .session ion-icon { color:var(--brandGreen); font-size:15px; flex:none; margin-top:1px; }
+  .chev-rot { margin-left:auto; transition:transform .15s; font-size:16px !important; }
+  .navlink[aria-expanded="true"] .chev-rot { transform:rotate(180deg); }
+  .nav-scrim { display:none; }
+
+  /* ───────── Avatar, typo ───────── */
+  .avatar { width:36px; height:36px; border-radius:50%; display:grid; place-items:center; font:700 13px Inter; background:var(--primaryContainer); color:var(--onPrimaryContainer); flex:none; }
+  .avatar.lg { width:64px; height:64px; font-size:22px; }
+  .pagetitle { display:flex; align-items:center; gap:12px; min-height:44px; }
+  .pagetitle h1 { font:700 28px/1.2 'Plus Jakarta Sans',sans-serif; margin:0; letter-spacing:-.4px; }
+  .btn.menu-btn { display:none; }
+  .h-sec { font:700 17px/1.4 'Plus Jakarta Sans',sans-serif; margin:0; }
+  .muted { color:var(--textMuted); } .subtle { color:var(--textSubtle); }
+  .small { font-size:14px; line-height:1.43; } .caption { font:500 13px/1.38 Inter; }
+  .rowbetween { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; }
+
+  /* ───────── Boutons (DS v2 §8.1) ───────── */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 16px; border-radius:12px; border:0; font:600 15px Inter; cursor:pointer; text-decoration:none; white-space:nowrap; transition:background-color .15s; }
+  .btn ion-icon { font-size:20px; }
+  .btn.primary { background:var(--primary); color:var(--onPrimary); } .btn.primary:hover { background:var(--primaryPressed); }
+  .btn.secondary { background:var(--primaryContainer); color:var(--onPrimaryContainer); }
+  .btn.outline { background:var(--surface); color:var(--text); border:1.5px solid var(--borderStrong); }
+  .btn.outline:hover { background:var(--surfaceAlt); }
+  .btn.tertiary { background:transparent; color:var(--primary); padding:0 10px; }
+  .btn.tertiary:hover { background:var(--surfaceAlt); }
+  .btn.destructive { background:var(--dangerBg); color:var(--danger); }
+  .btn.danger { background:var(--danger); color:var(--onDanger); }
+  .btn.sm { min-height:36px; padding:0 12px; font-size:14px; border-radius:10px; }
+  .btn.icon-only { width:44px; padding:0; }
+  .btn[disabled] { background:var(--disabledBg); color:var(--onDisabled); cursor:not-allowed; border-color:transparent; }
+
+  /* ───────── Cartes, KPI, graphiques ───────── */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow1); }
+  .card-pad { padding:20px; }
+  .card-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 20px 0; flex-wrap:wrap; }
+  .kpis { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; }
+  .kpi { padding:20px; display:grid; gap:10px; align-content:start; }
+  .kpi .lbl { display:flex; gap:10px; align-items:center; font:600 14px Inter; color:var(--textMuted); }
+  .kpi .ico { width:36px; height:36px; border-radius:10px; display:grid; place-items:center; background:var(--primaryContainer); color:var(--primary); font-size:19px; flex:none; }
+  .kpi .val { font:800 32px/1.1 'Plus Jakarta Sans',sans-serif; letter-spacing:-.6px; font-variant-numeric:tabular-nums; }
+  .kpi .meta { font:500 13px Inter; color:var(--textSubtle); display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .kpi.hero { background:linear-gradient(135deg, var(--heroFrom), var(--heroTo)); color:var(--onHero); border:0; }
+  .kpi.hero .lbl, .kpi.hero .meta { color:var(--onHeroMuted); }
+  .kpi.hero .ico { background:var(--heroTrack); color:var(--onHero); }
+  .delta { display:inline-flex; gap:3px; align-items:center; font:600 13px Inter; padding:2px 8px; border-radius:8px; background:var(--successBg); color:var(--success); }
+  .kpi.hero .delta { background:var(--heroTrack); color:var(--onHero); }
+  .planbar { display:flex; height:10px; border-radius:6px; overflow:hidden; gap:2px; background:var(--surface); }
+  .planbar span { display:block; height:100%; }
+  .legend { display:flex; flex-wrap:wrap; gap:6px 14px; font:500 13px Inter; color:var(--textMuted); }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+  .charts { display:grid; grid-template-columns:2fr 1fr; gap:16px; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .chart { position:relative; padding:8px 20px 16px; }
+  .chart svg { width:100%; height:240px; display:block; overflow:visible; }
+  .chart .tip { position:absolute; pointer-events:none; background:var(--inverseSurface); color:var(--onInverse); font:500 13px/1.35 Inter; padding:8px 10px; border-radius:10px; box-shadow:var(--shadow2); opacity:0; transform:translate(-50%, -110%); white-space:nowrap; transition:opacity .12s; }
+  .chart .tip b { font-weight:700; font-variant-numeric:tabular-nums; }
+  .axis text { fill:var(--textSubtle); font:500 12px Inter; }
+  .grid line { stroke:var(--border); }
+  .seg { display:inline-flex; background:var(--surfaceAlt); border-radius:10px; padding:3px; gap:2px; }
+  .seg button { border:0; background:transparent; min-height:32px; padding:0 12px; border-radius:8px; font:600 13px Inter; color:var(--textMuted); cursor:pointer; }
+  .seg button[aria-pressed="true"] { background:var(--surface); color:var(--text); box-shadow:var(--shadow1); }
+  .hbars { display:grid; gap:14px; padding:12px 20px 20px; }
+  .hbar .row { display:flex; justify-content:space-between; font:500 14px Inter; margin-bottom:6px; gap:8px; }
+  .hbar .row b { font-variant-numeric:tabular-nums; font-weight:700; }
+  .hbar .trk { height:10px; background:var(--track); border-radius:6px; overflow:hidden; }
+  .hbar .fill { height:100%; background:var(--primary); border-radius:6px; }
+  .quick { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px; }
+  .qa { display:flex; gap:12px; align-items:center; padding:16px; border-radius:14px; background:var(--surface); border:1px solid var(--border); text-decoration:none; color:var(--text); font:600 15px Inter; cursor:pointer; text-align:left; }
+  .qa:hover { background:var(--surfaceAlt); }
+  .qa ion-icon { font-size:22px; color:var(--primary); flex:none; }
+  .qa .chev { margin-left:auto; color:var(--textSubtle); font-size:18px; }
+
+  /* ───────── Badges : TOUJOURS icône + mot ───────── */
+  .badge { display:inline-flex; align-items:center; gap:5px; font:600 13px/1 Inter; padding:5px 9px; border-radius:8px; white-space:nowrap; }
+  .badge ion-icon { font-size:15px; }
+  .b-neutral { background:var(--surfaceAlt); color:var(--textMuted); }
+  .b-success { background:var(--successBg); color:var(--success); }
+  .b-warning { background:var(--warningBg); color:var(--warning); }
+  .b-danger { background:var(--dangerBg); color:var(--danger); }
+  .b-info { background:var(--infoBg); color:var(--info); }
+  .b-accent { background:var(--accentContainer); color:var(--onAccentContainer); }
+  .b-primary { background:var(--primaryContainer); color:var(--onPrimaryContainer); }
+
+  /* ───────── Champs, barre d'outils, tableaux ───────── */
+  .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; padding:16px 20px; border-bottom:1px solid var(--border); }
+  .toolbar .grow { flex:1; }
+  .field { display:grid; gap:6px; }
+  .field > label, .flabel { font:600 14px Inter; color:var(--text); }
+  .field .help { font:500 13px Inter; color:var(--textSubtle); }
+  .input, .select, textarea.input { height:44px; border-radius:12px; border:1.5px solid var(--borderStrong); background:var(--surface); padding:0 12px; font-size:15px; min-width:0; }
+  textarea.input { height:auto; min-height:84px; padding:10px 12px; resize:vertical; }
+  .select { padding-right:36px; appearance:none; background-image:linear-gradient(45deg, transparent 50%, var(--textMuted) 50%), linear-gradient(135deg, var(--textMuted) 50%, transparent 50%); background-position:calc(100% - 18px) 19px, calc(100% - 13px) 19px; background-size:5px 5px; background-repeat:no-repeat; }
+  .input:focus, .select:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px var(--primaryContainer); }
+  .search-field { position:relative; flex:1 1 280px; }
+  .search-field ion-icon { position:absolute; left:12px; bottom:13px; color:var(--textSubtle); font-size:18px; }
+  .search-field .input { width:100%; padding-left:38px; }
+  .tablewrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; font:600 13px Inter; color:var(--textMuted); padding:12px 16px; background:var(--surfaceAlt); white-space:nowrap; }
+  th:first-child, td:first-child { padding-left:20px; }
+  td { padding:12px 16px; border-top:1px solid var(--border); vertical-align:middle; }
+  tbody tr:hover { background:var(--surfaceAlt); }
+  tr.clickable { cursor:pointer; }
+  td.tnum { white-space:nowrap; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .caption ion-icon { font-size:15px; vertical-align:-2px; }
+  .ucell { display:flex; gap:12px; align-items:center; min-width:220px; }
+  .ucell b { display:block; font-weight:600; font-size:15px; }
+  .ucell span { color:var(--textSubtle); font-size:13px; }
+  .mono { font-variant-numeric:tabular-nums; letter-spacing:.2px; color:var(--textMuted); font-size:13px; }
+  .pager { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px 20px; border-top:1px solid var(--border); flex-wrap:wrap; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .amt-in { color:var(--income); font-weight:600; } .amt-out { color:var(--expense); font-weight:600; } .amt-tr { color:var(--text); font-weight:600; }
+  .typecell { display:flex; gap:8px; align-items:center; }
+  .typeico { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; font-size:16px; flex:none; }
+  .ti-in { background:var(--successBg); color:var(--income); } .ti-out { background:var(--dangerBg); color:var(--expense); } .ti-tr { background:var(--infoBg); color:var(--info); }
+
+  /* ───────── Messages ───────── */
+  .msg { display:flex; gap:12px; align-items:flex-start; padding:12px 16px; border-radius:12px; border-left:4px solid; font-size:14px; line-height:1.45; }
+  .msg ion-icon { font-size:20px; flex:none; margin-top:1px; }
+  .msg.info { background:var(--infoBg); border-color:var(--info); } .msg.info ion-icon { color:var(--info); }
+  .msg.warning { background:var(--warningBg); border-color:var(--warning); } .msg.warning ion-icon { color:var(--warning); }
+  .msg.danger { background:var(--dangerBg); border-color:var(--danger); } .msg.danger ion-icon { color:var(--danger); }
+  .msg.success { background:var(--successBg); border-color:var(--success); } .msg.success ion-icon { color:var(--success); }
+
+  /* ───────── Fiche ───────── */
+  .profile { display:flex; gap:20px; align-items:center; flex-wrap:wrap; padding:24px; }
+  .profile .id { flex:1 1 260px; min-width:0; }
+  .profile .tags { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center; }
+  .dl { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); margin:0; }
+  .dl div { padding:14px 20px; border-top:1px solid var(--border); }
+  .dl dt { font:500 13px Inter; color:var(--textSubtle); margin-bottom:4px; }
+  .dl dd { margin:0; font:600 15px Inter; }
+  .grid-main { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:16px; align-items:start; }
+  .list { list-style:none; margin:0; padding:0; }
+  .list li { display:flex; gap:12px; align-items:center; padding:14px 20px; border-top:1px solid var(--border); }
+  .list li .grow { flex:1; min-width:0; }
+  .list li b { font-weight:600; display:block; }
+  .dot-ico { width:36px; height:36px; border-radius:10px; display:grid; place-items:center; background:var(--surfaceAlt); color:var(--textMuted); font-size:18px; flex:none; }
+  .danger-zone { border:1.5px solid var(--danger); border-radius:16px; background:var(--surface); padding:20px; display:flex; gap:16px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  .danger-zone h2 { margin:0 0 4px; font:700 16px 'Plus Jakarta Sans',sans-serif; color:var(--danger); display:flex; gap:8px; align-items:center; }
+  .audit-banner { display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:12px 16px; border-radius:12px; background:var(--warningBg); border:1px solid color-mix(in srgb, var(--warning) 40%, transparent); font-size:14px; }
+  .audit-banner ion-icon { color:var(--warning); font-size:20px; }
+  .audit-banner .grow { flex:1; }
+
+  /* ───────── Rôles ───────── */
+  .roles { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:16px; }
+  .role-card { padding:20px; display:grid; gap:12px; align-content:start; }
+  .role-card h3 { margin:0; font:700 16px 'Plus Jakarta Sans',sans-serif; display:flex; gap:8px; align-items:center; justify-content:space-between; }
+  .perm { display:flex; gap:10px; align-items:flex-start; font-size:14px; padding:6px 0; }
+  .perm .box { width:20px; height:20px; border-radius:6px; border:1.5px solid var(--borderStrong); display:grid; place-items:center; flex:none; margin-top:1px; }
+  .perm.on .box { background:var(--primary); border-color:var(--primary); color:var(--onPrimary); }
+  .perm.locked { color:var(--onDisabled); }
+  .perm.locked .box { background:var(--disabledBg); border-color:var(--disabledBg); color:var(--onDisabled); }
+  .perm code { font:600 12px ui-monospace, SFMono-Regular, Menlo, monospace; color:var(--textSubtle); display:block; }
+  .perm.locked code { color:var(--onDisabled); }
+  .matrix td, .matrix th { text-align:center; } .matrix td:first-child, .matrix th:first-child { text-align:left; }
+  .yes { color:var(--success); font-weight:600; display:inline-flex; gap:4px; align-items:center; }
+  .no { color:var(--textSubtle); display:inline-flex; gap:4px; align-items:center; }
+  .lock { color:var(--onDisabled); display:inline-flex; gap:4px; align-items:center; }
+  .diff { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .diff pre { margin:0; padding:12px; border-radius:10px; background:var(--surfaceAlt); font:500 13px/1.5 ui-monospace, Menlo, monospace; white-space:pre-wrap; }
+
+  /* ───────── Fenêtres, toast, états ───────── */
+  .scrim { position:absolute; inset:0; background:var(--overlay); display:grid; place-items:center; padding:16px; z-index:40; }
+  .dialog { width:min(560px, 100%); max-height:calc(100% - 32px); overflow:auto; background:var(--surface); color:var(--text); border-radius:20px; box-shadow:var(--shadow2); border:1px solid var(--border); }
+  .dialog header { padding:20px 24px 0; display:flex; gap:12px; align-items:flex-start; }
+  .dialog header .hico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; font-size:22px; flex:none; }
+  .dialog h2 { margin:0; font:700 20px/1.3 'Plus Jakarta Sans',sans-serif; }
+  .dialog .body { padding:16px 24px; display:grid; gap:16px; }
+  .dialog footer { padding:16px 24px 20px; display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap; border-top:1px solid var(--border); }
+  .radio-list { display:grid; gap:8px; border:0; padding:0; margin:0; }
+  .radio { display:flex; gap:12px; align-items:center; padding:12px 14px; border:1.5px solid var(--borderStrong); border-radius:12px; cursor:pointer; min-height:48px; }
+  .radio input { width:20px; height:20px; accent-color:var(--primary); margin:0; }
+  .radio:has(input:checked) { border-color:var(--primary); background:var(--primaryContainer); color:var(--onPrimaryContainer); }
+  .check { display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; cursor:pointer; }
+  .check input { width:20px; height:20px; accent-color:var(--danger); margin:0; flex:none; }
+  .recap { border-radius:12px; background:var(--surfaceAlt); padding:14px 16px; display:grid; gap:6px; font-size:14px; }
+  .recap .r { display:flex; justify-content:space-between; gap:12px; }
+  .effects { margin:0; padding:0; list-style:none; display:grid; gap:8px; }
+  .effects li { display:flex; gap:10px; align-items:center; font-size:14px; }
+  .effects ion-icon { color:var(--warning); font-size:18px; flex:none; }
+  .toast { position:absolute; left:50%; bottom:24px; transform:translateX(-50%); background:var(--inverseSurface); color:var(--onInverse); padding:12px 16px; border-radius:12px; display:flex; gap:10px; align-items:center; font:500 14px Inter; box-shadow:var(--shadow2); z-index:45; max-width:calc(100% - 32px); }
+  .t-light .toast ion-icon { color:#4FD1C0; font-size:20px; } .t-dark .toast ion-icon { color:#00685F; font-size:20px; }
+  .state { display:grid; justify-items:center; text-align:center; gap:10px; padding:40px 20px; }
+  .state .pill { width:64px; height:64px; border-radius:50%; display:grid; place-items:center; font-size:28px; background:var(--primaryContainer); color:var(--primary); }
+  .state.err .pill { background:var(--dangerBg); color:var(--danger); }
+  .state h3 { margin:4px 0 0; font:700 17px 'Plus Jakarta Sans',sans-serif; }
+  .state p { margin:0; color:var(--textMuted); max-width:440px; }
+  .skel { height:14px; border-radius:7px; background:linear-gradient(90deg, var(--surfaceAlt), var(--border), var(--surfaceAlt)); background-size:200% 100%; animation:sh 1.4s infinite; }
+  @keyframes sh { to { background-position:-200% 0; } }
+  .states { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; }
+
+  /* ───────── Connexion ───────── */
+  .login { display:grid; grid-template-columns:1.05fr 1fr; height:100%; }
+  .login-brand { background:var(--brandNight); color:var(--onNight); padding:48px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden; }
+  .login-brand::after { content:""; position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size:44px 44px; mask-image:radial-gradient(ellipse at 30% 40%, #000 20%, transparent 75%); pointer-events:none; }
+  .login-brand > * { position:relative; z-index:1; }
+  .login-brand .logo-xl { width:112px; height:112px; border-radius:26px; }
+  .login-brand h2 { font:800 40px/1.1 'Plus Jakarta Sans',sans-serif; margin:28px 0 10px; letter-spacing:-.8px; }
+  .login-brand .tag { font:500 18px/1.5 Inter; color:var(--onNightMuted); margin:0; }
+  .login-brand .tag b { color:var(--brandGold); font-weight:600; }
+  .trust { display:grid; gap:14px; }
+  .trust div { display:flex; gap:12px; align-items:center; font:500 14px/1.4 Inter; }
+  .trust ion-icon { color:var(--brandGreen); font-size:20px; flex:none; }
+  .login-form { display:grid; place-items:center; padding:32px; background:var(--background); }
+  .login-card { width:min(420px, 100%); display:grid; gap:20px; }
+  .login-card h1 { font:700 26px/1.25 'Plus Jakarta Sans',sans-serif; margin:0; }
+  .steps { display:flex; gap:8px; align-items:center; font:600 13px Inter; color:var(--textSubtle); }
+  .steps .st { display:flex; gap:6px; align-items:center; }
+  .steps .n { width:22px; height:22px; border-radius:50%; display:grid; place-items:center; background:var(--surfaceAlt); font-size:12px; }
+  .steps .st.on { color:var(--primary); } .steps .st.on .n { background:var(--primary); color:var(--onPrimary); }
+  .steps .sep { flex:1; height:2px; background:var(--border); max-width:40px; }
+  .otp { display:grid; grid-template-columns:repeat(6, 1fr); gap:8px; }
+  .otp input { height:56px; text-align:center; font:700 22px 'Plus Jakarta Sans'; border-radius:12px; border:1.5px solid var(--borderStrong); background:var(--surface); width:100%; }
+
+  /* ───────── Tablette (≤ 1100 px de cadre) : barre réduite aux icônes, nom en bulle au survol / focus / appui long ───────── */
+  @container portal (max-width: 1100px) {
+    .app { grid-template-columns:80px 1fr; }
+    .side { padding:16px 12px 12px; align-items:center; overflow:visible; }
+    .brandrow { padding:2px 0 12px; } .brandrow .txt { display:none; }
+    .ssearch { width:56px; margin:0 0 6px; }
+    .ssearch input { padding:0; color:transparent; cursor:pointer; } .ssearch input::placeholder { color:transparent; }
+    .ssearch ion-icon { left:50%; transform:translate(-50%,-50%); }
+    .navgroup { justify-items:center; width:100%; }
+    .navsec { font-size:0; padding:10px 0 4px; width:32px; border-top:1px solid var(--nightLine); margin-top:6px; }
+    .navgroup:first-of-type .navsec { border-top:0; margin-top:0; }
+    .navlink { width:56px; justify-content:center; padding:0; }
+    .navlink .lbl, .navlink .chev-rot { display:none; }
+    .navlink[aria-current="page"]::before { left:-12px; }
+    /* Bulle : même nom que le libellé, aussi annoncé au lecteur d'écran via aria-label */
+    .navlink[data-tip]:hover::after, .navlink[data-tip]:focus-visible::after, .navlink.tip-on::after, .ssearch:hover::after, .ssearch:focus-within::after {
+      content:attr(data-tip); position:absolute; left:calc(100% + 12px); top:50%; transform:translateY(-50%); background:var(--inverseSurface); color:var(--onInverse);
+      font:600 13px Inter; padding:7px 10px; border-radius:8px; white-space:nowrap; box-shadow:0 6px 16px rgba(0,0,0,.25); z-index:30; pointer-events:none; }
+    .side-bottom { width:100%; justify-items:center; }
+    .profile-mini { padding:6px; background:none; margin-bottom:2px; position:relative; }
+    .profile-mini .txt { display:none; }
+    .settings { position:absolute; left:calc(100% + 8px); bottom:60px; width:240px; background:var(--brandNight); border:1px solid var(--nightLine); box-shadow:0 10px 30px rgba(0,0,0,.35); z-index:31; }
+    .kpis, .quick { grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .charts, .grid-main, .two { grid-template-columns:1fr; }
+    .states { grid-template-columns:repeat(2, minmax(0,1fr)); }
+    .content { padding:28px 24px 48px; }
+    .login { grid-template-columns:1fr; grid-template-rows:auto 1fr; }
+    .login-brand { padding:32px; } .login-brand .trust { display:none; } .login-brand h2 { font-size:30px; margin-top:16px; }
+    .login-brand .logo-xl { width:72px; height:72px; border-radius:18px; }
+  }
+  /* ───────── Téléphone (≤ 640 px) : barre en tiroir, ouverte par ☰, refermée après un choix ───────── */
+  @container portal (max-width: 640px) {
+    .app { grid-template-columns:1fr; }
+    .side { position:absolute; inset:0 auto 0 0; width:min(300px, 86%); transform:translateX(-102%); transition:transform .22s ease; align-items:stretch; overflow-y:auto; padding:16px 14px 14px; z-index:35; visibility:hidden; }
+    .nav-open .side { transform:none; visibility:visible; }
+    .nav-open .nav-scrim { display:block; position:absolute; inset:0; background:var(--overlay); z-index:34; }
+    .btn.side-close { display:inline-flex; }
+    .brandrow { padding:2px 4px 12px; } .brandrow .txt { display:block; }
+    .ssearch { width:auto; margin:0 2px 6px; } .ssearch input { padding:0 12px 0 38px; color:var(--onNight); cursor:text; } .ssearch input::placeholder { color:var(--onNightMuted); }
+    .ssearch ion-icon { left:12px; transform:translateY(-50%); }
+    .ssearch:hover::after, .ssearch:focus-within::after { content:none; }
+    .navgroup { justify-items:stretch; }
+    .navsec { font-size:12px; padding:14px 12px 6px; width:auto; border-top:0; margin-top:0; }
+    .navlink { width:100%; justify-content:flex-start; padding:0 12px; }
+    .navlink .lbl, .navlink .chev-rot { display:inline; }
+    .navlink[data-tip]:hover::after, .navlink[data-tip]:focus-visible::after, .navlink.tip-on::after { content:none; }
+    .navlink[aria-current="page"]::before { left:-14px; }
+    .side-bottom { justify-items:stretch; }
+    .profile-mini { padding:10px 12px; background:rgba(255,255,255,.04); } .profile-mini .txt { display:block; }
+    .settings { position:static; width:auto; box-shadow:none; background:rgba(255,255,255,.04); border:0; }
+    .btn.menu-btn { display:inline-flex; flex:none; }
+    .pagetitle h1 { font-size:22px; }
+    .content { padding:16px 16px 40px; }
+    .kpis, .quick, .states, .dl { grid-template-columns:1fr; }
+    .kpi .val { font-size:28px; }
+    .stack thead { display:none; }
+    .stack, .stack tbody, .stack tr, .stack td { display:block; width:100%; }
+    .stack tr { padding:12px 16px; border-top:1px solid var(--border); }
+    .stack td { border:0; padding:4px 0 !important; text-align:left !important; display:flex; justify-content:space-between; gap:12px; align-items:center; }
+    .stack td::before { content:attr(data-label); font:500 13px Inter; color:var(--textSubtle); }
+    .stack td.nolabel::before { content:none; }
+    .stack td.nolabel { display:block; }
+    .stack td.nolabel.chev { display:none; }
+    .toolbar .field, .toolbar .search-field, .toolbar .btn { flex:1 1 100%; } .toolbar .select { width:100%; } .toolbar .grow { display:none; }
+    .diff { grid-template-columns:1fr; }
+    .login-brand { padding:24px 20px; } .login-brand h2 { font-size:26px; } .login-brand .tag { font-size:15px; }
+    .login-form { padding:20px 16px; align-items:start; }
+    .dialog footer { flex-direction:column-reverse; align-items:stretch; } .dialog footer .btn { width:100%; }
+    .danger-zone .btn { width:100%; }
+  }
+
+  /* ───────── OUTILS DE LA MAQUETTE (n'existe pas dans le portail) ───────── */
+  .mocktools { position:fixed; right:16px; bottom:16px; z-index:100; font:500 13px Inter; color:#1F2724; }
+  .mocktools > button.mt-toggle { display:flex; gap:8px; align-items:center; background:#FFF8E1; color:#3D2E00; border:2px dashed #8A6D00; border-radius:999px; padding:8px 14px; font:700 13px Inter; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.18); }
+  .mocktools > button.mt-toggle ion-icon { font-size:18px; }
+  .mt-panel { position:absolute; right:0; bottom:calc(100% + 10px); width:min(360px, calc(100vw - 32px)); max-height:calc(100vh - 100px); overflow:auto; background:#FFFDF5; border:2px dashed #8A6D00; border-radius:16px; box-shadow:0 12px 32px rgba(0,0,0,.22); padding:14px; display:grid; gap:12px; }
+  .mt-panel h2 { margin:0; font:700 14px 'Plus Jakarta Sans',sans-serif; color:#3D2E00; display:flex; gap:6px; align-items:center; }
+  .mt-panel p { margin:0; color:#5A4A12; font-size:12px; line-height:1.4; }
+  .mt-row { display:grid; gap:6px; }
+  .mt-row > span { font:600 12px Inter; color:#5A4A12; }
+  .mt-opts { display:flex; flex-wrap:wrap; gap:4px; }
+  .mt-opts button { background:#fff; border:1px solid #C9B46A; color:#2B2300; padding:5px 9px; border-radius:8px; font:600 12px Inter; cursor:pointer; min-height:32px; }
+  .mt-opts button[aria-pressed="true"] { background:#3D2E00; color:#FFF8E1; border-color:#3D2E00; }
+  .mocktools :focus-visible { outline:2px solid #3D2E00; outline-offset:2px; }
+</style>
+</head>
+<body>
+
+<main class="stage" id="stage" aria-label="Aperçu du portail"></main>
+
+<!-- OUTILS DE LA MAQUETTE : uniquement pour tester la maquette, absent du portail réel. -->
+<aside class="mocktools" aria-label="Outils de la maquette (ne fait pas partie du portail)">
+  <div class="mt-panel" id="mt-panel" hidden>
+    <h2><ion-icon name="construct-outline" aria-hidden="true"></ion-icon>Outils de la maquette</h2>
+    <p>Ce panneau sert seulement à tester la maquette. Il n’existera pas dans le portail.</p>
+    <div class="mt-row"><span>Écran</span><div class="mt-opts" data-k="screen">
+      <button data-v="login">Connexion</button><button data-v="dashboard">Tableau de bord</button><button data-v="stats">Statistiques</button>
+      <button data-v="users">Utilisateurs</button><button data-v="user">Fiche</button><button data-v="data">Données</button><button data-v="ops">Opérations</button>
+      <button data-v="audit">Journal</button><button data-v="team">Équipe et rôles</button><button data-v="states">États</button></div></div>
+    <div class="mt-row"><span>Rôle connecté (la barre latérale s’adapte)</span><div class="mt-opts" data-k="role">
+      <button data-v="superAdmin">Super Admin</button><button data-v="admin">Administrateur</button><button data-v="support">Support</button><button data-v="analyste">Analyste</button></div></div>
+    <div class="mt-row"><span>Thème</span><div class="mt-opts" data-k="theme">
+      <button data-v="light">Clair</button><button data-v="dark">Sombre</button><button data-v="both">Les deux côte à côte</button></div></div>
+    <div class="mt-row"><span>Format</span><div class="mt-opts" data-k="vp">
+      <button data-v="desktop">Ordinateur</button><button data-v="tablet">Tablette</button><button data-v="phone">Téléphone</button></div></div>
+  </div>
+  <button class="mt-toggle" aria-expanded="false" aria-controls="mt-panel"><ion-icon name="construct-outline" aria-hidden="true"></ion-icon>Outils de la maquette</button>
+</aside>
+
+<script>
+/* ───────── Marque : COPIE de src/config/brand.ts (le portail réel l'importera) ───────── */
+const BRAND = {
+  name: 'DineroX',
+  supportEmail: 'support@dinerox.app',
+  colors: { green: '#14B8A6', greenDeep: '#0D9488', yellow: '#F59E0B', gold: '#FBBF24', night: '#020617' },
+};
+/* Slogan : texte existant de l'app (auth.welcome.tagline) — brand.ts n'a pas de champ slogan (D13). */
+const TAGLINE = 'Votre argent, enfin lisible.';
+const LOGO = '../assets/logo.png';
+document.documentElement.style.setProperty('--brandNight', BRAND.colors.night);
+document.documentElement.style.setProperty('--brandGreen', BRAND.colors.green);
+document.documentElement.style.setProperty('--brandGold', BRAND.colors.gold);
+document.title = `${BRAND.name} — back-office (maquette)`;
+
+/* ───────── Montants : miroir de formatMoney (src/core/money.ts) pour XOF ───────── */
+const NBSP = ' ';
+const group = (n) => String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, NBSP);
+const money = (n, signed) => `${n < 0 ? '−' : signed && n > 0 ? '+' : ''}${group(n)}${NBSP}FCFA`;
+const num = (n) => group(n);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const ic = (name) => `<ion-icon name="${name}" aria-hidden="true"></ion-icon>`;
+
+/* ───────── Rôles et permissions (miroir de docs/backoffice.md §2.2) ───────── */
+const ALL = ['users.view', 'users.create', 'users.edit', 'users.changePlan', 'users.suspend', 'users.delete', 'stats.view', 'audit.view', 'staff.manage', 'data.view', 'data.delete'];
+const ROLE_PERMS = {
+  superAdmin: ALL,
+  admin: ['users.view', 'users.create', 'users.edit', 'users.suspend', 'stats.view', 'data.view', 'data.delete'],
+  support: ['users.view', 'users.suspend'],
+  analyste: ['stats.view'],
+};
+const ME = {
+  superAdmin: { ini: 'KB', name: 'Koffi B.', role: 'Super Admin' },
+  admin: { ini: 'CA', name: 'Clarisse A.', role: 'Administrateur' },
+  support: { ini: 'DK', name: 'Didier K.', role: 'Support' },
+  analyste: { ini: 'AS', name: 'Awa S.', role: 'Analyste' },
+};
+
+/* ───────── Barre latérale : groupes et permission exigée par chaque entrée ───────── */
+const NAV = [
+  { title: 'Pilotage', items: [
+    { id: 'dashboard', icon: 'grid-outline', label: 'Tableau de bord', perm: 'stats.view' },
+    { id: 'stats', icon: 'bar-chart-outline', label: 'Statistiques', perm: 'stats.view' },
+  ] },
+  { title: 'Gestion', items: [
+    { id: 'users', icon: 'people-outline', label: 'Utilisateurs', perm: 'users.view' },
+    { id: 'data', icon: 'receipt-outline', label: 'Données', perm: 'data.view' },
+  ] },
+  { title: 'Contrôle', items: [
+    { id: 'audit', icon: 'document-text-outline', label: 'Journal d’audit', perm: 'audit.view' },
+    { id: 'team', icon: 'shield-checkmark-outline', label: 'Équipe et rôles', perm: 'staff.manage' },
+  ] },
+];
+/* Écrans sans entrée propre : entrée surlignée et permission exigée. */
+const PARENT = { user: 'users', ops: 'data', states: 'dashboard' };
+const SCREEN_PERM = { dashboard: 'stats.view', stats: 'stats.view', users: 'users.view', user: 'users.view', data: 'data.view', ops: 'data.view', audit: 'audit.view', team: 'staff.manage', states: null };
+const TITLES = { dashboard: 'Tableau de bord', stats: 'Statistiques', users: 'Utilisateurs', user: 'Aïcha Koné', data: 'Données', ops: 'Opérations d’Aïcha Koné', audit: 'Journal d’audit', team: 'Équipe et rôles', states: 'États des écrans' };
+
+/* ───────── Données fictives ───────── */
+const USERS = [
+  { id: 'u7Kq2LmN9pXa', fn: 'Aïcha', ln: 'Koné', email: 'aicha.kone@exemple.ci', country: 'CI', plan: 'family', status: 'active', created: '12/03/2026', seen: 'aujourd’hui, 09:42' },
+  { id: 'b3Rt8VwQ1zYe', fn: 'Moussa', ln: 'Traoré', email: 'm.traore@exemple.ml', country: 'ML', plan: 'plus', status: 'active', created: '28/05/2026', seen: 'hier, 21:10' },
+  { id: 'k9Pd4HsF6uJc', fn: 'Fatou', ln: 'Ndiaye', email: 'fatou.ndiaye@exemple.sn', country: 'SN', plan: 'free', status: 'suspended', created: '02/06/2026', seen: '04/10/2026' },
+  { id: 'e1Wz7NbC3qLr', fn: 'Jean-Marc', ln: 'Yao', email: 'jm.yao@exemple.ci', country: 'CI', plan: 'free', status: 'active', created: '19/07/2026', seen: 'aujourd’hui, 08:05' },
+  { id: 'r5Tg2KxM8vNo', fn: 'Awa', ln: 'Ouédraogo', email: 'awa.oued@exemple.bf', country: 'BF', plan: 'plus', status: 'active', created: '03/08/2026', seen: 'il y a 3 jours' },
+  { id: 'h8Ly6QeD2sWb', fn: 'Kofi', ln: 'Mensah', email: 'kofi.mensah@exemple.tg', country: 'TG', plan: 'free', status: 'unverified', created: '11/10/2026', seen: '11/10/2026' },
+  { id: 'n2Fc9RpZ5kTa', fn: 'Mariam', ln: 'Diallo', email: 'mariam.d@exemple.gn', country: 'GN', plan: 'free', status: 'active', created: '22/09/2026', seen: 'aujourd’hui, 07:31' },
+  { id: 'z4Hn1JvB7mQe', fn: 'Serge', ln: 'Bamba', email: 'serge.bamba@exemple.ci', country: 'CI', plan: 'family', status: 'active', created: '14/01/2026', seen: 'hier, 18:47' },
+];
+const PLAN = { free: ['b-neutral', 'person-outline', 'Gratuit'], plus: ['b-primary', 'star-outline', 'Plus'], family: ['b-accent', 'people-outline', 'Famille'] };
+const STATUS = { active: ['b-success', 'checkmark-circle', 'Actif'], suspended: ['b-danger', 'ban', 'Suspendu'], unverified: ['b-warning', 'mail-unread-outline', 'E-mail non vérifié'] };
+const COUNTRY = { CI: 'Côte d’Ivoire', ML: 'Mali', SN: 'Sénégal', BF: 'Burkina Faso', TG: 'Togo', GN: 'Guinée' };
+const badge = ([cls, icon, text]) => `<span class="badge ${cls}">${ic(icon)}${text}</span>`;
+const initials = (u) => (u.fn[0] + u.ln[0]).toUpperCase();
+const OPS = [
+  { d: '11/10/2026', t: 'expense', amt: 7500, cat: 'Transport', acc: 'Orange Money', by: 'Aïcha', fx: [] },
+  { d: '10/10/2026', t: 'expense', amt: 45000, cat: 'Famille · soutien', acc: 'Espèces', by: 'Aïcha', fx: ['Utilisation de la réserve « Cérémonies »'] },
+  { d: '09/10/2026', t: 'income', amt: 350000, cat: 'Salaire', acc: 'Banque', by: 'Aïcha', fx: [] },
+  { d: '08/10/2026', t: 'transfer', amt: 50000, cat: 'Vers « Mon épargne »', acc: 'Banque → Épargne', by: 'Aïcha', fx: ['Versement à l’épargne'] },
+  { d: '06/10/2026', t: 'expense', amt: 10000, cat: 'Tontine du quartier', acc: 'Wave', by: 'Serge', fx: ['Cotisation de tontine (tour 7)'] },
+  { d: '05/10/2026', t: 'expense', amt: 25000, cat: 'Remboursement', acc: 'Wave', by: 'Aïcha', fx: ['Remboursement de dette (« Prêt Adjoua »)'] },
+  { d: '03/10/2026', t: 'expense', amt: 18250, cat: 'Alimentation', acc: 'Espèces', by: 'Serge', fx: [] },
+  { d: '01/10/2026', t: 'expense', amt: 60000, cat: 'Loyer', acc: 'Banque', by: 'Aïcha', fx: [] },
+];
+const TYPE = { income: ['ti-in', 'arrow-down', 'Revenu', 'amt-in'], expense: ['ti-out', 'arrow-up', 'Dépense', 'amt-out'], transfer: ['ti-tr', 'swap-horizontal', 'Transfert', 'amt-tr'] };
+const AUDIT = [
+  { at: '12/10/2026 10:14', who: 'Clarisse A.', role: 'Administrateur', act: 'data.view', lbl: 'Consultation des opérations', target: 'aicha.kone@exemple.ci', res: 'ok', reason: 'Demande du client' },
+  { at: '12/10/2026 10:02', who: 'Didier K.', role: 'Support', act: 'data.view', lbl: 'Consultation des opérations', target: 'm.traore@exemple.ml', res: 'denied', reason: '—' },
+  { at: '12/10/2026 09:48', who: 'Clarisse A.', role: 'Administrateur', act: 'user.suspend', lbl: 'Suspension du compte', target: 'fatou.ndiaye@exemple.sn', res: 'ok', reason: 'Suspicion de fraude', before: 'statut : actif', after: 'statut : suspendu' },
+  { at: '11/10/2026 17:30', who: 'Koffi B.', role: 'Super Admin', act: 'staff.role', lbl: 'Changement de rôle', target: 'Didier K.', res: 'ok', reason: '—', before: 'rôle : analyste', after: 'rôle : support' },
+  { at: '11/10/2026 16:05', who: 'Clarisse A.', role: 'Administrateur', act: 'data.delete', lbl: 'Suppression d’une opération', target: 'serge.bamba@exemple.ci', res: 'ok', reason: 'Demande du client', after: '1 opération + 1 cotisation de tontine marquées supprimées' },
+  { at: '11/10/2026 11:22', who: 'Koffi B.', role: 'Super Admin', act: 'role.save', lbl: 'Rôle sur mesure refusé', target: 'Rôle « Conformité »', res: 'denied', reason: 'contient data.view (réservée)' },
+  { at: '10/10/2026 15:40', who: 'Awa S.', role: 'Analyste', act: 'stats.view', lbl: 'Consultation des statistiques', target: '—', res: 'ok', reason: '—' },
+  { at: '10/10/2026 09:12', who: 'Clarisse A.', role: 'Administrateur', act: 'user.create', lbl: 'Création d’un utilisateur', target: 'kofi.mensah@exemple.tg', res: 'ok', reason: '—', after: 'formule : gratuite · pays : Togo' },
+];
+const DAYS = 30;
+const signups = Array.from({ length: DAYS }, (_, i) => Math.round(820 + i * 14 + 160 * Math.sin(i / 2.6) + (i % 7 === 5 ? 180 : 0)));
+const active7 = Array.from({ length: DAYS }, (_, i) => Math.round(36400 + i * 160 + 700 * Math.sin(i / 4)));
+const dayLabel = (i) => { const d = new Date(2026, 8, 13 + i); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`; };
+
+/* ───────── État ───────── */
+const state = { screen: 'dashboard', theme: 'light', vp: 'desktop', role: 'admin', ui: 'light' };
+try { Object.assign(state, JSON.parse(localStorage.getItem('bo-mock-v2') || '{}')); } catch { /* stockage indisponible */ }
+const can = (p) => !p || ROLE_PERMS[state.role].includes(p);
+/* Page d'accueil : la première entrée autorisée (ex. Support → Utilisateurs). */
+const home = () => NAV.flatMap((g) => g.items).find((i) => can(i.perm))?.id ?? 'states';
+
+/* ───────── Gabarit : barre latérale + titre de page ───────── */
+function sidebar(screen, theme) {
+  const cur = PARENT[screen] || screen;
+  const me = ME[state.role];
+  const groups = NAV.map((g) => {
+    const items = g.items.filter((i) => can(i.perm)); // seules les entrées autorisées ; groupe vide = masqué
+    if (!items.length) return '';
+    return `<div class="navgroup" role="group" aria-label="${g.title}"><div class="navsec" aria-hidden="true">${g.title}</div>
+      ${items.map((i) => `<a href="#" class="navlink" data-go="${i.id}" data-tip="${esc(i.label)}" aria-label="${esc(i.label)}" ${cur === i.id ? 'aria-current="page"' : ''}>${ic(i.icon)}<span class="lbl">${i.label}</span></a>`).join('')}</div>`;
+  }).join('');
+  const sel = state.ui;
+  return `
+    <nav class="side" id="side" aria-label="Navigation principale">
+      <div class="brandrow"><img src="${LOGO}" alt="Logo ${esc(BRAND.name)}"><div class="txt"><div class="nm">${esc(BRAND.name)}</div><div class="sub">Back-office</div></div>
+        <button class="btn icon-only side-close" style="background:transparent;color:var(--onNight)" data-action="closeNav" aria-label="Fermer le menu">${ic('close')}</button></div>
+      ${can('users.view') ? `<div class="ssearch" role="search" data-tip="Rechercher un utilisateur">${ic('search-outline')}<label class="sr" for="ss-${theme}">Rechercher un utilisateur par e-mail ou identifiant exact</label><input id="ss-${theme}" type="search" placeholder="E-mail ou identifiant exact" autocomplete="off" data-go-on-enter="users"></div>` : ''}
+      ${groups}
+      <div class="side-bottom">
+        <div class="profile-mini"><span class="avatar" aria-hidden="true">${me.ini}</span><div class="txt"><div class="who">${me.name}</div><div class="rl">${ic('shield-checkmark')}${me.role}</div></div><span class="sr">Connecté : ${me.name}, ${me.role}</span></div>
+        <a href="#" class="navlink" data-action="toggleSettings" data-tip="Réglages" aria-label="Réglages" aria-expanded="${state.settingsOpen ? 'true' : 'false'}" aria-controls="settings-${theme}">${ic('settings-outline')}<span class="lbl">Réglages</span>${ic('chevron-down').replace('aria-hidden', 'class="chev-rot" aria-hidden')}</a>
+        <div class="settings" id="settings-${theme}" ${state.settingsOpen ? '' : 'hidden'}>
+          <div class="t" id="th-${theme}">Thème</div>
+          <div class="themeseg" role="radiogroup" aria-labelledby="th-${theme}">
+            ${[['light', 'sunny-outline', 'Clair'], ['dark', 'moon-outline', 'Sombre'], ['auto', 'contrast-outline', 'Auto']].map(([v, i, l]) => `<button role="radio" aria-checked="${sel === v}" data-action="setTheme" data-v="${v}">${ic(i)}${l}</button>`).join('')}
+          </div>
+          <div class="session">${ic('lock-closed')}<span>Session vérifiée par code · expire dans 11 h 32</span></div>
+          <a href="#" class="btn tertiary sm" style="color:var(--brandGreen);justify-content:flex-start;padding:0 4px">${ic('key-outline')}Mot de passe et codes de secours</a>
+        </div>
+        <a href="#" class="navlink danger" data-go="login" data-tip="Se déconnecter" aria-label="Se déconnecter">${ic('log-out-outline')}<span class="lbl">Se déconnecter</span></a>
+      </div>
+    </nav>
+    <div class="nav-scrim" data-action="closeNav"></div>`;
+}
+
+function shell(screen, theme, inner) {
+  return `
+  <div class="app">
+    <a class="skip" href="#">Aller au contenu</a>
+    ${sidebar(screen, theme)}
+    <main class="main" id="main-${theme}" tabindex="-1">
+      <div class="content"><div class="content-inner">
+        <header class="pagetitle">
+          <button class="btn outline icon-only menu-btn" data-action="openNav" aria-label="Ouvrir le menu" aria-controls="side" aria-expanded="false">${ic('menu-outline')}</button>
+          <h1>${TITLES[screen]}</h1>
+        </header>
+        ${inner}
+      </div></div>
+    </main>
+  </div>`;
+}
+
+/* ───────── Écrans ───────── */
+const S = {};
+
+S.login = () => `
+  <div class="login">
+    <section class="login-brand" aria-label="${esc(BRAND.name)}">
+      <div>
+        <img class="logo-xl" src="${LOGO}" alt="Logo ${esc(BRAND.name)}">
+        <h2>${esc(BRAND.name)}<br>Back-office</h2>
+        <p class="tag">${esc(TAGLINE)}<br><b>Espace réservé à l’équipe.</b></p>
+      </div>
+      <div class="trust">
+        <div>${ic('shield-checkmark-outline')}Chaque action est vérifiée par le serveur.</div>
+        <div>${ic('finger-print-outline')}Double vérification à chaque connexion.</div>
+        <div>${ic('document-lock-outline')}Toutes les actions sont enregistrées au journal.</div>
+      </div>
+    </section>
+    <section class="login-form">
+      <div class="login-card">
+        <div class="steps" aria-label="Étape 2 sur 2">
+          <span class="st">${ic('checkmark-circle')}Mot de passe</span><span class="sep"></span>
+          <span class="st on"><span class="n">2</span>Code de vérification</span>
+        </div>
+        <div>
+          <h1>Saisissez votre code</h1>
+          <p class="muted" style="margin:6px 0 0">Ouvrez votre application d’authentification et saisissez le code à 6 chiffres affiché pour <b>${esc(BRAND.name)} Back-office</b>.</p>
+        </div>
+        <div class="field">
+          <span class="flabel" id="otp-l">Code à 6 chiffres</span>
+          <div class="otp" role="group" aria-labelledby="otp-l">${[4, 8, 2, 9, '', ''].map((v, i) => `<input inputmode="numeric" maxlength="1" value="${v}" aria-label="Chiffre ${i + 1}">`).join('')}</div>
+          <span class="help">Le code change toutes les 30 secondes.</span>
+        </div>
+        <button class="btn primary" style="width:100%" data-go="home">${ic('log-in-outline')}Vérifier et se connecter</button>
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <button class="btn tertiary sm">${ic('key-outline')}Utiliser un code de secours</button>
+          <button class="btn tertiary sm">${ic('arrow-back-outline')}Changer de compte</button>
+        </div>
+        <div class="msg info">${ic('information-circle')}<div>Pas encore de code ? À votre première connexion, un QR code vous sera présenté pour activer la double vérification.</div></div>
+        <p class="caption subtle" style="margin:0">Aucun compte ne peut être créé ici. Problème d’accès : contactez un Super Admin.</p>
+      </div>
+    </section>
+  </div>`;
+
+const TOTAL = 128450, PLANS = { free: 109730, plus: 13820, family: 4900 };
+const pc = (v, t = TOTAL) => `${Math.round((v / t) * 1000) / 10}`.replace('.', ',') + ' %';
+const hbars = (rows, total) => rows.map(([l, v]) => `<div class="hbar"><div class="row"><span>${l}</span><span><b>${num(v)}</b> <span class="subtle">· ${pc(v, total)}</span></span></div><div class="trk" role="img" aria-label="${l} ${pc(v, total)}"><div class="fill" style="width:${(v / total) * 100}%"></div></div></div>`).join('');
+
+S.dashboard = () => `
+  <p class="caption subtle" style="margin:-12px 0 0;display:flex;gap:6px;align-items:center">${ic('time-outline')}Chiffres mis à jour il y a 12 min</p>
+  <section class="kpis" aria-label="Chiffres clés">
+    <div class="card kpi hero"><div class="lbl"><span class="ico">${ic('people')}</span>Utilisateurs</div><div class="val">${num(TOTAL)}</div><div class="meta"><span class="delta">${ic('trending-up')}+3,2 %</span>sur 30 jours</div></div>
+    <div class="card kpi"><div class="lbl"><span class="ico">${ic('pulse')}</span>Actifs sur 7 jours</div><div class="val">${num(41210)}</div><div class="meta"><span class="delta">${ic('trending-up')}+1,4 %</span>soit 32 % des comptes</div></div>
+    <div class="card kpi"><div class="lbl"><span class="ico">${ic('layers')}</span>Formules payantes</div><div class="val">${num(PLANS.plus + PLANS.family)}</div>
+      <div class="planbar" role="img" aria-label="Gratuit ${pc(PLANS.free)}, Plus ${pc(PLANS.plus)}, Famille ${pc(PLANS.family)}"><span style="width:${(PLANS.free / TOTAL) * 100}%;background:var(--track)"></span><span style="width:${(PLANS.plus / TOTAL) * 100}%;background:var(--primary)"></span><span style="width:${(PLANS.family / TOTAL) * 100}%;background:var(--accent)"></span></div>
+      <div class="legend"><span><i style="background:var(--primary)"></i>Plus ${num(PLANS.plus)}</span><span><i style="background:var(--accent)"></i>Famille ${num(PLANS.family)}</span></div></div>
+    <div class="card kpi"><div class="lbl"><span class="ico" style="background:var(--dangerBg);color:var(--danger)">${ic('ban')}</span>Comptes suspendus</div><div class="val">37</div><div class="meta">${ic('time-outline')}3 cette semaine</div></div>
+  </section>
+  <section class="charts">
+    <div class="card">
+      <div class="card-head"><div><h2 class="h-sec">Inscriptions par jour</h2><p class="caption subtle" style="margin:2px 0 0">30 derniers jours · total ${num(signups.reduce((a, b) => a + b, 0))}</p></div>
+        <div class="seg" role="group" aria-label="Période"><button aria-pressed="false">7 j</button><button aria-pressed="true">30 j</button><button aria-pressed="false">90 j</button></div></div>
+      <div class="chart" data-chart="signups"></div>
+    </div>
+    <div class="card"><div class="card-head"><h2 class="h-sec">Répartition des formules</h2></div>
+      <div class="hbars">${hbars([['Gratuit', PLANS.free], ['Plus', PLANS.plus], ['Famille', PLANS.family]], TOTAL)}
+        <p class="caption subtle" style="margin:4px 0 0">${ic('information-circle-outline')} Formules attribuées manuellement incluses (12).</p></div></div>
+  </section>
+  <section class="two">
+    <div class="card"><div class="card-head"><div><h2 class="h-sec">Actifs sur 7 jours</h2><p class="caption subtle" style="margin:2px 0 0">Données disponibles depuis le déploiement du back-office</p></div></div><div class="chart" data-chart="active"></div></div>
+    ${can('audit.view') ? `<div class="card"><div class="card-head"><h2 class="h-sec">Dernières actions</h2><button class="btn tertiary sm" data-go="audit">Tout le journal ${ic('chevron-forward')}</button></div>
+      <ul class="list" style="margin-top:8px">${AUDIT.slice(0, 4).map((a) => `<li><span class="dot-ico">${ic(a.res === 'ok' ? 'checkmark-circle-outline' : 'close-circle-outline')}</span><div class="grow"><b>${a.lbl}</b><span class="caption subtle">${a.who} · ${a.at}</span></div>${a.res === 'ok' ? badge(['b-success', 'checkmark', 'Réussi']) : badge(['b-danger', 'close', 'Refusé'])}</li>`).join('')}</ul></div>`
+      : `<div class="card"><div class="card-head"><h2 class="h-sec">Comptes par pays</h2></div><div class="hbars">${hbars([['Côte d’Ivoire', 61200], ['Sénégal', 22340], ['Mali', 15980], ['Autres', 28930]], TOTAL)}</div></div>`}
+  </section>
+  ${[can('users.view'), can('users.create'), can('audit.view')].some(Boolean) ? `<section aria-label="Accès rapides"><h2 class="h-sec" style="margin-bottom:12px">Accès rapides</h2><div class="quick">
+    ${can('users.view') ? `<button class="qa" data-go="users">${ic('search-outline')}Rechercher un utilisateur${ic('chevron-forward').replace('aria-hidden', 'class="chev" aria-hidden')}</button>` : ''}
+    ${can('users.create') ? `<button class="qa" data-action="create">${ic('person-add-outline')}Créer un utilisateur${ic('chevron-forward').replace('aria-hidden', 'class="chev" aria-hidden')}</button>` : ''}
+    ${can('users.view') ? `<button class="qa" data-go="users">${ic('ban-outline')}Comptes suspendus${ic('chevron-forward').replace('aria-hidden', 'class="chev" aria-hidden')}</button>` : ''}
+    ${can('audit.view') ? `<button class="qa" data-go="audit">${ic('document-text-outline')}Journal d’audit${ic('chevron-forward').replace('aria-hidden', 'class="chev" aria-hidden')}</button>` : ''}
+  </div></section>` : ''}`;
+
+S.stats = () => `
+  <div class="card"><div class="toolbar">
+    <div class="field"><label for="st-p">Période</label><select id="st-p" class="select"><option>30 derniers jours</option><option>90 derniers jours</option><option>12 derniers mois</option></select></div>
+    <div class="field"><label for="st-c">Pays</label><select id="st-c" class="select"><option>Tous</option><option>Côte d’Ivoire</option><option>Sénégal</option></select></div>
+    <div class="grow"></div><p class="caption subtle" style="margin:0;align-self:center">${ic('lock-closed-outline')} Chiffres agrégés uniquement · aucune donnée individuelle</p>
+  </div></div>
+  <section class="two">
+    <div class="card"><div class="card-head"><div><h2 class="h-sec">Inscriptions par jour</h2><p class="caption subtle" style="margin:2px 0 0">total ${num(signups.reduce((a, b) => a + b, 0))}</p></div><button class="btn tertiary sm">${ic('list-outline')}Voir en tableau</button></div><div class="chart" data-chart="signups"></div></div>
+    <div class="card"><div class="card-head"><div><h2 class="h-sec">Actifs sur 7 jours</h2><p class="caption subtle" style="margin:2px 0 0">depuis le déploiement du back-office</p></div><button class="btn tertiary sm">${ic('list-outline')}Voir en tableau</button></div><div class="chart" data-chart="active"></div></div>
+  </section>
+  <section class="two">
+    <div class="card"><div class="card-head"><h2 class="h-sec">Comptes par pays</h2></div><div class="hbars">${hbars([['Côte d’Ivoire', 61200], ['Sénégal', 22340], ['Mali', 15980], ['Burkina Faso', 11200], ['Autres', 17730]], TOTAL)}</div></div>
+    <div class="card"><div class="card-head"><div><h2 class="h-sec">Saisie des opérations</h2><p class="caption subtle" style="margin:2px 0 0">part des saisies par méthode (statistiques anonymes existantes)</p></div></div>
+      <div class="hbars">${hbars([['Voix', 41], ['Phrase écrite', 18], ['Saisie rapide', 29], ['Formulaire complet', 12]], 100)}</div></div>
+  </section>
+  <section class="two">
+    <div class="card"><div class="card-head"><h2 class="h-sec">Formules</h2></div><div class="hbars">${hbars([['Gratuit', PLANS.free], ['Plus', PLANS.plus], ['Famille', PLANS.family]], TOTAL)}</div></div>
+    <div class="card"><div class="card-head"><h2 class="h-sec">Espaces familiaux</h2></div><div class="card-pad" style="display:grid;gap:8px">
+      <div class="kpi" style="padding:0"><div class="val">${num(5210)}</div><div class="meta">familles · 3,1 membres en moyenne</div></div></div></div>
+  </section>`;
+
+S.users = () => `
+  <div class="card">
+    <div class="toolbar" role="search">
+      <div class="field search-field"><label for="us-q">Rechercher (e-mail ou identifiant exact)</label>${ic('search-outline')}<input id="us-q" class="input" type="search" placeholder="aicha.kone@exemple.ci ou u7Kq2LmN9pXa"></div>
+      <div class="field"><label for="us-p">Formule</label><select id="us-p" class="select"><option>Toutes</option><option>Gratuit</option><option>Plus</option><option>Famille</option></select></div>
+      <div class="field"><label for="us-s">Statut</label><select id="us-s" class="select"><option>Tous</option><option>Actif</option><option>Suspendu</option><option>E-mail non vérifié</option></select></div>
+      <div class="field"><label for="us-c">Pays</label><select id="us-c" class="select"><option>Tous</option><option>Côte d’Ivoire</option><option>Sénégal</option><option>Mali</option></select></div>
+      ${can('users.create') ? `<button class="btn primary" data-action="create">${ic('person-add-outline')}Créer un utilisateur</button>` : ''}
+    </div>
+    <div class="tablewrap"><table class="stack">
+      <caption class="sr">Liste des utilisateurs, triée par date d’inscription, 25 par page</caption>
+      <thead><tr><th scope="col">Utilisateur</th><th scope="col">Identifiant</th><th scope="col">Pays</th><th scope="col">Formule</th><th scope="col">Statut</th><th scope="col" aria-sort="descending">Inscription ${ic('arrow-down')}</th><th scope="col">Dernière activité</th><th scope="col"><span class="sr">Ouvrir</span></th></tr></thead>
+      <tbody>${USERS.map((u) => `<tr class="clickable" data-go="user" tabindex="0" aria-label="Ouvrir la fiche de ${u.fn} ${u.ln}">
+        <td class="nolabel"><div class="ucell"><span class="avatar" aria-hidden="true">${initials(u)}</span><div><b>${u.fn} ${u.ln}</b><span>${u.email}</span></div></div></td>
+        <td data-label="Identifiant"><span class="mono">${u.id}</span></td><td data-label="Pays">${COUNTRY[u.country]}</td>
+        <td data-label="Formule">${badge(PLAN[u.plan])}</td><td data-label="Statut">${badge(STATUS[u.status])}</td>
+        <td data-label="Inscription" class="tnum">${u.created}</td><td data-label="Dernière activité" class="muted">${u.seen}</td>
+        <td class="nolabel chev" style="text-align:right;color:var(--textSubtle)">${ic('chevron-forward')}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <div class="pager"><span class="small muted tnum">1–25 sur ${num(TOTAL)}</span><div class="actions"><button class="btn outline sm" disabled>${ic('chevron-back')}Précédent</button><button class="btn outline sm">Suivant${ic('chevron-forward')}</button></div></div>
+  </div>`;
+
+S.user = () => {
+  const u = USERS[0];
+  const acts = [
+    can('users.edit') && `<button class="btn outline">${ic('create-outline')}Modifier</button>`,
+    can('users.changePlan') && `<button class="btn outline">${ic('star-outline')}Changer de formule</button>`,
+    can('users.suspend') && `<button class="btn outline" data-action="suspend">${ic('ban-outline')}Suspendre</button>`,
+    can('data.view') && `<button class="btn primary" data-action="reason">${ic('receipt-outline')}Voir les opérations</button>`,
+  ].filter(Boolean).join('');
+  return `
+    <div class="card profile">
+      <span class="avatar lg" aria-hidden="true">${initials(u)}</span>
+      <div class="id">
+        <div class="muted small">${u.email}</div>
+        <div class="tags">${badge(STATUS.active)}${badge(PLAN.family)}${badge(['b-info', 'checkmark-done-outline', 'E-mail vérifié'])}
+          <button class="btn tertiary sm" aria-label="Copier l’identifiant ${u.id}">${ic('copy-outline')}<span class="mono">${u.id}</span></button></div>
+      </div>
+      <div class="actions">${acts}</div>
+    </div>
+    <div class="grid-main">
+      <div style="display:grid;gap:16px">
+        <section class="card"><div class="card-head" style="padding-bottom:14px"><h2 class="h-sec">Informations</h2><span class="caption subtle">Aucune donnée financière</span></div>
+          <dl class="dl">
+            <div><dt>Prénom et nom</dt><dd>${u.fn} ${u.ln}</dd></div><div><dt>Pays · devise</dt><dd>${COUNTRY[u.country]} · FCFA</dd></div>
+            <div><dt>Langue</dt><dd>Français</dd></div><div><dt>Formule</dt><dd>Famille · jusqu’au 12/03/2027</dd></div>
+            <div><dt>Inscription</dt><dd class="tnum">${u.created}</dd></div><div><dt>Dernière activité</dt><dd>${u.seen}</dd></div>
+            <div><dt>Appareils</dt><dd>2 téléphones</dd></div><div><dt>Conditions acceptées</dt><dd>version 2026-05</dd></div>
+          </dl></section>
+        <section class="card"><div class="card-head" style="padding-bottom:14px"><h2 class="h-sec">Espaces</h2></div>
+          <ul class="list">
+            <li><span class="dot-ico">${ic('person-outline')}</span><div class="grow"><b>Espace personnel</b><span class="caption subtle">Propriétaire</span></div></li>
+            <li><span class="dot-ico">${ic('people-outline')}</span><div class="grow"><b>Famille Koné</b><span class="caption subtle">4 membres</span></div>${badge(['b-primary', 'key-outline', 'Administratrice'])}</li>
+          </ul></section>
+      </div>
+      <section class="card"><div class="card-head" style="padding-bottom:14px"><h2 class="h-sec">Historique des actions</h2>${can('audit.view') ? `<button class="btn tertiary sm" data-go="audit">Journal ${ic('chevron-forward')}</button>` : ''}</div>
+        <ul class="list">
+          <li><span class="dot-ico">${ic('eye-outline')}</span><div class="grow"><b>Consultation des opérations</b><span class="caption subtle">Clarisse A. · 12/10/2026 10:14 · motif : Demande du client</span></div></li>
+          <li><span class="dot-ico">${ic('star-outline')}</span><div class="grow"><b>Formule changée : Plus → Famille</b><span class="caption subtle">Koffi B. · 02/09/2026 14:20</span></div></li>
+          <li><span class="dot-ico">${ic('create-outline')}</span><div class="grow"><b>Langue modifiée : anglais → français</b><span class="caption subtle">Clarisse A. · 14/06/2026 11:02</span></div></li>
+        </ul></section>
+    </div>
+    ${can('users.delete') ? `<section class="danger-zone" aria-label="Action irréversible">
+      <div><h2>${ic('warning')}Action irréversible</h2><p class="small muted" style="margin:0">Supprime le compte, l’espace personnel, les familles dont elle est la seule administratrice, les invitations et l’usage. Les autres familles la perdent comme membre.</p></div>
+      <button class="btn danger" data-action="deleteUser">${ic('trash-outline')}Supprimer définitivement</button></section>` : ''}`;
+};
+
+S.data = () => `
+  <div class="msg warning">${ic('shield-half-outline')}<div><b>Accès réservé et tracé.</b> Recherchez un utilisateur par e-mail ou identifiant exact. Un motif interne vous sera demandé à chaque ouverture de ses opérations ; il est enregistré au journal et n’est jamais envoyé à l’utilisateur. Lecture seule, aucune exportation.</div></div>
+  <div class="card">
+    <div class="toolbar" role="search">
+      <div class="field search-field"><label for="dt-q">Utilisateur (e-mail ou identifiant exact)</label>${ic('search-outline')}<input id="dt-q" class="input" type="search" value="aicha.kone@exemple.ci"></div>
+      <button class="btn secondary">${ic('search-outline')}Rechercher</button>
+    </div>
+    <ul class="list">
+      <li><span class="avatar" aria-hidden="true">AK</span><div class="grow"><b>Aïcha Koné</b><span class="caption subtle">aicha.kone@exemple.ci · espace personnel + « Famille Koné »</span></div>
+        <button class="btn primary sm" data-action="reason">${ic('receipt-outline')}Consulter les opérations</button></li>
+    </ul>
+  </div>
+  <section class="card"><div class="card-head" style="padding-bottom:14px"><h2 class="h-sec">Vos dernières consultations</h2><span class="caption subtle">les vôtres uniquement</span></div>
+    <ul class="list">
+      <li><span class="dot-ico">${ic('eye-outline')}</span><div class="grow"><b>aicha.kone@exemple.ci</b><span class="caption subtle">12/10/2026 10:14 · motif : Demande du client</span></div></li>
+      <li><span class="dot-ico">${ic('trash-outline')}</span><div class="grow"><b>serge.bamba@exemple.ci</b><span class="caption subtle">11/10/2026 16:05 · 1 opération supprimée · motif : Demande du client</span></div></li>
+    </ul></section>`;
+
+S.ops = () => `
+  <div class="audit-banner" role="status">${ic('eye-outline')}<span class="grow">Consultation enregistrée au journal · motif : <b>Demande du client</b> · accès valable 30 min</span><button class="btn tertiary sm" data-action="reason">Changer de motif</button></div>
+  <div class="card">
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Espace"><button aria-pressed="false">Personnel</button><button aria-pressed="true">Famille Koné</button></div>
+      <div class="grow"></div><span class="caption subtle" style="align-self:center">Lecture seule · 25 par page · aucune exportation</span>
+    </div>
+    <div class="card-pad" style="padding-bottom:0"><div class="msg info">${ic('people-outline')}<div>Espace familial « Famille Koné » (4 membres) : supprimer une opération la retire <b>pour tous les membres</b>. Notes, bénéficiaires et justificatifs sont masqués.</div></div></div>
+    <div class="tablewrap" style="margin-top:16px"><table class="stack">
+      <caption class="sr">Opérations de l’espace Famille Koné, de la plus récente à la plus ancienne</caption>
+      <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Catégorie</th><th scope="col">Compte</th><th scope="col">Saisie par</th><th scope="col" class="num">Montant</th>${can('data.delete') ? '<th scope="col"><span class="sr">Actions</span></th>' : ''}</tr></thead>
+      <tbody>${OPS.map((o, i) => { const T = TYPE[o.t]; const signed = o.t === 'income' ? o.amt : -o.amt; return `<tr>
+        <td data-label="Date" class="tnum">${o.d}</td>
+        <td data-label="Type"><span class="typecell"><span class="typeico ${T[0]}">${ic(T[1])}</span>${T[2]}</span></td>
+        <td data-label="Catégorie">${o.cat}${o.fx.length ? `<div class="caption subtle">${ic('link-outline')} 1 écriture liée</div>` : ''}</td>
+        <td data-label="Compte" class="muted">${o.acc}</td><td data-label="Saisie par">${o.by}</td>
+        <td data-label="Montant" class="num"><span class="${T[3]}">${o.t === 'transfer' ? money(o.amt) : money(signed, true)}</span></td>
+        ${can('data.delete') ? `<td class="nolabel" style="text-align:right"><button class="btn destructive sm" data-action="deleteOp" data-op="${i}" aria-label="Supprimer l’opération du ${o.d}, ${T[2]}, ${o.cat}">${ic('trash-outline')}Supprimer</button></td>` : ''}</tr>`; }).join('')}</tbody>
+    </table></div>
+    <div class="pager"><span class="small muted tnum">1–8 sur 8</span><div class="actions"><button class="btn outline sm" disabled>${ic('chevron-back')}Précédent</button><button class="btn outline sm" disabled>Suivant${ic('chevron-forward')}</button></div></div>
+  </div>`;
+
+const PERMS = [
+  ['users.view', 'Voir les utilisateurs'], ['users.create', 'Créer un utilisateur'], ['users.edit', 'Modifier un utilisateur'],
+  ['users.changePlan', 'Changer la formule'], ['users.suspend', 'Suspendre et réactiver'], ['users.delete', 'Supprimer définitivement'],
+  ['stats.view', 'Voir les statistiques'], ['audit.view', 'Voir le journal'], ['staff.manage', 'Gérer l’équipe'],
+  ['data.view', 'Voir les opérations'], ['data.delete', 'Supprimer une opération'],
+];
+const ROLES = [
+  { name: 'Super Admin', badge: ['b-accent', 'ribbon-outline', 'Fourni'], p: ROLE_PERMS.superAdmin },
+  { name: 'Administrateur', badge: ['b-neutral', 'lock-closed-outline', 'Fourni'], p: ROLE_PERMS.admin },
+  { name: 'Support', badge: ['b-neutral', 'lock-closed-outline', 'Fourni'], p: ROLE_PERMS.support },
+  { name: 'Analyste', badge: ['b-neutral', 'lock-closed-outline', 'Fourni'], p: ROLE_PERMS.analyste },
+];
+const RESERVED = ['data.view', 'data.delete', 'staff.manage'];
+
+S.team = () => {
+  const meName = ME[state.role].name;
+  const rows = [
+    ['KB', 'Koffi B.', 'koffi@dinerox.app', ['b-accent', 'ribbon-outline', 'Super Admin'], ['b-success', 'shield-checkmark', 'Activée'], 'aujourd’hui, 08:12', 'Dernier Super Admin : ni rétrogradable ni suspendable'],
+    ['CA', 'Clarisse A.', 'clarisse@dinerox.app', ['b-primary', 'key-outline', 'Administrateur'], ['b-success', 'shield-checkmark', 'Activée'], 'aujourd’hui, 09:40', ''],
+    ['DK', 'Didier K.', 'didier@dinerox.app', ['b-neutral', 'headset-outline', 'Support'], ['b-success', 'shield-checkmark', 'Activée'], 'aujourd’hui, 10:02', ''],
+    ['AS', 'Awa S.', 'awa.s@dinerox.app', ['b-neutral', 'analytics-outline', 'Analyste'], ['b-warning', 'alert-circle-outline', 'À activer'], '10/10/2026', ''],
+  ];
+  return `
+  <div class="card">
+    <div class="toolbar"><p class="small muted" style="margin:0;align-self:center">Seul un Super Admin attribue le rôle Administrateur. Personne ne modifie ses propres droits.</p><div class="grow"></div><button class="btn primary">${ic('person-add-outline')}Inviter un collaborateur</button></div>
+    <div class="tablewrap"><table class="stack">
+      <caption class="sr">Collaborateurs du back-office</caption>
+      <thead><tr><th scope="col">Collaborateur</th><th scope="col">Rôle</th><th scope="col">Statut</th><th scope="col">Double vérification</th><th scope="col">Dernière connexion</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
+      <tbody>${rows.map((r) => { const self = r[1] === meName; const note = self ? 'Vous ne pouvez pas modifier vos propres droits' : r[6]; return `<tr>
+        <td class="nolabel"><div class="ucell"><span class="avatar" aria-hidden="true">${r[0]}</span><div><b>${r[1]}${self ? ' (vous)' : ''}</b><span>${r[2]}</span></div></div></td>
+        <td data-label="Rôle">${badge(r[3])}</td><td data-label="Statut">${badge(STATUS.active)}</td><td data-label="Double vérification">${badge(r[4])}</td>
+        <td data-label="Dernière connexion" class="muted">${r[5]}</td>
+        <td class="nolabel" style="text-align:right">${note ? `<span class="caption subtle" style="display:inline-flex;gap:6px;align-items:center;max-width:260px;text-align:right">${ic('lock-closed-outline')}${note}</span>` : `<button class="btn outline sm">${ic('create-outline')}Gérer</button>`}</td></tr>`; }).join('')}</tbody>
+    </table></div>
+  </div>
+  <div class="rowbetween"><div><h2 class="h-sec">Rôles</h2><p class="caption subtle" style="margin:2px 0 0">Rôles fournis non modifiables · rôles sur mesure créés par un Super Admin</p></div><button class="btn secondary">${ic('add-outline')}Créer un rôle sur mesure</button></div>
+  <div class="roles">
+    ${ROLES.map((r) => `<section class="card role-card"><h3>${r.name}${badge(r.badge)}</h3>${PERMS.map(([c, l]) => { const on = r.p.includes(c); return `<div class="perm ${on ? 'on' : ''}"><span class="box" aria-hidden="true">${on ? ic('checkmark') : ''}</span><span>${l}<code>${c}</code></span><span class="sr">${on ? 'accordée' : 'non accordée'}</span></div>`; }).join('')}</section>`).join('')}
+    <section class="card role-card" style="border:1.5px dashed var(--borderStrong)">
+      <h3>Conformité ${badge(['b-info', 'construct-outline', 'Sur mesure'])}</h3>
+      <div class="field"><label for="rn">Nom du rôle</label><input id="rn" class="input" value="Conformité"></div>
+      ${PERMS.map(([c, l]) => { const locked = RESERVED.includes(c); const on = ['users.view', 'audit.view', 'stats.view'].includes(c); return locked
+        ? `<div class="perm locked"><span class="box" aria-hidden="true">${ic('lock-closed')}</span><span>${l}<code>${c}</code><span class="caption" style="display:block">Réservé aux rôles Super Admin${c === 'staff.manage' ? '' : ' et Administrateur'}</span></span><span class="sr">verrouillée, impossible à attribuer</span></div>`
+        : `<label class="perm ${on ? 'on' : ''}" style="cursor:pointer"><span class="box" aria-hidden="true">${on ? ic('checkmark') : ''}</span><span>${l}<code>${c}</code></span><input type="checkbox" class="sr" ${on ? 'checked' : ''} aria-label="${l}"></label>`; }).join('')}
+      <button class="btn primary">${ic('save-outline')}Enregistrer le rôle</button>
+    </section>
+  </div>
+  <section class="card"><div class="card-head" style="padding-bottom:14px"><h2 class="h-sec">Matrice des permissions</h2></div>
+    <div class="tablewrap"><table class="matrix"><caption class="sr">Permissions par rôle</caption>
+      <thead><tr><th scope="col">Permission</th>${ROLES.map((r) => `<th scope="col">${r.name}</th>`).join('')}<th scope="col">Sur mesure</th></tr></thead>
+      <tbody>${PERMS.map(([c, l]) => `<tr><th scope="row" style="background:none;font-weight:500;color:var(--text)">${l} <span class="mono">${c}</span></th>${ROLES.map((r) => `<td>${r.p.includes(c) ? `<span class="yes">${ic('checkmark-circle')}Oui</span>` : RESERVED.includes(c) ? `<span class="lock">${ic('lock-closed')}Réservée</span>` : `<span class="no">${ic('remove')}Non</span>`}</td>`).join('')}<td>${RESERVED.includes(c) ? `<span class="lock">${ic('lock-closed')}Interdite</span>` : `<span class="no">${ic('options-outline')}Au choix</span>`}</td></tr>`).join('')}</tbody>
+    </table></div></section>`;
+};
+
+S.audit = () => `
+  <div class="rowbetween"><p class="small muted" style="margin:0">Ajout seul : aucune ligne ne peut être modifiée ni supprimée. Aucun montant n’y figure.</p>${badge(['b-success', 'link-outline', 'Chaîne d’empreintes vérifiée · 18 432 lignes'])}</div>
+  <div class="card">
+    <div class="toolbar">
+      <div class="field"><label for="au-a">Auteur</label><select id="au-a" class="select"><option>Tous</option><option>Clarisse A.</option><option>Koffi B.</option></select></div>
+      <div class="field"><label for="au-t">Action</label><select id="au-t" class="select"><option>Toutes</option><option>Consultation des opérations</option><option>Suppression d’une opération</option><option>Suspension</option></select></div>
+      <div class="field"><label for="au-r">Résultat</label><select id="au-r" class="select"><option>Tous</option><option>Réussi</option><option>Refusé</option></select></div>
+      <div class="field"><label for="au-d">Période</label><select id="au-d" class="select"><option>7 derniers jours</option><option>30 derniers jours</option></select></div>
+      <div class="field search-field"><label for="au-q">Cible (e-mail ou identifiant exact)</label>${ic('search-outline')}<input id="au-q" class="input" type="search"></div>
+    </div>
+    <div class="tablewrap"><table class="stack">
+      <caption class="sr">Journal des actions, de la plus récente à la plus ancienne</caption>
+      <thead><tr><th scope="col">Date</th><th scope="col">Auteur</th><th scope="col">Action</th><th scope="col">Cible</th><th scope="col">Motif interne</th><th scope="col">Résultat</th><th scope="col"><span class="sr">Détail</span></th></tr></thead>
+      <tbody>${AUDIT.map((a, i) => `<tr>
+        <td data-label="Date" class="tnum">${a.at}</td>
+        <td data-label="Auteur"><b style="font-weight:600">${a.who}</b><div class="caption subtle">${a.role}</div></td>
+        <td data-label="Action">${a.lbl}<div class="mono">${a.act}</div></td><td data-label="Cible">${a.target}</td>
+        <td data-label="Motif interne" class="muted">${a.reason}</td>
+        <td data-label="Résultat">${a.res === 'ok' ? badge(['b-success', 'checkmark-circle', 'Réussi']) : badge(['b-danger', 'close-circle', 'Refusé'])}</td>
+        <td class="nolabel" style="text-align:right"><button class="btn tertiary sm" data-action="auditDetail" data-i="${i}" aria-label="Voir le détail de la ligne du ${a.at}">Détail${ic('chevron-forward')}</button></td></tr>`).join('')}</tbody>
+    </table></div>
+    <div class="pager"><span class="small muted tnum">1–25 sur ${num(18432)}</span><div class="actions"><button class="btn outline sm" disabled>${ic('chevron-back')}Précédent</button><button class="btn outline sm">Suivant${ic('chevron-forward')}</button></div></div>
+  </div>`;
+
+const DENIED = (screen) => `
+  <div class="card"><div class="state"><span class="pill" style="background:var(--warningBg);color:var(--warning)">${ic('lock-closed-outline')}</span><h3>Vous n’avez pas accès à cette page</h3>
+    <p class="small">Votre rôle (${ME[state.role].role}) n’a pas la permission <span class="mono">${SCREEN_PERM[screen]}</span>. Le serveur refuse aussi l’accès ; le refus est enregistré au journal.</p>
+    <button class="btn secondary sm" data-go="home">${ic('home-outline')}Revenir à ma page d’accueil</button></div></div>`;
+
+S.states = () => `
+  <div class="states">
+    <div class="card"><div class="card-head"><h2 class="h-sec">Chargement</h2></div><div class="card-pad" style="display:grid;gap:14px" role="status" aria-label="Chargement en cours">
+      ${[80, 60, 70, 50].map((w) => `<div style="display:flex;gap:12px;align-items:center"><span class="skel" style="width:36px;height:36px;border-radius:50%"></span><div style="flex:1;display:grid;gap:6px"><span class="skel" style="width:${w}%"></span><span class="skel" style="width:${w - 25}%;height:10px"></span></div></div>`).join('')}
+      <span class="caption subtle">Chargement…</span></div></div>
+    <div class="card"><div class="card-head"><h2 class="h-sec">Vide</h2></div><div class="state"><span class="pill">${ic('search-outline')}</span><h3>Aucun utilisateur trouvé</h3><p class="small">La recherche est exacte : vérifiez l’e-mail ou l’identifiant complet.</p><button class="btn primary sm">${ic('close-outline')}Effacer la recherche</button></div></div>
+    <div class="card"><div class="card-head"><h2 class="h-sec">Erreur</h2></div><div class="state err" role="alert"><span class="pill">${ic('alert-circle')}</span><h3>Impossible de charger la liste</h3><p class="small">Vérifiez votre connexion puis réessayez.</p><button class="btn secondary sm">${ic('refresh-outline')}Réessayer</button></div></div>
+    <div class="card"><div class="card-head"><h2 class="h-sec">Succès et refus</h2></div><div class="card-pad" style="display:grid;gap:12px"><div class="msg success" role="status">${ic('checkmark-circle')}<div><b>Compte suspendu.</b> Fatou Ndiaye est déconnectée de tous ses appareils. Ses données sont conservées.</div></div><div class="msg danger">${ic('alert-circle')}<div><b>Action refusée.</b> Vous n’avez pas la permission « Supprimer une opération ». Ce refus est enregistré au journal.</div></div></div></div>
+  </div>
+  <div class="card"><div class="state"><span class="pill" style="background:var(--warningBg);color:var(--warning)">${ic('lock-closed-outline')}</span><h3>Vous n’avez pas accès à cette page</h3><p class="small">Exemple : une collaboratrice « Support » qui ouvrirait l’adresse de « Équipe et rôles ».</p></div></div>`;
+
+/* ───────── Fenêtres ───────── */
+const DLG = {};
+DLG.reason = () => `
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+    <header><span class="hico" style="background:var(--warningBg);color:var(--warning)">${ic('eye-outline')}</span><div><h2 id="dlg-t">Motif de consultation</h2><p class="small muted" style="margin:4px 0 0">Vous allez consulter les opérations financières d’Aïcha Koné. Ce motif est <b>interne</b> : il est enregistré au journal et n’est jamais envoyé à l’utilisatrice.</p></div></header>
+    <div class="body">
+      <fieldset class="radio-list"><legend class="flabel" style="margin-bottom:8px">Motif</legend>
+        ${['Demande du client', 'Vérification', 'Suspicion de fraude', 'Autre'].map((m, i) => `<label class="radio"><input type="radio" name="reason" ${i === 0 ? 'checked' : ''} value="${i}">${m}</label>`).join('')}</fieldset>
+      <div class="field" id="other-f" hidden><label for="other">Précisez le motif</label><textarea id="other" class="input" maxlength="200" placeholder="200 caractères maximum"></textarea><span class="help">Obligatoire pour « Autre ».</span></div>
+      <div class="msg info">${ic('information-circle')}<div>Lecture seule, 25 opérations par page, aucune exportation. L’accès dure 30 minutes.</div></div>
+    </div>
+    <footer><button class="btn outline" data-close>Annuler</button><button class="btn primary" data-go="ops">${ic('eye-outline')}Consulter</button></footer>
+  </div>`;
+DLG.deleteOp = (i) => {
+  const o = OPS[i ?? 1]; const T = TYPE[o.t];
+  return `
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+    <header><span class="hico" style="background:var(--dangerBg);color:var(--danger)">${ic('trash-outline')}</span><div><h2 id="dlg-t">Supprimer cette opération ?</h2><p class="small muted" style="margin:4px 0 0">Elle disparaîtra de tous les téléphones de l’espace « Famille Koné » (4 membres) et ne pourra pas revenir.</p></div></header>
+    <div class="body">
+      <div class="recap"><div class="r"><span class="muted">Date</span><b class="tnum">${o.d}</b></div><div class="r"><span class="muted">Type</span><b>${T[2]} · ${o.cat}</b></div><div class="r"><span class="muted">Montant</span><b class="tnum">${money(o.amt)}</b></div></div>
+      <div><div class="flabel" style="margin-bottom:8px">Effets liés (calculés par le serveur)</div>
+        ${o.fx.length ? `<ul class="effects">${o.fx.map((f) => `<li>${ic('link-outline')}${f} — supprimé aussi</li>`).join('')}<li>${ic('calculator-outline')}Soldes, budgets et « reste par jour » recalculés sur chaque téléphone</li></ul>` : `<p class="small muted" style="margin:0">Aucune écriture liée.</p>`}</div>
+      <div class="field"><label for="dr">Motif interne</label><select id="dr" class="select"><option>Demande du client</option><option>Vérification</option><option>Suspicion de fraude</option><option>Autre</option></select></div>
+      <label class="check"><input type="checkbox" id="c1"><span>J’ai compris que cette suppression est définitive, qu’elle s’applique à tous les membres de l’espace et qu’elle est enregistrée au journal.</span></label>
+      <div class="field"><label for="c2">Pour confirmer, tapez <b>SUPPRIMER</b></label><input id="c2" class="input" autocomplete="off" spellcheck="false"></div>
+    </div>
+    <footer><button class="btn outline" data-close>Annuler</button><button class="btn danger" id="confirm-del" disabled data-done="Opération supprimée sur tous les appareils. Action enregistrée au journal.">${ic('trash-outline')}Supprimer l’opération</button></footer>
+  </div>`;
+};
+DLG.suspend = () => `
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+    <header><span class="hico" style="background:var(--dangerBg);color:var(--danger)">${ic('ban-outline')}</span><div><h2 id="dlg-t">Suspendre le compte d’Aïcha Koné ?</h2><p class="small muted" style="margin:4px 0 0">Elle sera déconnectée de tous ses appareils et ne pourra plus se connecter. <b>Aucune donnée n’est supprimée</b> ; la réactivation rétablit tout.</p></div></header>
+    <div class="body">
+      <div class="field"><label for="sr">Motif interne</label><select id="sr" class="select"><option>Suspicion de fraude</option><option>Demande du client</option><option>Non-respect des conditions</option><option>Autre</option></select><span class="help">Jamais montré à l’utilisatrice.</span></div>
+      <div class="msg warning">${ic('people-outline')}<div>Elle reste membre de « Famille Koné » : les autres membres ne voient aucun changement.</div></div>
+    </div>
+    <footer><button class="btn outline" data-close>Annuler</button><button class="btn danger" data-done="Compte suspendu. Déconnexion de tous les appareils en cours.">${ic('ban-outline')}Suspendre le compte</button></footer>
+  </div>`;
+DLG.deleteUser = () => `
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+    <header><span class="hico" style="background:var(--dangerBg);color:var(--danger)">${ic('warning')}</span><div><h2 id="dlg-t">Supprimer définitivement ce compte ?</h2><p class="small muted" style="margin:4px 0 0">Cette action est <b>irréversible</b>. Les mêmes effets que « Supprimer mon compte » dans l’app s’appliquent.</p></div></header>
+    <div class="body">
+      <ul class="effects"><li>${ic('remove-circle-outline')}Espace personnel, profil, usage et invitations supprimés</li><li>${ic('remove-circle-outline')}« Famille Koné » : elle est la seule administratrice → la famille est supprimée pour ses 4 membres</li><li>${ic('remove-circle-outline')}Compte de connexion supprimé</li></ul>
+      <div class="field"><label for="de">Pour confirmer, retapez l’e-mail : <b>aicha.kone@exemple.ci</b></label><input id="de" class="input" type="email" autocomplete="off"></div>
+    </div>
+    <footer><button class="btn outline" data-close>Annuler</button><button class="btn danger" disabled>${ic('trash-outline')}Supprimer définitivement</button></footer>
+  </div>`;
+DLG.create = () => `
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+    <header><span class="hico" style="background:var(--primaryContainer);color:var(--primary)">${ic('person-add-outline')}</span><div><h2 id="dlg-t">Créer un utilisateur</h2><p class="small muted" style="margin:4px 0 0">Le compte est créé avec la formule gratuite, comme une inscription dans l’app.</p></div></header>
+    <div class="body">
+      <div class="two" style="gap:12px"><div class="field"><label for="cf">Prénom</label><input id="cf" class="input"></div><div class="field"><label for="cl">Nom <span class="subtle">(facultatif)</span></label><input id="cl" class="input"></div></div>
+      <div class="field"><label for="ce">E-mail</label><input id="ce" class="input" type="email"></div>
+      <div class="two" style="gap:12px"><div class="field"><label for="cc">Pays</label><select id="cc" class="select"><option>Côte d’Ivoire</option><option>Sénégal</option></select><span class="help">Devise proposée : FCFA</span></div><div class="field"><label for="cg">Langue</label><select id="cg" class="select"><option>Français</option><option>English</option></select></div></div>
+      <div class="msg info">${ic('mail-outline')}<div>Un lien pour <b>définir le mot de passe</b> sera envoyé à cette adresse. Personne dans l’équipe ne choisit ni ne voit de mot de passe.</div></div>
+    </div>
+    <footer><button class="btn outline" data-close>Annuler</button><button class="btn primary" data-done="Utilisateur créé. Lien de définition du mot de passe envoyé.">${ic('send-outline')}Créer et envoyer le lien</button></footer>
+  </div>`;
+DLG.auditDetail = (i) => { const a = AUDIT[i ?? 2]; return `
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+    <header><span class="hico" style="background:var(--surfaceAlt);color:var(--textMuted)">${ic('document-text-outline')}</span><div><h2 id="dlg-t">${a.lbl}</h2><p class="small muted" style="margin:4px 0 0">${a.at} · ${a.who} (${a.role})</p></div></header>
+    <div class="body">
+      <div class="recap"><div class="r"><span class="muted">Action</span><span class="mono">${a.act}</span></div><div class="r"><span class="muted">Cible</span><b>${a.target}</b></div>
+        <div class="r"><span class="muted">Résultat</span>${a.res === 'ok' ? badge(['b-success', 'checkmark-circle', 'Réussi']) : badge(['b-danger', 'close-circle', 'Refusé'])}</div><div class="r"><span class="muted">Motif interne</span><span>${a.reason}</span></div></div>
+      <div class="diff"><div><div class="caption subtle" style="margin-bottom:6px">Avant</div><pre>${a.before || '—'}</pre></div><div><div class="caption subtle" style="margin-bottom:6px">Après</div><pre>${a.after || '—'}</pre></div></div>
+      <p class="caption subtle" style="margin:0;display:flex;gap:6px;align-items:center">${ic('link-outline')}Empreinte 9f3c…a71e · précédente 4b0d…22c9 · aucun montant enregistré</p>
+    </div>
+    <footer><span></span><button class="btn outline" data-close>Fermer</button></footer>
+  </div>`; };
+
+/* ───────── Graphiques (une seule série par graphique, survol + clavier) ───────── */
+function lineChart(el, data, unit) {
+  const W = Math.max(320, Math.round(el.clientWidth - 40) || 640), H = 240, P = { l: 52, r: 12, t: 12, b: 28 };
+  const min = Math.min(...data), max = Math.max(...data);
+  const lo = Math.floor((min * 0.94) / 100) * 100, hi = Math.ceil((max * 1.03) / 100) * 100;
+  const x = (i) => P.l + (i * (W - P.l - P.r)) / (data.length - 1);
+  const y = (v) => P.t + (1 - (v - lo) / (hi - lo)) * (H - P.t - P.b);
+  const ticks = [0, 1, 2, 3].map((k) => lo + ((hi - lo) * k) / 3);
+  const path = data.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  const area = `${path}L${x(data.length - 1)},${H - P.b}L${x(0)},${H - P.b}Z`;
+  el.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${unit} sur 30 jours, de ${num(data[0])} à ${num(data[data.length - 1])}">
+      <g class="grid">${ticks.map((t) => `<line x1="${P.l}" x2="${W - P.r}" y1="${y(t)}" y2="${y(t)}"/>`).join('')}</g>
+      <g class="axis">${ticks.map((t) => `<text x="${P.l - 8}" y="${y(t) + 4}" text-anchor="end">${num(Math.round(t))}</text>`).join('')}
+        ${[0, 7, 14, 21, 29].map((i) => `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${dayLabel(i)}</text>`).join('')}</g>
+      <path d="${area}" fill="var(--chartArea)"/>
+      <path d="${path}" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <line class="xh" y1="${P.t}" y2="${H - P.b}" stroke="var(--borderStrong)" stroke-dasharray="3 3" opacity="0"/>
+      <circle class="dot" r="5" fill="var(--primary)" stroke="var(--surface)" stroke-width="2" opacity="0"/>
+      <rect x="${P.l}" y="${P.t}" width="${W - P.l - P.r}" height="${H - P.t - P.b}" fill="transparent" tabindex="0" aria-label="Parcourir les valeurs avec les flèches"/>
+    </svg><div class="tip" role="status" aria-live="polite"></div>`;
+  const svg = el.querySelector('svg'), tip = el.querySelector('.tip'), xh = el.querySelector('.xh'), dot = el.querySelector('.dot'), hit = el.querySelector('rect');
+  let cur = data.length - 1;
+  const show = (i) => {
+    cur = Math.max(0, Math.min(data.length - 1, i));
+    const px = x(cur), py = y(data[cur]);
+    xh.setAttribute('x1', px); xh.setAttribute('x2', px); xh.setAttribute('opacity', 1);
+    dot.setAttribute('cx', px); dot.setAttribute('cy', py); dot.setAttribute('opacity', 1);
+    const r = svg.getBoundingClientRect();
+    tip.style.left = `${px * (r.width / W) + 20}px`; tip.style.top = `${py * (r.height / H) + 8}px`; tip.style.opacity = 1;
+    tip.innerHTML = `${dayLabel(cur)}/2026<br><b>${num(data[cur])}</b> ${unit.toLowerCase()}`;
+  };
+  const hide = () => { tip.style.opacity = 0; xh.setAttribute('opacity', 0); dot.setAttribute('opacity', 0); };
+  hit.addEventListener('mousemove', (e) => { const r = svg.getBoundingClientRect(); const vx = ((e.clientX - r.left) / r.width) * W; show(Math.round(((vx - P.l) / (W - P.l - P.r)) * (data.length - 1))); });
+  hit.addEventListener('mouseleave', hide); hit.addEventListener('blur', hide); hit.addEventListener('focus', () => show(cur));
+  hit.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') { show(cur - 1); e.preventDefault(); } if (e.key === 'ArrowRight') { show(cur + 1); e.preventDefault(); } });
+}
+
+/* ───────── Rendu ───────── */
+function renderFrame(theme) {
+  const f = document.createElement('div');
+  f.className = `frame t-${theme} vp-${state.vp}`;
+  f.setAttribute('role', 'region');
+  f.setAttribute('aria-label', `Portail — thème ${theme === 'light' ? 'clair' : 'sombre'}`);
+  const s = state.screen;
+  if (s === 'login') f.innerHTML = S.login();
+  else f.innerHTML = shell(s, theme, can(SCREEN_PERM[s]) ? S[s]() : DENIED(s));
+  return f;
+}
+function render() {
+  const stage = document.getElementById('stage');
+  stage.innerHTML = '';
+  const sys = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  const themes = state.theme === 'both' ? ['light', 'dark'] : [state.theme === 'auto' ? sys : state.theme];
+  themes.forEach((t) => {
+    if (themes.length > 1) { const l = document.createElement('div'); l.className = 'stage-label'; l.textContent = t === 'light' ? 'Thème clair' : 'Thème sombre'; stage.appendChild(l); }
+    const f = renderFrame(t);
+    stage.appendChild(f);
+    f.querySelectorAll('[data-chart]').forEach((c) => lineChart(c, c.dataset.chart === 'signups' ? signups : active7, c.dataset.chart === 'signups' ? 'Inscriptions' : 'Actifs sur 7 jours'));
+  });
+  document.querySelectorAll('.mt-opts').forEach((g) => g.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(state[g.dataset.k] === b.dataset.v || (g.dataset.k === 'theme' && state.theme === 'auto' && b.dataset.v === sys)))));
+  try { localStorage.setItem('bo-mock-v2', JSON.stringify({ ...state, settingsOpen: false })); } catch { /* stockage indisponible */ }
+}
+
+let lastFocus = null;
+function openDialog(frame, name, arg) {
+  closeDialog(frame);
+  lastFocus = document.activeElement;
+  const scrim = document.createElement('div');
+  scrim.className = 'scrim';
+  scrim.innerHTML = DLG[name](arg);
+  frame.appendChild(scrim);
+  scrim.querySelector('input, select, textarea, button:not([disabled])')?.focus();
+  const btn = scrim.querySelector('#confirm-del');
+  if (btn) { const upd = () => { btn.disabled = !(scrim.querySelector('#c1').checked && scrim.querySelector('#c2').value.trim() === 'SUPPRIMER'); }; scrim.addEventListener('input', upd); scrim.addEventListener('change', upd); }
+  const de = scrim.querySelector('#de');
+  if (de) de.addEventListener('input', () => { scrim.querySelector('.btn.danger').disabled = de.value.trim().toLowerCase() !== 'aicha.kone@exemple.ci'; });
+  scrim.querySelectorAll('input[name="reason"]').forEach((r) => r.addEventListener('change', () => { scrim.querySelector('#other-f').hidden = !(r.value === '3' && r.checked); }));
+}
+function closeDialog(frame) { const s = frame.querySelector('.scrim'); if (s) { s.remove(); lastFocus?.focus?.(); } }
+function toast(frame, text) {
+  frame.querySelector('.toast')?.remove();
+  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status');
+  t.innerHTML = `${ic('checkmark-circle')}<span>${esc(text)}</span>`;
+  frame.appendChild(t); setTimeout(() => t.remove(), 4000);
+}
+function setNav(frame, open) {
+  frame.classList.toggle('nav-open', open);
+  frame.querySelector('.menu-btn')?.setAttribute('aria-expanded', String(open));
+  if (open) frame.querySelector('.side .navlink, .side input')?.focus();
+  else frame.querySelector('.menu-btn')?.focus();
+}
+function go(target) { state.screen = target === 'home' ? home() : target; state.settingsOpen = false; render(); } // re-rendu = tiroir refermé
+
+/* Appui long (tablette) : affiche le nom de l'entrée sans l'ouvrir. */
+let lpTimer = null, lpFired = false;
+document.addEventListener('touchstart', (e) => {
+  const a = e.target.closest('.navlink'); if (!a) return;
+  lpFired = false;
+  lpTimer = setTimeout(() => { lpFired = true; a.classList.add('tip-on'); setTimeout(() => a.classList.remove('tip-on'), 1600); }, 450);
+}, { passive: true });
+document.addEventListener('touchend', () => clearTimeout(lpTimer));
+
+document.addEventListener('click', (e) => {
+  /* Outils de la maquette */
+  if (e.target.closest('.mt-toggle')) { const p = document.getElementById('mt-panel'); p.hidden = !p.hidden; e.target.closest('.mt-toggle').setAttribute('aria-expanded', String(!p.hidden)); return; }
+  const mt = e.target.closest('.mt-opts button');
+  if (mt) { const k = mt.parentElement.dataset.k; state[k] = mt.dataset.v; if (k === 'theme' && mt.dataset.v !== 'both') state.ui = mt.dataset.v; if (k === 'role' && state.screen !== 'login' && !can(SCREEN_PERM[state.screen])) state.screen = home(); render(); return; }
+  /* Portail */
+  const frame = e.target.closest('.frame'); if (!frame) return;
+  if (lpFired && e.target.closest('.navlink')) { e.preventDefault(); lpFired = false; return; }
+  if (e.target.closest('[data-close]') || e.target.classList.contains('scrim')) { closeDialog(frame); return; }
+  const done = e.target.closest('[data-done]');
+  if (done && !done.disabled) { const msg = done.dataset.done; closeDialog(frame); toast(frame, msg); e.preventDefault(); return; }
+  const g = e.target.closest('[data-go]');
+  if (g) { e.preventDefault(); go(g.dataset.go); return; }
+  const act = e.target.closest('[data-action]');
+  if (!act) return;
+  e.preventDefault();
+  const a = act.dataset.action;
+  if (a === 'openNav') return setNav(frame, true);
+  if (a === 'closeNav') return setNav(frame, false);
+  if (a === 'toggleSettings' || a === 'setTheme') {
+    if (a === 'toggleSettings') state.settingsOpen = !state.settingsOpen;
+    else { state.ui = act.dataset.v; state.theme = act.dataset.v; }
+    const wasOpen = frame.classList.contains('nav-open');
+    render();
+    // Le tiroir (téléphone) reste ouvert pendant qu'on règle le thème.
+    if (wasOpen) document.querySelectorAll('.frame').forEach((f) => f.classList.add('nav-open'));
+    return;
+  }
+  openDialog(frame, a, act.dataset.op ?? act.dataset.i);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') document.querySelectorAll('.frame').forEach((f) => { if (f.querySelector('.scrim')) closeDialog(f); else if (f.classList.contains('nav-open')) setNav(f, false); });
+  if (e.key === 'Enter' && e.target.matches('tr[data-go]')) go(e.target.dataset.go);
+  if (e.key === 'Enter' && e.target.matches('[data-go-on-enter]')) go(e.target.dataset.goOnEnter);
+  if (e.key === 'Tab') {
+    const s = e.target.closest?.('.scrim'); if (!s) return;
+    const f = [...s.querySelectorAll('button:not([disabled]), input, select, textarea')].filter((n) => !n.closest('[hidden]'));
+    if (!f.length) return;
+    if (e.shiftKey && document.activeElement === f[0]) { f[f.length - 1].focus(); e.preventDefault(); }
+    else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { f[0].focus(); e.preventDefault(); }
+  }
+});
+render();
+</script>
+</body>
+</html>
