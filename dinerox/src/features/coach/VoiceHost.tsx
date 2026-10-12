@@ -35,7 +35,7 @@ export function VoiceHost() {
       if (p.sound) void playCoachSound(p.sound, pr.soundVolume);
       if (p.voice) {
         const m = voiceMessage(p.voice, pr.speakAmounts, hasKey);
-        if (hasKey(m.key)) void speak(speakable(tr(m.key, format(m.params))), { language: l === 'en' ? 'en' : 'fr' });
+        if (hasKey(m.key)) void speak(speakable(tr(m.key, format(m.params)), l === 'en' ? 'en' : 'fr'), { language: l === 'en' ? 'en' : 'fr' });
       }
     });
     const sub = AppState.addEventListener('change', (s) => {

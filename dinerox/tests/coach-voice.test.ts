@@ -4,6 +4,7 @@ import { VoiceQueue, cacheKey, type PreparedProvider } from '../src/services/voi
 import { speakable, voiceMessage } from '../src/core/coach/voice';
 import { fr } from '../src/i18n/fr';
 import { en } from '../src/i18n/en';
+import { formatMoney } from '../src/core/money';
 
 const has = (k: string) => k in fr;
 const ev = (textKey: string, params: Record<string, string | number>, severity: 'critical' | 'warning' | 'celebration' | 'advice' | 'info' = 'warning') => ({ textKey, params, severity });
@@ -112,17 +113,59 @@ describe('file d’attente vocale', () => {
 
 describe('texte prononcé (bouton « Écouter »)', () => {
   it('retire les émojis sans toucher au texte', () => {
-    expect(speakable('🔴 Budget Maison dépassé de 25 000 FCFA.')).toBe('Budget Maison dépassé de 25 000 FCFA.');
+    expect(speakable('🔴 Budget Maison dépassé de 25 000 FCFA.')).toBe('Budget Maison dépassé de 25000 francs CFA.');
     expect(speakable('Objectif atteint 🏆🎉 !')).toBe('Objectif atteint !');
     expect(speakable('🇨🇮 Côte d’Ivoire')).toBe('Côte d’Ivoire');
   });
   it('assemble les lignes : un point seulement s’il manque une ponctuation', () => {
-    expect(speakable(['Votre mois en bref :', 'Revenus : 450 000 FCFA', 'Dépenses : 167 000 FCFA'])).toBe('Votre mois en bref : Revenus : 450 000 FCFA. Dépenses : 167 000 FCFA');
+    expect(speakable(['Votre mois en bref :', 'Revenus : 450 000 FCFA', 'Dépenses : 167 000 FCFA'])).toBe('Votre mois en bref : Revenus : 450000 francs CFA. Dépenses : 167000 francs CFA');
     expect(speakable(['Première phrase.', 'Seconde'])).toBe('Première phrase. Seconde');
   });
   it('ignore les lignes vides et les puces', () => {
     expect(speakable(['', '• Loyer', '  ', '🔔'])).toBe('Loyer');
     expect(speakable('')).toBe('');
+  });
+});
+
+describe('montants lus à voix haute : un seul nombre, « francs CFA »', () => {
+  const money = (minor: number) => formatMoney(minor, 'XOF');
+  it('les groupes de milliers d’un même montant sont recollés (1 000 à plusieurs millions)', () => {
+    expect(speakable(`Dépense : ${money(1000)}`)).toBe('Dépense : 1000 francs CFA');
+    expect(speakable(`Dépense : ${money(25000)}`)).toBe('Dépense : 25000 francs CFA');
+    expect(speakable(`Loyer : ${money(350000)}`)).toBe('Loyer : 350000 francs CFA');
+    expect(speakable(`Salaire : ${money(1250000)}`)).toBe('Salaire : 1250000 francs CFA');
+    expect(speakable(`Terrain : ${money(12500000)}`)).toBe('Terrain : 12500000 francs CFA');
+    expect(speakable(`Maison : ${money(1250000000)}`)).toBe('Maison : 1250000000 francs CFA');
+    expect(speakable(`Taxi : ${money(500)}`)).toBe('Taxi : 500 francs CFA');
+  });
+  it('espace insécable, espace fine ou espace simple : même lecture', () => {
+    expect(speakable('350\u00a0000 FCFA')).toBe('350000 francs CFA');
+    expect(speakable('350\u202f000 FCFA')).toBe('350000 francs CFA');
+    expect(speakable('350 000 FCFA')).toBe('350000 francs CFA');
+  });
+  it('plusieurs montants dans une phrase restent distincts', () => {
+    expect(speakable(`Revenus ${money(450000)}, dépenses ${money(167000)} : il vous reste ${money(283000)}.`)).toBe(
+      'Revenus 450000 francs CFA, dépenses 167000 francs CFA : il vous reste 283000 francs CFA.',
+    );
+    expect(speakable(`2 dépenses : ${money(1500)} et ${money(2000)}`)).toBe('2 dépenses : 1500 francs CFA et 2000 francs CFA');
+  });
+  it('montant négatif : le signe moins est gardé, même en début de ligne', () => {
+    expect(speakable(`Solde : ${money(-25000)}`)).toBe('Solde : -25000 francs CFA');
+    expect(speakable([money(-1250000)])).toBe('-1250000 francs CFA');
+    expect(speakable(['- Loyer', '– Taxi'])).toBe('Loyer. Taxi');
+  });
+  it('anglais : « CFA francs »', () => {
+    expect(speakable(`Budget exceeded by ${money(350000)}.`, 'en')).toBe('Budget exceeded by 350000 CFA francs.');
+    expect(speakable([`Income ${money(1250000)}`, `Spending ${money(-3000)}`], 'en')).toBe('Income 1250000 CFA francs. Spending -3000 CFA francs');
+  });
+  it('les nombres qui ne sont pas des montants groupés ne bougent pas', () => {
+    expect(speakable('Le 12 mars, 3 enfants')).toBe('Le 12 mars, 3 enfants');
+    expect(speakable('Code 12345 et 1 250,50 €')).toBe('Code 12345 et 1250,50 €');
+  });
+  it('le texte affiché n’est pas modifié (seule la voix change)', () => {
+    const shown = `Il vous reste ${money(350000)}`;
+    speakable(shown);
+    expect(shown).toBe('Il vous reste 350\u00a0000\u00a0FCFA');
   });
 });
 
