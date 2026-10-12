@@ -49,10 +49,10 @@ qu'elles touchent. Détail de la barre au §1.1.
 | E4 | **Fiche utilisateur** | identité, formule, statut (icône + mot), dates (inscription, dernière activité), espaces (personnel, familles et rôle), appareils (nombre), historique des actions du journal sur ce compte. Actions : Modifier, Changer de formule, Suspendre/Réactiver, Voir les opérations ; zone « Actions irréversibles » isolée en bas : Supprimer définitivement. | `users.view` + permission de chaque action |
 | E5 | **Créer un utilisateur** (panneau) | prénom, nom (facultatif), e-mail, pays, devise (préremplie par le pays), langue. Message : « Un lien pour définir le mot de passe sera envoyé à cette adresse. » | `users.create` |
 | E6a | **Données** (entrée de la barre) | recherche exacte d'un utilisateur, rappel des règles (motif, journal, lecture seule), bouton « Consulter les opérations » → E6 ; liste de **ses propres** dernières consultations. Raccourci aussi depuis la fiche (E4). | `data.view` |
-| E6 | **Consulter les opérations** | 1) fenêtre « Motif de consultation » (liste courte + champ libre si « Autre ») ; 2) liste en lecture seule, par espace, 25 par page, montants au format de l'app. Sur chaque ligne : « Supprimer » (si `data.delete`). Bandeau permanent : « Consultation enregistrée au journal · motif : … ». Pas d'export, pas de sélection multiple. | `data.view` (+ `data.delete`) |
-| E7 | **Supprimer une opération** (fenêtre) | récapitulatif (date, type, montant, espace), liste des **effets liés** calculés par le serveur, motif interne, case « J'ai compris que… », puis 2e confirmation en retapant `SUPPRIMER`. | `data.delete` |
+| E6 | **Consulter les opérations** | 1) fenêtre « Motif de consultation » (liste courte + champ libre si « Autre ») ; 2) liste en lecture seule, par espace, 25 par page, montants au format de l'app. Sur chaque ligne : « Supprimer », **pour le Super Admin seulement** (`data.delete`) ; une Administratrice voit la liste sans aucun bouton de suppression (mention « Consultation seule »). Bandeau permanent : « Consultation enregistrée au journal · motif : … ». Pas d'export, pas de sélection multiple. | `data.view` (+ `data.delete`, Super Admin) |
+| E7 | **Supprimer une opération** (fenêtre) | récapitulatif (date, type, montant, espace), liste des **effets liés** calculés par le serveur, motif interne, case « J'ai compris que… », puis 2e confirmation en retapant `SUPPRIMER`. | `data.delete` (Super Admin seulement) |
 | E8 | **Équipe** | liste des collaborateurs (rôle, statut, double vérification active, dernière connexion), inviter, changer de rôle, suspendre, retirer, réinitialiser la double vérification. | `staff.manage` |
-| E9 | **Rôles** | rôles fournis (lecture seule) et rôles sur mesure : nom + cases de permissions ; `data.view`/`data.delete` **affichées grisées et cadenassées** avec l'explication « Réservé aux rôles Super Admin et Administrateur ». | `staff.manage` (Super Admin) |
+| E9 | **Rôles** | rôles fournis (lecture seule) et rôles sur mesure : nom + cases de permissions ; `data.view`, `data.delete` et `staff.manage` **affichées grisées et cadenassées** avec l'explication « Réservé aux rôles Super Admin et Administrateur » (`data.view`) ou « Réservé au rôle Super Admin » (`data.delete`, `staff.manage`). | `staff.manage` (Super Admin) |
 | E10 | **Journal d'audit** | liste chronologique, filtres (auteur, action, cible, résultat, période), détail d'une ligne (avant/après). Lecture seule, pagination, **aucune suppression ni modification possible**. | `audit.view` |
 | E11 | **Réglages** (bas de la barre) | thème (clair, sombre, automatique), état de la session (double vérification, expiration), lien « Mot de passe et codes de secours » (changer son mot de passe, régénérer ses codes, fermer toutes ses sessions). | — |
 | — | **États** | chaque écran a ses états chargement (squelettes), vide, erreur (avec « Réessayer ») et succès (message dans la page + toast 4 s). Accès refusé : page dédiée « Vous n'avez pas accès à cette page ». | — |
@@ -95,7 +95,7 @@ ouverte « à la main » affiche « Vous n'avez pas accès à cette page » (le 
 
 Dans les pages, les boutons suivent la même règle : « Modifier » (`users.edit`), « Changer de
 formule » (`users.changePlan`), « Suspendre » (`users.suspend`), « Voir les opérations »
-(`data.view`), « Supprimer » une opération (`data.delete`), zone « Supprimer définitivement »
+(`data.view`), « Supprimer » une opération (`data.delete`, Super Admin seulement), zone « Supprimer définitivement »
 (`users.delete`, donc Super Admin seulement).
 
 **Selon la taille de l'écran :**
@@ -140,7 +140,7 @@ le reste de la page est le portail tel qu'il sera construit.
 | `audit.view` | consulter le journal |
 | `staff.manage` | gérer l'équipe et les rôles sur mesure |
 | `data.view` | voir les opérations financières d'un utilisateur — **réservée, codée en dur** |
-| `data.delete` | supprimer une opération d'un utilisateur — **réservée, codée en dur** |
+| `data.delete` | supprimer une opération d'un utilisateur — **réservée au Super Admin, codée en dur** |
 
 ### 2.2 Matrice rôles × permissions
 
@@ -156,15 +156,17 @@ le reste de la page est le portail tel qu'il sera construit.
 | `users.delete` | ✅ | — | — | — | au choix |
 | `stats.view` | ✅ | ✅ | — | ✅ | au choix |
 | `audit.view` | ✅ | — | — | — | au choix |
-| `staff.manage` | ✅ | — | — | — | 🔒 *(proposition D3)* |
+| `staff.manage` | ✅ | 🔒 | 🔒 | 🔒 | 🔒 *(D3)* |
 | `data.view` | ✅ | ✅ | 🔒 | 🔒 | 🔒 |
-| `data.delete` | ✅ | ✅ | 🔒 | 🔒 | 🔒 |
+| `data.delete` | ✅ | 🔒 | 🔒 | 🔒 | 🔒 |
 
 ### 2.3 Règles invariantes (vérifiées par le serveur, testées)
 
-1. `data.view` et `data.delete` ne sont accordées **que** par les rôles `superAdmin` et `admin`.
-   Le calcul des droits ignore ces deux codes s'ils figurent dans un autre rôle, et la création
-   ou la modification d'un rôle sur mesure qui les contient est **refusée** (et journalisée).
+1. `data.view` n'est accordée **que** par les rôles `superAdmin` et `admin` ; `data.delete` et
+   `staff.manage` **uniquement** par `superAdmin`. Ces listes sont écrites en dur dans le serveur :
+   le calcul des droits ignore ces codes s'ils figurent dans un autre rôle (y compris `admin`
+   pour `data.delete`), et la création ou la modification d'un rôle sur mesure qui les contient
+   est **refusée** (et journalisée).
 2. Seul un Super Admin attribue (ou retire) le rôle `admin` ou `superAdmin`.
 3. Seul un Super Admin modifie, suspend ou retire un Super Admin.
 4. Le **dernier** Super Admin actif ne peut être ni rétrogradé, ni suspendu, ni retiré (contrôle
@@ -229,6 +231,35 @@ ne fait que les exporter (les fonctions existantes ne changent pas, sauf `adminS
    envoie son e-mail modèle avec le lien pour **définir** le mot de passe. Aucun collaborateur
    ne tape ni ne voit de mot de passe. (Voir D7 sur le texte du modèle.)
 4. Journal : `user.create` (cible, e-mail, pays, langue ; jamais de mot de passe).
+
+**Texte neutre proposé pour le modèle Firebase « Réinitialisation du mot de passe » (D7, à
+valider avant tout changement dans la console).** Ce modèle sert à la fois au « mot de passe
+oublié » de l'app et à la création d'un compte par le back-office : il ne doit donc parler ni
+d'oubli ni de création. `%APP_NAME%`, `%EMAIL%` et `%LINK%` sont remplis par Firebase (le nom
+public du projet, donc pas de nom de marque écrit dans le texte).
+
+- Objet (FR) : `Choisissez votre mot de passe %APP_NAME%`
+- Message (FR) :
+  > Bonjour,
+  >
+  > Pour choisir le mot de passe de votre compte %APP_NAME% (%EMAIL%), ouvrez ce lien :
+  > %LINK%
+  >
+  > Ce lien ne fonctionne qu'une fois et pendant une durée limitée. Si vous n'attendiez pas
+  > cet e-mail, ignorez-le : rien ne change sur votre compte.
+  >
+  > L'équipe %APP_NAME%
+- Subject (EN): `Choose your %APP_NAME% password`
+- Message (EN):
+  > Hello,
+  >
+  > To choose the password for your %APP_NAME% account (%EMAIL%), open this link:
+  > %LINK%
+  >
+  > This link works only once and for a limited time. If you weren't expecting this email,
+  > ignore it: nothing changes on your account.
+  >
+  > The %APP_NAME% team
 
 ### 3.2 Suppression définitive d'un compte
 
@@ -567,9 +598,12 @@ membres d'une famille quand une opération partagée est supprimée.*
    vérification) × chaque fonction `bo…` → « autorisé » ou « refusé ». Le tableau attendu est
    **écrit à la main dans le test** (pas recalculé depuis le code), et chaque refus vérifie la
    ligne `denied` du journal.
-2. `data.view`/`data.delete` : refusées à tout rôle autre que `superAdmin`/`admin`, y compris un
-   rôle sur mesure qui les contiendrait (création refusée ; et si l'on force un tel document en
-   base, le calcul des droits les ignore).
+2. `data.view` : refusée à tout rôle autre que `superAdmin`/`admin`. `data.delete` et
+   `staff.manage` : refusées à tout rôle autre que `superAdmin`, **Administrateur compris**
+   (`boPreviewDelete` et `boDeleteTransaction` appelés par un admin → refus journalisé, aucune
+   écriture). Un rôle sur mesure qui les contiendrait est refusé à la création ; et si l'on force
+   un tel document en base (ou qu'on ajoute `data.delete` au document du rôle `admin`), le calcul
+   des droits les ignore.
 3. **Dernier Super Admin** : rétrogradation, suspension, retrait refusés ; deux demandes
    simultanées sur deux Super Admins → une seule passe.
 4. **Ses propres droits** : changer son rôle, se suspendre, se retirer, réinitialiser sa propre
@@ -593,7 +627,8 @@ membres d'une famille quand une opération partagée est supprimée.*
 ### Étape 3 — portail et app
 
 - Bout en bout sur l'export web + émulateurs (style `e2e/`) : connexion + code, chaque écran,
-  chaque action, refus visibles, états vide/erreur.
+  chaque action, refus visibles, états vide/erreur. Une Administratrice ouvre les opérations
+  (motif demandé, journal) et **ne voit aucun bouton « Supprimer »**.
 - App : un compte suspendu pendant qu'il est connecté → déconnecté au retour réseau avec le
   message validé ; réactivé → reconnexion, données intactes.
 - Captures d'écran clair et sombre, ordinateur / tablette / téléphone ; contrôle clavier et
@@ -601,7 +636,7 @@ membres d'une famille quand une opération partagée est supprimée.*
 
 ---
 
-## 14. Décisions à te soumettre
+## 14. Décisions (validées le 12/10/2026)
 
 | # | Question | Ma proposition |
 |---|---|---|
@@ -622,3 +657,20 @@ membres d'une famille quand une opération partagée est supprimée.*
 | **D15** | Comptes du personnel : adresses dédiées (ex. `prenom@dinerox.app`), distinctes de leurs comptes personnels de l'app. | **Oui**, recommandé. |
 | **D16** | Texte « compte suspendu » (§5.3). | À valider tel quel ou à corriger. |
 | **D17** | Durée de conservation du journal. | 5 ans (à confirmer avec le juriste). |
+
+**Réponses du fondateur (12/10/2026)** — maquette à barre latérale validée.
+
+| # | Décision |
+|---|---|
+| D1 | **Oui.** Commit séparé, comportement de l'app identique ; `npm run check` et tous les parcours e2e verts avant et après. |
+| D2 | **Oui.** Plus un test prouvant que l'app accepte le refus : synchronisation non bloquée, pas de nouvel essai en boucle, pas de message incompréhensible. |
+| D3 | **Oui.** |
+| D4 | **Oui, option B** : TOTP dans nos Functions, essais limités, codes de secours. |
+| D5, D6 | **Oui.** |
+| D7 | **Oui**, mais le texte neutre de l'e-mail est montré au fondateur avant tout changement dans la console (proposition au §3.1). |
+| D8 | **Oui** : date de fin obligatoire, Super Admin seulement, journalisé. |
+| D9 à D13, D15 | **Oui**, comme proposé. |
+| D14 | **Oui**, après l'étape 3. |
+| D16 | Texte du §5.3 **validé tel quel**. |
+| D17 | 5 ans, à confirmer plus tard avec un juriste. |
+| Matrice | **Correction : `data.delete` = Super Admin SEULEMENT.** L'Administrateur garde `data.view` (consulter, avec motif et journal) mais ne supprime pas (§2.2, §2.3, E6/E7, maquette, §13 mis à jour). |
