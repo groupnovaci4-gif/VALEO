@@ -22,6 +22,8 @@ export interface ButtonProps {
   small?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityHint?: string;
+  /** Nom lu par le lecteur d'écran quand le texte seul est ambigu (ex. « Ajouter de l'argent, Voiture »). Défaut : `label`. */
+  accessibilityLabel?: string;
 }
 
 export function Button(props: ButtonProps) {
@@ -43,7 +45,7 @@ function haptic() {
  * que la marge horizontale), rayon 12, icône + texte jamais tronqué, pressé = couleur
  * (pas d'opacité ni d'échelle), désactivé = couleurs dédiées lisibles.
  */
-function ButtonV2({ label, onPress, variant = 'primary', icon, loading, disabled, full, small, style, accessibilityHint }: ButtonProps) {
+function ButtonV2({ label, onPress, variant = 'primary', icon, loading, disabled, full, small, style, accessibilityHint, accessibilityLabel }: ButtonProps) {
   const { colors } = useTheme();
   const kind = variant === 'ghost' ? 'tertiary' : variant === 'danger' ? 'destructive' : variant === 'success' ? 'primary' : variant;
   const inactive = disabled || loading;
@@ -57,7 +59,7 @@ function ButtonV2({ label, onPress, variant = 'primary', icon, loading, disabled
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       aria-disabled={!!inactive}
@@ -90,7 +92,7 @@ function ButtonV2({ label, onPress, variant = 'primary', icon, loading, disabled
   );
 }
 
-function LegacyButton({ label, onPress, variant = 'primary', icon, loading, disabled, full, small, style, accessibilityHint }: ButtonProps) {
+function LegacyButton({ label, onPress, variant = 'primary', icon, loading, disabled, full, small, style, accessibilityHint, accessibilityLabel }: ButtonProps) {
   const { colors, radius, dark, shadow } = useTheme();
   const bg: Record<ButtonVariant, string> = {
     primary: colors.primary,
@@ -114,7 +116,7 @@ function LegacyButton({ label, onPress, variant = 'primary', icon, loading, disa
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: !!inactive, busy: !!loading }}
       aria-disabled={!!inactive}

@@ -16,6 +16,9 @@ Coach (1.5) : `coach-budget.js` (seuils et réaction immédiate),
 La synthèse vocale et les sons sont **espionnés** (`speechSynthesis.speak`,
 `HTMLMediaElement.play`) : on vérifie ce qui serait lu ou joué, pas le son produit.
 
+Objectifs : `goals-contribute.js` rejoue l'exemple du fondateur (voiture
+1 000 000, versements datés depuis l'onglet Objectifs → 20 %, 30 %, 50 %, 90 %).
+
 ## Lancer
 
 ```bash

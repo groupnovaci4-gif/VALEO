@@ -4,7 +4,7 @@
  * met simplement de côté (il n'est alors plus compté comme disponible).
  */
 import React, { useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { goBack } from '@/hooks/goBack';
 import { useI18n } from '@/i18n';
 import { useData } from '@/store/app';
@@ -16,7 +16,8 @@ import { useActionErrorMessage } from '@/hooks/useRunAction';
 import { withSpaceReady } from '@/components/SpaceReady';
 
 function Contribute() {
-  const { id, withdraw } = useLocalSearchParams<{ id: string; withdraw?: string }>();
+  // `from=goals` : ouvert depuis l'onglet Objectifs → après l'enregistrement, la fiche montre la progression et l'historique.
+  const { id, withdraw, from } = useLocalSearchParams<{ id: string; withdraw?: string; from?: string }>();
   const { t } = useI18n();
   const errorMessage = useActionErrorMessage();
   const toast = useToast();
@@ -45,7 +46,8 @@ function Contribute() {
     try {
       actions.contributeToGoal({ goalId: goal.id, amount: amount ?? 0, date, accountId, note: note.trim() || null, moveTo: move ? goal.accountId : null, withdraw: isWithdraw });
       toast.show(t('goal.contribution.saved'));
-      goBack();
+      if (from === 'goals') router.replace(`/goals/${goal.id}`);
+      else goBack();
     } catch (e) {
       setError(errorMessage(e, 'error.amount.invalid'));
     }
