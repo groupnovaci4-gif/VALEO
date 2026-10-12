@@ -369,7 +369,7 @@ describe('tontines — carnet personnel (1.7)', () => {
 });
 
 describe('back-office : aucune donnée d’administration accessible à un client', () => {
-  const cols = ['boStaff', 'boRoles', 'boSessions', 'boAccess', 'boAudit', 'boAuditHead', 'boStats', 'boLoginGuard', 'accountStatus'];
+  const cols = ['boStaff', 'boRoles', 'boSessions', 'boAccess', 'boAudit', 'boAuditHead', 'boStats', 'boLoginGuard', 'boInvites', 'accountStatus'];
   it('lecture et écriture refusées, même pour soi-même et même avec le droit admin de l’app', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       const fs = ctx.firestore() as unknown as Firestore;

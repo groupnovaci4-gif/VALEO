@@ -8,11 +8,9 @@
  * les deux). Les permissions réservées (`data.*`, `staff.manage`,
  * `users.changePlan`) sont refusées dans un rôle sur mesure.
  */
-import { getAuth } from 'firebase-admin/auth';
 import { HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
 import { actorOf, bad, COL, db, deny, mirrorToLogging, openAudit, requireStaff, type StaffDoc } from './context';
 import { BUILTIN_ROLE_IDS, BUILTIN_ROLES, checkStaffChange, effectivePermissions, isBuiltinRole, validateCustomRole, type StaffChange } from './permissions';
-import { cleanEmail, cleanName } from './registry';
 
 const uidArg = (v: unknown): string => (typeof v === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(v) ? v : bad('bo/uid'));
 const roleIdArg = (v: unknown): string => (typeof v === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(v) ? v : bad('bo/role'));
@@ -34,31 +32,6 @@ export async function listStaff(req: CallableRequest) {
   };
 }
 
-/** Ajoute un collaborateur (compte sans mot de passe : il le choisit via le lien reçu). */
-export async function inviteStaff(req: CallableRequest) {
-  const c = await requireStaff(req, 'staff.manage', 'staff.invite');
-  const email = cleanEmail(req.data?.email) ?? bad('bo/email');
-  const displayName = cleanName(req.data?.displayName) ?? bad('bo/displayName');
-  const roleId = roleIdArg(req.data?.roleId);
-  if (!(await roleExists(roleId))) bad('bo/role');
-  const actor = { uid: c.uid, email: c.email, roleId: c.roleId };
-  if ((roleId === 'superAdmin' || roleId === 'admin') && c.roleId !== 'superAdmin') return deny(actor, 'staff.invite', 'staff/super-admin-only', { targetLabel: displayName });
-  let user = await getAuth().getUserByEmail(email).catch(() => null);
-  // D15 : adresse DÉDIÉE au travail, distincte d'un compte personnel de l'app.
-  if (user && (await db().doc(`users/${user.uid}`).get()).exists) return deny(actor, 'staff.invite', 'bo/staff-has-app-account', { targetLabel: displayName }, 'failed-precondition');
-  if (user && (await db().doc(`${COL.staff}/${user.uid}`).get()).exists) throw new HttpsError('already-exists', 'bo/already-staff');
-  if (!user) user = await getAuth().createUser({ email, emailVerified: false, displayName });
-  const uid = user.uid;
-  const now = Date.now();
-  const entry = await db().runTransaction(async (tx) => {
-    const audit = await openAudit(tx);
-    tx.create(db().doc(`${COL.staff}/${uid}`), { email, displayName, roleId, status: 'active', mfa: { enrolled: false, secretEnc: null, pendingSecretEnc: null, recoveryHashes: [], lastStep: null }, createdAt: now, createdBy: c.uid, lastLoginAt: null } satisfies StaffDoc);
-    return audit.write({ ...actorOf(c), action: 'staff.invite', result: 'ok', targetUid: uid, targetLabel: displayName, after: { role: roleId, status: 'active' } });
-  });
-  mirrorToLogging([entry]);
-  return { uid };
-}
-
 /** Modification d'un collaborateur, en transaction avec le comptage des Super Admins actifs. */
 async function changeStaff(req: CallableRequest, change: StaffChange, action: string) {
   // Droit vérifié AVANT les paramètres : un refus est toujours journalisé.
@@ -74,6 +47,8 @@ async function changeStaff(req: CallableRequest, change: StaffChange, action: st
     const audit = await openAudit(tx);
     if (!snap.exists) return { error: 'bo/staff-not-found' as const };
     const t = snap.data() as StaffDoc;
+    // Invitation en cours : se gère par Renvoyer / Annuler, jamais en activant le compte à la main.
+    if (t.status === 'invited') return { error: 'bo/staff-invited' as const, label: t.displayName };
     // Acteur relu DANS la transaction : un droit retiré entre-temps compte.
     const a = actorSnap.data() as StaffDoc | undefined;
     const err = checkStaffChange({
@@ -113,6 +88,7 @@ async function changeStaff(req: CallableRequest, change: StaffChange, action: st
   if ('error' in res && res.error) {
     if (res.error === 'bo/staff-not-found') throw new HttpsError('not-found', res.error);
     if (res.error === 'bo/no-change') throw new HttpsError('failed-precondition', res.error);
+    if (res.error === 'bo/staff-invited') return deny({ uid: c.uid, email: c.email, roleId: c.roleId }, action, res.error, { targetUid: target, targetLabel: res.label }, 'failed-precondition');
     return deny({ uid: c.uid, email: c.email, roleId: c.roleId }, action, res.error, { targetUid: target, targetLabel: res.label, after: newRoleId ? { role: newRoleId } : undefined });
   }
   mirrorToLogging([res.entry]);

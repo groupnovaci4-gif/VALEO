@@ -440,7 +440,7 @@
     <h2><ion-icon name="construct-outline" aria-hidden="true"></ion-icon>Outils de la maquette</h2>
     <p>Ce panneau sert seulement à tester la maquette. Il n’existera pas dans le portail.</p>
     <div class="mt-row"><span>Écran</span><div class="mt-opts" data-k="screen">
-      <button data-v="login">Connexion</button><button data-v="dashboard">Tableau de bord</button><button data-v="stats">Statistiques</button>
+      <button data-v="login">Connexion</button><button data-v="invite">Invitation</button><button data-v="dashboard">Tableau de bord</button><button data-v="stats">Statistiques</button>
       <button data-v="users">Utilisateurs</button><button data-v="user">Fiche</button><button data-v="data">Données</button><button data-v="ops">Opérations</button>
       <button data-v="audit">Journal</button><button data-v="team">Équipe et rôles</button><button data-v="states">États</button></div></div>
     <div class="mt-row"><span>Rôle connecté (la barre latérale s’adapte)</span><div class="mt-opts" data-k="role">
@@ -523,6 +523,13 @@ const USERS = [
   { id: 'z4Hn1JvB7mQe', fn: 'Serge', ln: 'Bamba', email: 'serge.bamba@exemple.ci', country: 'CI', plan: 'family', status: 'active', created: '14/01/2026', seen: 'hier, 18:47' },
 ];
 const PLAN = { free: ['b-neutral', 'person-outline', 'Gratuit'], plus: ['b-primary', 'star-outline', 'Plus'], family: ['b-accent', 'people-outline', 'Famille'] };
+const INV_STATUS = { sent: ['b-info', 'mail-outline', 'Invitation envoyée'], accepted: ['b-success', 'checkmark-circle', 'Acceptée'], expired: ['b-warning', 'time-outline', 'Expirée'], revoked: ['b-neutral', 'close-circle-outline', 'Annulée'] };
+const INVITES = [
+  { ini: 'YT', name: 'Yao T.', email: 'yao@dinerox.app', role: ['b-neutral', 'headset-outline', 'Support'], st: 'sent', meta: 'Envoyée le 12/10/2026 par Koffi B. · expire le 19/10/2026' },
+  { ini: 'MD', name: 'Mariam D.', email: 'mariam@dinerox.app', role: ['b-neutral', 'analytics-outline', 'Analyste'], st: 'expired', meta: 'Envoyée le 01/10/2026 par Koffi B. · expirée le 08/10/2026' },
+  { ini: 'AS', name: 'Awa S.', email: 'awa.s@dinerox.app', role: ['b-neutral', 'analytics-outline', 'Analyste'], st: 'accepted', meta: 'Acceptée le 10/10/2026' },
+  { ini: 'JB', name: 'Jean B.', email: 'jean@dinerox.app', role: ['b-neutral', 'headset-outline', 'Support'], st: 'revoked', meta: 'Annulée le 09/10/2026 par Koffi B.' },
+];
 const STATUS = { active: ['b-success', 'checkmark-circle', 'Actif'], suspended: ['b-danger', 'ban', 'Suspendu'], unverified: ['b-warning', 'mail-unread-outline', 'E-mail non vérifié'] };
 const COUNTRY = { CI: 'Côte d’Ivoire', ML: 'Mali', SN: 'Sénégal', BF: 'Burkina Faso', TG: 'Togo', GN: 'Guinée' };
 const badge = ([cls, icon, text]) => `<span class="badge ${cls}">${ic(icon)}${text}</span>`;
@@ -650,6 +657,41 @@ S.login = () => `
         </div>
         <div class="msg info">${ic('information-circle')}<div>Pas encore de code ? À votre première connexion, un QR code vous sera présenté pour activer la double vérification.</div></div>
         <p class="caption subtle" style="margin:0">Aucun compte ne peut être créé ici. Problème d’accès : contactez un Super Admin.</p>
+      </div>
+    </section>
+  </div>`;
+
+/* E1c — Accepter l'invitation (sans connexion ; textes : docs/backoffice.md §1.3). */
+S.invite = () => `
+  <div class="login">
+    <section class="login-brand" aria-label="${esc(BRAND.name)}">
+      <div>
+        <img class="logo-xl" src="${LOGO}" alt="Logo ${esc(BRAND.name)}">
+        <h2>${esc(BRAND.name)}<br>Back-office</h2>
+        <p class="tag">${esc(TAGLINE)}<br><b>Espace réservé à l’équipe.</b></p>
+      </div>
+      <div class="trust">
+        <div>${ic('mail-open-outline')}Invitation personnelle, valable 7 jours, utilisable une seule fois.</div>
+        <div>${ic('key-outline')}Vous choisissez vous-même votre mot de passe.</div>
+        <div>${ic('finger-print-outline')}Double vérification activée juste après.</div>
+      </div>
+    </section>
+    <section class="login-form">
+      <div class="login-card">
+        <div class="steps" aria-label="Étape 1 sur 2">
+          <span class="st on"><span class="n">1</span>Accepter l’invitation</span><span class="sep"></span>
+          <span class="st"><span class="n">2</span>Double vérification</span>
+        </div>
+        <div>
+          <h1>Rejoindre l’équipe ${esc(BRAND.name)}</h1>
+          <p class="muted" style="margin:6px 0 0"><b>Koffi B.</b> vous invite à rejoindre l’équipe d’administration de ${esc(BRAND.name)} avec le rôle <b>Support</b>.</p>
+        </div>
+        <div class="msg info">${ic('mail-outline')}<div>Invitation pour <b>d•••@dinerox.app</b> · valable jusqu’au <b>19/10/2026</b></div></div>
+        <div class="field"><label for="iv-e">Votre adresse e-mail (celle qui a reçu l’invitation)</label><input id="iv-e" class="input" type="email" autocomplete="username" value="didier@dinerox.app"></div>
+        <div class="field"><label for="iv-p">Choisissez un mot de passe</label><input id="iv-p" class="input" type="password" autocomplete="new-password" value="motdepasse"><span class="help">8 caractères au moins. Vous seul le connaîtrez.</span></div>
+        <div class="field"><label for="iv-c">Confirmez le mot de passe</label><input id="iv-c" class="input" type="password" autocomplete="new-password" value="motdepasse"></div>
+        <button class="btn primary" style="width:100%" data-go="login">${ic('checkmark-circle-outline')}Accepter l’invitation</button>
+        <p class="caption subtle" style="margin:0">Vous n’attendiez pas cette invitation ? Fermez simplement cette page.</p>
       </div>
     </section>
   </div>`;
@@ -843,7 +885,7 @@ S.team = () => {
   ];
   return `
   <div class="card">
-    <div class="toolbar"><p class="small muted" style="margin:0;align-self:center">Seul un Super Admin attribue le rôle Administrateur. Personne ne modifie ses propres droits.</p><div class="grow"></div><button class="btn primary">${ic('person-add-outline')}Inviter un collaborateur</button></div>
+    <div class="toolbar"><p class="small muted" style="margin:0;align-self:center">Seul un Super Admin attribue le rôle Administrateur. Personne ne modifie ses propres droits.</p><div class="grow"></div><button class="btn primary" data-action="invite">${ic('person-add-outline')}Inviter un collaborateur</button></div>
     <div class="tablewrap"><table class="stack">
       <caption class="sr">Collaborateurs du back-office</caption>
       <thead><tr><th scope="col">Collaborateur</th><th scope="col">Rôle</th><th scope="col">Statut</th><th scope="col">Double vérification</th><th scope="col">Dernière connexion</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
@@ -854,6 +896,21 @@ S.team = () => {
         <td class="nolabel" style="text-align:right">${note ? `<span class="caption subtle" style="display:inline-flex;gap:6px;align-items:center;max-width:260px;text-align:right">${ic('lock-closed-outline')}${note}</span>` : `<button class="btn outline sm">${ic('create-outline')}Gérer</button>`}</td></tr>`; }).join('')}</tbody>
     </table></div>
   </div>
+  <section class="card" aria-labelledby="inv-t">
+    <div class="card-head" style="padding-bottom:14px"><div><h2 class="h-sec" id="inv-t">Invitations</h2><p class="caption subtle" style="margin:2px 0 0">Un invité n’a aucune permission tant qu’il n’a pas accepté et activé sa double vérification.</p></div></div>
+    <div class="tablewrap"><table class="stack">
+      <caption class="sr">Invitations envoyées</caption>
+      <thead><tr><th scope="col">Personne invitée</th><th scope="col">Rôle</th><th scope="col">Statut</th><th scope="col">Envoi</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
+      <tbody>${INVITES.map((v) => `<tr>
+        <td class="nolabel"><div class="ucell"><span class="avatar" aria-hidden="true">${v.ini}</span><div><b>${v.name}</b><span>${v.email}</span></div></div></td>
+        <td data-label="Rôle">${badge(v.role)}</td><td data-label="Statut">${badge(INV_STATUS[v.st])}</td>
+        <td data-label="Envoi" class="muted">${v.meta}</td>
+        <td class="nolabel" style="text-align:right"><div style="display:inline-flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          ${v.st === 'sent' ? `<button class="btn tertiary sm" data-done="Lien copié. Envoyez-le seulement à ${v.name} : il donne accès à l’invitation.">${ic('copy-outline')}Copier le lien d’invitation</button>` : ''}
+          ${v.st === 'sent' || v.st === 'expired' ? `<button class="btn outline sm" data-done="Nouveau lien envoyé à ${v.email}. L’ancien lien ne fonctionne plus.">${ic('refresh-outline')}Renvoyer</button><button class="btn destructive sm" data-action="cancelInvite" data-i="${v.name}">${ic('close-circle-outline')}Annuler</button>` : ''}
+        </div></td></tr>`).join('')}</tbody>
+    </table></div>
+  </section>
   <div class="rowbetween"><div><h2 class="h-sec">Rôles</h2><p class="caption subtle" style="margin:2px 0 0">Rôles fournis non modifiables · rôles sur mesure créés par un Super Admin</p></div><button class="btn secondary">${ic('add-outline')}Créer un rôle sur mesure</button></div>
   <div class="roles">
     ${ROLES.map((r) => `<section class="card role-card"><h3>${r.name}${badge(r.badge)}</h3>${PERMS.map(([c, l]) => { const on = r.p.includes(c); return `<div class="perm ${on ? 'on' : ''}"><span class="box" aria-hidden="true">${on ? ic('checkmark') : ''}</span><span>${l}<code>${c}</code></span><span class="sr">${on ? 'accordée' : 'non accordée'}</span></div>`; }).join('')}</section>`).join('')}
@@ -911,6 +968,13 @@ S.states = () => `
     <div class="card"><div class="card-head"><h2 class="h-sec">Erreur</h2></div><div class="state err" role="alert"><span class="pill">${ic('alert-circle')}</span><h3>Impossible de charger la liste</h3><p class="small">Vérifiez votre connexion puis réessayez.</p><button class="btn secondary sm">${ic('refresh-outline')}Réessayer</button></div></div>
     <div class="card"><div class="card-head"><h2 class="h-sec">Succès et refus</h2></div><div class="card-pad" style="display:grid;gap:12px"><div class="msg success" role="status">${ic('checkmark-circle')}<div><b>Compte suspendu.</b> Fatou Ndiaye est déconnectée de tous ses appareils. Ses données sont conservées.</div></div><div class="msg danger">${ic('alert-circle')}<div><b>Action refusée.</b> Vous n’avez pas la permission « Supprimer une opération ». Ce refus est enregistré au journal.</div></div></div></div>
   </div>
+  <div class="card"><div class="card-head"><h2 class="h-sec">Lien d’invitation refusé (page « Accepter l’invitation »)</h2></div><div class="card-pad" style="display:grid;gap:12px">
+    <div class="msg warning">${ic('time-outline')}<div>Cette invitation a expiré. Demandez à la personne qui vous a invité de vous l’envoyer à nouveau.</div></div>
+    <div class="msg danger">${ic('close-circle-outline')}<div>Cette invitation a été annulée.</div></div>
+    <div class="msg info">${ic('information-circle')}<div>Cette invitation a déjà été utilisée. Connectez-vous avec votre adresse et votre mot de passe.</div></div>
+    <div class="msg danger">${ic('link-outline')}<div>Ce lien d’invitation n’est pas valable. Il a peut-être été remplacé par un lien plus récent.</div></div>
+    <div class="msg danger">${ic('mail-unread-outline')}<div>Cette adresse ne correspond pas à l’invitation. Utilisez l’adresse qui a reçu l’invitation.</div></div>
+    <p class="caption subtle" style="margin:0">Chacun de ces refus est enregistré au journal. Aucune donnée de l’invitation n’est affichée.</p></div></div>
   <div class="card"><div class="state"><span class="pill" style="background:var(--warningBg);color:var(--warning)">${ic('lock-closed-outline')}</span><h3>Vous n’avez pas accès à cette page</h3><p class="small">Exemple : une collaboratrice « Support » qui ouvrirait l’adresse de « Équipe et rôles ».</p></div></div>`;
 
 /* ───────── Fenêtres ───────── */
@@ -960,6 +1024,23 @@ DLG.deleteUser = () => `
     </div>
     <footer><button class="btn outline" data-close>Annuler</button><button class="btn danger" disabled>${ic('trash-outline')}Supprimer définitivement</button></footer>
   </div>`;
+DLG.invite = () => `
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+    <header><span class="hico" style="background:var(--primaryContainer);color:var(--primary)">${ic('person-add-outline')}</span><div><h2 id="dlg-t">Inviter un collaborateur</h2><p class="small muted" style="margin:4px 0 0">La personne reçoit un lien personnel, valable 7 jours et utilisable une seule fois.</p></div></header>
+    <div class="body">
+      <div class="field"><label for="ie">Adresse e-mail professionnelle</label><input id="ie" class="input" type="email" value="yao@dinerox.app"><span class="help">Une adresse réservée au travail, différente de son compte personnel ${esc(BRAND.name)}.</span></div>
+      <div class="two" style="gap:12px"><div class="field"><label for="in">Nom</label><input id="in" class="input" value="Yao T."></div><div class="field"><label for="ir">Rôle</label><select id="ir" class="select"><option>Support</option><option>Analyste</option><option>Administrateur</option><option>Conformité (sur mesure)</option></select></div></div>
+      <div class="msg info">${ic('lock-closed-outline')}<div>Aucune permission avant que la personne ait accepté et activé sa double vérification. Elle choisit elle-même son mot de passe.</div></div>
+    </div>
+    <footer><button class="btn outline" data-close>Annuler</button><button class="btn primary" data-done="Invitation envoyée à yao@dinerox.app. Le lien est valable 7 jours.">${ic('send-outline')}Envoyer l’invitation</button></footer>
+  </div>`;
+
+DLG.cancelInvite = (name) => `
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+    <header><span class="hico" style="background:var(--dangerBg);color:var(--danger)">${ic('close-circle-outline')}</span><div><h2 id="dlg-t">Annuler l’invitation de ${esc(name ?? 'Yao T.')} ?</h2><p class="small muted" style="margin:4px 0 0">Le lien ne fonctionnera plus. Vous pourrez inviter cette personne à nouveau.</p></div></header>
+    <footer><button class="btn outline" data-close>Garder l’invitation</button><button class="btn danger" data-done="Invitation annulée.">${ic('close-circle-outline')}Annuler l’invitation</button></footer>
+  </div>`;
+
 DLG.create = () => `
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
     <header><span class="hico" style="background:var(--primaryContainer);color:var(--primary)">${ic('person-add-outline')}</span><div><h2 id="dlg-t">Créer un utilisateur</h2><p class="small muted" style="margin:4px 0 0">Le compte est créé avec la formule gratuite, comme une inscription dans l’app.</p></div></header>
@@ -1029,6 +1110,7 @@ function renderFrame(theme) {
   f.setAttribute('aria-label', `Portail — thème ${theme === 'light' ? 'clair' : 'sombre'}`);
   const s = state.screen;
   if (s === 'login') f.innerHTML = S.login();
+  else if (s === 'invite') f.innerHTML = S.invite();
   else f.innerHTML = shell(s, theme, can(SCREEN_PERM[s]) ? S[s]() : DENIED(s));
   return f;
 }
@@ -1090,7 +1172,7 @@ document.addEventListener('click', (e) => {
   /* Outils de la maquette */
   if (e.target.closest('.mt-toggle')) { const p = document.getElementById('mt-panel'); p.hidden = !p.hidden; e.target.closest('.mt-toggle').setAttribute('aria-expanded', String(!p.hidden)); return; }
   const mt = e.target.closest('.mt-opts button');
-  if (mt) { const k = mt.parentElement.dataset.k; state[k] = mt.dataset.v; if (k === 'theme' && mt.dataset.v !== 'both') state.ui = mt.dataset.v; if (k === 'role' && state.screen !== 'login' && !can(SCREEN_PERM[state.screen])) state.screen = home(); render(); return; }
+  if (mt) { const k = mt.parentElement.dataset.k; state[k] = mt.dataset.v; if (k === 'theme' && mt.dataset.v !== 'both') state.ui = mt.dataset.v; if (k === 'role' && !['login', 'invite'].includes(state.screen) && !can(SCREEN_PERM[state.screen])) state.screen = home(); render(); return; }
   /* Portail */
   const frame = e.target.closest('.frame'); if (!frame) return;
   if (lpFired && e.target.closest('.navlink')) { e.preventDefault(); lpFired = false; return; }

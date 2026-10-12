@@ -10,7 +10,8 @@ import { BO_MFA_KEY } from './context';
 import { loginStart, loginVerify, logout, me, newRecovery } from './login';
 import { createUser, deleteUser, getUser, listUsers, searchUsers, setPlan, setSuspended, updateUser } from './users';
 import { deleteTransaction, listTransactions, openData, previewDelete } from './data';
-import { deleteRole, inviteStaff, listRoles, listStaff, removeStaff, resetStaffMfa, saveRole, setStaffRole, setStaffSuspended } from './staff';
+import { deleteRole, listRoles, listStaff, removeStaff, resetStaffMfa, saveRole, setStaffRole, setStaffSuspended } from './staff';
+import { acceptInvite, getInviteLink, inviteStaff, listInvites, resendInvite, revokeInvite, viewInvite } from './invites';
 import { computeSnapshot, listAudit, stats } from './stats';
 
 const opts = { region: 'europe-west1', maxInstances: 5, timeoutSeconds: 60 } as const;
@@ -43,7 +44,15 @@ export const boDeleteTransaction = call(deleteTransaction);
 
 // Équipe et rôles.
 export const boListStaff = call(listStaff);
-export const boInviteStaff = call(inviteStaff);
+// Invitations (le jeton est chiffré avec BO_MFA_KEY).
+export const boInviteStaff = callMfa(inviteStaff);
+export const boListInvites = call(listInvites);
+export const boResendInvite = callMfa(resendInvite);
+export const boGetInviteLink = callMfa(getInviteLink);
+export const boRevokeInvite = call(revokeInvite);
+// Côté invité, sans session : le jeton du lien fait foi.
+export const boViewInvite = call(viewInvite);
+export const boAcceptInvite = call(acceptInvite);
 export const boSetStaffRole = call(setStaffRole);
 export const boSetStaffSuspended = call(setStaffSuspended);
 export const boRemoveStaff = call(removeStaff);

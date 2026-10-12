@@ -262,6 +262,7 @@ service cloud.firestore {
     match /boAuditHead/{id} { allow read, write: if false; }
     match /boStats/{id} { allow read, write: if false; }
     match /boLoginGuard/{id} { allow read, write: if false; }
+    match /boInvites/{id} { allow read, write: if false; }
     match /accountStatus/{uid} { allow read, write: if false; }
 
     // Tout le reste est refusé par défaut.

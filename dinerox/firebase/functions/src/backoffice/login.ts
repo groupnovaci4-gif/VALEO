@@ -97,7 +97,7 @@ export async function loginStart(req: CallableRequest) {
   if (!uid) return refuse(email, 'auth.login', 'bo/bad-password');
   const snap = await db().doc(`${COL.staff}/${uid}`).get();
   const staff = snap.exists ? (snap.data() as StaffDoc) : undefined;
-  if (!staff || staff.status !== 'active') return refuse(email, 'auth.login', staff ? 'bo/staff-suspended' : 'bo/not-staff');
+  if (!staff || staff.status !== 'active') return refuse(email, 'auth.login', staff ? `bo/staff-${staff.status}` : 'bo/not-staff');
   const challenge = randomBytes(32).toString('base64url');
   const enrolled = staff.mfa?.enrolled === true && !!staff.mfa.secretEnc;
   let secret: string | null = null;

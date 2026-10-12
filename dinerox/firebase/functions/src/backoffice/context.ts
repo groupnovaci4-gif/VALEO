@@ -37,6 +37,7 @@ export const COL = {
   auditHead: 'boAuditHead',
   stats: 'boStats',
   loginGuard: 'boLoginGuard',
+  invites: 'boInvites',
   accountStatus: 'accountStatus',
 } as const;
 
@@ -44,7 +45,8 @@ export interface StaffDoc {
   email: string;
   displayName: string;
   roleId: string;
-  status: 'active' | 'suspended';
+  /** `invited` : invitation envoyée, pas encore acceptée — aucune permission. */
+  status: 'active' | 'suspended' | 'invited';
   mfa?: {
     enrolled?: boolean;
     secretEnc?: string | null;
@@ -135,7 +137,7 @@ export async function requireStaff(req: CallableRequest, permission: Permission 
   const staff = staffSnap.exists ? (staffSnap.data() as StaffDoc) : undefined;
   const actor = { uid, email: staff?.email ?? tokenEmail, roleId: staff?.roleId ?? null };
   if (!staff) return deny(actor, action, 'bo/not-staff');
-  if (staff.status !== 'active') return deny(actor, action, 'bo/staff-suspended');
+  if (staff.status !== 'active') return deny(actor, action, `bo/staff-${staff.status}`);
   const sid = req.auth.token.boSid;
   const expiresAt = Number(sessionSnap.get('expiresAt') ?? 0);
   if (typeof sid !== 'string' || !sessionSnap.exists || sessionSnap.get('sid') !== sid || expiresAt <= Date.now()) {

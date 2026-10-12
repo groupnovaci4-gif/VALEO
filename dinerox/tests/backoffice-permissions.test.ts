@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkStaffChange, effectivePermissions, PERMISSIONS, validateCustomRole, type Permission } from '../firebase/functions/src/backoffice/permissions';
+import { canInviteRole, checkStaffChange, effectivePermissions, PERMISSIONS, validateCustomRole, type Permission } from '../firebase/functions/src/backoffice/permissions';
 
 /**
  * Matrice ÉCRITE À LA MAIN (docs/backoffice.md §2.2, correction du 12/10/2026 :
@@ -85,5 +85,17 @@ describe('back-office : règles invariantes de l’équipe', () => {
   });
   it('un Super Admin attribue admin à un support', () => {
     expect(checkStaffChange({ actor: superA, target: tgt('support'), change: 'role', newRoleId: 'admin', activeSuperAdmins: 1 })).toBeNull();
+  });
+});
+
+describe('back-office : invitation à un rôle élevé', () => {
+  it('seul un Super Admin invite au rôle admin ou superAdmin', () => {
+    for (const actor of ['admin', 'support', 'analyste', 'r_x']) {
+      expect(canInviteRole(actor, 'admin')).toBe(false);
+      expect(canInviteRole(actor, 'superAdmin')).toBe(false);
+      expect(canInviteRole(actor, 'support')).toBe(true);
+    }
+    expect(canInviteRole('superAdmin', 'admin')).toBe(true);
+    expect(canInviteRole('superAdmin', 'superAdmin')).toBe(true);
   });
 });

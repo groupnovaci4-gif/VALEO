@@ -98,7 +98,7 @@ export type StaffChange = 'role' | 'suspend' | 'reactivate' | 'remove' | 'resetM
 
 export interface StaffChangeInput {
   actor: { uid: string; roleId: string; permissions: readonly Permission[] };
-  target: { uid: string; roleId: string; status: 'active' | 'suspended' };
+  target: { uid: string; roleId: string; status: 'active' | 'suspended' | 'invited' };
   change: StaffChange;
   /** Nouveau rôle (change = 'role'). */
   newRoleId?: string;
@@ -122,4 +122,9 @@ export function checkStaffChange(i: StaffChangeInput): StaffChangeError | null {
   const losesSuper = i.change === 'suspend' || i.change === 'remove' || (i.change === 'role' && i.newRoleId !== 'superAdmin');
   if (i.target.roleId === 'superAdmin' && i.target.status === 'active' && losesSuper && i.activeSuperAdmins <= 1) return 'staff/last-super-admin';
   return null;
+}
+
+/** Seul un Super Admin invite (ou réinvite) quelqu'un au rôle `admin` ou `superAdmin`. */
+export function canInviteRole(actorRoleId: string, roleId: string): boolean {
+  return (roleId !== 'superAdmin' && roleId !== 'admin') || actorRoleId === 'superAdmin';
 }

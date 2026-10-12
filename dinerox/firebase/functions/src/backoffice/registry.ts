@@ -24,3 +24,11 @@ export function cleanEmail(raw: unknown): string | null {
   const v = raw.trim().toLowerCase();
   return EMAIL_RE.test(v) && v.length <= 254 ? v : null;
 }
+
+/** Même règle que validatePassword() de l'app : 8 à 128 caractères. */
+export function passwordError(p: unknown): 'required' | 'weak' | 'tooLong' | null {
+  if (typeof p !== 'string' || !p) return 'required';
+  if (p.length < 8) return 'weak';
+  if (p.length > 128) return 'tooLong';
+  return null;
+}

@@ -43,6 +43,7 @@ qu'elles touchent. Détail de la barre au §1.1.
 |---|---|---|---|
 | E1 | **Connexion** | e-mail + mot de passe, puis code à 6 chiffres (double vérification, §8). Mot de passe oublié. Aucun lien d'inscription. | — |
 | E1b | **Activer la double vérification** (1re connexion) | QR code à scanner, saisie d'un code, 8 codes de secours affichés une seule fois. | — |
+| E1c | **Accepter l'invitation** (lien reçu par e-mail ou copié) | sans connexion : qui invite, pour quel rôle, adresse invitée (masquée), date limite ; l'invité retape son adresse, choisit son mot de passe, accepte → puis E1 + E1b (double vérification). Lien expiré, annulé, déjà utilisé ou remplacé : message clair, aucune donnée affichée. Textes au §1.3. | lien valide |
 | E2 | **Tableau de bord** | cartes de chiffres clés (utilisateurs, actifs 7 j, formules, suspendus), courbe des inscriptions, courbe des actifs, répartition des formules, accès rapides (selon les droits), dernières actions du journal (si `audit.view`). | `stats.view` |
 | E2b | **Statistiques** | vue détaillée, filtres période et pays : inscriptions, actifs 7 j, comptes par pays, formules, familles, part des méthodes de saisie (statistiques anonymes déjà collectées par l'app). « Voir en tableau » sous chaque graphique. Chiffres agrégés uniquement. | `stats.view` |
 | E3 | **Utilisateurs** | recherche exacte (e-mail ou identifiant), filtres (formule, statut, pays), liste paginée par 25, tri par date d'inscription. Bouton « Créer un utilisateur » dans la barre de filtres (si `users.create`). | `users.view` |
@@ -51,7 +52,7 @@ qu'elles touchent. Détail de la barre au §1.1.
 | E6a | **Données** (entrée de la barre) | recherche exacte d'un utilisateur, rappel des règles (motif, journal, lecture seule), bouton « Consulter les opérations » → E6 ; liste de **ses propres** dernières consultations. Raccourci aussi depuis la fiche (E4). | `data.view` |
 | E6 | **Consulter les opérations** | 1) fenêtre « Motif de consultation » (liste courte + champ libre si « Autre ») ; 2) liste en lecture seule, par espace, 25 par page, montants au format de l'app. Sur chaque ligne : « Supprimer », **pour le Super Admin seulement** (`data.delete`) ; une Administratrice voit la liste sans aucun bouton de suppression (mention « Consultation seule »). Bandeau permanent : « Consultation enregistrée au journal · motif : … ». Pas d'export, pas de sélection multiple. | `data.view` (+ `data.delete`, Super Admin) |
 | E7 | **Supprimer une opération** (fenêtre) | récapitulatif (date, type, montant, espace), liste des **effets liés** calculés par le serveur, motif interne, case « J'ai compris que… », puis 2e confirmation en retapant `SUPPRIMER`. | `data.delete` (Super Admin seulement) |
-| E8 | **Équipe** | liste des collaborateurs (rôle, statut, double vérification active, dernière connexion), inviter, changer de rôle, suspendre, retirer, réinitialiser la double vérification. | `staff.manage` |
+| E8 | **Équipe** | liste des collaborateurs (rôle, statut, double vérification active, dernière connexion), changer de rôle, suspendre, retirer, réinitialiser la double vérification. **Invitations** : inviter (adresse, nom, rôle), statut *envoyée / acceptée / expirée / annulée*, boutons « Renvoyer », « Annuler », « Copier le lien d'invitation » (pour WhatsApp). Un invité n'a **aucune** permission tant qu'il n'a pas accepté et activé sa double vérification. | `staff.manage` |
 | E9 | **Rôles** | rôles fournis (lecture seule) et rôles sur mesure : nom + cases de permissions ; `data.view`, `data.delete` et `staff.manage` **affichées grisées et cadenassées** avec l'explication « Réservé aux rôles Super Admin et Administrateur » (`data.view`) ou « Réservé au rôle Super Admin » (`data.delete`, `staff.manage`). | `staff.manage` (Super Admin) |
 | E10 | **Journal d'audit** | liste chronologique, filtres (auteur, action, cible, résultat, période), détail d'une ligne (avant/après). Lecture seule, pagination, **aucune suppression ni modification possible**. | `audit.view` |
 | E11 | **Réglages** (bas de la barre) | thème (clair, sombre, automatique), état de la session (double vérification, expiration), lien « Mot de passe et codes de secours » (changer son mot de passe, régénérer ses codes, fermer toutes ses sessions). | — |
@@ -123,6 +124,55 @@ côte ») et du format (ordinateur, tablette, téléphone). Il n'existera pas da
 le reste de la page est le portail tel qu'il sera construit.
 
 ---
+
+### 1.3 Textes proposés : invitation (à valider)
+
+Le portail est en français ; l'anglais est proposé pour plus tard. `{app}` = nom de marque
+(`brand.ts`), `{inviter}`, `{name}`, `{role}`, `{email}`, `{date}` = données de l'invitation.
+
+**Page « Accepter l'invitation » (E1c)**
+
+| Élément | Français | English |
+|---|---|---|
+| Titre | Rejoindre l'équipe {app} | Join the {app} team |
+| Introduction | {inviter} vous invite à rejoindre l'équipe d'administration de {app} avec le rôle {role}. | {inviter} has invited you to join the {app} admin team as {role}. |
+| Détail | Invitation pour {email} · valable jusqu'au {date} | Invitation for {email} · valid until {date} |
+| Champ adresse | Votre adresse e-mail (celle qui a reçu l'invitation) | Your email address (the one that received the invitation) |
+| Champ mot de passe | Choisissez un mot de passe | Choose a password |
+| Aide | 8 caractères au moins. Vous seul le connaîtrez. | At least 8 characters. Only you will know it. |
+| Confirmation | Confirmez le mot de passe | Confirm the password |
+| Bouton | Accepter l'invitation | Accept the invitation |
+| Lien discret | Vous n'attendiez pas cette invitation ? Fermez simplement cette page. | Weren't expecting this invitation? Just close this page. |
+| Après acceptation | Invitation acceptée. Dernière étape : activez la double vérification pour protéger votre compte. | Invitation accepted. Last step: turn on two-step verification to protect your account. |
+| Bouton suivant | Continuer | Continue |
+| Lien expiré | Cette invitation a expiré. Demandez à la personne qui vous a invité de vous l'envoyer à nouveau. | This invitation has expired. Ask the person who invited you to send it again. |
+| Lien annulé | Cette invitation a été annulée. | This invitation has been cancelled. |
+| Déjà utilisé | Cette invitation a déjà été utilisée. Connectez-vous avec votre adresse et votre mot de passe. | This invitation has already been used. Sign in with your email address and password. |
+| Lien non valable | Ce lien d'invitation n'est pas valable. Il a peut-être été remplacé par un lien plus récent. | This invitation link isn't valid. It may have been replaced by a newer one. |
+| Autre adresse | Cette adresse ne correspond pas à l'invitation. Utilisez l'adresse qui a reçu l'invitation. | This address doesn't match the invitation. Use the address that received it. |
+| Mot de passe trop court | Le mot de passe doit contenir au moins 8 caractères. | Your password must be at least 8 characters long. |
+| Confirmation différente | Les deux mots de passe ne sont pas identiques. | The two passwords don't match. |
+
+**Écran Équipe (E8)**
+
+| Élément | Français | English |
+|---|---|---|
+| Bouton | Inviter un collaborateur | Invite a team member |
+| Fenêtre : adresse | Adresse e-mail professionnelle | Work email address |
+| Aide | Une adresse réservée au travail, différente de son compte personnel {app}. | A work-only address, different from their personal {app} account. |
+| Fenêtre : nom / rôle | Nom · Rôle | Name · Role |
+| Bouton | Envoyer l'invitation | Send invitation |
+| Succès | Invitation envoyée à {email}. Le lien est valable 7 jours. | Invitation sent to {email}. The link is valid for 7 days. |
+| Section | Invitations | Invitations |
+| Statuts | Invitation envoyée · Acceptée · Expirée · Annulée | Invitation sent · Accepted · Expired · Cancelled |
+| Ligne | Envoyée le {date} par {inviter} · expire le {date} | Sent on {date} by {inviter} · expires on {date} |
+| Boutons | Renvoyer · Annuler · Copier le lien d'invitation | Resend · Cancel · Copy invitation link |
+| Lien copié | Lien copié. Envoyez-le seulement à {name} : il donne accès à l'invitation. | Link copied. Send it only to {name}: it gives access to the invitation. |
+| Renvoyée | Nouveau lien envoyé à {email}. L'ancien lien ne fonctionne plus. | A new link has been sent to {email}. The old link no longer works. |
+| Annuler : titre | Annuler l'invitation de {name} ? | Cancel {name}'s invitation? |
+| Annuler : texte | Le lien ne fonctionnera plus. Vous pourrez inviter cette personne à nouveau. | The link will stop working. You can invite this person again. |
+| Annuler : boutons | Garder l'invitation · Annuler l'invitation | Keep invitation · Cancel invitation |
+| Annulée | Invitation annulée. | Invitation cancelled. |
 
 ## 2. Rôles et permissions
 
@@ -216,7 +266,9 @@ ne fait que les exporter (les fonctions existantes ne changent pas, sauf `adminS
 | `boPreviewDelete` | `data.delete` | calcule et renvoie les effets liés d'une suppression (aucune écriture) |
 | `boDeleteTransaction` | `data.delete` | suppression synchronisée d'une opération (§4) |
 | `boListAudit` | `audit.view` | journal paginé et filtré |
-| `boListStaff` / `boInviteStaff` / `boSetStaffRole` / `boSetStaffSuspended` / `boRemoveStaff` / `boResetStaffMfa` | `staff.manage` | gestion de l'équipe + règles §2.3 |
+| `boListStaff` / `boSetStaffRole` / `boSetStaffSuspended` / `boRemoveStaff` / `boResetStaffMfa` | `staff.manage` | gestion de l'équipe + règles §2.3 (un collaborateur « invité » ne se modifie pas : Renvoyer / Annuler) |
+| `boInviteStaff` / `boListInvites` / `boResendInvite` / `boRevokeInvite` / `boGetInviteLink` | `staff.manage` | invitations (§3.4) |
+| `boViewInvite` / `boAcceptInvite` | aucune (le jeton du lien fait foi) | page « Accepter l'invitation » (§3.4) |
 | `boListRoles` / `boSaveRole` / `boDeleteRole` | `staff.manage` (Super Admin) | rôles sur mesure (refus de `data.*`) |
 | `boStatsSnapshot` *(planifiée, toutes les heures)* | — (serveur) | calcule les compteurs agrégés dans `boStats` |
 
@@ -286,6 +338,31 @@ haché + domaine, voir D11).
 - Champs renvoyés (minimisation, voir D9) : date, type, montant, devise, catégorie, compte,
   auteur (prénom du membre), indicateur « supprimée ». Note, bénéficiaire et justificatif
   **masqués** par défaut.
+
+### 3.4 Invitation d'un collaborateur
+
+1. **Inviter** (`boInviteStaff`, Super Admin) : compte Auth **sans mot de passe** (adresse
+   dédiée, D15), collaborateur `boStaff` au statut `invited` (**aucune permission**), invitation
+   `boInvites` avec un jeton aléatoire de 256 bits **valable 7 jours**. Le jeton est stocké
+   haché (pour le vérifier) et chiffré avec `BO_MFA_KEY` (pour « Copier le lien ») ; il n'est
+   jamais écrit au journal. Seul un Super Admin invite au rôle `admin` ou `superAdmin`.
+2. **E-mail** (modèle Firebase gratuit, D7) : le portail appelle
+   `sendPasswordResetEmail(email, { url: lienInvitation })`. Le lien d'invitation
+   (`https://<portail>/invitation?i=<id>#t=<jeton>`, jeton dans la partie `#` : jamais envoyé
+   à un serveur ni dans un historique de proxy) est le **lien de suite** de l'e-mail. Voir D18.
+3. **Accepter** (`boViewInvite` puis `boAcceptInvite`) : l'invité voit qui l'invite et pour quel
+   rôle, retape l'adresse invitée, choisit son mot de passe (envoyé directement au serveur, qui
+   l'enregistre ; aucun collaborateur ne le voit ni ne le tape). Le jeton est **consommé** dans
+   une transaction (usage unique), le collaborateur passe à `active` — toujours sans permission
+   tant que la double vérification n'est pas activée à sa première connexion (E1b).
+4. **Renvoyer** : nouveau jeton, 7 jours à partir de maintenant ; l'ancien lien est refusé.
+   **Annuler** : lien refusé, collaborateur invité retiré, compte Auth créé pour l'invitation
+   supprimé (l'adresse peut être réinvitée). **Copier le lien** : le jeton en cours, déchiffré,
+   action journalisée — à n'envoyer qu'à la personne invitée (le lien vaut une clé).
+5. **Refus journalisés** : lien inconnu, jeton faux ou remplacé, expiré, annulé, déjà utilisé ;
+   adresse différente de celle invitée (au 5e essai, l'invitation est annulée d'office) ; rôle
+   élevé donné par un non-Super Admin ; Renvoyer/Copier/Annuler une invitation qui ne s'y prête
+   pas. Pour une adresse tapée par erreur, le journal ne garde que le domaine et une empreinte.
 
 ---
 
@@ -402,7 +479,8 @@ seul propriétaire si D5 retient la variante « lecture ». Écrites uniquement 
 
 | Collection | Document | Champs principaux |
 |---|---|---|
-| `boStaff/{uid}` | collaborateur | `email`, `displayName`, `roleId`, `status` (`active`/`suspended`), `mfa` { `enrolled`, `secretEnc`, `recoveryHashes[]`, `failedCount`, `lockedUntil` }, `createdAt`, `createdBy`, `lastLoginAt` |
+| `boInvites/{id}` | invitation | `email`, `displayName`, `roleId`, `uid`, `createdAuthUser`, `invitedBy`, `invitedByName`, `status` (`sent`/`accepted`/`revoked` ; « expirée » = `sent` dont `expiresAt` est passé), `tokenHash`, `tokenEnc`, `sentAt`, `expiresAt`, `acceptedAt`, `revokedAt`, `revokedBy`, `failedAttempts` |
+| `boStaff/{uid}` | collaborateur | `email`, `displayName`, `roleId`, `status` (`invited`/`active`/`suspended`), `mfa` { `enrolled`, `secretEnc`, `recoveryHashes[]`, `failedCount`, `lockedUntil` }, `createdAt`, `createdBy`, `lastLoginAt` |
 | `boRoles/{roleId}` | rôle | `name`, `permissions[]`, `builtIn` (bool), `createdAt`, `createdBy`, `updatedAt` — les 4 rôles fournis sont **dans le code**, pas modifiables |
 | `boSessions/{uid}` | session double vérif. | `authTime` (du jeton), `verifiedAt`, `expiresAt` (12 h) |
 | `boAccess/{id}` | accès aux opérations | `actorUid`, `targetUid`, `spaceId`, `reasonCode`, `expiresAt` |
@@ -641,7 +719,13 @@ membres d'une famille quand une opération partagée est supprimée.*
    chaînage des empreintes vérifié.
 10. Suspension : compte Auth désactivé, jetons révoqués, données intactes ; réactivation
     → tout est revenu.
-11. `npm run check`, `npm run test:rules`, `npm --prefix firebase/functions run typecheck`,
+11. **Invitations** : statut `invited` sans permission (même avec une session forgée) et non
+    activable à la main ; parcours complet (voir qui invite et le rôle, accepter avec
+    l'adresse invitée, mot de passe choisi, double vérification, puis permissions) ; usage
+    unique ; lien expiré, annulé, remplacé par « Renvoyer », inconnu ; autre adresse (5e essai
+    = annulation) ; rôle élevé par un non-Super Admin ; jeton jamais stocké ni journalisé en
+    clair ; chaque refus journalisé (`tests/backoffice/invites.test.ts`).
+12. `npm run check`, `npm run test:rules`, `npm --prefix firebase/functions run typecheck`,
     compilation des Functions : verts, lint à zéro.
 
 ### Étape 3 — portail et app
@@ -736,3 +820,9 @@ Rien ne part sur `dinerox-app` sans ton accord. Quand tu le décideras, dans cet
    `bo-audit` dans un compartiment à rétention verrouillée (5 ans, D17) — commandes à préparer
    avec toi au moment voulu (le verrouillage est irréversible).
 6. Premier Super Admin : commande du §10.
+
+**Nouvelle décision (12/10/2026)**
+
+| # | Question | Proposition |
+|---|---|---|
+| D18 | **E-mail d'invitation (à trancher)** | Le modèle Firebase « mot de passe » (D7) porte le lien d'invitation comme *lien de suite*. Mais le lien de l'e-mail lui-même passe d'abord par la page Firebase, et le code qu'il contient **expire au bout d'une heure** (durée fixée par Firebase). **Recommandé** : dans la console (Authentication › Modèles › URL d'action), faire pointer les liens des e-mails vers une page du portail ; elle ouvre directement l'invitation, **valable 7 jours** grâce à notre propre jeton, et sert aussi de page « nouveau mot de passe » pour l'app (même texte, à la marque). Sans ce réglage, le lien de l'e-mail ne marche qu'une heure ; « Copier le lien » reste valable 7 jours. Réglage à faire par toi au déploiement. |
