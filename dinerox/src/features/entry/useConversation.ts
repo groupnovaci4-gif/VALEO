@@ -131,7 +131,7 @@ export function useConversation(ctx: EntryContext) {
         );
         if (hasKey(key)) parts.push(t(key, params));
       }
-      return speakable(parts);
+      return speakable(parts, lang === 'en' ? 'en' : 'fr');
     },
     [activeSpace?.currency, lang, ePrefs.speakAmounts, fmt, t],
   );
@@ -247,7 +247,7 @@ export function useConversation(ctx: EntryContext) {
   const speakNow = useCallback(
     (lines: string[]) => {
       if (silent) return;
-      const words = speakable(lines);
+      const words = speakable(lines, lang === 'en' ? 'en' : 'fr');
       if (words) void speak(words, { language: lang === 'en' ? 'en' : 'fr' });
     },
     [silent, lang],
@@ -258,7 +258,7 @@ export function useConversation(ctx: EntryContext) {
     (text: string, bullets: string[], aloud: boolean, assistantQuestion?: string) => {
       setBubbles((b) => [...b, { id: bid(), from: 'app', text, bullets, ...(assistantQuestion ? { assistantQuestion } : {}) }]);
       if (!aloud || silent) return;
-      const words = speakable([text, ...bullets]);
+      const words = speakable([text, ...bullets], lang === 'en' ? 'en' : 'fr');
       if (!words) return;
       setSpeaking(true);
       void speak(words, { language: lang === 'en' ? 'en' : 'fr' }).finally(() => setSpeaking(false));

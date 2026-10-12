@@ -16,7 +16,7 @@ export function ListenButton({ text, size = 18 }: { text: string | readonly stri
   const { v2 } = useTheme();
   const toast = useToast();
   const [playing, setPlaying] = useState(false);
-  const spoken = speakable(text);
+  const spoken = speakable(text, lang === 'en' ? 'en' : 'fr');
   if (!spoken) return null;
   const onPress = () => {
     if (playing) {

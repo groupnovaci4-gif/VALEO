@@ -25,17 +25,36 @@ export function voiceMessage(e: Pick<CoachEvent, 'textKey' | 'params' | 'severit
   return { key: `coach.voice.generic.${e.severity}`, params: {} };
 }
 
+/** Espaces possibles entre les groupes de milliers (`groupDigits` utilise l'espace insécable). */
+const GROUP_SPACE = '[ \\u00A0\\u2009\\u202F]';
+/** « 1 250 000 » : 1 à 3 chiffres puis des groupes d'exactement 3 chiffres, sans chiffre collé autour. */
+const GROUPED_NUMBER = new RegExp(`(?<![\\d,.])\\d{1,3}(?:${GROUP_SPACE}\\d{3})+(?![\\d])`, 'g');
+
+/**
+ * Montants prêts à être prononcés : les groupes de milliers d'un même montant
+ * sont recollés (« 350 000 » → « 350000 », sinon la synthèse lit « 350 » puis
+ * « 000 ») et « FCFA » est lu « francs CFA » (« CFA francs » en anglais).
+ * Pour la voix seulement : le texte affiché ne change pas.
+ */
+function speakableAmounts(s: string, lang: 'fr' | 'en'): string {
+  return s
+    .replace(GROUPED_NUMBER, (n) => n.replace(new RegExp(GROUP_SPACE, 'g'), ''))
+    .replace(/\bFCFA\b/g, lang === 'en' ? 'CFA francs' : 'francs CFA');
+}
+
 /**
  * Texte prêt à être prononcé : retire pictogrammes et émojis (la synthèse les
  * lirait, « cercle rouge ») et assemble les lignes affichées en phrases — un
  * point seulement si la ligne ne se termine pas déjà par une ponctuation.
- * Aucun mot n'est ajouté ni retiré : on lit ce qui est affiché.
+ * Aucun mot n'est ajouté ni retiré : on lit ce qui est affiché (seuls les
+ * montants sont adaptés à la voix, cf. `speakableAmounts`).
  */
-export function speakable(parts: string | readonly string[]): string {
+export function speakable(parts: string | readonly string[], lang: 'fr' | 'en' = 'fr'): string {
   const clean = (s: string) =>
-    s
+    speakableAmounts(s, lang)
       .replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{20E3}]/gu, '')
-      .replace(/^\s*[•·\-–]\s*/, '')
+      // Puce en début de ligne ; un tiret collé à un chiffre est un signe moins (« -25000 »), gardé.
+      .replace(/^\s*(?:[•·]|[-–](?!\d))\s*/, '')
       .replace(/\s+/g, ' ')
       .trim();
   const lines = (typeof parts === 'string' ? [parts] : parts).map(clean).filter(Boolean);
