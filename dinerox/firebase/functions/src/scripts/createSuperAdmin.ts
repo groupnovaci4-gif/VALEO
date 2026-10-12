@@ -47,13 +47,16 @@ async function main() {
   const now = Date.now();
   const staffRef = db.doc(`boStaff/${uid}`);
   const resetMfa = flags.has('--reset-mfa');
+  // Contrôles AVANT la transaction (un refus ne laisse aucun verrou derrière lui).
+  const pre = await staffRef.get();
+  if (pre.exists && !resetMfa) throw new Error('Ce collaborateur existe déjà. Pour refaire sa double vérification : --reset-mfa.');
+  if (pre.exists && pre.get('roleId') !== 'superAdmin') throw new Error('--reset-mfa ne sert qu’à un Super Admin (les autres : depuis le portail).');
+  if (!pre.exists && resetMfa) throw new Error('--reset-mfa : ce Super Admin n’existe pas.');
 
   await db.runTransaction(async (tx) => {
     const existing = await tx.get(staffRef);
     const headRef = db.doc('boAuditHead/head');
     const head = await tx.get(headRef);
-    if (existing.exists && !resetMfa) throw new Error('Ce collaborateur existe déjà. Pour refaire sa double vérification : --reset-mfa.');
-    if (existing.exists && existing.get('roleId') !== 'superAdmin') throw new Error('--reset-mfa ne sert qu’à un Super Admin (les autres : depuis le portail).');
     const mfa = { enrolled: false, secretEnc: null, pendingSecretEnc: null, recoveryHashes: [], lastStep: null };
     if (existing.exists) {
       tx.update(staffRef, { mfa, status: 'active' });
@@ -84,5 +87,5 @@ async function main() {
 
 main().catch((e) => {
   console.error((e as Error).message);
-  process.exit(1);
+  process.exitCode = 1;
 });
