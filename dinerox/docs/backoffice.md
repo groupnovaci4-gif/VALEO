@@ -823,9 +823,46 @@ Rien ne part sur `dinerox-app` sans ton accord. Quand tu le décideras, dans cet
    `bo-audit` dans un compartiment à rétention verrouillée (5 ans, D17) — commandes à préparer
    avec toi au moment voulu (le verrouillage est irréversible).
 6. Premier Super Admin : commande du §10.
+7. **Portail** (site d'hébergement séparé, en-têtes de sécurité déjà dans `firebase.json`) :
+   ```bash
+   firebase hosting:sites:create dinerox-admin --project dinerox-app
+   firebase target:apply hosting admin dinerox-admin --project dinerox-app
+   npm --prefix admin ci && npm --prefix admin run build      # avec admin/.env.production.local
+   firebase deploy --only hosting:admin --project dinerox-app
+   ```
+   Puis console › Authentication › Paramètres › **Domaines autorisés** : ajouter le domaine du
+   portail (ex. `dinerox-admin.web.app`), sinon les e-mails ne peuvent pas renvoyer vers lui.
+8. **D18 — URL d'action personnalisée (avec toi, au déploiement seulement).** Console ›
+   Authentication › Modèles › (crayon) › « Personnaliser l'URL d'action » :
+   `https://<domaine du portail>/action`. Elle vaut pour TOUS les e-mails Firebase (mot de passe
+   oublié de l'app, confirmation d'adresse, rétablissement d'adresse, invitations). Juste après :
+   **test réel** du « mot de passe oublié » depuis l'app (recevoir l'e-mail, ouvrir le lien,
+   choisir un mot de passe, se connecter dans l'app).
+   **Revenir en arrière** : même écran, vider le champ « URL d'action personnalisée » (ou
+   remettre `https://dinerox-app.firebaseapp.com/__/auth/action`), enregistrer. Les e-mails
+   suivants repassent par la page Firebase par défaut ; rien d'autre ne change. Les liens
+   d'invitation copiés (WhatsApp) continuent de marcher, ceux des e-mails redeviennent limités à
+   une heure.
+
+### 16.1 Page d'action des e-mails (D18)
+
+`admin/src/pages/Action.tsx`, à l'adresse `/action` du portail. Modes gérés : `resetPassword`
+(mot de passe oublié : 8 caractères au moins, règle de l'app), `verifyEmail`,
+`verifyAndChangeEmail`, `recoverEmail` (avec un bouton pour recevoir un lien de nouveau mot de
+passe) ; lien non valable ou mode inconnu : message clair. Langue : paramètre `lang` ajouté par
+Firebase, sinon celle du navigateur (français par défaut). Un e-mail d'invitation
+(`resetPassword` dont le lien de suite est `/invitation`) ouvre directement l'invitation. Le code
+Firebase n'est utilisé qu'une fois, même si la page est rouverte. Testé de bout en bout
+(`admin/e2e/portal.mjs`), en français et en anglais. Textes : `admin/src/pages/actionTexts.ts`
+(proposés, à valider).
+
+Un collaborateur qui choisit par « mot de passe oublié » un mot de passe de moins de 12
+caractères ne peut pas entrer dans le portail : la connexion le refuse avec un message lui
+demandant d'en choisir un autre (journalisé). Depuis le portail, « Réglages › Mot de passe »
+impose 12 caractères et demande le code du moment.
 
 **Nouvelle décision (12/10/2026)**
 
 | # | Question | Proposition |
 |---|---|---|
-| D18 | **E-mail d'invitation (à trancher)** | Le modèle Firebase « mot de passe » (D7) porte le lien d'invitation comme *lien de suite*. Mais le lien de l'e-mail lui-même passe d'abord par la page Firebase, et le code qu'il contient **expire au bout d'une heure** (durée fixée par Firebase). **Recommandé** : dans la console (Authentication › Modèles › URL d'action), faire pointer les liens des e-mails vers une page du portail ; elle ouvre directement l'invitation, **valable 7 jours** grâce à notre propre jeton, et sert aussi de page « nouveau mot de passe » pour l'app (même texte, à la marque). Sans ce réglage, le lien de l'e-mail ne marche qu'une heure ; « Copier le lien » reste valable 7 jours. Réglage à faire par toi au déploiement. |
+| D18 | **E-mail d'invitation — accord du 12/10/2026, à trois conditions : tous les modes gérés (FR/EN, testés), réglage de la console seulement au déploiement avec le fondateur suivi d'un test réel, retour arrière documenté (§16)** | Le modèle Firebase « mot de passe » (D7) porte le lien d'invitation comme *lien de suite*. Mais le lien de l'e-mail lui-même passe d'abord par la page Firebase, et le code qu'il contient **expire au bout d'une heure** (durée fixée par Firebase). **Recommandé** : dans la console (Authentication › Modèles › URL d'action), faire pointer les liens des e-mails vers une page du portail ; elle ouvre directement l'invitation, **valable 7 jours** grâce à notre propre jeton, et sert aussi de page « nouveau mot de passe » pour l'app (même texte, à la marque). Sans ce réglage, le lien de l'e-mail ne marche qu'une heure ; « Copier le lien » reste valable 7 jours. Réglage à faire par toi au déploiement. |

@@ -51,3 +51,5 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 firebase/functions/.secret.local
+admin/node_modules/
+admin/dist/

@@ -4,5 +4,6 @@ const expoConfig = require('eslint-config-expo/flat');
 
 module.exports = defineConfig([
   expoConfig,
-  { ignores: ['dist/*', 'firebase/functions/lib/*', 'node_modules/*'] },
+  // admin/ : portail web séparé (Vite), vérifié par son propre `npm --prefix admin run check`.
+  { ignores: ['dist/*', 'firebase/functions/lib/*', 'node_modules/*', 'admin/**'] },
 ]);
