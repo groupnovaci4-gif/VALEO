@@ -119,9 +119,11 @@ export async function listTransactions(req: CallableRequest) {
       res.forEach((snap, k) => snap.docs.forEach((d) => d.get('deleted') !== true && linked.set(d.get(lookups[k][1]), (linked.get(d.get(lookups[k][1])) ?? 0) + 1)));
     }
   }
-  // Noms des comptes et des catégories PERSONNALISÉES (les catégories système sont traduites par le portail).
+  // Noms des comptes et des catégories, lus par identifiant (requêtes ciblées).
   const accIds = [...new Set(items.flatMap((t) => [t.accountId, t.toAccountId]).filter((x): x is string => !!x))];
-  const catIds = [...new Set(items.map((t) => t.categoryId).filter((x): x is string => !!x && x.startsWith('cat_u_')))];
+  // Noms tels que l'utilisateur les voit (catégories système et personnalisées) ; le portail se
+  // rabat sur le catalogue pour une catégorie sans document.
+  const catIds = [...new Set(items.flatMap((t) => [t.categoryId, t.subcategoryId]).filter((x): x is string => !!x))];
   const refs: DocumentReference[] = [...accIds.map((a) => db().doc(`spaces/${spaceId}/accounts/${a}`)), ...catIds.map((k) => db().doc(`spaces/${spaceId}/categories/${k}`))];
   const docs = refs.length ? await db().getAll(...refs) : [];
   const names = new Map(docs.filter((d) => d.exists).map((d) => [`${d.ref.parent.id}/${d.id}`, String(d.get('name') ?? '')]));
@@ -132,6 +134,7 @@ export async function listTransactions(req: CallableRequest) {
       accountName: t.accountId ? names.get(`accounts/${t.accountId}`) ?? null : null,
       toAccountName: t.toAccountId ? names.get(`accounts/${t.toAccountId}`) ?? null : null,
       categoryName: t.categoryId ? names.get(`categories/${t.categoryId}`) ?? null : null,
+      subcategoryName: t.subcategoryId ? names.get(`categories/${t.subcategoryId}`) ?? null : null,
       createdByName: t.createdBy ? memberNames[t.createdBy] ?? null : null,
       linked: linked.get(t.id) ?? 0,
     })),
@@ -235,4 +238,17 @@ export async function deleteTransaction(req: CallableRequest) {
   });
   mirrorToLogging([res.entry]);
   return { removed: res.removed, effects: res.effects };
+}
+
+/** « Vos dernières consultations » : les accès du collaborateur lui-même (jamais ceux des autres). */
+export async function myAccesses(req: CallableRequest) {
+  const c = await requireStaff(req, 'data.view', 'data.my-accesses');
+  const snap = await db().collection(COL.audit).where('actorUid', '==', c.uid).where('action', 'in', ['data.view', 'data.delete']).orderBy('seq', 'desc').limit(10).get();
+  const entries = snap.docs.map((d) => d.data()).filter((e) => e.result === 'ok');
+  const uids = [...new Set(entries.map((e) => e.targetUid as string).filter(Boolean))];
+  const found = new Map<string, string>();
+  if (uids.length) for (const u of (await getAuth().getUsers(uids.map((uid) => ({ uid })))).users) if (u.email) found.set(u.uid, u.email);
+  return {
+    items: entries.map((e) => ({ atMs: e.atMs, action: e.action, targetUid: e.targetUid, target: found.get(e.targetUid) ?? `Compte supprimé (@${e.targetDomain ?? '?'})`, reasonCode: e.reasonCode, effects: e.effects ?? null })),
+  };
 }

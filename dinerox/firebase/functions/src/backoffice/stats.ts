@@ -7,6 +7,8 @@ import { FieldPath, type Query } from 'firebase-admin/firestore';
 import type { CallableRequest } from 'firebase-functions/v2/https';
 import { bad, COL, db, requireStaff } from './context';
 import { verifyChain, type AuditEntry } from './auditCore';
+import { COUNTRY_CODES } from './registry';
+import { collectEntryCounts, entryUsage, firestoreCounter } from '../usage';
 
 const DAY_MS = 24 * 3600 * 1000;
 const dayKey = (ms: number) => new Date(ms).toISOString().slice(0, 10);
@@ -26,6 +28,10 @@ export async function computeSnapshot(now = Date.now()) {
     users.where('createdAt', '>=', dayStart(today)).where('createdAt', '<', dayStart(today) + DAY_MS).count().get(),
   ]);
   const total = all.data().count;
+  // Comptes par pays (un comptage par pays connu) et usage de la saisie (statistiques anonymes
+  // existantes, même calcul que adminStats).
+  const perCountry = await Promise.all(COUNTRY_CODES.map(async (code) => [code, (await users.where('country', '==', code).count().get()).data().count] as const));
+  const entry = entryUsage(await collectEntryCounts(firestoreCounter(db().collection('analyticsEvents') as never)));
   const snap = {
     day: today,
     users: total,
@@ -34,6 +40,9 @@ export async function computeSnapshot(now = Date.now()) {
     plans: { free: total - plus.data().count - family.data().count, plus: plus.data().count, family: family.data().count },
     suspended: suspended.data().count,
     signups: signups.data().count,
+    byCountry: Object.fromEntries(perCountry.filter(([, n]) => n > 0)),
+    entryShares: entry.shares,
+    entryTotal: entry.total,
     partial: false,
     generatedAt: now,
   };

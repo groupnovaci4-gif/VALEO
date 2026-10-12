@@ -7,9 +7,9 @@
 import { onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { BO_MFA_KEY } from './context';
-import { loginStart, loginVerify, logout, me, newRecovery } from './login';
+import { changePassword, loginStart, loginVerify, logout, me, newRecovery } from './login';
 import { createUser, deleteUser, getUser, listUsers, searchUsers, setPlan, setSuspended, updateUser } from './users';
-import { deleteTransaction, listTransactions, openData, previewDelete } from './data';
+import { deleteTransaction, listTransactions, myAccesses, openData, previewDelete } from './data';
 import { deleteRole, listRoles, listStaff, removeStaff, resetStaffMfa, saveRole, setStaffRole, setStaffSuspended } from './staff';
 import { acceptInvite, getInviteLink, inviteStaff, listInvites, resendInvite, revokeInvite, viewInvite } from './invites';
 import { computeSnapshot, listAudit, stats } from './stats';
@@ -25,6 +25,7 @@ export const boLoginVerify = callMfa(loginVerify);
 export const boLogout = call(logout);
 export const boMe = call(me);
 export const boNewRecoveryCodes = callMfa(newRecovery);
+export const boChangePassword = callMfa(changePassword);
 
 // Utilisateurs.
 export const boSearchUsers = call(searchUsers);
@@ -41,6 +42,7 @@ export const boOpenData = call(openData);
 export const boListTransactions = call(listTransactions);
 export const boPreviewDelete = call(previewDelete);
 export const boDeleteTransaction = call(deleteTransaction);
+export const boMyDataAccess = call(myAccesses);
 
 // Équipe et rôles.
 export const boListStaff = call(listStaff);

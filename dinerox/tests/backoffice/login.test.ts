@@ -99,4 +99,26 @@ describe('connexion au portail', () => {
     await call('boLogout', { uid, email, sid });
     expect(await outcome('boMe', { uid, email, sid })).toEqual({ status: 'unauthenticated', message: 'bo/session' });
   });
+
+  it('mot de passe correct mais de moins de 12 caractères : connexion refusée et journalisée', async () => {
+    const email = 'didier.court@dinerox-team.test';
+    const uid = await staffWithPassword(email, 'court-8car');
+    expect(await outcome('boLoginStart', null, { email, password: 'court-8car' })).toEqual({ status: 'failed-precondition', message: 'bo/password-too-short' });
+    expect((await auditLines((l) => l.actorUid === uid && l.code === 'bo/password-too-short')).length).toBe(1);
+  });
+
+  it('changer son mot de passe : code du moment exigé, 12 caractères, sessions fermées', async () => {
+    const email = 'didier.change@dinerox-team.test';
+    const uid = await staffWithPassword(email, 'Motdepasse-1');
+    const { secret } = await enroll(email, 'Motdepasse-1');
+    const sid = (await db().doc(`boSessions/${uid}`).get()).get('sid');
+    const who = { uid, email, sid };
+    expect(await outcome('boChangePassword', who, { password: 'trop-court', code: totp(secret, Date.now() + 30_000) })).toEqual({ status: 'invalid-argument', message: 'bo/password-weak' });
+    expect(await outcome('boChangePassword', who, { password: 'Nouveau-mot-de-passe', code: '000000' })).toEqual({ status: 'invalid-argument', message: 'bo/bad-code' });
+    await call('boChangePassword', who, { password: 'Nouveau-mot-de-passe', code: totp(secret, Date.now() + 30_000) });
+    expect(await outcome('boMe', who)).toEqual({ status: 'unauthenticated', message: 'bo/session' });
+    expect(await outcome('boLoginStart', null, { email, password: 'Motdepasse-1' })).toEqual({ status: 'unauthenticated', message: 'bo/login-failed' });
+    expect((await outcome('boLoginStart', null, { email, password: 'Nouveau-mot-de-passe' })).status).toBe('ok');
+    expect((await auditLines((l) => l.actorUid === uid && l.action === 'auth.password-change' && l.result === 'ok')).length).toBe(1);
+  });
 });

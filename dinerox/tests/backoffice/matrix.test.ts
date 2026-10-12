@@ -9,6 +9,7 @@ import { auditLines, db, outcome, staff, type Caller } from './helpers';
 
 const NEEDS: Record<string, string | null> = {
   boMe: null,
+  boChangePassword: null,
   boSearchUsers: 'users.view',
   boListUsers: 'users.view',
   boGetUser: 'users.view',
@@ -21,6 +22,7 @@ const NEEDS: Record<string, string | null> = {
   boListTransactions: 'data.view',
   boPreviewDelete: 'data.delete',
   boDeleteTransaction: 'data.delete',
+  boMyDataAccess: 'data.view',
   boListStaff: 'staff.manage',
   boInviteStaff: 'staff.manage',
   boSetStaffRole: 'staff.manage',

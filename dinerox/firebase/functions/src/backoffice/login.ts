@@ -21,6 +21,7 @@ import { defineString } from 'firebase-functions/params';
 import { COL, db, deny, mfaKey, mirrorToLogging, openAudit, requireStaff, resolveRole, SESSION_MS, writeAudit, type StaffDoc } from './context';
 import { emailHash } from './auditCore';
 import { decryptSecret, encryptSecret, hashRecovery, newRecoveryCodes, newTotpSecret, normalizeRecovery, verifyTotp } from './totp';
+import { passwordError } from './registry';
 
 /** Clé d'API WEB du projet (publique, celle de la config Firebase du portail) : sert à vérifier un mot de passe. */
 export const BO_WEB_API_KEY = defineString('BO_WEB_API_KEY', { default: '' });
@@ -98,6 +99,9 @@ export async function loginStart(req: CallableRequest) {
   const snap = await db().doc(`${COL.staff}/${uid}`).get();
   const staff = snap.exists ? (snap.data() as StaffDoc) : undefined;
   if (!staff || staff.status !== 'active') return refuse(email, 'auth.login', staff ? `bo/staff-${staff.status}` : 'bo/not-staff');
+  // Mot de passe correct mais trop court pour le back-office (12 caractères, ex. choisi via
+  // « mot de passe oublié ») : refus journalisé, la personne en choisit un nouveau.
+  if (passwordError(password)) return deny({ uid, email: staff.email, roleId: staff.roleId }, 'auth.login', 'bo/password-too-short', {}, 'failed-precondition');
   const challenge = randomBytes(32).toString('base64url');
   const enrolled = staff.mfa?.enrolled === true && !!staff.mfa.secretEnc;
   let secret: string | null = null;
@@ -235,4 +239,31 @@ export async function newRecovery(req: CallableRequest) {
   if (!res) return deny({ uid: c.uid, email: c.email, roleId: c.roleId }, 'auth.recovery-renew', 'bo/bad-code', {}, 'invalid-argument');
   mirrorToLogging([res.entry]);
   return { recoveryCodes: res.codes };
+}
+
+/** Changer son mot de passe depuis le portail : session valide + code du moment, 12 caractères au moins. */
+export async function changePassword(req: CallableRequest) {
+  const c = await requireStaff(req, null, 'auth.password-change');
+  const actor = { uid: c.uid, email: c.email, roleId: c.roleId };
+  const pErr = passwordError(req.data?.password);
+  if (pErr) throw new HttpsError('invalid-argument', `bo/password-${pErr}`);
+  const key = mfaKey();
+  const now = Date.now();
+  const res = await db().runTransaction(async (tx) => {
+    const ref = db().doc(`${COL.staff}/${c.uid}`);
+    const snap = await tx.get(ref);
+    const audit = await openAudit(tx);
+    const mfa = (snap.get('mfa') ?? {}) as NonNullable<StaffDoc['mfa']>;
+    const step = mfa.secretEnc ? verifyTotp(decryptSecret(mfa.secretEnc, key), req.data?.code, now, mfa.lastStep) : null;
+    if (step === null) return null;
+    tx.update(ref, { 'mfa.lastStep': step });
+    return audit.write({ actorUid: c.uid, actorEmail: c.email, actorRole: c.roleId, action: 'auth.password-change', result: 'ok' });
+  });
+  if (!res) return deny(actor, 'auth.password-change', 'bo/bad-code', {}, 'invalid-argument');
+  await getAuth().updateUser(c.uid, { password: req.data.password as string });
+  // Les autres sessions de ce compte sont fermées ; la personne se reconnecte avec le nouveau mot de passe.
+  await getAuth().revokeRefreshTokens(c.uid);
+  await db().doc(`${COL.sessions}/${c.uid}`).delete();
+  mirrorToLogging([res]);
+  return { ok: true };
 }
