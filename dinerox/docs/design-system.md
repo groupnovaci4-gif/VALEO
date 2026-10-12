@@ -483,8 +483,10 @@ signalé.
 - **Onglets** : titre d'écran `titleM` à gauche (lisible, plus de sur-titre de 11 px), à droite
   « Alertes » (cloche) et l'avatar. Logo + nom de marque (`brand.name`) **sur l'accueil
   seulement**.
-- **Écrans empilés** : « Retour » + titre `titleM` (2 lignes max) + au plus une action à droite
-  (icône + texte). Les Réglages suivent ce modèle (audit P1).
+- **Écrans empilés** : bouton retour = **flèche seule** (`chevron-back`), zone de 48 dp, libellé
+  « Retour » (`common.back`) lu par le lecteur d'écran mais pas écrit (décision du 2026-10-12) ;
+  titre `titleM` (2 lignes max) + au plus une action à droite (icône + texte). Les Réglages
+  suivent ce modèle (audit P1).
 - Un seul titre par écran : plus de `h1` qui répète le titre de l'en-tête (Budget, Objectifs,
   Plus, Réglages).
 
