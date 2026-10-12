@@ -32,6 +32,7 @@ import { can, canEditDoc, canUseReserve } from '@/core/permissions';
 import { isClassicGoal, isReserve, isSeason, reserveEligible, splitReserveUse } from '@/core/reserve';
 import { dueOccurrences, materialize } from '@/core/recurring';
 import { newId } from '@/core/sync';
+import { linkedRemovals } from '@/core/removal';
 import { today } from '@/core/dates';
 import { isValidAmount } from '@/core/money';
 import { goalSaved } from '@/core/balance';
@@ -145,28 +146,16 @@ export function useActions() {
       ensure('delete', col, before);
       e.remove(spaceId, col, id);
       notifyCoachWrite(spaceId, budgetImpact(col, before && !before.deleted ? before : undefined, undefined, e.getData(spaceId)));
-      // Écritures liées : une opération et le remboursement / la contribution qu'elle
-      // représente vont ensemble (sinon une dette resterait « payée » ou un objectif
-      // garderait un transfert fantôme).
+      // Écritures liées (dette, objectif, tontine, réserve) : liste calculée par
+      // core/removal.ts, partagée avec le back-office.
       const d = e.getData(spaceId);
-      if (col === 'transactions') {
-        for (const p of d.debtPayments) if (p.transactionId === id) e.remove(spaceId, 'debtPayments', p.id);
-        for (const c of d.goalContributions) if (c.transferId === id) e.remove(spaceId, 'goalContributions', c.id);
-        // Tontine : l'entrée (cotisation ou cagnotte) part avec son opération.
-        for (const te of d.tontineEntries) if (te.transactionId === id) e.remove(spaceId, 'tontineEntries', te.id);
-        // Utilisation de réserve liée : annulée avec l'opération (et son transfert éventuel).
-        for (const c of d.goalContributions) {
-          if (c.linkedTransactionId !== id) continue;
-          e.remove(spaceId, 'goalContributions', c.id);
-          if (c.transferId) e.remove(spaceId, 'transactions', c.transferId);
-        }
-      } else if (col === 'debtPayments' || col === 'goalContributions') {
-        const doc = e.getDoc(spaceId, col, id) as { transactionId?: string | null; transferId?: string | null } | undefined;
-        const txId = doc?.transactionId ?? doc?.transferId;
-        const linked = txId ? d.transactions.find((t) => t.id === txId) : undefined;
-        if (linked) {
-          e.remove(spaceId, 'transactions', linked.id);
-          notifyCoachWrite(spaceId, budgetImpact('transactions', linked, undefined, d));
+      const removed = e.getDoc(spaceId, col, id) as { id: string; transactionId?: string | null; transferId?: string | null } | undefined;
+      for (const target of linkedRemovals(d, col, removed, id)) {
+        e.remove(spaceId, target.col, target.id);
+        // Opération retirée avec son remboursement / sa contribution : le coach réévalue le budget.
+        if (col !== 'transactions') {
+          const linked = d.transactions.find((t) => t.id === target.id);
+          if (linked) notifyCoachWrite(spaceId, budgetImpact('transactions', linked, undefined, d));
         }
       }
     },
