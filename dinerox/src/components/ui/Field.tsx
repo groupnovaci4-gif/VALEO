@@ -70,9 +70,15 @@ export function Field({ label, hint, error, suffix, preview, style, inputRef, on
           {error}
         </Text>
       ) : preview && v2 ? (
-        <Text variant="small" style={{ marginTop: 4 }}>
-          {preview}
-        </Text>
+        // v2 : l'aperçu du montant n'efface plus l'aide (ex. « Basé sur vos dépenses réelles »).
+        <View style={{ marginTop: 4, gap: 2 }}>
+          <Text variant="small">{preview}</Text>
+          {hint ? (
+            <Text variant="caption" tone="subtle">
+              {hint}
+            </Text>
+          ) : null}
+        </View>
       ) : preview || hint ? (
         <Text variant="caption" tone="subtle" style={{ marginTop: 4 }}>
           {preview || hint}

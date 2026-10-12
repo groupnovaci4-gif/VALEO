@@ -223,6 +223,21 @@ export const shadow = {
 /** Palette pour comptes/enveloppes/catégories créés par l'utilisateur. */
 export const pickableColors = ['#14B8A6', '#F59E0B', '#38BDF8', '#10B981', '#0EA5E9', '#6366F1', '#8B5CF6', '#EC4899', '#F97316', '#EAB308', '#0D9488', '#334155', '#EF4444'];
 
+/**
+ * Couleurs des enveloppes créées par le budget automatique (audit T15). Ce sont des DONNÉES
+ * enregistrées sur l'enveloppe : les teintes sont celles d'avant (aucune enveloppe ne change).
+ */
+export const envelopeDefaults = {
+  housing: '#6366F1',
+  food: '#F59E0B',
+  transport: '#0EA5E9',
+  family: '#EC4899',
+  savings: '#16A34A',
+  project: '#8B5CF6',
+  free: '#94A3B8',
+  wants: '#F97316',
+} as const;
+
 /* ───────────────────────── Design system v2 (docs/design-system.md) ─────────────────────────
  * Migration écran par écran : un écran passé en v2 est enveloppé dans `<DesignV2>`
  * (src/theme/index.tsx), qui fournit ces couleurs, cette typographie et `theme.v2 = true`.
