@@ -151,7 +151,7 @@ le reste de la page est le portail tel qu'il sera construit.
 | `users.view` | ✅ | ✅ | ✅ | — | au choix |
 | `users.create` | ✅ | ✅ | — | — | au choix |
 | `users.edit` | ✅ | ✅ | — | — | au choix |
-| `users.changePlan` | ✅ | — | — | — | au choix |
+| `users.changePlan` | ✅ | 🔒 | 🔒 | 🔒 | 🔒 *(D8)* |
 | `users.suspend` | ✅ | ✅ | ✅ | — | au choix |
 | `users.delete` | ✅ | — | — | — | au choix |
 | `stats.view` | ✅ | ✅ | — | ✅ | au choix |
@@ -162,8 +162,8 @@ le reste de la page est le portail tel qu'il sera construit.
 
 ### 2.3 Règles invariantes (vérifiées par le serveur, testées)
 
-1. `data.view` n'est accordée **que** par les rôles `superAdmin` et `admin` ; `data.delete` et
-   `staff.manage` **uniquement** par `superAdmin`. Ces listes sont écrites en dur dans le serveur :
+1. `data.view` n'est accordée **que** par les rôles `superAdmin` et `admin` ; `data.delete`,
+   `staff.manage` et `users.changePlan` (D8) **uniquement** par `superAdmin`. Ces listes sont écrites en dur dans le serveur :
    le calcul des droits ignore ces codes s'ils figurent dans un autre rôle (y compris `admin`
    pour `data.delete`), et la création ou la modification d'un rôle sur mesure qui les contient
    est **refusée** (et journalisée).
@@ -200,8 +200,9 @@ ne fait que les exporter (les fonctions existantes ne changent pas, sauf `adminS
 | Fonction | Permission exigée | Rôle |
 |---|---|---|
 | `boMe` | collaborateur actif | renvoie son rôle, ses permissions, l'état de sa double vérification |
-| `boMfaEnroll` / `boMfaVerify` | session Firebase (collaborateur) | enrôlement TOTP, vérification du code → ouvre une session de 12 h (§8) |
-| `boMfaRecovery` | session Firebase (collaborateur) | utiliser un code de secours (usage unique) |
+| `boLoginStart` | aucune (connexion) | vérifie le **mot de passe côté serveur**, puis que le compte est un collaborateur actif ; renvoie un défi de 5 min (et, au premier passage, le secret à scanner) (§8) |
+| `boLoginVerify` | défi valide | code à 6 chiffres **ou** code de secours (usage unique) → session de 12 h + jeton personnalisé portant `boSid` (§8) |
+| `boLogout` / `boNewRecoveryCodes` | collaborateur connecté | fermer la session côté serveur ; nouveaux codes de secours (exige un code valide) |
 | `boStats` | `stats.view` | chiffres clés + séries (lus dans `boStats`, §6) |
 | `boSearchUsers` | `users.view` | recherche **exacte** par e-mail (Auth `getUserByEmail`) ou identifiant |
 | `boListUsers` | `users.view` | liste paginée (25, curseur), filtres formule / statut / pays |
@@ -469,11 +470,21 @@ documente l'intention et permet de les **tester**. Aucune autre règle existante
 
 **Recommandation : B.** Fonctionnement :
 
+- **Mot de passe ET code sont vérifiés par le serveur** (`boLoginStart`, `boLoginVerify`) : le
+  serveur voit donc chaque essai, le compte et le journalise. Le portail se connecte ensuite à
+  Firebase avec un jeton personnalisé qui porte l'identifiant de session `boSid` ; une connexion
+  directe à Firebase (sans passer par le portail) n'ouvre **aucun** droit.
 - 1re connexion au portail : QR code → saisie d'un code → 8 codes de secours affichés une fois
-  (stockés hachés).
-- Chaque connexion : mot de passe (Firebase Auth) puis code → `boSessions/{uid}` valable 12 h,
-  liée à l'`auth_time` du jeton (une nouvelle connexion exige un nouveau code).
-- 5 codes faux → verrou 15 min, journalisé. Un Super Admin peut réinitialiser la double
+  (stockés hachés avec la clé `BO_MFA_KEY`, comme le secret, chiffré AES-256-GCM).
+- Chaque connexion : mot de passe puis code → `boSessions/{uid}` valable 12 h ; une nouvelle
+  connexion remplace la session précédente ; un même code n'est jamais accepté deux fois.
+- **Essais limités par compte** : 5 échecs (mot de passe, défi ou code, cumulés) → verrou
+  15 min, sur l'adresse tentée (pas sur l'IP), y compris pour une adresse inconnue (rien ne
+  révèle quels comptes existent). Chaque refus est une ligne `denied` au journal ; pour une
+  adresse qui n'est pas celle d'un collaborateur, seuls le domaine et une empreinte sont gardés.
+- Limite connue : quelqu'un qui essaie des mots de passe directement auprès de Firebase Auth
+  (sans le portail) n'est pas compté par notre verrou (Firebase applique sa propre limite) et ne
+  laisse pas de ligne au journal ; il n'obtient de toute façon aucun accès sans le code. Un Super Admin peut réinitialiser la double
   vérification d'un autre collaborateur (jamais la sienne) ; en dernier recours, le script du
   Mac (§10) le fait pour un Super Admin.
 - Le SMS est écarté : cher en Afrique de l'Ouest (jusqu'à ~0,46 $ par SMS selon les régions)
@@ -500,13 +511,22 @@ documente l'intention et permet de les **tester**. Aucune autre règle existante
 Nouveau script `firebase/functions/src/scripts/createSuperAdmin.ts`, même modèle que
 `setAdmin.ts` (Admin SDK, jamais depuis le portail) :
 
+**Aucun fichier de clé de compte de service** : le script utilise ton compte Google, connecté
+dans le Terminal (identifiants « Application Default Credentials »). Ton compte doit avoir les
+droits sur le projet `dinerox-app` (propriétaire, ou au moins Firebase Admin).
+
 ```bash
+gcloud auth application-default login                          # ouvre le navigateur, une fois
+gcloud auth application-default set-quota-project dinerox-app   # requis par l'API d'authentification
 cd dinerox/firebase/functions
 npm run build
-# Compte de service du projet dinerox-app (à télécharger depuis la console, à ne jamais committer)
-GOOGLE_APPLICATION_CREDENTIALS=~/secrets/dinerox-app-admin.json \
-  node lib/scripts/createSuperAdmin.js prenom.nom@exemple.com "Prénom Nom"
+GOOGLE_CLOUD_PROJECT=dinerox-app node lib/scripts/createSuperAdmin.js prenom@dinerox.app "Prénom Nom"
 ```
+
+Options : `--reset-mfa` (Super Admin existant qui a perdu son appli d'authentification),
+`--shared` (accepter une adresse qui a déjà un compte personnel dans l'app — déconseillé, D15),
+`--emulator` (obligatoire quand `FIRESTORE_EMULATOR_HOST` est défini, interdit sinon).
+À la fin : `gcloud auth application-default revoke` si tu ne veux pas garder ces identifiants.
 
 Le script : crée le compte Auth s'il n'existe pas (sans mot de passe) ou réutilise l'existant,
 écrit `boStaff/{uid}` (rôle `superAdmin`, double vérification non enrôlée), écrit la ligne
@@ -674,3 +694,45 @@ membres d'une famille quand une opération partagée est supprimée.*
 | D16 | Texte du §5.3 **validé tel quel**. |
 | D17 | 5 ans, à confirmer plus tard avec un juriste. |
 | Matrice | **Correction : `data.delete` = Super Admin SEULEMENT.** L'Administrateur garde `data.view` (consulter, avec motif et journal) mais ne supprime pas (§2.2, §2.3, E6/E7, maquette, §13 mis à jour). |
+
+---
+
+## 15. Étape 2 — ce qui existe et comment le vérifier
+
+**Fichiers** : `firebase/functions/src/backoffice/` (`permissions.ts`, `totp.ts`, `auditCore.ts`
+purs ; `context.ts` garde-fou + journal ; `login.ts`, `users.ts`, `data.ts`, `staff.ts`,
+`stats.ts` ; miroirs `removal.ts`, `profile.ts`, `registry.ts`), `accountDeletion.ts` (logique
+unique de suppression de compte, utilisée par `deleteAccount` et `boDeleteUser`),
+`scripts/createSuperAdmin.ts`, règles et index Firestore. Côté app : `src/core/removal.ts` (D1).
+
+**Tests** (aucun ne touche `dinerox-app`) :
+
+```bash
+npm run check                 # types + lint + tests purs (matrice, codes, journal, parité app ↔ serveur, D2)
+npm run test:rules            # règles Firestore sur l'émulateur
+npm run test:backoffice       # Functions bo… + moteur de synchro de l'app sur émulateurs Auth/Firestore/Storage
+npm --prefix firebase/functions run typecheck
+```
+
+Les émulateurs demandent Java 21 ou plus (`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-21.jdk/Contents/Home`).
+
+## 16. Déploiement (à faire par toi, plus tard — rien n'a été lancé)
+
+Rien ne part sur `dinerox-app` sans ton accord. Quand tu le décideras, dans cet ordre :
+
+1. **Clé de chiffrement** (Secret Manager, jamais dans Git) :
+   `openssl rand -base64 32 | firebase functions:secrets:set BO_MFA_KEY --data-file=- --project dinerox-app`
+2. **Clé d'API web** (publique, celle de la config Firebase du portail) : fichier
+   `firebase/functions/.env.dinerox-app` contenant `BO_WEB_API_KEY=…` (ignoré par Git), ou
+   réponse à la question posée au déploiement.
+3. **Droit de créer les jetons de connexion** : le compte de service des Functions doit pouvoir
+   signer (rôle « Créateur de jetons du compte de service » sur lui-même) :
+   `gcloud iam service-accounts add-iam-policy-binding <NUMÉRO>-compute@developer.gserviceaccount.com --member=serviceAccount:<NUMÉRO>-compute@developer.gserviceaccount.com --role=roles/iam.serviceAccountTokenCreator --project dinerox-app`
+4. Index puis règles puis Functions :
+   `firebase deploy --only firestore:indexes,firestore:rules,functions --project dinerox-app`.
+   Les règles peuvent partir avant la nouvelle version de l'app : aucune app n'écrit
+   `adminDeleted`, et une app ancienne réagit déjà correctement à un refus.
+5. **D12 (copie verrouillée du journal)** : un récepteur Cloud Logging qui garde les lignes
+   `bo-audit` dans un compartiment à rétention verrouillée (5 ans, D17) — commandes à préparer
+   avec toi au moment voulu (le verrouillage est irréversible).
+6. Premier Super Admin : commande du §10.
