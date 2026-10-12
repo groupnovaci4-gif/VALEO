@@ -60,9 +60,11 @@ export async function inviteStaff(req: CallableRequest) {
 }
 
 /** Modification d'un collaborateur, en transaction avec le comptage des Super Admins actifs. */
-async function changeStaff(req: CallableRequest, change: StaffChange, action: string, newRoleId?: string) {
+async function changeStaff(req: CallableRequest, change: StaffChange, action: string) {
+  // Droit vérifié AVANT les paramètres : un refus est toujours journalisé.
   const c = await requireStaff(req, 'staff.manage', action);
   const target = uidArg(req.data?.uid);
+  const newRoleId = change === 'role' ? roleIdArg(req.data?.roleId) : undefined;
   if (newRoleId !== undefined && !(await roleExists(newRoleId))) bad('bo/role');
   const res = await db().runTransaction(async (tx) => {
     const ref = db().doc(`${COL.staff}/${target}`);
@@ -117,7 +119,7 @@ async function changeStaff(req: CallableRequest, change: StaffChange, action: st
   return { ok: true };
 }
 
-export const setStaffRole = (req: CallableRequest) => changeStaff(req, 'role', 'staff.role', roleIdArg(req.data?.roleId));
+export const setStaffRole = (req: CallableRequest) => changeStaff(req, 'role', 'staff.role');
 export const setStaffSuspended = (req: CallableRequest) => (req.data?.suspended === true ? changeStaff(req, 'suspend', 'staff.suspend') : changeStaff(req, 'reactivate', 'staff.reactivate'));
 export const removeStaff = (req: CallableRequest) => changeStaff(req, 'remove', 'staff.remove');
 export const resetStaffMfa = (req: CallableRequest) => changeStaff(req, 'resetMfa', 'staff.mfa-reset');

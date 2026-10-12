@@ -70,6 +70,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:rules": "firebase emulators:exec --only firestore --project demo-dinerox \"vitest run --config vitest.rules.config.mts\"",
+    "test:backoffice": "firebase emulators:exec --only auth,firestore,storage --project demo-dinerox \"vitest run --config vitest.backoffice.config.mts\"",
     "check": "npm run typecheck && npm run lint && npm test",
     "e2e": "bash e2e/run-all.sh"
   },

@@ -78,7 +78,8 @@ export type RoleError = 'role/name' | 'role/reserved-name' | 'role/permission-un
 
 /** Validation d'un rôle sur mesure (création ou modification). */
 export function validateCustomRole(input: { name?: unknown; permissions?: unknown }): { ok: true; name: string; permissions: Permission[] } | { ok: false; error: RoleError; detail?: string } {
-  const name = typeof input.name === 'string' ? input.name.trim() : '';
+  // Forme Unicode unique (« é » composé ou non) : deux noms identiques à l'œil sont égaux.
+  const name = typeof input.name === 'string' ? input.name.normalize('NFC').trim().replace(/\s+/g, ' ') : '';
   if (name.length < 2 || name.length > 40) return { ok: false, error: 'role/name' };
   const lower = name.toLowerCase();
   const reservedNames = [...BUILTIN_ROLE_IDS, ...Object.values(BUILTIN_ROLES).map((r) => r.name)].map((n) => n.toLowerCase());

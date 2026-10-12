@@ -367,3 +367,45 @@ describe('tontines — carnet personnel (1.7)', () => {
     await assertSucceeds(getDoc(doc(db('P'), 'spaces/fam_1/tontines/t1')));
   });
 });
+
+describe('back-office : aucune donnée d’administration accessible à un client', () => {
+  const cols = ['boStaff', 'boRoles', 'boSessions', 'boAccess', 'boAudit', 'boAuditHead', 'boStats', 'boLoginGuard', 'accountStatus'];
+  it('lecture et écriture refusées, même pour soi-même et même avec le droit admin de l’app', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore() as unknown as Firestore;
+      for (const c of cols) await setDoc(doc(fs, `${c}/u1`), { x: 1 });
+    });
+    for (const c of cols) {
+      for (const who of [db('u1'), db('u1', { admin: true }), db(null)]) {
+        await assertFails(getDoc(doc(who, `${c}/u1`)));
+        await assertFails(setDoc(doc(who, `${c}/u1`), { x: 2 }));
+        await assertFails(deleteDoc(doc(who, `${c}/u1`)));
+      }
+    }
+  });
+});
+
+describe('opération supprimée par le back-office (adminDeleted)', () => {
+  async function seed() {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore() as unknown as Firestore;
+      await setDoc(doc(fs, 'spaces/u1'), personal('u1'));
+      await setDoc(doc(fs, 'spaces/u1/transactions/t1'), { ...tx('t1', 'u1'), deleted: true, adminDeleted: true, updatedAt: 20, syncedAt: new Date() });
+      await setDoc(doc(fs, 'spaces/u1/transactions/t2'), { ...tx('t2', 'u1'), syncedAt: new Date() });
+    });
+  }
+  it('plus aucune modification par un téléphone, même plus récente (elle ne peut pas revenir)', async () => {
+    await seed();
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/t1'), tx('t1', 'u1', { updatedAt: 99_999_999_999_999 })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/t1'), tx('t1', 'u1', { updatedAt: 99_999_999_999_999, deleted: true, adminDeleted: true })));
+    // Toujours lisible (le téléphone récupère la marque après le refus).
+    await assertSucceeds(getDoc(doc(db('u1'), 'spaces/u1/transactions/t1')));
+  });
+  it('un client ne pose jamais le marqueur lui-même', async () => {
+    await seed();
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/t3'), tx('t3', 'u1', { adminDeleted: true })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/t2'), tx('t2', 'u1', { updatedAt: 30, adminDeleted: true })));
+    // Les écritures normales restent permises.
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/transactions/t2'), tx('t2', 'u1', { updatedAt: 30, deleted: true })));
+  });
+});
