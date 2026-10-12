@@ -18,6 +18,8 @@ import { elevenLabsRequest, nextVoiceUsage, validateSpeak } from './voice';
 import { collectEntryCounts, entryUsage, firestoreCounter } from './usage';
 import { answerWithClaude } from './assistant';
 import { AI_CONSENT_VERSION, parseWithClaude, validateParseInput } from './voiceEntry';
+import { deleteUserData } from './accountDeletion';
+import { resolveRole, type StaffDoc } from './backoffice/context';
 
 initializeApp();
 const db = getFirestore();
@@ -191,33 +193,7 @@ export const removeMember = onCall(async (req) => {
  */
 export const deleteAccount = onCall(async (req) => {
   const { uid, email } = requireAuth(req);
-  const families = await db.collection('spaces').where('memberIds', 'array-contains', uid).get();
-  for (const doc of families.docs) {
-    const space = doc.data() as SpaceDoc;
-    if (doc.id === uid) continue;
-    const admins = adminsOf(space);
-    if (space.memberIds.length === 1 || (admins.length === 1 && admins[0] === uid)) {
-      await db.recursiveDelete(doc.ref);
-      await getStorage().bucket().deleteFiles({ prefix: `spaces/${doc.id}/` }).catch(() => undefined);
-    } else {
-      await doc.ref.update({
-        [`members.${uid}`]: FieldValue.delete(),
-        [`memberNames.${uid}`]: FieldValue.delete(),
-        memberIds: FieldValue.arrayRemove(uid),
-        updatedAt: Date.now(),
-      });
-    }
-  }
-  await db.recursiveDelete(db.doc(`spaces/${uid}`));
-  await db.recursiveDelete(db.doc(`users/${uid}`));
-  await db.doc(`subscriptions/${uid}`).delete().catch(() => undefined);
-  await db.doc(`usage/${uid}`).delete().catch(() => undefined);
-  if (email) {
-    const invites = await db.collection('invites').where('email', '==', email).get();
-    await Promise.all(invites.docs.map((d) => d.ref.delete()));
-  }
-  await getStorage().bucket().deleteFiles({ prefix: `spaces/${uid}/` }).catch(() => undefined);
-  await getAuth().deleteUser(uid);
+  await deleteUserData(uid, email);
   logger.info('account deleted'); // jamais d'identifiant ni de donnée dans les journaux
   return {};
 });
@@ -356,8 +332,13 @@ export const speak = onCall({ secrets: [ELEVENLABS_API_KEY], timeoutSeconds: 15,
 // ─── Administration (statistiques agrégées uniquement) ───────────────
 
 export const adminStats = onCall(async (req) => {
-  requireAuth(req);
-  if (req.auth?.token.admin !== true) throw new HttpsError('permission-denied', 'admin/required');
+  const { uid } = requireAuth(req);
+  // D10 : droit `admin` existant, OU collaborateur du back-office actif avec `stats.view`.
+  if (req.auth?.token.admin !== true) {
+    const staff = await db.doc(`boStaff/${uid}`).get();
+    const { permissions } = await resolveRole(staff.exists ? (staff.data() as StaffDoc) : undefined);
+    if (!permissions.includes('stats.view')) throw new HttpsError('permission-denied', 'admin/required');
+  }
   const users = db.collection('users');
   const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
   const [all, active, families, plus, family] = await Promise.all([
@@ -423,3 +404,7 @@ export const weeklySummaryPush = onSchedule({ schedule: '30 8 * * 1', timeZone: 
   }
   logger.info('weekly push sent', { count: messages.length });
 });
+
+// ─── Back-office web (docs/backoffice.md) ────────────────────────────
+
+export * from './backoffice';
