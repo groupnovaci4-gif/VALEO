@@ -7,12 +7,11 @@ import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/theme';
 import { useI18n } from '@/i18n';
-import { Amount, Badge, Button, Card, Icon, IconCircle, ProgressBar, Row, Sheet, Text, levelTone } from '@/components/ui';
+import { Amount, Badge, Button, Card, Icon, IconCircle, ProgressBar, Row, Sheet, Text } from '@/components/ui';
 import { useAccountLabel, useCategoryLabels, useMoney } from '@/hooks/useFinance';
 import { useInsightText } from '@/hooks/useInsightText';
 import { useApp } from '@/store/app';
 import type { Account, Goal, Transaction } from '@/core/types';
-import type { EnvelopeStatus } from '@/core/budget';
 import type { GoalPlan } from '@/core/goals';
 import type { Insight } from '@/core/insights';
 import { minimumPlanFor, type Feature } from '@/core/subscription';
@@ -66,30 +65,6 @@ export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx
       onLongPress={onLongPress}
       accessibilityHint={longPressHint}
     />
-  );
-}
-
-export function EnvelopeRow({ s, onPress }: { s: EnvelopeStatus; onPress?: () => void }) {
-  const { t } = useI18n();
-  const money = useMoney();
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress ?? (() => router.push(`/envelopes/${s.envelope.id}`))} style={({ pressed }) => ({ flexDirection: 'row', gap: 12, paddingVertical: 10, opacity: pressed ? 0.7 : 1 })}>
-      <IconCircle icon={s.envelope.icon} color={s.envelope.color} size={38} />
-      <View style={{ flex: 1, gap: 6 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text variant="bodyStrong" numberOfLines={1} style={{ flex: 1 }}>
-            {s.envelope.name}
-          </Text>
-          <Text variant="small" tone={s.remaining < 0 ? 'danger' : 'muted'}>
-            {s.remaining < 0 ? t('env.over', { amount: money(-s.remaining) }) : t('env.left', { amount: money(s.remaining) })}
-          </Text>
-        </View>
-        <ProgressBar value={s.percent} tone={levelTone(s.level)} label={s.envelope.name} />
-        <Text variant="caption" tone="subtle">
-          {t('env.of', { spent: money(s.spent), budget: money(s.budget) })} · {s.percent} %
-        </Text>
-      </View>
-    </Pressable>
   );
 }
 
