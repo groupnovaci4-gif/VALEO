@@ -25,10 +25,14 @@ export function cleanEmail(raw: unknown): string | null {
   return EMAIL_RE.test(v) && v.length <= 254 ? v : null;
 }
 
-/** Même règle que validatePassword() de l'app : 8 à 128 caractères. */
+/**
+ * Mot de passe du PERSONNEL du back-office (décision du 12/10/2026) : 12 à 128
+ * caractères — plus exigeant que l'app (8), car il ouvre l'administration.
+ */
+export const STAFF_PASSWORD_MIN = 12;
 export function passwordError(p: unknown): 'required' | 'weak' | 'tooLong' | null {
   if (typeof p !== 'string' || !p) return 'required';
-  if (p.length < 8) return 'weak';
+  if (p.length < STAFF_PASSWORD_MIN) return 'weak';
   if (p.length > 128) return 'tooLong';
   return null;
 }

@@ -44,7 +44,7 @@ describe('invitation des collaborateurs', () => {
     const inv = await invite(email, 'admin');
     const view = await call('boViewInvite', null, { inviteId: inv.inviteId, token: inv.token });
     expect(view).toMatchObject({ invitedByName: 'Koffi B.', roleName: 'Administrateur', email: 'a•••@dinerox-team.test', displayName: 'Didier Kouamé' });
-    expect(await outcome('boAcceptInvite', null, { inviteId: inv.inviteId, token: inv.token, email, password: 'court' })).toEqual({ status: 'invalid-argument', message: 'invite/password-weak' });
+    expect(await outcome('boAcceptInvite', null, { inviteId: inv.inviteId, token: inv.token, email, password: 'onze-carac1' })).toEqual({ status: 'invalid-argument', message: 'invite/password-weak' });
     await call('boAcceptInvite', null, { inviteId: inv.inviteId, token: inv.token, email: email.toUpperCase(), password: 'Mon-mot-de-passe-1' });
     const u = await auth().getUserByEmail(email);
     expect((await db().doc(`boStaff/${u.uid}`).get()).get('status')).toBe('active');

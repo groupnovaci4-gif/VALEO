@@ -125,7 +125,7 @@ le reste de la page est le portail tel qu'il sera construit.
 
 ---
 
-### 1.3 Textes proposés : invitation (à valider)
+### 1.3 Textes : invitation (validés le 12/10/2026, mot de passe du personnel : 12 caractères au moins)
 
 Le portail est en français ; l'anglais est proposé pour plus tard. `{app}` = nom de marque
 (`brand.ts`), `{inviter}`, `{name}`, `{role}`, `{email}`, `{date}` = données de l'invitation.
@@ -139,7 +139,7 @@ Le portail est en français ; l'anglais est proposé pour plus tard. `{app}` = n
 | Détail | Invitation pour {email} · valable jusqu'au {date} | Invitation for {email} · valid until {date} |
 | Champ adresse | Votre adresse e-mail (celle qui a reçu l'invitation) | Your email address (the one that received the invitation) |
 | Champ mot de passe | Choisissez un mot de passe | Choose a password |
-| Aide | 8 caractères au moins. Vous seul le connaîtrez. | At least 8 characters. Only you will know it. |
+| Aide | 12 caractères au moins. Vous seul le connaîtrez. | At least 12 characters. Only you will know it. |
 | Confirmation | Confirmez le mot de passe | Confirm the password |
 | Bouton | Accepter l'invitation | Accept the invitation |
 | Lien discret | Vous n'attendiez pas cette invitation ? Fermez simplement cette page. | Weren't expecting this invitation? Just close this page. |
@@ -150,7 +150,7 @@ Le portail est en français ; l'anglais est proposé pour plus tard. `{app}` = n
 | Déjà utilisé | Cette invitation a déjà été utilisée. Connectez-vous avec votre adresse et votre mot de passe. | This invitation has already been used. Sign in with your email address and password. |
 | Lien non valable | Ce lien d'invitation n'est pas valable. Il a peut-être été remplacé par un lien plus récent. | This invitation link isn't valid. It may have been replaced by a newer one. |
 | Autre adresse | Cette adresse ne correspond pas à l'invitation. Utilisez l'adresse qui a reçu l'invitation. | This address doesn't match the invitation. Use the address that received it. |
-| Mot de passe trop court | Le mot de passe doit contenir au moins 8 caractères. | Your password must be at least 8 characters long. |
+| Mot de passe trop court | Le mot de passe doit contenir au moins 12 caractères. | Your password must be at least 12 characters long. |
 | Confirmation différente | Les deux mots de passe ne sont pas identiques. | The two passwords don't match. |
 
 **Écran Équipe (E8)**
@@ -452,15 +452,17 @@ membres**. La fenêtre de confirmation l'affiche en clair (« Espace familial «
 - **Aujourd'hui** : une connexion d'un compte désactivé affiche déjà
   `auth.err.user-disabled` = « Ce compte a été désactivé. » Mais un téléphone **déjà connecté**
   garde son jeton jusqu'à une heure et n'est pas déconnecté proprement.
-- **Proposé** (petit ajout dans `src/store/app.tsx`, sans nouvelle dépendance) : au démarrage,
-  au retour au premier plan et à chaque retour du réseau, l'app force le renouvellement du jeton
-  (`getIdToken(true)`). Si Firebase répond `auth/user-disabled`, l'app se déconnecte et affiche
-  le message ci-dessous sur l'écran de connexion. Le cache local du compte est **conservé**
+- **Fait (étape 3)** dans `src/store/app.tsx`, sans nouvelle dépendance : au démarrage, au
+  retour au premier plan et à chaque retour du réseau, l'app force le renouvellement du jeton
+  (`getIdToken(true)`). Si Firebase répond `auth/user-disabled` (`core/accountStatus.ts`),
+  l'app affiche une fois le message « Compte suspendu » (fenêtre) puis se déconnecte ; toute
+  autre erreur (hors ligne…) ne change rien. Une connexion pendant la suspension affiche
+  `auth.err.user-disabled`. Parcours `e2e/suspended.js`. Le cache local du compte est **conservé**
   (rangé par uid, règle 14) : à la réactivation, tout revient, y compris les saisies en attente.
 - Délai : en pratique, dès que l'utilisateur ouvre l'app avec du réseau. Au pire, une heure
   pour un téléphone qui resterait ouvert en continu (durée de vie d'un jeton Firebase). Voir D5.
 
-### 5.3 Texte proposé (à valider — rien n'est ajouté avant ton accord)
+### 5.3 Texte (validé, D16 — ajouté à l'étape 3)
 
 | Clé | Français | English |
 |---|---|---|
@@ -468,7 +470,8 @@ membres**. La fenêtre de confirmation l'affiche en clair (« Espace familial «
 | `auth.suspended.body` | Votre compte {app} est suspendu : vous ne pouvez plus vous connecter pour le moment. Vos données sont conservées. Pour en savoir plus, écrivez-nous à {email}. | Your {app} account is suspended, so you can't sign in for now. Your data is kept. To find out more, write to us at {email}. |
 | `auth.err.user-disabled` *(remplacement)* | Ce compte est suspendu. Écrivez-nous à {email} pour en savoir plus. | This account is suspended. Write to us at {email} to find out more. |
 
-`{email}` = `brand.supportEmail`. Aucun motif n'est jamais montré à l'utilisateur.
+`{email}` s'écrit `{supportEmail}` dans les fichiers de textes : comme `{app}`, il est rempli
+automatiquement depuis `brand.supportEmail`. Aucun motif n'est jamais montré à l'utilisateur.
 
 ---
 
