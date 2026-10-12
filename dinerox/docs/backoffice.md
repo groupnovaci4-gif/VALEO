@@ -818,48 +818,167 @@ npm --prefix firebase/functions run typecheck
 
 Les émulateurs demandent Java 21 ou plus (`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-21.jdk/Contents/Home`).
 
-## 16. Déploiement (à faire par toi, plus tard — rien n'a été lancé)
+## 16. Mise en ligne sur `dinerox-app` — plan pas à pas (rien n'a été lancé)
 
-Rien ne part sur `dinerox-app` sans ton accord. Quand tu le décideras, dans cet ordre :
+Ordre à suivre. Rien ne part sans ton feu vert, étape par étape. « Moi » = Claude, « toi » =
+le fondateur (les commandes qui touchent `dinerox-app` sont lancées par toi, depuis ton Mac,
+dans `/Users/novaworkonline/dinerox-backoffice/dinerox`, avec ton compte : `firebase login`).
 
-1. **Clé de chiffrement** (Secret Manager, jamais dans Git) :
-   `openssl rand -base64 32 | firebase functions:secrets:set BO_MFA_KEY --data-file=- --project dinerox-app`
-2. **Clé d'API web** (publique, celle de la config Firebase du portail) : fichier
-   `firebase/functions/.env.dinerox-app` contenant `BO_WEB_API_KEY=…` (ignoré par Git), ou
-   réponse à la question posée au déploiement.
-3. **Droit de créer les jetons de connexion** : le compte de service des Functions doit pouvoir
-   signer (rôle « Créateur de jetons du compte de service » sur lui-même) :
-   `gcloud iam service-accounts add-iam-policy-binding <NUMÉRO>-compute@developer.gserviceaccount.com --member=serviceAccount:<NUMÉRO>-compute@developer.gserviceaccount.com --role=roles/iam.serviceAccountTokenCreator --project dinerox-app`
-4. Index puis règles puis Functions :
-   `firebase deploy --only firestore:indexes,firestore:rules,functions --project dinerox-app`.
-   Les règles peuvent partir avant la nouvelle version de l'app : aucune app n'écrit
-   `adminDeleted`, et une app ancienne réagit déjà correctement à un refus.
-5. **D12 (copie verrouillée du journal)** : un récepteur Cloud Logging qui garde les lignes
-   `bo-audit` dans un compartiment à rétention verrouillée (5 ans, D17) — commandes à préparer
-   avec toi au moment voulu (le verrouillage est irréversible).
-6. Premier Super Admin : commande du §10.
-7. **Portail** (site d'hébergement séparé, en-têtes de sécurité déjà dans `firebase.json`) :
-   ```bash
-   firebase hosting:sites:create dinerox-admin --project dinerox-app
-   firebase target:apply hosting admin dinerox-admin --project dinerox-app
-   npm --prefix admin ci && npm --prefix admin run build      # avec admin/.env.production.local
-   firebase deploy --only hosting:admin --project dinerox-app
-   ```
-   Puis console › Authentication › Paramètres › **Domaines autorisés** : ajouter le domaine du
-   portail (ex. `dinerox-admin.web.app`), sinon les e-mails ne peuvent pas renvoyer vers lui.
-8. **D18 — URL d'action personnalisée (avec toi, au déploiement seulement).** Console ›
-   Authentication › Modèles › (crayon) › « Personnaliser l'URL d'action » :
-   `https://<domaine du portail>/action`. Elle vaut pour TOUS les e-mails Firebase (mot de passe
-   oublié de l'app, confirmation d'adresse, rétablissement d'adresse, invitations). Juste après :
-   **test réel** du « mot de passe oublié » depuis l'app (recevoir l'e-mail, ouvrir le lien,
-   choisir un mot de passe, se connecter dans l'app).
-   **Revenir en arrière** : même écran, vider le champ « URL d'action personnalisée » (ou
-   remettre `https://dinerox-app.firebaseapp.com/__/auth/action`), enregistrer. Les e-mails
-   suivants repassent par la page Firebase par défaut ; rien d'autre ne change. Les liens
-   d'invitation copiés (WhatsApp) continuent de marcher, ceux des e-mails redeviennent limités à
-   une heure.
+**Coûts, en résumé.** Le projet est déjà en formule Blaze (il a déjà des Cloud Functions).
+Tout ce qui suit reste dans les quotas gratuits pour une petite équipe, sauf deux postes de
+quelques centimes : Secret Manager (au-delà de 6 versions de secret actives gratuites, environ
+0,06 $ par version et par mois ; le projet en a déjà 2) et le stockage des images des Functions
+(Artifact Registry, environ 0,10 $ par Go et par mois au-delà de 0,5 Go gratuit). *Tarifs publics
+Google Cloud, à revérifier sur leurs pages au moment de la mise en ligne.*
 
-### 16.1 Page d'action des e-mails (D18)
+**Compatibilité.** Les règles et les Functions peuvent partir AVANT la nouvelle version de
+l'app : aucune app existante n'écrit `adminDeleted`, et une app existante réagit déjà
+correctement à un refus d'écriture. Une suspension marche aussi avec l'ancienne app (connexion
+refusée par Firebase) ; seul le message D16 demande la nouvelle version (§16.3).
+
+### 16.0 Préparation (moi)
+
+| | |
+|---|---|
+| Quoi | Fusionner la dernière `dinerox-main` dans `backoffice` ; relancer `npm run check`, `npm run test:rules`, `npm run test:backoffice`, tous les e2e de l'app et du portail ; vérifier que le code des Functions de `backoffice` contient TOUT ce qui tourne aujourd'hui en production (voir 16.2). |
+| Coût | Aucun. |
+| Vérifier | Tous les tests verts, compte rendu envoyé. |
+| Revenir en arrière | Sans objet (rien n'est en ligne). |
+
+### 16.1 Sauvegarde (toi, conseillé)
+
+| | |
+|---|---|
+| Quoi | Exporter Firestore avant tout changement : `gcloud firestore export gs://dinerox-app-sauvegardes/avant-backoffice --project dinerox-app` (créer le compartiment s'il n'existe pas). Rien de ce qui suit ne modifie les données, mais c'est la précaution d'usage. |
+| Coût | Une lecture facturée par document exporté + le stockage (quelques centimes pour une base de cette taille). |
+| Vérifier | `gcloud firestore operations list --project dinerox-app` : opération « SUCCESSFUL ». |
+| Revenir en arrière | Sans objet (une sauvegarde ne change rien). |
+
+### 16.2 État actuel de la production (toi + moi)
+
+| | |
+|---|---|
+| Quoi | Toi : console › Firestore › Règles, copier les règles en ligne dans un fichier et me l'envoyer ; `firebase functions:list --project dinerox-app` et m'envoyer le résultat. Moi : comparer avec `backoffice`. Les règles se déploient en bloc : si la production contient une règle qui n'est pas dans `backoffice` (venue d'une autre branche), je l'ajoute d'abord, sinon elle disparaîtrait. |
+| Coût | Aucun. |
+| Vérifier | Je confirme par écrit : « seules les additions du back-office diffèrent ». |
+| Revenir en arrière | Sans objet. |
+
+### 16.3 Clé de chiffrement `BO_MFA_KEY` (toi)
+
+| | |
+|---|---|
+| Quoi | `openssl rand -base64 32 \| firebase functions:secrets:set BO_MFA_KEY --data-file=- --project dinerox-app` — la clé n'est affichée nulle part et n'est jamais dans Git. **Ne jamais la détruire tant que le portail sert** : sans elle, plus aucune double vérification ne fonctionne (il faudrait réinitialiser chaque collaborateur). |
+| Coût | Environ 0,06 $/mois si le projet dépasse 6 versions de secret actives. |
+| Vérifier | `gcloud secrets versions list BO_MFA_KEY --project dinerox-app` : une version « enabled ». |
+| Revenir en arrière | Après retrait des fonctions `bo…` : `firebase functions:secrets:destroy BO_MFA_KEY --project dinerox-app`. |
+
+### 16.4 Clé d'API web publique `BO_WEB_API_KEY` (toi)
+
+| | |
+|---|---|
+| Quoi | Créer `firebase/functions/.env.dinerox-app` contenant `BO_WEB_API_KEY=<clé web>` (la même que `EXPO_PUBLIC_FIREBASE_API_KEY` de l'app : elle est publique). Fichier ignoré par Git. Elle sert au serveur à vérifier un mot de passe. |
+| Coût | Aucun. |
+| Vérifier | `git check-ignore firebase/functions/.env.dinerox-app` affiche le chemin. |
+| Revenir en arrière | Supprimer le fichier. |
+
+### 16.5 Droit de créer les jetons de connexion (toi)
+
+| | |
+|---|---|
+| Quoi | Le compte de service des Functions doit pouvoir signer les jetons du portail. `gcloud services enable iamcredentials.googleapis.com --project dinerox-app`, puis (NUMÉRO = numéro du projet, console › Paramètres du projet) : `gcloud iam service-accounts add-iam-policy-binding NUMÉRO-compute@developer.gserviceaccount.com --member=serviceAccount:NUMÉRO-compute@developer.gserviceaccount.com --role=roles/iam.serviceAccountTokenCreator --project dinerox-app` |
+| Coût | Aucun. |
+| Vérifier | `gcloud iam service-accounts get-iam-policy NUMÉRO-compute@developer.gserviceaccount.com --project dinerox-app` montre le rôle. Vérifié pour de bon à l'étape 16.10 (connexion au portail). |
+| Revenir en arrière | Même commande avec `remove-iam-policy-binding`. |
+
+### 16.6 Index Firestore (toi)
+
+| | |
+|---|---|
+| Quoi | `firebase deploy --only firestore:indexes --project dinerox-app`. Si la commande propose de supprimer des index absents du fichier, répondre **non**. |
+| Coût | Construction gratuite ; stockage des index négligeable. |
+| Vérifier | Console › Firestore › Index : les nouveaux index (users, accountStatus, boStaff, boAudit) passent à « Activé » (quelques minutes). |
+| Revenir en arrière | Inutile en pratique (un index inutilisé ne gêne rien) ; sinon les supprimer dans la console. |
+
+### 16.7 Règles Firestore (toi)
+
+| | |
+|---|---|
+| Quoi | Après 16.2 : `firebase deploy --only firestore:rules --project dinerox-app`. Ajouts : collections du back-office fermées à tout client, et `adminDeleted` (une opération supprimée par le back-office ne peut plus être réécrite par un téléphone). |
+| Coût | Aucun. |
+| Vérifier | Console › Règles : la nouvelle version contient `match /boStaff`. Sur ton téléphone : ajouter une opération, la modifier, la supprimer ; tout se synchronise sur un second appareil. |
+| Revenir en arrière | Console › Firestore › Règles › historique : « Restaurer » la version précédente (immédiat). |
+
+### 16.8 Cloud Functions (toi)
+
+| | |
+|---|---|
+| Quoi | Déployer SEULEMENT les nouvelles fonctions et les deux modifiées (`adminStats` : D10 ; `deleteAccount` : même comportement, code mis en commun), sans toucher aux autres : `firebase deploy --only functions:boLoginStart,functions:boLoginVerify,functions:boLogout,functions:boMe,functions:boNewRecoveryCodes,functions:boChangePassword,functions:boSearchUsers,functions:boListUsers,functions:boGetUser,functions:boCreateUser,functions:boUpdateUser,functions:boSetPlan,functions:boSetSuspended,functions:boDeleteUser,functions:boOpenData,functions:boListTransactions,functions:boPreviewDelete,functions:boDeleteTransaction,functions:boMyDataAccess,functions:boListStaff,functions:boInviteStaff,functions:boListInvites,functions:boResendInvite,functions:boGetInviteLink,functions:boRevokeInvite,functions:boViewInvite,functions:boAcceptInvite,functions:boSetStaffRole,functions:boSetStaffSuspended,functions:boRemoveStaff,functions:boResetStaffMfa,functions:boListRoles,functions:boSaveRole,functions:boDeleteRole,functions:boStats,functions:boListAudit,functions:boStatsSnapshot,functions:adminStats,functions:deleteAccount --project dinerox-app` |
+| Coût | Appels : gratuits jusqu'à 2 millions/mois ; aucune instance permanente (0 au repos). `boStatsSnapshot` (toutes les heures) ajoute une tâche planifiée : 3 tâches gratuites par compte, le projet en utilise 1 (`weeklySummaryPush`). Stockage des images : quelques centimes. |
+| Vérifier | `firebase functions:list --project dinerox-app` : les fonctions `bo…` en `europe-west1`. Dans l'app : écran « Administration » (droit admin) toujours bon ; supprimer un compte de TEST depuis l'app : tout disparaît comme avant. |
+| Revenir en arrière | `firebase functions:delete boLoginStart boLoginVerify boLogout boMe boNewRecoveryCodes boChangePassword boSearchUsers boListUsers boGetUser boCreateUser boUpdateUser boSetPlan boSetSuspended boDeleteUser boOpenData boListTransactions boPreviewDelete boDeleteTransaction boMyDataAccess boListStaff boInviteStaff boListInvites boResendInvite boGetInviteLink boRevokeInvite boViewInvite boAcceptInvite boSetStaffRole boSetStaffSuspended boRemoveStaff boResetStaffMfa boListRoles boSaveRole boDeleteRole boStats boListAudit boStatsSnapshot --region europe-west1 --project dinerox-app`, puis redéployer les versions d'avant de `adminStats` et `deleteAccount` depuis le dossier `dinerox-main` : `firebase deploy --only functions:adminStats,functions:deleteAccount --project dinerox-app`. |
+
+### 16.9 Premier Super Admin (toi)
+
+| | |
+|---|---|
+| Quoi | Commande du §10 (compte Google du Terminal, aucun fichier de clé), avec une adresse dédiée (ex. `prenom@dinerox.app`, D15). Elle affiche un lien à ouvrir pour choisir ton mot de passe (12 caractères au moins). |
+| Coût | Aucun. |
+| Vérifier | Le script affiche « Super Admin créé. » ; console › Firestore : document `boStaff/<ton uid>` ; ligne `staff.bootstrap` dans `boAudit`. |
+| Revenir en arrière | Console : supprimer `boStaff/<uid>` (et le compte dans Authentication si besoin). Le journal garde la trace, c'est voulu. |
+
+### 16.10 Portail en ligne (toi)
+
+| | |
+|---|---|
+| Quoi | `firebase hosting:sites:create dinerox-admin --project dinerox-app` ; `firebase target:apply hosting admin dinerox-admin --project dinerox-app` (ajoute la cible dans `.firebaserc` : je la committerai) ; créer `admin/.env.production.local` avec `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN=dinerox-app.firebaseapp.com`, `VITE_FIREBASE_PROJECT_ID=dinerox-app`, `VITE_FIREBASE_APP_ID` (config web, console › Paramètres du projet) ; `npm --prefix admin ci && npm --prefix admin run build` ; `firebase deploy --only hosting:admin --project dinerox-app`. |
+| Coût | Hébergement : gratuit jusqu'à 10 Go stockés et 10 Go transférés par mois (le portail fait moins de 2 Mo). |
+| Vérifier | Ouvrir `https://dinerox-admin.web.app` : page de connexion. `curl -sI https://dinerox-admin.web.app \| grep -i -E "content-security\|x-frame"` montre les en-têtes de sécurité. Se connecter en Super Admin : QR code, code, codes de secours, tableau de bord. |
+| Revenir en arrière | Console › Hosting › site `dinerox-admin` › historique : revenir à une version, ou `firebase hosting:disable --site dinerox-admin --project dinerox-app` (le site ne répond plus ; les données ne bougent pas). |
+
+### 16.11 Domaine autorisé (toi)
+
+| | |
+|---|---|
+| Quoi | Console › Authentication › Paramètres › Domaines autorisés : ajouter `dinerox-admin.web.app` (sinon les e-mails d'invitation ne peuvent pas renvoyer vers le portail). |
+| Coût | Aucun. |
+| Vérifier | Inviter une adresse de test depuis « Équipe et rôles » : l'e-mail arrive (voir 16.12 pour le texte). |
+| Revenir en arrière | Retirer le domaine de la liste. |
+
+### 16.12 Texte neutre de l'e-mail (D7, toi)
+
+| | |
+|---|---|
+| Quoi | Console › Authentication › Modèles › « Réinitialisation du mot de passe » : objet et message validés (§3.1), en français et en anglais. Garde une copie de l'ancien texte. |
+| Coût | Aucun (modèle Firebase gratuit). |
+| Vérifier | « Mot de passe oublié » depuis l'app sur un compte de test : le nouveau texte arrive. |
+| Revenir en arrière | Recoller l'ancien texte. |
+
+### 16.13 URL d'action personnalisée (D18, toi avec moi)
+
+| | |
+|---|---|
+| Quoi | Console › Authentication › Modèles › « Personnaliser l'URL d'action » : `https://dinerox-admin.web.app/action`. Juste après, **test réel** du « mot de passe oublié » depuis l'app (recevoir l'e-mail, ouvrir le lien, choisir un mot de passe, se connecter dans l'app), puis une invitation de test. |
+| Coût | Aucun. |
+| Vérifier | Le lien de l'e-mail ouvre la page du portail (logo, texte validé), le nouveau mot de passe marche dans l'app ; un e-mail d'invitation ouvre directement l'invitation. |
+| Revenir en arrière | Même écran : vider le champ (ou remettre `https://dinerox-app.firebaseapp.com/__/auth/action`), enregistrer. Les e-mails suivants repassent par la page Firebase. |
+
+### 16.14 Plus tard, séparément
+
+- **D12** — copie verrouillée du journal (Cloud Logging, conservation 5 ans, D17) : le
+  verrouillage est irréversible ; coût de quelques centimes par mois. À décider à part.
+- **D14** — App Check sur les fonctions `bo…` (après la mise en ligne).
+
+### 16.15 L'app : faire arriver le message « compte suspendu »
+
+| Étape | Qui | Détail |
+|---|---|---|
+| a. Reporter dans `dinerox-main` | moi | Dans le dossier `/Users/novaworkonline/dinerox-main` : `git cherry-pick a3eac67` (D1) et `770bea9` (message « compte suspendu » + D5 + parcours `e2e/suspended.js`), puis `npm run check` et tous les e2e à 0 échec, puis push. Aucun coût. Retour arrière : `git revert` des deux commits. |
+| b. Reporter dans `design-v2` | la session `design-v2` (ou moi quand elle sera terminée) | `design-v2` est ouverte dans `/Users/novaworkonline/DineroX` par une autre session : je n'y change pas de branche. Fusion de `dinerox-main` dans `design-v2` quand c'est possible, puis tests. |
+| c. Nouvelle version de l'app | toi | Depuis la branche qui sera publiée (ex. `design-v2` une fois validée) : `npx eas build` (Android et iOS) puis publication sur les stores. Coût : celui de tes builds EAS habituels (formule gratuite ou payante selon ton compte) ; aucun coût Google. |
+| d. Vérifier | toi | Sur un téléphone avec la nouvelle version, connecté à un compte de test : le suspendre depuis le portail, couper puis remettre le réseau → message « Compte suspendu » puis déconnexion ; le réactiver → reconnexion, données intactes. |
+| Retour arrière | toi | Repasser à la version précédente sur les stores. Le portail et les suspensions continuent de fonctionner (l'ancienne app affiche alors seulement l'ancien message de connexion refusée). |
+
+### 16.16 Page d'action des e-mails (D18)
 
 `admin/src/pages/Action.tsx`, à l'adresse `/action` du portail. Modes gérés : `resetPassword`
 (mot de passe oublié : 8 caractères au moins, règle de l'app), `verifyEmail`,
@@ -869,7 +988,7 @@ Firebase, sinon celle du navigateur (français par défaut). Un e-mail d'invitat
 (`resetPassword` dont le lien de suite est `/invitation`) ouvre directement l'invitation. Le code
 Firebase n'est utilisé qu'une fois, même si la page est rouverte. Testé de bout en bout
 (`admin/e2e/portal.mjs`), en français et en anglais. Textes : `admin/src/pages/actionTexts.ts`
-(proposés, à valider).
+(validés le 12/10/2026).
 
 Un collaborateur qui choisit par « mot de passe oublié » un mot de passe de moins de 12
 caractères ne peut pas entrer dans le portail : la connexion le refuse avec un message lui
