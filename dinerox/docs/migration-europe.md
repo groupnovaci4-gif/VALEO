@@ -14,8 +14,10 @@
   pendant toute la manœuvre. **L'app ne change pas** (même nom de base, même projet).
 - La base est minuscule (916 documents, 12 comptes) : la coupure dure environ **20 minutes**,
   le coût total est de l'ordre de **quelques centimes**.
-- **Condition avant de toucher à la production : une répétition complète sur un projet de test**
-  (§6), pour confirmer deux points que la documentation ne garantit pas noir sur blanc.
+- **Répétition faite le 13/10/2026 sur un projet de test jetable (§6) : méthode confirmée**, avec
+  deux corrections intégrées au jour J : les testeurs ferment l'app pendant la manœuvre, et la
+  dernière copie (8 s) est enchaînée avec la suppression, puis recréation + règles + copie (9 s)
+  en une seule commande.
 
 ## 2. Mesures (13/10/2026, lecture seule)
 
@@ -66,53 +68,52 @@ par Firebase avant de pouvoir réutiliser le nom `(default)`.
 
 | Étape | Qui | Commande / action | Vérifier | Retour arrière |
 |---|---|---|---|---|
-| 0. Prévenir | toi | Message aux personnes qui testent : « maintenance de 20 min ce soir, l'app reste utilisable hors ligne ». | — | — |
+| 0. Prévenir | toi | Message aux personnes qui testent : « maintenance ce soir de HH:MM à HH:MM : fermez complètement l'app avant HH:MM et ne la rouvrez qu'après mon message de fin ». **Indispensable** : une saisie acceptée par l'ancienne base pendant la dernière copie ne serait pas recopiée (§6). | Réponse des testeurs. | — |
 | 1. Copier les règles et les index en ligne | toi + moi | Console › Firestore › Règles : copier le texte et me l'envoyer ; `gcloud firestore indexes composite list --project=dinerox-app`. Je confirme que le dépôt contient exactement les mêmes. | Je confirme par écrit. | Sans objet. |
 | 2. Sauvegarde fraîche | toi | `gcloud firestore export gs://dinerox-app-sauvegardes/AAAA-MM-JJ-jour-j --project=dinerox-app --database='(default)'` | opération `SUCCESSFUL` | Sans objet. |
 | 3. Base provisoire en Europe + copie | toi | `gcloud firestore databases create --database=eu-staging --location=europe-west1 --type=firestore-native --project=dinerox-app` puis `GOOGLE_CLOUD_PROJECT=dinerox-app node firebase/functions/lib/scripts/copyDatabase.js --from "(default)" --to eu-staging --i-know-this-is-production` | `countData.js --database eu-staging --compare comptage-avant.json` : « OK ». Les téléphones n'écrivent jamais dans `eu-staging`. | Supprimer `eu-staging`. Rien n'a changé pour les utilisateurs. |
-| 4. Rattrapage puis suppression (DÉBUT DE COUPURE) | toi | Relancer la copie de l'étape 3 (seuls les changements récents sont réécrits), puis aussitôt : `gcloud firestore databases delete --database='(default)' --project=dinerox-app` | `gcloud firestore databases list` ne montre plus que `eu-staging`. | Recréer `(default)` en **nam5** et faire l'étape 7 vers elle : retour à l'état d'avant. |
-| 5. Recréer en Europe (après 5 min d'attente) | toi | `gcloud firestore databases create --database='(default)' --location=europe-west1 --type=firestore-native --project=dinerox-app` | `gcloud firestore databases describe --database='(default)' --project=dinerox-app` : `locationId: europe-west1`. | Si refusé : la recréer en nam5, puis étape 7 (retour à l'état d'avant). |
-| 6. Règles et index | toi | Depuis le dossier `dinerox-main` (les règles de la production, PAS celles du back-office) : `firebase deploy --only firestore:rules,firestore:indexes --project dinerox-app` | Console › Règles et Index : identiques à l'étape 1. | Redéployer. |
+| 4. Rattrapage puis suppression (DÉBUT DE COUPURE) | toi | À l'heure annoncée (apps fermées), EN UNE COMMANDE : la copie de l'étape 3 (quelques secondes, seuls les changements sont réécrits) `&&` `gcloud firestore databases delete --database='(default)' --project=dinerox-app --quiet` | `gcloud firestore databases list` ne montre plus que `eu-staging`. | Recréer `(default)` en **nam5** et faire l'étape 7 vers elle : retour à l'état d'avant. |
+| 5. Recréer en Europe (après 5 min d'attente) | toi | EN UNE COMMANDE, enchaînée avec 6 et 7 (pour qu'un espace familial ne reste jamais sans son document) : `gcloud firestore databases create --database='(default)' --location=europe-west1 --type=firestore-native --project=dinerox-app` | `gcloud firestore databases describe --database='(default)' --project=dinerox-app` : `locationId: europe-west1`. | Si refusé : la recréer en nam5, puis étape 7 (retour à l'état d'avant). |
+| 6. Règles et index | toi | `&&` depuis le dossier `dinerox-main` (les règles de la production, PAS celles du back-office) : `firebase deploy --only firestore:rules,firestore:indexes --project dinerox-app`. **Les index ne survivent pas** à la suppression (vu en répétition) ; les règles, si, mais on les redéploie quand même. | Console › Règles et Index : identiques à l'étape 1. | Redéployer. |
 | 7. Remplir la nouvelle base (FIN DE COUPURE) | toi | `GOOGLE_CLOUD_PROJECT=dinerox-app node firebase/functions/lib/scripts/copyDatabase.js --from eu-staging --to "(default)" --bump-synced-at --i-know-this-is-production` | `countData.js --compare comptage-avant.json` : « OK : aucune collection n'a perdu de document ». | `eu-staging` reste intacte : on peut recopier à tout moment. |
-| 8. Test réel | toi | Sur ton téléphone : ouvrir l'app, vérifier tes données, ajouter une opération ; sur un second appareil, la voir arriver. | Tout est là, la synchronisation marche. | Étape 4 en sens inverse (recréer en nam5 et recopier). |
+| 8. Test réel, puis fin de maintenance | toi | Sur ton téléphone : fermer complètement l'app, la rouvrir, vérifier tes données, ajouter une opération ; sur un second appareil (rouvert lui aussi), la voir arriver. Puis message aux testeurs : « vous pouvez rouvrir l'app ». **Rouvrir l'app est nécessaire** : l'écoute des changements s'arrête pendant la coupure et ne repart qu'à la réouverture (vu en répétition). | Tout est là, la synchronisation marche. | Étape 4 en sens inverse (recréer en nam5 et recopier). |
 | 9. Protéger | toi | `gcloud firestore databases update --database='(default)' --delete-protection --project=dinerox-app` | `deleteProtectionState: DELETE_PROTECTION_ENABLED` | `--no-delete-protection` |
 | 10. Ménage (7 jours après) | toi | `gcloud firestore databases delete --database=eu-staging --project=dinerox-app` | — | Garder la sauvegarde de l'étape 2. |
 
-## 6. Répétition sur un projet de test (avant toute chose)
+## 6. Répétition sur un projet de test — faite le 13/10/2026
 
-Deux points ne sont pas garantis par la documentation et doivent être vus pour de vrai :
+Projet jetable `dinerox-demenagement-test` (sans App Engine, comme `dinerox-app`), base
+`(default)` en `nam5`, environ 900 documents fictifs (11 profils, 11 espaces personnels, 1 espace
+familial), règles et index de l'app. Une **sonde** (`scripts/migration/sonde-client.mjs`) se
+comportait comme l'app : une écriture toutes les 3 secondes, alternativement dans son espace
+personnel et dans l'espace familial, et l'écoute des changements.
 
-1. **La base `(default)` peut-elle être recréée dans un autre emplacement** après sa
-   suppression, dans un projet sans App Engine ? (La documentation Firebase lie la base par
-   défaut à « l'emplacement des ressources par défaut », réglage définitif quand App Engine
-   existe ; `dinerox-app` n'en a pas.)
-2. **Que reçoit un téléphone pendant la coupure ?** L'app actuelle réessaie plus tard (sans
-   perte) pour la plupart des erreurs, mais si le serveur répond « refusé »
-   (`permission-denied`, `invalid-argument`, `failed-precondition`), elle reprend la version du
-   serveur et, si le serveur n'a rien, **retire le document de son cache local**. Il faut savoir
-   ce que Firebase répond quand la base n'existe pas (attendu : `not-found`, donc « nouvel
-   essai ») et juste après sa recréation.
+**Point 1 — recréer `(default)` dans un autre emplacement : CONFIRMÉ.** Supprimée à 01:12:36
+(nam5), recréée à 01:18:06 en `europe-west1` (après le délai d'environ 5 minutes), sans erreur.
 
-Déroulé (toi, avec moi, environ 45 minutes, coût de l'ordre du centime) :
-- créer un projet de test (ex. `dinerox-demenagement-test`) relié à ta facturation ; y créer
-  `(default)` en `nam5` ; activer la connexion par e-mail ; déployer les règles de l'app ;
-- lancer la **sonde** `scripts/migration/sonde-client.mjs` (elle se comporte comme l'app :
-  connexion, une écriture toutes les 3 secondes, écoute des changements) et la laisser tourner ;
-- jouer **exactement** les étapes 2 à 9 du §5 sur ce projet ;
-- lire le journal de la sonde : chaque écriture doit être « ok » ou « nouvel essai », jamais
-  « REFUSÉE » ; le nombre de documents doit être identique avant et après ;
-- supprimer le projet de test (`gcloud projects delete …`).
+**Point 2 — ce que reçoit un téléphone :**
+- base supprimée : `not-found`, puis le SDK garde l'écriture et réessaie en silence (l'app voit
+  son délai de 15 s) → « nouvel essai », **aucune perte** ;
+- base recréée mais vide : les écritures PERSONNELLES sont acceptées (les règles ont survécu à la
+  suppression) ; les écritures FAMILIALES sont **refusées** (`permission-denied`) tant que le
+  document de l'espace n'est pas recopié. Pendant la répétition, on a volontairement laissé la
+  base vide 18 minutes pour l'observer : 140 refus, tous de ce type. Correction : la recréation,
+  les règles et la copie (qui commence par les espaces) sont enchaînées en une seule commande
+  (9 s), et les apps sont fermées ;
+- **une écriture acceptée par l'ancienne base pendant la dernière copie n'est pas recopiée**
+  (le téléphone a reçu « ok » et l'a retirée de sa file) : vu sur les 75 dernières secondes avant
+  la suppression lors du premier passage (copie de 81 s). Corrections : copie parallélisée
+  (8 s) enchaînée avec la suppression, et **apps fermées pendant la manœuvre**. Second cycle,
+  sonde arrêtée comme une app fermée : ses deux dernières écritures sont bien dans la nouvelle
+  base (vérifié document par document), comptages « OK » ;
+- **l'écoute des changements s'arrête** à la première erreur `not-found` et ne repart pas seule :
+  il faut rouvrir l'app. Sonde rouverte : elle a retrouvé ses 801 opérations personnelles, puis
+  toutes ses écritures (perso et famille) ont été « ok ».
 
-Si l'un des deux points échoue, on s'arrête et on choisit ensemble (méthode B, ou ajustement).
-Je te donnerai les commandes exactes une par une, comme pour la sauvegarde.
+**Autres constats :** les index ne survivent pas à la suppression (redéploiement obligatoire,
+fait par l'étape 6) ; durées mesurées : copie complète 9 s, rattrapage 8 s, recréation 6 s.
 
-**Déjà répété sur l'émulateur** (`tests/backoffice/migration.test.ts`, vert) : copie complète
-vers une base provisoire, rattrapage des écritures faites pendant ce temps, base vidée puis
-remplie, une écriture plus récente faite par un téléphone pendant la manœuvre est **gardée**,
-une version plus ancienne est **remplacée**, données serveur et parents « fantômes » copiés,
-nombre de documents identique, et tous les documents ressortent de la requête
-« syncedAt > curseur » (les téléphones retéléchargent tout). L'émulateur ne sait ni changer
-d'emplacement ni simuler une base absente : c'est l'objet de la répétition sur projet de test.
+Le projet de test a été supprimé à la fin de la répétition.
 
 ## 7. Ce que vivent les utilisateurs pendant la coupure
 
@@ -121,12 +122,11 @@ d'emplacement ni simuler une base absente : c'est l'objet de la répétition sur
 - À la fin, tout se synchronise : les saisies faites pendant la coupure partent vers la nouvelle
   base, et chaque téléphone retélécharge une fois ses données (quelques centaines de documents).
 - Aucun compte, mot de passe ni réglage ne change. Aucune nouvelle version de l'app à installer.
-- Risque résiduel, à confirmer par la répétition : une saisie faite pendant les quelques secondes
-  entre la recréation de la base et la fin de la copie pourrait être refusée, si elle porte sur un
-  espace FAMILIAL pas encore recopié (la copie commence par les espaces). Aujourd'hui, les 11
-  espaces correspondent aux 11 profils : il s'agit très probablement d'espaces personnels, non
-  concernés (un espace personnel ne demande aucune lecture côté règles). Faire la manœuvre de
-  nuit et prévenir les testeurs réduit encore ce risque.
+- Les testeurs ferment l'app pendant la maintenance et la rouvrent après le message de fin
+  (indispensable, §6). Un testeur qui l'oublierait et saisirait pendant les quelques secondes de
+  la dernière copie pourrait voir cette saisie rester seulement sur son téléphone ; s'il saisit
+  dans un espace familial juste après la recréation, elle pourrait être refusée. Avec 12 comptes
+  prévenus et une manœuvre de nuit, ce risque est minime.
 
 ## 8. Vérifier que tout est arrivé
 
