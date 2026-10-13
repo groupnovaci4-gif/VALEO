@@ -39,3 +39,9 @@ fondateur (uniquement après son message « Étape N validée »).
   1 mois de Plus par tranche de 5 filleuls validés.
 - 2026-10-13 : étape 1 codée et testée automatiquement ; rapport envoyé,
   en attente de « Étape 1 validée ».
+- 2026-10-14 : retours du fondateur. Corrigé : code saisi conservé avec
+  « Continuer avec Google ». Règles et index réalignés sur la production
+  (back-office) + parrainage, testés contre backoffice, dinerox-main,
+  design-v2 et croissance. Décisions : semaine glissante OK, plafond
+  2 mois/mois OK, mois du parrain payant mis de côté puis appliqué à la fin
+  de l'abonnement (à revoir avec le paiement). Rien n'est déployé.
