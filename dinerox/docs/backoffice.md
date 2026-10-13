@@ -818,7 +818,12 @@ npm --prefix firebase/functions run typecheck
 
 Les émulateurs demandent Java 21 ou plus (`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-21.jdk/Contents/Home`).
 
-## 16. Mise en ligne sur `dinerox-app` — plan pas à pas (rien n'a été lancé)
+## 16. Mise en ligne sur `dinerox-app` — plan pas à pas (16.0 à 16.11 faites le 13/10/2026)
+
+> **État au 13/10/2026** — compte rendu détaillé : §16.17. Faites : 16.0 à 16.11, sur la base
+> européenne (docs/migration-europe.md). **16.12 bloquée par Firebase** (modification des modèles
+> d'e-mail refusée pour ce projet, demande envoyée à l'assistance Firebase). 16.13 : plus tard,
+> avec un test réel du « mot de passe oublié » sur le téléphone du fondateur.
 
 Ordre à suivre. Rien ne part sans ton feu vert, étape par étape. « Moi » = Claude, « toi » =
 le fondateur (les commandes qui touchent `dinerox-app` sont lancées par toi, depuis ton Mac,
@@ -1000,3 +1005,39 @@ impose 12 caractères et demande le code du moment.
 | # | Question | Proposition |
 |---|---|---|
 | D18 | **E-mail d'invitation — accord du 12/10/2026, à trois conditions : tous les modes gérés (FR/EN, testés), réglage de la console seulement au déploiement avec le fondateur suivi d'un test réel, retour arrière documenté (§16)** | Le modèle Firebase « mot de passe » (D7) porte le lien d'invitation comme *lien de suite*. Mais le lien de l'e-mail lui-même passe d'abord par la page Firebase, et le code qu'il contient **expire au bout d'une heure** (durée fixée par Firebase). **Recommandé** : dans la console (Authentication › Modèles › URL d'action), faire pointer les liens des e-mails vers une page du portail ; elle ouvre directement l'invitation, **valable 7 jours** grâce à notre propre jeton, et sert aussi de page « nouveau mot de passe » pour l'app (même texte, à la marque). Sans ce réglage, le lien de l'e-mail ne marche qu'une heure ; « Copier le lien » reste valable 7 jours. Réglage à faire par toi au déploiement. |
+
+### 16.17 Compte rendu de la mise en ligne — 13/10/2026
+
+Commandes lancées par le fondateur une à une, vérifiées en lecture seule après chacune. Heures GMT.
+
+| Étape | Résultat |
+|---|---|
+| 16.0 | `dinerox-main` incluse dans `backoffice` ; Functions et règles de `backoffice` = production + ajouts. |
+| 16.1 | Sauvegardes `2026-10-13-avant-demenagement` et `2026-10-13-jour-j` (déménagement, migration-europe.md §11). |
+| 16.2 | Règles en ligne = `dinerox-main` ; écart avec `backoffice` = additions seules (`adminDeleted`, collections `bo…`) ; 11 Functions en ligne toutes présentes dans le code ; `speak` existe dans le code mais n'est pas déployée (et ne l'a pas été). |
+| 16.3 | Secret `BO_MFA_KEY` version 1 active. |
+| 16.4 | `firebase/functions/.env.dinerox-app` (ignoré par Git) : `BO_WEB_API_KEY` (clé web publique) et `ELEVENLABS_VOICE_ID=a-remplacer` (même valeur que la production ; ne sert qu'à `speak`). |
+| 16.5 | API IAM Credentials déjà active ; rôle `serviceAccountTokenCreator` donné au compte `653588987819-compute@…` sur lui-même. |
+| 16.6 | 13 index (3 + 10 du back-office) `READY` à 12:13 ; 2 exceptions de champ conservées. |
+| 16.7 | Règles `19fca60e…` publiées à 12:12 (identiques au fichier) ; version précédente `e3a1d04c…` dans l'historique. Test sur téléphone : ajout, modification, suppression synchronisés. |
+| 16.8 | 37 fonctions `bo…` créées + `adminStats` et `deleteAccount` mises à jour (48 fonctions actives) ; tâche `boStatsSnapshot` toutes les heures. Écran « Administration » non testable (aucun compte n'a le droit `admin`) ; `deleteAccount` à vérifier plus tard avec un compte de test créé depuis le portail. |
+| 16.9 | Super Admin `admin.dinerox@gmail.com` (nom affiché « Super Admin », aucun profil dans l'app, D15) ; mot de passe choisi ; journal `staff.bootstrap`. |
+| 16.10 | Site `dinerox-admin` (cible `admin`, `.firebaserc`), portail construit avec la configuration web de `dinerox-app` (`admin/.env.production.local`, ignoré par Git) et publié à 14:18. En-têtes de sécurité présents. Première connexion : double vérification enrôlée (`auth.mfa-enrolled`), tableau de bord affiché. |
+| 16.11 | `dinerox-admin.web.app` ajouté aux domaines autorisés (API Identity Toolkit, liste complète réécrite). |
+| 16.12 | Nom public du projet changé de `project-653588987819` en « DineroX » (console). **Modèle d'e-mail : refusé par Firebase** (`EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED` par l'API ; « mise à jour des modèles impossible pour ce projet » dans la console, langue du modèle comprise). Rien n'a changé. Demande envoyée à l'assistance Firebase le 13/10/2026. Texte bilingue validé (choix A : français puis anglais dans le même e-mail, Firebase n'acceptant qu'un texte) et copie de l'ancien modèle dans `~/dinerox-mesures/` (hors dépôt). |
+
+**Incidents et corrections :**
+- Au premier déploiement des Functions, une clé d'API ElevenLabs a été saisie à la place de
+  `ELEVENLABS_VOICE_ID`. Corrigé le jour même : valeur remise à `a-remplacer`, fonctions
+  redéployées, les 39 anciennes révisions qui la contenaient supprimées (vérifié : 0 restante),
+  ancienne clé révoquée chez ElevenLabs, nouvelle clé enregistrée dans le secret
+  `ELEVENLABS_API_KEY` (version 2 ; version 1 désactivée). **Règle : un identifiant de voix
+  n'est jamais une clé ; une clé ne se saisit que par `functions:secrets:set`.**
+- Le lien de définition du mot de passe du Super Admin a été affiché dans la conversation ; il a
+  été consommé aussitôt (mot de passe choisi), donc inutilisable.
+
+**En attendant la réponse de l'assistance :** les e-mails envoyés par le portail (création
+d'utilisateur, invitation) partent avec le texte Firebase standard, en français (langue du
+portail) ; « Copier le lien » (invitation valable 7 jours) reste le moyen le plus fiable
+d'inviter un collaborateur. 16.13 se règle sur le même écran de la console : elle pourrait être
+bloquée de la même façon.
