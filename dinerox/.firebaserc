@@ -2,5 +2,15 @@
   "projects": {
     "default": "dinerox-app",
     "production": "dinerox-app"
-  }
+  },
+  "targets": {
+    "dinerox-app": {
+      "hosting": {
+        "admin": [
+          "dinerox-admin"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
