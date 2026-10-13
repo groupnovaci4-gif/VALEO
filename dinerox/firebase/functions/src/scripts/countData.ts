@@ -6,12 +6,12 @@
  *   gcloud auth application-default login
  *   gcloud auth application-default set-quota-project dinerox-app
  *   cd dinerox/firebase/functions && npm run build
- *   GOOGLE_CLOUD_PROJECT=dinerox-app node lib/scripts/countData.js [--database "(default)"] [--json fichier.json]
+ *   GOOGLE_CLOUD_PROJECT=dinerox-app node lib/scripts/countData.js [--database "(default)"] [--json fichier.json] [--compare avant.json]
  *
  * Coût : les comptages Firestore sont facturés 1 lecture par tranche de 1 000 documents comptés
  * (quelques lectures au total) ; la liste des comptes Auth est gratuite.
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -53,6 +53,16 @@ async function main() {
   const result = { projet: process.env.GOOGLE_CLOUD_PROJECT ?? 'émulateur', base: database, date: new Date().toISOString(), comptesAuth: authUsers, comptesAuthDesactives: disabled, documentsTotal: total, collections: counts };
   console.log(JSON.stringify(result, null, 2));
   if (out) writeFileSync(out, JSON.stringify(result, null, 2));
+  // --compare avant.json : chaque collection doit avoir AU MOINS autant de documents qu'avant.
+  const cmp = opt('--compare');
+  if (cmp) {
+    const before = JSON.parse(readFileSync(cmp, 'utf8')) as typeof result;
+    const missing = Object.entries(before.collections).filter(([k, n]) => (counts[k] ?? 0) < n);
+    for (const [k, n] of Object.entries(before.collections)) if ((counts[k] ?? 0) !== n) console.log(`${(counts[k] ?? 0) < n ? 'MANQUE' : 'plus  '} ${k} : avant ${n}, maintenant ${counts[k] ?? 0}`);
+    if (authUsers !== before.comptesAuth) console.log(`comptes Auth : avant ${before.comptesAuth}, maintenant ${authUsers}`);
+    console.log(missing.length ? `ÉCHEC : ${missing.length} collection(s) avec moins de documents qu'avant.` : 'OK : aucune collection n’a perdu de document.');
+    if (missing.length) process.exitCode = 2;
+  }
 }
 
 main().catch((e) => {
