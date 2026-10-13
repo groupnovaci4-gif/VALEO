@@ -38,8 +38,6 @@ async function main() {
   for (const c of TOP) counts[c] = (await db.collection(c).count().get()).data().count;
   // Sous-collections : comptage par « groupe de collections » (toutes les sous-collections de ce nom).
   for (const c of [...SPACE_SUB, ...USER_SUB, ...CONFIG_SUB]) counts[`*/${c}`] = (await db.collectionGroup(c).count().get()).data().count;
-  const deleted = (await db.collectionGroup('transactions').where('deleted', '==', true).count().get()).data().count;
-  counts['*/transactions (dont supprimées)'] = deleted;
 
   let authUsers = 0;
   let disabled = 0;
@@ -51,7 +49,7 @@ async function main() {
     pageToken = page.pageToken;
   } while (pageToken);
 
-  const total = Object.entries(counts).filter(([k]) => !k.includes('dont')).reduce((a, [, n]) => a + n, 0);
+  const total = Object.values(counts).reduce((a, n) => a + n, 0);
   const result = { projet: process.env.GOOGLE_CLOUD_PROJECT ?? 'émulateur', base: database, date: new Date().toISOString(), comptesAuth: authUsers, comptesAuthDesactives: disabled, documentsTotal: total, collections: counts };
   console.log(JSON.stringify(result, null, 2));
   if (out) writeFileSync(out, JSON.stringify(result, null, 2));
