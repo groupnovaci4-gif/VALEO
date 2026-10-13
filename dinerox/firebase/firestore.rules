@@ -156,6 +156,8 @@ service cloud.firestore {
             && d.createdBy is string
             && d.syncedAt == request.time
             && (!('deleted' in d) || d.deleted is bool)
+            // Marqueur réservé au back-office (Admin SDK) : jamais écrit par un client.
+            && !('adminDeleted' in d)
             && d.keys().size() <= 40;
         }
         function validTransaction(d) {
@@ -220,6 +222,9 @@ service cloud.firestore {
           );
 
         allow update: if knownCollection() && isMember()
+          // Supprimée par le back-office : plus aucune modification par un téléphone
+          // (sinon une version hors ligne plus récente la ferait réapparaître).
+          && resource.data.get('adminDeleted', false) != true
           && validBase(request.resource.data) && validDoc(request.resource.data)
           // L'auteur et la date de création sont immuables.
           && request.resource.data.createdBy == resource.data.createdBy
@@ -269,6 +274,22 @@ service cloud.firestore {
       allow read, update, delete: if false;
     }
 
+    // ─── Back-office (docs/backoffice.md) ────────────────────────────
+    // AUCUN accès client : tout passe par les Cloud Functions `bo…` (Admin SDK),
+    // qui vérifient la permission à chaque appel. Ces collections tomberaient déjà
+    // sous le refus par défaut : les écrire ici documente l'intention et la teste.
+    match /boStaff/{id} { allow read, write: if false; }
+    match /boRoles/{id} { allow read, write: if false; }
+    match /boSessions/{id} { allow read, write: if false; }
+    match /boAccess/{id} { allow read, write: if false; }
+    match /boAudit/{id} { allow read, write: if false; }
+    match /boAuditHead/{id} { allow read, write: if false; }
+    match /boStats/{id} { allow read, write: if false; }
+    match /boLoginGuard/{id} { allow read, write: if false; }
+    match /boInvites/{id} { allow read, write: if false; }
+    match /accountStatus/{uid} { allow read, write: if false; }
+
     // Tout le reste est refusé par défaut.
   }
 }
+
