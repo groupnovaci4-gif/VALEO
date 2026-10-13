@@ -1,16 +1,19 @@
 /**
  * Budget automatique : DineroX propose une répartition du revenu selon une
  * méthode ; l'utilisateur ajuste chaque ligne avant de valider.
+ * Design system v2 : une seule action principale (« Appliquer ce budget », en pied),
+ * total et écart lisibles, couleurs d'enveloppes issues des jetons (`envelopeDefaults`).
  */
 import { useRunAction } from '@/hooks/useRunAction';
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
+import { DesignV2, envelopeDefaults } from '@/theme';
 import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { AmountField, Banner, Button, Card, ChipGroup, Screen, Text, useToast } from '@/components/ui';
+import { Amount, AmountField, Banner, Button, Card, ChipGroup, Screen, Text, useToast } from '@/components/ui';
 import { UpgradeCard } from '@/features/rows';
 import { proposeBudget, type BudgetBucket } from '@/core/budget';
 import { hasFeature } from '@/core/subscription';
@@ -22,15 +25,15 @@ import { withSpaceReady } from '@/components/SpaceReady';
 import { ListenButton } from '@/features/coach/ListenButton';
 
 const BUCKET_META: Record<BudgetBucket, { icon: string; color: string; categoryIds: string[]; envKey: TKey }> = {
-  housing: { icon: 'home', color: '#6366F1', categoryIds: ['cat_housing', 'cat_internet'], envKey: 'env.housing' },
-  food: { icon: 'restaurant', color: '#F59E0B', categoryIds: ['cat_food'], envKey: 'env.food' },
-  transport: { icon: 'car', color: '#0EA5E9', categoryIds: ['cat_transport'], envKey: 'env.transport' },
-  family: { icon: 'heart', color: '#EC4899', categoryIds: ['cat_family', 'cat_education', 'cat_health'], envKey: 'env.family' },
-  savings: { icon: 'wallet', color: '#16A34A', categoryIds: ['cat_savings'], envKey: 'env.savings' },
-  project: { icon: 'rocket', color: '#8B5CF6', categoryIds: ['cat_investment'], envKey: 'env.project' },
-  free: { icon: 'sparkles', color: '#94A3B8', categoryIds: ['cat_leisure', 'cat_clothing', 'cat_communication', 'cat_other'], envKey: 'env.free' },
-  needs: { icon: 'home', color: '#6366F1', categoryIds: ['cat_housing', 'cat_food', 'cat_transport', 'cat_health', 'cat_internet'], envKey: 'budget.bucket.needs' },
-  wants: { icon: 'sparkles', color: '#F97316', categoryIds: ['cat_leisure', 'cat_clothing', 'cat_communication', 'cat_other'], envKey: 'budget.bucket.wants' },
+  housing: { icon: 'home', color: envelopeDefaults.housing, categoryIds: ['cat_housing', 'cat_internet'], envKey: 'env.housing' },
+  food: { icon: 'restaurant', color: envelopeDefaults.food, categoryIds: ['cat_food'], envKey: 'env.food' },
+  transport: { icon: 'car', color: envelopeDefaults.transport, categoryIds: ['cat_transport'], envKey: 'env.transport' },
+  family: { icon: 'heart', color: envelopeDefaults.family, categoryIds: ['cat_family', 'cat_education', 'cat_health'], envKey: 'env.family' },
+  savings: { icon: 'wallet', color: envelopeDefaults.savings, categoryIds: ['cat_savings'], envKey: 'env.savings' },
+  project: { icon: 'rocket', color: envelopeDefaults.project, categoryIds: ['cat_investment'], envKey: 'env.project' },
+  free: { icon: 'sparkles', color: envelopeDefaults.free, categoryIds: ['cat_leisure', 'cat_clothing', 'cat_communication', 'cat_other'], envKey: 'env.free' },
+  needs: { icon: 'home', color: envelopeDefaults.housing, categoryIds: ['cat_housing', 'cat_food', 'cat_transport', 'cat_health', 'cat_internet'], envKey: 'budget.bucket.needs' },
+  wants: { icon: 'sparkles', color: envelopeDefaults.wants, categoryIds: ['cat_leisure', 'cat_clothing', 'cat_communication', 'cat_other'], envKey: 'budget.bucket.wants' },
 };
 
 function AutoBudget() {
@@ -102,11 +105,11 @@ function AutoBudget() {
 
   return (
     <Screen back title={t('budget.auto.title')} footer={<Button full label={t('budget.auto.apply')} disabled={method === 'personal' ? total <= 0 : !income || diff < 0} onPress={apply} />}>
-      <Text tone="muted" style={{ marginBottom: 14 }}>
+      <Text tone="muted" style={{ marginBottom: 16 }}>
         {t('budget.auto.hint')}
       </Text>
       <AmountField label={t('budget.auto.income')} value={income} onChange={(v) => (setIncome(v), setOverrides({}))} currency={currency} big />
-      <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
+      <Text variant="label" style={{ marginBottom: 8 }}>
         {t('budget.auto.method')}
       </Text>
       <ChipGroup
@@ -119,8 +122,9 @@ function AutoBudget() {
       />
       {method === 'personal' ? (
         <Card>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginBottom: 10 }}>
-            <Text variant="small" tone="muted" style={{ flex: 1 }}>
+          {/* « Écouter » sous le texte : à 320 dp, à côté, il réduisait l'explication à une colonne étroite. */}
+          <View style={{ alignItems: 'flex-start', gap: 4, marginBottom: 12 }}>
+            <Text variant="small" tone="muted">
               {t('budget.personalHint')}
             </Text>
             {/* Lecture de la proposition affichée (enveloppes, montants, total). */}
@@ -141,12 +145,9 @@ function AutoBudget() {
               />
             );
           })}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text weight="700">{t('budget.auto.total')}</Text>
-            <Text weight="700">{money(total)}</Text>
-          </View>
+          <TotalLine label={t('budget.auto.total')} value={money(total)} />
           {personal.adjusted ? <Banner tone="warning" icon="information-circle-outline" text={t('budget.personalAdjusted')} /> : null}
-          {diff !== 0 && income ? <Banner tone={diff < 0 ? 'danger' : 'info'} text={`${t('budget.auto.diff')} : ${money(diff, { signed: true })}`} /> : null}
+          {diff !== 0 && income ? <Banner tone={diff < 0 ? 'danger' : 'info'} icon={diff < 0 ? 'alert-circle' : 'information-circle-outline'} text={`${t('budget.auto.diff')} : ${money(diff, { signed: true })}`} /> : null}
         </Card>
       ) : null}
       {method !== 'personal' && amounts.length ? (
@@ -157,15 +158,30 @@ function AutoBudget() {
           {amounts.map((l) => (
             <AmountField key={l.bucket} label={t(`budget.bucket.${l.bucket}` as TKey)} value={l.amount} onChange={(v) => setOverrides((o) => ({ ...o, [l.bucket]: v }))} currency={currency} />
           ))}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text weight="700">{t('budget.auto.total')}</Text>
-            <Text weight="700">{money(total)}</Text>
-          </View>
-          {diff !== 0 ? <Banner tone={diff < 0 ? 'danger' : 'info'} text={`${t('budget.auto.diff')} : ${money(diff, { signed: true })}`} /> : null}
+          <TotalLine label={t('budget.auto.total')} value={money(total)} />
+          {diff !== 0 ? <Banner tone={diff < 0 ? 'danger' : 'info'} icon={diff < 0 ? 'alert-circle' : 'information-circle-outline'} text={`${t('budget.auto.diff')} : ${money(diff, { signed: true })}`} /> : null}
         </Card>
       ) : null}
     </Screen>
   );
 }
 
-export default withSpaceReady(AutoBudget);
+/** Total réparti : libellé à gauche, montant à droite (le montant passe dessous si la place manque). */
+function TotalLine({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 12, paddingTop: 4, marginBottom: 12 }}>
+      <Text variant="bodyStrong">{label}</Text>
+      <Amount text={value} size="M" />
+    </View>
+  );
+}
+
+const Ready = withSpaceReady(AutoBudget);
+
+export default function AutoBudgetScreen() {
+  return (
+    <DesignV2>
+      <Ready />
+    </DesignV2>
+  );
+}

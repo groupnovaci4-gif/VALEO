@@ -5,7 +5,7 @@
  * réponse est affichée ET lue, que le toucher coupe la voix, et que rien n'est
  * enregistré avant « oui ».
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, phraseField } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -186,7 +186,7 @@ let b;
   };
   const typed = async (phrase) => {
     await go('/'); await closeCelebration(); await openKeyboard();
-    await p.getByLabel('Écrivez comme vous parlez').fill(phrase); await btn('Comprendre').click(); await p.waitForTimeout(700);
+    await (await phraseField(p)).fill(phrase); await btn('Comprendre').click(); await p.waitForTimeout(700);
     return text();
   };
   const reply = async (r) => { await p.getByLabel('Votre réponse').fill(r); await btn('Envoyer').click(); await p.waitForTimeout(600); return text(); };

@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DineroX design v2</title>
+<!--
+  Prévisualisation du design system proposé (docs/design-system.md).
+  Fichier autonome : il ne fait pas partie de l'application et n'en modifie aucun code.
+  Polices : Google Fonts ; icônes : Ionicons (même jeu que @expo/vector-icons dans l'app).
+  Les contrastes affichés sont recalculés dans la page (formule WCAG 2.1) à partir des jetons ci-dessous.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<style>
+  /* ---------- Jetons (miroir de docs/design-system.md §1) ---------- */
+  .t-light {
+    --background:#F5F7F6; --surface:#FFFFFF; --surfaceAlt:#ECF0EE; --border:#DDE3E0; --borderStrong:#7D8984;
+    --text:#121A17; --textMuted:#3F4A45; --textSubtle:#56625C;
+    --primary:#00685F; --primaryPressed:#004F48; --onPrimary:#FFFFFF; --primaryContainer:#D3EFEA; --onPrimaryContainer:#00413B;
+    --accent:#8A5300; --accentContainer:#FFD9A8; --onAccentContainer:#2B1700;
+    --income:#1E6B3A; --expense:#B3261E;
+    --success:#1E6B3A; --successBg:#D7F0DF; --onSuccess:#FFFFFF;
+    --warning:#8A5300; --warningBg:#FFEBCF;
+    --danger:#B3261E; --dangerBg:#FDE2DE; --onDanger:#FFFFFF;
+    --info:#3949AB; --infoBg:#E3E6FA;
+    --heroFrom:#0B6B61; --heroTo:#06504A; --onHero:#FFFFFF; --onHeroMuted:rgba(255,255,255,.88); --heroTrack:rgba(255,255,255,.28);
+    --track:#DDE3E0; --disabledBg:#E3E7E5; --onDisabled:#5E6A64;
+    --inverseSurface:#1F2724; --onInverse:#F2F6F4;
+    --shadow1:0 2px 8px rgba(18,26,23,.06); --shadow2:0 6px 16px rgba(18,26,23,.12);
+    color-scheme: light;
+  }
+  .t-dark {
+    --background:#0E1412; --surface:#161D1A; --surfaceAlt:#212A26; --border:#2C3632; --borderStrong:#75827C;
+    --text:#EEF3F0; --textMuted:#BAC5BF; --textSubtle:#9AA6A0;
+    --primary:#4FD1C0; --primaryPressed:#7FE0D3; --onPrimary:#00201C; --primaryContainer:#0F3D37; --onPrimaryContainer:#B6F1E8;
+    --accent:#FFC266; --accentContainer:#4A3000; --onAccentContainer:#FFDDB0;
+    --income:#5BD6A0; --expense:#FF8A80;
+    --success:#5BD6A0; --successBg:#123826; --onSuccess:#00210F;
+    --warning:#FFC266; --warningBg:#3A2A0E;
+    --danger:#FF8A80; --dangerBg:#3D1714; --onDanger:#3B0906;
+    --info:#A5B4FF; --infoBg:#1E2547;
+    --heroFrom:#0D5C53; --heroTo:#08413B; --onHero:#FFFFFF; --onHeroMuted:rgba(255,255,255,.86); --heroTrack:rgba(255,255,255,.24);
+    --track:#2C3632; --disabledBg:#28322E; --onDisabled:#97A39D;
+    --inverseSurface:#E3EAE6; --onInverse:#17201C;
+    --shadow1:none; --shadow2:none;
+    color-scheme: dark;
+  }
+  :root { --s:1; --medalGold:#F5B301; --medalSilver:#C3CCD3; --medalBronze:#C27C46; --onMedal:#2B1700; }
+
+  /* ---------- Typographie (§2) : taille de base × min(échelle système, plafond du rôle) ---------- */
+  .jk { font-family:'Plus Jakarta Sans', system-ui, sans-serif; }
+  .in, body { font-family:Inter, system-ui, sans-serif; }
+  .amountHero { font:800 calc(36px*min(var(--s),1.15))/1.22 'Plus Jakarta Sans',sans-serif; letter-spacing:-.5px; }
+  .amountL    { font:700 calc(28px*min(var(--s),1.25))/1.2 'Plus Jakarta Sans',sans-serif; letter-spacing:-.3px; }
+  .amountM    { font:700 calc(20px*min(var(--s),1.4))/1.3 Inter,sans-serif; font-variant-numeric:tabular-nums; }
+  .amountS    { font:600 calc(16px*min(var(--s),1.6))/1.375 Inter,sans-serif; font-variant-numeric:tabular-nums; }
+  .titleL     { font:700 calc(24px*min(var(--s),1.25))/1.25 'Plus Jakarta Sans',sans-serif; }
+  .titleM     { font:700 calc(20px*min(var(--s),1.4))/1.3 'Plus Jakarta Sans',sans-serif; }
+  .titleS     { font:700 calc(17px*min(var(--s),1.4))/1.41 'Plus Jakarta Sans',sans-serif; }
+  .body       { font:400 calc(16px*min(var(--s),1.6))/1.5 Inter,sans-serif; }
+  .bodyStrong { font:600 calc(16px*min(var(--s),1.6))/1.5 Inter,sans-serif; }
+  .label      { font:600 calc(15px*min(var(--s),1.6))/1.33 Inter,sans-serif; }
+  .small      { font:400 calc(14px*min(var(--s),1.6))/1.43 Inter,sans-serif; }
+  .caption    { font:500 calc(13px*min(var(--s),1.6))/1.38 Inter,sans-serif; }
+  .tab        { font:600 calc(12px*min(var(--s),1.6))/1.33 Inter,sans-serif; }
+  .amt { display:inline-flex; align-items:baseline; gap:.25em; flex-wrap:nowrap; white-space:nowrap; }
+  .amt .cur { font:700 calc(17px*min(var(--s),1.4))/1 'Plus Jakarta Sans',sans-serif; letter-spacing:0; }
+  .amountS .cur, .amountM .cur { font:inherit; }
+  .muted { color:var(--textMuted); } .subtle { color:var(--textSubtle); }
+  .c-income { color:var(--income); } .c-expense { color:var(--expense); } .c-primary { color:var(--primary); }
+
+  /* ---------- Page ---------- */
+  * { box-sizing:border-box; }
+  body { margin:0; background:#E9EDEB; color:#121A17; }
+  header.top { position:sticky; top:0; z-index:5; background:#121A17; color:#F2F6F4; padding:12px 16px; display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; }
+  header.top h1 { font:700 18px/1.2 'Plus Jakarta Sans',sans-serif; margin:0; flex:1 1 220px; }
+  header.top label { font:500 14px Inter,sans-serif; display:flex; gap:8px; align-items:center; }
+  header.top output { font-variant-numeric:tabular-nums; min-width:44px; display:inline-block; }
+  header.top button { font:600 14px Inter,sans-serif; min-height:40px; padding:0 14px; border-radius:10px; border:1px solid #75827C; background:transparent; color:#F2F6F4; cursor:pointer; }
+  header.top button[aria-pressed="true"] { background:#4FD1C0; color:#00201C; border-color:#4FD1C0; }
+  main { max-width:1240px; margin:0 auto; padding:16px; }
+  section.block { background:#fff; border-radius:16px; padding:20px; margin-bottom:20px; }
+  section.block > h2 { font:700 22px/1.3 'Plus Jakarta Sans',sans-serif; margin:0 0 4px; }
+  section.block > p.lead { font:400 15px/1.5 Inter,sans-serif; color:#3F4A45; margin:0 0 16px; max-width:780px; }
+  .duo { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr)); gap:16px; }
+  .pane { background:var(--background); color:var(--text); border-radius:14px; padding:16px; border:1px solid #CBD3CF; }
+  .pane > h3 { font:700 15px/1.2 Inter,sans-serif; margin:0 0 12px; color:var(--textMuted); }
+  .stack { display:flex; flex-direction:column; gap:12px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+
+  /* Palette */
+  .swatches { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+  .sw { border-radius:10px; overflow:hidden; border:1px solid var(--border); background:var(--surface); }
+  .sw i { display:block; height:40px; }
+  .sw span { display:block; padding:6px 8px; font:500 12px/1.35 Inter,sans-serif; color:var(--text); }
+  .sw code { color:var(--textMuted); font:500 11.5px ui-monospace,monospace; }
+  table.cr { width:100%; border-collapse:collapse; font:400 13px/1.4 Inter,sans-serif; }
+  table.cr th, table.cr td { padding:6px 8px; border-bottom:1px solid #E1E6E3; text-align:left; vertical-align:middle; }
+  table.cr th { font-weight:600; color:#3F4A45; position:sticky; top:0; background:#fff; }
+  table.cr td.n { font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; }
+  .demo { display:inline-flex; align-items:center; justify-content:center; min-width:58px; height:28px; border-radius:6px; font:600 13px Inter,sans-serif; padding:0 8px; }
+  .ok { color:#1E6B3A; font-weight:700; } .ko { color:#B3261E; font-weight:700; }
+  .scroll-x { overflow-x:auto; }
+
+  /* ---------- Composants (§8) ---------- */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px; padding:10px 18px; border-radius:12px; border:0; cursor:pointer; text-align:center; }
+  .btn ion-icon { font-size:calc(22px*min(var(--s),1.3)); flex:none; }
+  .btn.full { width:100%; }
+  .btn.primary { background:var(--primary); color:var(--onPrimary); }
+  .btn.primary:active, .btn.primary.is-pressed { background:var(--primaryPressed); }
+  .btn.secondary { background:var(--primaryContainer); color:var(--onPrimaryContainer); }
+  .btn.secondary:active, .btn.secondary.is-pressed { background:var(--surfaceAlt); }
+  .btn.tertiary { background:transparent; color:var(--primary); }
+  .btn.tertiary:active, .btn.tertiary.is-pressed { background:var(--surfaceAlt); text-decoration:underline; }
+  .btn.destructive { background:var(--dangerBg); color:var(--danger); }
+  .btn.destructive.solid { background:var(--danger); color:var(--onDanger); }
+  .btn[disabled] { background:var(--disabledBg); color:var(--onDisabled); cursor:not-allowed; }
+  .btn .help { display:block; }
+  .spin { width:20px; height:20px; border-radius:50%; border:2.5px solid currentColor; border-right-color:transparent; animation:spin .8s linear infinite; flex:none; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spin, .skel { animation:none !important; } }
+  .state-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; align-items:start; }
+  .state-grid figure { margin:0; display:flex; flex-direction:column; gap:6px; }
+  .state-grid figcaption { font:500 12px Inter,sans-serif; color:var(--textSubtle); }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow1); color:var(--text); }
+  .card.interactive { cursor:pointer; display:flex; gap:12px; align-items:center; }
+  .card.interactive:active, .card.interactive.is-pressed { background:var(--surfaceAlt); }
+  .hero { background:linear-gradient(135deg,var(--heroFrom),var(--heroTo)); color:var(--onHero); border-radius:24px; padding:24px; }
+  .hero .m { color:var(--onHeroMuted); }
+  .hero hr { border:0; border-top:1px solid var(--heroTrack); margin:14px 0; }
+  .tone { border-radius:12px; padding:12px 12px 12px 14px; display:flex; gap:10px; align-items:flex-start; border-left:4px solid; }
+  .tone ion-icon { font-size:22px; flex:none; margin-top:1px; }
+  .tone.warning { background:var(--warningBg); color:var(--warning); border-color:var(--warning); }
+  .tone.danger { background:var(--dangerBg); color:var(--danger); border-color:var(--danger); }
+  .tone.success { background:var(--successBg); color:var(--success); border-color:var(--success); }
+  .tone.info { background:var(--infoBg); color:var(--info); border-color:var(--info); }
+  .tone .t { color:var(--text); }
+  .chev { color:var(--textSubtle); font-size:20px; flex:none; margin-left:auto; }
+
+  .pastille { width:40px; height:40px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; flex:none; font-size:20px; }
+  .lrow { display:flex; gap:12px; align-items:center; min-height:56px; padding:8px 0; }
+  .lrow + .lrow { border-top:1px solid var(--border); }
+  .lrow .mid { flex:1; min-width:0; }
+  .lrow .mid .bodyStrong, .lrow .mid .small { overflow-wrap:anywhere; }
+  .lrow .right { text-align:right; flex:none; }
+  /* Bascule en deux étages quand le texte système dépasse 130 % (§2.3 règle 3). */
+  .big-text .lrow { flex-wrap:wrap; }
+  .big-text .lrow .right { flex-basis:100%; padding-left:52px; text-align:left; }
+
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field .box { display:flex; align-items:center; gap:8px; min-height:52px; padding:0 12px; border-radius:12px; background:var(--surface); border:1.5px solid var(--borderStrong); }
+  .field .box.is-focus, .field .box:focus-within { border-color:var(--primary); box-shadow:0 0 0 4px color-mix(in srgb, var(--primary) 35%, transparent); }
+  .field .box.is-error { border-color:var(--danger); box-shadow:none; }
+  .field input { flex:1; min-width:0; border:0; outline:0; background:transparent; color:var(--text); padding:12px 0; }
+  .field input::placeholder { color:var(--textSubtle); }
+  .field .err { display:flex; gap:6px; align-items:flex-start; color:var(--danger); }
+  .field .err ion-icon { font-size:16px; margin-top:2px; flex:none; }
+
+  .chip { display:inline-flex; align-items:center; gap:6px; min-height:48px; padding:8px 14px; border-radius:12px; border:1.5px solid var(--borderStrong); background:var(--surface); color:var(--text); cursor:pointer; }
+  .chip.on { background:var(--primaryContainer); color:var(--onPrimaryContainer); border-color:var(--primary); }
+  .badge { display:inline-flex; align-items:center; gap:4px; padding:4px 8px; border-radius:8px; }
+  .badge.neutral { background:var(--surfaceAlt); color:var(--textMuted); }
+  .badge.success { background:var(--successBg); color:var(--success); }
+  .badge.warning { background:var(--warningBg); color:var(--warning); }
+  .badge.danger { background:var(--dangerBg); color:var(--danger); }
+  .badge.info { background:var(--infoBg); color:var(--info); }
+  .badge.accent { background:var(--accentContainer); color:var(--onAccentContainer); }
+  .seg { display:flex; background:var(--surfaceAlt); border-radius:12px; padding:4px; gap:4px; }
+  .seg button { flex:1; min-height:48px; border:0; border-radius:9px; background:transparent; color:var(--textMuted); display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer; padding:4px 6px; }
+  .seg button.on { background:var(--surface); color:var(--text); font-weight:700; box-shadow:var(--shadow1); }
+  .bar { height:8px; border-radius:99px; background:var(--track); overflow:hidden; }
+  .bar i { display:block; height:100%; border-radius:99px; }
+  .hero .bar { background:var(--heroTrack); height:10px; }
+
+  .state { display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px; padding:24px 12px; }
+  .state .ring { width:64px; height:64px; border-radius:999px; display:flex; align-items:center; justify-content:center; font-size:28px; }
+  .skel { height:14px; border-radius:6px; background:var(--surfaceAlt); animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity:.55; } }
+  .toast { background:var(--inverseSurface); color:var(--onInverse); border-radius:12px; padding:12px 16px; display:flex; gap:8px; align-items:center; }
+
+  /* ---------- Maquette d'accueil ---------- */
+  .phones { display:flex; flex-wrap:wrap; gap:24px; justify-content:center; }
+  .phone { width:var(--pw,360px); height:760px; border-radius:28px; border:8px solid #121A17; overflow:hidden; display:flex; flex-direction:column; background:var(--background); color:var(--text); position:relative; flex:none; }
+  .phone .scroll { flex:1; overflow-y:auto; padding:0 16px 24px; }
+  .phone .head { display:flex; align-items:center; gap:10px; padding:12px 16px 8px; flex-wrap:wrap; }
+  .logo { width:40px; height:40px; border-radius:12px; background:var(--primary); color:var(--onPrimary); display:flex; align-items:center; justify-content:center; font:800 20px 'Plus Jakarta Sans',sans-serif; flex:none; }
+  .hact { display:inline-flex; align-items:center; gap:6px; min-height:48px; padding:0 8px; border-radius:12px; color:var(--text); background:transparent; border:0; }
+  .big-text .phone .head .brand { flex:1 1 calc(100% - 60px); }
+  .big-text .phone .head .hact { order:3; }
+  .phone .head .brand { overflow-wrap:anywhere; }
+  .avatar { width:48px; height:48px; border-radius:999px; background:var(--primary); color:var(--onPrimary); display:flex; align-items:center; justify-content:center; font:700 15px Inter,sans-serif; flex:none; }
+  .shortcuts { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .big-text .shortcuts { grid-template-columns:1fr; }
+  .shortcut { text-decoration:none; display:flex; align-items:center; gap:8px; min-height:48px; padding:8px 12px; border-radius:12px; background:var(--surface); border:1.5px solid var(--borderStrong); color:var(--text); }
+  .shortcut ion-icon { font-size:22px; color:var(--primary); flex:none; }
+  .sect { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:20px 0 8px; flex-wrap:wrap; }
+  .tabbar { display:flex; align-items:flex-end; background:var(--surface); border-top:1px solid var(--border); padding:6px 2px 10px; }
+  .tabbar .ti { flex:1 1 auto; display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--textSubtle); min-width:0; padding:0 2px; }
+  .tabbar .ti ion-icon { font-size:24px; }
+  .tabbar .ti.on { color:var(--primary); }
+  .tabbar .ti.on .tab { font-weight:700; }
+  .tabbar .tab { white-space:nowrap; }
+  .tabbar.tight .tab { font-size:calc(12px*min(var(--s),1.6)*.85); }
+  .tabbar .mic { width:56px; height:56px; border-radius:999px; background:var(--primary); color:var(--onPrimary); display:flex; align-items:center; justify-content:center; margin-top:-24px; border:4px solid var(--surface); box-shadow:var(--shadow2); }
+  .tabbar .mic ion-icon { font-size:28px; }
+  .overflow-flag { position:absolute; right:12px; bottom:84px; background:#B3261E; color:#fff; font:600 12px Inter,sans-serif; padding:4px 8px; border-radius:8px; display:none; }
+  .phone.overflowing .overflow-flag { display:block; }
+  .note { font:400 13px/1.5 Inter,sans-serif; color:#3F4A45; margin:12px 0 0; }
+  .note b { color:#121A17; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>DineroX — design v2 (proposition)</h1>
+  <label>Texte système <input id="scale" type="range" min="1" max="1.6" step="0.1" value="1" aria-describedby="scaleOut"> <output id="scaleOut">100 %</output></label>
+  <span role="group" aria-label="Largeur des maquettes" style="display:flex;gap:6px">
+    <button type="button" data-w="360" aria-pressed="true">360 px</button>
+    <button type="button" data-w="320" aria-pressed="false">320 px</button>
+  </span>
+</header>
+
+<main>
+
+<!-- ============ 1. PALETTE ============ -->
+<section class="block">
+  <h2>1. Palette</h2>
+  <p class="lead">Rôles sémantiques uniquement (aucune couleur en dur dans les écrans). Le thème clair est la référence (usage en plein soleil). Les contrastes du tableau sont recalculés ici même, à partir de ces valeurs.</p>
+  <div class="duo">
+    <div class="pane t-light"><h3>Clair</h3><div class="swatches" data-swatches></div></div>
+    <div class="pane t-dark"><h3>Sombre</h3><div class="swatches" data-swatches></div></div>
+  </div>
+  <h3 style="font:700 16px Inter,sans-serif;margin:20px 0 8px">Contrastes (WCAG 2.1 — texte ≥ 4,5:1, contours et graphiques ≥ 3:1)</h3>
+  <p id="crSummary" class="note"></p>
+  <div class="scroll-x"><table class="cr" id="crTable"><thead><tr><th>Usage</th><th>Paire</th><th>Clair</th><th></th><th>Sombre</th><th></th><th>Min</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<!-- ============ 2. TYPOGRAPHIE ============ -->
+<section class="block">
+  <h2>2. Typographie et montants</h2>
+  <p class="lead">Deux familles : Plus Jakarta Sans (titres, grands montants) et Inter (texte, montants en liste à chiffres alignés). La devise est plus petite que le nombre. Bougez le curseur « Texte système » : chaque rôle suit jusqu'à son plafond (texte courant 160 %, montant héros 115 %).</p>
+  <div class="duo">
+    <div class="pane t-light stack" data-typo></div>
+    <div class="pane t-dark stack" data-typo></div>
+  </div>
+</section>
+
+<!-- ============ 3. BOUTONS ============ -->
+<section class="block">
+  <h2>3. Boutons</h2>
+  <p class="lead">Quatre variantes, 48 px minimum, toujours icône + texte. Un seul bouton « principal » par écran. États : repos, pressé, désactivé (avec explication), chargement (texte conservé).</p>
+  <div class="duo">
+    <div class="pane t-light stack" data-buttons></div>
+    <div class="pane t-dark stack" data-buttons></div>
+  </div>
+</section>
+
+<!-- ============ 4. CARTES ============ -->
+<section class="block">
+  <h2>4. Cartes, lignes, badges, barres</h2>
+  <p class="lead">Une seule carte héros (dégradé) par écran. Les messages d'état ont une icône, un filet et un texte : jamais la couleur seule. Les pastilles de catégorie gardent leur emoji.</p>
+  <div class="duo">
+    <div class="pane t-light stack" data-cards></div>
+    <div class="pane t-dark stack" data-cards></div>
+  </div>
+</section>
+
+<!-- ============ 5. CHAMPS ============ -->
+<section class="block">
+  <h2>5. Champs, puces, segments</h2>
+  <p class="lead">Libellé toujours visible au-dessus, contour lisible (≥ 3:1). Au focus, seules la couleur du contour et l'opacité du halo changent (règle 13 : aucune propriété qui déplacerait le champ sur Android). Erreur : icône + texte sous le champ.</p>
+  <div class="duo">
+    <div class="pane t-light stack" data-fields></div>
+    <div class="pane t-dark stack" data-fields></div>
+  </div>
+</section>
+
+<!-- ============ 6. ÉTATS ============ -->
+<section class="block">
+  <h2>6. États : vide, chargement, erreur, succès</h2>
+  <p class="lead">Un seul gabarit pour les quatre cas. Plus d'emoji dans les états vides : icône dans une pastille. L'erreur reste affichée dans la page (et le toast dure 4 s pour un succès).</p>
+  <div class="duo">
+    <div class="pane t-light" data-states></div>
+    <div class="pane t-dark" data-states></div>
+  </div>
+</section>
+
+<!-- ============ 7. MAQUETTE ACCUEIL ============ -->
+<section class="block">
+  <h2>7. Maquette : accueil</h2>
+  <p class="lead">Données fictives. Ordre : carte héros (reste par jour + solde disponible) → alerte tontine → raccourci Historique en un toucher → dernières opérations → mois en cours… Barre à 5 emplacements avec « Saisir » sous le micro. Passez à 320 px et 160 % pour voir le comportement en conditions limites.</p>
+  <div class="phones">
+    <div class="phone t-light" data-phone aria-label="Maquette accueil, thème clair"></div>
+    <div class="phone t-dark" data-phone aria-label="Maquette accueil, thème sombre"></div>
+  </div>
+  <p class="note" id="tabNote"></p>
+</section>
+
+</main>
+
+<template id="tpl-typo">
+  <div><div class="caption subtle">amountHero · 36 px · Jakarta 800 · plafond 115 %</div><div class="amt amountHero"><span class="num">1 250 000</span><span class="cur">FCFA</span></div></div>
+  <div><div class="caption subtle">amountL · 28 px · plafond 125 %</div><div class="amt amountL"><span class="num">12 500 000</span><span class="cur">FCFA</span></div></div>
+  <div><div class="caption subtle">amountM · 20 px · Inter chiffres alignés · plafond 140 %</div><div class="amt amountM c-income">+150 000 FCFA</div></div>
+  <div><div class="caption subtle">amountS · 16 px · listes · plafond 160 %</div><div class="amountS c-expense">−2 500 FCFA</div><div class="amountS">182 500 FCFA</div></div>
+  <div><div class="caption subtle">titleL · 24 px</div><div class="titleL">Bonjour Awa 👋</div></div>
+  <div><div class="caption subtle">titleM · 20 px</div><div class="titleM">Budget</div></div>
+  <div><div class="caption subtle">titleS · 17 px</div><div class="titleS">Dernières opérations</div></div>
+  <div><div class="caption subtle">body · 16 px</div><div class="body">Il vous reste 4 300 FCFA par jour jusqu'au 31 oct.</div></div>
+  <div><div class="caption subtle">bodyStrong · 16 px</div><div class="bodyStrong">Marché de Treichville</div></div>
+  <div><div class="caption subtle">label · 15 px</div><div class="label">Enregistrer</div></div>
+  <div><div class="caption subtle">small · 14 px</div><div class="small muted">Nourriture · Espèces · 8 oct.</div></div>
+  <div><div class="caption subtle">caption · 13 px (plancher)</div><div class="caption subtle">Revenus 260 000 FCFA − dépenses 128 000 FCFA − à venir 3 500 FCFA</div></div>
+</template>
+
+<template id="tpl-buttons">
+  <div class="state-grid">
+    <figure><button class="btn primary label"><ion-icon name="checkmark" aria-hidden="true"></ion-icon>Enregistrer</button><figcaption>primary · repos</figcaption></figure>
+    <figure><button class="btn primary label is-pressed"><ion-icon name="checkmark" aria-hidden="true"></ion-icon>Enregistrer</button><figcaption>primary · pressé</figcaption></figure>
+    <figure><button class="btn primary label" disabled aria-describedby=""><ion-icon name="checkmark" aria-hidden="true"></ion-icon>Enregistrer</button><span class="caption subtle">Indiquez un montant pour enregistrer.</span><figcaption>primary · désactivé + explication</figcaption></figure>
+    <figure><button class="btn primary label" aria-busy="true"><span class="spin" aria-hidden="true"></span>Enregistrer</button><figcaption>primary · chargement</figcaption></figure>
+  </div>
+  <div class="state-grid">
+    <figure><button class="btn secondary label"><ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>Budget automatique</button><figcaption>secondary</figcaption></figure>
+    <figure><button class="btn secondary label is-pressed"><ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>Budget automatique</button><figcaption>secondary · pressé</figcaption></figure>
+    <figure><button class="btn tertiary label"><ion-icon name="time-outline" aria-hidden="true"></ion-icon>Tout voir</button><figcaption>tertiary</figcaption></figure>
+    <figure><button class="btn tertiary label is-pressed"><ion-icon name="time-outline" aria-hidden="true"></ion-icon>Tout voir</button><figcaption>tertiary · pressé</figcaption></figure>
+  </div>
+  <div class="state-grid">
+    <figure><button class="btn destructive label"><ion-icon name="log-out-outline" aria-hidden="true"></ion-icon>Se déconnecter</button><figcaption>destructive</figcaption></figure>
+    <figure><button class="btn destructive solid label"><ion-icon name="trash-outline" aria-hidden="true"></ion-icon>Supprimer</button><figcaption>destructive plein (dans une confirmation)</figcaption></figure>
+    <figure><button class="btn primary label"><ion-icon name="cash-outline" aria-hidden="true"></ion-icon>J'ai reçu la cagnotte</button><figcaption>ex-« success » → primary</figcaption></figure>
+    <figure><button class="btn tertiary label"><ion-icon name="volume-high-outline" aria-hidden="true"></ion-icon>Écouter</button><figcaption>« Écouter » : icône + texte</figcaption></figure>
+  </div>
+</template>
+
+<template id="tpl-cards">
+  <div class="hero">
+    <div class="small m">Reste par jour</div>
+    <div class="amt amountHero"><span class="num">4 300</span><span class="cur">FCFA</span></div>
+    <div class="bodyStrong">Il vous reste 4 300 FCFA par jour jusqu'au 31 oct.</div>
+    <div class="bar" style="margin-top:12px"><i style="width:62%;background:var(--medalGold)"></i></div>
+  </div>
+  <div class="card"><div class="small muted">Solde disponible</div><div class="amt amountL"><span class="num">182 500</span><span class="cur">FCFA</span></div><div class="caption subtle">Comptes courants, hors épargne et argent mis de côté pour vos objectifs</div></div>
+  <div class="card interactive" role="button" tabindex="0" aria-label="Nourriture, Reste 12 000 FCFA, Presque épuisée">
+    <span class="pastille" style="background:color-mix(in srgb,#F59E0B 16%,transparent)" aria-hidden="true">🍛</span>
+    <div style="flex:1;min-width:0" class="stack" >
+      <div class="row" style="justify-content:space-between"><span class="bodyStrong">Nourriture</span><span class="amountS">Reste 12 000 FCFA</span></div>
+      <div class="bar"><i style="width:90%;background:var(--warning)"></i></div>
+      <div class="row caption" style="color:var(--warning)"><ion-icon name="warning" aria-hidden="true"></ion-icon>Presque épuisée · 90 %</div>
+    </div>
+    <ion-icon class="chev" name="chevron-forward" aria-hidden="true"></ion-icon>
+  </div>
+  <div class="card" style="padding:4px 16px">
+    <div class="lrow"><span class="pastille" style="background:color-mix(in srgb,#EAB308 16%,transparent)" aria-hidden="true">🍛</span><div class="mid"><div class="bodyStrong">Marché</div><div class="small muted">Nourriture · Espèces · 8 oct.</div></div><div class="right amountS c-expense">−2 500 FCFA</div></div>
+    <div class="lrow"><span class="pastille" style="background:#6366F1;color:#fff" aria-hidden="true"><ion-icon name="briefcase"></ion-icon></span><div class="mid"><div class="bodyStrong">Salaire</div><div class="small muted">Revenu · Orange Money · 1 oct.</div></div><div class="right amountS c-income">+150 000 FCFA</div></div>
+    <div class="lrow"><span class="pastille" style="background:#EAB308;color:#121A17" aria-hidden="true"><ion-icon name="car"></ion-icon></span><div class="mid"><div class="bodyStrong">Taxi</div><div class="small muted">Transport · Espèces · 30 sept.</div></div><div class="right amountS c-expense">−2 000 FCFA</div></div>
+  </div>
+  <div class="caption subtle">Pastille pleine : glyphe blanc ou encre selon le meilleur contraste (#6366F1 → blanc, #EAB308 → encre).</div>
+  <div class="tone warning"><ion-icon name="warning" aria-hidden="true"></ion-icon><div class="small t">Tontine du quartier : 10 000 FCFA à cotiser dans 2 jours</div></div>
+  <div class="tone danger" role="alert"><ion-icon name="alert-circle" aria-hidden="true"></ion-icon><div class="small t">Ce mois-ci, vos dépenses dépassent vos revenus de 18 000 FCFA.</div></div>
+  <div class="tone success"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon><div class="small t">Enregistré</div></div>
+  <div class="tone info"><ion-icon name="cloud-offline-outline" aria-hidden="true"></ion-icon><div class="small t">Hors connexion — vos saisies sont gardées et seront synchronisées.</div></div>
+  <div class="row">
+    <span class="badge neutral caption">En pause</span><span class="badge success caption"><ion-icon name="checkmark" aria-hidden="true"></ion-icon>Payée</span><span class="badge warning caption">Reportée</span><span class="badge danger caption">En retard</span><span class="badge info caption">Transfert</span><span class="badge accent caption">PRO</span>
+  </div>
+  <div class="row">
+    <span class="pastille" style="background:var(--medalGold);color:var(--onMedal)" aria-hidden="true"><ion-icon name="trophy"></ion-icon></span><span class="small">Or</span>
+    <span class="pastille" style="background:var(--medalSilver);color:var(--onMedal)" aria-hidden="true"><ion-icon name="trophy"></ion-icon></span><span class="small">Argent</span>
+    <span class="pastille" style="background:var(--medalBronze);color:var(--onMedal)" aria-hidden="true"><ion-icon name="trophy"></ion-icon></span><span class="small">Bronze</span>
+  </div>
+</template>
+
+<template id="tpl-fields">
+  <div class="field"><label class="label">Bénéficiaire / commerçant <span class="muted" style="font-weight:400">(facultatif)</span></label><div class="box"><input class="body" placeholder="Ex. Marché de Cocody"></div><span class="caption subtle">Au repos</span></div>
+  <div class="field"><label class="label">Bénéficiaire / commerçant</label><div class="box is-focus"><input class="body" value="Boutique Diallo"></div><span class="caption subtle">Focus : couleur du contour + halo (opacité seule)</span></div>
+  <div class="field"><label class="label">Montant</label><div class="box is-error"><input class="amountL" value="" placeholder="0" inputmode="numeric"><span class="titleS muted">FCFA</span></div><span class="err caption" role="alert"><ion-icon name="alert-circle" aria-hidden="true"></ion-icon>Indiquez un montant supérieur à 0.</span></div>
+  <div class="field"><label class="label">Montant</label><div class="box"><input class="amountL" value="25000" inputmode="numeric"><span class="titleS muted">FCFA</span></div><span class="small">25 000 FCFA</span></div>
+  <div class="row"><button class="chip label on" aria-pressed="true"><ion-icon name="checkmark" aria-hidden="true"></ion-icon>🍛 Nourriture</button><button class="chip label" aria-pressed="false">🚕 Transport</button><button class="chip label" aria-pressed="false">🏠 Logement</button></div>
+  <div class="seg" role="tablist"><button class="label on" role="tab" aria-selected="true"><ion-icon name="arrow-up" aria-hidden="true"></ion-icon>Sortie d'argent</button><button class="label" role="tab" aria-selected="false"><ion-icon name="arrow-down" aria-hidden="true"></ion-icon>Entrée d'argent</button></div>
+</template>
+
+<template id="tpl-states">
+  <div class="state-grid" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))">
+    <figure class="card"><div class="state"><div class="ring" style="background:var(--primaryContainer);color:var(--primary)"><ion-icon name="receipt-outline" aria-hidden="true"></ion-icon></div><div class="titleS">Aucune opération pour le moment</div><div class="body muted">Ajoutez votre première dépense ou votre premier revenu : cela prend quelques secondes.</div><button class="btn primary label"><ion-icon name="add" aria-hidden="true"></ion-icon>Ajouter une dépense</button></div><figcaption>Vide</figcaption></figure>
+    <figure class="card"><div class="state" role="status" aria-live="polite"><span class="spin" style="color:var(--primary);width:32px;height:32px;border-width:3px" aria-hidden="true"></span><div class="body muted">Chargement…</div></div><div class="stack" aria-hidden="true"><div class="skel" style="width:70%"></div><div class="skel" style="width:90%"></div><div class="skel" style="width:55%"></div></div><figcaption>Chargement (texte visible + squelettes)</figcaption></figure>
+    <figure class="card"><div class="state" role="alert"><div class="ring" style="background:var(--dangerBg);color:var(--danger)"><ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon></div><div class="body">Impossible de joindre le serveur. Vérifiez votre connexion et réessayez.</div><button class="btn secondary label"><ion-icon name="refresh" aria-hidden="true"></ion-icon>Réessayer</button></div><figcaption>Erreur dans la page</figcaption></figure>
+    <figure class="card"><div class="stack"><div class="tone success"><ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon><div class="small t">Enregistré</div></div><button class="btn primary label full"><ion-icon name="checkmark" aria-hidden="true"></ion-icon>Enregistrer</button><div class="toast small"><ion-icon name="checkmark-circle" style="color:var(--success);font-size:20px" aria-hidden="true"></ion-icon>Enregistré</div></div><figcaption>Succès : message près du bouton + toast 4 s</figcaption></figure>
+  </div>
+</template>
+
+<template id="tpl-phone">
+  <div class="head">
+    <div class="logo" aria-hidden="true">D</div>
+    <div class="titleS c-primary brand" style="flex:1;min-width:0">DineroX</div>
+    <button class="hact label"><ion-icon name="notifications-outline" style="font-size:24px" aria-hidden="true"></ion-icon>Notifications</button>
+    <div class="avatar" role="button" aria-label="Réglages">AK</div>
+  </div>
+  <div class="scroll">
+    <div class="titleL" style="margin:4px 0 12px">Bonjour Awa 👋</div>
+    <div class="hero" style="padding:20px">
+      <span class="small m">Reste par jour</span>
+      <div class="amt amountHero" data-money><span class="num">4 300</span><span class="cur">FCFA</span></div>
+      <div class="bodyStrong" style="margin-top:4px">Il vous reste <span data-money>4 300 FCFA</span> par jour jusqu'au 31 oct.</div>
+      <hr>
+      <div class="row" style="justify-content:space-between">
+        <span class="small m">Solde disponible</span>
+        <span class="amountM" data-money>182 500 FCFA</span>
+      </div>
+      <button class="hact label" style="color:var(--onHero);min-height:48px;padding:0;margin-top:6px;text-align:left" data-hide><ion-icon name="eye-outline" style="font-size:22px;flex:none" aria-hidden="true"></ion-icon><span>Masquer les montants</span></button>
+    </div>
+    <div class="caption subtle" style="margin:8px 4px 12px">Revenus 260 000 FCFA − dépenses 128 000 FCFA − à venir 3 500 FCFA</div>
+    <div class="card interactive" style="padding:12px;border-left:4px solid var(--warning)">
+      <ion-icon name="people" style="font-size:22px;color:var(--warning);flex:none" aria-hidden="true"></ion-icon>
+      <div class="small" style="flex:1"><b>Tontine du quartier</b> : <span data-money>10 000 FCFA</span> à cotiser dans 2 jours</div>
+      <ion-icon class="chev" name="chevron-forward" aria-hidden="true"></ion-icon>
+    </div>
+    <div class="shortcuts" style="margin-top:12px">
+      <a class="shortcut label" href="#" onclick="return false"><ion-icon name="time-outline" aria-hidden="true"></ion-icon>Historique</a>
+      <a class="shortcut label" href="#" onclick="return false"><ion-icon name="swap-horizontal" aria-hidden="true"></ion-icon>Revenu ou transfert</a>
+    </div>
+    <div class="card" style="margin-top:12px;background:var(--primaryContainer);border-color:transparent;display:flex;gap:10px;align-items:center">
+      <span class="pastille" style="background:var(--primary);color:var(--onPrimary)" aria-hidden="true"><ion-icon name="mic"></ion-icon></span>
+      <div style="flex:1;min-width:0"><div class="bodyStrong" style="color:var(--onPrimaryContainer)">Dites-moi ce que vous avez dépensé ou reçu</div><div class="small" style="color:var(--onPrimaryContainer)">Par exemple : « Taxi 2 000 »</div></div>
+    </div>
+    <div class="sect"><span class="titleS">Dernières opérations</span><button class="btn tertiary label" style="min-height:48px;padding:0 6px">Tout voir</button></div>
+    <div class="card" style="padding:4px 16px">
+      <div class="lrow"><span class="pastille" style="background:color-mix(in srgb,#F59E0B 16%,transparent)" aria-hidden="true">🍛</span><div class="mid"><div class="bodyStrong">Marché</div><div class="small muted">Nourriture · Espèces · 8 oct.</div></div><div class="right amountS c-expense" data-money>−2 500 FCFA</div></div>
+      <div class="lrow"><span class="pastille" style="background:color-mix(in srgb,#0EA5E9 16%,transparent)" aria-hidden="true">⛽</span><div class="mid"><div class="bodyStrong">Carburant moto</div><div class="small muted">Transport · Wave · 7 oct.</div></div><div class="right amountS c-expense" data-money>−5 000 FCFA</div></div>
+      <div class="lrow"><span class="pastille" style="background:color-mix(in srgb,#10B981 16%,transparent)" aria-hidden="true">💼</span><div class="mid"><div class="bodyStrong">Salaire</div><div class="small muted">Revenu · Orange Money · 1 oct.</div></div><div class="right amountS c-income" data-money>+150 000 FCFA</div></div>
+    </div>
+    <div class="sect"><span class="titleS">Mois en cours</span><button class="btn tertiary label" style="min-height:48px;padding:0 6px">octobre 2026</button></div>
+    <div class="card" style="padding:4px 16px">
+      <div class="lrow"><span class="pastille" style="background:var(--successBg);color:var(--income)" aria-hidden="true"><ion-icon name="arrow-down"></ion-icon></span><div class="mid"><div class="bodyStrong">Revenus</div><div class="small muted">perçus ce mois</div></div><div class="right amountS c-income" data-money>+260 000 FCFA</div></div>
+      <div class="lrow"><span class="pastille" style="background:var(--dangerBg);color:var(--expense)" aria-hidden="true"><ion-icon name="arrow-up"></ion-icon></span><div class="mid"><div class="bodyStrong">Dépenses</div><div class="small muted">réglées ce mois</div></div><div class="right amountS c-expense" data-money>−128 000 FCFA</div></div>
+      <div class="lrow"><span class="pastille" style="background:var(--accentContainer);color:var(--onAccentContainer)" aria-hidden="true"><ion-icon name="wallet"></ion-icon></span><div class="mid"><div class="bodyStrong">Épargne</div><div class="small muted">mis de côté</div></div><div class="right amountS" data-money>45 000 FCFA</div></div>
+      <div class="lrow"><span class="pastille" style="background:var(--primaryContainer);color:var(--primary)" aria-hidden="true"><ion-icon name="pie-chart"></ion-icon></span><div class="mid"><div class="bodyStrong">Budget dispo</div><div class="small muted">encore allouable</div></div><div class="right amountS" data-money>48 000 FCFA</div></div>
+    </div>
+    <div class="sect"><span class="titleS">Enveloppes actives</span><button class="btn tertiary label" style="min-height:48px;padding:0 6px">Tout voir</button></div>
+    <div class="card stack">
+      <div class="row" style="justify-content:space-between"><span class="bodyStrong">🍛 Nourriture</span><span class="amountS" data-money>Reste 12 000 FCFA</span></div>
+      <div class="bar"><i style="width:90%;background:var(--warning)"></i></div>
+      <div class="row caption" style="color:var(--warning)"><ion-icon name="warning" aria-hidden="true"></ion-icon>Presque épuisée · 90 %</div>
+    </div>
+  </div>
+  <nav class="tabbar" aria-label="Navigation principale">
+    <div class="ti on"><ion-icon name="home" aria-hidden="true"></ion-icon><span class="tab">Accueil</span></div>
+    <div class="ti"><ion-icon name="pie-chart-outline" aria-hidden="true"></ion-icon><span class="tab">Budget</span></div>
+    <div class="ti"><div class="mic" aria-hidden="true"><ion-icon name="mic"></ion-icon></div><span class="tab" style="color:var(--text)">Saisir</span></div>
+    <div class="ti"><ion-icon name="flag-outline" aria-hidden="true"></ion-icon><span class="tab">Objectifs</span></div>
+    <div class="ti"><ion-icon name="grid-outline" aria-hidden="true"></ion-icon><span class="tab">Plus</span></div>
+  </nav>
+  <div class="overflow-flag">Libellé d'onglet qui déborde</div>
+</template>
+
+<script>
+  // ---------- Jetons pour le calcul des contrastes (mêmes valeurs que le CSS) ----------
+  const T = {
+    light:{background:'#F5F7F6',surface:'#FFFFFF',surfaceAlt:'#ECF0EE',border:'#DDE3E0',borderStrong:'#7D8984',text:'#121A17',textMuted:'#3F4A45',textSubtle:'#56625C',primary:'#00685F',primaryPressed:'#004F48',onPrimary:'#FFFFFF',primaryContainer:'#D3EFEA',onPrimaryContainer:'#00413B',accent:'#8A5300',accentContainer:'#FFD9A8',onAccentContainer:'#2B1700',income:'#1E6B3A',expense:'#B3261E',success:'#1E6B3A',successBg:'#D7F0DF',onSuccess:'#FFFFFF',warning:'#8A5300',warningBg:'#FFEBCF',danger:'#B3261E',dangerBg:'#FDE2DE',onDanger:'#FFFFFF',info:'#3949AB',infoBg:'#E3E6FA',heroFrom:'#0B6B61',heroTo:'#06504A',onHero:'#FFFFFF',onHeroMuted:'rgba(255,255,255,0.88)',heroTrack:'rgba(255,255,255,0.28)',track:'#DDE3E0',disabledBg:'#E3E7E5',onDisabled:'#5E6A64',inverseSurface:'#1F2724',onInverse:'#F2F6F4',chartIncome:'#1E6B3A',chartExpense:'#C2570C'},
+    dark:{background:'#0E1412',surface:'#161D1A',surfaceAlt:'#212A26',border:'#2C3632',borderStrong:'#75827C',text:'#EEF3F0',textMuted:'#BAC5BF',textSubtle:'#9AA6A0',primary:'#4FD1C0',primaryPressed:'#7FE0D3',onPrimary:'#00201C',primaryContainer:'#0F3D37',onPrimaryContainer:'#B6F1E8',accent:'#FFC266',accentContainer:'#4A3000',onAccentContainer:'#FFDDB0',income:'#5BD6A0',expense:'#FF8A80',success:'#5BD6A0',successBg:'#123826',onSuccess:'#00210F',warning:'#FFC266',warningBg:'#3A2A0E',danger:'#FF8A80',dangerBg:'#3D1714',onDanger:'#3B0906',info:'#A5B4FF',infoBg:'#1E2547',heroFrom:'#0D5C53',heroTo:'#08413B',onHero:'#FFFFFF',onHeroMuted:'rgba(255,255,255,0.86)',heroTrack:'rgba(255,255,255,0.24)',track:'#2C3632',disabledBg:'#28322E',onDisabled:'#97A39D',inverseSurface:'#E3EAE6',onInverse:'#17201C',chartIncome:'#5BD6A0',chartExpense:'#FFA45C'}
+  };
+  const PAIRS = [
+    ['texte principal','text','background',4.5],['texte sur carte','text','surface',4.5],['texte secondaire','textMuted','surface',4.5],['secondaire sur fond gris','textMuted','surfaceAlt',4.5],
+    ['légende','textSubtle','surface',4.5],['légende sur fond gris','textSubtle','surfaceAlt',4.5],['légende sur fond','textSubtle','background',4.5],
+    ['contour de champ / puce','borderStrong','surface',3],['contour sur fond','borderStrong','background',3],
+    ['lien / texte vert','primary','surface',4.5],['bouton principal','onPrimary','primary',4.5],['bouton principal pressé','onPrimary','primaryPressed',4.5],
+    ['bouton secondaire / puce choisie','onPrimaryContainer','primaryContainer',4.5],['texte or','accent','surface',4.5],['badge or','onAccentContainer','accentContainer',4.5],
+    ['montant entrant','income','surface',4.5],['montant sortant','expense','surface',4.5],['montant sortant sur gris','expense','surfaceAlt',4.5],
+    ['message succès','success','successBg',4.5],['message attention','warning','warningBg',4.5],['message erreur','danger','dangerBg',4.5],['message info','info','infoBg',4.5],
+    ['bouton destructif plein','onDanger','danger',4.5],['bouton succès (ancien)','onSuccess','success',4.5],
+    ['montant héros (début du dégradé)','onHero','heroFrom',4.5],['montant héros (fin)','onHero','heroTo',4.5],['texte secondaire héros (début)','onHeroMuted','heroFrom',4.5],['texte secondaire héros (fin)','onHeroMuted','heroTo',4.5],
+    ['bouton désactivé','onDisabled','disabledBg',3],['toast','onInverse','inverseSurface',4.5],['série graphique entrées','chartIncome','surface',3],['série graphique sorties','chartExpense','surface',3],
+    ['barre de progression','primary','track',3],['barre dépassée','danger','track',3],['barre « attention »','warning','track',3]
+  ];
+  const hex = h => { h = h.replace('#',''); return [0,2,4].map(i => parseInt(h.slice(i,i+2),16)); };
+  const rgb = (c, base) => { const m = c.match(/rgba\(([^)]+)\)/); if (!m) return hex(c); const [r,g,b,a] = m[1].split(',').map(Number); return [r,g,b].map((v,i) => Math.round(v*a + base[i]*(1-a))); };
+  const lum = ([r,g,b]) => { const f = v => (v/=255) <= .03928 ? v/12.92 : ((v+.055)/1.055)**2.4; return .2126*f(r)+.7152*f(g)+.0722*f(b); };
+  const ratio = (fg, bg, theme) => { const B = rgb(bg, hex(theme.surface)); const F = rgb(fg, B); const a = lum(F), b = lum(B); return (Math.max(a,b)+.05)/(Math.min(a,b)+.05); };
+  const fmt = n => n.toFixed(2).replace('.', ',');
+
+  // Pastilles de la palette
+  const ROLES = ['background','surface','surfaceAlt','border','borderStrong','text','textMuted','textSubtle','primary','primaryPressed','onPrimary','primaryContainer','onPrimaryContainer','accent','accentContainer','income','expense','successBg','warning','warningBg','danger','dangerBg','info','infoBg','heroFrom','heroTo','track','disabledBg'];
+  document.querySelectorAll('[data-swatches]').forEach(el => {
+    const th = el.closest('.t-dark') ? T.dark : T.light;
+    el.innerHTML = ROLES.map(r => `<div class="sw"><i style="background:${th[r]}"></i><span>${r}<br><code>${th[r]}</code></span></div>`).join('');
+  });
+
+  // Tableau des contrastes
+  let fails = 0;
+  document.querySelector('#crTable tbody').innerHTML = PAIRS.map(([use, f, b, min]) => {
+    const cells = ['light','dark'].map(k => {
+      const th = T[k]; const r = ratio(th[f], th[b], th); if (r < min) fails++;
+      const bgSolid = th[b].startsWith('rgba') ? `rgb(${rgb(th[b], hex(th.surface))})` : th[b];
+      const demo = `<span class="demo" style="background:${bgSolid};color:${th[f]};${f.startsWith('border')||f==='primary'&&b==='track'||f==='danger'&&b==='track'||f==='warning'&&b==='track'||f.startsWith('chart')?`border:3px solid ${th[f]};color:${th.text}`:''}">Aa 1 250</span>`;
+      return `<td class="n">${fmt(r)} <span class="${r>=min?'ok':'ko'}">${r>=min?'✓':'✗'}</span></td><td>${demo}</td>`;
+    }).join('');
+    return `<tr><td>${use}</td><td><code>${f}</code> / <code>${b}</code></td>${cells}<td class="n">${String(min).replace('.',',')}</td></tr>`;
+  }).join('');
+  document.getElementById('crSummary').innerHTML = fails === 0
+    ? `<b>${PAIRS.length * 2} paires vérifiées, 0 échec.</b> ✓ = au-dessus du seuil.`
+    : `<b style="color:#B3261E">${fails} échec(s)</b> sur ${PAIRS.length * 2} paires.`;
+
+  // Remplissage des volets à partir des modèles
+  const fill = (sel, tpl) => document.querySelectorAll(sel).forEach(el => el.append(document.getElementById(tpl).content.cloneNode(true)));
+  fill('[data-typo]','tpl-typo'); fill('[data-buttons]','tpl-buttons'); fill('[data-cards]','tpl-cards');
+  fill('[data-fields]','tpl-fields'); fill('[data-states]','tpl-states'); fill('[data-phone]','tpl-phone');
+
+  // « Masquer les montants » dans la maquette (lecteur d'écran : « Montant masqué »)
+  document.querySelectorAll('[data-phone]').forEach(ph => {
+    const btn = ph.querySelector('[data-hide]'); let hidden = false;
+    const originals = [...ph.querySelectorAll('[data-money]')].map(n => n.innerHTML);
+    btn.addEventListener('click', () => {
+      hidden = !hidden;
+      btn.querySelector('span').textContent = hidden ? 'Afficher les montants' : 'Masquer les montants';
+      btn.querySelector('ion-icon').setAttribute('name', hidden ? 'eye-off-outline' : 'eye-outline');
+      ph.querySelectorAll('[data-money]').forEach((n, i) => {
+        if (hidden) { n.innerHTML = '••••••'; n.setAttribute('aria-label', 'Montant masqué'); }
+        else { n.innerHTML = originals[i]; n.removeAttribute('aria-label'); }
+      });
+    });
+  });
+
+  // Curseur « Texte système » et largeur des maquettes
+  const scale = document.getElementById('scale'), out = document.getElementById('scaleOut');
+  const checkTabs = () => {
+    let any = false;
+    document.querySelectorAll('[data-phone]').forEach(ph => {
+      const bar = ph.querySelector('.tabbar'); bar.classList.remove('tight');
+      const fits = () => ![...ph.querySelectorAll('.tabbar .ti')].some(ti => ti.scrollWidth > ti.clientWidth + 1);
+      if (!fits()) { bar.classList.add('tight'); ph.dataset.tight = '1'; } else delete ph.dataset.tight;
+      const over = [...ph.querySelectorAll('.tabbar .ti')].some(ti => ti.scrollWidth > ti.clientWidth + 1)
+        || ph.querySelector('.tabbar').scrollWidth > ph.querySelector('.tabbar').clientWidth + 1;
+      ph.classList.toggle('overflowing', over); any = any || over;
+    });
+    const tight = [...document.querySelectorAll('[data-phone]')].some(ph => ph.dataset.tight);
+    const w = getComputedStyle(document.querySelector('.phone')).getPropertyValue('--pw') || '360px';
+    document.getElementById('tabNote').innerHTML = any
+      ? `<b>Barre d'onglets à ${Math.round(scale.value*100)} % sur ${w.trim()} : un libellé déborde</b> (mesure du navigateur, police Inter web). C'est le risque signalé au §8.13 : repli prévu = réduire ce seul libellé jusqu'à 0,85.`
+      : tight
+        ? `<b>Barre d'onglets à ${Math.round(scale.value*100)} % sur ${w.trim()} : les libellés ne tenaient pas à pleine taille</b> ; le repli du §8.13 est appliqué (libellés réduits à 0,85, soit ${Math.round(Math.min(scale.value,1.6)*85)} % au lieu de ${Math.round(scale.value*100)} %). Mesure du navigateur, à confirmer sur Android.`
+        : `<b>Barre d'onglets à ${Math.round(scale.value*100)} % sur ${w.trim()} : tous les libellés tiennent</b> (emplacements de largeur proportionnelle ; mesure du navigateur, à confirmer sur Android).`;
+  };
+  const apply = () => {
+    const s = Number(scale.value);
+    document.documentElement.style.setProperty('--s', s);
+    out.textContent = Math.round(s * 100) + ' %';
+    document.body.classList.toggle('big-text', s >= 1.3);
+    requestAnimationFrame(checkTabs);
+  };
+  scale.addEventListener('input', apply);
+  document.querySelectorAll('[data-w]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-w]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelectorAll('.phone').forEach(p => p.style.setProperty('--pw', b.dataset.w + 'px'));
+    requestAnimationFrame(checkTabs);
+  }));
+  document.fonts?.ready.then(apply); apply();
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { useTheme } from '@/theme';
+import { useTheme, MIN_TOUCH } from '@/theme';
 import { Text } from './Text';
 import { Icon } from './Icon';
 
@@ -19,7 +19,48 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
   filled?: boolean;
 }) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, v2 } = useTheme();
+  if (v2) {
+    // v2 (docs/design-system.md §8.8) : 48 dp, icône et libellé sur une ligne, coche sur le
+    // segment choisi (pas la couleur seule), libellé sur plusieurs lignes plutôt que tronqué.
+    return (
+      <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: colors.surfaceAlt, padding: 4, gap: 4, borderRadius: radius.md, marginBottom: 16 }}>
+        {options.map((o) => {
+          const sel = o.value === value;
+          const fg = sel ? (filled ? colors.onPrimary : colors.text) : colors.textMuted;
+          return (
+            <Pressable
+              key={o.value}
+              accessibilityRole="tab"
+              accessibilityLabel={o.label}
+              accessibilityState={{ selected: sel }}
+              aria-selected={sel}
+              onPress={() => onChange(o.value)}
+              style={({ pressed }) => ({
+                flex: 1,
+                minWidth: 0,
+                minHeight: MIN_TOUCH,
+                paddingHorizontal: 8,
+                paddingVertical: 6,
+                gap: 6,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                borderRadius: radius.sm,
+                backgroundColor: sel ? (filled ? colors.primary : colors.surface) : pressed ? colors.border : 'transparent',
+              })}
+            >
+              {o.icon ? <Icon name={o.icon} size={20} color={fg} /> : null}
+              <Text variant="label" weight={sel ? '700' : '600'} style={{ color: fg, flexShrink: 1, textAlign: 'center' }}>
+                {o.label}
+              </Text>
+              {sel ? <Icon name="checkmark" size={18} color={fg} /> : null}
+            </Pressable>
+          );
+        })}
+      </View>
+    );
+  }
   return (
     <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: colors.surfaceAlt, padding: 4, borderRadius: radius.md, marginBottom: 16 }}>
       {options.map((o) => {

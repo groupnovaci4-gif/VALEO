@@ -7,7 +7,7 @@
  *  2. Compte réel (gratuit) : date publiée dans le catalogue distant (émulateur),
  *     limite d'un moment fort, limite de 3 simulations par mois.
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, phraseField } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -89,7 +89,7 @@ let b;
 
   // Phrase (même parseur que la voix) : « Si je donne… » → simulateur.
   await go('/'); await closeCelebration(); await openKeyboard();
-  await p.getByLabel('Écrivez comme vous parlez').fill('Si je donne 20 000 pour les funérailles, il me reste combien ?');
+  await (await phraseField(p)).fill('Si je donne 20 000 pour les funérailles, il me reste combien ?');
   await btn('Comprendre').click(); await p.waitForTimeout(2500);
   t = await text();
   // Selon le jour du mois de la démo : reste par jour ou manque (deux résultats chiffrés).

@@ -36,7 +36,9 @@ export function Sheet({
    */
   inline?: boolean;
 }) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, v2 } = useTheme();
+  // v2 (§8.15) : marge de 16 dp, poignée visible au soleil, titre `titleM`.
+  const pad = v2 ? 16 : 20;
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
   // Bouton retour Android : ferme la superposition (la modale le gère elle-même).
@@ -64,7 +66,7 @@ export function Sheet({
             width: 40,
             height: 4,
             borderRadius: 2,
-            backgroundColor: colors.border,
+            backgroundColor: v2 ? colors.borderStrong : colors.border,
           }}
         />
       </View>
@@ -72,11 +74,11 @@ export function Sheet({
         style={{
           flexDirection: "row",
           alignItems: "center",
-          paddingLeft: 20,
-          paddingRight: 8,
+          paddingLeft: pad,
+          paddingRight: v2 ? 4 : 8,
         }}
       >
-        <Text variant="h3" style={{ flex: 1 }} accessibilityRole="header">
+        <Text variant={v2 ? "titleM" : "h3"} style={{ flex: 1 }} accessibilityRole="header">
           {title ?? ""}
         </Text>
         <IconButton icon="close" label={t("common.close")} onPress={onClose} />
@@ -103,7 +105,7 @@ export function Sheet({
       >
         {backdrop}
         {panel(
-          <View style={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+          <View style={{ paddingHorizontal: pad, paddingBottom: 8 }}>
             {children}
           </View>,
         )}
@@ -127,7 +129,7 @@ export function Sheet({
           <KeyboardAwareScrollView
             keyboardShouldPersistTaps="handled"
             bottomOffset={24}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}
+            contentContainerStyle={{ paddingHorizontal: pad, paddingBottom: 8 }}
           >
             {children}
           </KeyboardAwareScrollView>,

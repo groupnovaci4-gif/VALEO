@@ -1,5 +1,5 @@
 /* Audit de TOUS les formulaires : champs (générique) + enregistrements réels + persistance. */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, phraseField } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 const email = `audit${Date.now()}@ex.com`;
@@ -59,8 +59,9 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   });
   await step('Saisie (feuille du micro, clavier)', async () => {
     await go('/entry?mode=keyboard', 3500);
+    await phraseField(p); // mode clavier : la phrase écrite est dans le repli « Autres façons de saisir »
     await checkAllInputs(p, 'Saisie (phrase écrite)', ok, { expectInputs: true });
-    await p.getByLabel('Écrivez comme vous parlez').fill('Taxi'); await btn('Comprendre', 700);
+    await (await phraseField(p)).fill('Taxi'); await btn('Comprendre', 700);
     await p.getByRole('button', { name: /^montant :/ }).click(); await p.waitForTimeout(300);
     await checkAllInputs(p, 'Saisie (carte de confirmation)', ok, { expectInputs: true });
     await btn('Annuler', 400);
@@ -110,7 +111,8 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   });
   await step('contribution', async () => {
     await go('/goals'); await tap('Moto Audit', { exact: false }); await p.waitForTimeout(800);
-    await tap('Ajouter de l’argent', { exact: false });
+    // Bouton de la FICHE (nom exact, visible) : l'onglet Objectifs, resté monté sous la fiche, a aussi le sien (« …, Moto Audit »).
+    await p.getByRole('button', { name: 'Ajouter de l’argent', exact: true }).filter({ visible: true }).first().click(); await p.waitForTimeout(400);
     await checkAllInputs(p, 'Contribution', ok, { expectInputs: true });
     await fill('Montant', '100000'); await btn('Enregistrer');
     await go('/goals'); await has('25 %', 'contribution : 300 000 / 1 200 000');

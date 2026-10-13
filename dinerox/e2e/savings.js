@@ -10,7 +10,7 @@
  *  7. limite de la formule gratuite (3 comptes) : message clair, aucune limite changée ;
  *  8. versement HORS LIGNE : enregistré tout de suite, synchronisé au retour du réseau (vu d'un 2e appareil).
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, phraseField } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -128,7 +128,7 @@ const email = `sav${Date.now()}@ex.com`;
   // ── 6. Phrase « J'ai épargné 20 000 » ──
   const exp2 = await monthExpenses();
   await go('/entry?mode=keyboard', 3500);
-  await p.getByLabel('Écrivez comme vous parlez').fill("J'ai épargné 20 000"); await btn('Comprendre').click(); await p.waitForTimeout(2000);
+  await (await phraseField(p)).fill("J'ai épargné 20 000"); await btn('Comprendre').click(); await p.waitForTimeout(2000);
   ok(p.url().includes('/savings/move'), `« J'ai épargné 20 000 » → écran de versement (${p.url().replace(BASE, '')})`);
   ok((await p.getByRole('textbox', { name: 'Montant', exact: true }).first().inputValue()).replace(/\D/g, '') === '20000', 'montant prérempli : 20 000');
   await p.getByRole('button', { name: /^Wave · / }).first().click(); await p.waitForTimeout(200);

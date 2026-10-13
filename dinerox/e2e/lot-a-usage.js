@@ -3,7 +3,7 @@
  * de développement) sont capturés et vérifiés : bons noms, bonnes propriétés, AUCUN contenu
  * (ni montant, ni texte prononcé ou écrit, ni bénéficiaire, ni catégorie).
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, phraseField } = require('./env.js');
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
 const FAKE_SPEECH = () => {
@@ -39,7 +39,7 @@ let b;
   const btn = (name) => p.getByRole('button', { name, exact: true });
   const go = async (path, w = 3000) => { await p.goto(BASE + path, { waitUntil: 'load' }); await p.waitForTimeout(w); };
   const closeCelebration = async () => { const c = btn('Continuer'); if (await c.count()) { await c.first().click(); await p.waitForTimeout(300); } };
-  const phrase = async (s) => { await p.getByLabel('Écrivez comme vous parlez').fill(s); await btn('Comprendre').click(); await p.waitForTimeout(600); };
+  const phrase = async (s) => { await (await phraseField(p)).fill(s); await btn('Comprendre').click(); await p.waitForTimeout(600); };
   const has = (event, props = {}) => events.some((e) => e.event === event && Object.entries(props).every(([k, v]) => e.props[k] === v));
 
   await go('/'); await p.getByText('Tester sans données (démonstration)').click(); await p.waitForTimeout(5500); await closeCelebration();

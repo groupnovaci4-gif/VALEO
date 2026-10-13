@@ -41,6 +41,8 @@ export default function Goals() {
   const suggestions = insights.filter((i) => i.kind === 'suggest_emergency_fund' || i.kind === 'suggest_goal_capacity' || i.kind === 'savings_capacity');
   const canCreate = can(role, 'create', 'goals');
   const canEdit = can(role, 'update', 'goals');
+  // Même droit que sur la fiche : un enfant peut verser, pas modifier.
+  const canContribute = can(role, 'create', 'goalContributions');
   // Ordre de priorité des seuls objectifs actifs (les objectifs en pause sont
   // listés mais hors classement : l'index d'affichage ne convient donc pas).
   const rankedIds = active.filter((g) => g.status === 'active').map((g) => g.id);
@@ -155,10 +157,28 @@ export default function Goals() {
                 </Text>
               ) : null}
               <GoalCard goal={g} plan={plan} rank={g.status === 'active' ? rankedIds.indexOf(g.id) + 1 : undefined} />
-              {canEdit && g.status === 'active' && rankedIds.length > 1 ? (
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: -8, marginBottom: 6 }}>
-                  <IconButton icon="chevron-up" label={t('goal.moveUp')} onPress={() => move(g.id, -1)} size={18} />
-                  <IconButton icon="chevron-down" label={t('goal.moveDown')} onPress={() => move(g.id, 1)} size={18} />
+              {/* « Ajouter de l'argent » sous la carte (hors de sa zone cliquable, pour rester joignable au
+                  lecteur d'écran) : même écran de versement que la fiche, qui s'ouvre ensuite sur la progression. */}
+              {(canContribute || canEdit) && g.status === 'active' ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -4, marginBottom: 12 }}>
+                  {canContribute ? (
+                    <Button
+                      variant="secondary"
+                      icon="add"
+                      label={t('goal.contribute')}
+                      accessibilityLabel={`${t('goal.contribute')}, ${g.name}`}
+                      onPress={() => router.push(`/goals/contribute?id=${g.id}&from=goals`)}
+                      style={{ flex: 1 }}
+                    />
+                  ) : (
+                    <View style={{ flex: 1 }} />
+                  )}
+                  {canEdit && rankedIds.length > 1 ? (
+                    <>
+                      <IconButton icon="chevron-up" label={t('goal.moveUp')} onPress={() => move(g.id, -1)} size={18} />
+                      <IconButton icon="chevron-down" label={t('goal.moveDown')} onPress={() => move(g.id, 1)} size={18} />
+                    </>
+                  ) : null}
                 </View>
               ) : null}
             </View>

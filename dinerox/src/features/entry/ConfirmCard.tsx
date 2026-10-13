@@ -3,16 +3,20 @@
  * vocale ou en phrase) : une ligne par opération comprise, chaque champ
  * modifiable d'un toucher ; un champ incertain est SURLIGNÉ, jamais deviné en
  * silence ; sans montant, l'enregistrement est impossible.
+ *
+ * Design v2 (docs/ui-audit.md §10.3) : montant en premier, en grand ; champ incertain
+ * signalé par une icône ET le mot « à vérifier » (jamais par la couleur seule) ;
+ * pastilles de 48 dp ; « Tout valider » seul bouton principal, en pied de carte.
  */
 import React, { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View, useWindowDimensions } from 'react-native';
 import { useI18n } from '@/i18n';
 import { useCategoryLabels, useFinance, useMoney } from '@/hooks/useFinance';
 import { ReserveUseToggle } from '@/features/reserve/ReserveUseToggle';
 import { reserveBalance } from '@/core/reserve';
 import { buildSchedule } from '@/core/tontine';
-import { AmountField, Button, Chip, ChipGroup, DateField, Icon, Text } from '@/components/ui';
-import { useTheme } from '@/theme';
+import { AmountField, Banner, Button, Card, Chip, ChipGroup, DateField, Icon, Text } from '@/components/ui';
+import { BIG_TEXT, MIN_TOUCH, useTheme } from '@/theme';
 import type { EntryDraft, EntryField } from '@/core/entry/parse';
 import type { Account } from '@/core/types';
 import type { CurrencyCode } from '@/core/money';
@@ -41,6 +45,8 @@ export function ConfirmCard({
 }) {
   const { t, date } = useI18n();
   const { colors, radius } = useTheme();
+  // Texte système agrandi (≥ 130 %) : « Corriger » et « Annuler » empilés. Fixe pendant la saisie.
+  const big = useWindowDimensions().fontScale >= BIG_TEXT;
   const money = useMoney();
   const cats = useCategoryLabels();
   const [editing, setEditing] = useState<Editing>(null);
@@ -63,10 +69,10 @@ export function ConfirmCard({
 
   return (
     <View accessibilityLabel={t('entry.confirm.title')}>
-      <Text variant="bodyStrong" style={{ marginBottom: 4 }}>
+      <Text variant="titleS" style={{ marginBottom: 4 }}>
         {drafts.length > 1 ? t('entry.confirm.many', { count: drafts.length }) : t('entry.confirm.one')}
       </Text>
-      <Text variant="caption" tone="subtle" style={{ marginBottom: 8 }}>
+      <Text variant="small" tone="muted" style={{ marginBottom: 12 }}>
         {t('entry.confirm.hint')}
       </Text>
       {drafts.map((d, i) => {
@@ -74,38 +80,54 @@ export function ConfirmCard({
         const meta = cats.meta(d.categoryId);
         const acc = accounts.find((a) => a.id === d.accountId);
         const savingsTo = d.type === 'savings' ? accounts.find((a) => a.id === d.savings?.savingsAccountId) : undefined;
-        const field = (f: EntryField | 'date' | 'savingsTo', label: string, value: string, icon?: string) => {
+        /**
+         * Pastille modifiable d'un toucher. Incertaine : icône `help-circle` à la place de celle du
+         * champ, contour `warning` 2 dp et mot « à vérifier » visible (libellé d'accessibilité inchangé).
+         * `amount` : pastille du montant, pleine largeur, montant en grand (ce qu'on vérifie d'abord).
+         */
+        const field = (f: EntryField | 'date' | 'savingsTo', label: string, value: string, icon?: string, amount = false) => {
           const hl = f === 'savingsTo' ? !savingsTo : f !== 'date' && unsure(f);
+          const valueColor = amount && d.amount ? (d.type === 'income' ? colors.income : d.type === 'expense' ? colors.expense : colors.text) : colors.text;
           return (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${label} : ${value}${hl ? `, ${t('entry.confirm.toCheck')}` : ''}`}
               onPress={() => setEditing(editing?.index === i && editing.field === f ? null : { index: i, field: f })}
-              style={{
+              style={({ pressed }) => ({
                 flexDirection: 'row',
                 alignItems: 'center',
-                gap: 6,
-                minHeight: 40,
-                paddingHorizontal: 10,
+                // Le mot « à vérifier » peut passer à la ligne : les lignes restent centrées dans la pastille.
+                flexWrap: 'wrap',
+                alignContent: 'center',
+                gap: 8,
+                minHeight: amount ? 56 : MIN_TOUCH,
+                alignSelf: amount ? 'stretch' : 'auto',
+                paddingHorizontal: 12,
                 paddingVertical: 6,
                 borderRadius: radius.md,
-                borderWidth: 1.5,
-                borderColor: hl ? colors.warning : colors.border,
-                backgroundColor: hl ? colors.warningBg : colors.surface,
-              }}
+                borderWidth: hl ? 2 : 1.5,
+                borderColor: hl ? colors.warning : colors.borderStrong,
+                backgroundColor: hl ? colors.warningBg : pressed ? colors.surfaceAlt : colors.surface,
+              })}
             >
-              {icon ? <Icon name={icon} size={16} color={hl ? colors.warning : colors.textMuted} /> : null}
-              <Text variant="small" weight={hl ? '700' : '600'} style={{ color: hl ? colors.warning : colors.text }}>
+              {hl ? <Icon name="help-circle" size={amount ? 22 : 18} color={colors.warning} /> : icon ? <Icon name={icon} size={amount ? 22 : 18} color={colors.textMuted} /> : null}
+              <Text variant={amount ? 'amountM' : 'label'} style={{ color: valueColor, flexShrink: 1 }}>
                 {value}
               </Text>
+              {hl ? (
+                <Text variant="label" tone="warning">
+                  {t('entry.confirm.toCheck')}
+                </Text>
+              ) : null}
             </Pressable>
           );
         };
         return (
-          <View key={i} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: 10, marginBottom: 8, gap: 8 }}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          <Card key={i} style={{ marginBottom: 12, gap: 8 }}>
+            {/* Le montant d'abord, pleine largeur, avec l'icône du sens de l'opération. */}
+            {field('amount', t('entry.field.amount'), d.amount ? money(d.amount) : t('entry.confirm.amountMissing'), d.type === 'expense' ? 'arrow-up' : d.type === 'savings' ? 'shield-checkmark-outline' : 'arrow-down', true)}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {field('type', t('entry.field.type'), d.type === 'expense' ? t('entry.type.expense') : d.type === 'savings' ? t('entry.type.savings') : t('entry.type.income'), d.type === 'expense' ? 'arrow-up' : d.type === 'savings' ? 'shield-checkmark-outline' : 'arrow-down')}
-              {field('amount', t('entry.field.amount'), d.amount ? money(d.amount) : t('entry.confirm.amountMissing'), 'cash-outline')}
               {d.type === 'savings'
                 ? field('savingsTo', t('entry.field.savingsTo'), savingsTo?.name ?? t('entry.confirm.savingsMissing'), 'shield-checkmark-outline')
                 : field('category', t('entry.field.category'), d.categoryId ? cats.byId(d.subcategoryId ?? d.categoryId) : t('entry.confirm.categoryMissing'), meta.icon)}
@@ -131,9 +153,12 @@ export function ConfirmCard({
               : null}
             <ReserveUseToggle type={d.type === 'savings' ? 'income' : d.type} categoryId={d.categoryId} amount={d.amount} value={d.reserveId ?? null} alreadyTaken={takenBefore[i]} onChange={(reserveId) => patch(i, { reserveId }, [])} />
             {d.uncertain.length ? (
-              <Text variant="caption" tone="warning">
-                {t('entry.confirm.check', { fields: d.uncertain.map((f) => t(`entry.field.${f}`)).join(', ') })}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Icon name="help-circle" size={18} color={colors.warning} />
+                <Text variant="small" tone="warning" weight="600" style={{ flexShrink: 1 }}>
+                  {t('entry.confirm.check', { fields: d.uncertain.map((f) => t(`entry.field.${f}`)).join(', ') })}
+                </Text>
+              </View>
             ) : null}
             {editing?.index === i && editing.field === 'type' ? (
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -169,30 +194,17 @@ export function ConfirmCard({
               <ChipGroup scroll value={d.accountId} onChange={(accountId) => (patch(i, { accountId }, ['account']), setEditing(null))} options={accounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))} />
             ) : null}
             {editing?.index === i && editing.field === 'date' ? <DateField label={t('entry.field.date')} value={d.date} onChange={(v) => v && (patch(i, { date: v }, []), setEditing(null))} /> : null}
-            {drafts.length > 1 ? (
-              <Pressable accessibilityRole="button" accessibilityLabel={t('entry.confirm.removeLine')} onPress={() => onChange(drafts.filter((_, j) => j !== i))} hitSlop={8} style={{ alignSelf: 'flex-end' }}>
-                <Text variant="caption" tone="danger" weight="600">
-                  {t('entry.confirm.removeLine')}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
+            {drafts.length > 1 ? <Button small variant="destructive" icon="trash-outline" label={t('entry.confirm.removeLine')} onPress={() => onChange(drafts.filter((_, j) => j !== i))} style={{ alignSelf: 'flex-end' }} /> : null}
+          </Card>
         );
       })}
-      {missingSavings ? (
-        <Text variant="small" tone="danger" style={{ marginBottom: 8 }} accessibilityRole="alert">
-          {t('entry.confirm.needSavings')}
-        </Text>
-      ) : null}
-      {missingAmount ? (
-        <Text variant="small" tone="danger" style={{ marginBottom: 8 }} accessibilityRole="alert">
-          {t('entry.confirm.needAmount')}
-        </Text>
-      ) : null}
-      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-        <Button icon="checkmark" label={t('entry.confirm.validate')} onPress={onValidate} disabled={missingAmount || missingSavings || !drafts.length || busy} loading={busy} style={{ flexGrow: 1 }} />
-        <Button variant="secondary" label={t('entry.confirm.correct')} onPress={onCorrect} />
-        <Button variant="ghost" label={t('common.cancel')} onPress={onCancel} />
+      {/* Juste au-dessus de « Tout valider » : pourquoi le bouton est désactivé. */}
+      {missingSavings ? <Banner tone="danger" icon="alert-circle" text={t('entry.confirm.needSavings')} /> : null}
+      {missingAmount ? <Banner tone="danger" icon="alert-circle" text={t('entry.confirm.needAmount')} /> : null}
+      <Button icon="checkmark" label={t('entry.confirm.validate')} onPress={onValidate} disabled={missingAmount || missingSavings || !drafts.length || busy} loading={busy} full style={{ minHeight: 52 }} />
+      <View style={{ flexDirection: big ? 'column' : 'row', gap: 8, marginTop: 8 }}>
+        <Button variant="secondary" label={t('entry.confirm.correct')} onPress={onCorrect} full={big} style={big ? undefined : { flex: 1 }} />
+        <Button variant="tertiary" label={t('common.cancel')} onPress={onCancel} full={big} style={big ? undefined : { flex: 1 }} />
       </View>
     </View>
   );

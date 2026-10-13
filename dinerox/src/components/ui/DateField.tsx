@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useTheme } from '@/theme';
+import { useTheme, MIN_TOUCH } from '@/theme';
 import { Text } from './Text';
 import { Chip } from './Chip';
 import { Icon } from './Icon';
@@ -24,14 +24,14 @@ export function DateField({
   shortcuts?: boolean;
   minimumDate?: ISODate;
 }) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, v2 } = useTheme();
   const { t, date } = useI18n();
   const [open, setOpen] = useState(false);
   const now = today();
   return (
-    <View style={{ marginBottom: 14 }}>
+    <View style={{ marginBottom: v2 ? 16 : 14 }}>
       {label ? (
-        <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
+        <Text variant={v2 ? 'label' : 'small'} weight={v2 ? undefined : '600'} style={{ marginBottom: v2 ? 8 : 6 }}>
           {label}
         </Text>
       ) : null}
@@ -46,10 +46,15 @@ export function DateField({
           accessibilityRole="button"
           accessibilityLabel={label ?? t('common.date')}
           onPress={() => setOpen(true)}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surface }}
+          // v2 (§8.6–8.7) : même gabarit qu'une puce (48 dp, rayon 12, contour `borderStrong`).
+          style={({ pressed }) =>
+            v2
+              ? { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: MIN_TOUCH, paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.borderStrong, backgroundColor: pressed ? colors.surfaceAlt : colors.surface }
+              : { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surface }
+          }
         >
-          <Icon name="calendar-outline" size={16} color={colors.textMuted} />
-          <Text variant="small" weight="600">
+          <Icon name="calendar-outline" size={v2 ? 18 : 16} color={colors.textMuted} />
+          <Text variant={v2 ? 'label' : 'small'} weight={v2 ? undefined : '600'}>
             {value ? date(value, { year: true }) : t('goal.noDate')}
           </Text>
         </Pressable>

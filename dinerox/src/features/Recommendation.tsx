@@ -11,11 +11,11 @@ import { ListenButton } from '@/features/coach/ListenButton';
 /** Pastille de provenance d'un chiffre : vos données, déclaré, estimation. */
 export function SourceTag({ source }: { source: DataSource }) {
   const { t } = useI18n();
-  const { colors, radius } = useTheme();
+  const { colors, radius, v2 } = useTheme();
   const bg = source === 'user' ? colors.primaryLight : source === 'declared' ? colors.infoBg : colors.warningBg;
   const fg = source === 'user' ? colors.primary : source === 'declared' ? colors.info : colors.secondary;
   return (
-    <View style={{ alignSelf: 'flex-start', backgroundColor: bg, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 }}>
+    <View style={{ alignSelf: 'flex-start', backgroundColor: bg, borderRadius: v2 ? 8 : radius.pill, paddingHorizontal: 8, paddingVertical: v2 ? 4 : 2 }}>
       <Text variant="caption" weight="600" style={{ color: fg }}>
         {t(`intel.source.${source}` as TKey)}
       </Text>
@@ -36,7 +36,7 @@ export function useRecommendationText() {
 }
 
 export function RecommendationCard({ r }: { r: Recommendation }) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, v2 } = useTheme();
   const text = useRecommendationText();
   const map = {
     positive: [colors.successBg, colors.success, 'sparkles'],
@@ -47,6 +47,28 @@ export function RecommendationCard({ r }: { r: Recommendation }) {
   const [bg, fg, icon] = map[r.severity];
   // « Écouter » est À CÔTÉ de la zone cliquable, jamais dedans : pas de bouton
   // dans un bouton (HTML invalide sur le web, nom accessible pollué).
+  if (v2) {
+    // v2 : « Écouter » (icône + texte) sous la zone cliquable, pour laisser toute la largeur au texte.
+    return (
+      <View style={{ backgroundColor: bg, borderRadius: radius.lg, borderLeftWidth: 4, borderLeftColor: fg, marginBottom: 12, paddingBottom: 4 }}>
+        <Pressable
+          accessibilityRole={r.link ? 'button' : 'text'}
+          onPress={r.link ? () => router.push(r.link as never) : undefined}
+          style={({ pressed }) => ({ flexDirection: 'row', gap: 12, padding: 12, paddingBottom: 4, borderTopRightRadius: radius.lg, backgroundColor: pressed && r.link ? colors.surfaceAlt : 'transparent' })}
+        >
+          <Icon name={icon} size={22} color={fg} />
+          <View style={{ flex: 1, minWidth: 0, gap: 8 }}>
+            <Text variant="small">{text(r)}</Text>
+            <SourceTag source={r.source} />
+          </View>
+          {r.link ? <Icon name="chevron-forward" size={20} color={colors.textSubtle} /> : null}
+        </Pressable>
+        <View style={{ alignItems: 'flex-start', paddingLeft: 34 }}>
+          <ListenButton text={text(r)} />
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: bg, borderRadius: radius.lg, marginBottom: 10 }}>
       <Pressable
