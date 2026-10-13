@@ -5,23 +5,29 @@
  *
  * Toutes les fonctions appelables exigent une session et vérifient les droits.
  */
+// Région et instances : AVANT toute déclaration de fonction (voir options.ts).
+import './options';
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore, type DocumentReference } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import { setGlobalOptions, logger } from 'firebase-functions/v2';
+import { logger } from 'firebase-functions/v2';
 import { defineSecret, defineString } from 'firebase-functions/params';
 import { bestPlan, effectivePlan, FAMILY_MEMBER_LIMIT, hasAiAssistant, hasVoicePremium, nextVoiceParseAttempt, nextVoiceParseUsage, refundVoiceParseUsage, VOICE_PARSE_DAILY_LIMIT } from './plans';
 import { elevenLabsRequest, nextVoiceUsage, validateSpeak } from './voice';
 import { collectEntryCounts, entryUsage, firestoreCounter } from './usage';
 import { answerWithClaude } from './assistant';
 import { AI_CONSENT_VERSION, parseWithClaude, validateParseInput } from './voiceEntry';
+import { sendExpoPush, type PushMessage } from './push';
+import { forgetReferralData } from './referralApi';
+
+// Parrainage et liens DineroX (croissance, étape 1).
+export { adminReferralStats, applyReferral, link, myReferral, referralNightly, referralOnGoal, referralOnTransaction, setAmbassador } from './referralApi';
 
 initializeApp();
 const db = getFirestore();
-setGlobalOptions({ region: 'europe-west1', maxInstances: 20 });
 
 const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
 const ELEVENLABS_API_KEY = defineSecret('ELEVENLABS_API_KEY');
@@ -74,7 +80,7 @@ export const inviteMember = onCall(async (req) => {
   const { space } = await loadFamily(spaceId);
   if (space.members[uid] !== 'admin') throw new HttpsError('permission-denied', 'space/not-admin');
   const owner = await db.doc(`users/${space.ownerId}`).get();
-  const limit = FAMILY_MEMBER_LIMIT[effectivePlan(owner.get('subscription'))];
+  const limit = FAMILY_MEMBER_LIMIT[effectivePlan(owner.get('subscription'), Date.now(), owner.get('grants'))];
   const pending = await db.collection('invites').where('spaceId', '==', spaceId).where('status', '==', 'pending').count().get();
   if (space.memberIds.length - 1 + pending.data().count >= limit) throw new HttpsError('resource-exhausted', 'plan/family-limit');
   const normalized = email.trim().toLowerCase();
@@ -208,6 +214,8 @@ export const deleteAccount = onCall(async (req) => {
       });
     }
   }
+  // Parrainage : avant d'effacer le profil (il dit qui était le parrain).
+  await forgetReferralData(uid);
   await db.recursiveDelete(db.doc(`spaces/${uid}`));
   await db.recursiveDelete(db.doc(`users/${uid}`));
   await db.doc(`subscriptions/${uid}`).delete().catch(() => undefined);
@@ -232,7 +240,7 @@ export const financeAssistant = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSe
   if (typeof question !== 'string' || !question.trim() || question.length > 500) throw new HttpsError('invalid-argument', 'question/invalid');
   if (typeof summary !== 'object' || summary === null || JSON.stringify(summary).length > 12_000) throw new HttpsError('invalid-argument', 'summary/invalid');
   const user = await db.doc(`users/${uid}`).get();
-  if (!hasAiAssistant(effectivePlan(user.get('subscription')))) throw new HttpsError('permission-denied', 'plan/ai');
+  if (!hasAiAssistant(effectivePlan(user.get('subscription'), Date.now(), user.get('grants')))) throw new HttpsError('permission-denied', 'plan/ai');
   if (user.get('preferences.aiConsent') !== true) throw new HttpsError('failed-precondition', 'consent/ai');
   // Quota quotidien (protège les coûts et limite les abus).
   const day = new Date().toISOString().slice(0, 10);
@@ -269,14 +277,14 @@ export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSec
   // Consentement au texte de la 1.9 (transcription écrite) : un accord antérieur ne suffit pas.
   if (user.get('preferences.aiConsent') !== true || Number(user.get('preferences.aiConsentVersion') ?? 0) < AI_CONSENT_VERSION) throw new HttpsError('failed-precondition', 'consent/ai');
   // Formule : la sienne, ou celle du propriétaire d'un espace familial dont il est membre.
-  let plan = effectivePlan(user.get('subscription'));
+  let plan = effectivePlan(user.get('subscription'), Date.now(), user.get('grants'));
   const spaceId = (req.data ?? {}).spaceId;
   if (typeof spaceId === 'string' && spaceId.startsWith('fam_')) {
     const space = await db.doc(`spaces/${spaceId}`).get();
     const members = (space.get('memberIds') as string[] | undefined) ?? [];
     if (space.exists && members.includes(uid)) {
       const owner = await db.doc(`users/${space.get('ownerId')}`).get();
-      plan = bestPlan(plan, effectivePlan(owner.get('subscription')));
+      plan = bestPlan(plan, effectivePlan(owner.get('subscription'), Date.now(), owner.get('grants')));
     }
   }
   // Quota quotidien par formule (free 3, plus 20, family 20 par membre) ; au-delà, parseur local.
@@ -333,7 +341,7 @@ export const speak = onCall({ secrets: [ELEVENLABS_API_KEY], timeoutSeconds: 15,
   const input = validateSpeak(req.data);
   if ('error' in input) throw new HttpsError('invalid-argument', input.error);
   const user = await db.doc(`users/${uid}`).get();
-  if (!hasVoicePremium(effectivePlan(user.get('subscription')))) throw new HttpsError('permission-denied', 'plan/voice');
+  if (!hasVoicePremium(effectivePlan(user.get('subscription'), Date.now(), user.get('grants')))) throw new HttpsError('permission-denied', 'plan/voice');
   const day = new Date().toISOString().slice(0, 10);
   const usageRef = db.doc(`usage/${uid}`);
   await db.runTransaction(async (tx) => {
@@ -400,7 +408,7 @@ export const verifyPurchase = onCall(async (req) => {
  */
 export const weeklySummaryPush = onSchedule({ schedule: '30 8 * * 1', timeZone: 'Africa/Abidjan' }, async () => {
   const users = await db.collection('users').where('preferences.notifications.weeklySummary', '==', true).select('language').get();
-  const messages: { to: string; title: string; body: string; data: { url: string } }[] = [];
+  const messages: PushMessage[] = [];
   for (const u of users.docs) {
     const devices = await u.ref.collection('devices').get();
     const fr = u.get('language') !== 'en';
@@ -413,13 +421,6 @@ export const weeklySummaryPush = onSchedule({ schedule: '30 8 * * 1', timeZone: 
       });
     }
   }
-  for (let i = 0; i < messages.length; i += 100) {
-    const res = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify(messages.slice(i, i + 100)),
-    });
-    if (!res.ok) logger.warn('push batch failed', { status: res.status });
-  }
+  await sendExpoPush(messages);
   logger.info('weekly push sent', { count: messages.length });
 });

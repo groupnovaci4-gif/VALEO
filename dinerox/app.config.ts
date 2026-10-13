@@ -49,6 +49,18 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     permissions: ['USE_BIOMETRIC', 'USE_FINGERPRINT'],
+    // Liens DineroX (`https://{domaine}/i/{code}`) : ouverture directe dans l'application
+    // (Android App Links). La vérification exige `/.well-known/assetlinks.json` sur chaque
+    // domaine, avec l'empreinte SHA-256 de la clé de signature Play : sans lui, le lien
+    // s'ouvre dans le navigateur (page de redirection), jamais d'erreur.
+    intentFilters: [
+      {
+        action: 'VIEW',
+        autoVerify: true,
+        data: brand.linkHosts.map((host) => ({ scheme: 'https', host, pathPrefix: '/i/' })),
+        category: ['BROWSABLE', 'DEFAULT'],
+      },
+    ],
     // Micro (RECORD_AUDIO) : ajouté par expo-speech-recognition pour la saisie vocale,
     // demandé au premier appui sur le micro, jamais au lancement.
   },

@@ -4,7 +4,9 @@ import { View } from 'react-native';
 import { useTheme } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
 import { useFinance } from '@/hooks/useFinance';
-import { Card, Icon, ProgressBar, Screen, Text } from '@/components/ui';
+import { Button, Card, Icon, ProgressBar, Screen, Text } from '@/components/ui';
+import { router } from 'expo-router';
+import { useApp } from '@/store/app';
 import { REWARDS, rewardProgress } from '@/core/coach/rewards';
 import { useCoach } from '@/features/coach/CoachProvider';
 import { withSpaceReady } from '@/components/SpaceReady';
@@ -16,6 +18,7 @@ function Rewards() {
   const { colors } = useTheme();
   const { data, currency, month } = useFinance();
   const { rewards, checkRewards } = useCoach();
+  const { mode } = useApp();
   // Ouverture de l'écran : liste à jour (et éventuelle récompense en attente).
   useEffect(() => {
     void checkRewards({ overlay: true }).catch(() => undefined);
@@ -56,6 +59,8 @@ function Rewards() {
       <Text variant="caption" tone="subtle" style={{ marginTop: 4 }}>
         {t('reward.rule')}
       </Text>
+      {/* Après une récompense : inviter des amis (parrainage). */}
+      {mode === 'firebase' ? <Button variant="secondary" icon="gift-outline" label={t('ref.title')} onPress={() => router.push('/invite')} style={{ marginTop: 16, alignSelf: 'center' }} /> : null}
     </Screen>
   );
 }

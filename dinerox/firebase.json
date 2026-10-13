@@ -6,6 +6,16 @@
   "storage": {
     "rules": "firebase/storage.rules"
   },
+  "hosting": {
+    "public": "firebase/hosting",
+    "ignore": ["firebase.json", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/i/**", "function": { "functionId": "link", "region": "europe-west1" } }
+    ],
+    "headers": [
+      { "source": "/.well-known/assetlinks.json", "headers": [{ "key": "Content-Type", "value": "application/json" }] }
+    ]
+  },
   "functions": [
     {
       "source": "firebase/functions",

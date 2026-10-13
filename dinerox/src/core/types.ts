@@ -610,6 +610,44 @@ export interface UserProfile {
   };
   /** Consentement CGU / confidentialité : version acceptée. */
   termsAcceptedVersion?: string | null;
+  /** Parrainage (écrit UNE fois par le serveur, jamais par le client) : qui m'a invité. */
+  referredBy?: ReferredBy | null;
+  /** Semaine régulière du filleul (compteurs seulement, écrits par le serveur). */
+  referralProgress?: ReferralProgress | null;
+  /** Droits offerts (parrainage), écrits par le serveur seul ; lus par `effectivePlan`. */
+  grants?: Grants | null;
   createdAt: Millis;
+  updatedAt: Millis;
+}
+
+/** Droits offerts : « Plus offert jusqu'au {date} » (mois cumulés). */
+export interface Grants {
+  plusUntil?: Millis | null;
+  /** Mois gagnés pendant un abonnement payant : mis de côté, jamais appliqués automatiquement. */
+  bankedMonths?: number;
+}
+
+export type ReferralSource = 'install_referrer' | 'link' | 'manual';
+
+export interface ReferredBy {
+  uid: string;
+  code: string;
+  /** Prénom du parrain (message de bienvenue). */
+  firstName: string;
+  at: Millis;
+  source: ReferralSource;
+}
+
+/** Statut d'un filleul vu par son parrain (aucun montant). */
+export type ReferralStatus = 'signed_up' | 'validated' | 'rewarded' | 'expired' | 'rejected';
+
+export interface ReferralProgress {
+  status: ReferralStatus;
+  /** Jour de la semaine en cours (1 à 7), 0 sans activité. */
+  day: number;
+  activeDays: number;
+  expenses: number;
+  incomes: number;
+  goals: number;
   updatedAt: Millis;
 }

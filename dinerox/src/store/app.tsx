@@ -38,6 +38,8 @@ export interface SessionUser {
   emailVerified: boolean;
   displayName: string;
   isAdmin: boolean;
+  /** Création du compte Firebase (parrainage : code saisissable 7 jours) ; null en mode local. */
+  signupAt: number | null;
 }
 
 interface AppValue {
@@ -120,7 +122,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loadLocalUser = useCallback(async () => {
     const p = (await readJSON<UserProfile>(storageKey(LOCAL_UID, 'profile'))) ?? defaultProfile(LOCAL_UID, '');
-    setUser({ uid: LOCAL_UID, email: '', emailVerified: true, displayName: p.firstName, isAdmin: false });
+    setUser({ uid: LOCAL_UID, email: '', emailVerified: true, displayName: p.firstName, isAdmin: false, signupAt: null });
     setProfile(p);
     setStatus('signedIn');
   }, []);
@@ -172,6 +174,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         emailVerified: u.emailVerified,
         displayName: u.displayName ?? '',
         isAdmin: token?.claims?.admin === true,
+        signupAt: Number.isFinite(Date.parse(u.metadata.creationTime ?? '')) ? Date.parse(u.metadata.creationTime ?? '') : null,
       });
       setStatus('signedIn');
     });
@@ -355,7 +358,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Valeur mémorisée : les écrans abonnés ne se re-rendent que si une donnée change réellement.
-  const plan: PlanId = mode === 'local' ? (__DEV__ ? 'family' : 'free') : effectivePlan(profile?.subscription);
+  const plan: PlanId = mode === 'local' ? (__DEV__ ? 'family' : 'free') : effectivePlan(profile?.subscription, undefined, profile?.grants);
   const value = useMemo<AppValue>(
     () => ({
       mode: mode ?? (isFirebaseConfigured ? 'firebase' : 'local'),

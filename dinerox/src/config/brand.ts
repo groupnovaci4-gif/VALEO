@@ -16,6 +16,17 @@ export const brand = {
   /** Lettre affichée dans le logo typographique tant qu'aucun logo n'existe. */
   logoLetter: 'D',
   supportEmail: 'support@dinerox.app',
+  /**
+   * Liens partagés (parrainage `/i/{code}`, tontine `/t/{code}`, campagnes `/c/{id}`).
+   * `linkHost` : domaine des NOUVEAUX liens. `linkHosts` : tous les domaines
+   * reconnus (ouverture directe dans l'application). Pour passer à un autre
+   * domaine : l'ajouter en tête, garder les anciens dans la liste ET sur
+   * l'hébergement Firebase — les liens déjà partagés continuent de marcher.
+   */
+  linkHost: 'dinerox.app',
+  linkHosts: ['dinerox.app', 'dinerox-app.web.app', 'dinerox-app.firebaseapp.com'],
+  /** Fiche App Store (null tant que l'application n'y est pas publiée). */
+  appStoreUrl: null as string | null,
   /** Charte « Sovereign Apex » : vert émeraude dominant, or impérial en accent, fond nuit. */
   colors: {
     green: '#14B8A6',

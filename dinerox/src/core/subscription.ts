@@ -6,7 +6,7 @@
  * lire ses droits. Les fournisseurs (Google Play, App Store, Stripe, Mobile
  * Money) se brancheront derrière `services/billing.ts`.
  */
-import type { PlanId, Subscription } from './types';
+import type { Grants, PlanId, Subscription } from './types';
 
 export type Feature =
   | 'ai_assistant'
@@ -107,12 +107,23 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
 
 export const PLAN_ORDER: PlanId[] = ['free', 'plus', 'family'];
 
-/** Plan effectif : un abonnement expiré ou annulé retombe sur « free ». */
-export function effectivePlan(sub: Subscription | null | undefined, now: number = Date.now()): PlanId {
+function subscriptionPlan(sub: Subscription | null | undefined, now: number): PlanId {
   if (!sub) return 'free';
   if (sub.status !== 'active' && sub.status !== 'trialing') return 'free';
   if (sub.expiresAt && sub.expiresAt < now) return 'free';
   return sub.plan in PLANS ? sub.plan : 'free';
+}
+
+/**
+ * Plan effectif : un abonnement expiré ou annulé retombe sur « free ». Une
+ * période « Plus offert » (parrainage, écrite par le serveur seul) relève une
+ * formule gratuite à Plus tant qu'elle n'est pas échue, sans jamais baisser
+ * une formule supérieure. Miroir : `effectivePlan` de firebase/functions/src/plans.ts.
+ */
+export function effectivePlan(sub: Subscription | null | undefined, now: number = Date.now(), grants?: Grants | null): PlanId {
+  const plan = subscriptionPlan(sub, now);
+  if (plan === 'free' && typeof grants?.plusUntil === 'number' && grants.plusUntil > now) return 'plus';
+  return plan;
 }
 
 export function hasFeature(plan: PlanId, feature: Feature): boolean {

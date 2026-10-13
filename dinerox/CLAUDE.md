@@ -169,3 +169,18 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     (`core/aiConsent.ts`, version 2 = transcription) : un accord antérieur à la 1.9
     ne suffit pas, le nouveau texte est accepté une fois avant tout envoi.
     Chaque scénario : `docs/conversation-vocale-tests.md` + `e2e/voice-conversation.js`.
+23. **Parrainage et liens (croissance, étape 1, `docs/parrainage.md`).** Le
+    serveur fait foi : codes, statuts des filleuls, compteurs, récompenses et
+    droit « Plus offert » (`users/{uid}.grants`, lu par `effectivePlan`) sont
+    écrits UNIQUEMENT par les Cloud Functions (`referralApi.ts`) ; les règles
+    refusent toute écriture client (`referredBy`, `referralProgress`, `grants`,
+    `referral/*`, `referrals/*`, `referralCodes`, `referralDevices`). Règle :
+    1 mois de Plus au PARRAIN par tranche de 5 filleuls validés (semaine
+    régulière), le filleul ne reçoit rien ; constantes `REFERRAL` (serveur) ↔
+    `src/core/referral.ts` (parité testée). Aucune donnée financière dans le
+    parrainage (compteurs seulement). Identifiant d'appareil : jamais en clair
+    (HMAC, secret `REFERRAL_DEVICE_PEPPER`). Toute fonction déclarée hors de
+    index.ts importe `./options` en premier (région europe-west1). Liens :
+    `brand.linkHost` / `linkHosts` ; jamais Firebase Dynamic Links ni service
+    tiers payant. Tests : `npm run test:functions` (vraies fonctions sur
+    émulateurs) et `e2e/referral.js`.
