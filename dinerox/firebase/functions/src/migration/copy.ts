@@ -27,6 +27,12 @@ export interface CopyOptions {
   dryRun?: boolean;
   /** Collections de premier niveau copiées en premier (ex. espaces, avant leurs données). */
   firstCollections?: string[];
+  /**
+   * Profondeur à laquelle on cherche des sous-collections. Dans DineroX, seuls les documents de
+   * premier niveau en ont (users/…/devices, spaces/…/transactions, config/…/items) : 1 suffit
+   * et évite une requête par document (copie bien plus rapide). `Infinity` = tout parcourir.
+   */
+  subcollectionDepth?: number;
 }
 
 const CHUNK = 200;
@@ -42,7 +48,8 @@ function decide(src: DocumentSnapshot, dst: DocumentSnapshot | undefined): 'writ
 export async function copyDatabase(src: Firestore, dst: Firestore, opts: CopyOptions = {}): Promise<CopyReport> {
   const report: CopyReport = { read: 0, written: 0, keptNewerInTarget: 0, keptExistingWithoutDate: 0 };
 
-  async function copyRefs(refs: DocumentReference[]) {
+  const maxDepth = opts.subcollectionDepth ?? 1;
+  async function copyRefs(refs: DocumentReference[], depth: number) {
     for (let i = 0; i < refs.length; i += CHUNK) {
       const part = refs.slice(i, i + CHUNK);
       const srcSnaps = await src.getAll(...part);
@@ -63,12 +70,16 @@ export async function copyDatabase(src: Firestore, dst: Firestore, opts: CopyOpt
       if (n && !opts.dryRun) await batch.commit();
       report.written += n;
     }
-    // Sous-collections de chaque document (y compris des parents « fantômes »).
-    for (const ref of refs) for (const sub of await ref.listCollections()) await copyRefs(await sub.listDocuments());
+    // Sous-collections de chaque document (y compris des parents « fantômes »), en parallèle par paquets.
+    if (depth > maxDepth) return;
+    for (let i = 0; i < refs.length; i += 20) {
+      const subs = await Promise.all(refs.slice(i, i + 20).map((r) => r.listCollections()));
+      for (const list of subs) for (const sub of list) await copyRefs(await sub.listDocuments(), depth + 1);
+    }
   }
 
   const top = (await src.listCollections()).map((c) => c.id);
   const ordered = [...(opts.firstCollections ?? []).filter((c) => top.includes(c)), ...top.filter((c) => !(opts.firstCollections ?? []).includes(c))];
-  for (const c of ordered) await copyRefs(await src.collection(c).listDocuments());
+  for (const c of ordered) await copyRefs(await src.collection(c).listDocuments(), 1);
   return report;
 }

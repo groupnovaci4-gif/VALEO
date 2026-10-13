@@ -1,7 +1,7 @@
 /**
  * Copie une base Firestore vers une autre DU MÊME PROJET (docs/migration-europe.md).
  *
- *   GOOGLE_CLOUD_PROJECT=<projet> node lib/scripts/copyDatabase.js --from "(default)" --to eu-staging [--bump-synced-at] [--dry-run]
+ *   GOOGLE_CLOUD_PROJECT=<projet> node lib/scripts/copyDatabase.js --from "(default)" --to eu-staging [--bump-synced-at] [--dry-run] [--deep]
  *
  * « Le plus récent gagne », rien n'est supprimé (voir src/migration/copy.ts).
  * Refuse de viser dinerox-app sans --i-know-this-is-production (à n'utiliser que le jour
@@ -26,7 +26,7 @@ async function main() {
   initializeApp(project ? { projectId: project } : undefined);
   const db = (id: string) => (id === '(default)' ? getFirestore() : getFirestore(id));
   const started = Date.now();
-  const report = await copyDatabase(db(from), db(to), { bumpSyncedAt: args.includes('--bump-synced-at'), dryRun: args.includes('--dry-run'), firstCollections: ['spaces', 'users'] });
+  const report = await copyDatabase(db(from), db(to), { bumpSyncedAt: args.includes('--bump-synced-at'), dryRun: args.includes('--dry-run'), firstCollections: ['spaces', 'users'], subcollectionDepth: args.includes('--deep') ? Infinity : 1 });
   console.log(JSON.stringify({ de: from, vers: to, essaiSansEcriture: args.includes('--dry-run'), ...report, dureeSecondes: Math.round((Date.now() - started) / 1000) }, null, 2));
 }
 
