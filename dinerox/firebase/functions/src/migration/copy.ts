@@ -36,6 +36,15 @@ export interface CopyOptions {
 }
 
 const CHUNK = 200;
+const PARALLEL = 16;
+
+/** Exécute `fn` sur chaque élément, au plus `size` à la fois. */
+async function pool<T>(items: T[], size: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(size, items.length) }, async () => {
+    while (next < items.length) await fn(items[next++]);
+  }));
+}
 
 function decide(src: DocumentSnapshot, dst: DocumentSnapshot | undefined): 'write' | 'newer' | 'nodate' {
   if (!dst?.exists) return 'write';
@@ -52,8 +61,7 @@ export async function copyDatabase(src: Firestore, dst: Firestore, opts: CopyOpt
   async function copyRefs(refs: DocumentReference[], depth: number) {
     for (let i = 0; i < refs.length; i += CHUNK) {
       const part = refs.slice(i, i + CHUNK);
-      const srcSnaps = await src.getAll(...part);
-      const dstSnaps = await dst.getAll(...part.map((r) => dst.doc(r.path)));
+      const [srcSnaps, dstSnaps] = await Promise.all([src.getAll(...part), dst.getAll(...part.map((r) => dst.doc(r.path)))]);
       const batch = dst.batch();
       let n = 0;
       srcSnaps.forEach((s, k) => {
@@ -70,12 +78,13 @@ export async function copyDatabase(src: Firestore, dst: Firestore, opts: CopyOpt
       if (n && !opts.dryRun) await batch.commit();
       report.written += n;
     }
-    // Sous-collections de chaque document (y compris des parents « fantômes »), en parallèle par paquets.
+    // Sous-collections (y compris des parents « fantômes ») : plusieurs documents en parallèle,
+    // et toutes les sous-collections d'un document en parallèle (copie de quelques secondes).
     if (depth > maxDepth) return;
-    for (let i = 0; i < refs.length; i += 20) {
-      const subs = await Promise.all(refs.slice(i, i + 20).map((r) => r.listCollections()));
-      for (const list of subs) for (const sub of list) await copyRefs(await sub.listDocuments(), depth + 1);
-    }
+    await pool(refs, PARALLEL, async (ref) => {
+      const subs = await ref.listCollections();
+      await Promise.all(subs.map(async (sub) => copyRefs(await sub.listDocuments(), depth + 1)));
+    });
   }
 
   const top = (await src.listCollections()).map((c) => c.id);
