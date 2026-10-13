@@ -182,5 +182,7 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     (HMAC, secret `REFERRAL_DEVICE_PEPPER`). Toute fonction déclarée hors de
     index.ts importe `./options` en premier (région europe-west1). Liens :
     `brand.linkHost` / `linkHosts` ; jamais Firebase Dynamic Links ni service
-    tiers payant. Tests : `npm run test:functions` (vraies fonctions sur
-    émulateurs) et `e2e/referral.js`.
+    tiers payant. Objets créés automatiquement par l'application : préfixe
+    de `AUTO_CREATED_ID_PREFIXES` (ils ne comptent jamais). Le filleul lit
+    toujours `ref.transparency` avant de valider un code. Tests : `npm run
+    test:functions` (vraies fonctions sur émulateurs) et `e2e/referral.js`.

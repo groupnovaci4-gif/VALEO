@@ -64,6 +64,9 @@ export function WeekCard() {
           {t('ref.week.hint', { name: by.firstName })}
         </Text>
       ) : null}
+      <Text variant="caption" tone="subtle" style={{ marginTop: 2 }}>
+        {t('ref.transparency')}
+      </Text>
     </Card>
   );
 }

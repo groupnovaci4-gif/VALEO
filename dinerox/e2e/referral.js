@@ -99,6 +99,7 @@ async function expense(h, amount) {
   ok(kofi.p.url().includes('/sign-up'), `lien /i/{code} sans compte → inscription (${kofi.p.url().replace(BASE, '')})`);
   const pre = await kofi.p.getByLabel("Vous avez un code d'invitation ?").first().inputValue();
   ok(pre === code, `code prérempli depuis le lien (${pre})`);
+  ok((await kofi.text()).includes('Votre parrain verra seulement où en est votre semaine DineroX (par exemple « jour 3/7 » ou « validée »). Il ne verra jamais vos montants ni vos opérations.'), 'inscription : texte de transparence sous le code');
   const kofiEmail = `kofi${stamp}@ex.com`;
   await signUp(kofi, 'Kofi', kofiEmail);
   const kofiUid = await uidOf(kofiEmail);
@@ -108,6 +109,7 @@ async function expense(h, amount) {
   t = await kofi.text();
   ok(t.includes('Votre semaine DineroX') && t.includes('Votre semaine compte pour Awa, qui vous a invité.'), 'accueil de Kofi : carte « Votre semaine DineroX »');
   ok(t.includes('Dépenses 0/5') && t.includes('Objectifs 0/2'), 'carte : compteurs à zéro');
+  ok(t.includes('Votre parrain verra seulement où en est votre semaine DineroX'), 'carte « Votre semaine » : rappel de transparence');
   await expense(kofi, 3500);
   await until(() => readDoc(`users/${kofiUid}`), (d) => d?.referralProgress?.expenses === 1);
   await kofi.go('/', 3500);
@@ -134,8 +136,14 @@ async function expense(h, amount) {
   if ((await ama.text()).includes('Dans quel pays')) { await ama.p.getByText('Plus tard', { exact: true }).click(); await ama.p.waitForTimeout(2500); }
   await ama.go('/settings', 3000);
   ok((await ama.p.getByText("Code d'invitation", { exact: true }).filter({ visible: true }).count()) >= 1, 'réglages : « Code d’invitation » proposé (compte de 6 jours)');
-  await ama.go('/invite-code', 2500);
-  ok((await ama.text()).includes('Vous pouvez saisir un code jusqu'), 'date limite affichée');
+  // Lien ouvert avec une session : rien n'est appliqué en silence, l'écran du code s'ouvre prérempli.
+  await ama.go(`/i/${code}`, 4000);
+  ok(ama.p.url().includes('/invite-code'), `lien avec session → écran « Code d’invitation » (${ama.p.url().replace(BASE, '')})`);
+  ok((await ama.p.getByLabel("Vous avez un code d'invitation ?").first().inputValue()) === code, 'code prérempli, à valider par la personne');
+  ok((await readDoc(`users/ama${stamp}`))?.referredBy === undefined, 'rien d’appliqué avant sa validation');
+  t = await ama.text();
+  ok(t.includes('Votre parrain verra seulement où en est votre semaine DineroX'), 'écran du code : texte de transparence');
+  ok(t.includes('Vous pouvez saisir un code jusqu'), 'date limite affichée');
   await ama.fill("Vous avez un code d'invitation ?", 'ABC');
   await ama.btn('Valider le code').click(); await ama.p.waitForTimeout(800);
   ok((await ama.text()).includes("Un code d'invitation compte 6 lettres ou chiffres."), 'code trop court : message clair');

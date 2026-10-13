@@ -208,6 +208,10 @@ export default function SignUp() {
         onSubmitEditing={() => void submit()}
         maxLength={12}
       />
+      {/* Transparence : ce que le parrain verra (et ne verra jamais). */}
+      <Text variant="caption" tone="muted" style={{ marginTop: -4, marginBottom: 12 }}>
+        {t('ref.transparency')}
+      </Text>
       <SwitchRow title={t('auth.signup.terms')} value={form.terms} onChange={set('terms')} />
       {err('terms') ? (
         <Text variant="caption" tone="danger" style={{ marginBottom: 8 }} accessibilityLiveRegion="polite">

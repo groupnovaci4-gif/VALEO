@@ -4,6 +4,7 @@
  * (code connu, pas le sien, appareil, délai) ; l'écran ne fait qu'afficher sa réponse.
  */
 import React, { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { DesignV2 } from '@/theme';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
@@ -32,7 +33,9 @@ function InviteCodeForm() {
   const { t, date } = useI18n();
   const toast = useToast();
   const { user, profile, mode, online } = useApp();
-  const [code, setCode] = useState('');
+  // Lien d'invitation ouvert avec une session : code prérempli, la personne valide elle-même.
+  const params = useLocalSearchParams<{ code?: string }>();
+  const [code, setCode] = useState(() => normalizeCode(params.code));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // Décision figée au premier rendu du formulaire : le champ ne disparaît jamais pendant la saisie.
@@ -85,6 +88,9 @@ function InviteCodeForm() {
             returnKeyType="done"
             onSubmitEditing={() => void submit()}
           />
+          <Text variant="small" tone="muted" style={{ marginBottom: 8 }}>
+            {t('ref.transparency')}
+          </Text>
           {since ? (
             <Text variant="small" tone="muted">
               {t('ref.code.until', { date: date(new Date(since + REFERRAL.APPLY_WINDOW_DAYS * 24 * 3600 * 1000).toISOString().slice(0, 10), { year: true }) })}

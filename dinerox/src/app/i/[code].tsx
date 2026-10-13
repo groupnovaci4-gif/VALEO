@@ -3,22 +3,19 @@
  * ou `dinerox://i/{code}`) :
  *  - sans session : le code est gardé en attente et l'inscription s'ouvre
  *    (champ « Vous avez un code d'invitation ? » prérempli) ;
- *  - session ouverte, compte de moins de 7 jours sans parrain : le serveur
- *    applique le code (message de bienvenue, ou raison du refus) ;
+ *  - session ouverte, compte de moins de 7 jours sans parrain : l'écran
+ *    « Code d'invitation » s'ouvre prérempli ; la personne lit ce que son
+ *    parrain verra, puis valide elle-même (jamais d'application silencieuse) ;
  *  - sinon : retour à l'accueil, rien n'est appliqué.
  */
 import React, { useEffect, useRef } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
-import { Loading, useToast } from '@/components/ui';
-import { canEnterCode, cleanTag, isValidCode, normalizeCode, refusalKey } from '@/core/referral';
-import { analytics } from '@/services/analytics';
-import { applyReferralCode, readPending, refusalOf, writePending } from '@/services/referral';
+import { Loading } from '@/components/ui';
+import { canEnterCode, cleanTag, isValidCode, normalizeCode } from '@/core/referral';
+import { readPending, writePending } from '@/services/referral';
 
 export default function InviteLink() {
-  const { t } = useI18n();
-  const toast = useToast();
   const params = useLocalSearchParams<{ code?: string; src?: string; cmp?: string; cnt?: string }>();
   const { status, mode, profile, user } = useApp();
   const done = useRef(false);
@@ -42,16 +39,10 @@ export default function InviteLink() {
         router.replace('/');
         return;
       }
-      try {
-        const r = await applyReferralCode(code, 'link');
-        analytics.track('referral_applied', { source: 'link' });
-        if (r.parrainFirstName) toast.show(t('ref.welcome', { name: r.parrainFirstName }));
-      } catch (e) {
-        toast.show(t(refusalKey(refusalOf(e))), 'error');
-      }
-      router.replace('/');
+      // La personne voit ce que son parrain verra, puis valide elle-même.
+      router.replace({ pathname: '/invite-code', params: { code } });
     })();
-  }, [status, mode, profile, user?.signupAt, params.code, params.src, params.cmp, params.cnt, t, toast]);
+  }, [status, mode, profile, user?.signupAt, params.code, params.src, params.cmp, params.cnt]);
 
   return <Loading />;
 }

@@ -208,6 +208,16 @@ export interface WeekResult {
   progress: WeekProgress;
 }
 
+/**
+ * Objets créés par l'APPLICATION elle-même, jamais par la personne : ils ne
+ * comptent pas (fondateur, 2026-10-14). Aujourd'hui, seules les données de
+ * démonstration (`demo_…`). Tout futur objet créé automatiquement doit porter
+ * un de ces préfixes. Ce que la personne crée elle-même compte, y compris
+ * pendant le démarrage (objectif coché, réserve dont elle a saisi le montant).
+ */
+export const AUTO_CREATED_ID_PREFIXES: readonly string[] = ['demo_'];
+const autoCreated = (id: string) => AUTO_CREATED_ID_PREFIXES.some((p) => id.startsWith(p));
+
 /** Anciennes « dépenses » d'épargne : épargner n'est pas dépenser (miroir de core/savingsFlows.ts). */
 const SAVING_CATEGORY_IDS = new Set(['cat_savings', 'cat_investment']);
 
@@ -243,7 +253,7 @@ interface Event {
 export function countedEvents(ops: ActivityOp[], goals: ActivityGoal[], uid: string, signupAt: number, timeZone: string): Event[] {
   const kept: ActivityOp[] = [];
   const sorted = ops
-    .filter((o) => (o.createdBy ?? uid) === uid && !o.recurringId && !o.id.startsWith('demo_') && !quicklyDeleted(o))
+    .filter((o) => (o.createdBy ?? uid) === uid && !o.recurringId && !autoCreated(o.id) && !quicklyDeleted(o))
     .filter((o) => o.type === 'expense' || o.type === 'income' || o.type === 'transfer')
     .filter((o) => o.createdAt >= signupAt)
     .sort((a, b) => a.createdAt - b.createdAt);
@@ -259,7 +269,7 @@ export function countedEvents(ops: ActivityOp[], goals: ActivityGoal[], uid: str
     kind: o.type === 'expense' ? (o.categoryId && SAVING_CATEGORY_IDS.has(o.categoryId) ? 'other' : 'expense') : o.type === 'income' ? 'income' : 'other',
   }));
   for (const g of goals) {
-    if ((g.createdBy ?? uid) !== uid || g.id.startsWith('demo_') || quicklyDeleted(g) || g.createdAt < signupAt) continue;
+    if ((g.createdBy ?? uid) !== uid || autoCreated(g.id) || quicklyDeleted(g) || g.createdAt < signupAt) continue;
     events.push({ at: g.createdAt, day: dayIndex(dayKey(g.createdAt, timeZone)), kind: 'goal' });
   }
   return events.sort((a, b) => a.at - b.at);

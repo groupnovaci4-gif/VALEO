@@ -27,7 +27,11 @@ Toutes les valeurs sont des constantes : `REFERRAL` dans
 ## Ce qui compte (et ce qui ne compte pas)
 
 Seules les opérations et objectifs de l'**espace personnel** du filleul,
-saisis par lui, après son inscription. Ne comptent pas : opérations
+saisis par lui, après son inscription. **Objectifs** (fondateur, 2026-10-14) :
+comptent ceux que la personne crée elle-même, y compris pendant le démarrage
+(objectif coché, réserve dont elle a saisi le montant) ; ne comptent pas ceux
+que l'application crée automatiquement (`AUTO_CREATED_ID_PREFIXES`,
+aujourd'hui `demo_…`, préfixe obligatoire pour tout futur objet automatique). Ne comptent pas : opérations
 supprimées moins de 48 h après leur création, doublons évidents (même type,
 même montant, même catégorie, moins d'une minute d'écart), données de
 démonstration (`demo_…`, et le mode démo, local, n'atteint jamais le serveur),
@@ -35,6 +39,13 @@ opérations générées par une récurrence, ajustements de solde. Un ancien
 versement d'épargne (`cat_savings`, `cat_investment`) compte comme jour actif,
 pas comme dépense. Le jour d'une opération est celui de sa création, dans le
 fuseau du profil.
+
+**Transparence** (fondateur, 2026-10-14) : quand le filleul saisit ou
+accepte un code (inscription, écran « Code d'invitation »), et sur sa carte
+« Votre semaine », il lit `ref.transparency` : son parrain voit seulement où en
+est sa semaine, jamais ses montants ni ses opérations. Un lien `/i/{code}`
+ouvert avec une session n'applique rien en silence : l'écran du code s'ouvre
+prérempli et la personne valide elle-même.
 
 Fenêtre **glissante** : toute période de 7 jours qui commence un jour
 d'activité convient (décision prise seul, à confirmer : la lecture littérale

@@ -1919,6 +1919,7 @@ export const fr = {
   "ref.welcome": "Bienvenue ! {name} vous a invité.",
   "ref.code.title": "Code d'invitation",
   "ref.code.question": "Vous avez un code d'invitation ?",
+  "ref.transparency": "Votre parrain verra seulement où en est votre semaine {app} (par exemple « jour 3/7 » ou « validée »). Il ne verra jamais vos montants ni vos opérations.",
   "ref.code.hint": "Facultatif · 6 lettres ou chiffres",
   "ref.code.apply": "Valider le code",
   "ref.code.until": "Vous pouvez saisir un code jusqu'au {date}.",

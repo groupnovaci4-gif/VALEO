@@ -373,3 +373,38 @@ describe('code saisi à l’inscription (e-mail ou « Continuer avec Google »)'
     expect(client.pendingForTypedCode('AB0', { code: 'XYZ234', source: 'link', at: 1 }, NOW)).toBeUndefined();
   });
 });
+
+describe('objectifs : créés par la personne (comptent) / par l’application (ne comptent pas)', () => {
+  // Les VRAIS générateurs de l'application, appelés comme pendant le démarrage.
+  const ops = () => [op(0, 'expense'), op(1, 'expense'), op(1, 'income'), op(2, 'expense'), op(3, 'expense'), op(4, 'expense')];
+  const asActivity = (g: { id: string; createdAt: number; updatedAt: number; createdBy: string }) => ({ id: g.id, createdAt: g.createdAt, updatedAt: g.updatedAt, createdBy: g.createdBy });
+
+  it('créés par la personne pendant le démarrage (objectif coché + réserve dont elle a saisi le montant) : comptent', async () => {
+    const { starterStructure } = await import('../src/core/defaults');
+    const { quickReserveGoal } = await import('../src/core/onboardingQuick');
+    const now = at(0, 9);
+    const starter = starterStructure({ firstName: 'Kofi', currency: 'XOF', country: 'CI', zone: 'africa', goals: ['buy_moto'] }, { now, uid: UID, lang: 'fr', label: (k) => k, date: '2026-10-01' });
+    const reserve = quickReserveGoal(10_000, { currency: 'XOF', now, uid: UID, name: 'Réserve', id: 'goal_reserve_quick' });
+    const goals = [...(starter.goals ?? []), ...(reserve ? [reserve] : [])].map(asActivity);
+    expect(goals).toHaveLength(2);
+    const r = evaluate({ ops: ops(), goals });
+    expect(r.progress.goals).toBe(2);
+    expect(r.status).toBe('validated');
+  });
+
+  it('aucun objectif coché au démarrage : l’application n’en crée aucun d’elle-même', async () => {
+    const { starterStructure } = await import('../src/core/defaults');
+    const s = starterStructure({ firstName: 'Kofi', currency: 'XOF', country: 'CI', zone: 'africa' }, { now: at(0), uid: UID, lang: 'fr', label: (k) => k, date: '2026-10-01' });
+    expect(s.goals ?? []).toHaveLength(0);
+  });
+
+  it('créés automatiquement par l’application (démonstration) : ne comptent pas', async () => {
+    const { buildDemoData } = await import('../src/core/demo');
+    const demo = buildDemoData({ now: at(0, 9), uid: UID, today: '2026-10-01', label: (k) => k });
+    expect(demo.goals.length).toBeGreaterThanOrEqual(2);
+    expect(demo.goals.every((g) => server.AUTO_CREATED_ID_PREFIXES.some((p) => g.id.startsWith(p)))).toBe(true);
+    const r = evaluate({ ops: ops(), goals: demo.goals.map(asActivity) });
+    expect(r.progress.goals).toBe(0);
+    expect(r.status).toBe('in_progress');
+  });
+});

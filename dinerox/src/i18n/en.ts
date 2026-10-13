@@ -1887,6 +1887,7 @@ export const en: Record<TKey, string> = {
   "ref.welcome": "Welcome! {name} invited you.",
   "ref.code.title": "Invitation code",
   "ref.code.question": "Do you have an invitation code?",
+  "ref.transparency": "Your referrer will only see how your {app} week is going (for example \"day 3/7\" or \"completed\"). They will never see your amounts or transactions.",
   "ref.code.hint": "Optional · 6 letters or digits",
   "ref.code.apply": "Apply code",
   "ref.code.until": "You can enter a code until {date}.",
