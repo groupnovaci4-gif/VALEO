@@ -14,7 +14,9 @@ const { BASE, launch } = require('./env.js');
     { label: 'Adresse e-mail', v: 'test' + Date.now() + '@example.com', next: 'Téléphone (facultatif)' },
     { label: 'Téléphone (facultatif)', v: '+225 07 07 07 07 07', next: 'Mot de passe' },
     { label: 'Mot de passe', exact: true, v: 'Motdepasse123', next: 'Confirmer le mot de passe' },
-    { label: 'Confirmer le mot de passe', v: 'Motdepasse123', next: null },
+    { label: 'Confirmer le mot de passe', v: 'Motdepasse123', next: "Vous avez un code d'invitation ?" },
+    // Croissance, étape 1 : code d'invitation facultatif (vidé avant l'envoi, voir plus bas).
+    { label: "Vous avez un code d'invitation ?", v: 'ABC234', next: null },
   ];
   const active = () => p.evaluate(() => document.activeElement?.getAttribute('aria-label'));
   for (const f of fields) {
@@ -42,6 +44,8 @@ const { BASE, launch } = require('./env.js');
   const marks = await p.evaluate(() => [...document.querySelectorAll('input')].filter((e) => e.dataset.mark).length);
   const now = await p.evaluate(() => document.querySelectorAll('input').length);
   ok(marks === total && now === total, `aucun remontage de champ (${marks}/${total} éléments d'origine, ${now} présents)`);
+  // Code facultatif : vidé, le compte se crée sans parrain.
+  await p.getByLabel("Vous avez un code d'invitation ?").first().fill('');
   await p.getByRole('switch').first().click();
   await p.getByRole('button', { name: 'Créer mon compte' }).click();
   try { await p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 10000 }); ok(true, 'compte créé → onboarding'); } catch { ok(false, 'compte créé → onboarding'); }

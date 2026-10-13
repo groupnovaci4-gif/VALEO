@@ -34,7 +34,10 @@ export type AnalyticsEvent =
   | 'history_opened'
   | 'mic_routed'
   // 1.9 : qui a compris la note vocale (`source` : local, ai) — mesure des appels à l'IA évités.
-  | 'voice_understood';
+  | 'voice_understood'
+  // Croissance (étape 1) : `kind` = moyen (share, copy) ou `source` du code (install_referrer, link, manual). Jamais le code ni un nom.
+  | 'referral_shared'
+  | 'referral_applied';
 
 export { sanitize } from '@/core/analyticsProps';
 type Sink = (event: AnalyticsEvent, props: Props) => void;

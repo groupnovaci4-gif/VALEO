@@ -13,11 +13,26 @@ interface Subscription {
 export const FAMILY_MEMBER_LIMIT: Record<PlanId, number> = { free: 0, plus: 2, family: 8 };
 const AI_PLANS: PlanId[] = ['plus', 'family'];
 
-export function effectivePlan(sub: Subscription | undefined, now = Date.now()): PlanId {
+/** Droits offerts, écrits par le serveur seul (parrainage : « Plus offert jusqu'au … »). */
+export interface Grants {
+  plusUntil?: number | null;
+}
+
+function subscriptionPlan(sub: Subscription | undefined, now: number): PlanId {
   if (!sub) return 'free';
   if (sub.status !== 'active' && sub.status !== 'trialing') return 'free';
   if (sub.expiresAt && sub.expiresAt < now) return 'free';
   return sub.plan === 'plus' || sub.plan === 'family' ? sub.plan : 'free';
+}
+
+/**
+ * Formule effective : celle de l'abonnement ; une période « Plus offert » non
+ * échue relève une formule gratuite à Plus (jamais une formule supérieure à la baisse).
+ */
+export function effectivePlan(sub: Subscription | undefined, now = Date.now(), grants?: Grants | null): PlanId {
+  const plan = subscriptionPlan(sub, now);
+  if (plan === 'free' && typeof grants?.plusUntil === 'number' && grants.plusUntil > now) return 'plus';
+  return plan;
 }
 
 export function hasAiAssistant(plan: PlanId): boolean {

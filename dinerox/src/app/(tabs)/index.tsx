@@ -32,6 +32,8 @@ import { DailyAllowanceCard } from '@/features/entry/DailyAllowanceCard';
 import { TontineDueCard } from '@/features/tontine/TontineDueCard';
 import { CatalogUpdateCard } from '@/features/categories/CatalogUpdateCard';
 import { EntryPrompt } from '@/features/entry/EntryPrompt';
+import { InviteCard } from '@/features/referral/InviteCard';
+import { WeekCard } from '@/features/referral/WeekCard';
 import { useEntry } from '@/features/entry/EntryProvider';
 
 export default function Home() {
@@ -59,6 +61,7 @@ function HomeScreen() {
     [data.goals, data.goalContributions, now],
   );
   const recent = useMemo(() => sortTransactions(data.transactions).slice(0, 5), [data.transactions]);
+  const myEntries = useMemo(() => data.transactions.filter((tx) => !tx.deleted && tx.createdBy === user?.uid).length, [data.transactions, user?.uid]);
   const others = Object.entries(position.otherCurrencies).filter(([, v]) => v !== 0);
 
   // Montants masquables d'un geste (consultation en public).
@@ -114,6 +117,8 @@ function HomeScreen() {
       <DailyAllowanceCard hidden={hidden} onToggleHidden={() => setHidden((h) => !h)} available={position.free} />
       <TontineDueCard hidden={hidden} />
       <CatalogUpdateCard dismissible />
+      {/* Filleul : « Votre semaine DineroX » (compteurs du serveur, aucun montant). */}
+      <WeekCard />
 
       {/* 2. Raccourcis : l'Historique en un toucher, puis Revenu et Transfert. */}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
@@ -218,6 +223,9 @@ function HomeScreen() {
           <Icon name="chevron-forward" size={20} color={colors.textSubtle} />
         </Card>
       </View>
+
+      {/* Parrainage : carte discrète après la 5e saisie réussie. */}
+      <InviteCard entries={myEntries} />
 
       {recent.length ? <Button variant="tertiary" label={t('rep.title')} icon="bar-chart-outline" onPress={() => router.push('/reports')} style={{ marginTop: 16, alignSelf: 'center' }} /> : null}
     </Screen>

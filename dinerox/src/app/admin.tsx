@@ -10,6 +10,7 @@ import { useApp } from '@/store/app';
 import { Banner, Button, Card, ErrorState, Loading, Row, Screen, SectionHeader, Text } from '@/components/ui';
 import { firebase } from '@/services/firebase';
 import { useGoalCategories } from '@/features/goals';
+import { ReferralAdmin } from '@/features/referral/ReferralAdmin';
 
 interface Stats {
   users: number;
@@ -88,6 +89,7 @@ export default function Admin() {
           </Card>
         </>
       ) : null}
+      <ReferralAdmin />
       <SectionHeader title={t('admin.categories')} />
       <Text variant="caption" tone="subtle" style={{ marginBottom: 8 }}>
         {t('admin.categoriesHint')}

@@ -41,11 +41,26 @@ service cloud.firestore {
       allow create: if signedIn() && me() == userId && validProfile(request.resource.data)
         && request.resource.data.subscription.plan == 'free'
         && request.resource.data.subscription.status == 'active'
-        && request.resource.data.subscription.provider == 'none';
-      // Ensuite, le client ne peut jamais toucher à l'abonnement ni à l'identité.
+        && request.resource.data.subscription.provider == 'none'
+        // Parrainage et droits offerts : écrits par les Cloud Functions seulement.
+        && !request.resource.data.keys().hasAny(['referredBy', 'referralProgress', 'grants']);
+      // Ensuite, le client ne peut jamais toucher à l'abonnement, à l'identité,
+      // au parrainage (parrain, progression) ni aux droits offerts (« Plus offert »).
       allow update: if signedIn() && me() == userId && validProfile(request.resource.data)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription', 'uid', 'createdAt']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription', 'uid', 'createdAt', 'referredBy', 'referralProgress', 'grants']);
       allow delete: if false; // Cloud Function deleteAccount
+
+      // Parrainage : mon code et mes compteurs (`referral/state`), le statut de
+      // chacun de mes filleuls (`referrals/{uid}`, sans aucun montant).
+      // Lecture par le seul propriétaire ; écriture par les Cloud Functions seulement.
+      match /referral/{docId} {
+        allow read: if signedIn() && me() == userId;
+        allow write: if false;
+      }
+      match /referrals/{filleulId} {
+        allow read: if signedIn() && me() == userId;
+        allow write: if false;
+      }
 
       // Jetons push de l'utilisateur.
       match /devices/{deviceId} {
@@ -240,6 +255,15 @@ service cloud.firestore {
       allow write: if isPlatformAdmin();
     }
 
+    // ─── Parrainage : codes et empreintes d'appareils ───────────────
+    // Serveur seul (Cloud Functions) : aucune lecture ni écriture client.
+    match /referralCodes/{code} {
+      allow read, write: if false;
+    }
+    match /referralDevices/{hash} {
+      allow read, write: if false;
+    }
+
     // ─── Statistiques anonymes (écriture seule, aucune lecture client) ─
     match /analyticsEvents/{eventId} {
       allow create: if signedIn()
@@ -268,3 +292,4 @@ service cloud.firestore {
     // Tout le reste est refusé par défaut.
   }
 }
+

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Alert, Platform, Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { LANGUAGE_NAMES, LANGUAGES, useI18n, type TKey } from '@/i18n';
@@ -12,11 +12,15 @@ import { brand } from '@/config/brand';
 import { signOut } from '@/services/auth';
 import { useTheme } from '@/theme';
 import { can } from '@/core/permissions';
+import { canEnterCode } from '@/core/referral';
 
 export default function Settings() {
   const { t } = useI18n();
   const { profile, updateProfile, mode, user, signOutLocal, plan, role } = useApp();
   const { colors, radius } = useTheme();
+  // Date figée à l'ouverture (rendu pur) ; la session donne la date d'inscription.
+  const [now] = useState(() => Date.now());
+  const codeOpen = mode === 'firebase' && canEnterCode(user?.signupAt, !!profile?.referredBy, now);
   if (!profile) return null;
   const prefs = profile.preferences;
   const ini = initials(profile.firstName, profile.lastName);
@@ -97,6 +101,9 @@ export default function Settings() {
       <SectionHeader title={t('set.title').toUpperCase()} />
       <Card padded={false} style={{ paddingHorizontal: 14, paddingVertical: 4 }}>
         {row('fp.edit.title', 'fp.edit.sub', 'person-circle', colors.primary, '/settings/financial')}
+        {/* Parrainage : inviter (toujours), saisir un code (7 jours après l'inscription, sans parrain). */}
+        {mode === 'firebase' ? row('ref.title', 'more.sub.invite', 'gift', colors.primary, '/invite') : null}
+        {codeOpen ? row('ref.code.title', 'ref.code.sub', 'key', colors.secondary, '/invite-code') : null}
         {row('set.security', 'set.sub.security', 'lock-closed', colors.primary, '/settings/security')}
         {row('set.notifications', 'set.sub.notifications', 'notifications', colors.secondary, '/settings/notifications')}
         {/* Mêmes droits que l'onglet « Plus » (miroir des règles Firestore). */}

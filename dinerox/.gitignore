@@ -50,6 +50,7 @@ firebase/functions/node_modules/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+# Secrets locaux des Cloud Functions (émulateur)
 firebase/functions/.secret.local
 admin/node_modules/
 admin/dist/

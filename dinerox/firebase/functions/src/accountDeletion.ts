@@ -4,11 +4,13 @@
  * est le seul administrateur supprimées ; puis compte d'authentification.
  *
  * Source UNIQUE, utilisée par `deleteAccount` (l'utilisateur, depuis l'app)
- * et par `boDeleteUser` (back-office) : mêmes effets dans les deux cas.
+ * et par `boDeleteUser` (back-office) : mêmes effets dans les deux cas,
+ * y compris pour le parrainage (filleul retiré de la liste de son parrain).
  */
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
+import { forgetReferralData } from './referralApi';
 
 interface SpaceMembers {
   members: Record<string, string>;
@@ -34,6 +36,8 @@ export async function deleteUserData(uid: string, email: string | null): Promise
       });
     }
   }
+  // Parrainage : avant d'effacer le profil (il dit qui était le parrain).
+  await forgetReferralData(uid);
   await db.recursiveDelete(db.doc(`spaces/${uid}`));
   await db.recursiveDelete(db.doc(`users/${uid}`));
   await db.doc(`subscriptions/${uid}`).delete().catch(() => undefined);

@@ -19,11 +19,19 @@ La synthèse vocale et les sons sont **espionnés** (`speechSynthesis.speak`,
 Objectifs : `goals-contribute.js` rejoue l'exemple du fondateur (voiture
 1 000 000, versements datés depuis l'onglet Objectifs → 20 %, 30 %, 50 %, 90 %).
 
+Parrainage (croissance, étape 1) : `referral.js` — code et lien, « Copier »,
+lien `/i/{code}` ouvert sans compte (code prérempli à l'inscription), carte
+« Votre semaine » du filleul, code saisi dans les réglages (erreurs claires),
+semaine régulière validée par les VRAIES Cloud Functions, message « 1/5 » chez
+la parraine, écran admin et mode ambassadeur, carte de l'accueil après 5 saisies.
+Il exige l'émulateur **functions** (compilé avant : `npm --prefix firebase/functions run build`).
+
 ## Lancer
 
 ```bash
-# 1. Émulateurs
-npx firebase emulators:start --only auth,firestore --project demo-dinerox
+# 1. Émulateurs (functions : parrainage ; secrets fictifs créés par le script)
+npm --prefix firebase/functions run build && node scripts/functions-test-secrets.mjs
+npx firebase emulators:start --only auth,firestore,functions,storage --project demo-dinerox
 # 2. Export web branché sur les émulateurs
 EXPO_PUBLIC_FIREBASE_API_KEY=fake-api-key EXPO_PUBLIC_FIREBASE_PROJECT_ID=demo-dinerox \
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=demo-dinerox.firebaseapp.com EXPO_PUBLIC_FIREBASE_APP_ID=1:1:web:1 \

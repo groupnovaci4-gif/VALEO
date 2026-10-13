@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
@@ -24,6 +24,7 @@ export default function Subscription() {
   const { colors } = useTheme();
   const { plan, profile } = useApp();
   useEffect(() => analytics.track('premium_viewed', { plan }), [plan]);
+  const [now] = useState(() => Date.now());
   return (
     <Screen back title={t('sub.title')}>
       <Banner tone="info" icon="information-circle-outline" text={t('sub.comingSoon')} />
@@ -50,6 +51,12 @@ export default function Subscription() {
             {current && profile?.subscription.expiresAt ? (
               <Text variant="caption" tone="subtle" style={{ marginTop: 8 }}>
                 {t('sub.expires', { date: date(new Date(profile.subscription.expiresAt).toISOString().slice(0, 10), { year: true }) })}
+              </Text>
+            ) : null}
+            {/* Parrainage : période « Plus offert » en cours (droit écrit par le serveur). */}
+            {current && id === 'plus' && profile?.grants?.plusUntil && profile.grants.plusUntil > now ? (
+              <Text variant="caption" weight="600" tone="success" style={{ marginTop: 8 }}>
+                {t('ref.plusUntil', { date: date(new Date(profile.grants.plusUntil).toISOString().slice(0, 10), { year: true }) })}
               </Text>
             ) : null}
           </Card>

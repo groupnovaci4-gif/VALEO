@@ -409,3 +409,56 @@ describe('opération supprimée par le back-office (adminDeleted)', () => {
     await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/transactions/t2'), tx('t2', 'u1', { updatedAt: 30, deleted: true })));
   });
 });
+
+describe('parrainage (croissance, étape 1)', () => {
+  const seedReferral = () =>
+    env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore() as unknown as Firestore;
+      await setDoc(doc(fs, 'users/p1'), profile('p1'));
+      await setDoc(doc(fs, 'users/f1'), { ...profile('f1'), referredBy: { uid: 'p1', code: 'ABC234', firstName: 'Awa', at: 1, source: 'manual' }, referralProgress: { status: 'signed_up', day: 1, activeDays: 1, expenses: 1, incomes: 0, goals: 0, updatedAt: 1 } });
+      await setDoc(doc(fs, 'referralCodes/ABC234'), { uid: 'p1', createdAt: 1 });
+      await setDoc(doc(fs, 'referralDevices/h1'), { uids: ['p1'], updatedAt: 1 });
+      await setDoc(doc(fs, 'users/p1/referral/state'), { code: 'ABC234', validated: 0, converted: 0, monthsEarned: 0, monthsByPeriod: {} });
+      await setDoc(doc(fs, 'users/p1/referrals/f1'), { status: 'signed_up', firstName: 'Kofi', signedUpAt: 1, progress: { day: 1 } });
+    });
+
+  it('profil : impossible de créer un profil avec un parrain, une progression ou des droits offerts', async () => {
+    await assertFails(setDoc(doc(db('u1'), 'users/u1'), { ...profile('u1'), referredBy: { uid: 'x', code: 'ABC234' } }));
+    await assertFails(setDoc(doc(db('u1'), 'users/u1'), { ...profile('u1'), referralProgress: { status: 'validated' } }));
+    await assertFails(setDoc(doc(db('u1'), 'users/u1'), { ...profile('u1'), grants: { plusUntil: 9_999_999_999_999 } }));
+    await assertSucceeds(setDoc(doc(db('u1'), 'users/u1'), profile('u1')));
+  });
+
+  it('profil : le client ne peut ni changer de parrain, ni se valider, ni s’offrir Plus', async () => {
+    await seedReferral();
+    await assertFails(updateDoc(doc(db('f1'), 'users/f1'), { referredBy: { uid: 'autre', code: 'ZZZ999' } }));
+    await assertFails(updateDoc(doc(db('f1'), 'users/f1'), { 'referralProgress.status': 'validated' }));
+    await assertFails(updateDoc(doc(db('f1'), 'users/f1'), { grants: { plusUntil: 9_999_999_999_999 } }));
+    await assertFails(updateDoc(doc(db('p1'), 'users/p1'), { 'grants.plusUntil': 9_999_999_999_999 }));
+    // Le reste du profil reste modifiable.
+    await assertSucceeds(updateDoc(doc(db('f1'), 'users/f1'), { firstName: 'Kofi' }));
+  });
+
+  it('codes et empreintes d’appareils : aucune lecture ni écriture client', async () => {
+    await seedReferral();
+    await assertFails(getDoc(doc(db('p1'), 'referralCodes/ABC234')));
+    await assertFails(getDoc(doc(db('f1'), 'referralCodes/ABC234')));
+    await assertFails(setDoc(doc(db('f1'), 'referralCodes/MYCODE'), { uid: 'f1', createdAt: 1 }));
+    await assertFails(getDoc(doc(db('p1'), 'referralDevices/h1')));
+    await assertFails(setDoc(doc(db('f1'), 'referralDevices/h2'), { uids: ['f1'] }));
+  });
+
+  it('statuts et compteurs : lus par le seul parrain, jamais écrits par un client', async () => {
+    await seedReferral();
+    await assertSucceeds(getDoc(doc(db('p1'), 'users/p1/referral/state')));
+    await assertSucceeds(getDoc(doc(db('p1'), 'users/p1/referrals/f1')));
+    await assertFails(getDoc(doc(db('f1'), 'users/p1/referrals/f1')));
+    await assertFails(getDoc(doc(db('f1'), 'users/p1/referral/state')));
+    // Ni le parrain ni le filleul n'écrivent un statut ou une récompense.
+    await assertFails(updateDoc(doc(db('p1'), 'users/p1/referrals/f1'), { status: 'validated' }));
+    await assertFails(setDoc(doc(db('p1'), 'users/p1/referrals/f9'), { status: 'rewarded' }));
+    await assertFails(updateDoc(doc(db('p1'), 'users/p1/referral/state'), { validated: 5, monthsEarned: 1 }));
+    await assertFails(setDoc(doc(db('f1'), 'users/f1/referral/state'), { validated: 99 }));
+    await assertFails(deleteDoc(doc(db('p1'), 'users/p1/referrals/f1')));
+  });
+});

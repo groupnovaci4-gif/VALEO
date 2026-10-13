@@ -13,6 +13,7 @@ import { I18nProvider, deviceLanguage, useI18n } from '@/i18n';
 import { ToastProvider, Button, Text } from '@/components/ui';
 import { LockGate } from '@/components/LockGate';
 import { Bootstrap } from '@/components/Bootstrap';
+import { ReferralBootstrap } from '@/features/referral/ReferralBootstrap';
 import { CoachProvider } from '@/features/coach/CoachProvider';
 import { QuickAddProvider } from '@/features/QuickAdd';
 import { EntryProvider } from '@/features/entry/EntryProvider';
@@ -71,8 +72,10 @@ function Navigator() {
     const first = route.split('/')[0];
     const inAuth = first === '(auth)';
     const inLegal = first === 'legal';
+    // Lien d'invitation : l'écran `/i/{code}` garde le code puis ouvre lui-même l'inscription.
+    const inInvite = first === 'i';
     if (status === 'signedOut') {
-      if (!inAuth && !inLegal) router.replace('/welcome');
+      if (!inAuth && !inLegal && !inInvite) router.replace('/welcome');
       return;
     }
     if (inAuth) router.replace('/');
@@ -89,6 +92,7 @@ function Navigator() {
       <StatusBar style={dark ? 'light' : 'dark'} />
       <LockGate>
         <Bootstrap />
+        <ReferralBootstrap />
         <CoachProvider>
           {/* Saisie (micro, clavier, phrase) : disponible depuis la barre, l'accueil, l'Historique, une notification. */}
           <QuickAddProvider>
