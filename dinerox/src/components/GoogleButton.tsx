@@ -11,13 +11,23 @@ import { authErrorKey, signInWithGoogleIdToken } from '@/services/auth';
 
 WebBrowser.maybeCompleteAuthSession();
 
-/** Connexion Google — affichée uniquement si les identifiants OAuth sont configurés. */
-export function GoogleButton() {
-  if (!isGoogleConfigured) return null;
-  return <GoogleButtonInner />;
+interface GoogleButtonProps {
+  /**
+   * Appelé AVANT d'ouvrir Google (inscription : garder le code d'invitation saisi).
+   * Renvoie `false` pour ne pas ouvrir Google (ex. code mal formé à corriger).
+   */
+  onBeforeSignIn?: () => Promise<boolean>;
+  /** Connexion annulée ou refusée : défaire ce qu'a préparé `onBeforeSignIn`. */
+  onSignInFailed?: () => void;
 }
 
-function GoogleButtonInner() {
+/** Connexion Google — affichée uniquement si les identifiants OAuth sont configurés. */
+export function GoogleButton(props: GoogleButtonProps) {
+  if (!isGoogleConfigured) return null;
+  return <GoogleButtonInner {...props} />;
+}
+
+function GoogleButtonInner({ onBeforeSignIn, onSignInFailed }: GoogleButtonProps) {
   const { t } = useI18n();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -37,9 +47,12 @@ function GoogleButtonInner() {
         const p = await ensureProfile(u.uid, u.email ?? '', first, TERMS_VERSION, rest.join(' '));
         if (!p.termsAcceptedVersion) await saveProfile(u.uid, { termsAcceptedVersion: TERMS_VERSION });
       })
-      .catch((e) => toast.show(t(authErrorKey(e)), 'error'))
+      .catch((e) => {
+        onSignInFailed?.();
+        toast.show(t(authErrorKey(e)), 'error');
+      })
       .finally(() => setBusy(false));
-  }, [response, t, toast]);
+  }, [response, t, toast, onSignInFailed]);
   return (
     <View style={{ gap: 6 }}>
       <Button
@@ -51,19 +64,27 @@ function GoogleButtonInner() {
         disabled={!request}
         onPress={() => {
           setBusy(true);
-          promptAsync()
-            .then((r) => {
-              if (r.type !== 'success') return setBusy(false);
-              // Réponse sans jeton (configuration OAuth incomplète) : on débloque le bouton.
-              if (!r.params.id_token) {
+          void (onBeforeSignIn ? onBeforeSignIn() : Promise.resolve(true)).then((go) => {
+            if (!go) return setBusy(false);
+            promptAsync()
+              .then((r) => {
+                if (r.type !== 'success') {
+                  onSignInFailed?.();
+                  return setBusy(false);
+                }
+                // Réponse sans jeton (configuration OAuth incomplète) : on débloque le bouton.
+                if (!r.params.id_token) {
+                  onSignInFailed?.();
+                  setBusy(false);
+                  toast.show(t('error.generic'), 'error');
+                }
+              })
+              .catch(() => {
+                onSignInFailed?.();
                 setBusy(false);
                 toast.show(t('error.generic'), 'error');
-              }
-            })
-            .catch(() => {
-              setBusy(false);
-              toast.show(t('error.generic'), 'error');
-            });
+              });
+          });
         }}
       />
       <Text variant="caption" tone="subtle" align="center">

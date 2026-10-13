@@ -358,3 +358,18 @@ describe('refus renvoyés par le serveur', () => {
     expect(client.refusalKey(client.refusalCode('referral/too-late [400]'))).toBe('ref.err.tooLate');
   });
 });
+
+describe('code saisi à l’inscription (e-mail ou « Continuer avec Google »)', () => {
+  const NOW = 1_800_000_000_000;
+  it('code valide → mis en attente AVANT la connexion (source « saisie »)', () => {
+    expect(client.pendingForTypedCode(' abc-234 ', null, NOW)).toEqual({ code: 'ABC234', source: 'manual', at: NOW });
+  });
+  it('même code qu’un lien déjà en attente : la source et le suivi du lien sont gardés', () => {
+    const link = { code: 'ABC234', source: 'link' as const, at: 1, src: 'whatsapp' };
+    expect(client.pendingForTypedCode('ABC234', link, NOW)).toBe(link);
+  });
+  it('champ vide ou code mal formé → rien n’est écrit (un code en attente reste intact)', () => {
+    expect(client.pendingForTypedCode('', null, NOW)).toBeUndefined();
+    expect(client.pendingForTypedCode('AB0', { code: 'XYZ234', source: 'link', at: 1 }, NOW)).toBeUndefined();
+  });
+});

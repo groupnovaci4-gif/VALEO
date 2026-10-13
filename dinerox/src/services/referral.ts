@@ -17,17 +17,13 @@ import * as Application from 'expo-application';
 import { firebase } from './firebase';
 import { readJSON, writeJSON } from './storage';
 import { deviceId } from './deviceId';
-import { parseInstallReferrer, refusalCode, type LinkParams } from '@/core/referral';
+import { parseInstallReferrer, refusalCode, type PendingReferral } from '@/core/referral';
 import type { ReferralSource, ReferralStatus } from '@/core/types';
+
+export type { PendingReferral };
 
 const PENDING_KEY = 'dinerox:v1:device:pendingReferral';
 const REFERRER_READ_KEY = 'dinerox:v1:device:installReferrerRead';
-
-export interface PendingReferral extends LinkParams {
-  code: string;
-  source: ReferralSource;
-  at: number;
-}
 
 export interface ReferralNotice {
   kind: 'validated' | 'month' | 'month_banked';

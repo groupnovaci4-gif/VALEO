@@ -6,7 +6,7 @@
  * Les constantes et la lecture des liens sont dupliquées ici à l'identique
  * (`tests/referral.test.ts` vérifie la parité). Aucune donnée financière.
  */
-import type { ReferralProgress } from './types';
+import type { ReferralProgress, ReferralSource } from './types';
 
 export const REFERRAL = {
   CODE_LENGTH: 6,
@@ -41,6 +41,24 @@ export interface LinkParams {
   src?: string;
   cmp?: string;
   cnt?: string;
+}
+
+/** Code en attente sur l'appareil (lien, referrer Play ou saisie), appliqué dès qu'une session existe. */
+export interface PendingReferral extends LinkParams {
+  code: string;
+  source: ReferralSource;
+  at: number;
+}
+
+/**
+ * Code SAISI à l'inscription (e-mail ou Google) : le code en attente à écrire
+ * AVANT la création du compte, ou `undefined` s'il ne faut rien changer.
+ * Même code qu'un lien déjà en attente : on garde sa source (et ses `src`/`cmp`/`cnt`).
+ */
+export function pendingForTypedCode(typed: string, previous: PendingReferral | null, now: number): PendingReferral | undefined {
+  const code = normalizeCode(typed);
+  if (!code || !isValidCode(code)) return undefined;
+  return previous?.code === code ? previous : { code, source: 'manual', at: now };
 }
 
 export function cleanTag(v: unknown): string | undefined {

@@ -4,7 +4,7 @@
  * créé, erreurs affichées sous chaque champ après la première tentative.
  * Après création, la session change et la navigation racine ouvre l'application.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, type TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
@@ -16,7 +16,7 @@ import { analytics } from '@/services/analytics';
 import { TERMS_VERSION } from '@/config/legal';
 import { ensureProfile, saveProfile } from '@/services/profile';
 import { cleanName, normalizePhone, validateSignUp, type SignUpInput } from '@/core/validation';
-import { isValidCode, normalizeCode } from '@/core/referral';
+import { isValidCode, normalizeCode, pendingForTypedCode, type PendingReferral } from '@/core/referral';
 import { readPending, writePending } from '@/services/referral';
 
 const EMPTY: SignUpInput = { lastName: '', firstName: '', email: '', phone: '', password: '', confirm: '', terms: false };
@@ -44,7 +44,24 @@ export default function SignUp() {
       alive = false;
     };
   }, []);
-  const codeError = submitted && code.trim() && !isValidCode(normalizeCode(code)) ? t('ref.err.invalid') : null;
+  // Erreur du code : après un envoi, ou après un appui sur « Continuer avec Google ».
+  const [codeChecked, setCodeChecked] = useState(false);
+  const codeError = (submitted || codeChecked) && code.trim() && !isValidCode(normalizeCode(code)) ? t('ref.err.invalid') : null;
+  // Code en attente avant Google, remis comme avant si la connexion échoue.
+  const beforeGoogle = useRef<PendingReferral | null | undefined>(undefined);
+  const stashForGoogle = useCallback(async () => {
+    setCodeChecked(true);
+    if (code.trim() && !isValidCode(normalizeCode(code))) return false;
+    const previous = await readPending();
+    const next = pendingForTypedCode(code, previous, Date.now());
+    beforeGoogle.current = next ? previous : undefined;
+    if (next) await writePending(next);
+    return true;
+  }, [code]);
+  const restoreAfterGoogle = useCallback(() => {
+    if (beforeGoogle.current !== undefined) void writePending(beforeGoogle.current);
+    beforeGoogle.current = undefined;
+  }, []);
   const errors = validateSignUp(form);
   // Erreurs visibles seulement après une première tentative (pas de rouge pendant la saisie).
   const err = (k: keyof SignUpInput) => (submitted && errors[k] ? t(errors[k] as TKey) : null);
@@ -58,8 +75,8 @@ export default function SignUp() {
     // Code d'invitation : posé AVANT la création du compte, car la session qui s'ouvre
     // l'applique aussitôt (ReferralBootstrap). Remis comme avant si l'inscription échoue.
     const previous = await readPending();
-    const typed = normalizeCode(code);
-    if (typed) await writePending(previous?.code === typed ? previous : { code: typed, source: 'manual', at: Date.now() });
+    const next = pendingForTypedCode(code, previous, Date.now());
+    if (next) await writePending(next);
     try {
       const firstName = cleanName(form.firstName);
       const lastName = cleanName(form.lastName);
@@ -71,7 +88,7 @@ export default function SignUp() {
       analytics.track('sign_up', { method: 'email' });
 
     } catch (e) {
-      if (typed) await writePending(previous);
+      if (next) await writePending(previous);
       setError(t(authErrorKey(e)));
     } finally {
       setBusy(false);
@@ -210,7 +227,7 @@ export default function SignUp() {
       <Text tone="subtle" align="center" style={{ marginVertical: 12 }}>
         {t('common.or')}
       </Text>
-      <GoogleButton />
+      <GoogleButton onBeforeSignIn={stashForGoogle} onSignInFailed={restoreAfterGoogle} />
       <Button variant="ghost" full label={t('auth.signup.hasAccount')} onPress={() => router.replace('/sign-in')} style={{ marginTop: 12 }} />
     </Screen>
   );
