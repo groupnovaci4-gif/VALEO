@@ -36,6 +36,8 @@ const db = getFirestore(app);
 const REJECTED = new Set(['permission-denied', 'invalid-argument', 'failed-precondition']);
 const t = () => new Date().toISOString().slice(11, 19);
 let n = 0;
+// Identifiants uniques à chaque lancement (comme l'app) : une sonde relancée ne réécrit jamais une ancienne opération.
+const RUN = Date.now().toString(36);
 
 onSnapshot(
   query(collection(db, `spaces/${uid}/transactions`), where('syncedAt', '>', Timestamp.fromMillis(0))),
@@ -45,7 +47,7 @@ onSnapshot(
 
 setInterval(async () => {
   n++;
-  const id = `sonde_${n}`;
+  const id = `sonde_${RUN}_${n}`;
   const now = Date.now();
   const space = n % 2 ? uid : familyId;
   const where_ = n % 2 ? 'perso' : 'famille';
