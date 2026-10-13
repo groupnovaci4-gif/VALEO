@@ -1030,8 +1030,9 @@ Commandes lancées par le fondateur une à une, vérifiées en lecture seule apr
 - Au premier déploiement des Functions, une clé d'API ElevenLabs a été saisie à la place de
   `ELEVENLABS_VOICE_ID`. Corrigé le jour même : valeur remise à `a-remplacer`, fonctions
   redéployées, les 39 anciennes révisions qui la contenaient supprimées (vérifié : 0 restante),
-  ancienne clé révoquée chez ElevenLabs, nouvelle clé enregistrée dans le secret
-  `ELEVENLABS_API_KEY` (version 2 ; version 1 désactivée). **Règle : un identifiant de voix
+  nouvelle clé enregistrée dans le secret
+  `ELEVENLABS_API_KEY` (version 2 ; version 1 désactivée). Suppression de l'ancienne clé chez
+  ElevenLabs : à confirmer par le fondateur. **Règle : un identifiant de voix
   n'est jamais une clé ; une clé ne se saisit que par `functions:secrets:set`.**
 - Le lien de définition du mot de passe du Super Admin a été affiché dans la conversation ; il a
   été consommé aussitôt (mot de passe choisi), donc inutilisable.
