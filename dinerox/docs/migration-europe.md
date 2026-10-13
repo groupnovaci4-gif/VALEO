@@ -1,8 +1,8 @@
 # Déménagement de la base Firestore en Europe (europe-west1)
 
-> Plan — **rien n'a été exécuté sur `dinerox-app`** à part la sauvegarde du 13/10/2026 et des
-> commandes en lecture seule. Le back-office (docs/backoffice.md §16) est en pause : il sera
-> installé directement sur la base européenne.
+> **Déménagement FAIT le 13/10/2026** (coupure de 07:30 à 07:43 GMT) : la base `(default)` de
+> `dinerox-app` est en `europe-west1`, rien n'a été perdu. Compte rendu : §11. Le back-office
+> (docs/backoffice.md §16) reprend à 16.2, directement sur la base européenne.
 
 ## 1. En bref
 
@@ -157,6 +157,36 @@ planifiées et la restauration à un instant donné (PITR).
 - Reprendre la mise en ligne du back-office (docs/backoffice.md §16, à partir de 16.2) : ses
   règles et index partiront sur la base européenne.
 - Le jour où les justificatifs (Storage) seront activés : choisir `europe-west1`.
+
+## 11. Compte rendu du déménagement — 13/10/2026
+
+Fait selon le §5, commande par commande (lancées par le fondateur, vérifiées une à une). Heures
+en GMT (= heure d'Abidjan). Les testeurs n'utilisaient pas l'app ; l'app du fondateur était fermée.
+
+| Heure | Étape | Résultat |
+|---|---|---|
+| avant | Vérifications en lecture seule | 0 espace familial (11 espaces personnels) ; projet de quota ADC = `dinerox-app` ; règles en ligne **identiques** à `dinerox-main` ; 3 index composites et 2 exceptions de champ (`transactions.note`, `transactions.payee`) **identiques**. |
+| 07:14 | 2. Sauvegarde fraîche | `gs://dinerox-app-sauvegardes/2026-10-13-jour-j` : `SUCCESSFUL`, 916 documents, 464 247 octets. |
+| 07:19 | Comptage de référence | `~/dinerox-mesures/comptage-jour-j.json` : 12 comptes Auth (0 désactivé), 916 documents ; seules collections de premier niveau : `spaces`, `users`. |
+| 07:21 | 3. `eu-staging` | créée en `europe-west1`. |
+| 07:25 | 3. Copie vers `eu-staging` | 916 lus, 916 écrits, 11 s ; comptage « OK ». |
+| 07:30:03 | 4. Rattrapage + suppression (**début de coupure**) | 916 lus, **0 réécrit** (911 identiques, 5 événements du coach sans `updatedAt` déjà présents) ; ancienne base `nam5` supprimée. |
+| 07:35 | 5. Recréation (1er essai) | refusée (« `(default)` is not available ») : le nom n'était pas encore libéré, rien n'a été fait. Le délai a été plus long que les 5 minutes de la répétition. |
+| 07:41:53 | 5. Recréation | `(default)` en **`europe-west1`** (`freeTier: true` : le quota gratuit suit la base `(default)`). |
+| 07:43 | 6. Règles et index depuis `dinerox-main` | règles inchangées (même ensemble `e3a1d04c…`, republié) ; index déployés. |
+| 07:43:06 | 7. Remplissage (**fin de coupure**) | 916 lus, 916 écrits, 6 s, `--bump-synced-at`. |
+| 07:46 | Contrôle | « OK : aucune collection n'a perdu de document » (916, 12 comptes Auth). |
+| 07:48:10 | Index | les 3 index composites `READY` (environ 4 min de construction) : **attendre `READY` avant de rouvrir l'app**. |
+| 08:33 | 8. Test réel (APK design-v2 du 12/10) | une contribution à un objectif reçue par la base européenne en 1 s ; le coach a produit ses événements. |
+| 10:13 | 9. Protection | `DELETE_PROTECTION_ENABLED`. |
+| 10:43–10:46 | 8. Test réel (suite) | 3 dépenses de 100 FCFA saisies avec le bouton + : **toutes arrivées**, chacune reçue par le serveur 1 à 2 s après sa création ; 44 opérations en base (41 avant). Rien en attente sur le téléphone. |
+
+**Constats pour une prochaine fois :** prévoir jusqu'à 12 minutes avant de pouvoir recréer
+`(default)` (relancer la même commande : la chaîne s'arrête proprement au refus) ; les index
+mettent quelques minutes à se construire après le déploiement.
+
+**Reste à faire :** supprimer `eu-staging` **le 20/10/2026** au plus tôt (étape 10) ; les
+sauvegardes `2026-10-13-avant-demenagement` et `2026-10-13-jour-j` sont conservées.
 
 ## Outils (dans le dépôt)
 
