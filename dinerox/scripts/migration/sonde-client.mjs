@@ -7,14 +7,23 @@
  * écriture (« rejected » = permission-denied / invalid-argument / failed-precondition ;
  * tout le reste = nouvel essai, sans perte).
  *
- *   node scripts/migration/sonde-client.mjs <projet-de-test> <cle-api-web> <email> <mot-de-passe>
+ * Identifiants : ~/dinerox-mesures/sonde.json (créé par seed-test.mjs, hors du dépôt) ;
+ * clé API web publique : variable SONDE_API_KEY. Rien de secret ne s'affiche.
+ * Écrit alternativement dans son espace PERSONNEL et dans l'espace FAMILIAL de test.
+ *
+ *   SONDE_API_KEY=… node scripts/migration/sonde-client.mjs
  */
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { collection, doc, getFirestore, onSnapshot, query, serverTimestamp, setDoc, Timestamp, where } from 'firebase/firestore';
+import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 
-const [projectId, apiKey, email, password] = process.argv.slice(2);
-if (!projectId || !apiKey || !email || !password) throw new Error('usage : sonde-client.mjs <projet> <cle-api> <email> <mot-de-passe>');
+const cfg = JSON.parse(readFileSync(join(homedir(), 'dinerox-mesures', 'sonde.json'), 'utf8'));
+const { project: projectId, email, password, familyId } = cfg;
+const apiKey = process.env.SONDE_API_KEY;
+if (!apiKey) throw new Error('Variable SONDE_API_KEY manquante (clé API web publique du projet de test).');
 if (projectId === 'dinerox-app') throw new Error('Sonde réservée au projet de TEST.');
 const app = initializeApp({ apiKey, projectId, authDomain: `${projectId}.firebaseapp.com` });
 const auth = getAuth(app);
@@ -27,7 +36,7 @@ let n = 0;
 
 onSnapshot(
   query(collection(db, `spaces/${uid}/transactions`), where('syncedAt', '>', Timestamp.fromMillis(0))),
-  (s) => console.log(`${t()} écoute    : ${s.size} document(s)`),
+  (s) => console.log(`${t()} écoute    : ${s.size} document(s) dans l'espace personnel`),
   (e) => console.log(`${t()} écoute    : ERREUR ${e.code} — ${e.message.slice(0, 120)}`),
 );
 
@@ -35,14 +44,16 @@ setInterval(async () => {
   n++;
   const id = `sonde_${n}`;
   const now = Date.now();
+  const space = n % 2 ? uid : familyId;
+  const where_ = n % 2 ? 'perso' : 'famille';
   try {
     await Promise.race([
-      setDoc(doc(db, `spaces/${uid}/transactions/${id}`), { id, type: 'expense', amount: 100, currency: 'XOF', date: new Date().toISOString().slice(0, 10), accountId: 'acc', createdAt: now, updatedAt: now, createdBy: uid, syncedAt: serverTimestamp() }),
+      setDoc(doc(db, `spaces/${space}/transactions/${id}`), { id, type: 'expense', amount: 100, currency: 'XOF', date: new Date().toISOString().slice(0, 10), accountId: 'acc', createdAt: now, updatedAt: now, createdBy: uid, syncedAt: serverTimestamp() }),
       new Promise((_, rej) => setTimeout(() => rej({ code: 'deadline-exceeded', message: 'pas de réponse en 10 s' }), 10_000)),
     ]);
-    console.log(`${t()} écriture ${id} : ok`);
+    console.log(`${t()} écriture ${where_} ${id} : ok`);
   } catch (e) {
     const code = e.code ?? 'inconnu';
-    console.log(`${t()} écriture ${id} : ${code} → l'app ferait « ${REJECTED.has(code) ? 'REFUSÉE (risque de perte locale)' : 'nouvel essai (sans perte)'} » — ${String(e.message).slice(0, 120)}`);
+    console.log(`${t()} écriture ${where_} ${id} : ${code} → l'app ferait « ${REJECTED.has(code) ? 'REFUSÉE (risque de perte locale)' : 'nouvel essai (sans perte)'} » — ${String(e.message).slice(0, 120)}`);
   }
 }, 3000);
