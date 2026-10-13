@@ -20,6 +20,9 @@ import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+// Erreur imprévue : le message seulement (jamais l'objet complet, qui peut contenir des jetons).
+for (const ev of ['uncaughtException', 'unhandledRejection']) process.on(ev, (e) => { console.error(`Échec : ${e?.code ?? ''} ${String(e?.message ?? e).slice(0, 300)}`); process.exit(1); });
+
 const cfg = JSON.parse(readFileSync(join(homedir(), 'dinerox-mesures', 'sonde.json'), 'utf8'));
 const { project: projectId, email, password, familyId } = cfg;
 const apiKey = process.env.SONDE_API_KEY;
