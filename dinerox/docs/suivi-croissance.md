@@ -7,8 +7,8 @@ fondateur (uniquement après son message « Étape N validée »).
 | Étape | Fonctionnalité | Statut | Validé par le fondateur |
 |---|---|---|---|
 | 1 | Parrainage (+ socle des liens DineroX) | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement et déployé ; parties ⛔ ci-dessous | |
-| 2 | Bouton « Partager sur WhatsApp » | 🟦 Testé automatiquement — 📱 au test final (WhatsApp réel, image) ; chaîne ⛔ (adresse à venir) | |
-| 3 | Tontine partagée (Lot T2) | ⬜ À faire | |
+| 2 | Bouton « Partager sur WhatsApp » | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; chaîne ⛔ (pas encore d'adresse, ligne cachée) | |
+| 3 | Tontine partagée (Lot T2) | 🟨 En cours (plan à soumettre) | |
 | 4 | Demande d'avis Google Play / App Store | ⬜ À faire | |
 | 5 | Origine des installations (liens tracés par canal) | ⬜ À faire | |
 
@@ -67,3 +67,5 @@ fondateur (uniquement après son message « Étape N validée »).
   📱 À vérifier sur téléphone. Début de l'étape 2 (plan).
 - 2026-10-14 : plan de l'étape 2 validé (view-shot 5.1.0, déclarations WhatsApp
   et WhatsApp Business, textes) ; codé et testé automatiquement.
+- 2026-10-14 : étape 2 vérifiée par le fondateur → 📱 À vérifier sur téléphone ;
+  fusion dans `dinerox-main` (avance rapide). Début de l'étape 3 (plan).
