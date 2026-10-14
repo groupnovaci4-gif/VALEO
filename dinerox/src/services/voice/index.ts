@@ -25,6 +25,11 @@ export function speak(text: string, opts: SpeakOptions): Promise<VoiceOutcome> {
   return queue.enqueue(text, opts);
 }
 
+/** Une voix est en file ou en cours de lecture. */
+export function isVoiceBusy(): boolean {
+  return queue.busy;
+}
+
 /** Coupe toute voix (file + synthèse de l'appareil), même si rien n'est en file. */
 export async function stopVoice(): Promise<void> {
   await queue.stop();

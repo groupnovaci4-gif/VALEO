@@ -15,6 +15,7 @@ import { can } from '@/core/permissions';
 import type { GoalStatus } from '@/core/types';
 import { withSpaceReady } from '@/components/SpaceReady';
 import { useCoach } from '@/features/coach/CoachProvider';
+import { markReviewMoment } from '@/services/storeReview';
 
 function GoalDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,7 +33,11 @@ function GoalDetail() {
   const contributions = useMemo(() => data.goalContributions.filter((c) => c.goalId === id).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt), [data.goalContributions, id]);
   const [dismissed, setDismissed] = useState(false);
   const celebrate = !dismissed && !!goal && shouldCelebrate(goal, data.goalContributions);
-  const setCelebrate = (open: boolean) => setDismissed(!open);
+  const setCelebrate = (open: boolean) => {
+    // Étape 4 : « Objectif atteint » fermé = moment positif (demande d'avis possible au retour à l'Accueil).
+    if (!open && celebrate) markReviewMoment('goal');
+    setDismissed(!open);
+  };
   // Objectif atteint : la récompense est enregistrée (une seule fois par objectif) ;
   // cette fenêtre reste la célébration, le coach n'en ajoute pas une seconde.
   const { checkRewards } = useCoach();

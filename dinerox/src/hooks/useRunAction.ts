@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useI18n, hasKey, type TKey } from '@/i18n';
 import { useToast } from '@/components/ui';
 import { ActionError } from '@/store/actions';
+import { noteActionFailed } from '@/services/storeReview';
 
 /**
  * Message humain pour une erreur d'action (règle unique pour tous les écrans).
@@ -40,6 +41,8 @@ export function useRunAction() {
         fn();
         return true;
       } catch (e) {
+        // Étape 4 : jamais de demande d'avis après une action qui a échoué.
+        noteActionFailed();
         toast.show(message(e, fallback), 'error');
         return false;
       }

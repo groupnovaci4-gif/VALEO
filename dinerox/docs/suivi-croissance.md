@@ -9,7 +9,7 @@ fondateur (uniquement après son message « Étape N validée »).
 | 1 | Parrainage (+ socle des liens DineroX) | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement et déployé ; parties ⛔ ci-dessous | |
 | 2 | Bouton « Partager sur WhatsApp » | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; chaîne ⛔ (pas encore d'adresse, ligne cachée) | |
 | 3 | Tontine partagée (Lot T2) | 📱 À vérifier sur téléphone (test final unique, 3 téléphones) — testé automatiquement ; serveur déployé et vérifié en ligne | |
-| 4 | Demande d'avis Google Play / App Store | ⬜ À faire — plan et textes proposés (`docs/textes-etape4.md`), en attente d'accord | |
+| 4 | Demande d'avis Google Play / App Store | 🟦 Testé automatiquement — 📱 test final ; vraie fenêtre Google : piste « test interne » après les 5 étapes ; rien côté serveur | |
 | 5 | Origine des installations (liens tracés par canal) | ⬜ À faire | |
 
 ## Détail de l'étape 1
@@ -62,6 +62,18 @@ fondateur (uniquement après son message « Étape N validée »).
 | Écran admin des statistiques de tontines | ⬜ | fonction faite ; textes de l'écran admin non proposés |
 | Déploiement (fonctions `tontineGroup`, `adminTontineStats`, règles, index, `deleteAccount` + `boDeleteUser`) | 🟦 en ligne · 📱 | déployé le 2026-10-14 depuis `dinerox-main` 44e28eb, 4 commandes approuvées ; comptes jetables : création/invitation/aperçu, puis suppression d'un membre (compte, profil, opérations, code, demande effacés ; place « Ancien membre ») 17/17, tout nettoyé |
 
+## Détail de l'étape 4
+
+| Élément | Statut | Preuve / note |
+|---|---|---|
+| Règles (moments, 14 j, 7 jours de saisie, 120 j, 3 au total, arrêt après le menu, blocages) | 🟦 | `core/storeReview.ts`, `tests/store-review.test.ts` (25, mutations détectées) |
+| Moment « Objectif atteint » fermé | 🟦 web · 📱 | `e2e/store-review.js` (web : aucune demande, pas de fenêtre native) |
+| Moment « cagnotte reçue » (carnet : bouton et saisie confirmée) | 🟦 unitaires · 📱 | la tontine partagée n'enregistre pas de cagnotte reçue aujourd'hui |
+| Jamais pendant une saisie : feuille, trophée affiché, clavier, micro, voix du coach | 🟦 unitaires · 📱 | `screenBusy()` ; `VoiceQueue.busy` testé |
+| Fenêtre Google réelle (demande automatique) | 📱 · ⛔ avant publication | APK installé directement : la demande part mais Google n'affiche rien (normal) ; vraie fenêtre : piste « test interne » |
+| Ligne « Donner mon avis » : page Play directe, cachée sans `config/app/items/store` | 🟦 web · 📱 Play Store réel | `e2e/store-review.js` ; iPhone : seulement avec `appStoreUrl` dans le réglage |
+| Dépendance `expo-store-review ~57.0.3` | 🟦 | nouveau build natif (EAS) nécessaire |
+
 ## À faire après les 5 étapes
 
 Demandé par le fondateur le 2026-10-14 ; aucun n'est commencé.
@@ -71,6 +83,17 @@ Demandé par le fondateur le 2026-10-14 ; aucun n'est commencé.
 | (a) Écran admin des statistiques de tontines | ⬜ | la fonction `adminTontineStats` est en ligne ; textes de l'écran à proposer puis valider |
 | (b) Cotisations des tontines partagées comptées dans le « reste par jour », comme le carnet T1 | ⬜ | `core/dailyAllowance.ts` |
 | (c) Fréquence personnalisée pour les tontines partagées | ⬜ | aujourd'hui : quotidienne, hebdomadaire, toutes les 2 semaines, mensuelle |
+| (d) Piste « test interne » de Google Play (voir la vraie fenêtre d'avis avant la publication) | ⬜ | à préparer, liste ci-dessous |
+
+Préparer la piste « test interne » (décision du fondateur, 2026-10-14) :
+1. **Compte développeur Google Play** (frais d'inscription unique de Google, vérification d'identité).
+2. **Fiche minimale** : nom, description courte et longue, icône 512 px, image de présentation, captures d'écran, catégorie, coordonnées.
+3. **Politique de confidentialité** publiée à une adresse publique (exigée par Google).
+4. **Formulaire « Sécurité des données »** : données collectées, finalités, partage, chiffrement, suppression du compte.
+5. **Questionnaire de classification du contenu**, public cible, déclaration « application financière » si demandée.
+6. **Build AAB signé** (EAS) envoyé sur la piste interne ; liste des testeurs (adresses Gmail).
+7. **Empreinte SHA-256** du certificat de signature de l'application (Play Console › Intégrité de l'application) à mettre dans `assetlinks.json` (liens `dinerox.app`, étape 1).
+8. Puis : `config/app/items/store` › `reviewMenu: true` pour afficher la ligne « Donner mon avis » (seulement quand la page Play existe).
 
 ## Journal
 
@@ -107,3 +130,8 @@ Demandé par le fondateur le 2026-10-14 ; aucun n'est commencé.
   ensuite. Étape 3 → 📱 À vérifier sur téléphone.
 - 2026-10-14 : déploiement de l'étape 3 vérifié par le fondateur. Ajout de la
   liste « À faire après les 5 étapes ». Étape 4 : plan proposé, rien de codé.
+- 2026-10-14 : étape 4 — décisions du fondateur (2 moments sans trophées, fréquence,
+  `expo-store-review ~57.0.3`, textes validés, test interne après les 5 étapes) et
+  correction : la ligne du menu ouvre directement la page du store, cachée tant
+  que `config/app/items/store` ne l'active pas. Codé et testé automatiquement ;
+  rien côté serveur, aucun déploiement.

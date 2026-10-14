@@ -17,6 +17,7 @@ import { Button, DateField, Sheet, Text } from '@/components/ui';
 import { addDays } from '@/core/dates';
 import type { ItemState } from '@/core/tontine';
 import type { Tontine } from '@/core/types';
+import { markReviewMoment } from '@/services/storeReview';
 
 export function useTontineGestures(tontine: Tontine) {
   const { t, date } = useI18n();
@@ -50,6 +51,8 @@ export function useTontineGestures(tontine: Tontine) {
           void run(() => {
             const e = actions.recordTontine({ tontineId: tontine.id, period: item.period, kind: 'payout', amount: item.payout, date: now });
             if (e.transactionId) undoToast([e.transactionId]);
+            // Étape 4 : cagnotte reçue = moment positif.
+            markReviewMoment('tontine');
           }),
       },
     ]);

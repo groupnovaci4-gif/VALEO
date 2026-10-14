@@ -28,6 +28,10 @@ Partage (étape 2) : `share.js` — « Partager sur WhatsApp » (message et lien
 `src=whatsapp`), carte trophée sans nom ni montant partagée en image, ligne de la
 chaîne WhatsApp selon l'adresse publiée ; WhatsApp et la feuille de partage sont
 INTERCEPTÉS (rien ne part).
+Avis sur le store (étape 4) : `store-review.js` — première ouverture retenue par
+compte, « Objectif atteint » fermé puis Accueil sans aucune demande sur le web (pas
+de fenêtre native), ligne « Donner mon avis » selon `config/app/items/store`, qui
+ouvre directement la page Play (interceptée) et arrête les demandes automatiques.
 
 Il exige l'émulateur **functions** (compilé avant : `npm --prefix firebase/functions run build`).
 

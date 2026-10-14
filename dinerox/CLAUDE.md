@@ -216,3 +216,14 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     départ à l'inscription (`starterStructure`) et `ensureCashAccount` (carnet
     T1, saisie classique, règle 10) sont des comportements VOULUS, à ne pas changer. Un groupe n'est jamais une tontine personnelle
     (aucune limite de formule consommée).
+27. **Avis sur le store (croissance, étape 4, `core/storeReview.ts`).** Fenêtre
+    officielle (Google Play, Apple plus tard) pour les demandes AUTOMATIQUES
+    seulement : rien avant (aucune question qui filtre les gens contents), rien
+    après, aucune récompense. Deux moments : « Objectif atteint » fermé, cagnotte
+    de tontine reçue (`markReviewMoment`) ; demande au retour à l'Accueil, écran
+    libre (`screenBusy`). Règles pures `reviewDecision` (14 jours, 7 jours de
+    saisie, 120 jours, 3 au total, arrêt après le menu, jamais première session,
+    après un échec, ni pour un enfant) : ne pas les contourner. La ligne
+    « Donner mon avis » ouvre DIRECTEMENT la page du store, cachée sans
+    `config/app/items/store`. Ne jamais déclarer `playStoreUrl` / `appStoreUrl`
+    dans `app.config.ts` (expo-store-review ouvrirait le store sans prévenir).

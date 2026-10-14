@@ -35,6 +35,7 @@ import { EntryPrompt } from '@/features/entry/EntryPrompt';
 import { InviteCard } from '@/features/referral/InviteCard';
 import { WeekCard } from '@/features/referral/WeekCard';
 import { useEntry } from '@/features/entry/EntryProvider';
+import { useStoreReviewPrompt } from '@/features/storeReview/useStoreReviewPrompt';
 
 export default function Home() {
   return (
@@ -55,6 +56,8 @@ function HomeScreen() {
   const big = fontScale >= BIG_TEXT;
   const f = useFinance();
   const { data, position, flows, envelopes, budget, insights, now } = f;
+  // Étape 4 : demande d'avis possible au retour ici après un moment positif (règles : core/storeReview.ts).
+  useStoreReviewPrompt(data.transactions);
 
   const goals = useMemo(
     () => sortGoals(data.goals.filter((g) => g.status === 'active' && !isReserve(g))).slice(0, 3).map((g) => ({ g, plan: goalPlanFor(g, data.goalContributions, now) })),

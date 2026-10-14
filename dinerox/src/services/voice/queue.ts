@@ -47,6 +47,8 @@ export class VoiceQueue {
   private chain: Promise<unknown> = Promise.resolve();
   private generation = 0;
   private current: VoiceProvider | null = null;
+  /** Messages en file ou en lecture (étape 4 : aucune demande d'avis pendant que le coach parle). */
+  private pending = 0;
 
   constructor(
     private readonly providers: () => PreparedProvider[],
@@ -79,9 +81,17 @@ export class VoiceQueue {
       }
       return { spoken: false, reason: 'unavailable' };
     };
-    const next = this.chain.then(run, run);
+    this.pending++;
+    const next = this.chain.then(run, run).finally(() => {
+      this.pending--;
+    });
     this.chain = next.catch(() => undefined);
     return next;
+  }
+
+  /** Vrai tant qu'un message est en file ou en cours de lecture. */
+  get busy(): boolean {
+    return this.pending > 0;
   }
 
   /** Coupe la lecture en cours et abandonne les messages en attente. */

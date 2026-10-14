@@ -1890,6 +1890,9 @@ export const fr = {
   "share.trophy.title": "Nouveau trophée sur {app} 🏆",
   "more.whatsappChannel": "Suivre {app} sur WhatsApp",
   "more.sub.whatsappChannel": "Conseils et nouveautés, sur notre chaîne",
+  // Croissance, étape 4 (textes validés le 2026-10-14, docs/textes-etape4.md).
+  "more.review": "Donner mon avis sur {app}",
+  "more.sub.review": "Votre note et votre commentaire sur le store",
   // Croissance — étape 3 : tontine partagée (textes validés par le fondateur le 2026-10-14, docs/textes-etape3.md).
   "tg.section": "Tontines partagées",
   "tg.join.cta": "Rejoindre une tontine",

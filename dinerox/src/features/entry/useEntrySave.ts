@@ -19,6 +19,7 @@ import type { EntryDraft } from '@/core/entry/parse';
 import { recordEntrySuccess } from '@/services/entryStats';
 import { analytics } from '@/services/analytics';
 import { reserveEligible } from '@/core/reserve';
+import { markReviewMoment } from '@/services/storeReview';
 
 export type EntryMethod = 'voice' | 'text_phrase' | 'quick_manual' | 'full_form';
 export const UNDO_MS = 5000;
@@ -129,6 +130,8 @@ export function useEntrySave() {
         const word = learnableWord(d.source);
         if (word) actions.learnCategoryWord(word, chosen);
       }
+      // Étape 4 : cagnotte de tontine reçue (saisie confirmée) = moment positif.
+      if (drafts.some((d) => d.tontine?.kind === 'payout')) markReviewMoment('tontine');
       analytics.track('entry_created', { method, count: drafts.length });
       if (method === 'voice' && corrected) analytics.track('voice_entry_corrected', { method });
       if (user) void recordEntrySuccess(user.uid, { voice: method === 'voice', items: drafts.map((d) => ({ type: d.type === 'savings' ? ('transfer' as const) : d.type, categoryId: d.categoryId, accountId: d.accountId })) }).catch(() => undefined);

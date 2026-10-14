@@ -5,6 +5,7 @@
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { EntrySheet } from './EntrySheet';
+import { setReviewOverlay } from '@/services/storeReview';
 
 export type EntryMode = 'voice' | 'keyboard';
 
@@ -38,6 +39,8 @@ export function EntryProvider({ children }: { children: React.ReactNode }) {
       listener = null;
     };
   }, []);
+  // Étape 4 : aucune demande d'avis pendant une saisie.
+  useEffect(() => setReviewOverlay('entry', mode !== null), [mode]);
   const value = useMemo(() => ({ open }), [open]);
   return (
     <EntryContext.Provider value={value}>

@@ -45,7 +45,9 @@ export type AnalyticsEvent =
   | 'tontine_group_invite_shared'
   | 'tontine_group_joined'
   | 'tontine_payment_declared'
-  | 'tontine_payment_confirmed';
+  | 'tontine_payment_confirmed'
+  // Croissance (étape 4) : demande d'avis. `context` : goal | tontine (fenêtre automatique) | manual (ligne du menu). Jamais « a noté ».
+  | 'review_requested';
 
 export { sanitize } from '@/core/analyticsProps';
 type Sink = (event: AnalyticsEvent, props: Props) => void;

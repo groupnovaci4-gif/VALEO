@@ -39,6 +39,7 @@ import { RewardCelebration } from './RewardCelebration';
 import { evaluateRewards, monthToEvaluate, rewardKey, REWARDS } from '@/core/coach/rewards';
 import { loadRewards, saveRewards, type StoredReward } from '@/services/rewards';
 import { budgetTransactions } from '@/core/reserve';
+import { setReviewOverlay } from '@/services/storeReview';
 
 interface CoachValue {
   /** Résumé en attente (ouverture) : affiché sur l'accueil jusqu'à « J'ai compris ». */
@@ -70,6 +71,8 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
   const [summary, setSummary] = useState<CoachEvent[]>([]);
   const [rewards, setRewards] = useState<StoredReward[]>([]);
   const [celebration, setCelebration] = useState<{ rewardId: string; message: string } | null>(null);
+  // Étape 4 : célébration d'un trophée affichée = écran occupé (jamais de demande d'avis par-dessus).
+  useEffect(() => setReviewOverlay('reward', celebration !== null), [celebration]);
   const sessionVoiceUsed = useRef(false);
   const remoteMergedFor = useRef<string | null>(null);
 

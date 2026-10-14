@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Linking, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
@@ -12,6 +12,10 @@ import { netWorth } from '@/core/networth';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { useTheme } from '@/theme';
 import { loadAppLinks } from '@/services/appLinks';
+import { loadStoreConfig, openStorePage, readReviewState, writeReviewState } from '@/services/storeReview';
+import { storePageUrls, withMenuUsed } from '@/core/storeReview';
+import { analytics } from '@/services/analytics';
+import { brand } from '@/config/brand';
 
 interface Item {
   key: TKey;
@@ -21,6 +25,8 @@ interface Item {
   path: string;
   /** Lien externe (ouvert hors de l'application) au lieu d'un écran. */
   url?: string;
+  /** Geste propre à la ligne (au lieu d'un écran ou d'un lien). */
+  onPress?: () => void;
   show?: boolean;
   locked?: boolean;
 }
@@ -33,13 +39,24 @@ export default function More() {
   // Icônes à la couleur de la marque : vert pour l'argent, or pour les temps forts.
   const { colors, radius } = useTheme();
   const [channelUrl, setChannelUrl] = useState<string | null>(null);
+  // Étape 4 : pages du store pour « Donner mon avis » (vide = ligne cachée, tant que config/app/items/store ne l'active pas).
+  const [storeUrls, setStoreUrls] = useState<string[]>([]);
   useEffect(() => {
     let alive = true;
     void loadAppLinks().then((l) => alive && setChannelUrl(l.whatsappChannelUrl));
+    void loadStoreConfig().then((c) => alive && setStoreUrls(storePageUrls(Platform.OS, brand.bundleId, c)));
     return () => {
       alive = false;
     };
   }, []);
+  // Ouvre DIRECTEMENT la page du store (jamais la fenêtre de Google, qui peut ne rien afficher).
+  // Après ce passage, plus aucune demande automatique pour ce compte.
+  const openReview = () => {
+    analytics.track('review_requested', { context: 'manual' });
+    const uid = mode === 'firebase' ? user?.uid : undefined;
+    if (uid) void readReviewState(uid).then((s) => writeReviewState(uid, withMenuUsed(s))).catch(() => undefined);
+    void openStorePage(storeUrls);
+  };
   const showNetWorth = hasFeature(plan, 'net_worth') && can(role, 'read', 'assets');
   // Chiffre réel : patrimoine net (formule qui l'inclut) sinon total des comptes.
   const headline = useMemo(
@@ -92,6 +109,7 @@ export default function More() {
         { key: 'ref.title', sub: 'more.sub.invite', icon: 'gift', color: colors.primary, path: '/invite', show: mode === 'firebase' },
         // Étape 2 : chaîne WhatsApp DineroX — cachée tant que l'admin n'a pas publié d'adresse valide.
         { key: 'more.whatsappChannel', sub: 'more.sub.whatsappChannel', icon: 'logo-whatsapp', color: colors.primary, path: '', url: channelUrl ?? undefined, show: !!channelUrl },
+        { key: 'more.review', sub: 'more.sub.review', icon: 'star', color: colors.secondary, path: '', onPress: openReview, show: storeUrls.length > 0 },
         { key: 'sub.title', sub: 'more.sub.subscription', icon: 'sparkles', color: colors.secondary, path: '/subscription' },
         { key: 'set.title', sub: 'more.sub.settings', icon: 'settings', color: colors.info, path: '/settings' },
         { key: 'admin.title', sub: 'more.sub.admin', icon: 'shield-checkmark', color: colors.textMuted, path: '/admin', show: !!user?.isAdmin },
@@ -150,7 +168,7 @@ export default function More() {
                   left={<IconCircle icon={i.icon} color={i.color} size={44} />}
                   right={i.locked ? <Badge tone="ai" label="PRO" /> : undefined}
                   chevron
-                  onPress={() => (i.url ? void Linking.openURL(i.url).catch(() => undefined) : router.push(i.path as never))}
+                  onPress={() => (i.onPress ? i.onPress() : i.url ? void Linking.openURL(i.url).catch(() => undefined) : router.push(i.path as never))}
                 />
               ))}
           </Card>

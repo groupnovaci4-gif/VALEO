@@ -1858,6 +1858,9 @@ export const en: Record<TKey, string> = {
   "share.trophy.title": "New trophy on {app} 🏆",
   "more.whatsappChannel": "Follow {app} on WhatsApp",
   "more.sub.whatsappChannel": "Tips and news, on our channel",
+  // Growth, step 4 (texts approved 2026-10-14, docs/textes-etape4.md).
+  "more.review": "Rate {app}",
+  "more.sub.review": "Your rating and review on the store",
   // Croissance — étape 3 : tontine partagée (textes validés par le fondateur le 2026-10-14, docs/textes-etape3.md).
   "tg.section": "Shared tontines",
   "tg.join.cta": "Join a tontine",
