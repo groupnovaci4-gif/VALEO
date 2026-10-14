@@ -96,10 +96,12 @@ Depuis `dinerox-main`, `npm run deploy`, simulation puis accord à chaque comman
    fonction existante modifiée).
 Aucun index. `functions:link` et Hosting (`/a`, `/t/**`) : exclus tant que le
 domaine `dinerox.app` n'est pas branché.
-Une photo de la production sera prise juste avant (règles, fonctions et dates).
+Photo AVANT le déploiement, lecture seule : `deploy/production-2026-10-14c/`
+(règles `d53857fd-7e9b-49e9-9608-52449c18deea` = celles de l'étape 3, 14 index +
+8 réglages, 57 fonctions et leur date de mise à jour).
 
 | Déployé | Retour arrière |
 |---|---|
-| Règles | remettre le jeu de règles en ligne juste avant (nom relevé dans la photo). |
+| Règles | remettre le jeu `d53857fd-7e9b-49e9-9608-52449c18deea` (même commande `curl … releases/cloud.firestore` qu'à l'étape 1, avec ce nom). |
 | `recordSignupOrigin`, `adminOriginStats` | `npx firebase functions:delete recordSignupOrigin adminOriginStats --region europe-west1 --project dinerox-app` |
 | Données | `originStats` (compteurs anonymes) et `users/*.originCounted` : sans effet si les fonctions sont retirées. |

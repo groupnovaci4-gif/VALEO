@@ -1,0 +1,2610 @@
+[
+ {
+  "platform": "gcfv2",
+  "id": "adminReferralStats",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "adminReferralStats",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "adminReferralStats/function-source.zip",
+    "generation": "1791963882717210"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/adminReferralStats",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "adminReferralStats",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/adminReferralStats",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1"
+  },
+  "runServiceId": "adminreferralstats",
+  "codebase": "default",
+  "hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "adminStats",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "adminStats",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "adminStats/function-source.zip",
+    "generation": "1791896753305098"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/adminStats",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "adminStats",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/adminStats",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "adminstats",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "adminTontineStats",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "adminTontineStats",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "adminTontineStats/function-source.zip",
+    "generation": "1792005879783046"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/adminTontineStats",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "adminTontineStats",
+   "LOG_EXECUTION_ID": "true"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/adminTontineStats",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "firebase-functions-hash": "a75c562d7db2cc0907c61049fc2b1ae314703085",
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true"
+  },
+  "runServiceId": "admintontinestats",
+  "codebase": "default",
+  "hash": "a75c562d7db2cc0907c61049fc2b1ae314703085",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "applyReferral",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "applyReferral",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "applyReferral/function-source.zip",
+    "generation": "1791963882632904"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/applyReferral",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "applyReferral",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "REFERRAL_DEVICE_PEPPER",
+    "projectId": "dinerox-app",
+    "secret": "REFERRAL_DEVICE_PEPPER",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/applyReferral",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "56f2d7f78d60f222499ef8d133995d9e639c164b"
+  },
+  "runServiceId": "applyreferral",
+  "codebase": "default",
+  "hash": "56f2d7f78d60f222499ef8d133995d9e639c164b",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boAcceptInvite",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boAcceptInvite",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boAcceptInvite/function-source.zip",
+    "generation": "1791896753463232"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boAcceptInvite",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boAcceptInvite",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boAcceptInvite",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "boacceptinvite",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boChangePassword",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boChangePassword",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boChangePassword/function-source.zip",
+    "generation": "1791896753396012"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boChangePassword",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boChangePassword",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "BO_MFA_KEY",
+    "projectId": "dinerox-app",
+    "secret": "BO_MFA_KEY",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boChangePassword",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "bochangepassword",
+  "codebase": "default",
+  "hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boCreateUser",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boCreateUser",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boCreateUser/function-source.zip",
+    "generation": "1791896753323221"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boCreateUser",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boCreateUser",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boCreateUser",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bocreateuser",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boDeleteRole",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boDeleteRole",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boDeleteRole/function-source.zip",
+    "generation": "1791896753307224"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boDeleteRole",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boDeleteRole",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boDeleteRole",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bodeleterole",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boDeleteTransaction",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boDeleteTransaction",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boDeleteTransaction/function-source.zip",
+    "generation": "1791896753331045"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boDeleteTransaction",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boDeleteTransaction",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boDeleteTransaction",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bodeletetransaction",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boDeleteUser",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boDeleteUser",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boDeleteUser/function-source.zip",
+    "generation": "1792006393360432"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boDeleteUser",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boDeleteUser",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 300,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boDeleteUser",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "a75c562d7db2cc0907c61049fc2b1ae314703085",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "bodeleteuser",
+  "codebase": "default",
+  "hash": "a75c562d7db2cc0907c61049fc2b1ae314703085",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boGetInviteLink",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boGetInviteLink",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boGetInviteLink/function-source.zip",
+    "generation": "1791896753410115"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boGetInviteLink",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boGetInviteLink",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "BO_MFA_KEY",
+    "projectId": "dinerox-app",
+    "secret": "BO_MFA_KEY",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boGetInviteLink",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "bogetinvitelink",
+  "codebase": "default",
+  "hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boGetUser",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boGetUser",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boGetUser/function-source.zip",
+    "generation": "1791896753310479"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boGetUser",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boGetUser",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boGetUser",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "bogetuser",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boInviteStaff",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boInviteStaff",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boInviteStaff/function-source.zip",
+    "generation": "1791896753245472"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boInviteStaff",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boInviteStaff",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "BO_MFA_KEY",
+    "projectId": "dinerox-app",
+    "secret": "BO_MFA_KEY",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boInviteStaff",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true"
+  },
+  "runServiceId": "boinvitestaff",
+  "codebase": "default",
+  "hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boListAudit",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boListAudit",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boListAudit/function-source.zip",
+    "generation": "1791896753531087"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boListAudit",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boListAudit",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boListAudit",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "bolistaudit",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boListInvites",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boListInvites",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boListInvites/function-source.zip",
+    "generation": "1791896753458111"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boListInvites",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boListInvites",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boListInvites",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bolistinvites",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boListRoles",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boListRoles",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boListRoles/function-source.zip",
+    "generation": "1791896753333990"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boListRoles",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boListRoles",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boListRoles",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bolistroles",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boListStaff",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boListStaff",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boListStaff/function-source.zip",
+    "generation": "1791896753433818"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boListStaff",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boListStaff",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boListStaff",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "boliststaff",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boListTransactions",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boListTransactions",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boListTransactions/function-source.zip",
+    "generation": "1791896753303020"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boListTransactions",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boListTransactions",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boListTransactions",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "bolisttransactions",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boListUsers",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boListUsers",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boListUsers/function-source.zip",
+    "generation": "1791896753481058"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boListUsers",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boListUsers",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boListUsers",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bolistusers",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boLoginStart",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boLoginStart",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boLoginStart/function-source.zip",
+    "generation": "1791896753286844"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boLoginStart",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boLoginStart",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "BO_MFA_KEY",
+    "projectId": "dinerox-app",
+    "secret": "BO_MFA_KEY",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boLoginStart",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee"
+  },
+  "runServiceId": "bologinstart",
+  "codebase": "default",
+  "hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boLoginVerify",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boLoginVerify",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boLoginVerify/function-source.zip",
+    "generation": "1791896753375481"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boLoginVerify",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boLoginVerify",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "BO_MFA_KEY",
+    "projectId": "dinerox-app",
+    "secret": "BO_MFA_KEY",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boLoginVerify",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "bologinverify",
+  "codebase": "default",
+  "hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boLogout",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boLogout",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boLogout/function-source.zip",
+    "generation": "1791896753213897"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boLogout",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boLogout",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boLogout",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bologout",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boMe",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boMe",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boMe/function-source.zip",
+    "generation": "1791896753248403"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boMe",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boMe",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boMe",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bome",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boMyDataAccess",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boMyDataAccess",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boMyDataAccess/function-source.zip",
+    "generation": "1791896753366936"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boMyDataAccess",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boMyDataAccess",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boMyDataAccess",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bomydataaccess",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boNewRecoveryCodes",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boNewRecoveryCodes",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boNewRecoveryCodes/function-source.zip",
+    "generation": "1791896753303421"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boNewRecoveryCodes",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boNewRecoveryCodes",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "BO_MFA_KEY",
+    "projectId": "dinerox-app",
+    "secret": "BO_MFA_KEY",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boNewRecoveryCodes",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "bonewrecoverycodes",
+  "codebase": "default",
+  "hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boOpenData",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boOpenData",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boOpenData/function-source.zip",
+    "generation": "1791896753355868"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boOpenData",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boOpenData",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boOpenData",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true"
+  },
+  "runServiceId": "boopendata",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boPreviewDelete",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boPreviewDelete",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boPreviewDelete/function-source.zip",
+    "generation": "1791896753310594"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boPreviewDelete",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boPreviewDelete",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boPreviewDelete",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true"
+  },
+  "runServiceId": "bopreviewdelete",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boRemoveStaff",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boRemoveStaff",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boRemoveStaff/function-source.zip",
+    "generation": "1791896753596133"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boRemoveStaff",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boRemoveStaff",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boRemoveStaff",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "boremovestaff",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boResendInvite",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boResendInvite",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boResendInvite/function-source.zip",
+    "generation": "1791896753365949"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boResendInvite",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boResendInvite",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "BO_MFA_KEY",
+    "projectId": "dinerox-app",
+    "secret": "BO_MFA_KEY",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boResendInvite",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee"
+  },
+  "runServiceId": "boresendinvite",
+  "codebase": "default",
+  "hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boResetStaffMfa",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boResetStaffMfa",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boResetStaffMfa/function-source.zip",
+    "generation": "1791896753322412"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boResetStaffMfa",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boResetStaffMfa",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boResetStaffMfa",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "boresetstaffmfa",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boRevokeInvite",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boRevokeInvite",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boRevokeInvite/function-source.zip",
+    "generation": "1791896753309510"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boRevokeInvite",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boRevokeInvite",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boRevokeInvite",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "borevokeinvite",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boSaveRole",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boSaveRole",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boSaveRole/function-source.zip",
+    "generation": "1791896753402618"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boSaveRole",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boSaveRole",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boSaveRole",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bosaverole",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boSearchUsers",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boSearchUsers",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boSearchUsers/function-source.zip",
+    "generation": "1791896753372954"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boSearchUsers",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boSearchUsers",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boSearchUsers",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bosearchusers",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boSetPlan",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boSetPlan",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boSetPlan/function-source.zip",
+    "generation": "1791896753327308"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boSetPlan",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boSetPlan",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boSetPlan",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "bosetplan",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boSetStaffRole",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boSetStaffRole",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boSetStaffRole/function-source.zip",
+    "generation": "1791896753412972"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boSetStaffRole",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boSetStaffRole",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boSetStaffRole",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true"
+  },
+  "runServiceId": "bosetstaffrole",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boSetStaffSuspended",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boSetStaffSuspended",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boSetStaffSuspended/function-source.zip",
+    "generation": "1791896753461171"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boSetStaffSuspended",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boSetStaffSuspended",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boSetStaffSuspended",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bosetstaffsuspended",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boSetSuspended",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boSetSuspended",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boSetSuspended/function-source.zip",
+    "generation": "1791896753232449"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boSetSuspended",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boSetSuspended",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boSetSuspended",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bosetsuspended",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boStats",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boStats",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boStats/function-source.zip",
+    "generation": "1791896753437350"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boStats",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boStats",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boStats",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bostats",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boStatsSnapshot",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "scheduleTrigger": {},
+  "entryPoint": "boStatsSnapshot",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boStatsSnapshot/function-source.zip",
+    "generation": "1791896753376883"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boStatsSnapshot",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boStatsSnapshot",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boStatsSnapshot",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-scheduled": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "bostatssnapshot",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boUpdateUser",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boUpdateUser",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boUpdateUser/function-source.zip",
+    "generation": "1791896753343018"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boUpdateUser",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boUpdateUser",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boUpdateUser",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "boupdateuser",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "boViewInvite",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "boViewInvite",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "boViewInvite/function-source.zip",
+    "generation": "1791896753395767"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/boViewInvite",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "boViewInvite",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/boViewInvite",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 5,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "runServiceId": "boviewinvite",
+  "codebase": "default",
+  "hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "deleteAccount",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "deleteAccount",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "deleteAccount/function-source.zip",
+    "generation": "1792006341828653"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/deleteAccount",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "deleteAccount",
+   "LOG_EXECUTION_ID": "true"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/deleteAccount",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "a75c562d7db2cc0907c61049fc2b1ae314703085"
+  },
+  "runServiceId": "deleteaccount",
+  "codebase": "default",
+  "hash": "a75c562d7db2cc0907c61049fc2b1ae314703085",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "financeAssistant",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "financeAssistant",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "financeAssistant/function-source.zip",
+    "generation": "1791669558594839"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/financeAssistant",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "financeAssistant",
+   "LOG_EXECUTION_ID": "true"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "ANTHROPIC_API_KEY",
+    "projectId": "dinerox-app",
+    "secret": "ANTHROPIC_API_KEY",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/financeAssistant",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 512,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "e554091f34cf08aa39f763632b1dcf3fedc86e22"
+  },
+  "runServiceId": "financeassistant",
+  "codebase": "default",
+  "hash": "e554091f34cf08aa39f763632b1dcf3fedc86e22",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "inviteMember",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "inviteMember",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "inviteMember/function-source.zip",
+    "generation": "1791668602904744"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/inviteMember",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "inviteMember",
+   "LOG_EXECUTION_ID": "true"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/inviteMember",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "6414d94688469fa1257ce8326999ec41fdf4a338",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "invitemember",
+  "codebase": "default",
+  "hash": "6414d94688469fa1257ce8326999ec41fdf4a338",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "myReferral",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "myReferral",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "myReferral/function-source.zip",
+    "generation": "1791963882807455"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/myReferral",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "myReferral",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "REFERRAL_DEVICE_PEPPER",
+    "projectId": "dinerox-app",
+    "secret": "REFERRAL_DEVICE_PEPPER",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/myReferral",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "56f2d7f78d60f222499ef8d133995d9e639c164b"
+  },
+  "runServiceId": "myreferral",
+  "codebase": "default",
+  "hash": "56f2d7f78d60f222499ef8d133995d9e639c164b",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "parseVoiceEntry",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "parseVoiceEntry",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "parseVoiceEntry/function-source.zip",
+    "generation": "1791668602591435"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/parseVoiceEntry",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "parseVoiceEntry",
+   "LOG_EXECUTION_ID": "true"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "ANTHROPIC_API_KEY",
+    "projectId": "dinerox-app",
+    "secret": "ANTHROPIC_API_KEY",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 15,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/parseVoiceEntry",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "0084be6bc5ada4872decae18de7c05423beb6ba2"
+  },
+  "runServiceId": "parsevoiceentry",
+  "codebase": "default",
+  "hash": "0084be6bc5ada4872decae18de7c05423beb6ba2",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "referralNightly",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "scheduleTrigger": {},
+  "entryPoint": "referralNightly",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "referralNightly/function-source.zip",
+    "generation": "1791963882709464"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/referralNightly",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "referralNightly",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/referralNightly",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-scheduled": "true",
+   "firebase-functions-hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1"
+  },
+  "runServiceId": "referralnightly",
+  "codebase": "default",
+  "hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "referralOnGoal",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "eventTrigger": {
+   "eventType": "google.cloud.firestore.document.v1.written",
+   "retry": false,
+   "eventFilters": {
+    "database": "(default)",
+    "namespace": "(default)"
+   },
+   "eventFilterPathPatterns": {
+    "document": "spaces/{spaceId}/goals/{docId}"
+   },
+   "region": "europe-west1"
+  },
+  "entryPoint": "referralOnGoal",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "referralOnGoal/function-source.zip",
+    "generation": "1791963800087604"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/referralOnGoal",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_SIGNATURE_TYPE": "cloudevent",
+   "FUNCTION_TARGET": "referralOnGoal",
+   "LOG_EXECUTION_ID": "true"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/referralOnGoal",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1"
+  },
+  "runServiceId": "referralongoal",
+  "codebase": "default",
+  "hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "referralOnTransaction",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "eventTrigger": {
+   "eventType": "google.cloud.firestore.document.v1.written",
+   "retry": false,
+   "eventFilters": {
+    "database": "(default)",
+    "namespace": "(default)"
+   },
+   "eventFilterPathPatterns": {
+    "document": "spaces/{spaceId}/transactions/{docId}"
+   },
+   "region": "europe-west1"
+  },
+  "entryPoint": "referralOnTransaction",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "referralOnTransaction/function-source.zip",
+    "generation": "1791963882025222"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/referralOnTransaction",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_SIGNATURE_TYPE": "cloudevent",
+   "FUNCTION_TARGET": "referralOnTransaction",
+   "LOG_EXECUTION_ID": "true"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/referralOnTransaction",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1"
+  },
+  "runServiceId": "referralontransaction",
+  "codebase": "default",
+  "hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "removeMember",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "removeMember",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "removeMember/function-source.zip",
+    "generation": "1791669609838155"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/removeMember",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "removeMember",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/removeMember",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "firebase-functions-hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26",
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true"
+  },
+  "runServiceId": "removemember",
+  "codebase": "default",
+  "hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "respondInvite",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "respondInvite",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "respondInvite/function-source.zip",
+    "generation": "1791669608285811"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/respondInvite",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "respondInvite",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/respondInvite",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "respondinvite",
+  "codebase": "default",
+  "hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "revokeInvite",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "revokeInvite",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "revokeInvite/function-source.zip",
+    "generation": "1791669607875534"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/revokeInvite",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "revokeInvite",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/revokeInvite",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-callable": "true",
+   "firebase-functions-hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26",
+   "deployment-tool": "cli-firebase"
+  },
+  "runServiceId": "revokeinvite",
+  "codebase": "default",
+  "hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "setAmbassador",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "setAmbassador",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "setAmbassador/function-source.zip",
+    "generation": "1791963882703397"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/setAmbassador",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "setAmbassador",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/setAmbassador",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1"
+  },
+  "runServiceId": "setambassador",
+  "codebase": "default",
+  "hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "setMemberRole",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "setMemberRole",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "setMemberRole/function-source.zip",
+    "generation": "1791669608171674"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/setMemberRole",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "setMemberRole",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/setMemberRole",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "firebase-functions-hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26",
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true"
+  },
+  "runServiceId": "setmemberrole",
+  "codebase": "default",
+  "hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "tontineGroup",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "tontineGroup",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "tontineGroup/function-source.zip",
+    "generation": "1792005918858775"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "BO_WEB_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/tontineGroup",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "tontineGroup",
+   "LOG_EXECUTION_ID": "true",
+   "FUNCTION_SIGNATURE_TYPE": "http"
+  },
+  "secretEnvironmentVariables": [
+   {
+    "key": "REFERRAL_DEVICE_PEPPER",
+    "projectId": "dinerox-app",
+    "secret": "REFERRAL_DEVICE_PEPPER",
+    "version": "1"
+   }
+  ],
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/tontineGroup",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true",
+   "firebase-functions-hash": "374d0eb1fd9cd243ac474e23f6c1660eaff2da98"
+  },
+  "runServiceId": "tontinegroup",
+  "codebase": "default",
+  "hash": "374d0eb1fd9cd243ac474e23f6c1660eaff2da98",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "verifyPurchase",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "callableTrigger": {},
+  "entryPoint": "verifyPurchase",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "verifyPurchase/function-source.zip",
+    "generation": "1791668563169049"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/verifyPurchase",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "verifyPurchase",
+   "LOG_EXECUTION_ID": "true"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/verifyPurchase",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "firebase-functions-hash": "6414d94688469fa1257ce8326999ec41fdf4a338",
+   "deployment-tool": "cli-firebase",
+   "deployment-callable": "true"
+  },
+  "runServiceId": "verifypurchase",
+  "codebase": "default",
+  "hash": "6414d94688469fa1257ce8326999ec41fdf4a338",
+  "state": "ACTIVE"
+ },
+ {
+  "platform": "gcfv2",
+  "id": "weeklySummaryPush",
+  "project": "dinerox-app",
+  "region": "europe-west1",
+  "scheduleTrigger": {},
+  "entryPoint": "weeklySummaryPush",
+  "runtime": "nodejs22",
+  "source": {
+   "storageSource": {
+    "bucket": "gcf-v2-sources-653588987819-europe-west1",
+    "object": "weeklySummaryPush/function-source.zip",
+    "generation": "1791669558618699"
+   }
+  },
+  "ingressSettings": "ALLOW_ALL",
+  "environmentVariables": {
+   "ELEVENLABS_VOICE_ID": "a-remplacer",
+   "FIREBASE_CONFIG": "{\"projectId\":\"dinerox-app\",\"storageBucket\":\"dinerox-app.firebasestorage.app\"}",
+   "GCLOUD_PROJECT": "dinerox-app",
+   "EVENTARC_CLOUD_EVENT_SOURCE": "projects/dinerox-app/locations/europe-west1/services/weeklySummaryPush",
+   "FUNCTION_REGION": "europe-west1",
+   "FUNCTION_TARGET": "weeklySummaryPush",
+   "LOG_EXECUTION_ID": "true"
+  },
+  "timeoutSeconds": 60,
+  "uri": "https://europe-west1-dinerox-app.cloudfunctions.net/weeklySummaryPush",
+  "serviceAccount": "653588987819-compute@developer.gserviceaccount.com",
+  "availableMemoryMb": 256,
+  "cpu": 1,
+  "maxInstances": 20,
+  "concurrency": 80,
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "deployment-scheduled": "true",
+   "firebase-functions-hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26"
+  },
+  "runServiceId": "weeklysummarypush",
+  "codebase": "default",
+  "hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26",
+  "state": "ACTIVE"
+ }
+]
