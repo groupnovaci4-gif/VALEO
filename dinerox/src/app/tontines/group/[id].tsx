@@ -4,7 +4,8 @@
  *    PERSONNE (tous : « payé » / « pas encore » ; « en retard », « déclaré »,
  *    « contesté » : organisateur, trésorier et personne concernée) ;
  *  - « J'ai payé » sur ses propres places, puis, si la personne l'accepte,
- *    l'opération réelle dans SON espace (même catégorie que le carnet) ;
+ *    l'opération réelle dans SON espace, sur le compte qu'elle choisit (même
+ *    catégorie que le carnet ; jamais de compte créé automatiquement) ;
  *  - organisateur : demandes, invitation (WhatsApp), ordre / tirage, trésorier,
  *    surnoms privés (sur ce téléphone), paramètres, nouveau cycle ;
  *  - organisateur et trésorier : confirmer / contester, retards, rappel préparé ;
@@ -17,8 +18,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { DesignV2 } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
 import { useActions } from '@/store/actions';
-import { useMoney } from '@/hooks/useFinance';
-import { AmountField, Badge, Banner, Button, Card, Chip, EmptyState, Field, IconButton, Loading, Screen, SectionHeader, SwitchRow, Text, useToast, type BadgeTone } from '@/components/ui';
+import { useFinance, useMoney } from '@/hooks/useFinance';
+import { AmountField, Badge, Banner, Button, Card, Chip, ChipGroup, EmptyState, Field, IconButton, Loading, Screen, SectionHeader, Sheet, SwitchRow, Text, useToast, type BadgeTone } from '@/components/ui';
 import { brand } from '@/config/brand';
 import { today } from '@/core/dates';
 import { cycleFinished, cycleSummary, groupSchedule, isGroupManager, nextPeriod, paidKey, reminderParams, slotStatusFor, type GroupPayment, type SlotStatus, type TontineGroup } from '@/core/tontineGroup';
@@ -68,7 +69,6 @@ function GroupLoader() {
 function GroupView({ g, uid }: { g: TontineGroup; uid: string }) {
   const { t, date } = useI18n();
   const toast = useToast();
-  const actions = useActions();
   const money = useMoney();
   const organizer = g.organizerUid === uid;
   const manager = isGroupManager(g, uid);
@@ -119,24 +119,12 @@ function GroupView({ g, uid }: { g: TontineGroup; uid: string }) {
     [g.id, t, toast],
   );
 
-  /** « J'ai payé » : déclaration, puis, avec l'accord de la personne, l'opération réelle dans son espace. */
+  /** « J'ai payé » : déclaration, puis la feuille « enregistrer aussi dans mes opérations ? » (compte choisi). */
+  const [recording, setRecording] = useState(false);
   const declare = (p: number, slotId: string) =>
     act(`declare-${p}-${slotId}`, 'declare', { period: p, slotId }, () => {
       analytics.track('tontine_payment_declared', {});
-      Alert.alert(t('tg.iPaid'), t('tg.iPaid.record'), [
-        { text: t('common.no'), style: 'cancel' },
-        {
-          text: t('common.yes'),
-          onPress: () => {
-            try {
-              actions.recordTontineGroupContribution({ groupName: g.name, amount: g.amountPerShare, currency: g.currency, date: now });
-              toast.show(t('common.saved'));
-            } catch {
-              toast.show(t('tg.err.generic'), 'error');
-            }
-          },
-        },
-      ]);
+      setRecording(true);
     });
 
   const lateItems = manager
@@ -238,6 +226,8 @@ function GroupView({ g, uid }: { g: TontineGroup; uid: string }) {
         {t('tontine.legal')}
       </Text>
 
+      <RecordSheet visible={recording} g={g} date={now} onClose={() => setRecording(false)} />
+
       {!organizer ? (
         <Button
           variant="destructive"
@@ -253,6 +243,61 @@ function GroupView({ g, uid }: { g: TontineGroup; uid: string }) {
         />
       ) : null}
     </Screen>
+  );
+}
+
+/**
+ * « Enregistrer aussi cette cotisation dans mes opérations ? » — même
+ * sélecteur et même compte proposé que le carnet T1 (comptes actifs dans la
+ * devise du groupe ; d'abord un compte qui n'est pas un compte d'épargne).
+ * JAMAIS de compte créé automatiquement : sans compte, la personne en crée un
+ * elle-même, ou rien n'est enregistré.
+ */
+function RecordSheet({ visible, g, date, onClose }: { visible: boolean; g: TontineGroup; date: string; onClose: () => void }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const actions = useActions();
+  const { data } = useFinance();
+  const accounts = data.accounts.filter((a) => a.active && !a.deleted && a.currency === g.currency);
+  const [picked, setPicked] = useState<string | null>(null);
+  const accountId = picked && accounts.some((a) => a.id === picked) ? picked : (accounts.find((a) => !a.isSavings)?.id ?? accounts[0]?.id ?? null);
+  const record = () => {
+    if (!accountId) return;
+    try {
+      actions.recordTontineGroupContribution({ groupName: g.name, amount: g.amountPerShare, currency: g.currency, date, accountId });
+      toast.show(t('common.saved'));
+      onClose();
+    } catch {
+      toast.show(t('tg.err.generic'), 'error');
+    }
+  };
+  return (
+    <Sheet visible={visible} onClose={onClose} title={t('tg.iPaid')}>
+      <Text style={{ marginBottom: 12 }}>{t('tg.iPaid.record')}</Text>
+      {accounts.length ? (
+        <>
+          <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
+            {t('tontine.account')}
+          </Text>
+          <ChipGroup scroll value={accountId} onChange={setPicked} options={accounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+            <Button label={t('common.yes')} onPress={record} />
+            <Button variant="secondary" label={t('common.no')} onPress={onClose} />
+          </View>
+        </>
+      ) : (
+        <>
+          <Text variant="bodyStrong">{t('home.noAccount.title')}</Text>
+          <Text variant="small" tone="muted" style={{ marginBottom: 8 }}>
+            {t('home.noAccount.body')}
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Button icon="wallet-outline" label={t('home.noAccount.cta')} onPress={() => router.push('/accounts/edit')} />
+            <Button variant="secondary" label={t('common.no')} onPress={onClose} />
+          </View>
+        </>
+      )}
+    </Sheet>
   );
 }
 

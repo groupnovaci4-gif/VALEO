@@ -107,6 +107,13 @@ async function signIn(h, email) {
   const awaUid = `awa${stamp}`;
   const awa = await person();
   await signIn(awa, awaEmail);
+  // Awa crée ELLE-MÊME son compte Wave (formulaire habituel).
+  await awa.go('/accounts/edit', 3000);
+  await awa.p.getByText('Wave', { exact: true }).first().click(); await awa.p.waitForTimeout(300);
+  await awa.fill('Solde actuel', '50000');
+  await awa.btn('Enregistrer').last().click(); await awa.p.waitForTimeout(2500);
+  const awaWave = (await listDocs(`spaces/${awaUid}/accounts`)).find((a) => a.name === 'Wave');
+  ok(!!awaWave, 'Awa : compte Wave créé par elle-même');
   await awa.go(`/tontines/join?code=${code}`, 3000);
   await checkAllInputs(awa.p, 'Tontine partagée — rejoindre (code)', ok, { expectInputs: true });
   await awa.btn('Voir la tontine').click(); await awa.p.waitForTimeout(3000);
@@ -154,16 +161,22 @@ async function signIn(h, email) {
   ok(await fatou.btn("Enregistrer l'ordre").isDisabled(), "« Enregistrer l'ordre » inactif tant que rien n'est déplacé");
   await fatou.p.screenshot({ path: `${S}/tontine-group-organizer.png`, fullPage: true });
 
-  // ── Kofi déclare son paiement du tour 1 et l'enregistre dans ses opérations ──
+  // ── Kofi (aucun compte) déclare son paiement du tour 1 : on lui PROPOSE de créer un compte, rien n'est créé tout seul ──
+  // Kofi supprime lui-même son seul compte (celui créé par l'inscription) : il n'a plus aucun compte.
+  await kofi.go('/accounts/edit?id=acc_start1', 3000);
+  await kofi.btn('Supprimer').first().click(); await kofi.p.waitForTimeout(2500);
+  const activeAccounts = async (uid) => (await listDocs(`spaces/${uid}/accounts`)).filter((a) => !a.deleted && a.active !== false);
+  ok((await activeAccounts(kofiUid)).length === 0, 'Kofi : plus aucun compte (supprimé par lui-même)');
   await kofi.go(`/tontines/group/${groupId}`, 5000);
   await kofi.p.getByRole('button', { name: '1', exact: true }).first().click(); await kofi.p.waitForTimeout(500);
   await kofi.btn("J'ai payé").first().click(); await kofi.p.waitForTimeout(5000);
   const pay = await readDoc(`tontineGroups/${groupId}/payments/1_1_s3`);
   ok(pay?.status === 'declared' && pay.declaredBy === kofiUid, 'serveur : paiement de Kofi déclaré');
-  const txs = await until(() => listDocs(`spaces/${kofiUid}/transactions`), (l) => l.some((x) => x.payee === 'Tontine du marché'));
-  const tx = txs.find((x) => x.payee === 'Tontine du marché');
-  const sub = await readDoc(`spaces/${kofiUid}/categories/sub_informal_tontine`);
-  ok(tx?.type === 'expense' && tx.amount === 10000 && tx.subcategoryId === 'sub_informal_tontine' && tx.categoryId === sub?.parentId, `opération enregistrée chez Kofi avec la catégorie du carnet (${tx?.categoryId} › ${tx?.subcategoryId})`);
+  t = await kofi.text();
+  ok(t.includes('Enregistrer aussi cette cotisation dans mes opérations ?') && t.includes('Ajoutez votre premier compte') && t.includes('Ajouter un compte'), 'sans compte : proposition d’en créer un (aucun choix forcé)');
+  await kofi.btn('Non').last().click(); await kofi.p.waitForTimeout(2500);
+  ok((await activeAccounts(kofiUid)).length === 0, 'AUCUN compte créé automatiquement');
+  ok((await listDocs(`spaces/${kofiUid}/transactions`)).length === 0, '« Non » : aucune opération enregistrée');
 
   // Statuts selon la personne : Awa (simple membre) voit « Pas encore » pour Kofi ; Fatou voit « Déclaré, à confirmer ».
   await awa.go(`/tontines/group/${groupId}`, 5000);
@@ -183,6 +196,21 @@ async function signIn(h, email) {
   t = await awa.text();
   ok(/Kofi\s*Payé/.test(t), 'Awa : Kofi « Payé »');
   ok(t.includes('Paiement confirmé par Kofi'), 'historique : « Paiement confirmé par Kofi »');
+
+  // Awa déclare le tour 2 : même sélecteur que le carnet, Wave proposé par défaut, opération sur Wave.
+  await awa.p.getByRole('button', { name: '2', exact: true }).first().click(); await awa.p.waitForTimeout(500);
+  await awa.btn("J'ai payé").first().click(); await awa.p.waitForTimeout(5000);
+  t = await awa.text();
+  ok(t.includes('Compte utilisé pour cotiser et recevoir') && !t.includes('Ajoutez votre premier compte'), 'avec des comptes : même sélecteur que le carnet');
+  const awaAccountsBefore = (await activeAccounts(awaUid)).length;
+  await awa.p.getByRole('button', { name: 'Wave' }).filter({ visible: true }).last().click(); await awa.p.waitForTimeout(400);
+  await awa.btn('Oui').last().click(); await awa.p.waitForTimeout(3000);
+  const awaTxs = await until(() => listDocs(`spaces/${awaUid}/transactions`), (l) => l.some((x) => x.payee === 'Tontine du marché'));
+  const tx = awaTxs.find((x) => x.payee === 'Tontine du marché');
+  const sub = await readDoc(`spaces/${awaUid}/categories/sub_informal_tontine`);
+  ok(tx?.type === 'expense' && tx.amount === 10000 && tx.accountId === awaWave?.id, 'opération enregistrée sur le compte choisi (Wave)');
+  ok(tx?.subcategoryId === 'sub_informal_tontine' && tx.categoryId === sub?.parentId, `catégorie du carnet (${tx?.categoryId} › ${tx?.subcategoryId})`);
+  ok((await activeAccounts(awaUid)).length === awaAccountsBefore, 'aucun autre compte créé');
 
   // ── Retard : visible de l'organisatrice et de la personne, pas d'un autre membre ──
   const later = new Date(Date.now() + 10 * D);

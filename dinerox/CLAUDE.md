@@ -210,5 +210,6 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     l'organisateur sur son téléphone seulement ; statuts visibles selon la
     personne (`slotStatusFor`, parité application ↔ serveur testée) ; aucun
     argent ne transite ; l'opération réelle d'une cotisation utilise la même
-    catégorie que le carnet. Un groupe n'est jamais une tontine personnelle
+    catégorie que le carnet, sur le compte CHOISI par la personne (jamais de
+    compte créé automatiquement). Un groupe n'est jamais une tontine personnelle
     (aucune limite de formule consommée).

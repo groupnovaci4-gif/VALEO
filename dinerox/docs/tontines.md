@@ -185,7 +185,10 @@ rappels).
 - Application : `src/core/tontineGroup.ts`, `src/services/tontineGroups.ts`,
   écrans `tontines/join`, `tontines/group/new`, `tontines/group/[id]`, lien
   `/t/{code}`. « J'ai payé » + accord → `recordTontineGroupContribution`
-  (même catégorie que le carnet : `tontineContributionCategory`).
+  (même catégorie que le carnet : `tontineContributionCategory`), sur le
+  compte que la personne CHOISIT (même sélecteur et même compte proposé que le
+  carnet). JAMAIS de compte créé automatiquement (fondateur, 2026-10-14) : sans
+  compte, on lui propose d'en créer un, ou rien n'est enregistré.
 - Textes validés : `docs/textes-etape3.md`.
 - Tests : `tests/tontine-group.test.ts`, règles, `tests/functions/tontine-group.emulator.test.ts`,
   `e2e/tontine-group.js` (3 comptes).

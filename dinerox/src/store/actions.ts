@@ -702,24 +702,28 @@ export function useActions() {
   /**
    * Tontine partagée (étape 3) : « J'ai payé » + accord de la personne → la
    * cotisation devient une opération réelle DANS SON PROPRE ESPACE, avec
-   * EXACTEMENT la même catégorie que le carnet (`tontineContributionCategory`).
+   * EXACTEMENT la même catégorie que le carnet (`tontineContributionCategory`),
+   * sur le compte QU'ELLE A CHOISI. Aucun compte n'est jamais créé ici
+   * (fondateur, 2026-10-14) : sans compte valide, rien n'est enregistré.
    */
   const recordTontineGroupContribution = useCallback(
-    (input: { groupName: string; amount: number; currency: CurrencyCode; date: string }) => {
+    (input: { groupName: string; amount: number; currency: CurrencyCode; date: string; accountId: string }) => {
       const d = data();
       if (!isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
+      const account = d.accounts.find((a) => a.id === input.accountId && a.active && !a.deleted && a.currency === input.currency);
+      if (!account) throw new ActionError('validation', { errors: ['account.missing'] });
       return saveTransaction({
         type: 'expense',
         amount: input.amount,
         currency: input.currency,
         date: input.date,
-        accountId: ensureCashAccount(input.currency),
+        accountId: account.id,
         ...tontineContributionCategory(d.categories),
         payee: input.groupName,
         note: null,
       });
     },
-    [data, saveTransaction, ensureCashAccount],
+    [data, saveTransaction],
   );
 
   const recordTontine = useCallback(

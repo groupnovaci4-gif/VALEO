@@ -88,3 +88,6 @@ fondateur (uniquement après son message « Étape N validée »).
 - 2026-10-14 : textes de l'étape 3 validés (92) et intégrés ; écrans, parcours à
   3 comptes ; deux défauts trouvés et corrigés (ordre affiché après tirage,
   ordre des demandes).
+- 2026-10-14 : correction du fondateur — la cotisation enregistrée va sur le
+  compte choisi par la personne (sélecteur du carnet), jamais de compte créé
+  automatiquement ; testé (parcours à 3 comptes).
