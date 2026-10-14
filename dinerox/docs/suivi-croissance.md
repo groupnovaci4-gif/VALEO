@@ -10,7 +10,7 @@ fondateur (uniquement après son message « Étape N validée »).
 | 2 | Bouton « Partager sur WhatsApp » | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; chaîne ⛔ (pas encore d'adresse, ligne cachée) | |
 | 3 | Tontine partagée (Lot T2) | 📱 À vérifier sur téléphone (test final unique, 3 téléphones) — testé automatiquement ; serveur déployé et vérifié en ligne | |
 | 4 | Demande d'avis Google Play / App Store | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; vraie fenêtre Google : piste « test interne » après les 5 étapes ; rien côté serveur | |
-| 5 | Origine des installations (liens tracés par canal) | ⬜ À faire | |
+| 5 | Origine des installations (liens tracés par canal) | ⬜ À faire — plan et textes proposés (`docs/textes-etape5.md`), en attente d'accord | |
 
 ## Détail de l'étape 1
 
