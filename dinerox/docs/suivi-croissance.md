@@ -8,7 +8,7 @@ fondateur (uniquement après son message « Étape N validée »).
 |---|---|---|---|
 | 1 | Parrainage (+ socle des liens DineroX) | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement et déployé ; parties ⛔ ci-dessous | |
 | 2 | Bouton « Partager sur WhatsApp » | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; chaîne ⛔ (pas encore d'adresse, ligne cachée) | |
-| 3 | Tontine partagée (Lot T2) | 🟦 Testé automatiquement — 📱 test final (3 téléphones) ; serveur NON déployé (fonctions, règles, index, deleteUserData) | |
+| 3 | Tontine partagée (Lot T2) | 📱 À vérifier sur téléphone (test final unique, 3 téléphones) — testé automatiquement ; serveur déployé et vérifié en ligne | |
 | 4 | Demande d'avis Google Play / App Store | ⬜ À faire | |
 | 5 | Origine des installations (liens tracés par canal) | ⬜ À faire | |
 
@@ -60,7 +60,7 @@ fondateur (uniquement après son message « Étape N validée »).
 | Rappels locaux, rappel préparé (sans nom) | 🟦 | unitaires + e2e |
 | Départ, compte supprimé, organisateur → trésorier / tontine figée, avertissement | 🟦 | unitaires, émulateurs, e2e |
 | Écran admin des statistiques de tontines | ⬜ | fonction faite ; textes de l'écran admin non proposés |
-| Déploiement (fonctions `tontineGroup`, `adminTontineStats`, règles, index, `deleteAccount` + `boDeleteUser`) | ⛔ | attend l'accord du fondateur, commande par commande |
+| Déploiement (fonctions `tontineGroup`, `adminTontineStats`, règles, index, `deleteAccount` + `boDeleteUser`) | 🟦 en ligne · 📱 | déployé le 2026-10-14 depuis `dinerox-main` 44e28eb, 4 commandes approuvées ; comptes jetables : création/invitation/aperçu, puis suppression d'un membre (compte, profil, opérations, code, demande effacés ; place « Ancien membre ») 17/17, tout nettoyé |
 
 ## Journal
 
@@ -91,3 +91,7 @@ fondateur (uniquement après son message « Étape N validée »).
 - 2026-10-14 : correction du fondateur — la cotisation enregistrée va sur le
   compte choisi par la personne (sélecteur du carnet), jamais de compte créé
   automatiquement ; testé (parcours à 3 comptes).
+- 2026-10-14 : serveur de l'étape 3 déployé (index, règles, `tontineGroup`,
+  `adminTontineStats`, `deleteAccount`, `boDeleteUser`) ; 57 fonctions, les 55
+  autres inchangées ; vérifié en ligne avec des comptes jetables supprimés
+  ensuite. Étape 3 → 📱 À vérifier sur téléphone.
