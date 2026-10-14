@@ -9,7 +9,7 @@ fondateur (uniquement après son message « Étape N validée »).
 | 1 | Parrainage (+ socle des liens DineroX) | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement et déployé ; parties ⛔ ci-dessous | |
 | 2 | Bouton « Partager sur WhatsApp » | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; chaîne ⛔ (pas encore d'adresse, ligne cachée) | |
 | 3 | Tontine partagée (Lot T2) | 📱 À vérifier sur téléphone (test final unique, 3 téléphones) — testé automatiquement ; serveur déployé et vérifié en ligne | |
-| 4 | Demande d'avis Google Play / App Store | ⬜ À faire | |
+| 4 | Demande d'avis Google Play / App Store | ⬜ À faire — plan et textes proposés (`docs/textes-etape4.md`), en attente d'accord | |
 | 5 | Origine des installations (liens tracés par canal) | ⬜ À faire | |
 
 ## Détail de l'étape 1
@@ -62,6 +62,16 @@ fondateur (uniquement après son message « Étape N validée »).
 | Écran admin des statistiques de tontines | ⬜ | fonction faite ; textes de l'écran admin non proposés |
 | Déploiement (fonctions `tontineGroup`, `adminTontineStats`, règles, index, `deleteAccount` + `boDeleteUser`) | 🟦 en ligne · 📱 | déployé le 2026-10-14 depuis `dinerox-main` 44e28eb, 4 commandes approuvées ; comptes jetables : création/invitation/aperçu, puis suppression d'un membre (compte, profil, opérations, code, demande effacés ; place « Ancien membre ») 17/17, tout nettoyé |
 
+## À faire après les 5 étapes
+
+Demandé par le fondateur le 2026-10-14 ; aucun n'est commencé.
+
+| Élément | Statut | Note |
+|---|---|---|
+| (a) Écran admin des statistiques de tontines | ⬜ | la fonction `adminTontineStats` est en ligne ; textes de l'écran à proposer puis valider |
+| (b) Cotisations des tontines partagées comptées dans le « reste par jour », comme le carnet T1 | ⬜ | `core/dailyAllowance.ts` |
+| (c) Fréquence personnalisée pour les tontines partagées | ⬜ | aujourd'hui : quotidienne, hebdomadaire, toutes les 2 semaines, mensuelle |
+
 ## Journal
 
 - 2026-10-13 : plan de l'étape 1 accepté. Domaine `dinerox.app`. Règle de
@@ -95,3 +105,5 @@ fondateur (uniquement après son message « Étape N validée »).
   `adminTontineStats`, `deleteAccount`, `boDeleteUser`) ; 57 fonctions, les 55
   autres inchangées ; vérifié en ligne avec des comptes jetables supprimés
   ensuite. Étape 3 → 📱 À vérifier sur téléphone.
+- 2026-10-14 : déploiement de l'étape 3 vérifié par le fondateur. Ajout de la
+  liste « À faire après les 5 étapes ». Étape 4 : plan proposé, rien de codé.
