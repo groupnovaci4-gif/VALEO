@@ -11,6 +11,8 @@ import * as server from '../firebase/functions/src/installOrigin';
 import { renderPage, routeLink } from '../firebase/functions/src/links';
 import { fr } from '../src/i18n/fr';
 import { en } from '../src/i18n/en';
+import { LEGAL } from '../src/content/legal';
+import { renderPage as renderLinkPage } from '../firebase/functions/src/links';
 
 const get = (o: Record<string, string>) => (k: string) => o[k] ?? null;
 const ANDROID = 'Mozilla/5.0 (Linux; Android 14)';
@@ -183,5 +185,43 @@ describe('textes validés (docs/textes-etape5.md)', () => {
       expect((en as Record<string, string>)[key]).toBe(e);
     }
     for (const s of app.ORIGIN_SOURCES) expect((fr as Record<string, string>)[`admin.origin.src.${s}`]).toBeTruthy();
+  });
+});
+
+describe('politique de confidentialité et page /a : textes validés mot pour mot (docs/textes-etape5.md)', () => {
+  const doc = readFileSync(new URL('../docs/textes-etape5.md', import.meta.url), 'utf8');
+  const part = doc.split('## Politique de confidentialité')[1];
+  const one = (re: RegExp) => (re.exec(part) as RegExpExecArray)[1];
+  const all = (re: RegExp) => [...part.matchAll(re)];
+  const sections = (lang: 'fr' | 'en') => LEGAL.privacy[lang].sections;
+  it('français : « Statistiques » complétée, puis les deux nouvelles sections', () => {
+    const titles = all(/^\s*- Titre — FR : « (.*?) » — EN : « (.*?) »$/gm);
+    const bodies = all(/^\s*- FR : « (.*) »$/gm);
+    const fr = sections('fr');
+    const i = fr.findIndex((s) => s.title === 'Statistiques');
+    expect(fr[i].body).toBe(one(/^\s*- FR proposé : « (.*) »$/m));
+    expect(fr.slice(i + 1, i + 3)).toEqual([
+      { title: titles[0][1], body: bodies[0][1] },
+      { title: titles[1][1], body: bodies[1][1] },
+    ]);
+  });
+  it('anglais : nouvelle section « Statistics », puis les deux nouvelles sections', () => {
+    const titles = all(/^\s*- Titre — FR : « (.*?) » — EN : « (.*?) »$/gm);
+    const bodies = all(/^\s*- EN : « (.*) »$/gm);
+    const en = sections('en');
+    const i = en.findIndex((s) => s.title === 'Statistics');
+    expect(en[i].body).toBe(one(/Proposé — titre « Statistics » : « (.*) »$/m));
+    expect(en.slice(i + 1, i + 3)).toEqual([
+      { title: titles[0][2], body: bodies[0][1] },
+      { title: titles[1][2], body: bodies[1][1] },
+    ]);
+  });
+  it('page /a : phrase validée (FR et EN), sans « hors connexion »', () => {
+    const lead = /^- `link\.app\.lead` — .*FR : « (.*?) » — EN : « (.*?) »$/m.exec(doc) as RegExpExecArray;
+    const route = routeLink({ path: '/a', get: () => null, userAgent: DESKTOP, origin: 'https://dinerox.app' }) as Extract<ReturnType<typeof routeLink>, { kind: 'page' }>;
+    // Page HTML : l'apostrophe est échappée (&#39;), le texte est celui du document.
+    expect(renderLinkPage(route, 'fr')).toContain(lead[1].replace('{app}', 'DineroX').replace(/'/g, '&#39;'));
+    expect(renderLinkPage(route, 'en')).toContain(lead[2].replace('{app}', 'DineroX'));
+    expect(renderLinkPage(route, 'fr')).not.toContain('hors connexion');
   });
 });

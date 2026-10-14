@@ -10,7 +10,7 @@ fondateur (uniquement après son message « Étape N validée »).
 | 2 | Bouton « Partager sur WhatsApp » | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; chaîne ⛔ (pas encore d'adresse, ligne cachée) | |
 | 3 | Tontine partagée (Lot T2) | 📱 À vérifier sur téléphone (test final unique, 3 téléphones) — testé automatiquement ; serveur déployé et vérifié en ligne | |
 | 4 | Demande d'avis Google Play / App Store | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; vraie fenêtre Google : piste « test interne » après les 5 étapes ; rien côté serveur | |
-| 5 | Origine des installations (liens tracés par canal) | 🟦 Testé automatiquement — serveur NON déployé (règles, `recordSignupOrigin`, `adminOriginStats`) ; `link` et Hosting attendent le domaine ; 📱 test final | |
+| 5 | Origine des installations (liens tracés par canal) | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; déploiement serveur en cours (règles, `recordSignupOrigin`, `adminOriginStats`) ; `link` et Hosting attendent le domaine | |
 
 ## Détail de l'étape 1
 
@@ -84,7 +84,7 @@ fondateur (uniquement après son message « Étape N validée »).
 | Écran admin : chiffres regroupés, groupes de moins de 5 réunis sans nom | 🟦 | unitaires, émulateurs, e2e (capture) |
 | Générateur de liens de campagne (Play + `dinerox.app/a`) | 🟦 | unitaires + e2e (copie vérifiée) |
 | Défaut de l'étape 3 corrigé : `/t/{code}` (Hosting, Android, fonction `link`) | 🟦 · ⛔ domaine | unitaires ; en ligne seulement avec le domaine |
-| `link.app.lead` et phrases de la politique de confidentialité | ⬜ à valider | `docs/textes-etape5.md` |
+| `link.app.lead` et politique de confidentialité (3 ajouts, FR et EN) | 🟦 | validés le 2026-10-14, intégrés mot pour mot (`src/content/legal.ts`, test) |
 | Déploiement : règles, `recordSignupOrigin`, `adminOriginStats` | ⛔ | attend l'accord du fondateur, commande par commande |
 
 ## À faire après les 5 étapes
@@ -156,3 +156,6 @@ Préparer la piste « test interne » (décision du fondateur, 2026-10-14) :
   consentement analytique car rien n'est rattaché à une personne, seuil 5,
   sources, lien `/a` + correction de `/t/`, textes validés sauf `link.app.lead`).
   Codé et testé automatiquement ; rien de déployé.
+- 2026-10-14 : `link.app.lead` et politique de confidentialité validés et intégrés
+  mot pour mot. Étape 5 → 📱 À vérifier sur téléphone ; fusion dans `dinerox-main`
+  (avance rapide). La suite se fait depuis `dinerox-main`.

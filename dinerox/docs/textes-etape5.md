@@ -1,9 +1,9 @@
 # Étape 5 — origine des installations : nouveaux textes à valider
 
-Statut : textes de l'écran admin VALIDÉS par le fondateur le 2026-10-14 et
-intégrés (`src/i18n/fr.ts`, `src/i18n/en.ts`). **Encore à valider** :
-`link.app.lead` (nouvelle phrase ci-dessous) et les deux phrases de la politique
-de confidentialité (fin du document), à valider ensemble.
+Statut : TOUS VALIDÉS par le fondateur le 2026-10-14 et intégrés : écran admin
+(`src/i18n/fr.ts`, `src/i18n/en.ts`), `link.app.lead` (nouvelle phrase,
+`firebase/functions/src/links.ts`) et politique de confidentialité
+(`src/content/legal.ts`), mot pour mot (vérifié par `tests/install-origin.test.ts`).
 Format : `clé` — FR — EN. `{app}` = nom de marque (DineroX).
 
 Aucun texte n'est montré aux utilisateurs dans l'application : l'origine est
@@ -70,7 +70,7 @@ Textes de la fonction `link` (`firebase/functions/src/links.ts`), sans code
 d'invitation (le lien `/i/{code}` garde ses textes actuels).
 
 - `link.app.title` — FR : « Télécharger {app} » — EN : « Download {app} »
-- `link.app.lead` — **NOUVELLE PROPOSITION, à valider** — FR : « Gérez votre argent avec {app}. Vos dépenses s'enregistrent même sans internet. » — EN : « Manage your money with {app}. Your expenses are saved even without internet. »
+- `link.app.lead` — **NOUVELLE PHRASE, validée** — FR : « Gérez votre argent avec {app}. Vos dépenses s'enregistrent même sans internet. » — EN : « Manage your money with {app}. Your expenses are saved even without internet. »
   - Pourquoi : « même hors connexion » n'est pas entièrement vrai. Vérifié dans
     le code (`services/sync/engine.ts`) : une opération saisie sans réseau est
     gardée sur le téléphone (outbox persistante) et envoyée au retour du réseau.
@@ -80,11 +80,11 @@ d'invitation (le lien `/i/{code}` garde ses textes actuels).
     téléphone (la plus récente gagne), ou une écriture refusée par le serveur
     au retour du réseau (droits retirés dans une famille). La nouvelle phrase ne
     promet que ce qui est vrai : une nouvelle dépense s'enregistre sans internet.
-  - Intégrée dans `firebase/functions/src/links.ts` en attendant votre accord ;
-    la fonction `link` n'est de toute façon pas déployée avant le domaine.
+  - Intégrée dans `firebase/functions/src/links.ts` ; la fonction `link` n'est
+    pas déployée avant le domaine.
 - Instructions ordinateur et iPhone : textes ACTUELS de la page `/i/` réutilisés (« Scannez ce QR code… », « Bientôt sur iPhone »), sans le code.
 
-## Politique de confidentialité — deux phrases à valider ensemble
+## Politique de confidentialité — validée le 2026-10-14, intégrée
 
 À ajouter dans `src/content/legal.ts` (politique de confidentialité), après la
 section « Statistiques ». La section « Statistiques » actuelle dit « Avec votre
