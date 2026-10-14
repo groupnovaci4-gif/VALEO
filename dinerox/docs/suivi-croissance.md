@@ -9,7 +9,7 @@ fondateur (uniquement après son message « Étape N validée »).
 | 1 | Parrainage (+ socle des liens DineroX) | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement et déployé ; parties ⛔ ci-dessous | |
 | 2 | Bouton « Partager sur WhatsApp » | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; chaîne ⛔ (pas encore d'adresse, ligne cachée) | |
 | 3 | Tontine partagée (Lot T2) | 📱 À vérifier sur téléphone (test final unique, 3 téléphones) — testé automatiquement ; serveur déployé et vérifié en ligne | |
-| 4 | Demande d'avis Google Play / App Store | 🟦 Testé automatiquement — 📱 test final ; vraie fenêtre Google : piste « test interne » après les 5 étapes ; rien côté serveur | |
+| 4 | Demande d'avis Google Play / App Store | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; vraie fenêtre Google : piste « test interne » après les 5 étapes ; rien côté serveur | |
 | 5 | Origine des installations (liens tracés par canal) | ⬜ À faire | |
 
 ## Détail de l'étape 1
@@ -84,6 +84,7 @@ Demandé par le fondateur le 2026-10-14 ; aucun n'est commencé.
 | (b) Cotisations des tontines partagées comptées dans le « reste par jour », comme le carnet T1 | ⬜ | `core/dailyAllowance.ts` |
 | (c) Fréquence personnalisée pour les tontines partagées | ⬜ | aujourd'hui : quotidienne, hebdomadaire, toutes les 2 semaines, mensuelle |
 | (d) Piste « test interne » de Google Play (voir la vraie fenêtre d'avis avant la publication) | ⬜ | à préparer, liste ci-dessous |
+| (e) Demande d'avis quand une cagnotte de TONTINE PARTAGÉE est reçue | ⬜ | quand ce moment existera (aujourd'hui seul le carnet enregistre une cagnotte reçue) : `markReviewMoment('tontine')` |
 
 Préparer la piste « test interne » (décision du fondateur, 2026-10-14) :
 1. **Compte développeur Google Play** (frais d'inscription unique de Google, vérification d'identité).
@@ -135,3 +136,6 @@ Préparer la piste « test interne » (décision du fondateur, 2026-10-14) :
   correction : la ligne du menu ouvre directement la page du store, cachée tant
   que `config/app/items/store` ne l'active pas. Codé et testé automatiquement ;
   rien côté serveur, aucun déploiement.
+- 2026-10-14 : étape 4 vérifiée par le fondateur → 📱 À vérifier sur téléphone ;
+  fusion dans `dinerox-main` (avance rapide), rien à déployer. Ajout du point (e).
+  Début de l'étape 5 (plan).
