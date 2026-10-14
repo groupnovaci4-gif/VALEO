@@ -55,3 +55,34 @@ openssl rand -hex 32 | tr -d '\n' | npx firebase functions:secrets:set REFERRAL_
 
 Après un retour arrière : `npx firebase functions:list --project dinerox-app`
 doit redonner exactement `deploy/production-2026-10-14/functions.json`.
+
+## Étape 3 (tontine partagée) — photo et retour arrière (2026-10-14)
+
+Photo AVANT le déploiement, lecture seule : `deploy/production-2026-10-14b/`
+(règles `94f5e5ca-cf25-4d9f-89b4-13db263a2e2b`, 14 index + 6 réglages,
+55 fonctions et leur date de mise à jour — `deleteAccount` 2026-10-13T13:06:23Z,
+`boDeleteUser` 2026-10-13T13:06:12Z).
+
+Déploiement prévu (depuis `dinerox-main`, `npm run deploy`, accord à chaque commande) :
+1. `firestore:indexes` (2 réglages : `requests.uid`, `requests.newAccount`) ;
+2. `firestore:rules` (ajouts seuls : `tontineGroups`, `tontineInvites`) ;
+3. `functions:tontineGroup,functions:adminTontineStats` (nouvelles) ;
+4. `functions:deleteAccount,functions:boDeleteUser` (modifiées : `deleteUserData`
+   libère les places de tontine et efface les demandes).
+
+| Déployé | Retour arrière |
+|---|---|
+| Règles | remettre le jeu `94f5e5ca-cf25-4d9f-89b4-13db263a2e2b` (même commande `curl … releases/cloud.firestore` qu'à l'étape 1, avec ce nom). |
+| Réglages d'index | ajouts sans effet sur l'existant ; peuvent rester. |
+| `tontineGroup`, `adminTontineStats` | `npx firebase functions:delete tontineGroup adminTontineStats --region europe-west1 --project dinerox-app` |
+| `deleteAccount`, `boDeleteUser` | redéployer la version EN LIGNE AVANT : le code des fonctions de la branche `backoffice` au commit `f383576` (inchangé depuis `7f61adf`, donc celui déployé le 13/10). Exception d'urgence au garde-fou (ce commit ne l'a pas), avec l'accord du fondateur : voir ci-dessous. |
+
+Remettre l'ancienne `deleteAccount` + `boDeleteUser` :
+```
+cd /Users/novaworkonline/DineroX && git worktree add --detach /Users/novaworkonline/dinerox-rollback f383576
+cp /Users/novaworkonline/dinerox-main/dinerox/firebase/functions/.env.dinerox-app /Users/novaworkonline/dinerox-rollback/dinerox/firebase/functions/
+cd /Users/novaworkonline/dinerox-rollback/dinerox && npm ci && npm --prefix firebase/functions ci
+npx firebase deploy --only functions:deleteAccount,functions:boDeleteUser --project dinerox-app
+cd /Users/novaworkonline/DineroX && git worktree remove /Users/novaworkonline/dinerox-rollback
+```
+Le filtre `--only` ne touche à aucune autre fonction ; si Firebase propose une suppression : NON.
