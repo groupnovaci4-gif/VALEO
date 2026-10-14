@@ -25,6 +25,9 @@ import { sendExpoPush, type PushMessage } from './push';
 // Parrainage et liens DineroX (croissance, étape 1).
 export { adminReferralStats, applyReferral, link, myReferral, referralNightly, referralOnGoal, referralOnTransaction, setAmbassador } from './referralApi';
 
+// Tontine partagée (croissance, étape 3).
+export { adminTontineStats, tontineGroup } from './tontineGroupApi';
+
 initializeApp();
 const db = getFirestore();
 

@@ -627,7 +627,8 @@ export interface Grants {
   bankedMonths?: number;
 }
 
-export type ReferralSource = 'install_referrer' | 'link' | 'manual';
+/** `tontine` : posé par le serveur quand un nouveau compte rejoint une tontine partagée (étape 3). */
+export type ReferralSource = 'install_referrer' | 'link' | 'manual' | 'tontine';
 
 export interface ReferredBy {
   uid: string;

@@ -462,3 +462,60 @@ describe('parrainage (croissance, étape 1)', () => {
     await assertFails(deleteDoc(doc(db('p1'), 'users/p1/referrals/f1')));
   });
 });
+
+describe('tontine partagée (croissance, étape 3)', () => {
+  const G = 'tontineGroups/g1';
+  const seedGroup = (treasurerUid: string | null = null) =>
+    env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore() as unknown as Firestore;
+      await setDoc(doc(fs, G), { name: 'Tontine', organizerUid: 'org', treasurerUid, memberUids: ['org', 'awa', 'kofi'], slots: [], paid: {}, status: 'active' });
+      await setDoc(doc(fs, `${G}/payments/1_1_s2`), { uid: 'awa', status: 'declared', slotId: 's2' });
+      await setDoc(doc(fs, `${G}/history/h1`), { visibility: 'all', slotUid: null, action: 'draw' });
+      await setDoc(doc(fs, `${G}/history/h2`), { visibility: 'managers', slotUid: 'awa', action: 'declare' });
+      await setDoc(doc(fs, `${G}/requests/zoe`), { uid: 'zoe', label: 'Zoé', status: 'pending' });
+      await setDoc(doc(fs, 'tontineInvites/ABC234'), { groupId: 'g1', createdBy: 'org' });
+    });
+
+  it('groupe : lu par ses membres seulement, jamais écrit par un client', async () => {
+    await seedGroup();
+    for (const m of ['org', 'awa', 'kofi']) await assertSucceeds(getDoc(doc(db(m), G)));
+    await assertFails(getDoc(doc(db('inconnu'), G)));
+    await assertFails(getDoc(doc(db(null), G)));
+    await assertFails(updateDoc(doc(db('org'), G), { name: 'X' }));
+    await assertFails(setDoc(doc(db('awa'), 'tontineGroups/g2'), { organizerUid: 'awa', memberUids: ['awa'] }));
+    await assertFails(updateDoc(doc(db('awa'), G), { memberUids: ['org', 'awa', 'kofi', 'zoe'] }));
+  });
+
+  it('paiements : organisateur, trésorier et la personne concernée ; jamais un autre membre ; aucune écriture', async () => {
+    await seedGroup('kofi');
+    await assertSucceeds(getDoc(doc(db('org'), `${G}/payments/1_1_s2`)));
+    await assertSucceeds(getDoc(doc(db('awa'), `${G}/payments/1_1_s2`)));
+    await assertSucceeds(getDoc(doc(db('kofi'), `${G}/payments/1_1_s2`))); // trésorier
+    await env.withSecurityRulesDisabled(async (ctx) => updateDoc(doc(ctx.firestore() as unknown as Firestore, G), { treasurerUid: null }));
+    await assertFails(getDoc(doc(db('kofi'), `${G}/payments/1_1_s2`))); // simple membre
+    await assertFails(setDoc(doc(db('awa'), `${G}/payments/1_2_s2`), { uid: 'awa', status: 'confirmed' }));
+    await assertFails(updateDoc(doc(db('org'), `${G}/payments/1_1_s2`), { status: 'confirmed' }));
+  });
+
+  it('historique : public pour tous les membres, le reste pour les gestionnaires et la personne ; jamais modifié', async () => {
+    await seedGroup();
+    await assertSucceeds(getDoc(doc(db('kofi'), `${G}/history/h1`)));
+    await assertFails(getDoc(doc(db('kofi'), `${G}/history/h2`)));
+    await assertSucceeds(getDoc(doc(db('awa'), `${G}/history/h2`)));
+    await assertSucceeds(getDoc(doc(db('org'), `${G}/history/h2`)));
+    await assertFails(getDoc(doc(db('inconnu'), `${G}/history/h1`)));
+    await assertFails(updateDoc(doc(db('org'), `${G}/history/h1`), { action: 'order' }));
+    await assertFails(deleteDoc(doc(db('org'), `${G}/history/h1`)));
+    await assertFails(setDoc(doc(db('awa'), `${G}/history/h9`), { visibility: 'all', action: 'confirm' }));
+  });
+
+  it('demandes : la personne et l’organisateur ; invitations : aucun accès client', async () => {
+    await seedGroup();
+    await assertSucceeds(getDoc(doc(db('zoe'), `${G}/requests/zoe`)));
+    await assertSucceeds(getDoc(doc(db('org'), `${G}/requests/zoe`)));
+    await assertFails(getDoc(doc(db('awa'), `${G}/requests/zoe`)));
+    await assertFails(setDoc(doc(db('zoe'), `${G}/requests/zoe`), { uid: 'zoe', status: 'pending' }));
+    await assertFails(getDoc(doc(db('org'), 'tontineInvites/ABC234')));
+    await assertFails(setDoc(doc(db('org'), 'tontineInvites/ZZZ999'), { groupId: 'g1' }));
+  });
+});

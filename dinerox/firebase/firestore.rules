@@ -264,6 +264,35 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ─── Tontine partagée (croissance, étape 3) ─────────────────────
+    // Lecture réservée aux membres ; AUCUNE écriture client : tout passe par la
+    // Cloud Function `tontineGroup` (historique écrit avec l'état, en ajout seul).
+    match /tontineGroups/{groupId} {
+      function grp() { return get(/databases/$(database)/documents/tontineGroups/$(groupId)).data; }
+      function isGroupMember() { return signedIn() && me() in grp().memberUids; }
+      function isGroupManager() { return signedIn() && (grp().organizerUid == me() || grp().get('treasurerUid', null) == me()); }
+      allow read: if signedIn() && me() in resource.data.memberUids;
+      allow write: if false;
+      // Déclarations et contestations : l'organisateur, le trésorier et la personne concernée.
+      match /payments/{paymentId} {
+        allow read: if isGroupManager() || (signedIn() && resource.data.uid == me());
+        allow write: if false;
+      }
+      // Journal : ce qui est public pour tous les membres, le reste pour les gestionnaires et la personne concernée.
+      match /history/{entryId} {
+        allow read: if isGroupMember() && (resource.data.visibility == 'all' || isGroupManager() || resource.data.slotUid == me());
+        allow write: if false;
+      }
+      // Demandes pour rejoindre : la personne qui demande et l'organisateur.
+      match /requests/{requesterId} {
+        allow read: if signedIn() && (requesterId == me() || grp().organizerUid == me());
+        allow write: if false;
+      }
+    }
+    match /tontineInvites/{code} {
+      allow read, write: if false;
+    }
+
     // ─── Statistiques anonymes (écriture seule, aucune lecture client) ─
     match /analyticsEvents/{eventId} {
       allow create: if signedIn()

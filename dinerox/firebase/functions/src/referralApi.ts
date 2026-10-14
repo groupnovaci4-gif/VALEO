@@ -44,8 +44,9 @@ import { sendExpoPush, type PushMessage } from './push';
 export const REFERRAL_DEVICE_PEPPER = defineSecret('REFERRAL_DEVICE_PEPPER');
 
 const DAY_MS = 24 * 3600 * 1000;
+/** Sources qu'un CLIENT peut déclarer ; `tontine` n'est posée que par le serveur (étape 3). */
 const SOURCES = ['install_referrer', 'link', 'manual'] as const;
-type Source = (typeof SOURCES)[number];
+type Source = (typeof SOURCES)[number] | 'tontine';
 /** Derniers avis gardés pour le message « à la prochaine ouverture ». */
 const MAX_NOTICES = 10;
 
@@ -98,7 +99,7 @@ function counters(s: StateDoc | undefined): ParrainCounters {
   };
 }
 
-async function signupAtOf(uid: string): Promise<number> {
+export async function signupAtOf(uid: string): Promise<number> {
   const user = await getAuth().getUser(uid);
   const t = Date.parse(user.metadata.creationTime);
   return Number.isFinite(t) ? t : Date.now();
@@ -116,8 +117,13 @@ export const myReferral = onCall({ secrets: [REFERRAL_DEVICE_PEPPER] }, async (r
   const uid = requireUid(req);
   const data = (req.data ?? {}) as { deviceId?: unknown };
   await recordDevice(uid, deviceHash(data.deviceId, REFERRAL_DEVICE_PEPPER.value()));
+  return { code: await ensureReferralCode(uid) };
+});
+
+/** Code personnel : créé une seule fois (aussi pour l'organisateur d'une tontine partagée). */
+export async function ensureReferralCode(uid: string): Promise<string> {
   const existing = (await stateRef(uid).get()).get('code') as string | undefined;
-  if (existing) return { code: existing };
+  if (existing) return existing;
   const firstName = ((await db().doc(`users/${uid}`).get()).get('firstName') as string | undefined) ?? '';
   for (let attempt = 0; attempt < 20; attempt++) {
     const code = generateCode(() => randomInt(0, 1_000_000) / 1_000_000);
@@ -130,19 +136,27 @@ export const myReferral = onCall({ secrets: [REFERRAL_DEVICE_PEPPER] }, async (r
       tx.set(stateRef(uid), { code, firstName: firstName.slice(0, 80), ...emptyCounters(), signups: 0, pending: 0, updatedAt: Date.now() }, { merge: true });
       return code;
     });
-    if (created) return { code: created };
+    if (created) return created;
   }
   throw new HttpsError('resource-exhausted', 'referral/code-unavailable');
-});
+}
 
 // ─── Appliquer un code (filleul) ──────────────────────────────────────
 
 export const applyReferral = onCall({ secrets: [REFERRAL_DEVICE_PEPPER] }, async (req) => {
   const uid = requireUid(req);
   const data = (req.data ?? {}) as { code?: unknown; source?: unknown; deviceId?: unknown };
-  const code = normalizeCode(data.code);
-  const source: Source = SOURCES.includes(data.source as Source) ? (data.source as Source) : 'manual';
-  const hash = deviceHash(data.deviceId, REFERRAL_DEVICE_PEPPER.value());
+  const source: Source = SOURCES.includes(data.source as (typeof SOURCES)[number]) ? (data.source as Source) : 'manual';
+  const result = await applyReferralCore(uid, normalizeCode(data.code), source, deviceHash(data.deviceId, REFERRAL_DEVICE_PEPPER.value()));
+  if (result.refusal) throw new HttpsError('failed-precondition', result.refusal);
+  return { parrainFirstName: result.parrainFirstName };
+});
+
+/**
+ * Applique un code (mêmes contrôles anti-triche quelle que soit la source).
+ * Un compte qui a DÉJÀ un parrain n'est jamais modifié (`referral/already-referred`).
+ */
+export async function applyReferralCore(uid: string, code: string, source: Source, hash: string | null): Promise<{ refusal: string | null; parrainUid: string | null; parrainFirstName?: string }> {
   const now = Date.now();
   const signupAt = await signupAtOf(uid);
   const codeSnap = code ? await db().doc(`referralCodes/${code}`).get() : null;
@@ -190,17 +204,14 @@ export const applyReferral = onCall({ secrets: [REFERRAL_DEVICE_PEPPER] }, async
     return { refusal: null, parrainUid, parrainFirstName };
   });
 
-  if (result.refusal) {
+  if (result.refusal && result.parrainUid && result.refusal !== 'referral/already-referred') {
     // Comptage des refus par parrain (écran admin : suspicions de fraude). Jamais de détail personnel.
-    if (result.parrainUid && result.refusal !== 'referral/already-referred') {
-      await stateRef(result.parrainUid)
-        .set({ refusals: { [result.refusal.replace('referral/', '')]: FieldValue.increment(1) }, refusalsTotal: FieldValue.increment(1) }, { merge: true })
-        .catch(() => undefined);
-    }
-    throw new HttpsError('failed-precondition', result.refusal);
+    await stateRef(result.parrainUid)
+      .set({ refusals: { [result.refusal.replace('referral/', '')]: FieldValue.increment(1) }, refusalsTotal: FieldValue.increment(1) }, { merge: true })
+      .catch(() => undefined);
   }
-  return { parrainFirstName: result.parrainFirstName };
-});
+  return result;
+}
 
 // ─── Évaluation de la semaine du filleul ──────────────────────────────
 

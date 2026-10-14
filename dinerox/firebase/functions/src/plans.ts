@@ -40,6 +40,14 @@ export function hasAiAssistant(plan: PlanId): boolean {
 }
 
 /** Voix premium : mêmes formules que l'assistant (feature `voice_premium` côté application). */
+/**
+ * Créer et organiser une tontine PARTAGÉE (Lot T2) : Plus et Famille. Rejoindre
+ * reste gratuit pour tous. Miroir : feature `tontine_group_create` de src/core/subscription.ts.
+ */
+export function canCreateTontineGroup(plan: PlanId): boolean {
+  return plan === 'plus' || plan === 'family';
+}
+
 export function hasVoicePremium(plan: PlanId): boolean {
   return plan === 'plus' || plan === 'family';
 }
