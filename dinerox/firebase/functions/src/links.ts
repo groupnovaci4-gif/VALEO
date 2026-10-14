@@ -2,6 +2,10 @@
  * Liens DineroX — page de redirection (logique PURE, testée).
  *
  *  `https://{domaine}/i/{code}` : invitation de parrainage.
+ *  `https://{domaine}/a` : lien de campagne, sans code (étape 5).
+ *  `https://{domaine}/t/{code}` : invitation à une tontine partagée (étape 3) ;
+ *  le code de tontine n'est JAMAIS mis dans le referrer (ce n'est pas un code
+ *  de parrainage) : page et redirection identiques à `/a`.
  *  Paramètres facultatifs `src`, `cmp`, `cnt` (source, campagne, contenu) :
  *  transmis tels quels au referrer Google Play (préparés pour l'étape 5).
  *
@@ -37,7 +41,7 @@ export function playStoreUrl(p: LinkParams): string {
 
 export type LinkRoute =
   | { kind: 'redirect'; url: string }
-  | { kind: 'page'; page: 'desktop' | 'ios_soon'; params: LinkParams; playUrl: string; shareUrl: string }
+  | { kind: 'page'; page: 'desktop' | 'ios_soon'; params: LinkParams; playUrl: string; shareUrl: string; variant?: 'invite' | 'app' }
   | { kind: 'not_found' };
 
 /**
@@ -45,6 +49,8 @@ export type LinkRoute =
  * `get` lit un paramètre de requête, `origin` = `https://{domaine}` demandé.
  */
 export function routeLink(input: { path: string; get: (k: string) => string | null | undefined; userAgent?: string; origin: string }): LinkRoute {
+  const app = appLink(input);
+  if (app) return app;
   const m = /^\/i\/([^/?#]+)\/?$/.exec(input.path);
   if (!m) return { kind: 'not_found' };
   const code = normalizeCode(decodeSafe(m[1]));
@@ -58,6 +64,26 @@ export function routeLink(input: { path: string; get: (k: string) => string | nu
   const q = (['src', 'cmp', 'cnt'] as const).filter((k) => params[k]).map((k) => `${k}=${params[k]}`).join('&');
   const shareUrl = `${input.origin}/i/${code}${q ? `?${q}` : ''}`;
   return { kind: 'page', page: platform === 'ios' ? 'ios_soon' : 'desktop', params, playUrl, shareUrl };
+}
+
+/**
+ * `/a` (campagne) et `/t/{code}` (tontine) : Play Store avec `src`/`cmp`/`cnt`
+ * seulement (jamais `ref`), page sans code sur ordinateur et iPhone.
+ * null : ce n'est pas l'un de ces chemins.
+ */
+function appLink(input: { path: string; get: (k: string) => string | null | undefined; userAgent?: string; origin: string }): LinkRoute | null {
+  const t = /^\/t\/([^/?#]+)\/?$/.exec(input.path);
+  if (!t && !/^\/a\/?$/.test(input.path)) return null;
+  // Code de tontine : même forme que les codes d'invitation (`generateCode`).
+  if (t && !isValidCode(normalizeCode(decodeSafe(t[1])))) return { kind: 'not_found' };
+  const { src, cmp, cnt } = readLinkParams(input.get);
+  const params: LinkParams = { ...(src ? { src } : {}), ...(cmp ? { cmp } : {}), ...(cnt ? { cnt } : {}) };
+  const playUrl = playStoreUrl(params);
+  const platform = detectPlatform(input.userAgent);
+  if (platform === 'android') return { kind: 'redirect', url: playUrl };
+  if (platform === 'ios' && LINK_BRAND.appStoreUrl) return { kind: 'redirect', url: LINK_BRAND.appStoreUrl };
+  const q = (['src', 'cmp', 'cnt'] as const).filter((k) => params[k]).map((k) => `${k}=${params[k]}`).join('&');
+  return { kind: 'page', page: platform === 'ios' ? 'ios_soon' : 'desktop', params, playUrl, shareUrl: `${input.origin}/a${q ? `?${q}` : ''}`, variant: 'app' };
 }
 
 function decodeSafe(s: string): string {
@@ -82,6 +108,9 @@ const TEXT = {
     iosSoon: 'Bientôt sur iPhone',
     iosLead: '{app} n’est pas encore disponible sur l’App Store. Gardez votre code : vous pourrez le saisir à l’inscription.',
     notFound: 'Ce lien n’est pas valide.',
+    // Étape 5 : page `/a` et `/t/{code}`, sans code (docs/textes-etape5.md).
+    appTitle: 'Télécharger {app}',
+    appLead: 'Gérez votre argent avec {app}. Vos dépenses s’enregistrent même sans internet.',
   },
   en: {
     title: 'DineroX invitation',
@@ -92,6 +121,8 @@ const TEXT = {
     iosSoon: 'Coming soon on iPhone',
     iosLead: '{app} is not on the App Store yet. Keep your code: you can enter it when you sign up.',
     notFound: 'This link is not valid.',
+    appTitle: 'Download {app}',
+    appLead: 'Manage your money with {app}. Your expenses are saved even without internet.',
   },
 };
 
@@ -107,13 +138,18 @@ export function renderPage(route: Extract<LinkRoute, { kind: 'page' }> | { kind:
   let body: string;
   if (route.kind === 'not_found') {
     body = `<h1>${f(app)}</h1><p>${f(t.notFound)}</p>`;
+  } else if (route.variant === 'app') {
+    // Lien sans code : ni « Votre code d'invitation », ni phrase sur le code (iPhone).
+    const head = route.page === 'ios_soon' ? `<h1>${f(t.iosSoon)}</h1><p>${f(t.appLead)}</p>` : `<h1>${f(t.appTitle)}</h1><p>${f(t.appLead)}</p>`;
+    const qr = route.page === 'desktop' && qrSvg ? `<div class="qr">${qrSvg}</div><p class="small">${f(t.desktop)}</p>` : '';
+    body = `${head}${qr}<p><a class="btn" href="${esc(route.playUrl)}">${f(t.play)}</a></p>`;
   } else {
     const code = esc(route.params.code ?? '');
     const head = route.page === 'ios_soon' ? `<h1>${f(t.iosSoon)}</h1><p>${f(t.iosLead)}</p>` : `<h1>${f(t.title)}</h1><p>${f(t.lead)}</p>`;
     const qr = route.page === 'desktop' && qrSvg ? `<div class="qr">${qrSvg}</div><p class="small">${f(t.desktop)}</p>` : '';
     body = `${head}<p class="small">${f(t.code)}</p><p class="code">${code}</p>${qr}<p><a class="btn" href="${esc(route.playUrl)}">${f(t.play)}</a></p>`;
   }
-  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${f(t.title)}</title><style>
+  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${f(route.kind === 'page' && route.variant === 'app' ? t.appTitle : t.title)}</title><style>
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:${LINK_BRAND.colors.night};color:#F8FAFC;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
 main{max-width:420px;width:100%;text-align:center}h1{font-size:24px;margin:0 0 12px}p{line-height:1.5;margin:0 0 12px}
 .small{font-size:14px;color:#CBD5E1}.code{font-size:32px;font-weight:700;letter-spacing:6px;color:${LINK_BRAND.colors.green}}

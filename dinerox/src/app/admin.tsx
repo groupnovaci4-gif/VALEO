@@ -11,6 +11,7 @@ import { Banner, Button, Card, ErrorState, Loading, Row, Screen, SectionHeader, 
 import { firebase } from '@/services/firebase';
 import { useGoalCategories } from '@/features/goals';
 import { ReferralAdmin } from '@/features/referral/ReferralAdmin';
+import { OriginAdmin } from '@/features/origin/OriginAdmin';
 
 interface Stats {
   users: number;
@@ -90,6 +91,7 @@ export default function Admin() {
         </>
       ) : null}
       <ReferralAdmin />
+      <OriginAdmin />
       <SectionHeader title={t('admin.categories')} />
       <Text variant="caption" tone="subtle" style={{ marginBottom: 8 }}>
         {t('admin.categoriesHint')}

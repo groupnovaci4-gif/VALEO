@@ -14,6 +14,7 @@ import { ToastProvider, Button, Text } from '@/components/ui';
 import { LockGate } from '@/components/LockGate';
 import { Bootstrap } from '@/components/Bootstrap';
 import { ReferralBootstrap } from '@/features/referral/ReferralBootstrap';
+import { OriginBootstrap } from '@/features/origin/OriginBootstrap';
 import { CoachProvider } from '@/features/coach/CoachProvider';
 import { QuickAddProvider } from '@/features/QuickAdd';
 import { EntryProvider } from '@/features/entry/EntryProvider';
@@ -93,6 +94,7 @@ function Navigator() {
       <LockGate>
         <Bootstrap />
         <ReferralBootstrap />
+        <OriginBootstrap />
         <CoachProvider>
           {/* Saisie (micro, clavier, phrase) : disponible depuis la barre, l'accueil, l'Historique, une notification. */}
           <QuickAddProvider>

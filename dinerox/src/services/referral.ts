@@ -18,6 +18,8 @@ import { firebase } from './firebase';
 import { readJSON, writeJSON } from './storage';
 import { deviceId } from './deviceId';
 import { parseInstallReferrer, refusalCode, type PendingReferral } from '@/core/referral';
+import { originFromReferrer } from '@/core/installOrigin';
+import { rememberOrigin } from './installOrigin';
 import type { ReferralSource, ReferralStatus } from '@/core/types';
 
 export type { PendingReferral };
@@ -104,6 +106,8 @@ export async function readInstallReferrerOnce(): Promise<void> {
     const raw = await Application.getInstallReferrerAsync();
     const p = parseInstallReferrer(raw);
     if (p.code && !(await readPending())) await writePending({ ...p, code: p.code, source: 'install_referrer', at: Date.now() });
+    // Étape 5 : origine de l'installation (lien DineroX ou recherche Play), avec ou sans code.
+    await rememberOrigin(originFromReferrer(raw));
     await writeJSON(REFERRER_READ_KEY, true);
   } catch {
     // Service Play indisponible (pas installé depuis Play, réseau) : nouvel essai au prochain lancement.

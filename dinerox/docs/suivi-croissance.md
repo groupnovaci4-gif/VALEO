@@ -10,7 +10,7 @@ fondateur (uniquement après son message « Étape N validée »).
 | 2 | Bouton « Partager sur WhatsApp » | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; chaîne ⛔ (pas encore d'adresse, ligne cachée) | |
 | 3 | Tontine partagée (Lot T2) | 📱 À vérifier sur téléphone (test final unique, 3 téléphones) — testé automatiquement ; serveur déployé et vérifié en ligne | |
 | 4 | Demande d'avis Google Play / App Store | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; vraie fenêtre Google : piste « test interne » après les 5 étapes ; rien côté serveur | |
-| 5 | Origine des installations (liens tracés par canal) | ⬜ À faire — plan et textes proposés (`docs/textes-etape5.md`), en attente d'accord | |
+| 5 | Origine des installations (liens tracés par canal) | 🟦 Testé automatiquement — serveur NON déployé (règles, `recordSignupOrigin`, `adminOriginStats`) ; `link` et Hosting attendent le domaine ; 📱 test final | |
 
 ## Détail de l'étape 1
 
@@ -73,6 +73,19 @@ fondateur (uniquement après son message « Étape N validée »).
 | Fenêtre Google réelle (demande automatique) | 📱 · ⛔ avant publication | APK installé directement : la demande part mais Google n'affiche rien (normal) ; vraie fenêtre : piste « test interne » |
 | Ligne « Donner mon avis » : page Play directe, cachée sans `config/app/items/store` | 🟦 web · 📱 Play Store réel | `e2e/store-review.js` ; iPhone : seulement avec `appStoreUrl` dans le réglage |
 | Dépendance `expo-store-review ~57.0.3` | 🟦 | nouveau build natif (EAS) nécessaire |
+
+## Détail de l'étape 5
+
+| Élément | Statut | Preuve / note |
+|---|---|---|
+| Origine retenue sur l'appareil : referrer Play (lien, recherche organique), liens `/i/`, `/a`, `/t/` | 🟦 web · 📱 · ⛔ referrer réel | unitaires + `e2e/install-origin.js` ; vrai referrer : piste « test interne » |
+| Comptée une fois à l'inscription, compteurs anonymes, marqueur oui/non | 🟦 | `tests/functions/install-origin.emulator.test.ts` (vraies fonctions), règles (mutations détectées) |
+| Second compte sur un téléphone : « Origine inconnue » ; compte de plus de 7 jours : rien | 🟦 | émulateurs + e2e |
+| Écran admin : chiffres regroupés, groupes de moins de 5 réunis sans nom | 🟦 | unitaires, émulateurs, e2e (capture) |
+| Générateur de liens de campagne (Play + `dinerox.app/a`) | 🟦 | unitaires + e2e (copie vérifiée) |
+| Défaut de l'étape 3 corrigé : `/t/{code}` (Hosting, Android, fonction `link`) | 🟦 · ⛔ domaine | unitaires ; en ligne seulement avec le domaine |
+| `link.app.lead` et phrases de la politique de confidentialité | ⬜ à valider | `docs/textes-etape5.md` |
+| Déploiement : règles, `recordSignupOrigin`, `adminOriginStats` | ⛔ | attend l'accord du fondateur, commande par commande |
 
 ## À faire après les 5 étapes
 
@@ -139,3 +152,7 @@ Préparer la piste « test interne » (décision du fondateur, 2026-10-14) :
 - 2026-10-14 : étape 4 vérifiée par le fondateur → 📱 À vérifier sur téléphone ;
   fusion dans `dinerox-main` (avance rapide), rien à déployer. Ajout du point (e).
   Début de l'étape 5 (plan).
+- 2026-10-14 : décisions du fondateur sur l'étape 5 (compteurs seulement, sans
+  consentement analytique car rien n'est rattaché à une personne, seuil 5,
+  sources, lien `/a` + correction de `/t/`, textes validés sauf `link.app.lead`).
+  Codé et testé automatiquement ; rien de déployé.

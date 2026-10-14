@@ -227,3 +227,15 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     « Donner mon avis » ouvre DIRECTEMENT la page du store, cachée sans
     `config/app/items/store`. Ne jamais déclarer `playStoreUrl` / `appStoreUrl`
     dans `app.config.ts` (expo-store-review ouvrirait le store sans prévenir).
+28. **Origine des installations (croissance, étape 5, `core/installOrigin.ts`).**
+    Aucun outil de pistage tiers, aucun identifiant publicitaire : seulement
+    `src` / `cmp` / `cnt` des liens DineroX (`/i/{code}`, `/a`, `/t/{code}`) et
+    le referrer Google Play. L'origine reste sur l'appareil jusqu'à
+    l'inscription, puis `recordSignupOrigin` l'ajoute UNE fois à des compteurs
+    ANONYMES par jour (`originStats/{jour}`, serveur seul). Le profil ne garde
+    que `originCounted: true` (règles : jamais écrit par le client), JAMAIS la
+    source ; jamais le code d'invitation ni de tontine. Second compte sur un
+    téléphone : « Origine inconnue ». Écran admin : `adminOriginStats` regroupe
+    côté serveur ; un groupe de moins de 5 ne sort jamais du serveur (ni nom,
+    ni nombre exact). Compté même sans consentement analytique (décision du
+    fondateur : rien n'est rattaché à une personne).

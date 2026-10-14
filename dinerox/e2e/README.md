@@ -32,6 +32,10 @@ Avis sur le store (étape 4) : `store-review.js` — première ouverture retenue
 compte, « Objectif atteint » fermé puis Accueil sans aucune demande sur le web (pas
 de fenêtre native), ligne « Donner mon avis » selon `config/app/items/store`, qui
 ouvre directement la page Play (interceptée) et arrête les demandes automatiques.
+Origine des installations (étape 5) : `install-origin.js` — lien `/a` → inscription →
+la vraie fonction `recordSignupOrigin` compte (compteurs du jour), marqueur seul dans
+le profil, second compte « inconnu », liens `/t/` et `/i/` (jamais le code), écran
+admin regroupé (moins de 5 réunis sans nom), générateur de liens et copie.
 
 Il exige l'émulateur **functions** (compilé avant : `npm --prefix firebase/functions run build`).
 

@@ -86,3 +86,20 @@ npx firebase deploy --only functions:deleteAccount,functions:boDeleteUser --proj
 cd /Users/novaworkonline/DineroX && git worktree remove /Users/novaworkonline/dinerox-rollback
 ```
 Le filtre `--only` ne touche à aucune autre fonction ; si Firebase propose une suppression : NON.
+
+## Étape 5 (origine des installations) — prévu, rien de déployé
+
+Depuis `dinerox-main`, `npm run deploy`, simulation puis accord à chaque commande :
+1. `firestore:rules` — ajouts seuls : `originCounted` interdit au client sur
+   `users/{uid}` ; `originStats/{jour}` sans lecture ni écriture client ;
+2. `functions:recordSignupOrigin,functions:adminOriginStats` (nouvelles ; aucune
+   fonction existante modifiée).
+Aucun index. `functions:link` et Hosting (`/a`, `/t/**`) : exclus tant que le
+domaine `dinerox.app` n'est pas branché.
+Une photo de la production sera prise juste avant (règles, fonctions et dates).
+
+| Déployé | Retour arrière |
+|---|---|
+| Règles | remettre le jeu de règles en ligne juste avant (nom relevé dans la photo). |
+| `recordSignupOrigin`, `adminOriginStats` | `npx firebase functions:delete recordSignupOrigin adminOriginStats --region europe-west1 --project dinerox-app` |
+| Données | `originStats` (compteurs anonymes) et `users/*.originCounted` : sans effet si les fonctions sont retirées. |

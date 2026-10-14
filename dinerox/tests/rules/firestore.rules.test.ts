@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc, deleteDoc, addDoc, collection, type Firestore } from 'firebase/firestore';
+import { doc, getDoc, getDocs, deleteField, serverTimestamp, setDoc, updateDoc, deleteDoc, addDoc, collection, type Firestore } from 'firebase/firestore';
 
 let env: RulesTestEnvironment;
 
@@ -460,6 +460,37 @@ describe('parrainage (croissance, étape 1)', () => {
     await assertFails(updateDoc(doc(db('p1'), 'users/p1/referral/state'), { validated: 5, monthsEarned: 1 }));
     await assertFails(setDoc(doc(db('f1'), 'users/f1/referral/state'), { validated: 99 }));
     await assertFails(deleteDoc(doc(db('p1'), 'users/p1/referrals/f1')));
+  });
+});
+
+describe('origine des inscriptions (croissance, étape 5)', () => {
+  it('profil : le marqueur « déjà compté » ne s’écrit jamais par le client (création, modification, effacement)', async () => {
+    await assertFails(setDoc(doc(db('u1'), 'users/u1'), { ...profile('u1'), originCounted: true }));
+    await assertFails(setDoc(doc(db('u1'), 'users/u1'), { ...profile('u1'), originCounted: false }));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore() as unknown as Firestore;
+      await setDoc(doc(fs, 'users/o1'), profile('o1'));
+      await setDoc(doc(fs, 'users/o2'), { ...profile('o2'), originCounted: true });
+    });
+    // Se marquer « compté » pour ne jamais l'être, ou s'effacer le marqueur pour être compté deux fois : refusé.
+    await assertFails(updateDoc(doc(db('o1'), 'users/o1'), { originCounted: true }));
+    await assertFails(updateDoc(doc(db('o2'), 'users/o2'), { originCounted: false }));
+    await assertFails(updateDoc(doc(db('o2'), 'users/o2'), { originCounted: deleteField() }));
+    // Le reste du profil reste modifiable, marqueur posé ou non.
+    await assertSucceeds(updateDoc(doc(db('o1'), 'users/o1'), { firstName: 'Awa' }));
+    await assertSucceeds(updateDoc(doc(db('o2'), 'users/o2'), { firstName: 'Kofi' }));
+  });
+
+  it('compteurs : ni lecture ni écriture client (même un administrateur passe par adminOriginStats)', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore() as unknown as Firestore, 'originStats/2026-10-14'), { total: 1, src: { whatsapp: 1 } });
+    });
+    await assertFails(getDoc(doc(db('u1'), 'originStats/2026-10-14')));
+    await assertFails(getDocs(collection(db('u1'), 'originStats')));
+    await assertFails(setDoc(doc(db('u1'), 'originStats/2026-10-15'), { total: 1 }));
+    await assertFails(updateDoc(doc(db('u1'), 'originStats/2026-10-14'), { total: 999 }));
+    await assertFails(getDoc(doc(db('boss', { admin: true }), 'originStats/2026-10-14')));
+    await assertFails(setDoc(doc(db('boss', { admin: true }), 'originStats/2026-10-14'), { total: 0 }));
   });
 });
 

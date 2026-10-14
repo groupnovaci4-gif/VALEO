@@ -59,7 +59,12 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
       {
         action: 'VIEW',
         autoVerify: true,
-        data: brand.linkHosts.map((host) => ({ scheme: 'https', host, pathPrefix: '/i/' })),
+        // Invitation (`/i/`), tontine partagée (`/t/`) et campagne (`/a`, étape 5) s'ouvrent dans l'application installée.
+        data: brand.linkHosts.flatMap((host) => [
+          { scheme: 'https', host, pathPrefix: '/i/' },
+          { scheme: 'https', host, pathPrefix: '/t/' },
+          { scheme: 'https', host, path: '/a' },
+        ]),
         category: ['BROWSABLE', 'DEFAULT'],
       },
     ],

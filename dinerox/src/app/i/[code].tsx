@@ -14,6 +14,8 @@ import { useApp } from '@/store/app';
 import { Loading } from '@/components/ui';
 import { canEnterCode, cleanTag, isValidCode, normalizeCode } from '@/core/referral';
 import { readPending, writePending } from '@/services/referral';
+import { rememberOrigin } from '@/services/installOrigin';
+import { originFromLink } from '@/core/installOrigin';
 
 export default function InviteLink() {
   const params = useLocalSearchParams<{ code?: string; src?: string; cmp?: string; cnt?: string }>();
@@ -31,6 +33,8 @@ export default function InviteLink() {
         return;
       }
       if (status !== 'signedIn' || mode !== 'firebase') {
+        // Étape 5 : origine de l'installation (jamais le code lui-même).
+        await rememberOrigin(originFromLink({ code, src: params.src, cmp: params.cmp, cnt: params.cnt })).catch(() => undefined);
         if (!(await readPending())) await writePending({ code, source: 'link', at: Date.now(), src: cleanTag(params.src), cmp: cleanTag(params.cmp), cnt: cleanTag(params.cnt) });
         router.replace(status === 'signedIn' ? '/' : '/sign-up');
         return;

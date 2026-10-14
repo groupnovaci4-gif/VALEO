@@ -27,6 +27,7 @@ export { adminReferralStats, applyReferral, link, myReferral, referralNightly, r
 
 // Tontine partagée (croissance, étape 3).
 export { adminTontineStats, tontineGroup } from './tontineGroupApi';
+export { adminOriginStats, recordSignupOrigin } from './installOriginApi';
 
 initializeApp();
 const db = getFirestore();

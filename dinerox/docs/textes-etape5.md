@@ -1,6 +1,9 @@
 # Étape 5 — origine des installations : nouveaux textes à valider
 
-Statut : PROPOSÉS le 2026-10-14, **non validés**, non intégrés.
+Statut : textes de l'écran admin VALIDÉS par le fondateur le 2026-10-14 et
+intégrés (`src/i18n/fr.ts`, `src/i18n/en.ts`). **Encore à valider** :
+`link.app.lead` (nouvelle phrase ci-dessous) et les deux phrases de la politique
+de confidentialité (fin du document), à valider ensemble.
 Format : `clé` — FR — EN. `{app}` = nom de marque (DineroX).
 
 Aucun texte n'est montré aux utilisateurs dans l'application : l'origine est
@@ -67,5 +70,40 @@ Textes de la fonction `link` (`firebase/functions/src/links.ts`), sans code
 d'invitation (le lien `/i/{code}` garde ses textes actuels).
 
 - `link.app.title` — FR : « Télécharger {app} » — EN : « Download {app} »
-- `link.app.lead` — FR : « Gérez votre argent avec {app}, même hors connexion. » — EN : « Manage your money with {app}, even offline. »
+- `link.app.lead` — **NOUVELLE PROPOSITION, à valider** — FR : « Gérez votre argent avec {app}. Vos dépenses s'enregistrent même sans internet. » — EN : « Manage your money with {app}. Your expenses are saved even without internet. »
+  - Pourquoi : « même hors connexion » n'est pas entièrement vrai. Vérifié dans
+    le code (`services/sync/engine.ts`) : une opération saisie sans réseau est
+    gardée sur le téléphone (outbox persistante) et envoyée au retour du réseau.
+    Mais la création du compte et la connexion exigent internet, la saisie
+    vocale comprise par l'IA aussi, et deux cas rares peuvent effacer une saisie
+    hors ligne : la même opération modifiée plus récemment sur un autre
+    téléphone (la plus récente gagne), ou une écriture refusée par le serveur
+    au retour du réseau (droits retirés dans une famille). La nouvelle phrase ne
+    promet que ce qui est vrai : une nouvelle dépense s'enregistre sans internet.
+  - Intégrée dans `firebase/functions/src/links.ts` en attendant votre accord ;
+    la fonction `link` n'est de toute façon pas déployée avant le domaine.
 - Instructions ordinateur et iPhone : textes ACTUELS de la page `/i/` réutilisés (« Scannez ce QR code… », « Bientôt sur iPhone »), sans le code.
+
+## Politique de confidentialité — deux phrases à valider ensemble
+
+À ajouter dans `src/content/legal.ts` (politique de confidentialité), après la
+section « Statistiques ». La section « Statistiques » actuelle dit « Avec votre
+accord seulement » : elle est complétée pour ne pas contredire le compteur
+d'inscriptions, qui fonctionne sans accord (décision du fondateur : rien n'est
+rattaché à une personne).
+
+1. **Identifiant d'appareil haché (étape 1, parrainage — en attente depuis l'étape 1)**
+   - Titre — FR : « Parrainage et lutte contre la fraude » — EN : « Referrals and fraud prevention »
+   - FR : « Quand vous invitez quelqu'un, utilisez un code d'invitation ou demandez à rejoindre une tontine partagée, un identifiant technique de votre téléphone (jamais un identifiant publicitaire) est transformé de façon irréversible en empreinte chiffrée avant d'être enregistré. Cette empreinte sert uniquement à vérifier qu'un même téléphone n'est pas parrainé plusieurs fois. Si vous supprimez votre compte, elle est conservée sans aucun lien avec vous, pour cette seule raison. »
+   - EN : « When you invite someone, use an invitation code or ask to join a shared tontine, a technical identifier of your phone (never an advertising identifier) is irreversibly turned into an encrypted fingerprint before being stored. This fingerprint is only used to check that the same phone is not referred more than once. If you delete your account, it is kept with no link to you, for that reason only. »
+
+2. **Origine des inscriptions (étape 5)**
+   - Titre — FR : « Origine des inscriptions » — EN : « Sign-up origins »
+   - FR : « À votre inscription, la provenance du lien qui vous a amené à {app} (par exemple « WhatsApp » ou le nom d'une campagne), si elle est connue, est ajoutée une seule fois à un compteur global anonyme. Elle n'est jamais enregistrée dans votre compte, qui garde seulement l'information « déjà comptée » (oui ou non), et aucun identifiant publicitaire ni outil de suivi externe n'est utilisé. »
+   - EN : « When you sign up, the source of the link that brought you to {app} (for example "WhatsApp" or a campaign name), if known, is added once to an anonymous global counter. It is never stored in your account, which only keeps the information "already counted" (yes or no), and no advertising identifier or external tracking tool is used. »
+
+3. **Section « Statistiques » complétée** (pour rester exacte)
+   - FR actuel : « Avec votre accord seulement, des événements d'usage anonymes (ex. « objectif créé ») sont collectés, sans montant ni donnée personnelle. »
+   - FR proposé : « Avec votre accord seulement, des événements d'usage anonymes (ex. « objectif créé ») sont collectés, sans montant ni donnée personnelle. Seule exception, sans lien avec vous : le compteur anonyme de l'origine des inscriptions (voir ci-dessous). »
+   - EN : aujourd'hui la politique anglaise n'a PAS de section « Statistiques ».
+     Proposé — titre « Statistics » : « Only with your consent, anonymous usage events (e.g. "goal created") are collected, with no amount or personal data. The only exception, with no link to you: the anonymous sign-up origin counter (see below). »

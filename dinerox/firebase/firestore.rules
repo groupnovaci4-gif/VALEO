@@ -42,12 +42,13 @@ service cloud.firestore {
         && request.resource.data.subscription.plan == 'free'
         && request.resource.data.subscription.status == 'active'
         && request.resource.data.subscription.provider == 'none'
-        // Parrainage et droits offerts : écrits par les Cloud Functions seulement.
-        && !request.resource.data.keys().hasAny(['referredBy', 'referralProgress', 'grants']);
+        // Parrainage, droits offerts et marqueur « origine déjà comptée » (étape 5) :
+        // écrits par les Cloud Functions seulement.
+        && !request.resource.data.keys().hasAny(['referredBy', 'referralProgress', 'grants', 'originCounted']);
       // Ensuite, le client ne peut jamais toucher à l'abonnement, à l'identité,
       // au parrainage (parrain, progression) ni aux droits offerts (« Plus offert »).
       allow update: if signedIn() && me() == userId && validProfile(request.resource.data)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription', 'uid', 'createdAt', 'referredBy', 'referralProgress', 'grants']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['subscription', 'uid', 'createdAt', 'referredBy', 'referralProgress', 'grants', 'originCounted']);
       allow delete: if false; // Cloud Function deleteAccount
 
       // Parrainage : mon code et mes compteurs (`referral/state`), le statut de
@@ -261,6 +262,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /referralDevices/{hash} {
+      allow read, write: if false;
+    }
+
+    // ─── Origine des inscriptions (étape 5) : compteurs anonymes par jour ─
+    // Serveur seul (`recordSignupOrigin`) ; lus par `adminOriginStats`, déjà regroupés.
+    match /originStats/{day} {
       allow read, write: if false;
     }
 

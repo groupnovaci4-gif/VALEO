@@ -612,6 +612,8 @@ export interface UserProfile {
   termsAcceptedVersion?: string | null;
   /** Parrainage (écrit UNE fois par le serveur, jamais par le client) : qui m'a invité. */
   referredBy?: ReferredBy | null;
+  /** Étape 5 : origine de l'inscription déjà comptée (oui/non, écrit par le serveur). Jamais la source elle-même. */
+  originCounted?: boolean;
   /** Semaine régulière du filleul (compteurs seulement, écrits par le serveur). */
   referralProgress?: ReferralProgress | null;
   /** Droits offerts (parrainage), écrits par le serveur seul ; lus par `effectivePlan`. */
