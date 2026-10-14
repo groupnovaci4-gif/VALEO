@@ -314,3 +314,36 @@ describe('application ↔ serveur (parité) et vue du carnet', () => {
     expect(client.cycleSummary({ ...g, id: 'g1' } as never)).toEqual({ turns: 4, confirmed: 2, missing: 14, total: 160000 });
   });
 });
+
+describe('suppression du compte d’un organisateur', () => {
+  it('avertissement : seulement pour une tontine active que la personne organise SANS trésorier', async () => {
+    const client = await import('../src/core/tontineGroup');
+    const mine = { name: 'Tontine du marché', organizerUid: ORG, treasurerUid: null, status: 'active' as const };
+    expect(client.deletionWarnings([mine], ORG)).toEqual(['Tontine du marché']);
+    expect(client.deletionWarnings([{ ...mine, treasurerUid: A }], ORG)).toEqual([]);
+    expect(client.deletionWarnings([mine], A)).toEqual([]); // simple membre
+    expect(client.deletionWarnings([{ ...mine, status: 'orphaned' as const }], ORG)).toEqual([]);
+    expect(client.deletionWarnings([mine, { ...mine, name: 'Tontine 2' }, { ...mine, name: 'Avec trésorier', treasurerUid: B }], ORG)).toEqual(['Tontine du marché', 'Tontine 2']);
+  });
+  it('tontine figée : personne n’est promu, mais chaque membre peut toujours la quitter', () => {
+    const orphan = tg.accountDeleted(group(), ORG, NOW).group;
+    expect(orphan).toMatchObject({ status: 'orphaned', organizerUid: ORG, treasurerUid: null });
+    const r = tg.leave(orphan, A, NOW);
+    expect(r.group.memberUids).not.toContain(A);
+    expect(code(() => tg.confirmPayment(orphan, null, ORG, { period: 1, slotId: 's2' }, NOW))).toBe('tg/orphaned');
+  });
+});
+
+describe('rappels : un tour déjà payé ne sonne plus', () => {
+  it('paiements confirmés de mes places = entrées « faites » du carnet (en mémoire)', async () => {
+    const client = await import('../src/core/tontineGroup');
+    const { tontineReminders } = await import('../src/core/tontine');
+    const g0 = tg.confirmPayment(group(), null, ORG, { period: 1, slotId: 's2' }, NOW).group;
+    const g = { ...g0, id: 'g1' } as unknown as Parameters<typeof client.asPersonalView>[0];
+    const entries = client.asPersonalEntries(g, A);
+    expect(entries).toEqual([expect.objectContaining({ tontineId: 'group:g1', kind: 'contribution', period: 1, status: 'done' })]);
+    const reminders = tontineReminders({ tontines: [client.asPersonalView(g, A)], tontineEntries: entries as never }, '2026-10-18', { days: 10 });
+    expect(reminders.some((r) => r.period === 1)).toBe(false);
+    expect(reminders.some((r) => r.period === 2)).toBe(true);
+  });
+});

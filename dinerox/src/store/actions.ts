@@ -34,7 +34,7 @@ import { dueOccurrences, materialize } from '@/core/recurring';
 import { newId } from '@/core/sync';
 import { linkedRemovals } from '@/core/removal';
 import { today } from '@/core/dates';
-import { isValidAmount } from '@/core/money';
+import { isValidAmount, type CurrencyCode } from '@/core/money';
 import { goalSaved } from '@/core/balance';
 import { tontineContributionCategory } from '@/core/tontine';
 import { deleteMode, planMerge, restoreDefaults } from '@/core/categoryOps';
@@ -699,6 +699,29 @@ export function useActions() {
    * revenu « Tontine reçue ») et l'entrée liée. Supprimer l'opération
    * supprimera l'entrée.
    */
+  /**
+   * Tontine partagée (étape 3) : « J'ai payé » + accord de la personne → la
+   * cotisation devient une opération réelle DANS SON PROPRE ESPACE, avec
+   * EXACTEMENT la même catégorie que le carnet (`tontineContributionCategory`).
+   */
+  const recordTontineGroupContribution = useCallback(
+    (input: { groupName: string; amount: number; currency: CurrencyCode; date: string }) => {
+      const d = data();
+      if (!isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
+      return saveTransaction({
+        type: 'expense',
+        amount: input.amount,
+        currency: input.currency,
+        date: input.date,
+        accountId: ensureCashAccount(input.currency),
+        ...tontineContributionCategory(d.categories),
+        payee: input.groupName,
+        note: null,
+      });
+    },
+    [data, saveTransaction, ensureCashAccount],
+  );
+
   const recordTontine = useCallback(
     (input: { tontineId: string; period: number; kind: 'contribution' | 'payout'; amount: number; date: string; accountId?: string | null; note?: string | null }) => {
       const d = data();
@@ -815,10 +838,11 @@ export function useActions() {
       ensureCashAccount,
       saveTontine,
       recordTontine,
+      recordTontineGroupContribution,
       postponeTontine,
       convertRecurringToTontine,
     }),
-    [save, remove, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, learnCategoryWord, depositToSavings, withdrawFromSavings, adjustSavingsBalance, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, postponeTontine, convertRecurringToTontine],
+    [save, remove, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, learnCategoryWord, depositToSavings, withdrawFromSavings, adjustSavingsBalance, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, recordTontineGroupContribution, postponeTontine, convertRecurringToTontine],
   );
 }
 

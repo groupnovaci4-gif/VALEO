@@ -202,3 +202,13 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     `src`. Événement `share_clicked` : `{context, channel}` seulement.
     Visibilité de WhatsApp : déclarations précises (`plugins/withWhatsAppQueries.js`,
     `LSApplicationQueriesSchemes`), jamais QUERY_ALL_PACKAGES.
+26. **Tontine partagée (croissance, étape 3, `docs/tontines.md` › Lot T2).**
+    Toute écriture passe par la fonction `tontineGroup` (règles : lecture
+    réservée aux membres, aucune écriture client ; historique en ajout seul).
+    Tournante seulement ; personne n'est membre sans l'avoir demandé et sans
+    validation de l'organisateur ; aucun numéro de téléphone ; surnoms de
+    l'organisateur sur son téléphone seulement ; statuts visibles selon la
+    personne (`slotStatusFor`, parité application ↔ serveur testée) ; aucun
+    argent ne transite ; l'opération réelle d'une cotisation utilise la même
+    catégorie que le carnet. Un groupe n'est jamais une tontine personnelle
+    (aucune limite de formule consommée).

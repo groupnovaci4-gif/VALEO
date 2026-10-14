@@ -15,12 +15,16 @@ import { useTheme } from '@/theme';
 import { convertibleRecurring, nextContribution, nextPayout, scheduleState } from '@/core/tontine';
 import { can } from '@/core/permissions';
 import { NetPositionText } from '@/features/tontine/NetPositionText';
+import { useMyGroups } from '@/features/tontineGroup/useMyGroups';
+import { hasFeature } from '@/core/subscription';
 
 function Tontines() {
   const { t, date } = useI18n();
   const { colors, radius } = useTheme();
   const money = useMoney();
-  const { role } = useApp();
+  const { role, mode, plan } = useApp();
+  const { groups } = useMyGroups();
+  const canCreateGroup = hasFeature(plan, 'tontine_group_create');
   const { data, now } = useFinance();
   const list = useMemo(() => data.tontines.filter((x) => !x.deleted).sort((a, b) => Number(a.status !== 'active') - Number(b.status !== 'active') || a.name.localeCompare(b.name)), [data.tontines]);
   const convertible = convertibleRecurring(data);
@@ -65,6 +69,37 @@ function Tontines() {
         </Card>
       )}
       {canCreate ? <Button full icon="add-circle-outline" label={t('tontine.new')} onPress={() => router.push('/tontines/new')} style={{ marginTop: 6 }} /> : null}
+
+      {/* Étape 3 : tontines partagées (groupes rejoints ou organisés) — un compte en ligne est nécessaire. */}
+      {mode === 'firebase' ? (
+        <>
+          <SectionHeader title={t('tg.section')} />
+          {groups.map((g) => (
+            <Pressable
+              key={g.id}
+              accessibilityRole="button"
+              accessibilityLabel={g.name}
+              onPress={() => router.push(`/tontines/group/${g.id}`)}
+              style={({ pressed }) => ({ backgroundColor: pressed ? colors.surfaceAlt : colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 10, gap: 4 })}
+            >
+              <Text variant="bodyStrong" numberOfLines={1}>
+                {g.name}
+              </Text>
+              <Text variant="caption" tone="subtle">
+                {t('tg.summary', { frequency: t(`tontine.freq.${g.frequency}` as TKey), slots: g.slots.length })}
+              </Text>
+            </Pressable>
+          ))}
+          <Button full variant="secondary" icon="enter-outline" label={t('tg.join.cta')} onPress={() => router.push('/tontines/join')} />
+          {canCreateGroup ? (
+            <Button full variant="secondary" icon="people-outline" label={t('tg.create.cta')} onPress={() => router.push('/tontines/group/new')} style={{ marginTop: 8 }} />
+          ) : (
+            <Text variant="caption" tone="subtle" style={{ marginTop: 8 }}>
+              {t('tg.create.plan')}
+            </Text>
+          )}
+        </>
+      ) : null}
 
       {canCreate && convertible.length ? (
         <>

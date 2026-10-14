@@ -16,12 +16,15 @@ import { buildDemoData } from '@/core/demo';
 import { today } from '@/core/dates';
 import type { CollectionName, SyncedDoc } from '@/core/types';
 import { removeKeys } from '@/services/storage';
+import { deletionWarnings } from '@/core/tontineGroup';
+import { useMyGroups } from '@/features/tontineGroup/useMyGroups';
 import { clearPin } from '@/services/security';
 
 export default function DataSettings() {
   const { t } = useI18n();
   const toast = useToast();
   const { profile, updateProfile, engine, spaces, user, mode, addLocalSpace, removeLocalSpace, setActiveSpace, signOutLocal } = useApp();
+  const { groups } = useMyGroups();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [word, setWord] = useState('');
   const [busy, setBusy] = useState(false);
@@ -106,6 +109,10 @@ export default function DataSettings() {
       </Card>
       <Sheet visible={confirmOpen} onClose={() => setConfirmOpen(false)} title={t('set.deleteAccount')}>
         <Banner tone="danger" icon="warning" text={t('set.deleteAccountBody')} />
+        {/* Tontines partagées organisées SANS trésorier : avertissement seulement, la suppression reste possible. */}
+        {deletionWarnings(groups, user?.uid ?? '').map((name) => (
+          <Banner key={name} tone="warning" icon="people-outline" text={t('tg.deleteWarning', { name })} />
+        ))}
         <Field label={t('set.deleteAccountConfirm')} value={word} onChangeText={setWord} autoCapitalize="characters" />
         <Button full variant="danger" loading={busy} disabled={word.trim() !== t('set.deleteWord')} label={t('set.deleteAccount')} onPress={() => void destroy()} />
       </Sheet>

@@ -156,3 +156,36 @@ sont reconnues sans validation.
 8. Formule gratuite : deuxième tontine active → offre Plus.
 9. Application en anglais.
 10. (Lot T2, plus tard) un vrai test de groupe avec 3 téléphones.
+
+## Lot T2 — tontine partagée (croissance, étape 3, 2026-10-14)
+
+Décisions du fondateur : tontine TOURNANTE seulement (une place = une main =
+un tour) ; personne n'est membre sans avoir demandé (code d'invitation, aperçu
+sans liste de membres, validation de l'organisateur) ; aucun numéro de
+téléphone ; nom affiché choisi par la personne ; surnoms de l'organisateur sur
+SON téléphone seulement ; un trésorier unique, choisi parmi les membres ;
+statuts : « payé » / « pas encore » pour tous, « en retard », « déclaré »,
+« contesté » pour l'organisateur, le trésorier et la personne concernée ;
+mention `tontine.legal` à la création ET avant de rejoindre ; rappel préparé
+par l'organisateur (nom, tour, date ; cotisation seulement si cochée), jamais
+envoyé par l'application ; nouveau compte sans parrain → l'organisateur devient
+son parrain (jamais à la place d'un parrain existant) ; organisateur qui
+supprime son compte → le trésorier prend le relais, sinon la tontine est figée
+(lecture seule, chacun peut la quitter), avec un avertissement avant la
+suppression. Aucune formule ni limite du carnet T1 modifiée : un groupe rejoint
+n'est pas une tontine personnelle (vue en mémoire `asPersonalView` pour les
+rappels).
+
+- Serveur (fait foi) : `firebase/functions/src/tontineGroup.ts` (pur),
+  `tontineGroupApi.ts` (fonction `tontineGroup`, `adminTontineStats`),
+  `deleteUserData` (places libérées, demandes effacées).
+- Données : `tontineGroups/{id}` (+ `payments`, `history` en ajout seul,
+  `requests`), `tontineInvites/{code}` ; règles : lecture réservée, AUCUNE
+  écriture client.
+- Application : `src/core/tontineGroup.ts`, `src/services/tontineGroups.ts`,
+  écrans `tontines/join`, `tontines/group/new`, `tontines/group/[id]`, lien
+  `/t/{code}`. « J'ai payé » + accord → `recordTontineGroupContribution`
+  (même catégorie que le carnet : `tontineContributionCategory`).
+- Textes validés : `docs/textes-etape3.md`.
+- Tests : `tests/tontine-group.test.ts`, règles, `tests/functions/tontine-group.emulator.test.ts`,
+  `e2e/tontine-group.js` (3 comptes).

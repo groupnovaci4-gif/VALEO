@@ -39,7 +39,13 @@ export type AnalyticsEvent =
   | 'referral_shared'
   | 'referral_applied'
   // Croissance (étape 2) : `context` + `channel` UNIQUEMENT (jamais le message, le code ni un nom).
-  | 'share_clicked';
+  | 'share_clicked'
+  // Croissance (étape 3), tontine partagée : jamais de montant ni de nom. `mode` : personal | group ; `step` : request.
+  | 'tontine_created'
+  | 'tontine_group_invite_shared'
+  | 'tontine_group_joined'
+  | 'tontine_payment_declared'
+  | 'tontine_payment_confirmed';
 
 export { sanitize } from '@/core/analyticsProps';
 type Sink = (event: AnalyticsEvent, props: Props) => void;

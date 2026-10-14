@@ -7,6 +7,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { analytics } from '@/services/analytics';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
@@ -79,6 +80,7 @@ function NewTontine() {
     if (e.length) return setError(t(`tontine.err.${e[0]}` as TKey));
     try {
       const saved = rule ? actions.convertRecurringToTontine(d, deactivate) : actions.saveTontine(d);
+      analytics.track('tontine_created', { mode: 'personal' });
       router.replace(`/tontines/${saved.id}`);
     } catch (err) {
       setError(errorMessage(err));

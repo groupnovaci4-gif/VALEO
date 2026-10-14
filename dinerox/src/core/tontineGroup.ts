@@ -144,3 +144,26 @@ export function cycleSummary(g: TontineGroup): { turns: number; confirmed: numbe
   const pot = g.potAmount && g.potAmount > 0 ? g.potAmount : g.amountPerShare * turns;
   return { turns, confirmed, missing: turns * turns - confirmed, total: pot * turns };
 }
+
+/**
+ * Paiements CONFIRMÉS de mes places, présentés comme des entrées du carnet (en
+ * mémoire) : les rappels locaux ne sonnent pas pour un tour déjà payé.
+ */
+export function asPersonalEntries(g: TontineGroup, uid: string): { id: string; createdAt: number; updatedAt: number; createdBy: string; tontineId: string; kind: 'contribution'; period: number; amount: number; date: ISODate; status: 'done' }[] {
+  const out: ReturnType<typeof asPersonalEntries> = [];
+  for (const s of mySlots(g, uid)) {
+    for (let p = 1; p <= g.slots.length; p++) {
+      if (g.paid[paidKey(g.cycle, p, s.slotId)]) out.push({ id: `group:${g.id}:${p}:${s.slotId}`, createdAt: g.updatedAt, updatedAt: g.updatedAt, createdBy: uid, tontineId: `group:${g.id}`, kind: 'contribution', period: p, amount: g.amountPerShare, date: periodDate(g, p), status: 'done' });
+    }
+  }
+  return out;
+}
+
+/**
+ * Avant « Supprimer mon compte » (fondateur, 2026-10-14) : tontines que la
+ * personne organise SANS trésorier — elles ne pourraient plus être modifiées.
+ * Simple avertissement : la suppression reste possible.
+ */
+export function deletionWarnings(groups: Pick<TontineGroup, 'name' | 'organizerUid' | 'treasurerUid' | 'status'>[], uid: string): string[] {
+  return groups.filter((g) => g.organizerUid === uid && !g.treasurerUid && g.status === 'active').map((g) => g.name);
+}

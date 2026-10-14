@@ -8,7 +8,7 @@ fondateur (uniquement après son message « Étape N validée »).
 |---|---|---|---|
 | 1 | Parrainage (+ socle des liens DineroX) | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement et déployé ; parties ⛔ ci-dessous | |
 | 2 | Bouton « Partager sur WhatsApp » | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement ; chaîne ⛔ (pas encore d'adresse, ligne cachée) | |
-| 3 | Tontine partagée (Lot T2) | 🟨 En cours (plan à soumettre) | |
+| 3 | Tontine partagée (Lot T2) | 🟦 Testé automatiquement — 📱 test final (3 téléphones) ; serveur NON déployé (fonctions, règles, index, deleteUserData) | |
 | 4 | Demande d'avis Google Play / App Store | ⬜ À faire | |
 | 5 | Origine des installations (liens tracés par canal) | ⬜ À faire | |
 
@@ -46,6 +46,22 @@ fondateur (uniquement après son message « Étape N validée »).
 | `share_clicked` sans contenu | 🟦 | `tests/share.test.ts` |
 | Défi 30 jours | — | n'existe pas dans l'application |
 
+## Détail de l'étape 3
+
+| Élément | Statut | Preuve / note |
+|---|---|---|
+| Créer (Plus/Family), inviter (aperçu sans membres, cotisation si cochée) | 🟦 | unitaires, émulateurs, `e2e/tontine-group.js` |
+| Rejoindre : demande + validation de l'organisateur, gratuit | 🟦 | idem |
+| Parrainage par l'organisateur (nouveau compte sans parrain ; existant inchangé) | 🟦 | émulateurs + e2e |
+| Tirage unique, ordre, trésorier unique | 🟦 | idem |
+| Paiements : déclaration, confirmation (historique : qui), contestation | 🟦 | idem |
+| Statuts selon la personne (« en retard » : gestionnaires + intéressé) | 🟦 | parité + e2e (horloge décalée) |
+| Opération réelle : même catégorie que le carnet | 🟦 | e2e (catégorie lue dans Firestore) |
+| Rappels locaux, rappel préparé (sans nom) | 🟦 | unitaires + e2e |
+| Départ, compte supprimé, organisateur → trésorier / tontine figée, avertissement | 🟦 | unitaires, émulateurs, e2e |
+| Écran admin des statistiques de tontines | ⬜ | fonction faite ; textes de l'écran admin non proposés |
+| Déploiement (fonctions `tontineGroup`, `adminTontineStats`, règles, index, `deleteAccount` + `boDeleteUser`) | ⛔ | attend l'accord du fondateur, commande par commande |
+
 ## Journal
 
 - 2026-10-13 : plan de l'étape 1 accepté. Domaine `dinerox.app`. Règle de
@@ -69,3 +85,6 @@ fondateur (uniquement après son message « Étape N validée »).
   et WhatsApp Business, textes) ; codé et testé automatiquement.
 - 2026-10-14 : étape 2 vérifiée par le fondateur → 📱 À vérifier sur téléphone ;
   fusion dans `dinerox-main` (avance rapide). Début de l'étape 3 (plan).
+- 2026-10-14 : textes de l'étape 3 validés (92) et intégrés ; écrans, parcours à
+  3 comptes ; deux défauts trouvés et corrigés (ordre affiché après tirage,
+  ordre des demandes).

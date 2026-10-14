@@ -1,14 +1,14 @@
 # Étape 3 — tontine partagée : nouveaux textes à valider
 
-Statut : PROPOSÉS, pas encore intégrés aux écrans (en attente de l'accord du
-fondateur). Format : `clé` — FR — EN. `{app}` = nom de marque (DineroX).
+Statut : VALIDÉS par le fondateur le 2026-10-14 (avec ses corrections),
+intégrés dans `src/i18n/fr.ts` et `src/i18n/en.ts`. Format : `clé` — FR — EN. `{app}` = nom de marque (DineroX).
 
 ## Liste « Mes tontines »
 
 - `tg.section` — FR : « Tontines partagées » — EN : « Shared tontines »
 - `tg.join.cta` — FR : « Rejoindre une tontine » — EN : « Join a tontine »
 - `tg.create.cta` — FR : « Créer une tontine partagée » — EN : « Create a shared tontine »
-- `tg.create.plan` — FR : « Créer une tontine partagée fait partie de Plus. Rejoindre une tontine reste gratuit. » — EN : « Creating a shared tontine is part of Plus. Joining a tontine stays free. »
+- `tg.create.plan` — FR : « Créer une tontine partagée fait partie des formules Plus et Family. Rejoindre une tontine reste gratuit. » — EN : « Creating a shared tontine is part of the Plus and Family plans. Joining a tontine stays free. » (corrigé par le fondateur)
 
 ## Créer
 
@@ -83,7 +83,7 @@ fondateur). Format : `clé` — FR — EN. `{app}` = nom de marque (DineroX).
 - `tg.status.declared` — FR : « Déclaré, à confirmer » — EN : « Declared, to be confirmed »
 - `tg.status.disputed` — FR : « Contesté » — EN : « Disputed »
 - `tg.iPaid` — FR : « J'ai payé » — EN : « I paid »
-- `tg.iPaid.record` — FR : « Enregistrer aussi cette cotisation dans mes dépenses ? » — EN : « Also record this contribution in my expenses? »
+- `tg.iPaid.record` — FR : « Enregistrer aussi cette cotisation dans mes opérations ? » — EN : « Also record this contribution in my transactions? » (corrigé par le fondateur ; même catégorie que le carnet T1)
 - `tg.confirm` — FR : « Confirmer le paiement » — EN : « Confirm the payment »
 - `tg.dispute` — FR : « Contester » — EN : « Dispute »
 
@@ -118,6 +118,10 @@ fondateur). Format : `clé` — FR — EN. `{app}` = nom de marque (DineroX).
 - `tg.h.settings` — FR : « Paramètres modifiés » — EN : « Settings changed »
 - `tg.h.new_cycle` — FR : « Nouveau cycle » — EN : « New cycle »
 - `tg.h.organizer_transferred` — FR : « Le trésorier devient organisateur » — EN : « The treasurer becomes organizer »
+
+## Suppression du compte (organisateur sans trésorier)
+
+- `tg.deleteWarning` — FR : « Vous organisez la tontine « {name} ». Nommez un trésorier avant de supprimer votre compte, sinon elle ne pourra plus être modifiée. » — EN : « You organize the tontine "{name}". Name a treasurer before deleting your account, otherwise it can no longer be changed. » (ajouté par le fondateur ; avertissement seulement)
 
 ## Erreurs
 

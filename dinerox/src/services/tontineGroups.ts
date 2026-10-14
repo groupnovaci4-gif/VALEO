@@ -93,11 +93,12 @@ export interface JoinRequest {
   status: 'pending' | 'approved' | 'rejected';
 }
 
-/** Demandes en attente (organisateur). */
+/** Demandes en attente (organisateur), dans l'ordre d'arrivée. */
 export function listenRequests(groupId: string, cb: (r: JoinRequest[]) => void): () => void {
   return onSnapshot(
     query(collection(firebase().db, 'tontineGroups', groupId, 'requests'), where('status', '==', 'pending')),
-    (snap) => cb(snap.docs.map((d) => d.data() as JoinRequest)),
+    // Les plus anciennes d'abord (ordre d'arrivée).
+    (snap) => cb(snap.docs.map((d) => d.data() as JoinRequest).sort((x, y) => x.at - y.at)),
     () => cb([]),
   );
 }
