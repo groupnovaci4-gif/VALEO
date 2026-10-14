@@ -211,5 +211,8 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     personne (`slotStatusFor`, parité application ↔ serveur testée) ; aucun
     argent ne transite ; l'opération réelle d'une cotisation utilise la même
     catégorie que le carnet, sur le compte CHOISI par la personne (jamais de
-    compte créé automatiquement). Un groupe n'est jamais une tontine personnelle
+    compte créé automatiquement). Cette interdiction vaut pour la tontine
+    partagée SEULEMENT (fondateur, 2026-10-14) : le compte « Espèces » de
+    départ à l'inscription (`starterStructure`) et `ensureCashAccount` (carnet
+    T1, saisie classique, règle 10) sont des comportements VOULUS, à ne pas changer. Un groupe n'est jamais une tontine personnelle
     (aucune limite de formule consommée).
