@@ -194,3 +194,11 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     garde-fou `scripts/deploy-guard.mjs` (predeploy) l'impose. Accord du
     fondateur à chaque commande, simulation d'abord. Le secret
     `REFERRAL_DEVICE_PEPPER` ne change jamais.
+25. **Partage (croissance, étape 2, `docs/partage.md`).** Un seul bouton
+    `ShareWhatsAppButton` / `shareTextViaWhatsApp` : WhatsApp (ou Business)
+    avec un message prérempli modifiable, sinon la feuille de partage ; rien
+    n'est jamais envoyé automatiquement. Aucun montant, nom ni prénom dans un
+    message ou une image (`containsAmount`, testé sur chaque modèle). Liens avec
+    `src`. Événement `share_clicked` : `{context, channel}` seulement.
+    Visibilité de WhatsApp : déclarations précises (`plugins/withWhatsAppQueries.js`,
+    `LSApplicationQueriesSchemes`), jamais QUERY_ALL_PACKAGES.

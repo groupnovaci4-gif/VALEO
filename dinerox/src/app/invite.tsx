@@ -1,8 +1,8 @@
 /**
  * « Inviter des amis » (croissance, étape 1) — design system v2.
  *  1. la règle en une phrase ;
- *  2. mon code (6 caractères) et mon lien, « Partager » (feuille du téléphone)
- *     et « Copier » ;
+ *  2. mon code (6 caractères) et mon lien ; « Partager sur WhatsApp » (étape 2),
+ *     « Partager » (feuille du téléphone) et « Copier » ;
  *  3. avancement « n/5 filleuls validés avant votre prochain mois offert »,
  *     période « Plus offert » en cours ;
  *  4. mes parrainages : statut de chaque filleul, SANS aucun montant.
@@ -20,6 +20,8 @@ import { inviteLink, REFERRAL } from '@/core/referral';
 import { analytics } from '@/services/analytics';
 import { fetchMyCode, listenReferrals, listenReferralState, type ReferralChild, type ReferralState } from '@/services/referral';
 import { WeekCard } from '@/features/referral/WeekCard';
+import { ShareWhatsAppButton } from '@/features/share/ShareWhatsAppButton';
+import { shareInviteLink } from '@/core/share';
 
 export default function Invite() {
   return (
@@ -72,11 +74,13 @@ function InviteScreen() {
   const share = async () => {
     if (!myCode) return;
     analytics.track('referral_shared', { kind: 'share' });
+    analytics.track('share_clicked', { context: 'invite', channel: 'system' });
     await Share.share({ message: t('ref.shareMessage', { link: inviteLink(brand.linkHost, myCode, { src: 'share' }) }) }).catch(() => undefined);
   };
   const copy = async () => {
     if (!myCode) return;
     analytics.track('referral_shared', { kind: 'copy' });
+    analytics.track('share_clicked', { context: 'invite', channel: 'copy' });
     await Clipboard.setStringAsync(inviteLink(brand.linkHost, myCode, { src: 'copy' }));
     toast.show(t('ref.copied'));
   };
@@ -113,9 +117,11 @@ function InviteScreen() {
           <Text selectable style={{ marginBottom: 12 }}>
             {link}
           </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {/* Étape 2 : WhatsApp d'abord (message prérempli, modifiable, lien `src=whatsapp`). */}
+          <ShareWhatsAppButton context="invite" message={t('ref.shareMessage', { link: shareInviteLink(brand.linkHost, myCode, 'whatsapp') })} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
             <View style={{ flexGrow: 1, flexBasis: 140 }}>
-              <Button full icon="share-social-outline" label={t('ref.share')} onPress={() => void share()} />
+              <Button full variant="secondary" icon="share-social-outline" label={t('ref.share')} onPress={() => void share()} />
             </View>
             <View style={{ flexGrow: 1, flexBasis: 140 }}>
               <Button full variant="secondary" icon="copy-outline" label={t('ref.copy')} onPress={() => void copy()} />

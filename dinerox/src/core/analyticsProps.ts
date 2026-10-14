@@ -6,7 +6,8 @@
 export type Props = Record<string, string | number | boolean>;
 
 /** Seules ces propriétés, non identifiantes, peuvent être transmises. */
-export const ALLOWED_PROPS = new Set(['method', 'plan', 'intent', 'source', 'step', 'kind', 'count', 'reason', 'to']);
+/** `context` (invite, trophy, tontine) et `channel` (whatsapp, system, copy) : partage, jamais de contenu. */
+export const ALLOWED_PROPS = new Set(['method', 'plan', 'intent', 'source', 'step', 'kind', 'count', 'reason', 'to', 'context', 'channel']);
 
 export function sanitize(props: Record<string, unknown> = {}): Props {
   const out: Props = {};

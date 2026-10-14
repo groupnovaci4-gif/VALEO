@@ -38,6 +38,8 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
     infoPlist: {
       NSFaceIDUsageDescription: `${brand.name} utilise Face ID pour protéger l'accès à vos finances.`,
       NSPhotoLibraryUsageDescription: 'Pour joindre un justificatif à une dépense.',
+      // Partage (étape 2) : savoir si WhatsApp (ou WhatsApp Business) est installé. Ce schéma seulement.
+      LSApplicationQueriesSchemes: ['whatsapp'],
     },
   },
   android: {
@@ -71,6 +73,8 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
   web: { favicon: './assets/favicon.png', bundler: 'metro' },
   plugins: [
     'expo-router',
+    // Partage (étape 2) : visibilité de WhatsApp et WhatsApp Business (Android 11+), rien d'autre.
+    './plugins/withWhatsAppQueries.js',
     'expo-secure-store',
     'expo-localization',
     'expo-web-browser',

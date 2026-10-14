@@ -45,6 +45,17 @@ function Rewards() {
                 </Text>
               </View>
             </View>
+            {count ? (
+              <Button
+                small
+                variant="tertiary"
+                icon="share-social-outline"
+                label={t('share.trophy.cta')}
+                accessibilityLabel={`${t('share.trophy.cta')}, ${t(r.nameKey as TKey)}`}
+                onPress={() => router.push({ pathname: '/share-trophy', params: { id: r.id } })}
+                style={{ alignSelf: 'flex-start', marginTop: 4 }}
+              />
+            ) : null}
             {r.scope === 'month' ? (
               <View style={{ marginTop: 10 }}>
                 <ProgressBar value={pct} tone="success" height={6} />

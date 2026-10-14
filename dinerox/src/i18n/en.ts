@@ -1852,6 +1852,12 @@ export const en: Record<TKey, string> = {
   // Croissance — étape 1 : parrainage (aucun montant).
   "more.sub.invite": "Earn free months of Plus",
   "ref.code.sub": "Enter the code of the person who invited you",
+  // Croissance — étape 2 : partage (textes validés par le fondateur le 2026-10-14).
+  "share.whatsapp": "Share on WhatsApp",
+  "share.trophy.cta": "Share my trophy",
+  "share.trophy.title": "New trophy on {app} 🏆",
+  "more.whatsappChannel": "Follow {app} on WhatsApp",
+  "more.sub.whatsappChannel": "Tips and news, on our channel",
   "ref.title": "Invite friends",
   "ref.rule": "When {n} people you invited use {app} regularly for a week, you get 1 free month of Plus.",
   "ref.myCode": "My code",

@@ -24,6 +24,11 @@ lien `/i/{code}` ouvert sans compte (code prérempli à l'inscription), carte
 « Votre semaine » du filleul, code saisi dans les réglages (erreurs claires),
 semaine régulière validée par les VRAIES Cloud Functions, message « 1/5 » chez
 la parraine, écran admin et mode ambassadeur, carte de l'accueil après 5 saisies.
+Partage (étape 2) : `share.js` — « Partager sur WhatsApp » (message et lien
+`src=whatsapp`), carte trophée sans nom ni montant partagée en image, ligne de la
+chaîne WhatsApp selon l'adresse publiée ; WhatsApp et la feuille de partage sont
+INTERCEPTÉS (rien ne part).
+
 Il exige l'émulateur **functions** (compilé avant : `npm --prefix firebase/functions run build`).
 
 ## Lancer

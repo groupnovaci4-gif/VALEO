@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Linking, View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
@@ -11,6 +11,7 @@ import { today } from '@/core/dates';
 import { netWorth } from '@/core/networth';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { useTheme } from '@/theme';
+import { loadAppLinks } from '@/services/appLinks';
 
 interface Item {
   key: TKey;
@@ -18,6 +19,8 @@ interface Item {
   icon: string;
   color: string;
   path: string;
+  /** Lien externe (ouvert hors de l'application) au lieu d'un écran. */
+  url?: string;
   show?: boolean;
   locked?: boolean;
 }
@@ -29,6 +32,14 @@ export default function More() {
   const { data, position, currency, activeAccounts } = useFinance();
   // Icônes à la couleur de la marque : vert pour l'argent, or pour les temps forts.
   const { colors, radius } = useTheme();
+  const [channelUrl, setChannelUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void loadAppLinks().then((l) => alive && setChannelUrl(l.whatsappChannelUrl));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const showNetWorth = hasFeature(plan, 'net_worth') && can(role, 'read', 'assets');
   // Chiffre réel : patrimoine net (formule qui l'inclut) sinon total des comptes.
   const headline = useMemo(
@@ -79,6 +90,8 @@ export default function More() {
       aside: t('more.system'),
       items: [
         { key: 'ref.title', sub: 'more.sub.invite', icon: 'gift', color: colors.primary, path: '/invite', show: mode === 'firebase' },
+        // Étape 2 : chaîne WhatsApp DineroX — cachée tant que l'admin n'a pas publié d'adresse valide.
+        { key: 'more.whatsappChannel', sub: 'more.sub.whatsappChannel', icon: 'logo-whatsapp', color: colors.primary, path: '', url: channelUrl ?? undefined, show: !!channelUrl },
         { key: 'sub.title', sub: 'more.sub.subscription', icon: 'sparkles', color: colors.secondary, path: '/subscription' },
         { key: 'set.title', sub: 'more.sub.settings', icon: 'settings', color: colors.info, path: '/settings' },
         { key: 'admin.title', sub: 'more.sub.admin', icon: 'shield-checkmark', color: colors.textMuted, path: '/admin', show: !!user?.isAdmin },
@@ -137,7 +150,7 @@ export default function More() {
                   left={<IconCircle icon={i.icon} color={i.color} size={44} />}
                   right={i.locked ? <Badge tone="ai" label="PRO" /> : undefined}
                   chevron
-                  onPress={() => router.push(i.path as never)}
+                  onPress={() => (i.url ? void Linking.openURL(i.url).catch(() => undefined) : router.push(i.path as never))}
                 />
               ))}
           </Card>

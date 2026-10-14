@@ -5,6 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSequence, wi
 import { useTheme } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
 import { Button, Icon, Text } from '@/components/ui';
+import { router } from 'expo-router';
 import { REWARDS } from '@/core/coach/rewards';
 
 export function RewardCelebration({ rewardId, message, onClose }: { rewardId: string; message: string; onClose: () => void }) {
@@ -38,6 +39,17 @@ export function RewardCelebration({ rewardId, message, onClose }: { rewardId: st
         </Text>
         <Text align="center">{message}</Text>
         <Button full label={t('reward.celebrate.close')} onPress={onClose} />
+        {/* Étape 2 : la personne choisit de partager (carte sans nom ni montant). */}
+        <Button
+          full
+          variant="secondary"
+          icon="share-social-outline"
+          label={t('share.trophy.cta')}
+          onPress={() => {
+            onClose();
+            router.push({ pathname: '/share-trophy', params: { id: rewardId } });
+          }}
+        />
       </View>
     </View>
   );

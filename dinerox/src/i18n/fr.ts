@@ -1884,6 +1884,12 @@ export const fr = {
   // Croissance — étape 1 : parrainage (aucun montant).
   "more.sub.invite": "Gagnez des mois de Plus offerts",
   "ref.code.sub": "Saisir le code de la personne qui vous a invité",
+  // Croissance — étape 2 : partage (textes validés par le fondateur le 2026-10-14).
+  "share.whatsapp": "Partager sur WhatsApp",
+  "share.trophy.cta": "Partager mon trophée",
+  "share.trophy.title": "Nouveau trophée sur {app} 🏆",
+  "more.whatsappChannel": "Suivre {app} sur WhatsApp",
+  "more.sub.whatsappChannel": "Conseils et nouveautés, sur notre chaîne",
   "ref.title": "Inviter des amis",
   "ref.rule": "Quand {n} personnes que vous avez invitées utilisent {app} régulièrement pendant une semaine, vous gagnez 1 mois de Plus offert.",
   "ref.myCode": "Mon code",

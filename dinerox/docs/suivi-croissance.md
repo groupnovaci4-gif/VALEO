@@ -7,7 +7,7 @@ fondateur (uniquement après son message « Étape N validée »).
 | Étape | Fonctionnalité | Statut | Validé par le fondateur |
 |---|---|---|---|
 | 1 | Parrainage (+ socle des liens DineroX) | 📱 À vérifier sur téléphone (test final unique) — testé automatiquement et déployé ; parties ⛔ ci-dessous | |
-| 2 | Bouton « Partager sur WhatsApp » | 🟨 En cours (plan soumis) | |
+| 2 | Bouton « Partager sur WhatsApp » | 🟦 Testé automatiquement — 📱 au test final (WhatsApp réel, image) ; chaîne ⛔ (adresse à venir) | |
 | 3 | Tontine partagée (Lot T2) | ⬜ À faire | |
 | 4 | Demande d'avis Google Play / App Store | ⬜ À faire | |
 | 5 | Origine des installations (liens tracés par canal) | ⬜ À faire | |
@@ -34,6 +34,18 @@ fondateur (uniquement après son message « Étape N validée »).
 | Déploiement en production | ✔ fait | 2026-10-14 depuis `dinerox-main` : index (READY), règles (`94f5e5ca…`), 7 fonctions ; `link` et le site des liens NON déployés |
 | Nettoyage du parrainage à la suppression d'un compte | ⛔ en ligne | `deleteAccount` et `boDeleteUser` en production = ancienne version : redéploiement à proposer |
 
+## Détail de l'étape 2
+
+| Élément | Statut | Preuve / note |
+|---|---|---|
+| Liens WhatsApp (encodage, `src=whatsapp`), repli feuille de partage | 🟦 | `tests/share.test.ts` |
+| Inviter des amis : « Partager sur WhatsApp » | 🟦 web · 📱 WhatsApp réel | `e2e/share.js` |
+| Trophée partagé en image (sans nom ni montant) | 🟦 web (PNG) · 📱 statut/discussion | `e2e/share.js`, carte vérifiée |
+| Chaîne WhatsApp (menu Plus) | 🟦 · ⛔ | ligne cachée tant que l'adresse n'existe pas |
+| Déclarations WhatsApp (Android, iPhone) | 🟦 | plugin testé + manifeste généré vérifié |
+| `share_clicked` sans contenu | 🟦 | `tests/share.test.ts` |
+| Défi 30 jours | — | n'existe pas dans l'application |
+
 ## Journal
 
 - 2026-10-13 : plan de l'étape 1 accepté. Domaine `dinerox.app`. Règle de
@@ -53,3 +65,5 @@ fondateur (uniquement après son message « Étape N validée »).
 - 2026-10-14 : nouvelle méthode du fondateur — un seul test sur téléphone à la
   fin des 5 étapes (liste unique), aucun APK aux testeurs avant. Étape 1 →
   📱 À vérifier sur téléphone. Début de l'étape 2 (plan).
+- 2026-10-14 : plan de l'étape 2 validé (view-shot 5.1.0, déclarations WhatsApp
+  et WhatsApp Business, textes) ; codé et testé automatiquement.

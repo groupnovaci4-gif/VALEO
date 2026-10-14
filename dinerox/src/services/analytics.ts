@@ -37,7 +37,9 @@ export type AnalyticsEvent =
   | 'voice_understood'
   // Croissance (étape 1) : `kind` = moyen (share, copy) ou `source` du code (install_referrer, link, manual). Jamais le code ni un nom.
   | 'referral_shared'
-  | 'referral_applied';
+  | 'referral_applied'
+  // Croissance (étape 2) : `context` + `channel` UNIQUEMENT (jamais le message, le code ni un nom).
+  | 'share_clicked';
 
 export { sanitize } from '@/core/analyticsProps';
 type Sink = (event: AnalyticsEvent, props: Props) => void;
