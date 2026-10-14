@@ -1,0 +1,482 @@
+[
+ {
+  "id": "adminStats",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "adminStats",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boAcceptInvite",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boAcceptInvite",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boChangePassword",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boChangePassword",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boCreateUser",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boCreateUser",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boDeleteRole",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boDeleteRole",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boDeleteTransaction",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boDeleteTransaction",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boDeleteUser",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boDeleteUser",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boGetInviteLink",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boGetInviteLink",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boGetUser",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boGetUser",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boInviteStaff",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boInviteStaff",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boListAudit",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boListAudit",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boListInvites",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boListInvites",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boListRoles",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boListRoles",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boListStaff",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boListStaff",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boListTransactions",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boListTransactions",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boListUsers",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boListUsers",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boLoginStart",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boLoginStart",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boLoginVerify",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boLoginVerify",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boLogout",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boLogout",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boMe",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boMe",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boMyDataAccess",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boMyDataAccess",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boNewRecoveryCodes",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boNewRecoveryCodes",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boOpenData",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boOpenData",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boPreviewDelete",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boPreviewDelete",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boRemoveStaff",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boRemoveStaff",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boResendInvite",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boResendInvite",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boResetStaffMfa",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boResetStaffMfa",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boRevokeInvite",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boRevokeInvite",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boSaveRole",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boSaveRole",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boSearchUsers",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boSearchUsers",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boSetPlan",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boSetPlan",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boSetStaffRole",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boSetStaffRole",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boSetStaffSuspended",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boSetStaffSuspended",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boSetSuspended",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boSetSuspended",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boStats",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boStats",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boStatsSnapshot",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boStatsSnapshot",
+  "codebase": "default",
+  "trigger": "schedule"
+ },
+ {
+  "id": "boUpdateUser",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boUpdateUser",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "boViewInvite",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "boViewInvite",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "deleteAccount",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "deleteAccount",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "financeAssistant",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 512,
+  "entryPoint": "financeAssistant",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "inviteMember",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "inviteMember",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "parseVoiceEntry",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "parseVoiceEntry",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "removeMember",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "removeMember",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "respondInvite",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "respondInvite",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "revokeInvite",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "revokeInvite",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "setMemberRole",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "setMemberRole",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "verifyPurchase",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "verifyPurchase",
+  "codebase": "default",
+  "trigger": "callable"
+ },
+ {
+  "id": "weeklySummaryPush",
+  "region": "europe-west1",
+  "platform": "gcfv2",
+  "runtime": "nodejs22",
+  "availableMemoryMb": 256,
+  "entryPoint": "weeklySummaryPush",
+  "codebase": "default",
+  "trigger": "schedule"
+ }
+]

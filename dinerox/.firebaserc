@@ -8,6 +8,9 @@
       "hosting": {
         "admin": [
           "dinerox-admin"
+        ],
+        "links": [
+          "dinerox-app"
         ]
       }
     }

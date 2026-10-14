@@ -1,20 +1,12 @@
 {
   "firestore": {
     "rules": "firebase/firestore.rules",
-    "indexes": "firebase/firestore.indexes.json"
+    "indexes": "firebase/firestore.indexes.json",
+    "predeploy": ["node \"$PROJECT_DIR/scripts/deploy-guard.mjs\" firestore"]
   },
   "storage": {
-    "rules": "firebase/storage.rules"
-  },
-  "hosting": {
-    "public": "firebase/hosting",
-    "ignore": ["firebase.json", "**/node_modules/**"],
-    "rewrites": [
-      { "source": "/i/**", "function": { "functionId": "link", "region": "europe-west1" } }
-    ],
-    "headers": [
-      { "source": "/.well-known/assetlinks.json", "headers": [{ "key": "Content-Type", "value": "application/json" }] }
-    ]
+    "rules": "firebase/storage.rules",
+    "predeploy": ["node \"$PROJECT_DIR/scripts/deploy-guard.mjs\" storage"]
   },
   "functions": [
     {
@@ -22,7 +14,8 @@
       "codebase": "default",
       "runtime": "nodejs22",
       "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run build"
+        "npm --prefix \"$RESOURCE_DIR\" run build",
+        "node \"$PROJECT_DIR/scripts/deploy-guard.mjs\" functions"
       ]
     }
   ],
@@ -45,7 +38,20 @@
   },
   "hosting": [
     {
+      "target": "links",
+      "predeploy": ["node \"$PROJECT_DIR/scripts/deploy-guard.mjs\" hosting"],
+      "public": "firebase/hosting",
+      "ignore": ["firebase.json", "**/node_modules/**"],
+      "rewrites": [
+        { "source": "/i/**", "function": { "functionId": "link", "region": "europe-west1" } }
+      ],
+      "headers": [
+        { "source": "/.well-known/assetlinks.json", "headers": [{ "key": "Content-Type", "value": "application/json" }] }
+      ]
+    },
+    {
       "target": "admin",
+      "predeploy": ["node \"$PROJECT_DIR/scripts/deploy-guard.mjs\" hosting"],
       "public": "admin/dist",
       "ignore": [
         "**/.*"

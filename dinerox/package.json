@@ -74,6 +74,7 @@
     "test:rules": "firebase emulators:exec --only firestore --project demo-dinerox \"vitest run --config vitest.rules.config.mts\"",
     "test:backoffice": "firebase emulators:exec --only auth,firestore,storage --project demo-dinerox \"vitest run --config vitest.backoffice.config.mts\"",
     "test:functions": "npm --prefix firebase/functions run build && node scripts/functions-test-secrets.mjs && firebase emulators:exec --only auth,firestore,functions,storage --project demo-dinerox \"vitest run --config vitest.functions.config.mts\"",
+    "deploy": "node scripts/deploy.mjs",
     "check": "npm run typecheck && npm run lint && npm test",
     "e2e": "bash e2e/run-all.sh"
   },

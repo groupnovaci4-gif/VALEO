@@ -186,3 +186,11 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     de `AUTO_CREATED_ID_PREFIXES` (ils ne comptent jamais). Le filleul lit
     toujours `ref.transparency` avant de valider un code. Tests : `npm run
     test:functions` (vraies fonctions sur émulateurs) et `e2e/referral.js`.
+24. **Déploiement (fondateur, 2026-10-14, `docs/deploiement.md`).** Production
+    `dinerox-app` : UNIQUEMENT depuis `dinerox-main` (propre, poussée), par
+    `npm run deploy -- --only … --project dinerox-app`, jamais `firebase deploy`
+    directement. Fonctions PAR NOM (`functions:nom`), jamais `functions` seul,
+    jamais `--force` ; une proposition de suppression de fonction = NON. Le
+    garde-fou `scripts/deploy-guard.mjs` (predeploy) l'impose. Accord du
+    fondateur à chaque commande, simulation d'abord. Le secret
+    `REFERRAL_DEVICE_PEPPER` ne change jamais.
