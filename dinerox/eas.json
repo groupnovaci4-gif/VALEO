@@ -46,7 +46,9 @@
         "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "dinerox-app.firebasestorage.app",
         "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "653588987819",
         "EXPO_PUBLIC_FIREBASE_APP_ID": "1:653588987819:web:1e0d1cbcb91beca43d5cee",
-        "EXPO_PUBLIC_FUNCTIONS_REGION": "europe-west1"
+        "EXPO_PUBLIC_FUNCTIONS_REGION": "europe-west1",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "653588987819-7ujepki5pumerqpou6i6uojt2kgj94h9.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "653588987819-laaotf2o1g641ttpj6f4s9akqatfb114.apps.googleusercontent.com"
       },
       "android": {
         "buildType": "apk"
