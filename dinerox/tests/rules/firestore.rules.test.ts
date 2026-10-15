@@ -4,9 +4,9 @@
  * validation des écritures, arbitrage des conflits. Exécuté sur l'émulateur.
  */
 import { readFileSync } from 'node:fs';
-import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, deleteField, serverTimestamp, setDoc, updateDoc, deleteDoc, addDoc, collection, type Firestore } from 'firebase/firestore';
+import { doc, getDoc, getDocs, deleteField, serverTimestamp, setDoc, updateDoc, deleteDoc, addDoc, collection, disableNetwork, enableNetwork, type Firestore } from 'firebase/firestore';
 
 let env: RulesTestEnvironment;
 
@@ -483,6 +483,26 @@ describe('audit 2026-10', () => {
     await assertFails(ev('referral_shared', { kind: ['a'] }));
     await assertFails(addDoc(collection(db('u1'), 'analyticsEvents'), { event: 'sign_up', props: {}, env: 'x'.repeat(41), day: '2026-10-15', at: serverTimestamp() }));
     await assertFails(addDoc(collection(db('u1'), 'analyticsEvents'), { event: 'sign_up', props: {}, env: 'production', day: 'aujourd’hui', at: serverTimestamp() }));
+  });
+  it('M3 — une statistique refusée ne bloque pas la file hors ligne : l’opération écrite après passe', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore() as unknown as Firestore;
+      await setDoc(doc(fs, 'users/u1'), profile('u1'));
+      await setDoc(doc(fs, 'spaces/u1'), personal('u1'));
+    });
+    const fs = db('u1');
+    await disableNetwork(fs);
+    // Hors ligne : une statistique invalide (clé inconnue) PUIS une opération, dans cet ordre.
+    const refused = addDoc(collection(fs, 'analyticsEvents'), { event: 'sign_up', props: { email: 'awa@ex.com' }, env: 'production', day: '2026-10-15', at: serverTimestamp() });
+    const op = setDoc(doc(fs, 'spaces/u1/transactions/tQ'), tx('tQ', 'u1'));
+    await enableNetwork(fs);
+    const [a, b] = await Promise.allSettled([refused, op]);
+    expect(a.status).toBe('rejected');
+    expect((a as PromiseRejectedResult).reason?.code).toBe('permission-denied');
+    expect(b.status).toBe('fulfilled');
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      expect((await getDoc(doc(ctx.firestore() as unknown as Firestore, 'spaces/u1/transactions/tQ'))).exists()).toBe(true);
+    });
   });
   it('F1 — à la création, l’auteur est toujours la personne connectée (admin, partenaire, enfant)', async () => {
     await seedFamily();
