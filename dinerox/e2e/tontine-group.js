@@ -201,7 +201,8 @@ async function signIn(h, email) {
   await awa.p.getByRole('button', { name: '2', exact: true }).first().click(); await awa.p.waitForTimeout(500);
   await awa.btn("J'ai payé").first().click(); await awa.p.waitForTimeout(5000);
   t = await awa.text();
-  ok(t.includes('Compte utilisé pour cotiser et recevoir') && !t.includes('Ajoutez votre premier compte'), 'avec des comptes : même sélecteur que le carnet');
+  // Cercle fermé (2026-10-14) : même sélecteur « Payer depuis » que le carnet (compte courant, épargne, objectif).
+  ok(t.includes('Payer depuis') && !t.includes('Ajoutez votre premier compte'), 'avec des comptes : même sélecteur que le carnet (« Payer depuis »)');
   const awaAccountsBefore = (await activeAccounts(awaUid)).length;
   await awa.p.getByRole('button', { name: 'Wave' }).filter({ visible: true }).last().click(); await awa.p.waitForTimeout(400);
   await awa.btn('Oui').last().click(); await awa.p.waitForTimeout(3000);

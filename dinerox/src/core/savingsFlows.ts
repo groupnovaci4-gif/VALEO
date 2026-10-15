@@ -9,7 +9,7 @@
  * L'épargne passe désormais par des versements (transferts) vers des comptes
  * d'épargne (« Mon épargne »).
  */
-import type { Account, GoalContribution, Transaction } from './types';
+import type { Account, GoalContribution, TontineEntry, Transaction } from './types';
 import { TONTINE_SUBCATEGORY } from './tontine';
 
 export const SAVING_CATEGORY_IDS: ReadonlySet<string> = new Set(['cat_savings', 'cat_investment']);
@@ -27,9 +27,25 @@ export function isSavingExpense(t: Pick<Transaction, 'type' | 'categoryId'>): bo
  */
 export const CIRCLE_SUBCATEGORY_IDS: ReadonlySet<string> = new Set([TONTINE_SUBCATEGORY, 'sub_informal_community']);
 
-/** Cotisation de tontine (carnet, tontine partagée) ou épargne communautaire : retrouvée PAR IDENTIFIANT, jamais par libellé. */
-export function isTontineContribution(t: { type: string; categoryId?: string | null; subcategoryId?: string | null }): boolean {
-  return t.type === 'expense' && !!t.subcategoryId && CIRCLE_SUBCATEGORY_IDS.has(t.subcategoryId);
+/**
+ * Cotisation de tontine ou épargne communautaire. D'abord le LIEN avec une tontine (carnet ou
+ * tontine partagée, `tontineId`) — reconnu dans tous les pays —, sinon la sous-catégorie, retrouvée
+ * PAR IDENTIFIANT, jamais par libellé.
+ */
+export function isTontineContribution(t: { type: string; categoryId?: string | null; subcategoryId?: string | null; tontineId?: string | null }): boolean {
+  if (t.type !== 'expense') return false;
+  return !!t.tontineId || (!!t.subcategoryId && CIRCLE_SUBCATEGORY_IDS.has(t.subcategoryId));
+}
+
+/**
+ * Vue des calculs : une cotisation du carnet enregistrée AVANT le lien `tontineId` est reconnue par
+ * son échéance (`tontineEntries.transactionId`). Rien n'est réécrit : seule la vue porte le lien.
+ */
+export function withTontineLinks<T extends Pick<Transaction, 'id' | 'type' | 'tontineId'>>(transactions: T[], entries: Pick<TontineEntry, 'deleted' | 'kind' | 'transactionId' | 'tontineId'>[]): T[] {
+  const linked = new Map<string, string>();
+  for (const e of entries) if (!e.deleted && e.kind === 'contribution' && e.transactionId) linked.set(e.transactionId, e.tontineId);
+  if (!linked.size) return transactions;
+  return transactions.map((t) => (t.type === 'expense' && !t.tontineId && linked.has(t.id) ? { ...t, tontineId: linked.get(t.id) as string } : t));
 }
 
 /**
@@ -39,12 +55,12 @@ export function isTontineContribution(t: { type: string; categoryId?: string | n
  * par TOUS les calculs : dépenses, rapports, export, budget, reste par jour,
  * score, coach, conseils, résumé de l'assistant, analyse.
  */
-export function isCircleMovement(t: Pick<Transaction, 'type' | 'categoryId'> & { subcategoryId?: string | null }): boolean {
+export function isCircleMovement(t: Pick<Transaction, 'type' | 'categoryId'> & { subcategoryId?: string | null; tontineId?: string | null }): boolean {
   return isSavingExpense(t) || isTontineContribution(t);
 }
 
 /** Dépense de consommation (dépense hors argent mis de côté). */
-export function isConsumption(t: Pick<Transaction, 'type' | 'categoryId'> & { subcategoryId?: string | null }): boolean {
+export function isConsumption(t: Pick<Transaction, 'type' | 'categoryId'> & { subcategoryId?: string | null; tontineId?: string | null }): boolean {
   return t.type === 'expense' && !isCircleMovement(t);
 }
 
@@ -78,4 +94,10 @@ export function isSavingsDeposit(t: Pick<Transaction, 'type' | 'accountId' | 'to
 /** Retrait d'épargne : transfert d'un compte d'épargne vers un compte courant. */
 export function isSavingsWithdrawal(t: Pick<Transaction, 'type' | 'accountId' | 'toAccountId'>, savings: Set<string>): boolean {
   return t.type === 'transfer' && !!t.toAccountId && savings.has(t.accountId) && !savings.has(t.toAccountId);
+}
+
+/** Données d'un espace avec la vue des cotisations liées (`withTontineLinks`) : pour les calculs qui lisent le moteur directement. */
+export function withCircleView<D extends { transactions: Transaction[]; tontineEntries: TontineEntry[] }>(d: D): D {
+  const transactions = withTontineLinks(d.transactions, d.tontineEntries);
+  return transactions === d.transactions ? d : { ...d, transactions };
 }

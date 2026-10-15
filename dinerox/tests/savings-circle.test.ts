@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
 import { starterStructure } from '../src/core/defaults';
 import { parseEntryText, type EntryContext } from '../src/core/entry/parse';
 import { aiLinesToDrafts } from '../src/core/entry/aiGuard';
-import { dailyAllowance } from '../src/core/dailyAllowance';
+import { allowanceDeductions, dailyAllowance } from '../src/core/dailyAllowance';
 import { flowTotals, moneyPosition } from '../src/core/balance';
 import { buildReport, buildSeries, transactionsToCsv } from '../src/core/reports';
 import { envelopeStatuses } from '../src/core/budget';
@@ -25,7 +25,8 @@ import { touchedByWrite } from '../src/core/coach/envelopeAlerts';
 import { budgetTransactions } from '../src/core/reserve';
 import { periodOf } from '../src/core/dates';
 import { emptySpaceData, type Account, type Envelope, type Goal, type GoalContribution, type SpaceData, type Transaction } from '../src/core/types';
-import { isCircleMovement, isConsumption, isTontineContribution } from '../src/core/savingsFlows';
+import { isCircleMovement, isConsumption, isTontineContribution, withTontineLinks } from '../src/core/savingsFlows';
+import { tontineContributionCategory } from '../src/core/tontine';
 import { defaultSpendingAccountId, expenseAccountFor, expenseAccountOptions, moneyTracked, planTontinePayment, shortfallAfter, spendingAccounts, withdrawSources } from '../src/core/savingsCircle';
 import { financialSnapshot } from '../src/core/intelligence';
 import { behaviorScore } from '../src/core/coach/score';
@@ -72,6 +73,15 @@ describe('A — aucune dépense ne part de l’épargne par défaut', () => {
     const a = signup(['acc.cash', 'acc.savings'], { 'acc.savings': 60_000 });
     for (const id of entryAccounts(a.accounts, a.categories, null)) expect(id).toBe(cashOf(a.accounts));
     expect(home(a.accounts, [])).toEqual({ disponible: 0, epargne: 60_000, base: 40_000, parJour: 2222 });
+  });
+
+  it('le détail affiché explique toujours le chiffre : revenus − dépenses − à venir = disponible (épargne de départ, cotisations comprises)', () => {
+    const a = signup(['acc.cash', 'acc.savings'], { 'acc.savings': 60_000 });
+    const cash = cashOf(a.accounts);
+    const txs = [tx({ type: 'income', amount: 450_000, accountId: cash, categoryId: 'inc_salary' }), tx({ type: 'expense', amount: 20_000, accountId: cash, categoryId: 'cat_food' }), tx({ type: 'expense', amount: 30_000, accountId: cash, ...TONTINE })];
+    const r = dailyAllowance({ data: { transactions: txs, recurring: [], goals: [], goalContributions: [], accounts: a.accounts }, currency: 'XOF', today: TODAY });
+    expect(r.status).toBe('ok');
+    if (r.status === 'ok') expect(r.income - r.expenses - allowanceDeductions(r)).toBe(r.available);
   });
 
   it('a’) seul « Épargne » coché : « Espèces » est créé ; dépenses et salaire de départ sur Espèces', () => {
@@ -313,5 +323,53 @@ describe('pas assez d’argent disponible', () => {
       { kind: 'goal', id: 'g1', name: 'Moto', amount: 15_000 },
       { kind: 'goal', id: 'r1', name: 'Réserve', amount: 5000 },
     ]);
+  });
+});
+
+describe('tontine dans TOUS les pays : le lien avec la tontine fait la cotisation (espace en France)', () => {
+  let i = 0;
+  const fr_ = starterStructure(
+    { firstName: 'Léa', currency: 'EUR', monthlyIncome: 0, incomeFrequency: 'monthly', accounts: ['acc.current', 'acc.savings'], mainExpenses: [], goals: [], budgetMethod: 'envelopes', country: 'FR', zone: 'europe' } as never,
+    { now: NOW, uid: 'u1', label: (x: string) => (fr as Record<string, string>)[x] ?? x, date: TODAY, id: (p: string) => `${p}${++i}` } as never,
+  );
+  const accounts = fr_.accounts as Account[];
+  const categories = fr_.categories ?? [];
+  const cur = accounts.find((a) => !a.isSavings)!.id;
+  const sav = accounts.find((a) => a.isSavings)!.id;
+  const eur = (p: Partial<Transaction> & Pick<Transaction, 'type' | 'amount' | 'accountId'>) => ({ ...tx(p), currency: 'EUR' }) as Transaction;
+  const cat = tontineContributionCategory(categories);
+  it('en France, pas de sous-catégorie « Tontine » : la catégorie seule ne suffit pas', () => {
+    expect(categories.some((c) => c.id === 'sub_informal_tontine')).toBe(false);
+    expect(cat.subcategoryId).toBeNull();
+    expect(isTontineContribution({ type: 'expense', ...cat })).toBe(false);
+  });
+  it('carnet et tontine partagée : le lien (tontineId) en fait une cotisation, donc de l’épargne', () => {
+    expect(isTontineContribution({ type: 'expense', ...cat, tontineId: 'carnet1' })).toBe(true);
+    expect(isTontineContribution({ type: 'expense', ...cat, tontineId: 'groupe1' })).toBe(true);
+    expect(isTontineContribution({ type: 'income', ...cat, tontineId: 'carnet1' })).toBe(false);
+    expect(expenseAccountFor({ type: 'expense', accountId: sav, ...cat, tontineId: 'carnet1' }, accounts, cur)).toEqual({ accountId: sav, redirected: false });
+  });
+  it('dépenses, rapports, reste par jour : payée depuis le compte courant = mise de côté, depuis l’épargne = rien ne change', () => {
+    const income = eur({ type: 'income', amount: 2000_00, accountId: cur, categoryId: 'inc_salary' });
+    const fromCurrent = eur({ type: 'expense', amount: 100_00, accountId: cur, ...cat, tontineId: 'carnet1' });
+    const run = (txs: Transaction[]) => dailyAllowance({ data: { transactions: txs, recurring: [], goals: [], goalContributions: [], accounts }, currency: 'EUR', today: TODAY });
+    const before = run([income]);
+    const after = run([income, fromCurrent]);
+    expect(before.status === 'ok' && after.status === 'ok' && before.available - after.available).toBe(100_00);
+    expect(flowTotals([income, fromCurrent], periodOf('month', TODAY), 'EUR').expense).toBe(0);
+    const r = buildReport({ ...emptySpaceData(), accounts, categories, transactions: [income, fromCurrent] }, 'month', TODAY, 'EUR');
+    expect([r.expense, r.savedTontine]).toEqual([0, 100_00]);
+    const fromSavings = eur({ type: 'expense', amount: 100_00, accountId: sav, ...cat, tontineId: 'carnet1' });
+    const circle = run([income, fromSavings]);
+    expect(circle.status === 'ok' && before.status === 'ok' && circle.available).toBe(before.status === 'ok' ? before.available : -1);
+  });
+  it('ancienne cotisation du carnet (avant le lien) : reconnue par son échéance, sans rien réécrire', () => {
+    const old = eur({ type: 'expense', amount: 50_00, accountId: cur, ...cat });
+    const other = eur({ type: 'expense', amount: 30_00, accountId: cur, ...cat });
+    const view = withTontineLinks([old, other], [{ deleted: false, kind: 'contribution', transactionId: old.id, tontineId: 'carnet1' }]);
+    expect(isTontineContribution(view[0])).toBe(true);
+    expect(isTontineContribution(view[1])).toBe(false);
+    expect(old.tontineId).toBeUndefined();
+    expect(withTontineLinks([old], [{ deleted: false, kind: 'payout', transactionId: old.id, tontineId: 'carnet1' }])[0].tontineId).toBeUndefined();
   });
 });

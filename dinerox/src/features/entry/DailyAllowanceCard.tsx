@@ -16,6 +16,7 @@ import { Amount, Button, Card, GradientCard, Icon, Text } from '@/components/ui'
 import { SourceTag } from '@/features/Recommendation';
 import { dailyAllowance } from '@/core/dailyAllowance';
 import { BIG_TEXT, useTheme } from '@/theme';
+import { allowanceDeductions } from '@/core/dailyAllowance';
 
 const HIDDEN = '••••••';
 
@@ -60,7 +61,7 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, available }: { hidd
   };
 
   const detail =
-    r.status === 'needs_income' ? null : t('daily.detail', { income: show(r.income), expenses: show(r.expenses), upcoming: show(r.upcomingRecurring + r.goalsRemaining) });
+    r.status === 'needs_income' ? null : t('daily.detail', { income: show(r.income), expenses: show(r.expenses), upcoming: show(allowanceDeductions(r)) }); // « à venir » : tout ce qui est déduit en plus des dépenses (le détail explique toujours le chiffre)
   // Sous la carte : réserve et source TOUJOURS visibles ; détail du calcul replié.
   const below = (
     <View style={{ marginTop: 8, marginBottom: 12, gap: 6 }}>

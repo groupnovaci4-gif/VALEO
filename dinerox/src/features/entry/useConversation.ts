@@ -28,6 +28,7 @@ import { formatMoney, type CurrencyCode } from '@/core/money';
 import { readJSON, storageKey, writeJSON } from '@/services/storage';
 import { speak, stopVoice } from '@/services/voice';
 import type { EntryMethod } from './useEntrySave';
+import { withCircleView } from '@/core/savingsFlows';
 
 export interface Bubble {
   id: string;
@@ -269,7 +270,7 @@ export function useConversation(ctx: EntryContext) {
   /** État des enveloppes du mois, maintenant (photo prise AVANT l'enregistrement). */
   const statusesNow = useCallback((): EnvelopeStatus[] => {
     if (!engine || !activeSpace) return [];
-    const d = engine.getData(activeSpace.id);
+    const d = withCircleView(engine.getData(activeSpace.id));
     return envelopeStatuses(d.envelopes, budgetTransactions(d.transactions, d.goalContributions), d.budgets, monthKey(today()), activeSpace.currency as CurrencyCode, d.accounts);
   }, [engine, activeSpace]);
 
@@ -280,7 +281,7 @@ export function useConversation(ctx: EntryContext) {
   const saved = useCallback(
     (drafts: EntryDraft[], before: EnvelopeStatus[], aloud: boolean) => {
       if (!engine || !activeSpace) return;
-      const after = engine.getData(activeSpace.id);
+      const after = withCircleView(engine.getData(activeSpace.id));
       const currency = activeSpace.currency as CurrencyCode;
       const month = monthKey(today());
       const afterStatuses = statusesNow();

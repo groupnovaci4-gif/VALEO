@@ -40,6 +40,7 @@ import { evaluateRewards, monthToEvaluate, rewardKey, REWARDS } from '@/core/coa
 import { loadRewards, saveRewards, type StoredReward } from '@/services/rewards';
 import { budgetTransactions } from '@/core/reserve';
 import { setReviewOverlay } from '@/services/storeReview';
+import { withCircleView } from '@/core/savingsFlows';
 
 interface CoachValue {
   /** Résumé en attente (ouverture) : affiché sur l'accueil jusqu'à « J'ai compris ». */
@@ -125,7 +126,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
       const { engine: e, uid, profile: p, currency: cur } = latest.current;
       if (!e || !uid) return;
       const memory = await envelopeMemory(uid, signal.spaceId);
-      const r = alertsAfterWrite({ data: e.getData(signal.spaceId), touched: signal.touched, currency: cur, memory, today: today() });
+      const r = alertsAfterWrite({ data: withCircleView(e.getData(signal.spaceId)), touched: signal.touched, currency: cur, memory, today: today() });
       // Mémoire toujours à jour (même alertes coupées) : pas de rafale à la réactivation.
       await saveEnvelopeMemory(uid, signal.spaceId, r.memory);
       const now = Date.now();
@@ -143,7 +144,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
     if (!e || !uid || !spaceId || spaceKind !== 'personal' || !e.isLoaded(spaceId)) return [];
     const online = m === 'firebase';
     const history = await loadRewards(uid, online);
-    const fresh = evaluateRewards({ data: e.getData(spaceId), currency: cur, month: monthToEvaluate(today()), history }, Date.now()).map((r) => ({ ...r, spaceId }));
+    const fresh = evaluateRewards({ data: withCircleView(e.getData(spaceId)), currency: cur, month: monthToEvaluate(today()), history }, Date.now()).map((r) => ({ ...r, spaceId }));
     if (!fresh.length) {
       setRewards(history);
       return [];
@@ -180,7 +181,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
         .then((ids) => mergeDelivered(uid, ids))
         .catch(() => undefined);
     }
-    const data = e.getData(spaceId);
+    const data = withCircleView(e.getData(spaceId));
     const day = today();
     const month = monthKey(day);
     const now = Date.now();

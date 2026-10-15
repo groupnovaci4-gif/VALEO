@@ -165,6 +165,12 @@ export interface Transaction extends SyncedDoc {
   debtId?: ID | null;
   /** 1.8 — Ajustement de solde : `in` (+) ou `out` (−). */
   direction?: 'in' | 'out' | null;
+  /**
+   * Cercle fermé (2026-10-14) : cotisation d'une tontine — identifiant du carnet ou de la tontine
+   * partagée. C'est CE LIEN qui fait d'une opération une cotisation (de l'épargne), dans tous les
+   * pays, même sans sous-catégorie « Tontine ».
+   */
+  tontineId?: ID | null;
 }
 
 export type Frequency = 'weekly' | 'monthly' | 'yearly';

@@ -258,8 +258,12 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
        l'épargne (une ancienne reste telle quelle, modifiable).
     4. Exception inchangée : la réserve famille paie directement ce pour quoi elle
        existe (`applyReserveUse`), sans nouvelle limite.
-    UN SEUL critère, `isCircleMovement` (cotisation de tontine, ancienne
-    « dépense » Épargne), utilisé par TOUS les calculs : dépenses du mois,
+    UN SEUL critère, `isCircleMovement` : ancienne « dépense » Épargne, ou
+    cotisation (`isTontineContribution`) = opération LIÉE à une tontine
+    (`tontineId`, carnet ou tontine partagée, tous pays ; ancienne cotisation du
+    carnet reconnue par son échéance, vue `withTontineLinks`) ou sous-catégorie
+    « Tontine » / « Épargne communautaire » — jamais « Cotisation »,
+    « Association », « Prêt à un proche », ni une catégorie sans sous-catégorie ; utilisé par TOUS les calculs : dépenses du mois,
     rapports (ligne « Mis de côté › Tontine »), export, budget, reste par jour,
     score, coach, conseils, résumé de l'assistant, analyse. Reste par jour : une
     cotisation payée depuis le disponible le fait baisser de son montant ENTIER

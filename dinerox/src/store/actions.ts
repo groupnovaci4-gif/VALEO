@@ -749,7 +749,7 @@ export function useActions() {
   );
 
   const recordTontineGroupContribution = useCallback(
-    (input: { groupName: string; amount: number; currency: CurrencyCode; date: string; accountId?: string; source?: TontineSource }) => {
+    (input: { groupId?: string; groupName: string; amount: number; currency: CurrencyCode; date: string; accountId?: string; source?: TontineSource }) => {
       const d = data();
       if (!isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
       const source: TontineSource | null = input.source ?? (input.accountId ? { kind: 'account', accountId: input.accountId } : null);
@@ -763,6 +763,8 @@ export function useActions() {
         date: input.date,
         accountId: plan.accountId,
         ...tontineContributionCategory(d.categories),
+        // Lien avec la tontine partagée : une cotisation (de l'épargne) dans tous les pays.
+        tontineId: input.groupId ?? null,
         payee: input.groupName,
         note: null,
       });
@@ -789,6 +791,8 @@ export function useActions() {
         accountId: plan?.accountId ?? input.accountId ?? (t.accountId && d.accounts.some((x) => x.id === t.accountId && x.active && !x.deleted) ? t.accountId : ensureCashAccount(t.currency)),
         // Cotisation : catégorie retrouvée PAR IDENTIFIANT (parent actuel de la sous-catégorie « Tontine »).
         ...(contribution ? tontineContributionCategory(d.categories) : { categoryId: categoryOr('inc_tontine', 'inc_other'), subcategoryId: null }),
+        // Cotisation : lien avec le carnet (de l'épargne dans tous les pays). La cagnotte reçue reste un revenu.
+        tontineId: contribution ? t.id : null,
         payee: t.name,
         note: input.note ?? null,
       });

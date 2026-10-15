@@ -22,6 +22,7 @@ import { reserveEligible } from '@/core/reserve';
 import { markReviewMoment } from '@/services/storeReview';
 import { moneyTracked, shortfallAfter, spendingAccounts } from '@/core/savingsCircle';
 import { moneyPosition } from '@/core/balance';
+import { withCircleView } from '@/core/savingsFlows';
 
 export type EntryMethod = 'voice' | 'text_phrase' | 'quick_manual' | 'full_form';
 export const UNDO_MS = 5000;
@@ -36,7 +37,7 @@ export function useEntrySave() {
   /** Message de confirmation : reste par jour recalculé APRÈS l'enregistrement. */
   const confirmation = useCallback(() => {
     if (!engine || !activeSpace) return t('entry.saved');
-    const r = dailyAllowance({ data: engine.getData(activeSpace.id), currency: activeSpace.currency as CurrencyCode, today: today(), financial: profile?.financial });
+    const r = dailyAllowance({ data: withCircleView(engine.getData(activeSpace.id)), currency: activeSpace.currency as CurrencyCode, today: today(), financial: profile?.financial });
     return r.status === 'ok' ? t('entry.savedPerDay', { amount: money(r.perDay) }) : t('entry.saved');
   }, [engine, activeSpace, profile?.financial, t, money]);
 
@@ -64,7 +65,7 @@ export function useEntrySave() {
   const circleNotice = useCallback(
     (ids: string[], redirectedTo?: string | null): { message: string; amount: number } | null => {
       if (!engine || !activeSpace) return null;
-      const d = engine.getData(activeSpace.id);
+      const d = withCircleView(engine.getData(activeSpace.id));
       const currency = activeSpace.currency;
       const saved = d.transactions.filter((x) => ids.includes(x.id) && !x.deleted && x.currency === currency);
       if (redirectedTo) {

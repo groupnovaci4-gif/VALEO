@@ -15,6 +15,7 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/core/defaults';
 import { budgetTransactions } from '@/core/reserve';
 import { CATALOG_LABEL_PREFIX, catalogLabel, effectiveTransactions } from '@/core/categoryCatalog';
 import { useCategoryCatalog } from '@/services/categoryCatalog';
+import { withTontineLinks } from '@/core/savingsFlows';
 
 export function useCurrency(): CurrencyCode {
   const { activeSpace, profile } = useApp();
@@ -86,7 +87,8 @@ export function useFinance() {
   // Calculs (rapports, budgets, analyses, export) : une opération dont la sous-catégorie a
   // changé de parent est comptée sous le nouveau parent. Rien n'est réécrit en base.
   const data = useMemo(() => {
-    const transactions = effectiveTransactions(raw.transactions, raw.categories, catalog);
+    // Cercle fermé : une ancienne cotisation du carnet est reconnue par son échéance (vue seulement).
+    const transactions = withTontineLinks(effectiveTransactions(raw.transactions, raw.categories, catalog), raw.tontineEntries);
     return transactions === raw.transactions ? raw : { ...raw, transactions };
   }, [raw, catalog]);
   const currency = useCurrency();

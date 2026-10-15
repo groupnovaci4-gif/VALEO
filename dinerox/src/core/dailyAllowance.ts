@@ -155,3 +155,13 @@ export function dailyAllowance({ data, currency, today, financial }: AllowanceIn
   if (available < 0) return { status: 'deficit', deficit: -available, ...base };
   return { status: 'ok', available, perDay: Math.floor(available / daysLeft), ...base };
 }
+
+/**
+ * Tout ce qui est déduit en plus des dépenses (« à venir » du détail affiché) :
+ * récurrences et cotisations à venir, mise de côté du mois (prévue ou déjà
+ * versée, épargne de départ comprise : la plus grande), cotisations payées
+ * depuis le disponible. revenus − dépenses − ceci = disponible, toujours.
+ */
+export function allowanceDeductions(r: Pick<Breakdown, 'upcomingRecurring' | 'goalsRemaining' | 'savedThisMonth' | 'tontinePaid'>): number {
+  return r.upcomingRecurring + Math.max(r.goalsRemaining, r.savedThisMonth) + r.tontinePaid;
+}

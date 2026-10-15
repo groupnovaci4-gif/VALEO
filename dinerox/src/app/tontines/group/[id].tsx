@@ -267,7 +267,7 @@ function RecordSheet({ visible, g, date, onClose }: { visible: boolean; g: Tonti
   const record = () => {
     if (!source) return;
     try {
-      actions.recordTontineGroupContribution({ groupName: g.name, amount: g.amountPerShare, currency: g.currency, date, source });
+      actions.recordTontineGroupContribution({ groupId: g.id, groupName: g.name, amount: g.amountPerShare, currency: g.currency, date, source });
       toast.show(t('common.saved'));
       onClose();
     } catch {
