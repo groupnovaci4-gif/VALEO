@@ -32,6 +32,10 @@ Avis sur le store (étape 4) : `store-review.js` — première ouverture retenue
 compte, « Objectif atteint » fermé puis Accueil sans aucune demande sur le web (pas
 de fenêtre native), ligne « Donner mon avis » selon `config/app/items/store`, qui
 ouvre directement la page Play (interceptée) et arrête les demandes automatiques.
+Argent mis de côté (correctif, cercle fermé) : `savings-circle.js` — revenu 100 000 +
+épargne 60 000 → reste par jour sur 40 000, « loyer avec l'épargne » → dépense sur un compte
+courant + message, disponible sous zéro → message, carte de l'accueil, écran de retrait
+prérempli ; personne sans argent renseigné : ni message ni carte.
 Origine des installations (étape 5) : `install-origin.js` — lien `/a` → inscription →
 la vraie fonction `recordSignupOrigin` compte (compteurs du jour), marqueur seul dans
 le profil, second compte « inconnu », liens `/t/` et `/i/` (jamais le code), écran

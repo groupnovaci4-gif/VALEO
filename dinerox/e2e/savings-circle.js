@@ -83,8 +83,14 @@ let b;
   ok(p.url().includes('/savings/move') && (await p.getByRole('textbox', { name: 'Montant', exact: true }).first().inputValue()).replace(/\D/g, '') === '5000', 'retrait prérempli : 5 000');
   await btn('Enregistrer le retrait').click(); await p.waitForTimeout(1500);
   hm = await home();
-  ok(!hm.t.includes("Plus d'argent disponible") && hm.available === 0, `retrait fait : la carte disparaît (solde disponible ${hm.available})`);
+  // Règle du fondateur : la carte reste tant que le disponible est à ZÉRO ou négatif.
+  ok(hm.available === 0 && hm.t.includes("Plus d'argent disponible") && hm.t.includes('Votre argent disponible est à 0 FCFA.'), `manque comblé, disponible à 0 : la carte reste (${hm.available})`);
   ok((await savingsTotal()) === 55_000, 'épargne : 55 000 (retrait visible)');
+  // Un retrait de plus : le disponible repasse au-dessus de zéro, la carte disparaît.
+  await go('/withdraw', 2500); await p.getByText('Mon épargne', { exact: true }).first().click(); await p.waitForTimeout(1500);
+  await fill('Montant', '1000'); await btn('Enregistrer le retrait').click(); await p.waitForTimeout(1500);
+  hm = await home();
+  ok(hm.available === 1000 && !hm.t.includes("Plus d'argent disponible"), `disponible à 1 000 : la carte disparaît (${hm.available})`);
 
   // ── 4. Personne qui n'a jamais renseigné son argent ──
   const k = await page();
