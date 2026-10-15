@@ -45,6 +45,7 @@ function androidEngine() {
     id: 'android-fake',
     isAvailable: async () => true,
     supportsOnDevice: () => true,
+    onDeviceStatus: async () => 'ready',
     permission: async () => 'granted',
     requestPermission: async () => 'granted',
     startEngine(_o, handlers) {

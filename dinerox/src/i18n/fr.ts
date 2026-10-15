@@ -1299,6 +1299,14 @@ export const fr = {
   'entry.voice.quota': "Saisies vocales gratuites restantes aujourd'hui : {left} sur {count}",
   'entry.voice.privacyDevice': "Reconnaissance sur le téléphone. L'audio n'est jamais enregistré.",
   'entry.voice.privacyOnline': "Le service vocal du téléphone peut traiter l'audio en ligne. L'audio n'est jamais enregistré ni envoyé à {app}.",
+  // I1 (audit 2026-10) : demande d'accord, une seule fois, quand le son doit partir au service du téléphone.
+  'entry.voice.consentTitle': "Dicter avec le service de votre téléphone ?",
+  'entry.voice.consentText': "Votre téléphone ne sait pas reconnaître la voix sans connexion. Pour dicter, il envoie le son à son service de reconnaissance (Google ou Apple). {app} ne reçoit jamais ce son.",
+  'entry.voice.consentYes': "Oui, dicter",
+  'entry.voice.consentNo': "Non, je tape",
+  'entry.voice.packText': "Pour dicter sans envoyer le son, téléchargez le français dans la saisie vocale de votre téléphone.",
+  'entry.voice.packUseService': "Utiliser le service du téléphone",
+  'entry.voice.packLater': "Plus tard",
   'entry.phrase.label': "Écrivez comme vous parlez",
   'entry.phrase.placeholder': "Taxi 2 000, garba 500",
   'entry.phrase.go': "Comprendre",
@@ -1355,7 +1363,7 @@ export const fr = {
   'entry.settings.voiceLanguage': "Langue de la dictée",
   'entry.settings.languageAuto': "Celle de l'application",
   'entry.settings.onDevice': "Reconnaissance uniquement sur le téléphone",
-  'entry.settings.onDeviceHint': "Aucun audio ne quitte le téléphone (la langue doit être téléchargée sur l'appareil).",
+  'entry.settings.onDeviceHint': "Aucun son ne quitte le téléphone. Activé quand votre téléphone le permet.",
   'entry.settings.speakAmounts': "Lire les montants pendant la saisie vocale",
   'entry.settings.speakAmountsHint': "{app} relit à voix haute les montants que vous venez de dire. Désactivez-le en public.",
   // 1.9 — Mini-conversation vocale (phrases-modèles : jamais rédigées par l'IA).

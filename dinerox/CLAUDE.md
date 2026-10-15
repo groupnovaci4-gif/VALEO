@@ -98,6 +98,11 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     de lui-même il est relancé (`core/entry/recorder.ts`, machine d'états pure ;
     `services/voiceRecorder.ts` l'exécute ; morceaux raccordés par
     `stitchTranscript`). L'audio n'est jamais envoyé à un serveur DineroX.
+    **Où part le son (I1)** : sur l'appareil par défaut quand le téléphone le permet
+    (`core/entry/voicePrivacy.ts`, `useVoiceRoute`) ; sinon accord demandé UNE fois
+    (`voiceConsent`) avant toute écoute, dans la feuille, l'assistant et « Tester le
+    micro ». Après « Non, je tape », aucun micro n'est proposé. Toute nouvelle entrée
+    vers le micro passe par `useVoiceRoute().resolve()`.
     Événements d'usage : propriétés de `core/analyticsProps.ts` uniquement
     (jamais de montant, texte, bénéficiaire ni catégorie). Limite vocale
     gratuite : `FREE_VOICE_ENTRIES_PER_DAY`. « Reste par jour » :

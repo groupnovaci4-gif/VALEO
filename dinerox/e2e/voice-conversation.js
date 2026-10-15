@@ -71,10 +71,14 @@ let b;
   const go = async (path, w = 3000) => { await p.goto(BASE + path, { waitUntil: 'load' }); await p.waitForTimeout(w); };
   const closeCelebration = async () => { const c = btn('Continuer'); if (await c.count()) { await c.first().click(); await p.waitForTimeout(300); } };
   const historyCount = async () => { await go('/transactions'); return Number(((await text()).match(/Période affichée : (\d+)/) || [])[1] || 0); };
+  // I1 : sur le web, pas de reconnaissance sur l'appareil → demande d'accord à la première dictée (une seule fois).
+  let consented = false;
+  const consentOnce = async () => { if (consented) return; const y = btn('Oui, dicter'); await y.waitFor({ timeout: 4000 }).catch(() => undefined); if (await y.count()) { await y.click(); consented = true; await p.waitForTimeout(400); } };
   /** Dicte une phrase : micro (ou « Répondre à la voix »), parler, ■. */
   const dictate = async (say, button = 'Dicter une opération') => {
     await p.evaluate((s) => { window.__pending = s; }, say);
     await btn(button).first().click();
+    await consentOnce();
     await p.waitForTimeout(1300);
     const stop = btn("Terminer l'enregistrement");
     if (await stop.count()) await stop.click();

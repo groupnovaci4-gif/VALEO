@@ -60,10 +60,15 @@ const FAKE_SPEECH = () => {
   window.SpeechRecognition = FakeRecognition;
 };
 
+// I1 : sur le web, pas de reconnaissance sur l'appareil → demande d'accord à la première dictée (une seule fois).
+const consented = new WeakSet();
+const consentOnce = async (pg) => { if (consented.has(pg)) return; const y = pg.getByRole('button', { name: 'Oui, dicter', exact: true }); await y.waitFor({ timeout: 4000 }).catch(() => undefined); if (await y.count()) { await y.click(); consented.add(pg); await pg.waitForTimeout(400); } };
+
 /** Dicte `say` : toucher le micro, parler, toucher ■ (l'enregistrement ne s'arrête jamais seul). */
 const dictate = async (pg, say, { speakFor = 1300 } = {}) => {
   await pg.evaluate((s) => { window.__pending = s; }, say);
   await pg.getByRole('button', { name: 'Dicter une opération', exact: true }).click();
+  await consentOnce(pg);
   await pg.waitForTimeout(speakFor);
   const stop = pg.getByRole('button', { name: "Terminer l'enregistrement", exact: true });
   if (await stop.count()) await stop.click();
@@ -218,6 +223,7 @@ let b;
       const left = 6 - i;
       ok((await qtext()).includes(`Saisies vocales gratuites restantes aujourd'hui : ${left} sur 5`), `formule gratuite : « ${left} sur 5 » affiché pendant l’écoute`);
     }
+    await consentOnce(q);
     await q.waitForTimeout(1300);
     await qbtn("Terminer l'enregistrement").click(); await q.waitForTimeout(900);
     await qbtn('Tout valider').click(); await q.waitForTimeout(800);

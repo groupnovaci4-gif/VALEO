@@ -19,10 +19,16 @@ export function useVoiceRecorder(opts: Omit<ListenOptions, 'onPartial'>, handler
   useEffect(() => {
     cb.current = handlers;
   });
+  // Options vivantes : l'enregistreur est créé une fois, mais la langue et l'endroit de la
+  // reconnaissance (I1 : sur l'appareil ou service du téléphone) se décident au démarrage.
+  const live = useRef<Omit<ListenOptions, 'onPartial'>>({ ...opts });
+  useEffect(() => {
+    Object.assign(live.current, opts);
+  });
   const ref = useRef<VoiceRecorder | null>(null);
   const get = () => {
     if (!ref.current) {
-      ref.current = new VoiceRecorder(speechInput(), opts, {
+      ref.current = new VoiceRecorder(speechInput(), live.current, {
         onState: (s) => {
           setState(s);
           if (s.status !== 'recording') setLevels([]);
@@ -50,7 +56,11 @@ export function useVoiceRecorder(opts: Omit<ListenOptions, 'onPartial'>, handler
     levels,
     hasVolume,
     bars: WAVE_BARS,
-    tap: () => get().tap(),
+    /** `start` : options du démarrage (I1 : `onDeviceOnly` selon la décision prise juste avant). */
+    tap: (start?: Pick<ListenOptions, 'onDeviceOnly'>) => {
+      if (start) Object.assign(live.current, start);
+      get().tap();
+    },
     cancel: () => get().cancel(),
     denied: () => get().denied(),
     processed: (ok: boolean) => get().processed(ok),

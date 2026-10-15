@@ -21,6 +21,7 @@ describe('saisie vocale', () => {
       id: 'fake',
       isAvailable: async () => true,
       supportsOnDevice: () => true,
+      onDeviceStatus: async () => 'ready',
       permission: async () => 'granted',
       requestPermission: async () => 'granted',
       startEngine: () => undefined,

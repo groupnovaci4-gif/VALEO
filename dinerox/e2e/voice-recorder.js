@@ -61,6 +61,10 @@ let b;
   await home();
   await queue('Taxi 2 000');
   await btn('Dicter une opération').click(); await p.waitForTimeout(1500);
+  // I1 : première dictée sur le web (pas de reconnaissance sur l'appareil) → demande d'accord, une seule fois.
+  ok((await btn('Oui, dicter').count()) > 0 && (await btn('Non, je tape').count()) > 0 && !(await recording()), 'I1 : première dictée → « Dicter avec le service de votre téléphone ? », micro pas encore ouvert');
+  ok((await text()).includes('Le service vocal du téléphone peut traiter'), 'I1 : mention « service du téléphone » sous le micro (pas « sur le téléphone »)');
+  await btn('Oui, dicter').click(); await p.waitForTimeout(1500);
   ok(await recording(), 'toucher le micro : l’enregistrement démarre (bouton ■ visible)');
   let t = await text();
   ok(/\b0:0[0-9]\b/.test(t), 'chronomètre affiché (0:0x)');
@@ -98,7 +102,7 @@ let b;
   // ── Double toucher sur le micro : un seul enregistrement ──
   await home(); await queue('Pharmacie 3 500');
   await btn('Dicter une opération').dblclick(); await p.waitForTimeout(1800);
-  ok(await recording(), 'double toucher : un seul enregistrement, toujours en cours');
+  ok(await recording() && (await btn('Oui, dicter').count()) === 0, 'double toucher : un seul enregistrement, toujours en cours (I1 : accord déjà donné, plus de demande)');
   await btn("Terminer l'enregistrement").click(); await p.waitForTimeout(1200);
   ok((await text()).includes("J'ai compris 1 opération"), 'double toucher puis ■ : une seule carte (1 opération)');
   await p.keyboard.press('Escape');

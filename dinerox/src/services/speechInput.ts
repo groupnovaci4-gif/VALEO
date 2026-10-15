@@ -15,6 +15,7 @@
  * (`services/voiceRecorder.ts`).
  */
 import { Platform } from 'react-native';
+import { onDeviceStatusOf, type OnDeviceStatus } from '@/core/entry/voicePrivacy';
 import { setMicOpen } from './voice/micGate';
 
 export type SpeechLanguage = 'fr' | 'en';
@@ -47,6 +48,8 @@ export interface SpeechInputProvider {
   isAvailable(): Promise<boolean>;
   /** La reconnaissance peut-elle se faire sans réseau, sur le téléphone ? */
   supportsOnDevice(): boolean;
+  /** I1 — sur l'appareil : possible (`ready`), langue non téléchargée (`missing`) ou impossible. */
+  onDeviceStatus(language: SpeechLanguage): Promise<OnDeviceStatus>;
   permission(): Promise<SpeechPermission>;
   requestPermission(): Promise<SpeechPermission>;
   /**
@@ -90,6 +93,9 @@ export const noSpeechInput: SpeechInputProvider = {
   },
   supportsOnDevice() {
     return false;
+  },
+  async onDeviceStatus() {
+    return 'unsupported';
   },
   async permission() {
     return 'denied';
@@ -160,6 +166,19 @@ export const deviceSpeechInput: SpeechInputProvider = {
       return !!mod()?.supportsOnDeviceRecognition();
     } catch {
       return false;
+    }
+  },
+  async onDeviceStatus(language) {
+    const M = mod();
+    const supports = deviceSpeechInput.supportsOnDevice();
+    if (!M || !supports) return 'unsupported';
+    try {
+      // Android : langues téléchargées pour le service sur l'appareil de Google. iOS : langues reconnues.
+      const r = await M.getSupportedLocales(Platform.OS === 'android' ? { androidRecognitionServicePackage: 'com.google.android.as' } : {});
+      return onDeviceStatusOf(supports, Platform.OS === 'android' ? r.installedLocales : r.locales, language);
+    } catch {
+      // Service absent (ex. téléphone sans services Google) : pas de reconnaissance sur l'appareil.
+      return 'unsupported';
     }
   },
   async permission() {

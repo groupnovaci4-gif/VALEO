@@ -7,6 +7,9 @@
  * facultative, soumise au consentement et à la formule Plus.
  * La conversation reste sur l'appareil (non stockée sur le serveur).
  */
+import { useVoiceRoute } from '@/features/entry/useVoiceRoute';
+import { VoiceConsentCard } from '@/features/entry/VoiceConsentCard';
+import { micOffered, type VoiceRoute } from '@/core/entry/voicePrivacy';
 import { withConsent } from '@/core/aiConsent';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, Pressable, TextInput, View } from 'react-native';
@@ -88,12 +91,27 @@ export default function Assistant() {
       alive = false;
     };
   }, []);
+  // I1 : sur l'appareil par défaut quand c'est possible, sinon accord demandé une fois.
+  const voiceRoute = useVoiceRoute(lang === 'en' ? 'en' : 'fr');
+  const [voiceAsk, setVoiceAsk] = useState<'consent' | 'pack' | null>(null);
   /** La transcription n'est qu'un texte placé dans la zone de message : jamais envoyé ni enregistré sans l'utilisateur. */
   const dictate = async () => {
     if (listening) {
       void speechInput().stop();
       return;
     }
+    const route = await voiceRoute.resolve();
+    if (route === 'refused') return;
+    if (route === 'ask' || route === 'pack') return void setVoiceAsk(route === 'ask' ? 'consent' : 'pack');
+    await startDictation(route);
+  };
+  const answerVoice = (answer: 'service' | 'refused' | 'later') => {
+    setVoiceAsk(null);
+    if (answer === 'later') return;
+    const route = voiceRoute.answer(answer);
+    if (answer === 'service') void startDictation(route);
+  };
+  const startDictation = async (route: VoiceRoute) => {
     const provider = speechInput();
     const allowed = (await provider.permission()) === 'granted' || (await provider.requestPermission()) === 'granted';
     if (!allowed) return;
@@ -101,7 +119,7 @@ export default function Assistant() {
     await stopVoice().catch(() => undefined);
     setListening(true);
     speechInput()
-      .listen({ language: lang === 'en' ? 'en' : 'fr', onPartial: setInput })
+      .listen({ language: lang === 'en' ? 'en' : 'fr', onPartial: setInput, onDeviceOnly: route === 'device' })
       .then((text) => setInput(text))
       .catch(() => undefined)
       .finally(() => setListening(false));
@@ -409,6 +427,18 @@ export default function Assistant() {
             </View>
           )}
         />
+        {voiceAsk ? (
+          <View style={{ paddingHorizontal: 12, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
+            <VoiceConsentCard
+              title={voiceAsk === 'consent' ? t('entry.voice.consentTitle') : undefined}
+              text={voiceAsk === 'consent' ? t('entry.voice.consentText') : t('entry.voice.packText')}
+              yes={voiceAsk === 'consent' ? t('entry.voice.consentYes') : t('entry.voice.packUseService')}
+              no={voiceAsk === 'consent' ? t('entry.voice.consentNo') : t('entry.voice.packLater')}
+              onYes={() => answerVoice('service')}
+              onNo={() => answerVoice(voiceAsk === 'consent' ? 'refused' : 'later')}
+            />
+          </View>
+        ) : null}
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
           <TextInput
             maxFontSizeMultiplier={1.3}
@@ -421,12 +451,15 @@ export default function Assistant() {
             onSubmitEditing={() => handle(input)}
             style={{ flex: 1, minHeight: 48, maxHeight: 120, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 10, color: colors.text, fontSize: 16 }}
           />
-          <IconButton
-            icon={listening ? 'stop-circle-outline' : 'mic-outline'}
-            label={!micReady ? t('ai.mic.soon') : listening ? t('ai.mic.stop') : t('ai.mic.start')}
-            disabled={!micReady}
-            onPress={() => void dictate()}
-          />
+          {/* I1 : après « Non, je tape », le micro n'est plus proposé. */}
+          {!voiceRoute.route || micOffered(voiceRoute.route) ? (
+            <IconButton
+              icon={listening ? 'stop-circle-outline' : 'mic-outline'}
+              label={!micReady ? t('ai.mic.soon') : listening ? t('ai.mic.stop') : t('ai.mic.start')}
+              disabled={!micReady}
+              onPress={() => void dictate()}
+            />
+          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('common.confirm')}

@@ -1,6 +1,6 @@
 # Proposition I1 — l'audio de la dictée reste sur le téléphone par défaut
 
-Statut : ⬜ **décision du fondateur à prendre. Rien n'est changé dans le code.**
+Statut : 🟧 **acceptée par le fondateur (2026-10-15), textes tels quels ; codée sur la branche `voix-i1`** (`core/entry/voicePrivacy.ts`, `tests/voice-privacy.test.ts`, `e2e/voice-consent.js`). Paragraphe de la politique de confidentialité : en attente de validation.
 
 ## Aujourd'hui (constaté dans le code)
 

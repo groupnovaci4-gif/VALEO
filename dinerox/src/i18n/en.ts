@@ -1267,6 +1267,14 @@ export const en: Record<TKey, string> = {
   'entry.voice.quota': "Free voice entries left today: {left} of {count}",
   'entry.voice.privacyDevice': "On-device recognition. Audio is never recorded.",
   'entry.voice.privacyOnline': "Your phone's speech service may process audio online. Audio is never recorded or sent to {app}.",
+  // I1 (2026-10 audit): consent, asked once, when the sound has to go to the phone's service.
+  'entry.voice.consentTitle': "Dictate with your phone's service?",
+  'entry.voice.consentText': "Your phone can't recognise speech without a connection. To dictate, it sends the sound to its recognition service (Google or Apple). {app} never receives this sound.",
+  'entry.voice.consentYes': "Yes, dictate",
+  'entry.voice.consentNo': "No, I'll type",
+  'entry.voice.packText': "To dictate without sending the sound, download French in your phone's voice typing settings.",
+  'entry.voice.packUseService': "Use the phone's service",
+  'entry.voice.packLater': "Later",
   'entry.phrase.label': "Type as you speak",
   'entry.phrase.placeholder': "Taxi 2000, lunch 500",
   'entry.phrase.go': "Go",
@@ -1323,7 +1331,7 @@ export const en: Record<TKey, string> = {
   'entry.settings.voiceLanguage': "Dictation language",
   'entry.settings.languageAuto': "App language",
   'entry.settings.onDevice': "On-device recognition only",
-  'entry.settings.onDeviceHint': "No audio leaves the phone (the language must be downloaded on the device).",
+  'entry.settings.onDeviceHint': "No sound leaves the phone. On when your phone allows it.",
   'entry.settings.speakAmounts': "Read amounts aloud during voice entry",
   'entry.settings.speakAmountsHint': "{app} reads back the amounts you just said. Turn it off in public.",
   // 1.9 — Voice mini-conversation (templates: never written by the AI).

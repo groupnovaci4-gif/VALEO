@@ -41,6 +41,10 @@ let b;
 
   // Toucher la notification du rappel du soir = ouvrir /entry?mode=voice&from=reminder.
   await go('/entry?mode=voice&from=reminder', 3500);
+  // I1 : première dictée sur un appareil sans reconnaissance locale (le web) → demande d'accord, micro pas encore ouvert.
+  const t0 = await text();
+  ok(t0.includes('Dicter avec le service de votre téléphone ?') && t0.includes('ne reçoit jamais ce son') && (await btn("Terminer l'enregistrement").count()) === 0, 'I1 : première dictée → demande d’accord, micro pas encore ouvert');
+  await btn('Oui, dicter').click(); await p.waitForTimeout(1500);
   // L'enregistrement continue jusqu'au toucher ■ (1.8).
   ok((await btn("Terminer l'enregistrement").count()) > 0, 'rappel du soir → l’enregistrement démarre directement (bouton ■)');
   await btn("Terminer l'enregistrement").click(); await p.waitForTimeout(1500);

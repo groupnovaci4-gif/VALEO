@@ -11,6 +11,9 @@ import { coachPrefs } from '@/core/coach/prefs';
 import { hasFeature } from '@/core/subscription';
 import { speak, stopVoice } from '@/services/voice';
 import { ensurePermission, notificationsSupported, permissionStatus } from '@/services/notifications';
+import { useVoiceRoute } from '@/features/entry/useVoiceRoute';
+import { VoiceConsentCard } from '@/features/entry/VoiceConsentCard';
+import { methodPatch, micOffered, onDeviceTogglePatch, onDeviceWanted, type VoiceRoute } from '@/core/entry/voicePrivacy';
 
 type BoolKey = Exclude<keyof NotificationPrefs, 'dailyEntryReminder' | 'dailyReminderHour'>;
 const KEYS: BoolKey[] = ['budgetAlerts', 'goalProgress', 'incomeReceived', 'unusualSpending', 'savingsReminder', 'debtDue', 'tontineDue', 'weeklySummary', 'monthlySummary'];
@@ -35,6 +38,9 @@ export default function NotificationSettings() {
     },
     [],
   );
+  // I1 : où part le son du « Tester le micro » (sur l'appareil par défaut, sinon accord demandé une fois).
+  const voiceRoute = useVoiceRoute(entryPrefs(profile?.preferences).voiceLanguage ?? (lang === 'en' ? 'en' : 'fr'));
+  const [voiceAsk, setVoiceAsk] = useState<'consent' | 'pack' | null>(null);
   if (!profile) return null;
   const prefs = profile.preferences.notifications;
   const coach = coachPrefs(profile.preferences);
@@ -47,15 +53,27 @@ export default function NotificationSettings() {
   /** « Tester le micro » : écoute une phrase et affiche ce qui a été compris (rien n'est enregistré). */
   const testMic = async () => {
     if (testingRef.current) return void speechInput().stop();
+    if (!(await speechInput().isAvailable())) return toast.show(t('entry.voice.unavailable'), 'info');
+    const route = await voiceRoute.resolve();
+    if (route === 'refused') return;
+    if (route === 'ask' || route === 'pack') return void setVoiceAsk(route === 'ask' ? 'consent' : 'pack');
+    await runMicTest(route);
+  };
+  const answerVoice = (answer: 'service' | 'refused' | 'later') => {
+    setVoiceAsk(null);
+    if (answer === 'later') return;
+    const route = voiceRoute.answer(answer);
+    if (answer === 'service') void runMicTest(route);
+  };
+  const runMicTest = async (route: VoiceRoute) => {
     const provider = speechInput();
-    if (!(await provider.isAvailable())) return toast.show(t('entry.voice.unavailable'), 'info');
     const allowed = (await provider.permission()) === 'granted' || (await provider.requestPermission()) === 'granted';
     if (!allowed) return toast.show(t('entry.voice.denied'), 'warning');
     await stopVoice().catch(() => undefined);
     toast.show(t('entry.voice.listening'), 'info');
     testingRef.current = true;
     setTesting(true);
-    const heard = await provider.listen({ language: entry.voiceLanguage ?? (lang === 'en' ? 'en' : 'fr'), onDeviceOnly: entry.onDeviceOnly }).catch(() => '');
+    const heard = await provider.listen({ language: entry.voiceLanguage ?? (lang === 'en' ? 'en' : 'fr'), onDeviceOnly: route === 'device' }).catch(() => '');
     testingRef.current = false;
     setTesting(false);
     toast.show(heard ? t('entry.settings.heard', { text: heard }) : t('entry.voice.nothing'), heard ? 'success' : 'info');
@@ -110,7 +128,7 @@ export default function NotificationSettings() {
         </Text>
         <Segmented
           value={entry.defaultMethod}
-          onChange={(defaultMethod) => setEntry({ defaultMethod })}
+          onChange={(defaultMethod) => setEntry(methodPatch(defaultMethod, entry))}
           options={[
             { value: 'voice', label: t('entry.mode.voice'), icon: 'mic-outline' },
             { value: 'quick_manual', label: t('entry.mode.keyboard'), icon: 'keypad-outline' },
@@ -128,10 +146,21 @@ export default function NotificationSettings() {
             { value: 'en', label: 'English' },
           ]}
         />
-        {speechInput().supportsOnDevice() ? <SwitchRow title={t('entry.settings.onDevice')} subtitle={t('entry.settings.onDeviceHint')} value={entry.onDeviceOnly} onChange={(v) => setEntry({ onDeviceOnly: v })} /> : null}
+        {speechInput().supportsOnDevice() ? <SwitchRow title={t('entry.settings.onDevice')} subtitle={t('entry.settings.onDeviceHint')} value={onDeviceWanted(entry)} onChange={(v) => setEntry(onDeviceTogglePatch(v))} /> : null}
         <SwitchRow title={t('entry.settings.examples')} value={entry.showExamples} onChange={(v) => setEntry({ showExamples: v })} />
         <SwitchRow title={t('entry.settings.speakAmounts')} subtitle={t('entry.settings.speakAmountsHint')} value={entry.speakAmounts} onChange={(v) => setEntry({ speakAmounts: v })} />
-        <Button variant="secondary" icon={testing ? 'stop' : 'mic-outline'} label={t(testing ? 'entry.voice.finish' : 'entry.settings.testMic')} onPress={() => void testMic()} style={{ marginTop: 8 }} />
+        {/* I1 : après « Non, je tape », le micro n'est plus proposé (choisir « Voix » ci-dessus repose la question). */}
+        {!voiceRoute.route || micOffered(voiceRoute.route) ? <Button variant="secondary" icon={testing ? 'stop' : 'mic-outline'} label={t(testing ? 'entry.voice.finish' : 'entry.settings.testMic')} onPress={() => void testMic()} style={{ marginTop: 8 }} /> : null}
+        {voiceAsk ? (
+          <VoiceConsentCard
+            title={voiceAsk === 'consent' ? t('entry.voice.consentTitle') : undefined}
+            text={voiceAsk === 'consent' ? t('entry.voice.consentText') : t('entry.voice.packText')}
+            yes={voiceAsk === 'consent' ? t('entry.voice.consentYes') : t('entry.voice.packUseService')}
+            no={voiceAsk === 'consent' ? t('entry.voice.consentNo') : t('entry.voice.packLater')}
+            onYes={() => answerVoice('service')}
+            onNo={() => answerVoice(voiceAsk === 'consent' ? 'refused' : 'later')}
+          />
+        ) : null}
       </Card>
 
       {/* Coach : comment il présente les alertes (les types d'alertes restent réglés ci-dessus). */}

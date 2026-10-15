@@ -134,3 +134,24 @@ compte Épargne avec **60 000**.
 **E3 — Jamais renseigné son argent** (compte E, inscription avec « Plus tard », aucun solde ni revenu) :
 une dépense → **aucun** message « il manque », **aucune** carte sur l'Accueil.
 - [ ] OK  [ ] Pas OK — Ce que j'ai vu : ____________________
+
+## V. Voix : le son reste sur le téléphone (I1)
+
+**V1 — Téléphone récent avec le français téléchargé** (Android 13 ou plus ; Réglages du téléphone ›
+Saisie vocale Google › Reconnaissance vocale hors connexion › Français installé). Première dictée :
+**aucune** demande d'accord, l'enregistrement démarre ; sous le micro : « Reconnaissance sur le
+téléphone. L'audio n'est jamais enregistré. » Activer le mode avion : la dictée marche encore.
+- [ ] OK  [ ] Pas OK — Modèle et version d'Android : ____________ Ce que j'ai vu : ____________
+
+**V2 — La demande d'accord** (téléphone sans reconnaissance hors connexion : Android 12 ou moins,
+ou français non téléchargé). Première dictée : « Dicter avec le service de votre téléphone ? »
+avec « Oui, dicter » et « Non, je tape » (ou, sur Android 13+ sans le français : « Pour dicter sans
+envoyer le son, téléchargez le français… » avec « Utiliser le service du téléphone » et « Plus tard »).
+« Oui, dicter » : l'enregistrement démarre ; la dictée suivante ne redemande pas.
+- [ ] OK  [ ] Pas OK — Modèle et version d'Android : ____________ Ce que j'ai vu : ____________
+
+**V3 — Le refus « Non, je tape »** (sur un autre compte ou après réinstallation, téléphone de V2) :
+le clavier s'ouvre ; le micro n'est plus proposé (bulle de l'accueil, onglet « Parler », assistant,
+« Tester le micro ») ; le bouton central devient « Saisir une opération ». Réglages › Notifications ›
+Méthode « Parler » : la question revient à la dictée suivante.
+- [ ] OK  [ ] Pas OK — Ce que j'ai vu : ____________________

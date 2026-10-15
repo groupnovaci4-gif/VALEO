@@ -502,8 +502,21 @@ export interface EntryPrefs {
   defaultMethod: 'voice' | 'quick_manual';
   /** Langue de la reconnaissance vocale (null = langue de l'application). */
   voiceLanguage: 'fr' | 'en' | null;
-  /** Reconnaissance uniquement sur le téléphone (si le téléphone le permet). */
+  /**
+   * Ancien réglage (avant I1) : enregistré à `false` par défaut, il ne dit pas si la
+   * personne a vraiment choisi. Gardé pour les versions précédentes ; lire `onDeviceChoice`.
+   */
   onDeviceOnly: boolean;
+  /**
+   * I1 — « Reconnaissance uniquement sur le téléphone » choisi par la personne.
+   * Absent = pas de choix : sur l'appareil dès que le téléphone le permet (`core/entry/voicePrivacy`).
+   */
+  onDeviceChoice?: boolean | null;
+  /**
+   * I1 — réponse à la demande d'accord (le son part au service de reconnaissance du
+   * téléphone) : `service` (oui), `refused` (non, je tape). Absent = jamais demandé.
+   */
+  voiceConsent?: 'service' | 'refused' | null;
   /** Exemples de phrases dans la bulle de l'accueil. */
   showExamples: boolean;
   /**

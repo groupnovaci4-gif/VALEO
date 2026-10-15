@@ -37,6 +37,9 @@ let b;
   });
   const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('dialog', (d) => d.accept());
   const btn = (name) => p.getByRole('button', { name, exact: true });
+  // I1 : sur le web, pas de reconnaissance sur l'appareil → demande d'accord à la première dictée (une seule fois).
+  let consented = false;
+  const consentOnce = async () => { if (consented) return; const y = btn('Oui, dicter'); await y.waitFor({ timeout: 4000 }).catch(() => undefined); if (await y.count()) { await y.click(); consented = true; await p.waitForTimeout(400); } };
   const go = async (path, w = 3000) => { await p.goto(BASE + path, { waitUntil: 'load' }); await p.waitForTimeout(w); };
   const closeCelebration = async () => { const c = btn('Continuer'); if (await c.count()) { await c.first().click(); await p.waitForTimeout(300); } };
   const phrase = async (s) => { await (await phraseField(p)).fill(s); await btn('Comprendre').click(); await p.waitForTimeout(600); };
@@ -50,7 +53,7 @@ let b;
   // Phrase écrite (2 opérations).
   await go('/entry?mode=keyboard', 3500); await phrase('Taxi 1 000 et garba 500 pour Maman Awa'); await btn('Tout valider').click(); await p.waitForTimeout(500);
   // Voix, corrigée avant validation.
-  await go('/entry?mode=voice', 3500);
+  await go('/entry?mode=voice', 3500); await consentOnce(); await p.waitForTimeout(1000);
   // Enregistrement « comme WhatsApp » : il ne s'arrête qu'au toucher ■.
   await btn("Terminer l'enregistrement").click(); await p.waitForTimeout(900);
   await p.getByRole('button', { name: /^catégorie :/ }).first().click(); await p.waitForTimeout(300);

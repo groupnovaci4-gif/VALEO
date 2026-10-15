@@ -46,6 +46,9 @@ import { ConfirmCard } from './ConfirmCard';
 import { UNDO_MS, useEntrySave, type EntryMethod } from './useEntrySave';
 import { useEntryStats } from './useEntryStats';
 import { useVoiceRecorder } from './useVoiceRecorder';
+import { useVoiceRoute } from './useVoiceRoute';
+import { VoiceConsentCard } from './VoiceConsentCard';
+import { micOffered, type VoiceRoute } from '@/core/entry/voicePrivacy';
 import { useCategoryPick } from '@/features/categories/CategoryPicker';
 import { pickCategories } from '@/core/categoryOps';
 import { useCategoryCatalog } from '@/services/categoryCatalog';
@@ -70,7 +73,8 @@ type View_ =
   | { kind: 'ambiguous'; text: string };
 
 /** Message sous le micro (l'état de l'enregistrement lui-même vit dans `core/entry/recorder`). */
-type VoiceState = 'idle' | 'explain' | 'denied' | 'unavailable' | 'limit' | 'nothing';
+// I1 : `consent` (demande d'accord, une seule fois) et `pack` (langue à télécharger) avant d'ouvrir le micro.
+type VoiceState = 'idle' | 'explain' | 'denied' | 'unavailable' | 'limit' | 'nothing' | 'consent' | 'pack';
 
 /** Icône de chaque message du micro (design v2 : jamais un message sans icône). */
 const VOICE_ICON: Record<'denied' | 'unavailable' | 'nothing' | 'limit', string> = {
@@ -136,6 +140,11 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const [busy, setBusy] = useState(false);
   const started = useRef(false);
   const ePrefs = entryPrefs(profile?.preferences);
+  // I1 : sur l'appareil par défaut quand c'est possible, sinon accord demandé une fois.
+  const voiceLang = ePrefs.voiceLanguage ?? (lang === 'en' ? 'en' : 'fr');
+  const voiceRoute = useVoiceRoute(voiceLang);
+  const routeRef = useRef<VoiceRoute | null>(null);
+  const voiceOffered = !voiceRoute.route || micOffered(voiceRoute.route);
   const catalog = useCategoryCatalog();
 
   const accounts = useMemo(() => data.accounts.filter((a) => a.active && !a.deleted), [data.accounts]);
@@ -323,7 +332,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   // Toucher = démarrer ; toucher ■ = arrêter. Un silence n'arrête JAMAIS l'enregistrement
   // (le moteur du téléphone est relancé et les morceaux raccordés : core/entry/recorder).
   const recorder = useVoiceRecorder(
-    { language: ePrefs.voiceLanguage ?? (lang === 'en' ? 'en' : 'fr'), onDeviceOnly: ePrefs.onDeviceOnly, contextualStrings: entryVocabularyWords() },
+    { language: voiceLang, contextualStrings: entryVocabularyWords() },
     {
       onDeliver: (text) => {
         // Pendant la conversation, la note vocale est une RÉPONSE (« oui », « le loyer c'est 120 000 »).
@@ -357,7 +366,8 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     setVoice('idle');
     // Réponse dans la conversation : l'enregistreur sort de l'état « livré » de la note précédente.
     if (rec.status === 'confirm') recorder.reset();
-    recorder.tap();
+    // I1 : sur l'appareil seulement quand c'est la décision ; sinon le service du téléphone (accord donné).
+    recorder.tap({ onDeviceOnly: routeRef.current === 'device' });
   };
 
   /** `reply` : réponse dans une conversation déjà commencée (même saisie : le compteur n'est pas reconsulté). */
@@ -376,10 +386,31 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       analytics.track('voice_entry_failed', { reason: 'unavailable' });
       return;
     }
-    const p: SpeechPermission = await provider.permission().catch(() => 'denied' as const);
+    // I1 : où part le son ? Demander d'abord si le téléphone ne sait pas reconnaître sur l'appareil.
+    const route = await voiceRoute.resolve();
+    routeRef.current = route;
+    if (route === 'refused') return void onModeChange('keyboard');
+    if (route === 'ask' || route === 'pack') return void setVoice(route === 'ask' ? 'consent' : 'pack');
+    await openMic();
+  };
+
+  /** Autorisation du micro (système), puis écoute. */
+  const openMic = async () => {
+    const p: SpeechPermission = await speechInput()
+      .permission()
+      .catch(() => 'denied' as const);
     if (p === 'granted') return void listen();
     // Première fois : une phrase d'explication AVANT la demande du système.
     setVoice(p === 'undetermined' ? 'explain' : 'denied');
+  };
+
+  /** Réponse à la demande d'accord ou au message du pack de langue. */
+  const answerVoice = (answer: 'service' | 'refused' | 'later') => {
+    setVoice('idle');
+    if (answer === 'later') return;
+    routeRef.current = voiceRoute.answer(answer);
+    if (answer === 'refused') return void onModeChange('keyboard');
+    void openMic();
   };
 
   const allowMic = async () => {
@@ -677,6 +708,16 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
           <Button variant="secondary" icon="mic-outline" label={t('entry.voice.allow')} onPress={() => void allowMic()} style={{ alignSelf: 'flex-start', marginTop: -4 }} />
         </View>
       ) : null}
+      {voice === 'consent' || voice === 'pack' ? (
+        <VoiceConsentCard
+          title={voice === 'consent' ? t('entry.voice.consentTitle') : undefined}
+          text={voice === 'consent' ? t('entry.voice.consentText') : t('entry.voice.packText')}
+          yes={voice === 'consent' ? t('entry.voice.consentYes') : t('entry.voice.packUseService')}
+          no={voice === 'consent' ? t('entry.voice.consentNo') : t('entry.voice.packLater')}
+          onYes={() => answerVoice('service')}
+          onNo={() => answerVoice(voice === 'consent' ? 'refused' : 'later')}
+        />
+      ) : null}
       {voice === 'denied' || voice === 'unavailable' || voice === 'nothing' || voice === 'limit' ? (
         // Pas une erreur bloquante : annonce polie (le clavier et la phrase restent juste dessous).
         <View style={{ alignSelf: 'stretch' }}>
@@ -698,7 +739,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
         </View>
       ) : null}
       <Text variant="caption" tone="subtle" align="center">
-        {speechInput().supportsOnDevice() ? t('entry.voice.privacyDevice') : t('entry.voice.privacyOnline')}
+        {voiceRoute.route === 'device' ? t('entry.voice.privacyDevice') : t('entry.voice.privacyOnline')}
       </Text>
     </View>
   );
@@ -770,18 +811,20 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
 
   return (
     <View style={{ gap: 12 }}>
-      <Segmented
-        value={mode}
-        onChange={(m) => {
-          if (m === 'keyboard') recorder.cancel();
-          onModeChange(m);
-        }}
-        options={[
-          { value: 'voice', label: t('entry.mode.voice'), icon: 'mic-outline' },
-          { value: 'keyboard', label: t('entry.mode.keyboard'), icon: 'keypad-outline' },
-        ]}
-      />
-      {mode === 'voice' ? voiceBlock : keyboardBlock}
+      {voiceOffered ? (
+        <Segmented
+          value={mode}
+          onChange={(m) => {
+            if (m === 'keyboard') recorder.cancel();
+            onModeChange(m);
+          }}
+          options={[
+            { value: 'voice', label: t('entry.mode.voice'), icon: 'mic-outline' },
+            { value: 'keyboard', label: t('entry.mode.keyboard'), icon: 'keypad-outline' },
+          ]}
+        />
+      ) : null}
+      {mode === 'voice' && voiceOffered ? voiceBlock : keyboardBlock}
       {mode === 'keyboard' ? (
         <Pressable
           accessibilityRole="button"

@@ -14,19 +14,25 @@ import { useEntry } from './EntryProvider';
 import { useEntryStats } from './useEntryStats';
 import { useApp } from '@/store/app';
 import { entryPrefs } from '@/core/entry/prefs';
+import { micOffered } from '@/core/entry/voicePrivacy';
+import { useVoiceRoute } from './useVoiceRoute';
 
 const EXAMPLES: TKey[] = ['entry.example.1', 'entry.example.2', 'entry.example.3', 'entry.example.4', 'entry.example.5', 'entry.example.6'];
 export const COMPACT_AFTER = 10;
 
 export function EntryPrompt() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { colors, radius } = useTheme();
   const entry = useEntry();
   const stats = useEntryStats();
   const [example] = useState(() => EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)]);
   const compact = (stats?.successes ?? 0) >= COMPACT_AFTER;
   const { profile } = useApp();
-  const showExamples = entryPrefs(profile?.preferences).showExamples;
+  const ePrefs = entryPrefs(profile?.preferences);
+  const showExamples = ePrefs.showExamples;
+  // I1 : après « Non, je tape », la bulle ne propose plus le micro (le clavier reste).
+  const voiceRoute = useVoiceRoute(ePrefs.voiceLanguage ?? (lang === 'en' ? 'en' : 'fr'));
+  const voice = !voiceRoute.route || micOffered(voiceRoute.route);
 
   if (compact) {
     return (
@@ -34,10 +40,10 @@ export function EntryPrompt() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('entry.prompt.title')}
-          onPress={() => entry.open('voice')}
+          onPress={() => entry.open(voice ? 'voice' : 'keyboard')}
           style={({ pressed }) => ({ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, paddingLeft: 8, borderRadius: 12, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
         >
-          <Icon name="mic-outline" size={22} color={colors.primary} />
+          <Icon name={voice ? 'mic-outline' : 'keypad-outline'} size={22} color={colors.primary} />
           <Text variant="small" tone="muted" style={{ flex: 1 }} numberOfLines={2}>
             {showExamples ? t('entry.prompt.compact', { example: t(example) }) : t('entry.prompt.title')}
           </Text>
@@ -65,7 +71,7 @@ export function EntryPrompt() {
         </View>
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <Button icon="mic" label={t('entry.prompt.speak')} onPress={() => entry.open('voice')} style={{ flexGrow: 1 }} />
+        {voice ? <Button icon="mic" label={t('entry.prompt.speak')} onPress={() => entry.open('voice')} style={{ flexGrow: 1 }} /> : null}
         <Button variant="tertiary" icon="keypad-outline" label={t('entry.prompt.type')} onPress={() => entry.open('keyboard')} style={{ flexGrow: 1 }} />
       </View>
     </View>

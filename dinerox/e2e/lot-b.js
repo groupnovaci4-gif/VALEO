@@ -31,6 +31,9 @@ let b;
   const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('dialog', (d) => d.accept());
   const text = async () => (await p.evaluate(() => document.body.innerText)).replace(/[  ]/g, ' ');
   const btn = (name) => p.getByRole('button', { name, exact: true });
+  // I1 : sur le web, pas de reconnaissance sur l'appareil → demande d'accord à la première dictée (une seule fois).
+  let consented = false;
+  const consentOnce = async () => { if (consented) return; const y = btn('Oui, dicter'); await y.waitFor({ timeout: 4000 }).catch(() => undefined); if (await y.count()) { await y.click(); consented = true; await p.waitForTimeout(400); } };
   const go = async (path, w = 3000) => { await p.goto(BASE + path, { waitUntil: 'load' }); await p.waitForTimeout(w); };
   const closeCelebration = async () => { const c = btn('Continuer'); if (await c.count()) { await c.first().click(); await p.waitForTimeout(300); } };
 
@@ -50,7 +53,7 @@ let b;
   // le blocage pendant toute l'écoute est vérifié par les tests unitaires sur la vraie file vocale).
   await go('/'); await closeCelebration();
   await p.evaluate(() => { window.__cancels = 0; });
-  await btn('Dicter une opération').click(); await p.waitForTimeout(300);
+  await btn('Dicter une opération').click(); await consentOnce(); await p.waitForTimeout(300);
   ok((await p.evaluate(() => window.__listening)) && (await p.evaluate(() => window.__cancels)) > 0, 'micro ouvert : la voix du coach est coupée');
   await p.waitForTimeout(1600);
   // Audit 2026-10 (h) : seule la carte de confirmation de la feuille de saisie compte (« J'ai compris N opération… ») ;
