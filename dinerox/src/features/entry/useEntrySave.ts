@@ -25,6 +25,12 @@ import { moneyPosition } from '@/core/balance';
 import { withCircleView } from '@/core/savingsFlows';
 
 export type EntryMethod = 'voice' | 'text_phrase' | 'quick_manual' | 'full_form';
+
+/**
+ * Cercle fermé : message gardé pendant la conversation (enregistrement « inline », dont le bilan
+ * est dans la feuille) et montré, avec « Retirer de mon épargne ou d'un objectif », à sa fermeture.
+ */
+let heldNotice: { message: string; amount: number } | null = null;
 export const UNDO_MS = 5000;
 
 export function useEntrySave() {
@@ -183,10 +189,21 @@ export function useEntrySave() {
       if (user) void recordEntrySuccess(user.uid, { voice: method === 'voice', items: drafts.map((d) => ({ type: d.type === 'savings' ? ('transfer' as const) : d.type, categoryId: d.categoryId, accountId: d.accountId && spendingIds.has(d.accountId) ? d.accountId : null })) }).catch(() => undefined);
       const redirected = drafts.find((d) => d.savingsRedirect && d.type === 'expense');
       if (!inline) undoToast(ids, { redirectedTo: redirected?.accountId ?? null });
+      else heldNotice = circleNotice(ids, redirected?.accountId ?? null);
       return ids;
     },
-    [actions, activeSpace, user, undoToast, engine],
+    [actions, activeSpace, user, undoToast, engine, circleNotice],
   );
 
-  return { saveDrafts, undoToast, undo };
+  /** Message gardé pendant la conversation (null s'il n'y en a pas) : la conversation le dit tout de suite. */
+  const takeHeldNotice = useCallback(() => heldNotice?.message ?? null, []);
+  /** À la fermeture de la feuille : le message gardé, avec le bouton de retrait. */
+  const flushHeldNotice = useCallback(() => {
+    const n = heldNotice;
+    heldNotice = null;
+    if (!n) return;
+    toast.show(n.message, 'warning', { duration: 9000, actions: [{ label: t('circle.withdraw'), onPress: () => router.push({ pathname: '/withdraw', params: { amount: String(n.amount) } }) }] });
+  }, [toast, t]);
+
+  return { saveDrafts, undoToast, undo, takeHeldNotice, flushHeldNotice };
 }

@@ -86,12 +86,18 @@ const FREE_TOPICS = new Set(['spent_month', 'income_month', 'remaining_category'
 export function EntrySheet({ mode, onClose, onModeChange }: { mode: EntryMode | null; onClose: () => void; onModeChange: (m: EntryMode) => void }) {
   const { t } = useI18n();
   const visible = mode !== null;
+  // Cercle fermé : un message gardé pendant la conversation est montré à la fermeture de la feuille.
+  const { flushHeldNotice } = useEntrySave();
+  const close = () => {
+    onClose();
+    flushHeldNotice();
+  };
   // Contenu monté seulement à l'ouverture : chaque saisie repart d'un état propre.
   // Design system v2 (docs/design-system.md §10.2) : toute la feuille, conversation comprise.
   return (
     <DesignV2>
-      <Sheet visible={visible} onClose={onClose} title={t('entry.title')}>
-        {visible ? <EntryBody mode={mode} onClose={onClose} onModeChange={onModeChange} /> : null}
+      <Sheet visible={visible} onClose={close} title={t('entry.title')}>
+        {visible ? <EntryBody mode={mode} onClose={close} onModeChange={onModeChange} /> : null}
       </Sheet>
     </DesignV2>
   );
@@ -110,7 +116,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const { plan, profile, user, role, mode: appMode, online, activeSpace, updateProfile } = useApp();
   const { data, currency, now } = useFinance();
   const stats = useEntryStats();
-  const { saveDrafts, undo } = useEntrySave();
+  const { saveDrafts, undo, takeHeldNotice } = useEntrySave();
   /** Opérations du dernier « oui » : « Annuler » les retire toutes, pendant 5 secondes. */
   const [undoIds, setUndoIds] = useState<string[] | null>(null);
   useEffect(() => {
@@ -445,6 +451,9 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       const before = conv.statusesNow();
       const ids = saveDrafts(drafts, view.method, view.edited, true);
       conv.saved(drafts, before, aloud);
+      // Cercle fermé : l'épargne nommée pour une dépense, ou le disponible sous zéro — dit dans la conversation.
+      const notice = takeHeldNotice();
+      if (notice) conv.sayText(notice, [], aloud);
       setUndoIds(ids);
     } catch (e) {
       toast.show(e instanceof ActionError && e.code === 'permission' ? t('error.permission') : t('error.generic'), 'error');

@@ -58,17 +58,19 @@ let b;
   await go('/entry?mode=keyboard', 3500);
   await (await phraseField(p)).fill("loyer 10 000 avec l'épargne"); await btn('Comprendre').click(); await p.waitForTimeout(1500);
   ok(!p.url().includes('/savings/move'), `jamais compris comme un versement (${p.url().replace(BASE, '')})`);
-  await btn('Tout valider').click(); await p.waitForTimeout(800);
+  await btn('Tout valider').click(); await p.waitForTimeout(1200);
   let t = await text();
-  ok(t.includes("L'épargne ne paie pas directement une dépense. Cette dépense est enregistrée sur") && t.includes("Pour utiliser votre épargne, retirez d'abord l'argent vers un compte courant."), 'message : l’épargne ne paie pas directement une dépense');
-  ok((await btn("Retirer de mon épargne ou d'un objectif").count()) > 0, 'bouton « Retirer de mon épargne ou d’un objectif »');
+  ok(t.includes("L'épargne ne paie pas directement une dépense. Cette dépense est enregistrée sur") && t.includes("Pour utiliser votre épargne, retirez d'abord l'argent vers un compte courant."), 'message dans la conversation : l’épargne ne paie pas directement une dépense');
+  // À la fermeture de la feuille : le même message, avec le bouton de retrait.
+  await btn('Fermer').last().click(); await p.waitForTimeout(800);
+  ok((await btn("Retirer de mon épargne ou d'un objectif").count()) > 0, 'feuille fermée : bouton « Retirer de mon épargne ou d’un objectif »');
   await p.screenshot({ path: `${S}/circle-redirect.png` });
   ok((await savingsTotal()) === 60_000, 'épargne inchangée : 60 000 (la dépense est sur Espèces)');
   hm = await home();
   ok(hm.available === 90_000, `solde disponible : 100 000 − 10 000 = 90 000 (${hm.available})`);
 
   // ── 3. Le disponible passe sous zéro ──
-  await go('/transaction/new?type=expense'); await fill('Montant', '95000'); await tap('Alimentation'); await btn('Enregistrer').last().click(); await p.waitForTimeout(900);
+  await go('/transaction/new?type=expense'); await fill('Montant', '95000'); await tap('Alimentation & boissons'); await btn('Enregistrer').last().click(); await p.waitForTimeout(900);
   t = await text();
   ok(t.includes('Votre argent disponible est passé sous zéro : il manque 5 000 FCFA.'), 'après la dépense : « il manque 5 000 FCFA »');
   hm = await home();
@@ -87,7 +89,7 @@ let b;
   // ── 4. Personne qui n'a jamais renseigné son argent ──
   const k = await page();
   await k.signUp('Kofi');
-  await k.go('/transaction/new?type=expense'); await k.fill('Montant', '5000'); await k.tap('Alimentation'); await k.btn('Enregistrer').last().click(); await k.p.waitForTimeout(900);
+  await k.go('/transaction/new?type=expense'); await k.fill('Montant', '5000'); await k.tap('Alimentation & boissons'); await k.btn('Enregistrer').last().click(); await k.p.waitForTimeout(900);
   ok(!(await k.text()).includes('il manque'), 'jamais renseigné son argent : aucun message « il manque »');
   await k.go('/', 3500);
   ok(!(await k.text()).includes("Plus d'argent disponible"), 'jamais renseigné son argent : aucune carte sur l’accueil');
