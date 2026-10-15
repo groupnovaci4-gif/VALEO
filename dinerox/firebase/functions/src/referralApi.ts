@@ -235,7 +235,7 @@ export async function applyReferralCore(uid: string, code: string, source: Sourc
 async function loadActivity(uid: string, signupAt: number): Promise<{ ops: ActivityOp[]; goals: ActivityGoal[] }> {
   const until = signupAt + (REFERRAL.VALIDATION_DEADLINE_DAYS + 1) * DAY_MS;
   const space = db().doc(`spaces/${uid}`);
-  // Audit 2026-10 (M2) : fenêtre sur l'heure du SERVEUR (`syncedAt`), jamais sur la date écrite par le téléphone.
+  // Audit 2026-10 (M2) : fenêtre sur l'heure d'arrivée sur le SERVEUR (`syncedAt`) ; le jour compté est choisi par `activityTime`.
   const [ops, goals] = await Promise.all([
     space.collection('transactions').where('syncedAt', '>=', Timestamp.fromMillis(signupAt)).where('syncedAt', '<=', Timestamp.fromMillis(until)).get(),
     space.collection('goals').where('syncedAt', '>=', Timestamp.fromMillis(signupAt)).where('syncedAt', '<=', Timestamp.fromMillis(until)).get(),

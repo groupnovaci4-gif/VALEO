@@ -37,6 +37,8 @@ export const REFERRAL = {
   QUICK_DELETE_MS: 48 * 3600 * 1000,
   /** Doublon évident : même montant, même catégorie, moins d'une minute d'écart. */
   DUPLICATE_WINDOW_MS: 60 * 1000,
+  /** Délai d'arrivée sur le serveur pour garder le jour du téléphone (hors-ligne toléré). */
+  SYNC_GRACE_MS: 3 * 24 * 3600 * 1000,
   /** Récompense du parrain : 1 mois de Plus par tranche de 5 filleuls validés. */
   FILLEULS_PER_REWARD: 5,
   MONTHS_PER_REWARD: 1,
@@ -182,7 +184,7 @@ export interface ActivityOp {
   createdBy?: string;
   deleted?: boolean;
   recurringId?: string | null;
-  /** Heure du SERVEUR à la dernière écriture (ms) — fait foi pour les jours d'activité (audit 2026-10, M2). */
+  /** Heure du SERVEUR à la dernière écriture (ms) — borne la date du téléphone (`activityTime`, audit 2026-10, M2). */
   syncedAt?: number | null;
   subcategoryId?: string | null;
   /** Lien avec une tontine (carnet ou tontine partagée) : une cotisation, de l'épargne. */
@@ -198,8 +200,18 @@ export interface ActivityGoal {
   syncedAt?: number | null;
 }
 
-/** Heure qui fait foi : celle du serveur ; la date du téléphone seulement pour un document sans heure serveur. */
-const serverTime = (d: { syncedAt?: number | null; createdAt: number }) => (typeof d.syncedAt === 'number' && d.syncedAt > 0 ? d.syncedAt : d.createdAt);
+/**
+ * Heure d'activité (audit 2026-10, M2 — compromis du fondateur) : l'heure du téléphone
+ * (`createdAt`) si l'opération est arrivée sur le serveur (`syncedAt`) au plus
+ * `SYNC_GRACE_MS` après, et pas avant (sinon date dans le futur) ; dans tous les autres cas,
+ * l'heure d'arrivée. Un hors-ligne de quelques jours garde ses vrais jours ; une date
+ * antidatée ou future compte au jour d'arrivée. Sans heure serveur (écriture de
+ * l'administration) : `createdAt`.
+ */
+const activityTime = (d: { syncedAt?: number | null; createdAt: number }) => {
+  if (typeof d.syncedAt !== 'number' || d.syncedAt <= 0) return d.createdAt;
+  return d.createdAt <= d.syncedAt && d.syncedAt - d.createdAt <= REFERRAL.SYNC_GRACE_MS ? d.createdAt : d.syncedAt;
+};
 
 /** Cotisation de tontine ou épargne communautaire (cercle fermé) : de l'épargne, pas une dépense. */
 const CIRCLE_SUBCATEGORIES = new Set(['sub_informal_tontine', 'sub_informal_community']);
@@ -268,24 +280,24 @@ export function countedEvents(ops: ActivityOp[], goals: ActivityGoal[], uid: str
   const sorted = ops
     .filter((o) => (o.createdBy ?? uid) === uid && !o.recurringId && !autoCreated(o.id) && !quicklyDeleted(o))
     .filter((o) => o.type === 'expense' || o.type === 'income' || o.type === 'transfer')
-    // Audit 2026-10 (M2) : l'heure du SERVEUR fait foi (le téléphone peut écrire n'importe quelle date).
-    .filter((o) => serverTime(o) >= signupAt)
-    .sort((a, b) => serverTime(a) - serverTime(b));
+    // Audit 2026-10 (M2) : heure du téléphone seulement si l'opération est arrivée à temps (`activityTime`).
+    .filter((o) => activityTime(o) >= signupAt)
+    .sort((a, b) => activityTime(a) - activityTime(b));
   for (const o of sorted) {
     const dup = kept.some(
-      (k) => k.type === o.type && k.amount === o.amount && (k.categoryId ?? null) === (o.categoryId ?? null) && Math.abs(serverTime(o) - serverTime(k)) < REFERRAL.DUPLICATE_WINDOW_MS,
+      (k) => k.type === o.type && k.amount === o.amount && (k.categoryId ?? null) === (o.categoryId ?? null) && Math.abs(activityTime(o) - activityTime(k)) < REFERRAL.DUPLICATE_WINDOW_MS,
     );
     if (!dup) kept.push(o);
   }
   const events: Event[] = kept.map((o) => ({
-    at: serverTime(o),
-    day: dayIndex(dayKey(serverTime(o), timeZone)),
+    at: activityTime(o),
+    day: dayIndex(dayKey(activityTime(o), timeZone)),
     // (i) Une cotisation de tontine est de l'épargne, pas une dépense (règle du cercle fermé).
     kind: o.type === 'expense' ? ((o.categoryId && SAVING_CATEGORY_IDS.has(o.categoryId)) || isCircleContribution(o) ? 'other' : 'expense') : o.type === 'income' ? 'income' : 'other',
   }));
   for (const g of goals) {
-    if ((g.createdBy ?? uid) !== uid || autoCreated(g.id) || quicklyDeleted(g) || serverTime(g) < signupAt) continue;
-    events.push({ at: serverTime(g), day: dayIndex(dayKey(serverTime(g), timeZone)), kind: 'goal' });
+    if ((g.createdBy ?? uid) !== uid || autoCreated(g.id) || quicklyDeleted(g) || activityTime(g) < signupAt) continue;
+    events.push({ at: activityTime(g), day: dayIndex(dayKey(activityTime(g), timeZone)), kind: 'goal' });
   }
   return events.sort((a, b) => a.at - b.at);
 }

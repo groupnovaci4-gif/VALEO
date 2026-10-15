@@ -1,6 +1,7 @@
 /**
  * Audit 2026-10 — corrections testées (logique pure du serveur) :
- *  - M2 (partie 1) : jours d'activité du filleul comptés avec l'heure du SERVEUR (`syncedAt`) ;
+ *  - M2 (partie 1) : jour d'activité = jour du téléphone si l'opération est arrivée sur le serveur
+ *    au plus 3 jours après (et pas avant), sinon jour d'arrivée (`syncedAt`) ;
  *  - (i) : une cotisation de tontine n'est pas une dépense dans la « semaine régulière » ;
  *  - F5 : plafond quotidien d'essais de codes par compte.
  */
@@ -13,17 +14,32 @@ const SIGNUP = Date.UTC(2026, 9, 1, 8);
 const UID = 'filleul';
 const op = (i: number, p: Partial<server.ActivityOp>): server.ActivityOp => ({ id: `t${i}`, type: 'expense', amount: 1000 + i, categoryId: 'cat_food', createdAt: SIGNUP + D, updatedAt: SIGNUP + D, createdBy: UID, ...p });
 
-describe('M2 — semaine régulière : l’heure du serveur fait foi', () => {
-  it('dates « createdAt » écrites par le téléphone sur 5 jours, mais tout envoyé le même jour : 1 seul jour actif', () => {
-    const sameServerDay = SIGNUP + 5 * D + 3600_000;
-    const ops = [0, 1, 2, 3, 4].map((k) => op(k, { createdAt: SIGNUP + k * D + 7200_000, updatedAt: SIGNUP + k * D + 7200_000, syncedAt: sameServerDay + k * 60_000 }));
-    const w = server.evaluateWeek({ ops, goals: [], uid: UID, signupAt: SIGNUP, now: SIGNUP + 6 * D, timeZone: 'Africa/Abidjan' });
-    expect(w.progress.activeDays).toBe(1);
+describe('M2 — semaine régulière : jour du téléphone si arrivé à temps, sinon jour d’arrivée', () => {
+  const week = (ops: server.ActivityOp[], now: number) => server.evaluateWeek({ ops, goals: [], uid: UID, signupAt: SIGNUP, now, timeZone: 'Africa/Abidjan' });
+  it('filleul hors ligne 3 jours puis synchronisé en une fois : 3 jours comptés', () => {
+    const arrival = SIGNUP + 4 * D + 3600_000;
+    const ops = [1, 2, 3].map((k) => op(k, { createdAt: SIGNUP + k * D + 7200_000, updatedAt: SIGNUP + k * D + 7200_000, syncedAt: arrival + k * 1000 }));
+    expect(week(ops, SIGNUP + 5 * D).progress.activeDays).toBe(3);
+  });
+  it('opérations antidatées de plus de 3 jours : comptées au jour d’arrivée', () => {
+    const arrival = SIGNUP + 6 * D + 3600_000;
+    const ops = [0, 1, 2].map((k) => op(k, { createdAt: SIGNUP + k * D + 1800_000, updatedAt: SIGNUP + k * D + 1800_000, syncedAt: arrival + k * 1000 }));
+    expect(week(ops, SIGNUP + 6 * D + 7200_000).progress.activeDays).toBe(1);
+  });
+  it('date dans le futur par rapport à l’arrivée : jour d’arrivée', () => {
+    const arrival = SIGNUP + D + 3600_000;
+    const ops = [3, 4, 5].map((k) => op(k, { createdAt: SIGNUP + k * D, updatedAt: SIGNUP + k * D, syncedAt: arrival + k * 1000 }));
+    expect(week(ops, SIGNUP + 6 * D).progress.activeDays).toBe(1);
+  });
+  it('limite : 3 jours pile → jour du téléphone ; 3 jours et 1 ms → jour d’arrivée', () => {
+    const created = SIGNUP + 3600_000;
+    const at = (syncedAt: number) => server.countedEvents([op(1, { createdAt: created, updatedAt: created, syncedAt })], [], UID, SIGNUP, 'Africa/Abidjan')[0]?.at;
+    expect(at(created + 3 * D)).toBe(created);
+    expect(at(created + 3 * D + 1)).toBe(created + 3 * D + 1);
   });
   it('sans heure du serveur (document écrit par l’administration) : la date de création reste utilisée', () => {
     const ops = [0, 1].map((k) => op(k, { createdAt: SIGNUP + k * D + 7200_000, updatedAt: SIGNUP + k * D + 7200_000 }));
-    const w = server.evaluateWeek({ ops, goals: [], uid: UID, signupAt: SIGNUP, now: SIGNUP + 3 * D, timeZone: 'Africa/Abidjan' });
-    expect(w.progress.activeDays).toBe(2);
+    expect(week(ops, SIGNUP + 3 * D).progress.activeDays).toBe(2);
   });
 });
 
