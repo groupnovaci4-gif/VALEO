@@ -19,4 +19,4 @@ intégrés dans `src/i18n/fr.ts` et `src/i18n/en.ts`. Format : `clé` — FR —
 
 Ligne des rapports et type de l'export CSV (texte donné par le fondateur) :
 
-14. `rep.savedTontine` — FR : « Mis de côté › Tontine » — EN : « Set aside › Tontine » (traduction anglaise proposée, à confirmer)
+14. `rep.savedTontine` — FR : « Mis de côté › Tontine » — EN : « Set aside › Tontine » (validée le 2026-10-15)

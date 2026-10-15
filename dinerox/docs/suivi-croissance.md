@@ -87,6 +87,12 @@ fondateur (uniquement après son message « Étape N validée »).
 | `link.app.lead` et politique de confidentialité (3 ajouts, FR et EN) | 🟦 | validés le 2026-10-14, intégrés mot pour mot (`src/content/legal.ts`, test) |
 | Déploiement : règles, `recordSignupOrigin`, `adminOriginStats` | ⛔ | attend l'accord du fondateur, commande par commande |
 
+## Correctif « argent mis de côté » (cercle fermé)
+
+| Élément | Statut | Preuve / note |
+|---|---|---|
+| Règle du cercle fermé (CLAUDE.md règle 29) : aucune dépense sur l'épargne, cotisation = épargne, reste par jour, « pas assez d'argent » | 📱 À vérifier sur téléphone | `tests/savings-circle.test.ts`, `e2e/savings-circle.js` (17/17), série complète 807 ✓ / 1 ✗ (`lot-b.js`, existait avant) ; fusionné dans `dinerox-main` (1203577), rien à déployer |
+
 ## À faire après les 5 étapes
 
 Demandé par le fondateur le 2026-10-14 ; aucun n'est commencé.
@@ -99,6 +105,9 @@ Demandé par le fondateur le 2026-10-14 ; aucun n'est commencé.
 | (d) Piste « test interne » de Google Play (voir la vraie fenêtre d'avis avant la publication) | ⬜ | à préparer, liste ci-dessous |
 | (e) Demande d'avis quand une cagnotte de TONTINE PARTAGÉE est reçue | ⬜ | quand ce moment existera (aujourd'hui seul le carnet enregistre une cagnotte reçue) : `markReviewMoment('tontine')` |
 | (g) Cagnotte de tontine reçue | ⬜ | Aujourd'hui comptée comme un revenu, elle peut remplacer le revenu déclaré dans le reste par jour. Avec la règle du cercle, c'est de l'épargne qui revient au disponible. À revoir. |
+| (h) e2e `lot-b.js` : vérification « J'ai compris » ambiguë avec la carte du coach | ⬜ | test fragile (le bouton « J'ai compris » d'une carte du coach, selon la date des données de démonstration) ; existait avant le correctif |
+| (i) Parrainage : une cotisation de tontine comptée comme une dépense dans la « semaine régulière » du filleul | ⬜ | à aligner sur la règle du cercle ; demandera un déploiement des fonctions du parrainage |
+| (j) Anciennes cotisations de tontine partagée sans lien ni sous-catégorie Tontine | ⬜ | restent comptées comme des dépenses |
 
 Préparer la piste « test interne » (décision du fondateur, 2026-10-14) :
 1. **Compte développeur Google Play** (frais d'inscription unique de Google, vérification d'identité).
@@ -164,3 +173,7 @@ Préparer la piste « test interne » (décision du fondateur, 2026-10-14) :
   d'une testeuse : dépenses prises sur l'épargne). Correctif « argent mis de
   côté » (règle du cercle fermé, CLAUDE.md règle 29) codé et testé sur la
   branche `correctif-epargne`, non fusionné, rien de déployé.
+- 2026-10-15 : correctif « argent mis de côté » validé par le fondateur (14 textes
+  validés) → 📱 À vérifier sur téléphone ; fusion dans `dinerox-main` (avance
+  rapide, 1203577). Désormais tout se fait depuis `dinerox-main`. Reprise du
+  déploiement de l'étape 5 (photo de la production, simulation).
