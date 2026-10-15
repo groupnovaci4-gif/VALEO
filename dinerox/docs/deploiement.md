@@ -143,3 +143,10 @@ reasonCode: 'other'}` (statut actif, jamais suspendu), effacée ensuite par
 | `tontineInvites` | 0 | 0 |
 | `usage` | 0 | 0 |
 | `users` | 11 | 11 |
+
+### F6 — domaines autorisés de Firebase Auth (2026-10-15)
+
+Avant : `localhost`, `dinerox-app.firebaseapp.com`, `dinerox-app.web.app`, `dinerox-admin.web.app`.
+Après (relu) : `dinerox-app.firebaseapp.com`, `dinerox-app.web.app`, `dinerox-admin.web.app`.
+Commande : `PATCH identitytoolkit admin/v2 …/config?updateMask=authorizedDomains`.
+Retour arrière : même commande avec `localhost` ajouté en tête de liste.
