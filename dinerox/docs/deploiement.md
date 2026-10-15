@@ -96,6 +96,8 @@ Depuis `dinerox-main`, `npm run deploy`, simulation puis accord à chaque comman
    fonction existante modifiée).
 Aucun index. `functions:link` et Hosting (`/a`, `/t/**`) : exclus tant que le
 domaine `dinerox.app` n'est pas branché.
+Photo refaite le 2026-10-15 avant la reprise (`deploy/production-2026-10-15/`) :
+identique à celle du 14 (mêmes règles, index, 57 fonctions et dates).
 Photo AVANT le déploiement, lecture seule : `deploy/production-2026-10-14c/`
 (règles `d53857fd-7e9b-49e9-9608-52449c18deea` = celles de l'étape 3, 14 index +
 8 réglages, 57 fonctions et leur date de mise à jour).
