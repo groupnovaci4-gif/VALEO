@@ -2,7 +2,8 @@
  * I1 (audit 2026-10, décision du fondateur) : l'audio de la dictée reste sur le
  * téléphone par défaut ; sinon une demande d'accord claire, une seule fois.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'fr' }] }));
 import { consentPatch, localeInstalled, methodPatch, micOffered, onDeviceStatusOf, onDeviceTogglePatch, onDeviceWanted, voiceRoute } from '../src/core/entry/voicePrivacy';
 import { DEFAULT_ENTRY_PREFS, entryPrefs } from '../src/core/entry/prefs';
 
@@ -90,5 +91,17 @@ describe('I1 — état de la reconnaissance sur l’appareil', () => {
     expect(onDeviceStatusOf(true, null, 'fr')).toBe('unsupported');
     expect(onDeviceStatusOf(true, ['en-US'], 'fr')).toBe('missing');
     expect(onDeviceStatusOf(true, ['fr-FR'], 'fr')).toBe('ready');
+  });
+});
+
+describe('I1 — message du pack de langue : la langue réellement utilisée pour la dictée', () => {
+  it('« le français » / « l’anglais » ; EN : « French » / « English » — seule modification du texte', async () => {
+    const { translate } = await import('../src/i18n');
+    const { packLanguageKey } = await import('../src/core/entry/voicePrivacy');
+    const pack = (ui: 'fr' | 'en', voice: 'fr' | 'en') => translate(ui, 'entry.voice.packText', { language: translate(ui, packLanguageKey(voice)) });
+    expect(pack('fr', 'fr')).toBe('Pour dicter sans envoyer le son, téléchargez le français dans la saisie vocale de votre téléphone.');
+    expect(pack('fr', 'en')).toBe("Pour dicter sans envoyer le son, téléchargez l'anglais dans la saisie vocale de votre téléphone.");
+    expect(pack('en', 'en')).toBe("To dictate without sending the sound, download English in your phone's voice typing settings.");
+    expect(pack('en', 'fr')).toBe("To dictate without sending the sound, download French in your phone's voice typing settings.");
   });
 });

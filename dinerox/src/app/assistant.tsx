@@ -9,7 +9,7 @@
  */
 import { useVoiceRoute } from '@/features/entry/useVoiceRoute';
 import { VoiceConsentCard } from '@/features/entry/VoiceConsentCard';
-import { micOffered, type VoiceRoute } from '@/core/entry/voicePrivacy';
+import { micOffered, packLanguageKey, type VoiceRoute } from '@/core/entry/voicePrivacy';
 import { withConsent } from '@/core/aiConsent';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, Pressable, TextInput, View } from 'react-native';
@@ -431,7 +431,7 @@ export default function Assistant() {
           <View style={{ paddingHorizontal: 12, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
             <VoiceConsentCard
               title={voiceAsk === 'consent' ? t('entry.voice.consentTitle') : undefined}
-              text={voiceAsk === 'consent' ? t('entry.voice.consentText') : t('entry.voice.packText')}
+              text={voiceAsk === 'consent' ? t('entry.voice.consentText') : t('entry.voice.packText', { language: t(packLanguageKey(voiceRoute.language)) })}
               yes={voiceAsk === 'consent' ? t('entry.voice.consentYes') : t('entry.voice.packUseService')}
               no={voiceAsk === 'consent' ? t('entry.voice.consentNo') : t('entry.voice.packLater')}
               onYes={() => answerVoice('service')}

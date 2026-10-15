@@ -72,3 +72,8 @@ export function onDeviceStatusOf(supports: boolean, installed: string[] | null, 
 export function onDeviceTogglePatch(on: boolean): Partial<EntryPrefs> {
   return on ? { onDeviceChoice: true, onDeviceOnly: true } : { onDeviceChoice: false, onDeviceOnly: false, voiceConsent: 'service' };
 }
+
+/** Nom de la langue de la dictée dans le message du pack de langue (« le français », « l'anglais »). */
+export function packLanguageKey(language: 'fr' | 'en'): 'entry.voice.lang.fr' | 'entry.voice.lang.en' {
+  return language === 'en' ? 'entry.voice.lang.en' : 'entry.voice.lang.fr';
+}

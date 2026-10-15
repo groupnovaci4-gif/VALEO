@@ -48,7 +48,7 @@ import { useEntryStats } from './useEntryStats';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { useVoiceRoute } from './useVoiceRoute';
 import { VoiceConsentCard } from './VoiceConsentCard';
-import { micOffered, type VoiceRoute } from '@/core/entry/voicePrivacy';
+import { micOffered, packLanguageKey, type VoiceRoute } from '@/core/entry/voicePrivacy';
 import { useCategoryPick } from '@/features/categories/CategoryPicker';
 import { pickCategories } from '@/core/categoryOps';
 import { useCategoryCatalog } from '@/services/categoryCatalog';
@@ -711,7 +711,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       {voice === 'consent' || voice === 'pack' ? (
         <VoiceConsentCard
           title={voice === 'consent' ? t('entry.voice.consentTitle') : undefined}
-          text={voice === 'consent' ? t('entry.voice.consentText') : t('entry.voice.packText')}
+          text={voice === 'consent' ? t('entry.voice.consentText') : t('entry.voice.packText', { language: t(packLanguageKey(voiceLang)) })}
           yes={voice === 'consent' ? t('entry.voice.consentYes') : t('entry.voice.packUseService')}
           no={voice === 'consent' ? t('entry.voice.consentNo') : t('entry.voice.packLater')}
           onYes={() => answerVoice('service')}

@@ -32,6 +32,8 @@ export function useVoiceRoute(language: SpeechLanguage) {
   };
 
   return {
+    /** Langue de la dictée (message du pack de langue). */
+    language,
     /** null tant que l'état du téléphone n'est pas connu. */
     route: onDevice ? voiceRoute({ onDevice, prefs }) : null,
     /** Décision relue à la source (au moment d'ouvrir le micro). */

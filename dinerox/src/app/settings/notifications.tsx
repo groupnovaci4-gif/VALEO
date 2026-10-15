@@ -13,7 +13,7 @@ import { speak, stopVoice } from '@/services/voice';
 import { ensurePermission, notificationsSupported, permissionStatus } from '@/services/notifications';
 import { useVoiceRoute } from '@/features/entry/useVoiceRoute';
 import { VoiceConsentCard } from '@/features/entry/VoiceConsentCard';
-import { methodPatch, micOffered, onDeviceTogglePatch, onDeviceWanted, type VoiceRoute } from '@/core/entry/voicePrivacy';
+import { methodPatch, micOffered, onDeviceTogglePatch, onDeviceWanted, packLanguageKey, type VoiceRoute } from '@/core/entry/voicePrivacy';
 
 type BoolKey = Exclude<keyof NotificationPrefs, 'dailyEntryReminder' | 'dailyReminderHour'>;
 const KEYS: BoolKey[] = ['budgetAlerts', 'goalProgress', 'incomeReceived', 'unusualSpending', 'savingsReminder', 'debtDue', 'tontineDue', 'weeklySummary', 'monthlySummary'];
@@ -154,7 +154,7 @@ export default function NotificationSettings() {
         {voiceAsk ? (
           <VoiceConsentCard
             title={voiceAsk === 'consent' ? t('entry.voice.consentTitle') : undefined}
-            text={voiceAsk === 'consent' ? t('entry.voice.consentText') : t('entry.voice.packText')}
+            text={voiceAsk === 'consent' ? t('entry.voice.consentText') : t('entry.voice.packText', { language: t(packLanguageKey(voiceRoute.language)) })}
             yes={voiceAsk === 'consent' ? t('entry.voice.consentYes') : t('entry.voice.packUseService')}
             no={voiceAsk === 'consent' ? t('entry.voice.consentNo') : t('entry.voice.packLater')}
             onYes={() => answerVoice('service')}
