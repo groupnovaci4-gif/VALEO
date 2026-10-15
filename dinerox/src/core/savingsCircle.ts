@@ -46,7 +46,7 @@ export function expenseAccountOptions<A extends Acc>(accounts: A[], keepId?: str
  * sur le compte courant par défaut (`redirected` : expliquer pourquoi).
  */
 export function expenseAccountFor(
-  t: Pick<Transaction, 'type' | 'accountId' | 'categoryId' | 'subcategoryId'>,
+  t: Pick<Transaction, 'type' | 'accountId' | 'categoryId' | 'subcategoryId' | 'tontineId'>,
   accounts: Pick<Account, 'id' | 'isSavings'>[],
   defaultSpendingId: string | null,
 ): { accountId: string; redirected: boolean } {
