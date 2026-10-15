@@ -119,6 +119,7 @@ Demandé par le fondateur le 2026-10-14 ; aucun n'est commencé.
 | F2, F9, F10 | ⬜ | risque accepté par le fondateur |
 | I3 — prénom visible dans les invitations en attente | ⬜ | à proposer plus tard |
 | I1 — voix : audio traité sur l'appareil par défaut | 🟧 | accepté le 2026-10-15, codé sur `voix-i1` (fusionné dans `dinerox-main` après tests) |
+| Connexion Google de l'application publiée (`com.dinerox.app`) : passer à la connexion Google native (SDK Google Identity / Credential Manager) recommandée par Google | ⬜ | plus sûre que le schéma d'URI personnalisé utilisé pour l'APK de test (`<paquet>:/oauthredirect`, réglage activé à la main sur le client Android) |
 | V4 — vérifier qu'aucun `temp_<uuid>.pcm` ne reste dans le cache après quelques dictées (Android 13+) | ⬜ | à vérifier plus tard (APK de contrôle ou émulateur Android 13+) : l'APK `staging` n'est pas débogable, son cache ne se lit pas |
 | Option A — fichiers `temp_<uuid>.pcm` vides de `expo-speech-recognition` (Android 13+, mode continu) | ⬜ | aujourd'hui effacés par l'application (option B, `services/speechTempFiles.ts`) ; à corriger à la source : ne créer le fichier que si un enregistrement est demandé (`ExpoAudioRecorder.kt`), par un correctif de la bibliothèque ou en signalant le défaut à ses auteurs |
 

@@ -44,6 +44,9 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
   },
   android: {
     package: brand.bundleId + suffix,
+    // Connexion Google (É1) : expo-auth-session revient vers `<paquet>:/oauthredirect`. Android
+    // seulement (fusionné avec `scheme`) : le schéma `dinerox` des liens ne change pas.
+    scheme: brand.bundleId + suffix,
     adaptiveIcon: {
       backgroundColor: brand.colors.night,
       foregroundImage: './assets/android-icon-foreground.png',
