@@ -20,13 +20,16 @@ export function isSavingExpense(t: Pick<Transaction, 'type' | 'categoryId'>): bo
 }
 
 /**
- * Cotisation de tontine (carnet ou tontine partagée) : sous-catégorie « Tontine »
- * (parent `cat_social` ou ancien `cat_informal`), ou l'ancienne catégorie
- * « Tontines » sans sous-catégorie. Retrouvée PAR IDENTIFIANT, jamais par libellé.
+ * Sous-catégories d'ÉPARGNE de la finance sociale (décision du fondateur, 2026-10-14) :
+ * « Tontine » et « Épargne communautaire ». Jamais « Cotisation », « Association »,
+ * « Prêt à un proche », ni une ancienne opération rangée SANS sous-catégorie (on ne sait
+ * pas si c'était une tontine ou une cotisation d'association : elle reste une dépense).
  */
+export const CIRCLE_SUBCATEGORY_IDS: ReadonlySet<string> = new Set([TONTINE_SUBCATEGORY, 'sub_informal_community']);
+
+/** Cotisation de tontine (carnet, tontine partagée) ou épargne communautaire : retrouvée PAR IDENTIFIANT, jamais par libellé. */
 export function isTontineContribution(t: { type: string; categoryId?: string | null; subcategoryId?: string | null }): boolean {
-  if (t.type !== 'expense') return false;
-  return t.subcategoryId === TONTINE_SUBCATEGORY || (t.categoryId === 'cat_informal' && !t.subcategoryId);
+  return t.type === 'expense' && !!t.subcategoryId && CIRCLE_SUBCATEGORY_IDS.has(t.subcategoryId);
 }
 
 /**

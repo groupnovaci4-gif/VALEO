@@ -145,14 +145,15 @@ describe('alias : la Tontine passe à « Finance sociale & obligations » sans r
   it('rapports : sous « Finance sociale & obligations », total identique', () => {
     const data = { ...emptySpaceData(), categories: after, transactions: effectiveTransactions([old, other], after) };
     const r = buildReport(data, 'month', '2026-09-15', 'XOF');
-    // Cercle fermé (fondateur, 2026-10-14) : une cotisation de tontine est de l'épargne, pas une dépense.
-    // Avant ce correctif : { cat_social: 10_000, cat_informal: 3_000 } dans « Dépenses par catégorie ».
-    // Désormais : ligne « Mis de côté › Tontine » (la sous-catégorie Tontine, et l'ancienne
-    // catégorie « Tontines et cotisations » sans sous-catégorie), même total avant/après l'alias.
-    expect(r.byCategory).toEqual([]);
-    expect([r.saved, r.savedTontine]).toEqual([13_000, 13_000]);
+    // Cercle fermé (fondateur, 2026-10-14) : une cotisation de TONTINE (sous-catégorie Tontine) est de
+    // l'épargne, pas une dépense. Avant ce correctif : { cat_social: 10_000, cat_informal: 3_000 } dans
+    // « Dépenses par catégorie ». Désormais : la tontine (10 000) passe sur la ligne « Mis de côté ›
+    // Tontine » ; l'ancienne opération SANS sous-catégorie (3 000) reste une dépense (on ne sait pas si
+    // c'était une tontine ou une cotisation d'association). Même résultat avant/après l'alias.
+    expect(r.byCategory.map((c) => [c.categoryId, c.amount])).toEqual([['cat_informal', 3_000]]);
+    expect([r.saved, r.savedTontine]).toEqual([10_000, 10_000]);
     const raw = buildReport({ ...data, transactions: [old, other] }, 'month', '2026-09-15', 'XOF');
-    expect([raw.saved, raw.savedTontine]).toEqual([r.saved, r.savedTontine]);
+    expect([raw.saved, raw.savedTontine, raw.byCategory.reduce((n, c) => n + c.amount, 0)]).toEqual([r.saved, r.savedTontine, r.byCategory.reduce((n, c) => n + c.amount, 0)]);
   });
 
   it('budgets : une enveloppe qui citait l’ancien identifiant garde l’opération ; sinon la nouvelle catégorie', () => {

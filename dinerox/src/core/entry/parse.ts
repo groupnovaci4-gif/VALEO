@@ -26,7 +26,7 @@ import { amountSpans, hasUnvalidatedUnit } from './numbers';
 import { keywordIndex, matchKeyword } from './keywords';
 import type { CategoryCatalog } from '../categoryCatalog';
 import VOCAB from './vocabulary.json';
-import { isTontineContribution } from '../savingsFlows';
+import { CIRCLE_SUBCATEGORY_IDS, isTontineContribution } from '../savingsFlows';
 
 export type EntryField = 'amount' | 'type' | 'category' | 'account';
 
@@ -260,7 +260,10 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
   const accounts = ctx.accounts.filter((a) => !a.deleted && a.active);
   // 1.8 : mots appris, mots de l'utilisateur, mots-clés du catalogue (avant le vocabulaire local).
   const keywords = keywordIndex(ctx.categories, ctx.catalog);
-  const kw = (seg: string, kind: 'expense' | 'income') => matchKeyword(seg, keywords, kind);
+  // Cercle fermé : une phrase qui nomme la tontine (ou l'épargne communautaire) est une cotisation
+  // d'épargne, même si elle dit aussi « cotisation » (« cotisation tontine 30 000 ») : ce mot l'emporte.
+  const circleKeywords = keywords.filter((k) => !!k.subcategoryId && CIRCLE_SUBCATEGORY_IDS.has(k.subcategoryId));
+  const kw = (seg: string, kind: 'expense' | 'income') => (kind === 'expense' ? matchKeyword(seg, circleKeywords, kind) : null) ?? matchKeyword(seg, keywords, kind);
   const sentenceDirection = direction(text);
   const segments = splitSegments(text);
 

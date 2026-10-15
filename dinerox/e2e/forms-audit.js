@@ -173,6 +173,8 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     ok(tx.includes('Prime audit') && tx.includes('Loyer audit'), `${when} : échéances récurrentes du jour générées (revenu et dépense)`);
     await go('/accounts'); const ac = await text(); ok(ac.includes('121 500') && ac.includes('50 000'), `${when} : soldes des comptes (191 500 + 30 000 − 100 000 ; Wave 50 000)`);
     await go('/goals'); const gl = await text(); ok(gl.includes('Moto Audit') && gl.includes('25 %'), `${when} : objectif et contribution`);
+    // Diagnostic : en cas d'échec, ce que la page montrait vraiment (capture et texte).
+    if (!(gl.includes('Moto Audit') && gl.includes('25 %'))) { await shot(`goals-${when}`); require('fs').writeFileSync(`${S}/audit-goals-${when}.txt`, gl); }
     await go('/debts'); ok((await text()).includes('450 000'), `${when} : dette et remboursement`);
     await go('/recurring'); const rc = await text(); ok(rc.includes('Prime audit') && rc.includes('Loyer audit'), `${when} : récurrences`);
     await go('/budget'); ok((await text()).includes('Enveloppe audit'), `${when} : enveloppe`);

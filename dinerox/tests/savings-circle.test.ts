@@ -42,7 +42,7 @@ const TONTINE = { categoryId: 'cat_social', subcategoryId: 'sub_informal_tontine
 function signup(accounts: string[], balances: Record<string, number> = {}) {
   let i = 0;
   const s = starterStructure(
-    { firstName: 'Awa', currency: 'XOF', monthlyIncome: 100_000, incomeFrequency: 'monthly', accounts, openingBalances: balances, mainExpenses: [], goals: [], budgetMethod: 'envelopes' },
+    { firstName: 'Awa', currency: 'XOF', monthlyIncome: 100_000, incomeFrequency: 'monthly', accounts, openingBalances: balances, mainExpenses: [], goals: [], budgetMethod: 'envelopes', country: 'CI', zone: 'africa' },
     { now: NOW, uid: 'u1', label: (x: string) => (fr as Record<string, string>)[x] ?? x, date: TODAY, id: (p: string) => `${p}${++i}` } as never,
   );
   return { accounts: s.accounts as Account[], categories: s.categories ?? [], recurring: s.recurring ?? [] };
@@ -127,6 +127,12 @@ describe('phrases qui nomment l’épargne', () => {
       expect(r.items[0]).toMatchObject({ type: 'expense', amount: 10_000, accountId: cashOf(s.accounts), savingsRedirect: true });
     }
   });
+  it('« cotisation tontine 30 000 » : le mot « tontine » l’emporte sur « cotisation » (sous-catégorie Tontine)', () => {
+    const r = parseEntryText('cotisation tontine 30 000', ctx);
+    expect(r.kind === 'entries' && r.items[0].subcategoryId).toBe('sub_informal_tontine');
+    const dues = parseEntryText('cotisation association 5 000', ctx);
+    expect(dues.kind === 'entries' && isTontineContribution(dues.items[0] as never)).toBe(false);
+  });
   it('« cotisation tontine 30 000 avec l’épargne » : cotisation payée depuis l’épargne (mouvement dans le cercle)', () => {
     const r = parseEntryText("cotisation tontine 30 000 avec l'épargne", ctx);
     expect(r.kind).toBe('entries');
@@ -155,10 +161,14 @@ describe('cotisation de tontine : de l’épargne, pas une dépense', () => {
   const goal = (p: Partial<Goal> = {}): Goal => ({ id: 'g1', createdAt: NOW, updatedAt: NOW, createdBy: 'u1', name: 'Moto', icon: '🏍️', color: '#000', currency: 'XOF', targetAmount: 500_000, initialAmount: 0, targetDate: null, monthlyContribution: 20_000, status: 'active', order: 0, ...p }) as Goal;
   const contrib = (p: Partial<GoalContribution>): GoalContribution => ({ id: `gc${++k}`, createdAt: NOW, updatedAt: NOW, createdBy: 'u1', goalId: 'g1', amount: 0, date: '2026-09-02', ...p }) as GoalContribution;
 
-  it('un seul critère : cotisation (carnet, partagée, ancienne catégorie) et anciennes « dépenses » Épargne', () => {
+  it('un seul critère (fondateur) : Tontine et Épargne communautaire, oui ; Cotisation, Association, Prêt à un proche, catégorie sans sous-catégorie, non', () => {
     expect(isTontineContribution({ type: 'expense', ...TONTINE })).toBe(true);
-    expect(isTontineContribution({ type: 'expense', categoryId: 'cat_informal', subcategoryId: null })).toBe(true);
-    expect(isTontineContribution({ type: 'expense', categoryId: 'cat_informal', subcategoryId: 'sub_informal_dues' })).toBe(false);
+    expect(isTontineContribution({ type: 'expense', categoryId: 'cat_informal', subcategoryId: 'sub_informal_tontine' })).toBe(true);
+    expect(isTontineContribution({ type: 'expense', categoryId: 'cat_informal', subcategoryId: 'sub_informal_community' })).toBe(true);
+    for (const sub of ['sub_informal_dues', 'sub_informal_association', 'sub_informal_loan_given', null]) {
+      expect(isTontineContribution({ type: 'expense', categoryId: 'cat_social', subcategoryId: sub }), String(sub)).toBe(false);
+      expect(isTontineContribution({ type: 'expense', categoryId: 'cat_informal', subcategoryId: sub }), String(sub)).toBe(false);
+    }
     expect(isTontineContribution({ type: 'income', categoryId: 'inc_tontine', subcategoryId: null })).toBe(false);
     expect(isCircleMovement({ type: 'expense', categoryId: 'cat_savings', subcategoryId: null })).toBe(true);
     expect(isConsumption({ type: 'expense', ...TONTINE })).toBe(false);
