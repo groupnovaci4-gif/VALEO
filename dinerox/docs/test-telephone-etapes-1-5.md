@@ -156,7 +156,7 @@ le clavier s'ouvre ; le micro n'est plus proposé (bulle de l'accueil, onglet «
 Méthode « Parler » : la question revient à la dictée suivante.
 - [ ] OK  [ ] Pas OK — Ce que j'ai vu : ____________________
 
-**V4 — Aucun fichier temporaire de la dictée ne reste** (Android 13 ou plus). Faire 3 ou 4 dictées,
+**V4 — Aucun fichier temporaire de la dictée ne reste** (Android 13 ou plus). ⏳ **À vérifier plus tard (APK de contrôle ou émulateur Android 13+)** — pas pendant ce test (décision du fondateur, 2026-10-15). Faire 3 ou 4 dictées,
 puis vérifier qu'aucun fichier `temp_….pcm` ne reste dans le cache de l'application.
 L'APK `staging` n'est pas « débogable » : son cache ne se lit ni depuis le téléphone ni par câble.
 Ce contrôle demande un APK de contrôle débogable, branché au Mac, vérifié par Claude avec
