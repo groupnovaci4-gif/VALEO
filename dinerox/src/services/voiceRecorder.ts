@@ -11,6 +11,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { initialRecorder, liveTranscript, recorderReducer, type RecorderEffect, type RecorderNotice, type RecorderEvent, type RecorderState } from '@/core/entry/recorder';
 import { markMicOpen, SpeechInputError, type ListenOptions, type SpeechInputProvider } from './speechInput';
+import { purgeSpeechTempFiles } from './speechTempFiles';
 
 /** Délai avant de relancer le moteur (Android refuse un redémarrage instantané : « recognizer busy »). */
 const RESTART_DELAY_MS = 120;
@@ -81,6 +82,7 @@ export class VoiceRecorder {
     if (this.disposed) return;
     const out = recorderReducer(this.s, e);
     const was = this.s.status;
+    const wasActive = this.s.status === 'recording' || this.s.flushing;
     const before = this.s;
     this.s = out.state;
     for (const fx of out.effects) this.run(fx);
@@ -88,6 +90,8 @@ export class VoiceRecorder {
     if (active && !this.tick) this.startClock();
     if (!active && this.tick) this.stopClock();
     if (was !== this.s.status) markMicOpen(this.s.status === 'recording');
+    // Fin de la dictée : fichiers temporaires vides de la reconnaissance effacés (Android 13+, option B).
+    if (wasActive && !active) purgeSpeechTempFiles();
     if (this.s.notice && this.s !== before && (this.s.notice !== before.notice || this.s.changedAt !== before.changedAt)) this.cb.onNotice?.(this.s.notice, this.s.errorCode);
     this.cb.onState?.(this.s);
   }

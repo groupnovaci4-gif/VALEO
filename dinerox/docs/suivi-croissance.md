@@ -118,7 +118,8 @@ Demandé par le fondateur le 2026-10-14 ; aucun n'est commencé.
 | M2 partie 2 — e-mail vérifié pour valider un filleul | ⬜ | non pour l'instant ; la partie 1 (jours comptés avec `syncedAt`) est faite |
 | F2, F9, F10 | ⬜ | risque accepté par le fondateur |
 | I3 — prénom visible dans les invitations en attente | ⬜ | à proposer plus tard |
-| I1 — voix : audio traité sur l'appareil par défaut | ⬜ | décision préparée (rapport d'audit), rien de changé |
+| I1 — voix : audio traité sur l'appareil par défaut | 🟧 | accepté le 2026-10-15, codé sur `voix-i1` (fusionné dans `dinerox-main` après tests) |
+| Option A — fichiers `temp_<uuid>.pcm` vides de `expo-speech-recognition` (Android 13+, mode continu) | ⬜ | aujourd'hui effacés par l'application (option B, `services/speechTempFiles.ts`) ; à corriger à la source : ne créer le fichier que si un enregistrement est demandé (`ExpoAudioRecorder.kt`), par un correctif de la bibliothèque ou en signalant le défaut à ses auteurs |
 
 Préparer la piste « test interne » (décision du fondateur, 2026-10-14) :
 1. **Compte développeur Google Play** (frais d'inscription unique de Google, vérification d'identité).

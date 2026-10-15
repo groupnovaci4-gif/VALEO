@@ -20,6 +20,7 @@ import { QuickAddProvider } from '@/features/QuickAdd';
 import { EntryProvider } from '@/features/entry/EntryProvider';
 import { listenNotificationTaps } from '@/services/notifications';
 import { installWebAlert } from '@/services/webAlert';
+import { purgeSpeechTempFiles } from '@/services/speechTempFiles';
 
 installWebAlert();
 
@@ -81,6 +82,11 @@ function Navigator() {
     }
     if (inAuth) router.replace('/');
   }, [status, route]);
+
+  // Démarrage : nettoyage unique des fichiers temporaires vides déjà laissés par la reconnaissance vocale.
+  useEffect(() => {
+    purgeSpeechTempFiles();
+  }, []);
 
   // Notification touchée : ouverture de l'écran concerné (session ouverte uniquement).
   useEffect(() => {

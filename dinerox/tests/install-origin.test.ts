@@ -216,8 +216,9 @@ describe('politique de confidentialité et page /a : textes validés mot pour mo
       { title: titles[1][2], body: bodies[1][1] },
     ]);
   });
-  it('date de mise à jour de la politique : 14 octobre 2026 (FR et EN) ; conditions inchangées', () => {
-    expect([LEGAL.privacy.fr.updated, LEGAL.privacy.en.updated]).toEqual(['2026-10-14', '2026-10-14']);
+  it('date de mise à jour de la politique : 15 octobre 2026 depuis la dictée vocale (FR et EN) ; conditions inchangées', () => {
+    // Depuis : 2026-10-15 (section « Dictée vocale », tests/legal-voice.test.ts).
+    expect([LEGAL.privacy.fr.updated, LEGAL.privacy.en.updated]).toEqual(['2026-10-15', '2026-10-15']);
     expect([LEGAL.terms.fr.updated, LEGAL.terms.en.updated]).toEqual(['2026-10-01', '2026-10-01']);
   });
   it('page /a : phrase validée (FR et EN), sans « hors connexion »', () => {

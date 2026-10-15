@@ -1,6 +1,6 @@
 # Proposition I1 — l'audio de la dictée reste sur le téléphone par défaut
 
-Statut : 🟧 **acceptée par le fondateur (2026-10-15), textes tels quels ; codée sur la branche `voix-i1`** (`core/entry/voicePrivacy.ts`, `tests/voice-privacy.test.ts`, `e2e/voice-consent.js`). Paragraphe de la politique de confidentialité : en attente de validation.
+Statut : 🟧 **acceptée par le fondateur (2026-10-15), textes tels quels ; codée sur la branche `voix-i1`** (`core/entry/voicePrivacy.ts`, `tests/voice-privacy.test.ts`, `e2e/voice-consent.js`). Politique de confidentialité : section « Dictée vocale » ajoutée (FR + EN, 2026-10-15), première phrase corrigée après vérification (fichiers `temp_<uuid>.pcm` vides sur Android 13+, effacés par l'application : `services/speechTempFiles.ts`).
 
 ## Aujourd'hui (constaté dans le code)
 
