@@ -150,3 +150,16 @@ Avant : `localhost`, `dinerox-app.firebaseapp.com`, `dinerox-app.web.app`, `dine
 Après (relu) : `dinerox-app.firebaseapp.com`, `dinerox-app.web.app`, `dinerox-admin.web.app`.
 Commande : `PATCH identitytoolkit admin/v2 …/config?updateMask=authorizedDomains`.
 Retour arrière : même commande avec `localhost` ajouté en tête de liste.
+
+### F3 — politique de mot de passe de Firebase Auth (2026-10-15)
+
+Avant : aucune politique (`passwordPolicyConfig` absent).
+Commande : `PATCH identitytoolkit admin/v2 …/config?updateMask=passwordPolicyConfig` avec
+`{"passwordPolicyEnforcementState":"ENFORCE","forceUpgradeOnSignin":false,"passwordPolicyVersions":[{"customStrengthOptions":{"minPasswordLength":8}}]}`.
+Accepté sans mise à niveau vers Identity Platform (13:14 UTC). Relu : ENFORCE, 8 caractères
+minimum, `forceUpgradeOnSignin` faux (les mots de passe existants restent valables) ;
+domaines autorisés inchangés (les 3 de F6).
+Vérification : inscription par l'API avec 7 caractères → 400
+`PASSWORD_DOES_NOT_MEET_REQUIREMENTS`, aucun compte créé. L'application exigeait déjà
+8 caractères (`validatePassword`, `isPasswordStrong`) : aucun changement pour l'utilisateur.
+Retour arrière : même commande avec `"passwordPolicyEnforcementState":"OFF"`.
