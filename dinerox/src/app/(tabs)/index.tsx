@@ -30,6 +30,7 @@ import { formatMoney, type CurrencyCode } from '@/core/money';
 import { authErrorKey, resendVerification } from '@/services/auth';
 import { DailyAllowanceCard } from '@/features/entry/DailyAllowanceCard';
 import { TontineDueCard } from '@/features/tontine/TontineDueCard';
+import { ShortfallCard } from '@/features/circle/ShortfallCard';
 import { CatalogUpdateCard } from '@/features/categories/CatalogUpdateCard';
 import { EntryPrompt } from '@/features/entry/EntryPrompt';
 import { InviteCard } from '@/features/referral/InviteCard';
@@ -118,6 +119,8 @@ function HomeScreen() {
 
       {/* 1. Le repère : reste par jour + solde disponible, dans une seule carte. */}
       <DailyAllowanceCard hidden={hidden} onToggleHidden={() => setHidden((h) => !h)} available={position.free} />
+      {/* Cercle fermé : disponible à zéro ou négatif → retirer de l'épargne ou d'un objectif. */}
+      <ShortfallCard hidden={hidden} />
       <TontineDueCard hidden={hidden} />
       <CatalogUpdateCard dismissible />
       {/* Filleul : « Votre semaine DineroX » (compteurs du serveur, aucun montant). */}

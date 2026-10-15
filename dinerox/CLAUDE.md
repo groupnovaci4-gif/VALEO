@@ -239,3 +239,33 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     côté serveur ; un groupe de moins de 5 ne sort jamais du serveur (ni nom,
     ni nombre exact). Compté même sans consentement analytique (décision du
     fondateur : rien n'est rattaché à une personne).
+29. **L'ARGENT MIS DE CÔTÉ — cercle fermé (règle métier du fondateur, 2026-10-14,
+    `core/savingsCircle.ts`, `core/savingsFlows.ts`).**
+    1. Comptes d'épargne (Épargne, Investissement, compte Tontine), objectifs,
+       tontines (carnet et partagée) et réserve famille forment un cercle fermé :
+       cet argent n'est JAMAIS disponible pour les dépenses (revenu 100 000,
+       épargne 60 000 → disponible 40 000).
+    2. Dans le cercle, l'argent circule librement (ce n'est pas une dépense) :
+       une cotisation de tontine se paie depuis un compte courant, un compte
+       d'épargne ou un objectif (l'objectif baisse d'autant, contribution
+       négative liée). Une cotisation est de l'ÉPARGNE, jamais une dépense.
+    3. Une dépense n'est JAMAIS prise sur un compte d'épargne ni sur un objectif,
+       même par choix : retirer d'abord vers un compte courant (le retrait
+       apparaît dans l'historique). Aucun compte d'épargne par défaut ni dans la
+       liste d'une dépense ; le « dernier compte utilisé » est un compte courant ;
+       « Espèces » est créé s'il n'existe aucun compte courant. Garde-fou central :
+       `saveTransaction` reporte sur un compte courant toute nouvelle dépense sur
+       l'épargne (une ancienne reste telle quelle, modifiable).
+    4. Exception inchangée : la réserve famille paie directement ce pour quoi elle
+       existe (`applyReserveUse`), sans nouvelle limite.
+    UN SEUL critère, `isCircleMovement` (cotisation de tontine, ancienne
+    « dépense » Épargne), utilisé par TOUS les calculs : dépenses du mois,
+    rapports (ligne « Mis de côté › Tontine »), export, budget, reste par jour,
+    score, coach, conseils, résumé de l'assistant, analyse. Reste par jour : une
+    cotisation payée depuis le disponible le fait baisser de son montant ENTIER
+    (`tontinePaid`, jamais fondue dans la mise de côté prévue) ; depuis l'épargne
+    ou un objectif, il ne change pas ; l'épargne de départ d'un compte d'épargne
+    créé ce mois-ci est déduite une fois. « Pas assez d'argent » : message après
+    une dépense seulement si le disponible devient NÉGATIF, carte de l'accueil à
+    zéro ou moins, jamais si la personne n'a jamais renseigné son argent
+    (`moneyTracked`), aucune notification ; une dépense est TOUJOURS enregistrée.

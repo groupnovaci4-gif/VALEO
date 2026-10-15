@@ -13,7 +13,7 @@
 import type { Account, Goal, GoalContribution, Transaction } from './types';
 import type { CurrencyCode } from './money';
 import { inPeriod, type ISODate } from './dates';
-import { isSavingExpense } from './savingsFlows';
+import { isCircleMovement } from './savingsFlows';
 
 export function accountBalance(account: Account, transactions: Transaction[]): number {
   let balance = account.openingBalance;
@@ -60,7 +60,7 @@ export interface FlowTotals {
   /** income − expense. */
   net: number;
   count: number;
-  /** 1.8 — Anciennes « dépenses » d'épargne (cat_savings, cat_investment) : de l'épargne, hors dépenses. */
+  /** Argent mis de côté par des opérations de type dépense (anciennes « dépenses » Épargne, cotisations de tontine) : hors dépenses. */
   savedAsExpense: number;
 }
 
@@ -88,7 +88,7 @@ export function flowTotals(
     }
     count++;
     if (t.type === 'income') income += t.amount;
-    else if (isSavingExpense(t)) savedAsExpense += t.amount;
+    else if (isCircleMovement(t)) savedAsExpense += t.amount;
     else expense += t.amount;
   }
   return { income, expense, net: income - expense, count, otherCurrencyCount, savedAsExpense };

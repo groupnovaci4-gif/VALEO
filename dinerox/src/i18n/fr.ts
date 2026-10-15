@@ -2106,6 +2106,21 @@ export const fr = {
   "admin.origin.builder.domain": "Lien {host} (fonctionne quand le domaine sera branché)",
   "admin.origin.builder.copy": "Copier",
   "admin.origin.builder.copied": "Lien copié",
+  // Correctif « argent mis de côté » (validé le 2026-10-14, docs/textes-correctif-epargne.md).
+  "fp.money.spendingHint": "Indiquez seulement l'argent que vous pouvez dépenser. Votre épargne se note à part, sur le compte Épargne.",
+  "circle.redirect": "L'épargne ne paie pas directement une dépense. Cette dépense est enregistrée sur {account}. Pour utiliser votre épargne, retirez d'abord l'argent vers un compte courant.",
+  "circle.withdraw": "Retirer de mon épargne ou d'un objectif",
+  "circle.shortfall": "Votre argent disponible est passé sous zéro : il manque {amount}.",
+  "circle.card.title": "Plus d'argent disponible",
+  "circle.card.body": "Votre argent disponible est à {amount}. Retirez de votre épargne ou d'un objectif pour continuer à dépenser.",
+  "circle.pick.title": "D'où voulez-vous retirer {amount} ?",
+  "circle.pick.goal": "Mis de côté : {amount}",
+  "tontine.payFrom": "Payer depuis",
+  "tontine.payFromCircle": "Payée depuis votre épargne ou un objectif, cette cotisation reste de l'épargne : votre disponible ne change pas.",
+  "tontine.payShortfall": "Votre disponible ne suffit pas pour cette cotisation. Payez-la directement depuis votre épargne ou un objectif.",
+  "sav.move.expenseVia": "Le retrait vers {account}, puis la dépense, apparaîtront dans l'historique.",
+  "tx.legacySavings": "Cette dépense a été prise sur l'épargne. Choisissez un compte courant pour la corriger.",
+  "rep.savedTontine": "Mis de côté › Tontine",
 } as const;
 
 export type TKey = keyof typeof fr;

@@ -23,6 +23,8 @@ import type { Transaction, TransactionType } from '@/core/types';
 import { uploadReceipt } from '@/services/receipts';
 import { ReserveUseToggle } from '@/features/reserve/ReserveUseToggle';
 import { reserveEligible, reserveUseOf } from '@/core/reserve';
+import { defaultSpendingAccountId, expenseAccountOptions } from '@/core/savingsCircle';
+import { isTontineContribution } from '@/core/savingsFlows';
 
 export interface TxInitial {
   type?: TransactionType;
@@ -47,7 +49,8 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
   const actions = useActions();
   const cats = useCategoryLabels();
   const accounts = data.accounts.filter((a) => a.active || a.id === existing?.accountId || a.id === existing?.toAccountId);
-  const defaultAccount = accounts.find((a) => !a.isSavings) ?? accounts[0];
+  // Cercle fermé : le compte proposé d'office est toujours un compte courant (aucun : « Espèces » créé à l'enregistrement).
+  const defaultAccount = accounts.find((a) => a.id === defaultSpendingAccountId(accounts, null, currency));
 
   const [type, setType] = useState<TransactionType>(existing?.type ?? initial?.type ?? 'expense');
   const [amount, setAmount] = useState<number | null>(existing?.amount ?? initial?.amount ?? null);
@@ -187,6 +190,11 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
     ]);
 
   const accountOptions = accounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }));
+  // Une DÉPENSE ne se prend que sur un compte courant (une cotisation de tontine, aussi sur l'épargne) ;
+  // une ancienne dépense sur l'épargne garde son compte affiché, pour le corriger.
+  const expenseOnSpending = type === 'expense' && !isTontineContribution({ type, categoryId, subcategoryId });
+  const payOptions = expenseOnSpending ? expenseAccountOptions(accounts, existing?.accountId).map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color })) : accountOptions;
+  const legacySavings = expenseOnSpending && !!from?.isSavings;
   const titleKey: TKey = existing ? 'tx.edit' : type === 'income' ? 'tx.new.income' : type === 'transfer' ? 'tx.new.transfer' : 'tx.new.expense';
 
   return (
@@ -228,7 +236,12 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {type === 'transfer' ? t('tx.fromAccount') : t('tx.account')}
       </Text>
-      <ChipGroup scroll options={accountOptions} value={accountId} onChange={setAccountId} />
+      <ChipGroup scroll options={type === 'transfer' ? accountOptions : payOptions} value={accountId} onChange={setAccountId} />
+      {legacySavings ? (
+        <Text variant="caption" tone="subtle" style={{ marginTop: -8, marginBottom: 12 }}>
+          {t('tx.legacySavings')}
+        </Text>
+      ) : null}
 
       {type === 'transfer' ? (
         <>

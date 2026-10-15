@@ -37,6 +37,8 @@ import { today } from '@/core/dates';
 import { isValidAmount, type CurrencyCode } from '@/core/money';
 import { goalSaved } from '@/core/balance';
 import { tontineContributionCategory } from '@/core/tontine';
+import { isTontineContribution } from '@/core/savingsFlows';
+import { defaultSpendingAccountId, planTontinePayment, type TontineSource } from '@/core/savingsCircle';
 import { deleteMode, planMerge, restoreDefaults } from '@/core/categoryOps';
 import { learnWord } from '@/core/entry/keywords';
 import { linkedPartAfterEdit, validateDeposit, validateWithdraw, type DepositInput, type WithdrawInput } from '@/core/savings';
@@ -171,7 +173,8 @@ export function useActions() {
   const ensureCashAccount = useCallback(
     (currency: string): string => {
       const d = data();
-      const usable = d.accounts.find((a) => a.active && !a.deleted && !a.isSavings && a.currency === currency) ?? d.accounts.find((a) => a.active && !a.deleted && a.currency === currency);
+      // Cercle fermé : le compte où l'on dépense est toujours un compte courant (jamais l'épargne).
+      const usable = d.accounts.find((a) => a.active && !a.deleted && !a.isSavings && a.currency === currency);
       if (usable) return usable.id;
       const id = d.accounts.some((a) => a.id === 'acc_cash_auto') ? newId(PREFIX.accounts) : 'acc_cash_auto';
       save<Account>('accounts', {
@@ -245,6 +248,16 @@ export function useActions() {
         draft = { ...draft, accountId: ensureCashAccount(draft.currency) };
         d = data();
       }
+      // Cercle fermé (2026-10-14) : une DÉPENSE n'est jamais prise sur un compte d'épargne
+      // (une cotisation de tontine, si : mouvement dans le cercle). Elle est enregistrée sur un
+      // compte courant — « Espèces » créé s'il n'en existe aucun. Une ANCIENNE dépense déjà sur
+      // l'épargne et dont le compte ne change pas reste telle quelle (aucune donnée modifiée).
+      const previousTx = draft.id ? d.transactions.find((x) => x.id === draft.id) : undefined;
+      const keepsLegacy = !!previousTx && previousTx.type === 'expense' && previousTx.accountId === draft.accountId;
+      if (!keepsLegacy && draft.type === 'expense' && d.accounts.some((a) => a.id === draft.accountId && a.isSavings) && !isTontineContribution(draft)) {
+        draft = { ...draft, accountId: ensureCashAccount(draft.currency) };
+        d = data();
+      }
       const errors = validateTransaction(draft, d.accounts);
       if (errors.length) throw new ActionError('validation', { errors });
       const isFirst = !d.transactions.some((t) => t.type === draft.type);
@@ -272,7 +285,10 @@ export function useActions() {
         // Utilisation de réserve : recalculée sur le nouveau montant (jamais au-delà du
         // solde), retirée si l'opération n'est plus une dépense famille ou cérémonie.
         const use = d.goalContributions.find((c) => !c.deleted && c.linkedTransactionId === tx.id);
-        if (use) {
+        // Cotisation payée par un objectif (mouvement dans le cercle) : l'objectif baisse du nouveau montant.
+        if (use && isTontineContribution(tx)) {
+          if (use.amount !== -tx.amount || use.date !== tx.date) save<GoalContribution>('goalContributions', { ...use, amount: -tx.amount, date: tx.date, accountId: tx.accountId });
+        } else if (use) {
           dropReserveUse(tx.id);
           if (tx.type === 'expense' && reserveEligible(tx.categoryId, tx.subcategoryId)) {
             try {
@@ -617,22 +633,24 @@ export function useActions() {
    * d'un objectif jamais plus que ce qui y est affecté (`goal.withdrawTooMuch`).
    */
   const withdrawFromSavings = useCallback(
-    (input: WithdrawInput & { subcategoryId?: string | null }): Transaction => {
+    (input: WithdrawInput & { subcategoryId?: string | null; viaAccountId?: string | null }): Transaction => {
       const d = data();
       const errors: TxError[] = [...validateWithdraw(input, d)];
       if (!input.toAccountId && !input.categoryId) errors.push('category.missing');
       if (errors.length) throw new ActionError('validation', { errors });
       const sav = d.accounts.find((a) => a.id === input.savingsAccountId)!;
       const goal = input.goal ? d.goals.find((g) => g.id === input.goal!.goalId) : undefined;
-      const tx = input.toAccountId
-        ? saveTransaction({ type: 'transfer', amount: input.amount, currency: sav.currency, date: input.date, accountId: sav.id, toAccountId: input.toAccountId, goalId: goal?.id ?? null, payee: null, note: null })
-        : saveTransaction({ type: 'expense', amount: input.amount, currency: sav.currency, date: input.date, accountId: sav.id, categoryId: input.categoryId ?? null, subcategoryId: input.subcategoryId ?? null, payee: null, note: null });
+      // Cercle fermé : l'épargne ne paie jamais une dépense. « Pour une dépense » = un RETRAIT
+      // visible vers un compte courant, puis la dépense sur ce compte (deux opérations).
+      const via = input.toAccountId ?? (input.viaAccountId && d.accounts.some((a) => a.id === input.viaAccountId && a.active && !a.deleted && !a.isSavings) ? input.viaAccountId : ensureCashAccount(sav.currency));
+      const tx = saveTransaction({ type: 'transfer', amount: input.amount, currency: sav.currency, date: input.date, accountId: sav.id, toAccountId: via, goalId: goal?.id ?? null, payee: null, note: null });
+      if (!input.toAccountId) saveTransaction({ type: 'expense', amount: input.amount, currency: sav.currency, date: input.date, accountId: via, categoryId: input.categoryId ?? null, subcategoryId: input.subcategoryId ?? null, payee: null, note: null });
       if (goal && input.goal) {
         save<GoalContribution>('goalContributions', { goalId: goal.id, amount: -input.goal.amount, date: input.date, accountId: sav.id, transferId: tx.id, note: null });
       }
       return tx;
     },
-    [data, save, saveTransaction],
+    [data, save, saveTransaction, ensureCashAccount],
   );
 
   /** Ajuster le solde : l'écart entre le solde réel et le solde calculé (ni revenu ni dépense). */
@@ -706,49 +724,80 @@ export function useActions() {
    * sur le compte QU'ELLE A CHOISI. Aucun compte n'est jamais créé ici
    * (fondateur, 2026-10-14) : sans compte valide, rien n'est enregistré.
    */
+  /**
+   * Cercle fermé : une cotisation se paie depuis un compte courant, un compte d'épargne ou un
+   * objectif (réserve comprise). Payée par un objectif, l'objectif baisse d'autant (utilisation
+   * liée à l'opération, supprimée avec elle). Renvoie le compte à utiliser et l'objectif.
+   */
+  const tontinePayment = useCallback(
+    (source: TontineSource, amount: number, currency: string) => {
+      const d = data();
+      try {
+        return planTontinePayment({ source, amount, accounts: d.accounts.filter((a) => a.currency === currency), goals: d.goals, contributions: d.goalContributions, defaultAccountId: defaultSpendingAccountId(d.accounts, null, currency) ?? ensureCashAccount(currency) });
+      } catch (e) {
+        throw new ActionError('validation', { errors: [String((e as Error).message) as TxError] });
+      }
+    },
+    [data, ensureCashAccount],
+  );
+  const linkGoalFunding = useCallback(
+    (tx: Transaction, goalId: string | null) => {
+      if (!goalId) return;
+      save<GoalContribution>('goalContributions', { goalId, amount: -tx.amount, date: tx.date, accountId: tx.accountId, transferId: null, linkedTransactionId: tx.id, note: null });
+    },
+    [save],
+  );
+
   const recordTontineGroupContribution = useCallback(
-    (input: { groupName: string; amount: number; currency: CurrencyCode; date: string; accountId: string }) => {
+    (input: { groupName: string; amount: number; currency: CurrencyCode; date: string; accountId?: string; source?: TontineSource }) => {
       const d = data();
       if (!isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
-      const account = d.accounts.find((a) => a.id === input.accountId && a.active && !a.deleted && a.currency === input.currency);
-      if (!account) throw new ActionError('validation', { errors: ['account.missing'] });
-      return saveTransaction({
+      const source: TontineSource | null = input.source ?? (input.accountId ? { kind: 'account', accountId: input.accountId } : null);
+      if (!source) throw new ActionError('validation', { errors: ['account.missing'] });
+      if (source.kind === 'account' && !d.accounts.some((a) => a.id === source.accountId && a.active && !a.deleted && a.currency === input.currency)) throw new ActionError('validation', { errors: ['account.missing'] });
+      const plan = tontinePayment(source, input.amount, input.currency);
+      const tx = saveTransaction({
         type: 'expense',
         amount: input.amount,
         currency: input.currency,
         date: input.date,
-        accountId: account.id,
+        accountId: plan.accountId,
         ...tontineContributionCategory(d.categories),
         payee: input.groupName,
         note: null,
       });
+      linkGoalFunding(tx, plan.fundingGoalId);
+      return tx;
     },
-    [data, saveTransaction],
+    [data, saveTransaction, tontinePayment, linkGoalFunding],
   );
 
   const recordTontine = useCallback(
-    (input: { tontineId: string; period: number; kind: 'contribution' | 'payout'; amount: number; date: string; accountId?: string | null; note?: string | null }) => {
+    (input: { tontineId: string; period: number; kind: 'contribution' | 'payout'; amount: number; date: string; accountId?: string | null; source?: TontineSource | null; note?: string | null }) => {
       const d = data();
       const t = d.tontines.find((x) => x.id === input.tontineId && !x.deleted);
       if (!t || !isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
       const contribution = input.kind === 'contribution';
+      // Cotisation payée depuis une source choisie (compte courant, épargne, objectif) : cercle fermé.
+      const plan = contribution && input.source ? tontinePayment(input.source, input.amount, t.currency) : null;
       const tx = saveTransaction({
         type: contribution ? 'expense' : 'income',
         amount: input.amount,
         currency: t.currency,
         date: input.date,
-        // Compte choisi, sinon celui de la tontine, sinon un compte utilisable (« Espèces » créé si besoin).
-        accountId: input.accountId ?? (t.accountId && d.accounts.some((x) => x.id === t.accountId && x.active && !x.deleted) ? t.accountId : ensureCashAccount(t.currency)),
+        // Source choisie, sinon compte choisi, sinon celui de la tontine, sinon un compte courant (« Espèces » créé si besoin).
+        accountId: plan?.accountId ?? input.accountId ?? (t.accountId && d.accounts.some((x) => x.id === t.accountId && x.active && !x.deleted) ? t.accountId : ensureCashAccount(t.currency)),
         // Cotisation : catégorie retrouvée PAR IDENTIFIANT (parent actuel de la sous-catégorie « Tontine »).
         ...(contribution ? tontineContributionCategory(d.categories) : { categoryId: categoryOr('inc_tontine', 'inc_other'), subcategoryId: null }),
         payee: t.name,
         note: input.note ?? null,
       });
+      linkGoalFunding(tx, plan?.fundingGoalId ?? null);
       // Une échéance reportée (entrée « planned ») devient l'entrée payée.
       const previous = d.tontineEntries.find((e) => !e.deleted && e.tontineId === t.id && e.kind === input.kind && e.period === input.period && !e.transactionId);
       return save<TontineEntry>('tontineEntries', { ...(previous ? { id: previous.id } : {}), tontineId: t.id, kind: input.kind, period: input.period, amount: input.amount, date: input.date, transactionId: tx.id, status: 'done', note: null });
     },
-    [data, saveTransaction, categoryOr, save, ensureCashAccount],
+    [data, saveTransaction, categoryOr, save, ensureCashAccount, tontinePayment, linkGoalFunding],
   );
 
   /** « Reporter » une cotisation en retard : nouvelle date, rien n'est payé. */

@@ -18,6 +18,7 @@ import { budgetTransactions } from '../reserve';
 import { LEVEL_RANK, envelopeStatuses, resolveEnvelopeId, type EnvelopeLevel, type EnvelopeStatus } from '../budget';
 import { monthKey, type ISODate, type MonthKey } from '../dates';
 import type { CurrencyCode } from '../money';
+import { isCircleMovement } from '../savingsFlows';
 
 export type AlertLevel = Exclude<EnvelopeLevel, 'ok'>;
 
@@ -122,10 +123,11 @@ export function pruneMemory(memory: EnvelopeAlertMemory, month: MonthKey): Envel
 }
 
 /** Enveloppes et mois touchés par une écriture (ancienne et nouvelle version d'une opération). */
-export function touchedByWrite(versions: (Pick<Transaction, 'type' | 'date' | 'envelopeId' | 'categoryId'> | null | undefined)[], envelopes: Envelope[]): Map<MonthKey, Set<string>> {
+export function touchedByWrite(versions: (Pick<Transaction, 'type' | 'date' | 'envelopeId' | 'categoryId' | 'subcategoryId'> | null | undefined)[], envelopes: Envelope[]): Map<MonthKey, Set<string>> {
   const out = new Map<MonthKey, Set<string>>();
   for (const t of versions) {
-    if (!t || t.type !== 'expense') continue;
+    // Argent mis de côté (cotisation de tontine…) : hors budget, aucune alerte d'enveloppe.
+    if (!t || t.type !== 'expense' || isCircleMovement(t)) continue;
     const id = resolveEnvelopeId(t, envelopes);
     if (!id) continue;
     const m = monthKey(t.date);

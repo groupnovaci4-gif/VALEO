@@ -59,6 +59,7 @@ import { aiUsage, chooseUnderstanding } from '@/core/entry/aiGuard';
 import { needsConsentRenewal, transcriptConsent, withConsent } from '@/core/aiConsent';
 import { parseVoiceRemotely } from '@/services/voiceParse';
 import { coachPrefs } from '@/core/coach/prefs';
+import { defaultSpendingAccountId } from '@/core/savingsCircle';
 
 type View_ =
   | { kind: 'input' }
@@ -132,11 +133,9 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const catalog = useCategoryCatalog();
 
   const accounts = useMemo(() => data.accounts.filter((a) => a.active && !a.deleted), [data.accounts]);
-  // Compte par défaut : le dernier utilisé (s'il existe encore), sinon le premier compte courant.
-  const defaultAccountId = useMemo(() => {
-    const last = accounts.find((a) => a.id === stats?.lastAccountId && a.currency === currency);
-    return last?.id ?? accounts.find((a) => !a.isSavings && a.currency === currency)?.id ?? accounts.find((a) => a.currency === currency)?.id ?? null;
-  }, [accounts, stats?.lastAccountId, currency]);
+  // Compte par défaut : le dernier compte COURANT utilisé, sinon le premier compte courant —
+  // jamais un compte d'épargne (cercle fermé ; aucun compte courant : « Espèces » créé à l'enregistrement).
+  const defaultAccountId = useMemo(() => defaultSpendingAccountId(accounts, stats?.lastAccountId, currency), [accounts, stats?.lastAccountId, currency]);
   // Saisie rapide : catégories PROPOSÉES (ni désactivées, ni masquées par défaut), récentes en premier.
   const pick = useCategoryPick(type);
   const visibleIds = useMemo(() => pickCategories(pick.categories, { ...pick.base, kind: type, showAll: false, query: '', recent: [] }).map((c) => c.id), [pick.categories, pick.base, type]);

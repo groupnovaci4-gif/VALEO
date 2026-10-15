@@ -20,6 +20,8 @@ import { recordEntrySuccess } from '@/services/entryStats';
 import { analytics } from '@/services/analytics';
 import { reserveEligible } from '@/core/reserve';
 import { markReviewMoment } from '@/services/storeReview';
+import { moneyTracked, shortfallAfter, spendingAccounts } from '@/core/savingsCircle';
+import { moneyPosition } from '@/core/balance';
 
 export type EntryMethod = 'voice' | 'text_phrase' | 'quick_manual' | 'full_form';
 export const UNDO_MS = 5000;
@@ -53,9 +55,47 @@ export function useEntrySave() {
     [actions, toast, t],
   );
 
+  /**
+   * Cercle fermé (2026-10-14), après l'enregistrement : la phrase nommait l'épargne pour une
+   * dépense (`redirectedTo` : compte courant utilisé) ou le disponible est passé SOUS zéro.
+   * Dans les deux cas : « Retirer de mon épargne ou d'un objectif » (montant proposé).
+   * Jamais si la personne n'a jamais renseigné son argent (`moneyTracked`).
+   */
+  const circleNotice = useCallback(
+    (ids: string[], redirectedTo?: string | null): { message: string; amount: number } | null => {
+      if (!engine || !activeSpace) return null;
+      const d = engine.getData(activeSpace.id);
+      const currency = activeSpace.currency;
+      const saved = d.transactions.filter((x) => ids.includes(x.id) && !x.deleted && x.currency === currency);
+      if (redirectedTo) {
+        const name = d.accounts.find((a) => a.id === redirectedTo)?.name ?? '';
+        const amount = saved.filter((x) => x.type === 'expense' && x.accountId === redirectedTo).reduce((n, x) => n + x.amount, 0);
+        return { message: t('circle.redirect', { account: name }), amount };
+      }
+      const spending = new Set(spendingAccounts(d.accounts, currency).map((a) => a.id));
+      const outflow = saved.filter((x) => x.type === 'expense' && spending.has(x.accountId)).reduce((n, x) => n + x.amount, 0);
+      if (!outflow || !moneyTracked(d.accounts, d.transactions, currency)) return null;
+      const free = moneyPosition(d.accounts, d.transactions, d.goals, d.goalContributions, currency as CurrencyCode).free;
+      const missing = shortfallAfter(free + outflow, outflow);
+      return missing ? { message: t('circle.shortfall', { amount: money(missing) }), amount: missing } : null;
+    },
+    [engine, activeSpace, t, money],
+  );
+
   /** « Voir » (Historique) et « Annuler » (suppression des opérations créées), 5 secondes. */
   const undoToast = useCallback(
-    (ids: string[]) =>
+    (ids: string[], opts?: { redirectedTo?: string | null }) => {
+      const notice = circleNotice(ids, opts?.redirectedTo);
+      if (notice) {
+        toast.show(notice.message, 'warning', {
+          duration: 9000,
+          actions: [
+            { label: t('circle.withdraw'), onPress: () => router.push({ pathname: '/withdraw', params: { amount: String(notice.amount) } }) },
+            { label: t('entry.toast.undo'), onPress: () => void undo(ids) },
+          ],
+        });
+        return;
+      }
       toast.show(confirmation(), 'success', {
         duration: UNDO_MS,
         actions: [
@@ -65,8 +105,9 @@ export function useEntrySave() {
           },
           { label: t('entry.toast.undo'), onPress: () => void undo(ids) },
         ],
-      }),
-    [toast, confirmation, undo, t],
+      });
+    },
+    [toast, confirmation, undo, t, circleNotice],
   );
 
   /** Enregistre les lignes confirmées ; renvoie les identifiants créés. */
@@ -105,7 +146,8 @@ export function useEntrySave() {
             amount: d.amount as number,
             currency: activeSpace.currency,
             date: d.date,
-            accountId: d.accountId ?? '',
+            // Aucun compte courant : « Espèces » est créé (règle 10), jamais l'épargne.
+            accountId: d.accountId ?? actions.ensureCashAccount(activeSpace.currency),
             categoryId: d.categoryId,
             subcategoryId: d.subcategoryId,
             payee: d.payee,
@@ -134,11 +176,15 @@ export function useEntrySave() {
       if (drafts.some((d) => d.tontine?.kind === 'payout')) markReviewMoment('tontine');
       analytics.track('entry_created', { method, count: drafts.length });
       if (method === 'voice' && corrected) analytics.track('voice_entry_corrected', { method });
-      if (user) void recordEntrySuccess(user.uid, { voice: method === 'voice', items: drafts.map((d) => ({ type: d.type === 'savings' ? ('transfer' as const) : d.type, categoryId: d.categoryId, accountId: d.accountId })) }).catch(() => undefined);
-      if (!inline) undoToast(ids);
+      // « Dernier compte utilisé » : un compte COURANT seulement (cercle fermé).
+      const accountsNow = engine && activeSpace ? engine.getData(activeSpace.id).accounts : [];
+      const spendingIds = new Set(spendingAccounts(accountsNow).map((a) => a.id));
+      if (user) void recordEntrySuccess(user.uid, { voice: method === 'voice', items: drafts.map((d) => ({ type: d.type === 'savings' ? ('transfer' as const) : d.type, categoryId: d.categoryId, accountId: d.accountId && spendingIds.has(d.accountId) ? d.accountId : null })) }).catch(() => undefined);
+      const redirected = drafts.find((d) => d.savingsRedirect && d.type === 'expense');
+      if (!inline) undoToast(ids, { redirectedTo: redirected?.accountId ?? null });
       return ids;
     },
-    [actions, activeSpace, user, undoToast],
+    [actions, activeSpace, user, undoToast, engine],
   );
 
   return { saveDrafts, undoToast, undo };

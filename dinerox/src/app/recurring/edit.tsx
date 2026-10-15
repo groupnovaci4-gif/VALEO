@@ -12,6 +12,8 @@ import type { Frequency } from '@/core/types';
 import { useRunAction } from '@/hooks/useRunAction';
 import { CategoryPicker } from '@/features/categories/CategoryPicker';
 import { withSpaceReady } from '@/components/SpaceReady';
+import { defaultSpendingAccountId, expenseAccountOptions } from '@/core/savingsCircle';
+import { isTontineContribution } from '@/core/savingsFlows';
 
 function RecurringEdit() {
   // `obligation=1` : soutien régulier (écran Famille et obligations) — libellé = bénéficiaire libre.
@@ -27,9 +29,13 @@ function RecurringEdit() {
   const [label, setLabel] = useState(existing?.label ?? '');
   const [amount, setAmount] = useState<number | null>(existing?.amount ?? null);
   const [chosenAccount, setAccountId] = useState<string | null>(existing?.accountId ?? null);
-  const accountId = chosenAccount ?? data.accounts.find((a) => a.active)?.id ?? null;
   const [categoryId, setCategoryIdRaw] = useState<string | null>(existing?.categoryId ?? categoryParam ?? null);
   const [subcategoryId, setSubcategoryId] = useState<string | null>(existing?.subcategoryId ?? null);
+  // Cercle fermé : une récurrence de DÉPENSE se paie sur un compte courant ; une cotisation de tontine
+  // (mouvement dans le cercle) et un revenu peuvent aussi être sur l'épargne.
+  const spendingOnly = type === 'expense' && !isTontineContribution({ type, categoryId, subcategoryId });
+  const options = spendingOnly ? expenseAccountOptions(data.accounts, existing?.accountId) : data.accounts.filter((a) => a.active);
+  const accountId = chosenAccount ?? (spendingOnly ? defaultSpendingAccountId(data.accounts, null, activeSpace?.currency ?? 'XOF') : data.accounts.find((a) => a.active)?.id) ?? null;
   // Changer de catégorie efface la sous-catégorie (elle appartient à l'ancienne).
   const setCategoryId = (v: string | null) => {
     setCategoryIdRaw(v);
@@ -79,7 +85,7 @@ function RecurringEdit() {
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('tx.account')}
       </Text>
-      <ChipGroup scroll value={accountId} onChange={setAccountId} options={data.accounts.filter((a) => a.active).map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))} />
+      <ChipGroup scroll value={accountId} onChange={setAccountId} options={options.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))} />
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('tx.category')}
       </Text>

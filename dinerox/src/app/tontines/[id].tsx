@@ -15,7 +15,7 @@ import { withSpaceReady } from '@/components/SpaceReady';
 import { collectorTotals, nextContribution, nextPayout, potOf, scheduleState, type ItemState } from '@/core/tontine';
 import { NetPositionText } from '@/features/tontine/NetPositionText';
 import { UnderstandCard } from '@/features/tontine/UnderstandCard';
-import { PostponeSheet, useTontineGestures } from '@/features/tontine/TontineActions';
+import { PaySheet, PostponeSheet, useTontineGestures } from '@/features/tontine/TontineActions';
 import { can } from '@/core/permissions';
 import type { Tontine } from '@/core/types';
 
@@ -33,6 +33,7 @@ function TontineDetail() {
   const canEdit = can(role, 'update', 'tontines');
   const canRecord = can(role, 'create', 'transactions');
   const [postponing, setPostponing] = useState<ItemState | null>(null);
+  const [paying, setPaying] = useState<ItemState | null>(null);
   if (!tontine) {
     return (
       <Screen back>
@@ -83,8 +84,9 @@ function TontineDetail() {
 
       <UnderstandCard tontine={tontine} />
 
-      {tontine.status === 'active' && canRecord ? <TodoList tontine={tontine} states={states} onPostpone={setPostponing} /> : null}
+      {tontine.status === 'active' && canRecord ? <TodoList tontine={tontine} states={states} onPostpone={setPostponing} onPay={setPaying} /> : null}
       <PostponeSheet tontine={tontine} item={postponing} onClose={() => setPostponing(null)} />
+      <PaySheet tontine={tontine} item={paying} onClose={() => setPaying(null)} />
 
       <SectionHeader title={t('tontine.schedule')} />
       <Card>
@@ -116,11 +118,12 @@ function TontineDetail() {
 }
 
 /** « À faire » : cotisations en retard (payée / reporter), prochaine cotisation, cagnotte à recevoir. */
-function TodoList({ tontine, states, onPostpone }: { tontine: Tontine; states: ItemState[]; onPostpone: (i: ItemState) => void }) {
+function TodoList({ tontine, states, onPostpone, onPay }: { tontine: Tontine; states: ItemState[]; onPostpone: (i: ItemState) => void; onPay: (i: ItemState) => void }) {
   const { t, date } = useI18n();
   const money = useMoney();
   const { now } = useFinance();
-  const { pay, receive } = useTontineGestures(tontine);
+  const { receive } = useTontineGestures(tontine);
+  const pay = onPay;
   const late = states.filter((s) => s.status === 'late');
   const next = nextContribution(states.filter((s) => s.status !== 'late'));
   const payout = nextPayout(states);

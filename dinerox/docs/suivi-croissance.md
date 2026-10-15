@@ -98,6 +98,7 @@ Demandé par le fondateur le 2026-10-14 ; aucun n'est commencé.
 | (c) Fréquence personnalisée pour les tontines partagées | ⬜ | aujourd'hui : quotidienne, hebdomadaire, toutes les 2 semaines, mensuelle |
 | (d) Piste « test interne » de Google Play (voir la vraie fenêtre d'avis avant la publication) | ⬜ | à préparer, liste ci-dessous |
 | (e) Demande d'avis quand une cagnotte de TONTINE PARTAGÉE est reçue | ⬜ | quand ce moment existera (aujourd'hui seul le carnet enregistre une cagnotte reçue) : `markReviewMoment('tontine')` |
+| (g) Cagnotte de tontine reçue | ⬜ | Aujourd'hui comptée comme un revenu, elle peut remplacer le revenu déclaré dans le reste par jour. Avec la règle du cercle, c'est de l'épargne qui revient au disponible. À revoir. |
 
 Préparer la piste « test interne » (décision du fondateur, 2026-10-14) :
 1. **Compte développeur Google Play** (frais d'inscription unique de Google, vérification d'identité).
@@ -159,3 +160,7 @@ Préparer la piste « test interne » (décision du fondateur, 2026-10-14) :
 - 2026-10-14 : `link.app.lead` et politique de confidentialité validés et intégrés
   mot pour mot. Étape 5 → 📱 À vérifier sur téléphone ; fusion dans `dinerox-main`
   (avance rapide). La suite se fait depuis `dinerox-main`.
+- 2026-10-14 : déploiement de l'étape 5 mis en pause par le fondateur (retour
+  d'une testeuse : dépenses prises sur l'épargne). Correctif « argent mis de
+  côté » (règle du cercle fermé, CLAUDE.md règle 29) codé et testé sur la
+  branche `correctif-epargne`, non fusionné, rien de déployé.

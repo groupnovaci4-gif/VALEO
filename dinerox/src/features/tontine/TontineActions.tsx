@@ -18,9 +18,11 @@ import { addDays } from '@/core/dates';
 import type { ItemState } from '@/core/tontine';
 import type { Tontine } from '@/core/types';
 import { markReviewMoment } from '@/services/storeReview';
+import { TontineSourcePicker, useTontineSources } from './TontineSourcePicker';
+import type { TontineSource } from '@/core/savingsCircle';
 
 export function useTontineGestures(tontine: Tontine) {
-  const { t, date } = useI18n();
+  const { t } = useI18n();
   const money = useMoney();
   const run = useRunAction();
   const actions = useActions();
@@ -28,19 +30,6 @@ export function useTontineGestures(tontine: Tontine) {
   const accountLabel = useAccountLabel();
   const { now } = useFinance();
   const from = tontine.accountId ? accountLabel(tontine.accountId) : t('acc.type.cash');
-
-  const pay = (item: ItemState) =>
-    Alert.alert(t('tontine.pay.confirm', { amount: money(item.contribution) }), t('tontine.pay.body', { name: tontine.name, date: date(item.dueDate), account: from }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.confirm'),
-        onPress: () =>
-          void run(() => {
-            const e = actions.recordTontine({ tontineId: tontine.id, period: item.period, kind: 'contribution', amount: item.contribution, date: now });
-            if (e.transactionId) undoToast([e.transactionId]);
-          }),
-      },
-    ]);
 
   const receive = (item: ItemState) =>
     Alert.alert(t('tontine.receive.confirm', { amount: money(item.payout) }), t('tontine.receive.body', { name: tontine.name, account: from }), [
@@ -57,7 +46,49 @@ export function useTontineGestures(tontine: Tontine) {
       },
     ]);
 
-  return { pay, receive };
+  return { receive };
+}
+
+/**
+ * « J'ai cotisé » (cercle fermé, 2026-10-14) : la cotisation se paie depuis un compte courant,
+ * un compte d'épargne ou un objectif (réserve comprise). Toujours confirmée.
+ */
+export function PaySheet({ tontine, item, onClose }: { tontine: Tontine; item: ItemState | null; onClose: () => void }) {
+  const { t } = useI18n();
+  const money = useMoney();
+  const run = useRunAction();
+  const actions = useActions();
+  const { undoToast } = useEntrySave();
+  const { now } = useFinance();
+  const amount = item?.contribution ?? 0;
+  const { accounts } = useTontineSources(tontine.currency, amount);
+  const [picked, setPicked] = useState<TontineSource | null>(null);
+  const own = tontine.accountId && accounts.some((a) => a.id === tontine.accountId) ? tontine.accountId : (accounts.find((a) => !a.isSavings) ?? accounts[0])?.id;
+  const source: TontineSource | null = picked ?? (own ? { kind: 'account', accountId: own } : null);
+  const close = () => {
+    setPicked(null);
+    onClose();
+  };
+  return (
+    <Sheet visible={!!item} onClose={close} title={t('tontine.pay.confirm', { amount: money(amount) })}>
+      {item ? (
+        <View style={{ gap: 10 }}>
+          <TontineSourcePicker currency={tontine.currency} amount={amount} value={source} onChange={setPicked} />
+          <Button
+            icon="checkmark"
+            label={t('common.confirm')}
+            onPress={() => {
+              const ok = run(() => {
+                const e = actions.recordTontine({ tontineId: tontine.id, period: item.period, kind: 'contribution', amount, date: now, source });
+                if (e.transactionId) undoToast([e.transactionId]);
+              });
+              if (ok) close();
+            }}
+          />
+        </View>
+      ) : null}
+    </Sheet>
+  );
 }
 
 /** « Reporter » : choix de la nouvelle date, puis confirmation. */

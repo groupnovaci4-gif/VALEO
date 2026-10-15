@@ -18,6 +18,7 @@ import { accountHints, normalizeText, resolveAccountHint } from '../ai/parser';
 import { amountSpans } from './numbers';
 import { learnableWord } from './keywords';
 import { applySelfCorrections, lineConfidence, stripFillers, type EntryContext, type EntryDraft, type EntryField, type EntryQuestion } from './parse';
+import { isTontineContribution } from '../savingsFlows';
 
 /** Une ligne telle que renvoyée par l'IA (schéma partagé avec `firebase/functions/src/voiceEntry.ts`). */
 export interface AiLine {
@@ -163,14 +164,21 @@ export function aiLinesToDrafts(lines: AiLine[], transcript: string, ctx: EntryC
       question = unknownCategoryQuestion(learnableWord(source) ?? source.slice(0, 30), ctx.categories, kind);
     }
     let accountId = ctx.defaultAccountId;
+    let savingsRedirect = false;
     if (l.accountName) {
       if (named && !named.isSavings) accountId = named.id;
-      else uncertain.add('account');
+      else if (named?.isSavings) {
+        // Cercle fermé : revenu reçu sur l'épargne ou cotisation de tontine payée depuis l'épargne, oui ;
+        // une autre dépense, jamais (compte courant, et l'application explique pourquoi).
+        const tontine = isTontineContribution({ type: kind, categoryId: cat?.categoryId ?? l.categoryId, subcategoryId: cat?.subcategoryId ?? l.subcategoryId ?? null });
+        if (kind === 'income' || tontine) accountId = named.id;
+        else savingsRedirect = true;
+      } else uncertain.add('account');
     }
     if (!accountId) uncertain.add('account');
     const categoryId = cat?.categoryId ?? null;
     const subcategoryId = cat?.subcategoryId ?? null;
-    const d: EntryDraft = { type: kind, amount, categoryId, subcategoryId, accountId, date, payee: null, uncertain: [...uncertain], source, suggested: { categoryId, subcategoryId }, question };
+    const d: EntryDraft = { type: kind, amount, categoryId, subcategoryId, accountId, date, payee: null, uncertain: [...uncertain], source, suggested: { categoryId, subcategoryId }, question, ...(savingsRedirect ? { savingsRedirect } : {}) };
     return { ...d, confidence: lineConfidence(d) };
   });
 }

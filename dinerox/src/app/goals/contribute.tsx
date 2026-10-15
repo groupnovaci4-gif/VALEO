@@ -17,7 +17,8 @@ import { withSpaceReady } from '@/components/SpaceReady';
 
 function Contribute() {
   // `from=goals` : ouvert depuis l'onglet Objectifs → après l'enregistrement, la fiche montre la progression et l'historique.
-  const { id, withdraw, from } = useLocalSearchParams<{ id: string; withdraw?: string; from?: string }>();
+  // `amount` : montant proposé (ex. le manque, depuis « Retirer de mon épargne ou d'un objectif »).
+  const { id, withdraw, from, amount: amountParam } = useLocalSearchParams<{ id: string; withdraw?: string; from?: string; amount?: string }>();
   const { t } = useI18n();
   const errorMessage = useActionErrorMessage();
   const toast = useToast();
@@ -28,7 +29,8 @@ function Contribute() {
   const goal = data.goals.find((g) => g.id === id);
   const isWithdraw = withdraw === '1';
   const sources = data.accounts.filter((a) => a.active && a.id !== goal?.accountId && a.currency === goal?.currency);
-  const [amount, setAmount] = useState<number | null>(null);
+  const proposed = Number(amountParam);
+  const [amount, setAmount] = useState<number | null>(Number.isInteger(proposed) && proposed > 0 ? proposed : null);
   const [chosenAccount, setAccountId] = useState<string | null>(null);
   const accountId = chosenAccount ?? sources.find((a) => !a.isSavings)?.id ?? sources[0]?.id ?? null;
   const [moveChoice, setMove] = useState<boolean | null>(null);

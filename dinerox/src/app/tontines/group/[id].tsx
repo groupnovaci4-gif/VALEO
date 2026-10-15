@@ -18,8 +18,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { DesignV2 } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
 import { useActions } from '@/store/actions';
-import { useFinance, useMoney } from '@/hooks/useFinance';
-import { AmountField, Badge, Banner, Button, Card, Chip, ChipGroup, EmptyState, Field, IconButton, Loading, Screen, SectionHeader, Sheet, SwitchRow, Text, useToast, type BadgeTone } from '@/components/ui';
+import { useMoney } from '@/hooks/useFinance';
+import { AmountField, Badge, Banner, Button, Card, Chip, EmptyState, Field, IconButton, Loading, Screen, SectionHeader, Sheet, SwitchRow, Text, useToast, type BadgeTone } from '@/components/ui';
 import { brand } from '@/config/brand';
 import { today } from '@/core/dates';
 import { cycleFinished, cycleSummary, groupSchedule, isGroupManager, nextPeriod, paidKey, reminderParams, slotStatusFor, type GroupPayment, type SlotStatus, type TontineGroup } from '@/core/tontineGroup';
@@ -27,6 +27,8 @@ import { analytics } from '@/services/analytics';
 import { listenHistory, listenPayments, listenRequests, readNicknames, tgRefusal, tontineGroupCall, writeNickname, type HistoryLine, type JoinRequest } from '@/services/tontineGroups';
 import { useMyGroups, slotName } from '@/features/tontineGroup/useMyGroups';
 import { ShareWhatsAppButton } from '@/features/share/ShareWhatsAppButton';
+import { TontineSourcePicker, useTontineSources } from '@/features/tontine/TontineSourcePicker';
+import type { TontineSource } from '@/core/savingsCircle';
 
 const STATUS: Record<SlotStatus, { key: TKey; tone: BadgeTone }> = {
   paid: { key: 'tg.status.paid', tone: 'success' },
@@ -257,14 +259,15 @@ function RecordSheet({ visible, g, date, onClose }: { visible: boolean; g: Tonti
   const { t } = useI18n();
   const toast = useToast();
   const actions = useActions();
-  const { data } = useFinance();
-  const accounts = data.accounts.filter((a) => a.active && !a.deleted && a.currency === g.currency);
-  const [picked, setPicked] = useState<string | null>(null);
-  const accountId = picked && accounts.some((a) => a.id === picked) ? picked : (accounts.find((a) => !a.isSavings)?.id ?? accounts[0]?.id ?? null);
+  // Cercle fermé : payée depuis un compte courant, un compte d'épargne ou un objectif.
+  const { accounts, goals } = useTontineSources(g.currency, g.amountPerShare);
+  const [picked, setPicked] = useState<TontineSource | null>(null);
+  const fallback = accounts.find((a) => !a.isSavings) ?? accounts[0];
+  const source: TontineSource | null = picked ?? (fallback ? { kind: 'account', accountId: fallback.id } : null);
   const record = () => {
-    if (!accountId) return;
+    if (!source) return;
     try {
-      actions.recordTontineGroupContribution({ groupName: g.name, amount: g.amountPerShare, currency: g.currency, date, accountId });
+      actions.recordTontineGroupContribution({ groupName: g.name, amount: g.amountPerShare, currency: g.currency, date, source });
       toast.show(t('common.saved'));
       onClose();
     } catch {
@@ -274,12 +277,9 @@ function RecordSheet({ visible, g, date, onClose }: { visible: boolean; g: Tonti
   return (
     <Sheet visible={visible} onClose={onClose} title={t('tg.iPaid')}>
       <Text style={{ marginBottom: 12 }}>{t('tg.iPaid.record')}</Text>
-      {accounts.length ? (
+      {accounts.length || goals.length ? (
         <>
-          <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
-            {t('tontine.account')}
-          </Text>
-          <ChipGroup scroll value={accountId} onChange={setPicked} options={accounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))} />
+          <TontineSourcePicker currency={g.currency} amount={g.amountPerShare} value={source} onChange={setPicked} />
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
             <Button label={t('common.yes')} onPress={record} />
             <Button variant="secondary" label={t('common.no')} onPress={onClose} />

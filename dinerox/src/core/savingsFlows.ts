@@ -9,7 +9,8 @@
  * L'épargne passe désormais par des versements (transferts) vers des comptes
  * d'épargne (« Mon épargne »).
  */
-import type { Account, Transaction } from './types';
+import type { Account, GoalContribution, Transaction } from './types';
+import { TONTINE_SUBCATEGORY } from './tontine';
 
 export const SAVING_CATEGORY_IDS: ReadonlySet<string> = new Set(['cat_savings', 'cat_investment']);
 
@@ -18,9 +19,44 @@ export function isSavingExpense(t: Pick<Transaction, 'type' | 'categoryId'>): bo
   return t.type === 'expense' && !!t.categoryId && SAVING_CATEGORY_IDS.has(t.categoryId);
 }
 
-/** Dépense de consommation (dépense hors épargne). */
-export function isConsumption(t: Pick<Transaction, 'type' | 'categoryId'>): boolean {
-  return t.type === 'expense' && !isSavingExpense(t);
+/**
+ * Cotisation de tontine (carnet ou tontine partagée) : sous-catégorie « Tontine »
+ * (parent `cat_social` ou ancien `cat_informal`), ou l'ancienne catégorie
+ * « Tontines » sans sous-catégorie. Retrouvée PAR IDENTIFIANT, jamais par libellé.
+ */
+export function isTontineContribution(t: { type: string; categoryId?: string | null; subcategoryId?: string | null }): boolean {
+  if (t.type !== 'expense') return false;
+  return t.subcategoryId === TONTINE_SUBCATEGORY || (t.categoryId === 'cat_informal' && !t.subcategoryId);
+}
+
+/**
+ * LE critère unique du cercle fermé (fondateur, 2026-10-14) : une opération
+ * de type dépense qui n'est PAS une dépense de consommation, mais de l'argent
+ * mis de côté (cotisation de tontine, ancienne « dépense » Épargne). Utilisé
+ * par TOUS les calculs : dépenses, rapports, export, budget, reste par jour,
+ * score, coach, conseils, résumé de l'assistant, analyse.
+ */
+export function isCircleMovement(t: Pick<Transaction, 'type' | 'categoryId'> & { subcategoryId?: string | null }): boolean {
+  return isSavingExpense(t) || isTontineContribution(t);
+}
+
+/** Dépense de consommation (dépense hors argent mis de côté). */
+export function isConsumption(t: Pick<Transaction, 'type' | 'categoryId'> & { subcategoryId?: string | null }): boolean {
+  return t.type === 'expense' && !isCircleMovement(t);
+}
+
+/** Opérations payées par un objectif (contribution négative liée : réserve, cotisation payée depuis un objectif). */
+export function goalFundedIds(contributions: Pick<GoalContribution, 'deleted' | 'amount' | 'linkedTransactionId'>[]): Set<string> {
+  return new Set(contributions.filter((c) => !c.deleted && c.amount < 0 && !!c.linkedTransactionId).map((c) => c.linkedTransactionId as string));
+}
+
+/**
+ * Une cotisation sort-elle du DISPONIBLE ? Oui si payée depuis un compte
+ * courant ; non si payée depuis un compte d'épargne ou un objectif (mouvement
+ * à l'intérieur du cercle : ni le disponible ni le reste par jour ne changent).
+ */
+export function circlePaidFromAvailable(t: Pick<Transaction, 'id' | 'accountId'>, savings: Set<string>, goalFunded: Set<string>): boolean {
+  return !savings.has(t.accountId) && !goalFunded.has(t.id);
 }
 
 /** Identifiants des comptes d'épargne (actifs ou non : un versement passé reste un versement). */

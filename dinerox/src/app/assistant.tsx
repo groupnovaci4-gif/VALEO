@@ -37,6 +37,9 @@ import { ListenButton } from '@/features/coach/ListenButton';
 import { goBack } from '@/hooks/goBack';
 import { stopVoice } from '@/services/voice';
 import { speechInput } from '@/services/speechInput';
+import { defaultSpendingAccountId } from '@/core/savingsCircle';
+import { isTontineContribution } from '@/core/savingsFlows';
+import { useEntrySave } from '@/features/entry/useEntrySave';
 
 type Proposal =
   | { kind: 'tx'; type: 'expense' | 'income'; amount: number; categoryId: string | null; payee: string | null; date: string; accountId: string | null; allocation?: { envelopeId: string | null; amount: number }[] }
@@ -117,7 +120,9 @@ export default function Assistant() {
     text: hasKey(a.key) ? t(a.key, fmt(a.params, { monthDates: true })) : '',
     bullets: a.bullets?.map((b) => (hasKey(b.key) ? t(b.key as TKey, fmt(b.params, { monthDates: true })) : '')).filter(Boolean),
   });
-  const defaultAccount = data.accounts.find((a) => a.active && !a.isSavings)?.id ?? data.accounts.find((a) => a.active)?.id ?? null;
+  // Cercle fermé : jamais un compte d'épargne par défaut (aucun compte courant : « Espèces » créé à la confirmation).
+  const { undoToast } = useEntrySave();
+  const defaultAccount = defaultSpendingAccountId(data.accounts, null, currency);
   const minor = (n: number | null) => (n === null ? null : toMinor(n, currency));
 
   const handle = (raw: string) => {
@@ -141,7 +146,11 @@ export default function Assistant() {
         // Sans compte : un compte « Espèces » sera créé à la confirmation (aucun blocage).
         if (intent.amount === null) return push({ id: mid(), from: 'assistant', text: t('ai.incomeNoAmount') });
         const amount = minor(intent.amount)!;
-        const accountId = resolveAccountHint(intent.accountHint, data.accounts)?.id ?? defaultAccount;
+        const hinted = resolveAccountHint(intent.accountHint, data.accounts);
+        // L'épargne ne paie jamais une dépense (une cotisation de tontine, si) : compte courant, et on l'explique.
+        const redirect = intent.kind === 'expense' && !!hinted?.isSavings && !isTontineContribution({ type: 'expense', categoryId: intent.categoryId });
+        const accountId = redirect ? defaultAccount : (hinted?.id ?? defaultAccount);
+        if (redirect) push({ id: mid(), from: 'assistant', text: t('circle.redirect', { account: data.accounts.find((a) => a.id === accountId)?.name ?? t('acc.type.cash') }) });
         const p: Proposal = { kind: 'tx', type: intent.kind, amount, categoryId: intent.categoryId, payee: intent.payee, date: intent.date, accountId };
         if (intent.kind === 'income') {
           p.allocation = proposeIncomeAllocation(amount, envelopes, currency);
@@ -181,7 +190,9 @@ export default function Assistant() {
     const p = m.proposal!;
     try {
       if (p.kind === 'tx') {
-        actions.saveTransaction({ type: p.type, amount: p.amount, currency, date: p.date, accountId: p.accountId ?? '', categoryId: p.categoryId, payee: p.payee, note: null });
+        const saved = actions.saveTransaction({ type: p.type, amount: p.amount, currency, date: p.date, accountId: p.accountId ?? actions.ensureCashAccount(currency), categoryId: p.categoryId, payee: p.payee, note: null });
+        // Disponible passé sous zéro : « Retirer de mon épargne ou d'un objectif » (sinon la confirmation habituelle).
+        if (p.type === 'expense') undoToast([saved.id]);
       } else if (p.kind === 'transfer') {
         if (!p.from || !p.to) throw new Error('account');
         actions.saveTransaction({ type: 'transfer', amount: p.amount, currency, date: p.date, accountId: p.from, toAccountId: p.to });

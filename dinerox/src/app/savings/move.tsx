@@ -84,7 +84,7 @@ function SavingsMove() {
         actions.depositToSavings({ savingsAccountId: account.id, amount: amount ?? 0, date, fromAccountId: source === 'account' ? otherId : null, goal: withGoal && goal ? { goalId: goal.id, amount: part } : null });
         toast.show(t('sav.move.deposited'));
       } else if (mode === 'withdraw') {
-        actions.withdrawFromSavings({ savingsAccountId: account.id, amount: amount ?? 0, date, toAccountId: dest === 'account' ? otherId : null, categoryId: dest === 'expense' ? categoryId : null, subcategoryId: dest === 'expense' ? subcategoryId : null, goal: withGoal && goal ? { goalId: goal.id, amount: part } : null });
+        actions.withdrawFromSavings({ savingsAccountId: account.id, amount: amount ?? 0, date, toAccountId: dest === 'account' ? otherId : null, viaAccountId: dest === 'expense' ? otherId : null, categoryId: dest === 'expense' ? categoryId : null, subcategoryId: dest === 'expense' ? subcategoryId : null, goal: withGoal && goal ? { goalId: goal.id, amount: part } : null });
         toast.show(t('sav.move.withdrawn'));
       } else {
         if (!adjustment) return void setErrors([t('sav.move.noChange')]);
@@ -160,7 +160,14 @@ function SavingsMove() {
           {dest === 'account' ? (
             <ChipGroup scroll value={otherId} onChange={setOtherId} options={sameCurrency.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))} />
           ) : (
-            <CategoryPicker kind="expense" scroll value={categoryId} onChange={(v) => (setCategoryId(v), setSubcategoryId(null))} subValue={subcategoryId} onSubChange={setSubcategoryId} />
+            <>
+              <CategoryPicker kind="expense" scroll value={categoryId} onChange={(v) => (setCategoryId(v), setSubcategoryId(null))} subValue={subcategoryId} onSubChange={setSubcategoryId} />
+              {/* Cercle fermé : l'épargne ne paie pas la dépense ; elle est retirée vers un compte courant, puis la dépense y est enregistrée. */}
+              {sameCurrency.length > 1 ? <ChipGroup scroll value={otherId} onChange={setOtherId} options={sameCurrency.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))} /> : null}
+              <Text variant="caption" tone="subtle" style={{ marginBottom: 12 }}>
+                {t('sav.move.expenseVia', { account: sameCurrency.find((a) => a.id === otherId)?.name ?? t('acc.type.cash') })}
+              </Text>
+            </>
           )}
         </>
       ) : null}

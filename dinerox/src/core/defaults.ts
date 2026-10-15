@@ -176,7 +176,11 @@ export function buildInitialStructure(
 ): Partial<SpaceData> {
   const date = meta.date ?? today();
   const base = { createdAt: meta.now, updatedAt: meta.now, createdBy: meta.uid };
-  const accountKeys = answers.accounts.length ? answers.accounts : ['acc.cash'];
+  // Cercle fermé : il faut au moins un compte courant pour dépenser. Aucun coché
+  // (ou seulement de l'épargne) → « Espèces » est créé, comme sans aucun compte.
+  const chosen = answers.accounts.length ? answers.accounts : ['acc.cash'];
+  const hasSpending = chosen.some((k) => ACCOUNT_TEMPLATES.some((t) => t.key === k && !t.isSavings));
+  const accountKeys = hasSpending ? chosen : [...chosen, 'acc.cash'];
   const accounts: Account[] = accountKeys
     .map((k) => ACCOUNT_TEMPLATES.find((t) => t.key === k))
     .filter((t): t is AccountTemplate => !!t)
@@ -251,7 +255,8 @@ export function buildInitialStructure(
       label: meta.label('inc.salary'),
       amount: answers.monthlyIncome,
       currency: answers.currency,
-      accountId: (accounts.find((a) => a.type === 'bank') ?? accounts[0]).id,
+      // Le salaire arrive sur un compte courant (banque d'abord), jamais sur l'épargne.
+      accountId: (accounts.find((a) => a.type === 'bank') ?? accounts.find((a) => !a.isSavings) ?? accounts[0]).id,
       categoryId: 'inc_salary',
       frequency: 'monthly',
       // Pas de génération rétroactive : première échéance = prochain jour de paie.

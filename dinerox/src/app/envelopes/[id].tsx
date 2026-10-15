@@ -18,6 +18,7 @@ import { lastMonths, monthKey } from '@/core/dates';
 import { sortTransactions } from '@/core/transactions';
 import { can } from '@/core/permissions';
 import { withSpaceReady } from '@/components/SpaceReady';
+import { isTontineContribution } from '@/core/savingsFlows';
 
 function EnvelopeDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,7 +33,8 @@ function EnvelopeDetail() {
     return envelopeHistory(status.envelope, data.envelopes, data.transactions, data.budgets, lastMonths(6, now), currency);
   }, [status, data, now, currency]);
   const txs = useMemo(
-    () => sortTransactions(data.transactions.filter((tx) => tx.type === 'expense' && monthKey(tx.date) === month && resolveEnvelopeId(tx, data.envelopes) === id)),
+    // Une cotisation de tontine n'est pas une dépense de l'enveloppe (cercle fermé).
+    () => sortTransactions(data.transactions.filter((tx) => tx.type === 'expense' && !isTontineContribution(tx) && monthKey(tx.date) === month && resolveEnvelopeId(tx, data.envelopes) === id)),
     [data, id, month],
   );
   if (!status) {

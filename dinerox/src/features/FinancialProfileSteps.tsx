@@ -193,7 +193,12 @@ export function MoneyStep({ draft, onChange }: StepProps) {
           {t('fp.money.none')}
         </Text>
       ) : (
-        draft.paymentMethods.map((k) => (
+        <>
+          {/* Cercle fermé : le solde d'un compte courant n'inclut pas l'épargne (notée à part). */}
+          <Text variant="small" tone="muted" style={{ marginBottom: 12 }}>
+            {t('fp.money.spendingHint')}
+          </Text>
+          {draft.paymentMethods.map((k) => (
           <AmountField
             key={k}
             label={t('fp.money.balance', { name: name(k, draft.country) })}
@@ -201,7 +206,8 @@ export function MoneyStep({ draft, onChange }: StepProps) {
             onChange={(v) => onChange({ ...draft, balances: { ...draft.balances, [k]: v } })}
             currency={draft.currency}
           />
-        ))
+          ))}
+        </>
       )}
     </>
   );

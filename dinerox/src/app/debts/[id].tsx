@@ -88,7 +88,7 @@ function DebtDetail() {
         <Text variant="caption" tone="subtle" style={{ marginBottom: 6 }}>
           {t('debt.payment.accountHint')}
         </Text>
-        <ChipGroup scroll value={accountId} onChange={setAccountId} options={[{ value: 'none', label: t('common.none') }, ...data.accounts.filter((a) => a.active && a.currency === debt.currency).map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))]} />
+        <ChipGroup scroll value={accountId} onChange={setAccountId} options={[{ value: 'none', label: t('common.none') }, ...data.accounts.filter((a) => a.active && a.currency === debt.currency && (debt.direction !== 'i_owe' || !a.isSavings)).map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))]} />
         <DateField label={t('common.date')} value={day} onChange={(d) => d && setDay(d)} />
         <Button full label={t('common.save')} onPress={record} />
       </Sheet>

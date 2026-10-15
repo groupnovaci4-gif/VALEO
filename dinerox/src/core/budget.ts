@@ -2,7 +2,7 @@
  * Budget & enveloppes : consommation, alertes de seuil, budget automatique.
  */
 import type { Account, BudgetMethod, BudgetPlan, Category, Envelope, Transaction } from './types';
-import { isSavingExpense, isSavingsDeposit, isSavingsWithdrawal, savingsAccountIds } from './savingsFlows';
+import { isSavingExpense, isSavingsDeposit, isSavingsWithdrawal, isTontineContribution, savingsAccountIds } from './savingsFlows';
 import type { CurrencyCode } from './money';
 import { roundTo } from './money';
 import { monthKey, type MonthKey } from './dates';
@@ -100,6 +100,8 @@ export function spentByEnvelope(
   const out: Record<string, number> = {};
   for (const t of transactions) {
     if (t.deleted || t.type !== 'expense' || t.currency !== currency || monthKey(t.date) !== month) continue;
+    // Cotisation de tontine : de l'épargne (cercle fermé), hors budget des dépenses.
+    if (isTontineContribution(t)) continue;
     const id = resolveEnvelopeId(t, envelopes);
     if (id) out[id] = (out[id] ?? 0) + t.amount;
   }

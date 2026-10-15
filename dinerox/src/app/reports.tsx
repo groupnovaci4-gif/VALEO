@@ -47,6 +47,8 @@ export default function Reports() {
       decimals: (c) => currencyInfo(c).decimals,
       headers: t('rep.csv.headers').split(';'),
       typeLabel: (ty) => t(`tx.${ty}` as TKey),
+      // Cotisation de tontine : de l'épargne, pas une dépense (cercle fermé).
+      circleLabel: t('rep.savedTontine'),
     });
     await shareCsv(`${brand.slug}-${report.period.start}_${report.period.end}.csv`, csv).catch(() => toast.show(t('error.generic'), 'error'));
     analytics.track('export_data', { kind: 'csv' });
@@ -64,6 +66,7 @@ export default function Reports() {
             [t('rep.expense'), money(report.expense)],
             [t('rep.net'), money(report.net)],
             [t('rep.saved'), money(report.saved)],
+            ...(report.savedTontine ? [[t('rep.savedTontine'), money(report.savedTontine)] as [string, string]] : []),
             [t('rep.savingsRate'), report.savingsRate === null ? '—' : `${report.savingsRate} %`],
           ],
         },
@@ -88,6 +91,8 @@ export default function Reports() {
         <Row title={t('rep.expense')} subtitle={change(report.expenseChange) || undefined} right={<Text weight="700" tone="expense">{money(report.expense)}</Text>} />
         <Row title={t('rep.net')} right={<Text weight="700" tone={report.net < 0 ? 'danger' : 'default'}>{money(report.net, { signed: true })}</Text>} />
         <Row title={t('rep.saved')} subtitle={report.savingsRate === null ? undefined : `${t('rep.savingsRate')} : ${report.savingsRate} %`} right={<Text weight="700">{money(report.saved)}</Text>} />
+        {/* Cercle fermé : dont les cotisations de tontine payées depuis le disponible. */}
+        {report.savedTontine ? <Row title={t('rep.savedTontine')} right={<Text weight="700">{money(report.savedTontine)}</Text>} /> : null}
       </Card>
       {report.transactionCount === 0 ? (
         <EmptyState emoji="📊" title={t('rep.empty')} />

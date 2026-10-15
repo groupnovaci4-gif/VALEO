@@ -6,6 +6,13 @@
  *              − récurrences de dépense restant à payer ce mois-ci
  *              − mise de côté prévue du mois (objectifs et réserves)
  *              − cotisations de tontine du mois pas encore versées
+ *              − cotisations de tontine du mois payées DEPUIS LE DISPONIBLE
+ *   Cercle fermé (fondateur, 2026-10-14) : une cotisation est de l'épargne, pas
+ *   une dépense. Payée depuis un compte courant, elle fait baisser le reste par
+ *   jour de son montant ENTIER (jamais fondue dans la mise de côté prévue) ;
+ *   payée depuis l'épargne ou un objectif, elle ne le change pas (mouvement à
+ *   l'intérieur du cercle). L'épargne de départ d'un compte d'épargne créé ce
+ *   mois-ci est de l'épargne du mois (comptée une seule fois).
  *   (une cagnotte de tontine attendue n'est JAMAIS comptée avant d'être reçue :
  *   elle devient alors un revenu enregistré)
  *   reste par jour = disponible / jours restants (aujourd'hui inclus), arrondi vers le bas.
@@ -26,7 +33,7 @@ import { tontineDueThisMonth } from './tontine';
 import { occurrencesBetween } from './recurring';
 import type { CurrencyCode } from './money';
 import type { FinancialProfile, SpaceData } from './types';
-import { isSavingExpense, isSavingsDeposit, isSavingsWithdrawal, savingsAccountIds } from './savingsFlows';
+import { circlePaidFromAvailable, goalFundedIds, isSavingExpense, isSavingsDeposit, isSavingsWithdrawal, isTontineContribution, savingsAccountIds } from './savingsFlows';
 
 export type IncomeSource = 'user' | 'declared';
 
@@ -34,6 +41,8 @@ interface Breakdown {
   income: number;
   incomeSource: IncomeSource;
   expenses: number;
+  /** Cotisations de tontine du mois payées depuis un compte courant (déduites entières). */
+  tontinePaid: number;
   /** Récurrences de dépense pas encore enregistrées d'ici la fin du mois (cotisations de tontine comprises). */
   upcomingRecurring: number;
   /** Dont : cotisations de tontine du mois pas encore versées. */
@@ -80,11 +89,20 @@ export function dailyAllowance({ data, currency, today, financial }: AllowanceIn
   let expenses = 0;
   let reserveCovered = 0;
   let savedThisMonth = 0;
+  let tontinePaid = 0;
   const savings = savingsAccountIds(data.accounts ?? []);
+  const goalFunded = goalFundedIds(data.goalContributions);
+  // Épargne de départ d'un compte d'épargne créé ce mois-ci : de l'épargne du mois.
+  for (const a of data.accounts ?? []) {
+    if (a.deleted || !a.isSavings || a.currency !== currency || !(a.openingBalance > 0)) continue;
+    if (monthKey(new Date(a.createdAt).toISOString().slice(0, 10) as ISODate) === month) savedThisMonth += a.openingBalance;
+  }
   for (const t of data.transactions) {
     if (t.deleted || t.currency !== currency || monthKey(t.date) !== month) continue;
     if (t.type === 'income') recordedIncome += t.amount;
-    else if (isSavingExpense(t)) savedThisMonth += t.amount;
+    else if (isTontineContribution(t)) {
+      if (circlePaidFromAvailable(t, savings, goalFunded)) tontinePaid += t.amount;
+    } else if (isSavingExpense(t)) savedThisMonth += t.amount;
     else if (isSavingsDeposit(t, savings)) savedThisMonth += t.amount;
     else if (isSavingsWithdrawal(t, savings)) savedThisMonth -= t.amount;
     else if (t.type === 'expense') {
@@ -132,8 +150,8 @@ export function dailyAllowance({ data, currency, today, financial }: AllowanceIn
 
   // Mise de côté du mois : la prévue (objectifs, réserves) ou celle déjà versée si elle est plus grande.
   const setAside = Math.max(goalsRemaining, savedThisMonth);
-  const available = income - expenses - upcomingRecurring - setAside;
-  const base = { income, incomeSource, expenses, upcomingRecurring, upcomingTontines, goalsRemaining, reserveCovered, savedThisMonth: Math.max(0, savedThisMonth), daysLeft, until };
+  const available = income - expenses - upcomingRecurring - setAside - tontinePaid;
+  const base = { income, incomeSource, expenses, tontinePaid, upcomingRecurring, upcomingTontines, goalsRemaining, reserveCovered, savedThisMonth: Math.max(0, savedThisMonth), daysLeft, until };
   if (available < 0) return { status: 'deficit', deficit: -available, ...base };
   return { status: 'ok', available, perDay: Math.floor(available / daysLeft), ...base };
 }

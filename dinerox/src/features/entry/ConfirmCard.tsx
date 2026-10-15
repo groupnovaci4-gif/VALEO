@@ -21,6 +21,8 @@ import type { EntryDraft, EntryField } from '@/core/entry/parse';
 import type { Account } from '@/core/types';
 import type { CurrencyCode } from '@/core/money';
 import { CategoryPicker } from '@/features/categories/CategoryPicker';
+import { expenseAccountOptions } from '@/core/savingsCircle';
+import { isTontineContribution } from '@/core/savingsFlows';
 
 type Editing = { index: number; field: EntryField | 'date' | 'savingsTo' } | null;
 
@@ -191,7 +193,13 @@ export function ConfirmCard({
               />
             ) : null}
             {editing?.index === i && editing.field === 'account' ? (
-              <ChipGroup scroll value={d.accountId} onChange={(accountId) => (patch(i, { accountId }, ['account']), setEditing(null))} options={accounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))} />
+              <ChipGroup
+                scroll
+                value={d.accountId}
+                onChange={(accountId) => (patch(i, { accountId, savingsRedirect: false }, ['account']), setEditing(null))}
+                // Cercle fermé : une dépense ne propose que les comptes courants (une cotisation de tontine, tous).
+                options={(d.type === 'expense' && !isTontineContribution(d) ? expenseAccountOptions(accounts) : accounts).map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))}
+              />
             ) : null}
             {editing?.index === i && editing.field === 'date' ? <DateField label={t('entry.field.date')} value={d.date} onChange={(v) => v && (patch(i, { date: v }, []), setEditing(null))} /> : null}
             {drafts.length > 1 ? <Button small variant="destructive" icon="trash-outline" label={t('entry.confirm.removeLine')} onPress={() => onChange(drafts.filter((_, j) => j !== i))} style={{ alignSelf: 'flex-end' }} /> : null}

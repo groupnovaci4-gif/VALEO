@@ -92,7 +92,7 @@ export function detectRecurringPayments(transactions: Transaction[], now: ISODat
   const months = new Set(lastMonths(4, now));
   const groups = new Map<string, Transaction[]>();
   for (const t of transactions) {
-    if (t.deleted || t.type !== 'expense' || t.recurringId || t.currency !== currency || !t.payee) continue;
+    if (t.deleted || !isConsumption(t) || t.recurringId || t.currency !== currency || !t.payee) continue;
     if (!months.has(monthKey(t.date))) continue;
     const k = t.payee.trim().toLowerCase();
     groups.set(k, [...(groups.get(k) ?? []), t]);

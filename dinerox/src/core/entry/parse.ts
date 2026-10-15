@@ -26,6 +26,7 @@ import { amountSpans, hasUnvalidatedUnit } from './numbers';
 import { keywordIndex, matchKeyword } from './keywords';
 import type { CategoryCatalog } from '../categoryCatalog';
 import VOCAB from './vocabulary.json';
+import { isTontineContribution } from '../savingsFlows';
 
 export type EntryField = 'amount' | 'type' | 'category' | 'account';
 
@@ -66,6 +67,12 @@ export interface EntryDraft {
   savings?: { savingsAccountId: string | null; goalId: string | null } | null;
   /** 1.9 — Catégorie à créer à la validation (réponse « Créer la catégorie X »). */
   newCategoryName?: string | null;
+  /**
+   * Cercle fermé (2026-10-14) : la phrase nommait l'épargne pour une DÉPENSE.
+   * L'épargne ne paie jamais une dépense : la ligne est sur un compte courant,
+   * et l'application l'explique (avec « Retirer de mon épargne ou d'un objectif »).
+   */
+  savingsRedirect?: boolean;
 }
 
 export interface SavingsDepositDraft {
@@ -343,10 +350,16 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
     const hints = own.length ? own : lastHints;
     if (own.length) lastHints = own;
     let accountId = ctx.defaultAccountId;
+    let savingsRedirect = false;
     if (hints.length) {
       const acc = resolveAccountHint(hints[0], accounts);
       if (acc) accountId = acc.id;
       else uncertain.add('account');
+      // Cercle fermé : l'épargne ne paie jamais une dépense (une cotisation de tontine, si : mouvement dans le cercle).
+      if (acc?.isSavings && type === 'expense' && !isTontineContribution({ type, categoryId: resolved?.categoryId ?? null, subcategoryId: resolved?.subcategoryId ?? null })) {
+        accountId = ctx.defaultAccountId;
+        savingsRedirect = true;
+      }
     }
     if (!accountId) uncertain.add('account');
 
@@ -356,7 +369,7 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
     const payee = type === 'expense' ? extractPayeeFrom(original, seg) : null;
     const categoryId = resolved?.categoryId ?? null;
     const subcategoryId = resolved?.subcategoryId ?? null;
-    const draft: EntryDraft = { type, amount, categoryId, subcategoryId, accountId, date, payee, uncertain: [...uncertain], source: seg, suggested: { categoryId, subcategoryId }, question };
+    const draft: EntryDraft = { type, amount, categoryId, subcategoryId, accountId, date, payee, uncertain: [...uncertain], source: seg, suggested: { categoryId, subcategoryId }, question, ...(savingsRedirect ? { savingsRedirect } : {}) };
     items.push({ ...draft, confidence: lineConfidence(draft) });
   }
 
@@ -417,6 +430,12 @@ const SAVE_VERB = /\b(j ai |je viens d |on a )?(epargne|epargnes|economise|econo
 /** Verbes de dépôt : un versement seulement s'il est question d'épargne, d'un compte d'épargne ou d'un objectif. */
 const DEPOSIT_VERB = /\b(verse|verser|versez|depose|deposer|deposez|place|placer|mis|mets|mettre|ajoute|ajouter|deposit|deposited)\b/;
 const SAVINGS_WORD = /\b(epargne|de cote|savings)\b/;
+/**
+ * « l'épargne », « mon épargne », « sur le compte épargne » : le NOM (un compte),
+ * pas le verbe « j'ai épargné ». Retiré avant de chercher le verbe : « loyer
+ * 10 000 avec l'épargne » est une dépense, jamais un versement.
+ */
+const SAVINGS_NOUN = /\b(l|la|le|mon|ma|ton|ta|son|sa|notre|votre|leur|nos|vos|mes|tes|ses|d|de|du|des|compte|sur|avec|dans|depuis|par|via)\s+epargnes?\b/g;
 /** Ni une question, ni un projet (« Je veux épargner pour… » = objectif), ni un retrait, ni une tontine. */
 const NOT_A_DEPOSIT = /\?|^(combien|pourquoi|comment|est ce que|quel|quelle|quand|how|why)\b|\b(je veux|je voudrais|j aimerais|je souhaite|je vais|je compte|epargner pour|economiser pour|retire|retirer|retrait|sorti|tontine|cotis)/;
 /** Source citée : « depuis Wave », « de mon Orange Money », « par la banque ». */
@@ -440,7 +459,7 @@ export function parseSavingsDeposit(text: string, ctx: EntryContext): SavingsDep
   const goals = (ctx.goals ?? []).filter((g) => !g.deleted && (g.status === 'active' || g.status === 'paused') && g.kind !== 'reserve');
   const namedSavings = savings.filter((a) => nameIn(text, a.name));
   const namedGoal = goals.find((g) => nameIn(text, g.name)) ?? null;
-  const isDeposit = SAVE_VERB.test(text) || (DEPOSIT_VERB.test(text) && (SAVINGS_WORD.test(text) || namedSavings.length > 0 || !!namedGoal));
+  const isDeposit = SAVE_VERB.test(text.replace(SAVINGS_NOUN, ' ')) || (DEPOSIT_VERB.test(text) && (SAVINGS_WORD.test(text) || namedSavings.length > 0 || !!namedGoal));
   if (!isDeposit) return null;
 
   const spans = amountSpans(text);

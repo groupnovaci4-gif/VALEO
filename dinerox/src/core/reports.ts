@@ -4,7 +4,7 @@
 import type { Account, Category, SpaceData, Transaction } from './types';
 import type { CurrencyCode } from './money';
 import { flowTotals } from './balance';
-import { isConsumption, isSavingExpense } from './savingsFlows';
+import { circlePaidFromAvailable, goalFundedIds, isCircleMovement, isConsumption, isSavingExpense, isTontineContribution } from './savingsFlows';
 import { addDays, inPeriod, monthKey, periodOf, previousPeriod, type ISODate, type Period, type PeriodKind } from './dates';
 
 export interface SeriesPoint {
@@ -26,8 +26,10 @@ export interface Report {
   income: number;
   expense: number;
   net: number;
-  /** Épargne de la période : transferts vers des comptes d'épargne + dépenses catégorie épargne. */
+  /** Épargne de la période : transferts vers des comptes d'épargne + dépenses catégorie épargne + cotisations de tontine payées depuis le disponible. */
   saved: number;
+  /** Dont « Mis de côté › Tontine » : cotisations payées depuis un compte courant (cercle fermé, 2026-10-14). */
+  savedTontine: number;
   /** Taux d'épargne en % du revenu (null si pas de revenu). */
   savingsRate: number | null;
   byCategory: CategoryShare[];
@@ -52,14 +54,24 @@ export function buildReport(data: SpaceData, kind: PeriodKind, ref: ISODate, cur
 
   const savingsIds = new Set(data.accounts.filter((a: Account) => a.isSavings && !a.deleted).map((a) => a.id));
   let saved = 0;
+  let savedTontine = 0;
+  const goalFunded = goalFundedIds(data.goalContributions);
   const cats: Record<string, number> = {};
   for (const t of data.transactions) {
     if (t.deleted || t.currency !== currency || !inPeriod(t.date, period)) continue;
     // Épargne NETTE : versements vers l'épargne moins retraits de l'épargne.
     if (t.type === 'transfer' && t.toAccountId && savingsIds.has(t.toAccountId) && !savingsIds.has(t.accountId)) saved += t.amount;
     if (t.type === 'transfer' && t.toAccountId && savingsIds.has(t.accountId) && !savingsIds.has(t.toAccountId)) saved -= t.amount;
+    // Cotisation de tontine : de l'épargne. Payée depuis un compte courant, elle est mise de côté
+    // (« Mis de côté › Tontine ») ; depuis l'épargne ou un objectif, elle reste dans le cercle.
+    if (isTontineContribution(t)) {
+      if (circlePaidFromAvailable(t, savingsIds, goalFunded)) {
+        saved += t.amount;
+        savedTontine += t.amount;
+      }
+    }
     // Anciennes « dépenses » Épargne / Investissement : de l'épargne, pas de la consommation.
-    if (isSavingExpense(t)) saved += t.amount;
+    else if (isSavingExpense(t)) saved += t.amount;
     else if (isConsumption(t)) {
       const k = t.categoryId ?? 'uncategorized';
       cats[k] = (cats[k] ?? 0) + t.amount;
@@ -79,6 +91,7 @@ export function buildReport(data: SpaceData, kind: PeriodKind, ref: ISODate, cur
     expense: totals.expense,
     net: totals.net,
     saved,
+    savedTontine,
     savingsRate: totals.income > 0 ? Math.round((saved / totals.income) * 100) : null,
     byCategory,
     series: buildSeries(data.transactions, period, currency),
@@ -107,7 +120,7 @@ export function buildSeries(transactions: Transaction[], period: Period, currenc
     const p = points.get(byYear ? monthKey(t.date) : t.date);
     if (!p) continue;
     if (t.type === 'income') p.income += t.amount;
-    else p.expense += t.amount;
+    else if (!isCircleMovement(t)) p.expense += t.amount;
   }
   return [...points.values()];
 }
@@ -135,6 +148,8 @@ export function transactionsToCsv(
     decimals: (currency: string) => number;
     headers: string[];
     typeLabel: (t: Transaction['type']) => string;
+    /** Type affiché pour une cotisation de tontine (« Mis de côté › Tontine ») : de l'épargne, pas une dépense. */
+    circleLabel?: string;
   },
 ): string {
   const rows = [ctx.headers.map(csvCell).join(';')];
@@ -146,7 +161,7 @@ export function transactionsToCsv(
     rows.push(
       [
         t.date,
-        ctx.typeLabel(t.type),
+        ctx.circleLabel && isTontineContribution(t) ? ctx.circleLabel : ctx.typeLabel(t.type),
         amount,
         t.currency,
         ctx.accountName(t.accountId),

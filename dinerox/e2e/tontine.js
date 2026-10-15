@@ -105,12 +105,15 @@ let b;
     const paid0 = paidOf(t);
     ok(paid0 >= 20_000 && /Vous avez versé [\d ]+ FCFA\. Vous recevrez 100 000 FCFA au tour 6 \(vers le/.test(t) && t.includes("C'est de l'épargne : le groupe vous doit"), `position nette avant mon tour : versé ${paid0}, recevra 100 000 au tour 6`);
     ok(/Tour \d+ sur 10/.test(t), 'progression : tour actuel sur 10');
+    // Cercle fermé (2026-10-14) : « J'ai cotisé » ouvre « Payer depuis » (compte courant, épargne, objectif), puis « Confirmer ».
     await btn("J'ai cotisé").click(); await p.waitForTimeout(800);
+    ok((await text()).includes('Payer depuis'), '« J’ai cotisé » : choix de la source (« Payer depuis »)');
+    await btn('Confirmer').last().click(); await p.waitForTimeout(800);
     ok(/Enregistré ✓/.test(await text()), '« J’ai cotisé » (confirmé) : opération enregistrée');
     t = await position();
     ok(paidOf(t) === paid0 + 10_000, `position : versé ${paid0} → ${paidOf(t)}`);
     await go('/transactions');
-    ok((await text()).includes('Tontine du bureau'), 'Historique : la cotisation est une vraie dépense « Tontine du bureau »');
+    ok((await text()).includes('Tontine du bureau'), 'Historique : la cotisation est une opération réelle « Tontine du bureau » (de l’épargne, pas une dépense)');
     await p.getByRole('button', { name: /Tontine du bureau/ }).first().click(); await p.waitForTimeout(2000);
     await btn('Supprimer').click(); await p.waitForTimeout(1200);
     ok(paidOf(await position()) === paid0, 'suppression de l’opération : la cotisation est annulée');
