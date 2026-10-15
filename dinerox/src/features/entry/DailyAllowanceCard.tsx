@@ -14,9 +14,8 @@ import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { Amount, Button, Card, GradientCard, Icon, Text } from '@/components/ui';
 import { SourceTag } from '@/features/Recommendation';
-import { dailyAllowance } from '@/core/dailyAllowance';
+import { allowanceDeductions, dailyAllowance } from '@/core/dailyAllowance';
 import { BIG_TEXT, useTheme } from '@/theme';
-import { allowanceDeductions } from '@/core/dailyAllowance';
 
 const HIDDEN = '••••••';
 
