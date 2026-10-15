@@ -37,6 +37,7 @@
     },
     "staging": {
       "distribution": "internal",
+      "autoIncrement": true,
       "env": {
         "APP_ENV": "staging",
         "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyACWUfcEnhj7Jq8t5LqXls_DrQZqVNXeFM",
