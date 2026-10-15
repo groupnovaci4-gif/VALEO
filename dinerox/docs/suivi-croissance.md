@@ -105,9 +105,20 @@ Demandé par le fondateur le 2026-10-14 ; aucun n'est commencé.
 | (d) Piste « test interne » de Google Play (voir la vraie fenêtre d'avis avant la publication) | ⬜ | à préparer, liste ci-dessous |
 | (e) Demande d'avis quand une cagnotte de TONTINE PARTAGÉE est reçue | ⬜ | quand ce moment existera (aujourd'hui seul le carnet enregistre une cagnotte reçue) : `markReviewMoment('tontine')` |
 | (g) Cagnotte de tontine reçue | ⬜ | Aujourd'hui comptée comme un revenu, elle peut remplacer le revenu déclaré dans le reste par jour. Avec la règle du cercle, c'est de l'épargne qui revient au disponible. À revoir. |
-| (h) e2e `lot-b.js` : vérification « J'ai compris » ambiguë avec la carte du coach | ⬜ | test fragile (le bouton « J'ai compris » d'une carte du coach, selon la date des données de démonstration) ; existait avant le correctif |
-| (i) Parrainage : une cotisation de tontine comptée comme une dépense dans la « semaine régulière » du filleul | ⬜ | à aligner sur la règle du cercle ; demandera un déploiement des fonctions du parrainage |
+| (h) e2e `lot-b.js` : vérification « J'ai compris » ambiguë avec la carte du coach | 🟧 | corrigé sur `audit-2026-10` : cherche « J'ai compris N opération(s) » et vérifie l'écoute ; à confirmer par la série e2e |
+| (i) Parrainage : une cotisation de tontine comptée comme une dépense dans la « semaine régulière » du filleul | 🟧 | corrigé sur `audit-2026-10` (`isCircleContribution`) ; demandera un déploiement des fonctions du parrainage |
 | (j) Anciennes cotisations de tontine partagée sans lien ni sous-catégorie Tontine | ⬜ | restent comptées comme des dépenses |
+
+### Reportés par l'audit 2026-10 (décision du fondateur, 2026-10-15)
+
+| Élément | Statut | Raison |
+|---|---|---|
+| M4 — App Check | ⬜ | au lancement sur Google Play |
+| M1 — appels répétés aux fonctions IA / quotas | ⬜ | avec App Check, ou avant si le paiement arrive avant |
+| M2 partie 2 — e-mail vérifié pour valider un filleul | ⬜ | non pour l'instant ; la partie 1 (jours comptés avec `syncedAt`) est faite |
+| F2, F9, F10 | ⬜ | risque accepté par le fondateur |
+| I3 — prénom visible dans les invitations en attente | ⬜ | à proposer plus tard |
+| I1 — voix : audio traité sur l'appareil par défaut | ⬜ | décision préparée (rapport d'audit), rien de changé |
 
 Préparer la piste « test interne » (décision du fondateur, 2026-10-14) :
 1. **Compte développeur Google Play** (frais d'inscription unique de Google, vérification d'identité).

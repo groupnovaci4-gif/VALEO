@@ -463,6 +463,39 @@ describe('parrainage (croissance, étape 1)', () => {
   });
 });
 
+describe('audit 2026-10', () => {
+  it('M3 — statistiques : événements et propriétés des versions de l’application acceptés', async () => {
+    const ev = (event: string, props: Record<string, unknown>) => addDoc(collection(db('u1'), 'analyticsEvents'), { event, props, env: 'production', day: '2026-10-15', at: serverTimestamp() });
+    await assertSucceeds(ev('sign_up', { method: 'email' }));
+    await assertSucceeds(ev('entry_created', { method: 'voice', count: 3 }));
+    await assertSucceeds(ev('share_clicked', { context: 'invite', channel: 'whatsapp' }));
+    await assertSucceeds(ev('tontine_created', { mode: 'group' }));
+    await assertSucceeds(ev('review_requested', { context: 'manual' }));
+    await assertSucceeds(ev('premium_viewed', {}));
+    await assertSucceeds(ev('first_goal', { kind: 'purchase', step: 2, intent: true }));
+  });
+  it('M3 — statistiques : événement inconnu, clé inconnue, valeur longue ou imbriquée refusés', async () => {
+    const ev = (event: string, props: Record<string, unknown>) => addDoc(collection(db('u1'), 'analyticsEvents'), { event, props, env: 'production', day: '2026-10-15', at: serverTimestamp() });
+    await assertFails(ev('inventé', {}));
+    await assertFails(ev('referral_shared', { name: 'Awa Koné' }));
+    await assertFails(ev('referral_shared', { kind: 'x'.repeat(41) }));
+    await assertFails(ev('referral_shared', { kind: { nested: 'x' } }));
+    await assertFails(ev('referral_shared', { kind: ['a'] }));
+    await assertFails(addDoc(collection(db('u1'), 'analyticsEvents'), { event: 'sign_up', props: {}, env: 'x'.repeat(41), day: '2026-10-15', at: serverTimestamp() }));
+    await assertFails(addDoc(collection(db('u1'), 'analyticsEvents'), { event: 'sign_up', props: {}, env: 'production', day: 'aujourd’hui', at: serverTimestamp() }));
+  });
+  it('F1 — à la création, l’auteur est toujours la personne connectée (admin, partenaire, enfant)', async () => {
+    await seedFamily();
+    await assertFails(setDoc(doc(db('P'), 'spaces/fam_1/transactions/tF1'), tx('tF1', 'A')));
+    await assertFails(setDoc(doc(db('A'), 'spaces/fam_1/transactions/tF2'), tx('tF2', 'P')));
+    await assertFails(setDoc(doc(db('C'), 'spaces/fam_1/transactions/tF3'), tx('tF3', 'A')));
+    await assertSucceeds(setDoc(doc(db('P'), 'spaces/fam_1/transactions/tF4'), tx('tF4', 'P')));
+    await assertSucceeds(setDoc(doc(db('A'), 'spaces/fam_1/transactions/tF5'), tx('tF5', 'A')));
+    // Une modification garde l'auteur d'origine (déjà imposé) : le partenaire peut corriger l'opération de l'admin.
+    await assertSucceeds(updateDoc(doc(db('P'), 'spaces/fam_1/transactions/tA'), { note: 'corrigé', updatedAt: 20, syncedAt: serverTimestamp() }));
+  });
+});
+
 describe('origine des inscriptions (croissance, étape 5)', () => {
   it('profil : le marqueur « déjà compté » ne s’écrit jamais par le client (création, modification, effacement)', async () => {
     await assertFails(setDoc(doc(db('u1'), 'users/u1'), { ...profile('u1'), originCounted: true }));

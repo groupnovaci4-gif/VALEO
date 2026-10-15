@@ -53,7 +53,9 @@ let b;
   await btn('Dicter une opération').click(); await p.waitForTimeout(300);
   ok((await p.evaluate(() => window.__listening)) && (await p.evaluate(() => window.__cancels)) > 0, 'micro ouvert : la voix du coach est coupée');
   await p.waitForTimeout(1600);
-  ok((await p.evaluate(() => window.__cancels)) > 0 && !(await text()).includes("J'ai compris"), 'fin de phrase du moteur : l’enregistrement continue (seul ■ l’arrête)');
+  // Audit 2026-10 (h) : seule la carte de confirmation de la feuille de saisie compte (« J'ai compris N opération… ») ;
+  // une carte du coach de l'accueil a aussi un bouton « J'ai compris », sans rapport.
+  ok((await p.evaluate(() => window.__cancels)) > 0 && (await p.evaluate(() => window.__listening)) && !/J'ai compris \d+ opération/.test(await text()), 'fin de phrase du moteur : l’enregistrement continue (seul ■ l’arrête)');
   await btn("Terminer l'enregistrement").click(); await p.waitForTimeout(900);
   ok((await text()).includes("J'ai compris 1 opération"), 'toucher ■ : la carte de confirmation s’affiche');
   ok(errs.length === 0, 'aucune erreur JS ' + errs.slice(0, 2).join(' | '));

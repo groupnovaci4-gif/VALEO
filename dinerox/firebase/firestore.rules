@@ -213,6 +213,8 @@ service cloud.firestore {
 
         allow create: if knownCollection() && isMember()
           && validBase(request.resource.data) && validDoc(request.resource.data)
+          // Audit 2026-10 (F1) : à la création, l'auteur est toujours la personne connectée (tous les rôles).
+          && request.resource.data.createdBy == me()
           && (
             roleOf() in ['admin', 'partner']
             // Enfant : ses propres dépenses et contributions uniquement.
@@ -301,11 +303,34 @@ service cloud.firestore {
     }
 
     // ─── Statistiques anonymes (écriture seule, aucune lecture client) ─
+    // Audit 2026-10 (M3) : seulement les événements et les propriétés de l'application
+    // (toutes versions : src/services/analytics.ts › AnalyticsEvent, core/analyticsProps.ts ›
+    // ALLOWED_PROPS), valeurs courtes (texte ≤ 40, nombre, oui/non) : ni texte libre ni donnée personnelle.
     match /analyticsEvents/{eventId} {
+      function knownEvent(e) {
+        return e in ['sign_up', 'onboarding_completed', 'first_expense', 'first_income', 'first_goal', 'first_envelope',
+                     'ai_used', 'premium_viewed', 'premium_converted', 'unsubscribed', 'family_created', 'export_data',
+                     'entry_created', 'voice_entry_corrected', 'voice_entry_failed', 'daily_reminder_opened', 'history_opened',
+                     'mic_routed', 'voice_understood', 'referral_shared', 'referral_applied', 'share_clicked',
+                     'tontine_created', 'tontine_group_invite_shared', 'tontine_group_joined', 'tontine_payment_declared',
+                     'tontine_payment_confirmed', 'review_requested'];
+      }
+      function shortValue(p, k) {
+        return !(k in p) || (p[k] is string && p[k].size() <= 40) || p[k] is number || p[k] is bool;
+      }
+      function validProps(p) {
+        return p.keys().hasOnly(['method', 'plan', 'intent', 'source', 'step', 'kind', 'count', 'reason', 'to', 'context', 'channel', 'mode'])
+          && shortValue(p, 'method') && shortValue(p, 'plan') && shortValue(p, 'intent') && shortValue(p, 'source')
+          && shortValue(p, 'step') && shortValue(p, 'kind') && shortValue(p, 'count') && shortValue(p, 'reason')
+          && shortValue(p, 'to') && shortValue(p, 'context') && shortValue(p, 'channel') && shortValue(p, 'mode');
+      }
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(['event', 'props', 'env', 'day', 'at'])
-        && request.resource.data.event is string && request.resource.data.event.size() <= 40
+        && request.resource.data.event is string && knownEvent(request.resource.data.event)
         && request.resource.data.props is map && request.resource.data.props.size() <= 6
+        && validProps(request.resource.data.props)
+        && request.resource.data.env is string && request.resource.data.env.size() <= 40
+        && isISODate(request.resource.data.day)
         && request.resource.data.at == request.time;
       allow read, update, delete: if false;
     }

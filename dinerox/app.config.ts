@@ -51,6 +51,9 @@ const build = (base: Partial<ExpoConfig>): ExpoConfig => ({
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     permissions: ['USE_BIOMETRIC', 'USE_FINGERPRINT'],
+    // Audit 2026-10 (F7) : permissions ajoutées par des bibliothèques mais inutiles à l'application
+    // (affichage par-dessus les autres applis ; caméra : les justificatifs viennent de la galerie).
+    blockedPermissions: ['android.permission.SYSTEM_ALERT_WINDOW', 'android.permission.CAMERA'],
     // Liens DineroX (`https://{domaine}/i/{code}`) : ouverture directe dans l'application
     // (Android App Links). La vérification exige `/.well-known/assetlinks.json` sur chaque
     // domaine, avec l'empreinte SHA-256 de la clé de signature Play : sans lui, le lien

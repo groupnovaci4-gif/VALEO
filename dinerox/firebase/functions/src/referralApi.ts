@@ -14,7 +14,7 @@
 import './options';
 import { createHmac, randomInt } from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
-import { FieldValue, getFirestore, type Firestore, type QueryDocumentSnapshot, type Transaction } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, Timestamp, type Firestore, type QueryDocumentSnapshot, type Transaction } from 'firebase-admin/firestore';
 import { HttpsError, onCall, onRequest, type CallableRequest } from 'firebase-functions/v2/https';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
@@ -39,6 +39,7 @@ import {
   type WeekResult,
 } from './referral';
 import { pageLanguage, renderPage, routeLink } from './links';
+import { nextCodeAttempt } from './plans';
 import { sendExpoPush, type PushMessage } from './push';
 
 export const REFERRAL_DEVICE_PEPPER = defineSecret('REFERRAL_DEVICE_PEPPER');
@@ -143,8 +144,24 @@ export async function ensureReferralCode(uid: string): Promise<string> {
 
 // ─── Appliquer un code (filleul) ──────────────────────────────────────
 
+/**
+ * Audit 2026-10 (F5) : réserve un essai de code pour ce compte aujourd'hui (aperçu et demande d'une
+ * tontine partagée, code de parrainage) ; au-delà de `CODE_DAILY_ATTEMPTS`, refus (`resource-exhausted`).
+ */
+export async function takeCodeAttempt(uid: string, refusal: string): Promise<void> {
+  const day = new Date().toISOString().slice(0, 10);
+  const ref = db().doc(`usage/${uid}`);
+  await db().runTransaction(async (tx) => {
+    const u = await tx.get(ref);
+    const next = nextCodeAttempt({ day: u.get('codeTriesDay'), tries: u.get('codeTries') }, day);
+    if (!next.allowed) throw new HttpsError('resource-exhausted', refusal);
+    tx.set(ref, next.patch, { merge: true });
+  });
+}
+
 export const applyReferral = onCall({ secrets: [REFERRAL_DEVICE_PEPPER] }, async (req) => {
   const uid = requireUid(req);
+  await takeCodeAttempt(uid, 'referral/too-many-tries');
   const data = (req.data ?? {}) as { code?: unknown; source?: unknown; deviceId?: unknown };
   const source: Source = SOURCES.includes(data.source as (typeof SOURCES)[number]) ? (data.source as Source) : 'manual';
   const result = await applyReferralCore(uid, normalizeCode(data.code), source, deviceHash(data.deviceId, REFERRAL_DEVICE_PEPPER.value()));
@@ -218,18 +235,20 @@ export async function applyReferralCore(uid: string, code: string, source: Sourc
 async function loadActivity(uid: string, signupAt: number): Promise<{ ops: ActivityOp[]; goals: ActivityGoal[] }> {
   const until = signupAt + (REFERRAL.VALIDATION_DEADLINE_DAYS + 1) * DAY_MS;
   const space = db().doc(`spaces/${uid}`);
+  // Audit 2026-10 (M2) : fenêtre sur l'heure du SERVEUR (`syncedAt`), jamais sur la date écrite par le téléphone.
   const [ops, goals] = await Promise.all([
-    space.collection('transactions').where('createdAt', '>=', signupAt).where('createdAt', '<=', until).get(),
-    space.collection('goals').where('createdAt', '>=', signupAt).where('createdAt', '<=', until).get(),
+    space.collection('transactions').where('syncedAt', '>=', Timestamp.fromMillis(signupAt)).where('syncedAt', '<=', Timestamp.fromMillis(until)).get(),
+    space.collection('goals').where('syncedAt', '>=', Timestamp.fromMillis(signupAt)).where('syncedAt', '<=', Timestamp.fromMillis(until)).get(),
   ]);
+  const ms = (v: unknown) => (v instanceof Timestamp ? v.toMillis() : null);
   return {
     ops: ops.docs.map((d) => {
       const x = d.data();
-      return { id: d.id, type: x.type, amount: x.amount, categoryId: x.categoryId ?? null, createdAt: x.createdAt, updatedAt: x.updatedAt, createdBy: x.createdBy, deleted: x.deleted, recurringId: x.recurringId ?? null };
+      return { id: d.id, type: x.type, amount: x.amount, categoryId: x.categoryId ?? null, subcategoryId: x.subcategoryId ?? null, tontineId: x.tontineId ?? null, createdAt: x.createdAt, updatedAt: x.updatedAt, createdBy: x.createdBy, deleted: x.deleted, recurringId: x.recurringId ?? null, syncedAt: ms(x.syncedAt) };
     }),
     goals: goals.docs.map((d) => {
       const x = d.data();
-      return { id: d.id, createdAt: x.createdAt, updatedAt: x.updatedAt, createdBy: x.createdBy, deleted: x.deleted };
+      return { id: d.id, createdAt: x.createdAt, updatedAt: x.updatedAt, createdBy: x.createdBy, deleted: x.deleted, syncedAt: ms(x.syncedAt) };
     }),
   };
 }

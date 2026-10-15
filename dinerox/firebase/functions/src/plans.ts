@@ -95,3 +95,14 @@ export function nextVoiceParseAttempt(prev: { day?: unknown; tries?: unknown }, 
   if (tries >= VOICE_PARSE_DAILY_ATTEMPTS) return { allowed: false, patch: { voiceParseTriesDay: day, voiceParseTries: tries } };
   return { allowed: true, patch: { voiceParseTriesDay: day, voiceParseTries: tries + 1 } };
 }
+
+/**
+ * Audit 2026-10 (F5) : plafond quotidien d'essais de codes par compte (aperçu et demande
+ * d'une tontine partagée, code de parrainage), sur le modèle de `nextVoiceParseAttempt`.
+ */
+export const CODE_DAILY_ATTEMPTS = 50;
+export function nextCodeAttempt(prev: { day?: unknown; tries?: unknown }, day: string): { allowed: boolean; patch: { codeTriesDay: string; codeTries: number } } {
+  const tries = prev.day === day ? Number(prev.tries ?? 0) : 0;
+  if (tries >= CODE_DAILY_ATTEMPTS) return { allowed: false, patch: { codeTriesDay: day, codeTries: tries } };
+  return { allowed: true, patch: { codeTriesDay: day, codeTries: tries + 1 } };
+}

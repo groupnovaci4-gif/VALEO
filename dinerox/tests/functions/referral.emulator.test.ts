@@ -13,7 +13,7 @@ import { deleteApp, initializeApp, type FirebaseApp } from 'firebase/app';
 import { connectAuthEmulator, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 import { initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, collection, setDoc, type Firestore } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, setDoc, type Firestore, Timestamp } from 'firebase/firestore';
 import { readFileSync } from 'node:fs';
 import { refusalCode } from '../../src/core/referral';
 
@@ -105,16 +105,18 @@ const refusal = async (p: Promise<unknown>) => {
  */
 async function regularWeek(uid: string, createdAt: number, activeDays = 5) {
   await admin(async (fs) => {
-    const base = { currency: 'XOF', accountId: 'cash', createdBy: uid, syncedAt: 1 };
+    // Audit 2026-10 (M2) : les jours comptent à l'heure du SERVEUR. Comme en production
+    // (`syncedAt` = request.time), un horodatage serveur — ici celui du jour simulé.
+    const base = { currency: 'XOF', accountId: 'cash', createdBy: uid };
     for (let d = 0; d < activeDays; d++) {
       const at = createdAt + d * D + 3600_000;
-      await setDoc(doc(fs, `spaces/${uid}/transactions/e${d}`), { ...base, id: `e${d}`, type: 'expense', amount: 1000 + d, categoryId: 'cat_food', date: '2026-10-01', createdAt: at, updatedAt: at });
+      await setDoc(doc(fs, `spaces/${uid}/transactions/e${d}`), { ...base, id: `e${d}`, type: 'expense', amount: 1000 + d, categoryId: 'cat_food', date: '2026-10-01', createdAt: at, updatedAt: at, syncedAt: Timestamp.fromMillis(at) });
     }
     const inc = createdAt + D + 7200_000;
-    await setDoc(doc(fs, `spaces/${uid}/transactions/i1`), { ...base, id: 'i1', type: 'income', amount: 50000, categoryId: 'inc_salary', date: '2026-10-02', createdAt: inc, updatedAt: inc });
+    await setDoc(doc(fs, `spaces/${uid}/transactions/i1`), { ...base, id: 'i1', type: 'income', amount: 50000, categoryId: 'inc_salary', date: '2026-10-02', createdAt: inc, updatedAt: inc, syncedAt: Timestamp.fromMillis(inc) });
     for (const g of ['g1', 'g2']) {
       const at = createdAt + 1800_000;
-      await setDoc(doc(fs, `spaces/${uid}/goals/${g}`), { id: g, name: 'Objectif', createdBy: uid, createdAt: at, updatedAt: at, targetAmount: 100000, initialAmount: 0, status: 'active', priority: 'normal', syncedAt: 1 });
+      await setDoc(doc(fs, `spaces/${uid}/goals/${g}`), { id: g, name: 'Objectif', createdBy: uid, createdAt: at, updatedAt: at, targetAmount: 100000, initialAmount: 0, status: 'active', priority: 'normal', syncedAt: Timestamp.fromMillis(at) });
     }
   });
 }

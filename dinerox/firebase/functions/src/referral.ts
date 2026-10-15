@@ -182,6 +182,11 @@ export interface ActivityOp {
   createdBy?: string;
   deleted?: boolean;
   recurringId?: string | null;
+  /** Heure du SERVEUR à la dernière écriture (ms) — fait foi pour les jours d'activité (audit 2026-10, M2). */
+  syncedAt?: number | null;
+  subcategoryId?: string | null;
+  /** Lien avec une tontine (carnet ou tontine partagée) : une cotisation, de l'épargne. */
+  tontineId?: string | null;
 }
 
 export interface ActivityGoal {
@@ -190,7 +195,15 @@ export interface ActivityGoal {
   updatedAt: number;
   createdBy?: string;
   deleted?: boolean;
+  syncedAt?: number | null;
 }
+
+/** Heure qui fait foi : celle du serveur ; la date du téléphone seulement pour un document sans heure serveur. */
+const serverTime = (d: { syncedAt?: number | null; createdAt: number }) => (typeof d.syncedAt === 'number' && d.syncedAt > 0 ? d.syncedAt : d.createdAt);
+
+/** Cotisation de tontine ou épargne communautaire (cercle fermé) : de l'épargne, pas une dépense. */
+const CIRCLE_SUBCATEGORIES = new Set(['sub_informal_tontine', 'sub_informal_community']);
+const isCircleContribution = (o: ActivityOp) => o.type === 'expense' && (!!o.tontineId || (!!o.subcategoryId && CIRCLE_SUBCATEGORIES.has(o.subcategoryId)));
 
 export interface WeekProgress {
   /** Jour courant dans la semaine en cours (1 à 7), 0 si aucune activité. */
@@ -255,22 +268,24 @@ export function countedEvents(ops: ActivityOp[], goals: ActivityGoal[], uid: str
   const sorted = ops
     .filter((o) => (o.createdBy ?? uid) === uid && !o.recurringId && !autoCreated(o.id) && !quicklyDeleted(o))
     .filter((o) => o.type === 'expense' || o.type === 'income' || o.type === 'transfer')
-    .filter((o) => o.createdAt >= signupAt)
-    .sort((a, b) => a.createdAt - b.createdAt);
+    // Audit 2026-10 (M2) : l'heure du SERVEUR fait foi (le téléphone peut écrire n'importe quelle date).
+    .filter((o) => serverTime(o) >= signupAt)
+    .sort((a, b) => serverTime(a) - serverTime(b));
   for (const o of sorted) {
     const dup = kept.some(
-      (k) => k.type === o.type && k.amount === o.amount && (k.categoryId ?? null) === (o.categoryId ?? null) && Math.abs(o.createdAt - k.createdAt) < REFERRAL.DUPLICATE_WINDOW_MS,
+      (k) => k.type === o.type && k.amount === o.amount && (k.categoryId ?? null) === (o.categoryId ?? null) && Math.abs(serverTime(o) - serverTime(k)) < REFERRAL.DUPLICATE_WINDOW_MS,
     );
     if (!dup) kept.push(o);
   }
   const events: Event[] = kept.map((o) => ({
-    at: o.createdAt,
-    day: dayIndex(dayKey(o.createdAt, timeZone)),
-    kind: o.type === 'expense' ? (o.categoryId && SAVING_CATEGORY_IDS.has(o.categoryId) ? 'other' : 'expense') : o.type === 'income' ? 'income' : 'other',
+    at: serverTime(o),
+    day: dayIndex(dayKey(serverTime(o), timeZone)),
+    // (i) Une cotisation de tontine est de l'épargne, pas une dépense (règle du cercle fermé).
+    kind: o.type === 'expense' ? ((o.categoryId && SAVING_CATEGORY_IDS.has(o.categoryId)) || isCircleContribution(o) ? 'other' : 'expense') : o.type === 'income' ? 'income' : 'other',
   }));
   for (const g of goals) {
-    if ((g.createdBy ?? uid) !== uid || autoCreated(g.id) || quicklyDeleted(g) || g.createdAt < signupAt) continue;
-    events.push({ at: g.createdAt, day: dayIndex(dayKey(g.createdAt, timeZone)), kind: 'goal' });
+    if ((g.createdBy ?? uid) !== uid || autoCreated(g.id) || quicklyDeleted(g) || serverTime(g) < signupAt) continue;
+    events.push({ at: serverTime(g), day: dayIndex(dayKey(serverTime(g), timeZone)), kind: 'goal' });
   }
   return events.sort((a, b) => a.at - b.at);
 }

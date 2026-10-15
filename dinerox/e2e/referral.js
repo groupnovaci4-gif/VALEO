@@ -23,7 +23,9 @@ const stamp = Date.now();
 let b;
 
 // ── Accès « console » aux émulateurs (vérifier ce que le serveur a écrit, simuler une synchro) ──
-const enc = (v) => (typeof v === 'number' ? { integerValue: String(v) } : typeof v === 'boolean' ? { booleanValue: v } : v === null ? { nullValue: null } : { stringValue: String(v) });
+// Horodatage serveur (`syncedAt`), posé par la synchronisation sur chaque écriture.
+const serverTs = (ms) => ({ timestampValue: new Date(ms).toISOString() });
+const enc = (v) => (v && typeof v === 'object' && 'timestampValue' in v ? v : typeof v === 'number' ? { integerValue: String(v) } : typeof v === 'boolean' ? { booleanValue: v } : v === null ? { nullValue: null } : { stringValue: String(v) });
 const dec = (f) => { if (!f) return undefined; if ('mapValue' in f) return Object.fromEntries(Object.entries(f.mapValue.fields || {}).map(([k, v]) => [k, dec(v)])); if ('integerValue' in f) return Number(f.integerValue); if ('doubleValue' in f) return f.doubleValue; if ('booleanValue' in f) return f.booleanValue; if ('nullValue' in f) return null; if ('arrayValue' in f) return (f.arrayValue.values || []).map(dec); return f.stringValue; };
 const readDoc = async (path) => { const r = await fetch(`${FS}/${path}`, { headers: OWNER }); if (!r.ok) return undefined; const j = await r.json(); return dec({ mapValue: { fields: j.fields } }); };
 const writeDoc = (path, data) => fetch(`${FS}/${path}`, { method: 'PATCH', headers: OWNER, body: JSON.stringify({ fields: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, enc(v)])) }) });
@@ -161,10 +163,10 @@ async function expense(h, amount) {
   // Semaine régulière d'Ama, telle que la synchronisation l'écrit (jours 0 à 4 après l'inscription).
   for (let d = 0; d < 5; d++) {
     const at = created + d * D + 3600_000;
-    await writeDoc(`spaces/${amaUid}/transactions/e${d}`, { id: `e${d}`, type: 'expense', amount: 1000 + d, currency: 'XOF', date: '2026-10-01', accountId: 'cash', categoryId: 'cat_food', createdBy: amaUid, createdAt: at, updatedAt: at });
+    await writeDoc(`spaces/${amaUid}/transactions/e${d}`, { id: `e${d}`, type: 'expense', amount: 1000 + d, currency: 'XOF', date: '2026-10-01', accountId: 'cash', categoryId: 'cat_food', createdBy: amaUid, createdAt: at, updatedAt: at, syncedAt: serverTs(at) });
   }
-  await writeDoc(`spaces/${amaUid}/transactions/i1`, { id: 'i1', type: 'income', amount: 90000, currency: 'XOF', date: '2026-10-02', accountId: 'cash', categoryId: 'inc_salary', createdBy: amaUid, createdAt: created + D + 7200_000, updatedAt: created + D + 7200_000 });
-  for (const g of ['g1', 'g2']) await writeDoc(`spaces/${amaUid}/goals/${g}`, { id: g, name: 'Objectif', createdBy: amaUid, createdAt: created + 1800_000, updatedAt: created + 1800_000, targetAmount: 100000, initialAmount: 0, status: 'active', priority: 'normal' });
+  await writeDoc(`spaces/${amaUid}/transactions/i1`, { id: 'i1', type: 'income', amount: 90000, currency: 'XOF', date: '2026-10-02', accountId: 'cash', categoryId: 'inc_salary', createdBy: amaUid, createdAt: created + D + 7200_000, updatedAt: created + D + 7200_000, syncedAt: serverTs(created + D + 7200_000) });
+  for (const g of ['g1', 'g2']) await writeDoc(`spaces/${amaUid}/goals/${g}`, { id: g, name: 'Objectif', createdBy: amaUid, createdAt: created + 1800_000, updatedAt: created + 1800_000, syncedAt: serverTs(created + 1800_000), targetAmount: 100000, initialAmount: 0, status: 'active', priority: 'normal' });
   const amaDone = await until(() => readDoc(`users/${amaUid}`), (d) => d?.referralProgress?.status === 'validated');
   ok(amaDone?.referralProgress?.status === 'validated', 'serveur : semaine régulière d’Ama validée');
   ok(amaDone?.grants === undefined, 'Ama (filleule) ne reçoit aucun mois');

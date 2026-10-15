@@ -46,6 +46,8 @@ export async function deleteUserData(uid: string, email: string | null): Promise
   await db.recursiveDelete(db.doc(`users/${uid}`));
   await db.doc(`subscriptions/${uid}`).delete().catch(() => undefined);
   await db.doc(`usage/${uid}`).delete().catch(() => undefined);
+  // Audit 2026-10 (F4) : statut du compte (suspension, réactivation) — comme la suppression par le back-office.
+  await db.doc(`accountStatus/${uid}`).delete().catch(() => undefined);
   if (email) {
     const invites = await db.collection('invites').where('email', '==', email).get();
     await Promise.all(invites.docs.map((d) => d.ref.delete()));

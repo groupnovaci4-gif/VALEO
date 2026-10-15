@@ -10,7 +10,7 @@ import { randomInt } from 'node:crypto';
 import { getFirestore, type DocumentReference, type Firestore, type Transaction } from 'firebase-admin/firestore';
 import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { generateCode, normalizeCode, REFERRAL } from './referral';
-import { applyReferralCore, deviceHash, ensureReferralCode, REFERRAL_DEVICE_PEPPER, signupAtOf } from './referralApi';
+import { applyReferralCore, deviceHash, ensureReferralCode, REFERRAL_DEVICE_PEPPER, signupAtOf, takeCodeAttempt } from './referralApi';
 import { canCreateTontineGroup, effectivePlan } from './plans';
 import {
   TG,
@@ -131,6 +131,8 @@ export const tontineGroup = onCall({ secrets: [REFERRAL_DEVICE_PEPPER] }, async 
     }
 
     case 'preview': {
+      // Audit 2026-10 (F5) : plafond quotidien d'essais de codes par compte.
+      await takeCodeAttempt(uid, 'tg/too-many-tries');
       const code = normalizeCode(d.code);
       const inv = code ? await db().doc(`tontineInvites/${code}`).get() : null;
       if (!inv?.exists) throw new HttpsError('failed-precondition', 'tg/unknown-invite');
@@ -141,6 +143,7 @@ export const tontineGroup = onCall({ secrets: [REFERRAL_DEVICE_PEPPER] }, async 
     }
 
     case 'requestJoin': {
+      await takeCodeAttempt(uid, 'tg/too-many-tries');
       const code = normalizeCode(d.code);
       const label = typeof d.label === 'string' ? d.label.replace(/\s+/g, ' ').trim() : '';
       if (!label || label.length > TG.LABEL_MAX) throw new HttpsError('failed-precondition', 'tg/label');
