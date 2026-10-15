@@ -87,7 +87,7 @@ cd /Users/novaworkonline/DineroX && git worktree remove /Users/novaworkonline/di
 ```
 Le filtre `--only` ne touche à aucune autre fonction ; si Firebase propose une suppression : NON.
 
-## Étape 5 (origine des installations) — prévu, rien de déployé
+## Étape 5 (origine des installations) — déployée le 2026-10-15 (règles `bf233018-…`, 2 fonctions créées)
 
 Depuis `dinerox-main`, `npm run deploy`, simulation puis accord à chaque commande :
 1. `firestore:rules` — ajouts seuls : `originCounted` interdit au client sur
@@ -107,3 +107,39 @@ Photo AVANT le déploiement, lecture seule : `deploy/production-2026-10-14c/`
 | Règles | remettre le jeu `d53857fd-7e9b-49e9-9608-52449c18deea` (même commande `curl … releases/cloud.firestore` qu'à l'étape 1, avec ce nom). |
 | `recordSignupOrigin`, `adminOriginStats` | `npx firebase functions:delete recordSignupOrigin adminOriginStats --region europe-west1 --project dinerox-app` |
 | Données | `originStats` (compteurs anonymes) et `users/*.originCounted` : sans effet si les fonctions sont retirées. |
+
+## Audit 2026-10 — déployé le 2026-10-15
+
+Photo AVANT, lecture seule : `deploy/production-2026-10-15b/` (règles
+`bf233018-3760-4714-8b10-728f74cab253`, 14 index + 8 réglages, 59 fonctions et leur date).
+Code déployé : `dinerox-main` `202099b` (audit fusionné en avance rapide, `1978269`).
+
+1. `firestore:rules` (M3 statistiques, F1 auteur à la création) — 12:56 UTC,
+   nouveau jeu **`58033097-b7af-4633-8cf4-5979b46c4171`** ; fonctions et index inchangés.
+2. `functions:applyReferral,tontineGroup,referralOnTransaction,referralOnGoal,referralNightly,deleteAccount,boDeleteUser`
+   (M2 compromis 3 jours, (i), F4, F5) — 13:01 UTC, 7 mises à jour, europe-west1 ;
+   les 52 autres fonctions gardent leur date ; aucun avertissement ni erreur dans les journaux.
+
+| Déployé | Retour arrière |
+|---|---|
+| Règles | remettre le jeu `bf233018-3760-4714-8b10-728f74cab253` (même commande `curl … releases/cloud.firestore`). |
+| 7 fonctions | redéployer ces 7 fonctions depuis `11891cb` (dossier de retour arrière, comme à l'étape 3, `--only` avec leurs noms). |
+
+### Vérification avec un compte jetable (2026-10-15, accord du fondateur)
+
+Script : compte `test-audit-<horodatage>@example.com`, sans droit admin, supprimé à la fin.
+Résultat **11/11** : code de tontine inconnu refusé normalement (`tg/unknown-invite`),
+1 essai compté (F5) ; le compte ne peut pas écrire `accountStatus` (403) ;
+`deleteAccount` efface `accountStatus` (F4), le compte, le profil et `usage`.
+
+**Écriture faite avec les droits d'administration (traçabilité)** : une seule,
+`accountStatus/{uid du compte jetable}` = `{status: 'active', since, by: 'test-audit',
+reasonCode: 'other'}` (statut actif, jamais suspendu), effacée ensuite par
+`deleteAccount`. Aucune autre écriture admin, aucun droit admin donné au compte.
+
+| Comptage | Avant | Après |
+|---|---|---|
+| `accountStatus` (dont suspendus) | 0 (0) | 0 (0) |
+| `tontineInvites` | 0 | 0 |
+| `usage` | 0 | 0 |
+| `users` | 11 | 11 |
