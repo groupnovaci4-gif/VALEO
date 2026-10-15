@@ -70,7 +70,7 @@ Textes de la fonction `link` (`firebase/functions/src/links.ts`), sans code
 d'invitation (le lien `/i/{code}` garde ses textes actuels).
 
 - `link.app.title` — FR : « Télécharger {app} » — EN : « Download {app} »
-- `link.app.lead` — **NOUVELLE PHRASE, validée** — FR : « Gérez votre argent avec {app}. Vos dépenses s'enregistrent même sans internet. » — EN : « Manage your money with {app}. Your expenses are saved even without internet. »
+- `link.app.lead` — **NOUVELLE PHRASE, validée** — FR : « Gérez votre argent avec {app}. Vos dépenses s’enregistrent même sans internet. » — EN : « Manage your money with {app}. Your expenses are saved even without internet. »
   - Pourquoi : « même hors connexion » n'est pas entièrement vrai. Vérifié dans
     le code (`services/sync/engine.ts`) : une opération saisie sans réseau est
     gardée sur le téléphone (outbox persistante) et envoyée au retour du réseau.

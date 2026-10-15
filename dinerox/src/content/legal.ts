@@ -12,7 +12,7 @@ export interface LegalDoc {
 }
 
 const privacyFr: LegalDoc = {
-  updated: '2026-10-01',
+  updated: '2026-10-14',
   sections: [
     { title: 'Qui sommes-nous ?', body: "{app} est une application de gestion, d'analyse et de planification financière personnelle et familiale. {app} n'est ni une banque (y compris en ligne), ni une institution de microfinance, ni un établissement de crédit ou de paiement, ni un portefeuille électronique, ni un service de dépôt ou de transfert d'argent, ni un conseiller financier réglementé : l'application ne détient jamais votre argent et n'effectue aucune opération bancaire. Les comptes que vous renseignez sont de simples repères pour suivre vos propres finances." },
     { title: 'Données collectées', body: "Compte : prénom, nom, e-mail, téléphone (facultatif), pays, devise, langue, fuseau horaire. Profil financier que VOUS déclarez (tout est facultatif) : situation familiale, activité, logement, revenus approximatifs, charges principales, projets. Données financières que VOUS saisissez : comptes, opérations, budgets, objectifs, dettes, patrimoine. Les analyses sont calculées à partir de ces seules données ; aucune statistique externe n'est utilisée sans source identifiée. Aucune connexion à votre banque ou à votre opérateur Mobile Money n'est effectuée." },
@@ -43,7 +43,7 @@ const termsFr: LegalDoc = {
 };
 
 const privacyEn: LegalDoc = {
-  updated: '2026-10-01',
+  updated: '2026-10-14',
   sections: [
     { title: 'Who we are', body: '{app} is a personal and family money management, analysis and planning app. It is not a bank (online or otherwise), a microfinance institution, a lender, a payment or e-money service, a deposit or money-transfer service, or a regulated financial adviser: it never holds your money and performs no banking operation. The accounts you enter are simple markers to track your own finances.' },
     { title: 'Data we collect', body: 'Account: first and last name, email, phone (optional), country, currency, language, time zone. Financial profile YOU declare (all optional): family situation, occupation, housing, approximate income, main expenses, projects. Financial data YOU enter. Analyses are computed from this data only; no external statistic is used without an identified source. No connection to your bank or mobile-money provider.' },

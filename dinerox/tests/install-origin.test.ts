@@ -216,11 +216,16 @@ describe('politique de confidentialité et page /a : textes validés mot pour mo
       { title: titles[1][2], body: bodies[1][1] },
     ]);
   });
+  it('date de mise à jour de la politique : 14 octobre 2026 (FR et EN) ; conditions inchangées', () => {
+    expect([LEGAL.privacy.fr.updated, LEGAL.privacy.en.updated]).toEqual(['2026-10-14', '2026-10-14']);
+    expect([LEGAL.terms.fr.updated, LEGAL.terms.en.updated]).toEqual(['2026-10-01', '2026-10-01']);
+  });
   it('page /a : phrase validée (FR et EN), sans « hors connexion »', () => {
     const lead = /^- `link\.app\.lead` — .*FR : « (.*?) » — EN : « (.*?) »$/m.exec(doc) as RegExpExecArray;
     const route = routeLink({ path: '/a', get: () => null, userAgent: DESKTOP, origin: 'https://dinerox.app' }) as Extract<ReturnType<typeof routeLink>, { kind: 'page' }>;
-    // Page HTML : l'apostrophe est échappée (&#39;), le texte est celui du document.
-    expect(renderLinkPage(route, 'fr')).toContain(lead[1].replace('{app}', 'DineroX').replace(/'/g, '&#39;'));
+    // Apostrophe typographique ’ (comme les autres phrases de la page), texte du document.
+    expect(lead[1]).toContain('s’enregistrent');
+    expect(renderLinkPage(route, 'fr')).toContain(lead[1].replace('{app}', 'DineroX'));
     expect(renderLinkPage(route, 'en')).toContain(lead[2].replace('{app}', 'DineroX'));
     expect(renderLinkPage(route, 'fr')).not.toContain('hors connexion');
   });

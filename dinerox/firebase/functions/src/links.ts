@@ -110,7 +110,7 @@ const TEXT = {
     notFound: 'Ce lien n’est pas valide.',
     // Étape 5 : page `/a` et `/t/{code}`, sans code (docs/textes-etape5.md).
     appTitle: 'Télécharger {app}',
-    appLead: "Gérez votre argent avec {app}. Vos dépenses s'enregistrent même sans internet.",
+    appLead: 'Gérez votre argent avec {app}. Vos dépenses s’enregistrent même sans internet.',
   },
   en: {
     title: 'DineroX invitation',
