@@ -40,6 +40,15 @@ Origine des installations (étape 5) : `install-origin.js` — lien `/a` → ins
 la vraie fonction `recordSignupOrigin` compte (compteurs du jour), marqueur seul dans
 le profil, second compte « inconnu », liens `/t/` et `/i/` (jamais le code), écran
 admin regroupé (moins de 5 réunis sans nom), générateur de liens et copie.
+Mise en page (correctif écrans) : `layout-audit.js` — chaque écran et feuille, en 320×568,
+360×640, 360×800, 393×852, 412×915 et 430×932, avec barre de gestes (24/24), barre à
+3 boutons (24/48) et encoche (48/24). Les marges sont SIMULÉES dans Chrome
+(`Emulation.setSafeAreaInsetsOverride`, lues par l'application comme sur un téléphone) et
+de fausses barres fixes captent le toucher. Échec si un élément interactif est sous une
+barre système ou sous la barre d'onglets, recouvert, inatteignable après défilement, si
+un texte est coupé ou si l'écran déborde horizontalement ; une capture par échec
+(`<dossier>/layout/`). Écran de verrouillage : le stockage sécurisé, absent du web, est
+remplacé dans le navigateur du test seulement.
 
 Il exige l'émulateur **functions** (compilé avant : `npm --prefix firebase/functions run build`).
 

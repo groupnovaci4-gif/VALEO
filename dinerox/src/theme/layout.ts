@@ -33,3 +33,41 @@ export function tabLayout(labelWidths: number[], minWidths: number[], available:
   if (sum <= available) return { weights: full, scale: 1 };
   return { weights: slot(0.85), scale: 0.85 };
 }
+
+/** Le bouton central (micro) dépasse au-dessus de la barre d'onglets de cette hauteur au plus. */
+export const MIC_LIFT = 23;
+
+/**
+ * Hauteur de la barre d'onglets : icône 24 + libellé (suivant le texte agrandi, sinon il
+ * serait coupé) + marges, plus la marge basse du système (barre de gestes ou à 3 boutons).
+ */
+export function tabBarHeight(labelScale: number, fontScale: number, insetBottom: number): number {
+  const labelLine = 16 * labelScale * Math.min(Math.max(fontScale, 1), TAB_CAP);
+  return Math.round(46 + labelLine) + insetBottom;
+}
+
+/** Écart entre le message (toast) et le haut du micro central. */
+const TOAST_GAP = 8;
+
+/**
+ * Bas du message (toast), depuis le bas de l'écran. Hors onglets : 90 dp au-dessus de la
+ * marge du système. Barre d'onglets affichée : au-dessus du micro central, qui grandit avec
+ * le texte agrandi (à 130 %, 90 dp ne suffisent plus).
+ */
+export function toastBottom(insetBottom: number, tabBar: number | null): number {
+  const base = insetBottom + 90;
+  return tabBar === null ? base : Math.max(base, tabBar + MIC_LIFT + TOAST_GAP);
+}
+
+/**
+ * Marge basse du système (barre de gestes ou à 3 boutons) pour le pied d'un écran, gérée une
+ * seule fois : par la zone sûre si l'écran la demande (`edges` avec 'bottom'), sinon par le pied ;
+ * jamais sous les onglets (la barre d'onglets l'absorbe déjà).
+ *  - `footerPad` : ajouté sous le pied (16 dp + cette marge) ;
+ *  - `keyboardOffset` : clavier ouvert, le pied redescend d'autant (la hauteur du clavier
+ *    comprend la barre du système qu'il recouvre) et colle au clavier, sans trou.
+ */
+export function footerInsets(insetBottom: number, safeAreaBottom: boolean, inTabs: boolean): { footerPad: number; keyboardOffset: number } {
+  const system = inTabs ? 0 : insetBottom;
+  return { footerPad: safeAreaBottom ? 0 : system, keyboardOffset: system };
+}

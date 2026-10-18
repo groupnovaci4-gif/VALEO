@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, Platform, StyleSheet, View } from 'react-native';
+import { Alert, AppState, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '@/store/app';
 import { useTheme } from '@/theme';
@@ -159,16 +159,19 @@ function LockScreen({ uid, onUnlock }: { uid: string; onUnlock: () => void }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', gap: 28 }}>
-      <Logo size={72} />
-      <Text variant="h3">{t('set.pin.enter')}</Text>
-      {error ? (
-        <Text tone="danger" accessibilityLiveRegion="assertive">
-          {error}
-        </Text>
-      ) : null}
-      <PinPad value={pin} onChange={setPin} onBiometric={bio ? () => void tryBio() : undefined} biometricLabel={t('set.biometric')} />
-      <Button variant="ghost" label={t('set.pin.forgot')} onPress={forgot} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Petit écran : le pavé défile au lieu d'être coupé (« Code oublié ? » reste atteignable). */}
+      <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 28, paddingVertical: 16 }} bounces={false}>
+        <Logo size={72} />
+        <Text variant="h3">{t('set.pin.enter')}</Text>
+        {error ? (
+          <Text tone="danger" accessibilityLiveRegion="assertive">
+            {error}
+          </Text>
+        ) : null}
+        <PinPad value={pin} onChange={setPin} onBiometric={bio ? () => void tryBio() : undefined} biometricLabel={t('set.biometric')} />
+        <Button variant="ghost" label={t('set.pin.forgot')} onPress={forgot} />
+      </ScrollView>
     </SafeAreaView>
   );
 }

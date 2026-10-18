@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
@@ -20,37 +20,41 @@ export default function Welcome() {
   };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.hero }}>
-      <View style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 18 }}>
-        <Logo size={96} />
-        <Text variant="display" tone="onHero">
-          {t('auth.welcome.title')}
-        </Text>
-        <Text variant="h2" tone="onHero">
-          {t('auth.welcome.tagline')}
-        </Text>
-        <Text tone="heroMuted">{t('auth.welcome.pitch')}</Text>
-      </View>
-      <View style={{ padding: 24, gap: 12, backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
-        {isFirebaseConfigured ? (
-          <>
-            <Button full label={t('auth.welcome.signup')} onPress={() => router.push('/sign-up')} />
-            <Button full variant="secondary" label={t('auth.welcome.signin')} onPress={() => router.push('/sign-in')} />
-          </>
-        ) : (
-          <Button full label={t('fp.localOnly')} loading={busy === 'local'} onPress={() => start('local')} />
-        )}
-        {/* Options secondaires : démonstration (données fictives) et usage sans compte en ligne. */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 }}>
-          <Button small variant="ghost" icon="flask-outline" label={t('fp.demo')} loading={busy === 'demo'} onPress={() => start('demo')} />
-          {isFirebaseConfigured ? <Button small variant="ghost" icon="phone-portrait-outline" label={t('fp.localOnly')} loading={busy === 'local'} onPress={() => start('local')} /> : null}
+      {/* Petit écran (320 × 568) ou texte agrandi : l'ensemble défile au lieu d'être coupé. */}
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} bounces={false}>
+        <View style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 18 }}>
+          <Logo size={96} />
+          <Text variant="display" tone="onHero">
+            {t('auth.welcome.title')}
+          </Text>
+          <Text variant="h2" tone="onHero">
+            {t('auth.welcome.tagline')}
+          </Text>
+          <Text tone="heroMuted">{t('auth.welcome.pitch')}</Text>
         </View>
-        <Text variant="caption" tone="subtle" align="center">
-          {t('auth.welcome.disclaimer')}
-        </Text>
-        <Text variant="caption" tone="subtle" align="center" numeric>
-          {env.buildLabel}
-        </Text>
-      </View>
+        <View style={{ padding: 24, gap: 12, backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
+          {isFirebaseConfigured ? (
+            <>
+              <Button full label={t('auth.welcome.signup')} onPress={() => router.push('/sign-up')} />
+              <Button full variant="secondary" label={t('auth.welcome.signin')} onPress={() => router.push('/sign-in')} />
+            </>
+          ) : (
+            <Button full label={t('fp.localOnly')} loading={busy === 'local'} onPress={() => start('local')} />
+          )}
+          {/* Options secondaires : démonstration (données fictives) et usage sans compte en ligne. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 }}>
+            {/* 320 dp : le libellé passe à la ligne au lieu de dépasser du panneau. */}
+            <Button small variant="ghost" icon="flask-outline" label={t('fp.demo')} loading={busy === 'demo'} onPress={() => start('demo')} style={{ maxWidth: '100%' }} />
+            {isFirebaseConfigured ? <Button small variant="ghost" icon="phone-portrait-outline" label={t('fp.localOnly')} loading={busy === 'local'} onPress={() => start('local')} style={{ maxWidth: '100%' }} /> : null}
+          </View>
+          <Text variant="caption" tone="subtle" align="center">
+            {t('auth.welcome.disclaimer')}
+          </Text>
+          <Text variant="caption" tone="subtle" align="center" numeric>
+            {env.buildLabel}
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

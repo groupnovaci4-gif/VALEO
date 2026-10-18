@@ -3,7 +3,7 @@
 set -u
 cd "$(dirname "$0")"
 status=0
-for t in signup-fields.js forms-audit.js multi-users.js coach-budget.js coach-open.js coach-voice.js coach-rewards.js coach-score.js coach-advice.js lot-a-nav.js lot-a-home.js lot-a-entry.js voice-recorder.js voice-conversation.js lot-a-reminder.js lot-a-usage.js lot-b.js categories.js savings.js reserve.js family.js tontine.js suspended.js goals-contribute.js referral.js share.js tontine-group.js store-review.js install-origin.js savings-circle.js voice-consent.js; do
+for t in signup-fields.js forms-audit.js multi-users.js coach-budget.js coach-open.js coach-voice.js coach-rewards.js coach-score.js coach-advice.js lot-a-nav.js lot-a-home.js lot-a-entry.js voice-recorder.js voice-conversation.js lot-a-reminder.js lot-a-usage.js lot-b.js categories.js savings.js reserve.js family.js tontine.js suspended.js goals-contribute.js referral.js share.js tontine-group.js store-review.js install-origin.js savings-circle.js voice-consent.js layout-audit.js; do
   echo "== $t"
   node "$t" "${E2E_SHOTS:-/tmp}" || status=1
 done

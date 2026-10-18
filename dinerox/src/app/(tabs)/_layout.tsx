@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Pressable, Text as RNText, View, useWindowDimensions, type ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Tabs, router } from "expo-router";
+import { Tabs, router, useIsFocused } from "expo-router";
 import { useApp } from "@/store/app";
 import { useTheme } from "@/theme";
 import { fontFor } from "@/theme/fonts";
-import { TAB_CAP, tabLabelScale, tabLayout } from "@/theme/layout";
+import { MIC_LIFT, TAB_CAP, tabBarHeight, tabLabelScale, tabLayout } from "@/theme/layout";
 import { useI18n } from "@/i18n";
-import { Icon } from "@/components/ui";
+import { Icon, InTabsContext, useToastAboveTabBar } from "@/components/ui";
 import { useEntry } from "@/features/entry/EntryProvider";
 import { entryPrefs } from "@/core/entry/prefs";
 
@@ -35,8 +35,11 @@ export default function TabsLayout() {
   const labelScale = layout ? layout.scale : tabLabelScale(width, fontScale);
   const flexOf = (i: number) => (layout ? layout.weights[i] : 1);
   // Hauteur suivant le libellé agrandi (sinon il serait coupé) : icône 24 + libellé + marges.
-  const labelLine = 16 * labelScale * Math.min(Math.max(fontScale, 1), TAB_CAP);
-  const barHeight = Math.round(46 + labelLine) + insets.bottom;
+  const barHeight = tabBarHeight(labelScale, fontScale, insets.bottom);
+  // Onglets affichés : les messages (toasts) passent au-dessus du micro central.
+  const toastAbove = useToastAboveTabBar();
+  const focused = useIsFocused();
+  useEffect(() => (focused ? toastAbove(barHeight) : undefined), [focused, toastAbove, barHeight]);
   // Profil financier pas encore créé : on le propose (chaque étape peut être passée).
   const needsProfile =
     !!profile &&
@@ -66,65 +69,68 @@ export default function TabsLayout() {
   // largeur) : la barre le recopie sur le bouton, qui garde ainsi toute la hauteur.
   const item = (flex: number) => ({ paddingTop: 6, paddingHorizontal: 2, flex });
   return (
-    <View style={{ flex: 1 }}>
-      {/* Mesure hors écran des libellés (invisible, ignorée par le lecteur d'écran). */}
-      <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ position: "absolute", top: 0, left: 0, opacity: 0, alignItems: "flex-start" }}>
-        {labels.map((l) => (
-          <RNText
-            key={l}
-            numberOfLines={1}
-            maxFontSizeMultiplier={TAB_CAP}
-            onLayout={(e) => onMeasure(l, Math.ceil(e.nativeEvent.layout.width))}
-            style={{ fontSize: 12, lineHeight: 16, fontFamily: fontFor("body", 700) }}
-          >
-            {l}
-          </RNText>
-        ))}
-      </View>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: colors.primary,
-          tabBarItemStyle: { paddingTop: 6, paddingHorizontal: 2 },
-          tabBarInactiveTintColor: colors.textSubtle,
-          tabBarStyle: {
-            backgroundColor: colors.tabBar,
-            borderTopColor: colors.border,
-            height: barHeight,
-          },
-          // Libellé : texte système suivi jusqu'à 160 %, jamais tronqué en silence.
-          tabBarLabel: ({ focused, color, children }) => (
-            <TabLabel text={String(children)} color={String(color)} focused={focused} scale={labelScale} />
-          ),
-        }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{ title: t("tab.home"), tabBarIcon: icon("home"), tabBarItemStyle: item(flexOf(0)) }}
-        />
-        <Tabs.Screen
-          name="budget"
-          options={{ title: t("tab.budget"), tabBarIcon: icon("pie-chart"), tabBarItemStyle: item(flexOf(1)) }}
-        />
-        <Tabs.Screen
-          name="mic"
-          options={{
-            title: t("entry.mic"),
-            tabBarItemStyle: item(flexOf(2)),
-            tabBarButton: () => <MicTabButton scale={labelScale} />,
+    // Sous les onglets, la barre absorbe déjà la marge basse du système : les écrans ne l'ajoutent pas.
+    <InTabsContext.Provider value={true}>
+      <View style={{ flex: 1 }}>
+        {/* Mesure hors écran des libellés (invisible, ignorée par le lecteur d'écran). */}
+        <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ position: "absolute", top: 0, left: 0, opacity: 0, alignItems: "flex-start" }}>
+          {labels.map((l) => (
+            <RNText
+              key={l}
+              numberOfLines={1}
+              maxFontSizeMultiplier={TAB_CAP}
+              onLayout={(e) => onMeasure(l, Math.ceil(e.nativeEvent.layout.width))}
+              style={{ fontSize: 12, lineHeight: 16, fontFamily: fontFor("body", 700) }}
+            >
+              {l}
+            </RNText>
+          ))}
+        </View>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarActiveTintColor: colors.primary,
+            tabBarItemStyle: { paddingTop: 6, paddingHorizontal: 2 },
+            tabBarInactiveTintColor: colors.textSubtle,
+            tabBarStyle: {
+              backgroundColor: colors.tabBar,
+              borderTopColor: colors.border,
+              height: barHeight,
+            },
+            // Libellé : texte système suivi jusqu'à 160 %, jamais tronqué en silence.
+            tabBarLabel: ({ focused, color, children }) => (
+              <TabLabel text={String(children)} color={String(color)} focused={focused} scale={labelScale} />
+            ),
           }}
-          listeners={{ tabPress: (e) => e.preventDefault() }}
-        />
-        <Tabs.Screen
-          name="goals"
-          options={{ title: t("tab.goals"), tabBarIcon: icon("flag"), tabBarItemStyle: item(flexOf(3)) }}
-        />
-        <Tabs.Screen
-          name="more"
-          options={{ title: t("tab.more"), tabBarIcon: icon("grid"), tabBarItemStyle: item(flexOf(4)) }}
-        />
-      </Tabs>
-    </View>
+        >
+          <Tabs.Screen
+            name="index"
+            options={{ title: t("tab.home"), tabBarIcon: icon("home"), tabBarItemStyle: item(flexOf(0)) }}
+          />
+          <Tabs.Screen
+            name="budget"
+            options={{ title: t("tab.budget"), tabBarIcon: icon("pie-chart"), tabBarItemStyle: item(flexOf(1)) }}
+          />
+          <Tabs.Screen
+            name="mic"
+            options={{
+              title: t("entry.mic"),
+              tabBarItemStyle: item(flexOf(2)),
+              tabBarButton: () => <MicTabButton scale={labelScale} />,
+            }}
+            listeners={{ tabPress: (e) => e.preventDefault() }}
+          />
+          <Tabs.Screen
+            name="goals"
+            options={{ title: t("tab.goals"), tabBarIcon: icon("flag"), tabBarItemStyle: item(flexOf(3)) }}
+          />
+          <Tabs.Screen
+            name="more"
+            options={{ title: t("tab.more"), tabBarIcon: icon("grid"), tabBarItemStyle: item(flexOf(4)) }}
+          />
+        </Tabs>
+      </View>
+    </InTabsContext.Provider>
   );
 }
 
@@ -168,7 +174,7 @@ function MicTabButton({ scale }: { scale: number }) {
               style={{
                 width: 56,
                 height: 56,
-                marginTop: -23,
+                marginTop: -MIC_LIFT,
                 borderRadius: 28,
                 borderWidth: 4,
                 borderColor: colors.tabBar,

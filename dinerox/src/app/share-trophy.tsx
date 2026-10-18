@@ -89,7 +89,7 @@ function ShareTrophyScreen() {
         collapsable={false}
         accessible
         accessibilityLabel={`${t(card.titleKey)} ${t(card.rewardNameKey as TKey)}. ${card.link}${card.code ? `. ${t('ref.code.title')} : ${card.code}` : ''}`}
-        style={{ alignSelf: 'center', width: 320, borderRadius: 24, padding: 24, gap: 12, alignItems: 'center', backgroundColor: brand.colors.night }}
+        style={{ alignSelf: 'center', width: '100%', maxWidth: 320, borderRadius: 24, padding: 24, gap: 12, alignItems: 'center', backgroundColor: brand.colors.night }}
       >
         <Logo size={48} />
         <Text variant="titleM" align="center" style={{ color: '#F8FAFC' }}>

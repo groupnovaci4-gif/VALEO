@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRunAction } from '@/hooks/useRunAction';
-import { Alert, Modal, View } from 'react-native';
+import { Alert, Modal, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { isReserve } from '@/core/reserve';
 import { useTheme } from '@/theme';
@@ -21,6 +22,7 @@ function GoalDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, date, monthYear } = useI18n();
   const { colors, radius } = useTheme();
+  const insets = useSafeAreaInsets();
   const toast = useToast();
   const { role } = useApp();
   const money = useMoney();
@@ -154,31 +156,34 @@ function GoalDetail() {
       ) : null}
 
       <Modal visible={celebrate} transparent animationType="fade" onRequestClose={() => setCelebrate(false)}>
-        <View style={{ flex: 1, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <View style={{ backgroundColor: colors.surface, borderRadius: radius.xl, padding: 24, alignItems: 'center', gap: 12, width: '100%', maxWidth: 420 }} accessibilityViewIsModal>
-            <Text style={{ fontSize: 56 }}>🎉</Text>
-            <Text variant="h2" align="center">
-              {t('goal.celebrate.title')}
-            </Text>
-            <Text tone="muted" align="center">
-              {t('goal.celebrate.body')}
-            </Text>
-            <Text variant="h3" align="center">
-              {goal.icon} {goal.name}
-            </Text>
-            <Text align="center">{t('goal.celebrate.amount', { amount: money(goal.targetAmount) })}</Text>
-            <Text variant="small" tone="muted" align="center">
-              🏆 {t('reward.goal_achieved.name')}
-            </Text>
-            {canEdit ? (
-              <>
-                <Button full variant="success" icon="trophy" label={t('goal.action.complete')} onPress={() => (setCelebrate(false), setStatus('completed'))} />
-                <Button full variant="secondary" icon="archive-outline" label={t('goal.action.archive')} onPress={() => (setCelebrate(false), runAction(() => (actions.setGoalStatus(goal.id, 'completed'), actions.setGoalStatus(goal.id, 'archived'))))} />
-              </>
-            ) : null}
-            <Button full variant="ghost" label={t('goal.celebrate.new')} onPress={() => (setCelebrate(false), router.push('/goals/new'))} />
-            <Button full variant="ghost" label={t('common.close')} onPress={() => setCelebrate(false)} />
-          </View>
+        <View style={{ flex: 1, backgroundColor: colors.overlay }}>
+          {/* Petit écran : la fenêtre défile, hors des barres du système, au lieu d'être coupée. */}
+          <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24, paddingTop: 24 + insets.top, paddingBottom: 24 + insets.bottom }} bounces={false}>
+            <View style={{ backgroundColor: colors.surface, borderRadius: radius.xl, padding: 24, alignItems: 'center', gap: 12, width: '100%', maxWidth: 420 }} accessibilityViewIsModal>
+              <Text style={{ fontSize: 56 }}>🎉</Text>
+              <Text variant="h2" align="center">
+                {t('goal.celebrate.title')}
+              </Text>
+              <Text tone="muted" align="center">
+                {t('goal.celebrate.body')}
+              </Text>
+              <Text variant="h3" align="center">
+                {goal.icon} {goal.name}
+              </Text>
+              <Text align="center">{t('goal.celebrate.amount', { amount: money(goal.targetAmount) })}</Text>
+              <Text variant="small" tone="muted" align="center">
+                🏆 {t('reward.goal_achieved.name')}
+              </Text>
+              {canEdit ? (
+                <>
+                  <Button full variant="success" icon="trophy" label={t('goal.action.complete')} onPress={() => (setCelebrate(false), setStatus('completed'))} />
+                  <Button full variant="secondary" icon="archive-outline" label={t('goal.action.archive')} onPress={() => (setCelebrate(false), runAction(() => (actions.setGoalStatus(goal.id, 'completed'), actions.setGoalStatus(goal.id, 'archived'))))} />
+                </>
+              ) : null}
+              <Button full variant="ghost" label={t('goal.celebrate.new')} onPress={() => (setCelebrate(false), router.push('/goals/new'))} />
+              <Button full variant="ghost" label={t('common.close')} onPress={() => setCelebrate(false)} />
+            </View>
+          </ScrollView>
         </View>
       </Modal>
     </Screen>

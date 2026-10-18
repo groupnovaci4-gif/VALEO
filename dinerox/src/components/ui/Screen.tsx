@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { RefreshControl, View, type StyleProp, type ViewStyle } from 'react-native';
 import { KeyboardAvoidingView, KeyboardAwareScrollView, KeyboardStickyView } from 'react-native-keyboard-controller';
-import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import { goBack } from '@/hooks/goBack';
 import { useTheme } from '@/theme';
 import { Text } from './Text';
 import { IconButton } from './Button';
+import { footerInsets } from '@/theme/layout';
 import { useI18n } from '@/i18n';
 import { SyncBanner } from '@/components/SyncBanner';
 import { AppHeader } from '@/components/AppHeader';
@@ -36,10 +37,27 @@ export interface ScreenProps {
 /** Largeur maximale du contenu (tablettes, web). */
 export const MAX_CONTENT_WIDTH = 680;
 
+/**
+ * Vrai sous la navigation à onglets : la barre d'onglets absorbe déjà la marge basse du
+ * système (barre de gestes ou à 3 boutons) — elle n'est donc pas ajoutée une seconde fois.
+ */
+export const InTabsContext = createContext(false);
+
+/** Espace entre le champ actif et ce qui est posé sur le clavier (pied d'écran ou clavier seul). */
+const KEYBOARD_GAP = 32;
+
 /** Conteneur d'écran standard : zone sûre, en-tête, défilement, clavier. */
 export function Screen({ title, subtitle, back, right, leading, brandSection, children, scroll = true, edges = ['top'], contentStyle, onRefresh, refreshing, footer, syncBanner = true }: ScreenProps) {
   const { colors, v2 } = useTheme();
   const { t } = useI18n();
+  // Application « bord à bord » (SDK 57) : la barre de navigation du système (gestes ≈ 16-24 dp,
+  // 3 boutons ≈ 48 dp) est dessinée PAR-DESSUS le bas de l'écran. Sa marge est gérée ici, une
+  // seule fois, pour tous les écrans (`footerInsets`, testé).
+  const insets = useSafeAreaInsets();
+  const inTabs = useContext(InTabsContext);
+  const { footerPad, keyboardOffset } = footerInsets(insets.bottom, edges.includes('bottom'), inTabs);
+  // Hauteur réelle du pied (une ou deux rangées de boutons) : le champ actif reste visible au-dessus.
+  const [footerHeight, setFooterHeight] = useState<number | null>(null);
   const header = brandSection ? (
     <AppHeader section={brandSection} />
   ) : title || back || right ? (
@@ -70,7 +88,7 @@ export function Screen({ title, subtitle, back, right, leading, brandSection, ch
   const body = scroll ? (
     <KeyboardAwareScrollView
       keyboardShouldPersistTaps="handled"
-      bottomOffset={footer ? 110 : 32}
+      bottomOffset={footer ? (footerHeight === null ? 110 : footerHeight - footerPad + KEYBOARD_GAP) : KEYBOARD_GAP}
       contentContainerStyle={[{ padding: 16, paddingBottom: 120 }, contentStyle]}
       refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} /> : undefined}
     >
@@ -86,13 +104,17 @@ export function Screen({ title, subtitle, back, right, leading, brandSection, ch
       {children}
     </View>
   );
-  const footerView = footer ? (
-    <KeyboardStickyView>
-      <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
-        <View style={{ width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' }}>{footer}</View>
-      </View>
-    </KeyboardStickyView>
-  ) : null;
+  // Pied d'écran : marges FIXES (16 + marge du système), jamais variées selon un état (règle 13).
+  const footerBox = (
+    <View
+      onLayout={(e) => setFooterHeight(Math.round(e.nativeEvent.layout.height))}
+      style={{ padding: 16, paddingBottom: 16 + footerPad, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}
+    >
+      <View style={{ width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' }}>{footer}</View>
+    </View>
+  );
+  // Clavier ouvert : le pied le suit et colle au clavier, sans trou.
+  const footerView = footer ? <KeyboardStickyView offset={{ closed: 0, opened: keyboardOffset }}>{footerBox}</KeyboardStickyView> : null;
   return (
     <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: colors.background }}>
       {scroll ? (
@@ -106,11 +128,7 @@ export function Screen({ title, subtitle, back, right, leading, brandSection, ch
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
           {header}
           {body}
-          {footer ? (
-            <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.surface }}>
-              <View style={{ width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' }}>{footer}</View>
-            </View>
-          ) : null}
+          {footer ? footerBox : null}
         </KeyboardAvoidingView>
       )}
     </SafeAreaView>

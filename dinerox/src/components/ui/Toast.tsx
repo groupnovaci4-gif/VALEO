@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useMemo, useRef, useStat
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, MIN_TOUCH } from '@/theme';
+import { toastBottom } from '@/theme/layout';
 import { Text } from './Text';
 import { Icon } from './Icon';
 
@@ -19,10 +20,13 @@ interface ToastValue {
   show: (message: string, tone?: ToastTone, opts?: ToastOptions) => void;
 }
 const ToastContext = createContext<ToastValue>({ show: () => undefined });
+/** Hauteur de la barre d'onglets affichée (null : pas d'onglets à l'écran). */
+const TabBarContext = createContext<(height: number | null) => void>(() => undefined);
 
 /** Confirmations légères (« Enregistré ») et erreurs humaines. */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<{ message: string; tone: ToastTone; actions: ToastAction[] } | null>(null);
+  const [tabBar, setTabBar] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();
   const { colors, radius } = useTheme();
@@ -44,13 +48,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const color = toast?.tone === 'error' ? colors.danger : toast?.tone === 'warning' ? colors.warning : toast?.tone === 'info' ? colors.info : colors.success;
   return (
     <ToastContext.Provider value={value}>
+      <TabBarContext.Provider value={setTabBar}>
       {children}
       {toast ? (
         <View
           pointerEvents={toast.actions.length ? 'box-none' : 'none'}
           accessibilityLiveRegion="polite"
           accessibilityRole="alert"
-          style={{ position: 'absolute', left: 16, right: 16, bottom: insets.bottom + 90, alignItems: 'center' }}
+          style={{ position: 'absolute', left: 16, right: 16, bottom: toastBottom(insets.bottom, tabBar), alignItems: 'center' }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.inverseSurface, paddingHorizontal: 16, paddingVertical: 12, borderRadius: radius.md, maxWidth: 520 }}>
             <Icon name={icon} size={18} color={color} />
@@ -67,10 +72,27 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           </View>
         </View>
       ) : null}
+      </TabBarContext.Provider>
     </ToastContext.Provider>
   );
 }
 
 export function useToast(): ToastValue {
   return useContext(ToastContext);
+}
+
+/**
+ * Barre d'onglets : renvoie une fonction à appeler quand les onglets sont affichés, avec la
+ * hauteur de la barre ; les messages passent alors au-dessus du micro central. La fonction
+ * renvoie de quoi annuler (onglets quittés) : à renvoyer par l'effet.
+ */
+export function useToastAboveTabBar(): (height: number) => () => void {
+  const set = useContext(TabBarContext);
+  return useCallback(
+    (height: number) => {
+      set(height);
+      return () => set(null);
+    },
+    [set],
+  );
 }
