@@ -292,6 +292,10 @@ la part hors réserve (règle 19).
   - avance du groupe = P − retour d'épargne : c'est une **dette envers le groupe**, éteinte par
     les cotisations suivantes ;
   - **aucun revenu**. D monte de P, puisque l'argent est là.
+  - **Après la cagnotte**, les cotisations suivantes **remboursent l'avance**, jusqu'à ce qu'elle
+    soit éteinte. Dans le rapport, elles vont dans « Financement », pas dans l'épargne nette.
+    Sur un cycle complet, l'épargne nette d'une tournante vaut donc **0**, quel que soit le tour
+    (E19c).
 
   | Tour (10 mains × 10 000, cagnotte 100 000) | Cotisé avant | Retour d'épargne | Avance du groupe |
   |---|---|---|---|
@@ -299,11 +303,18 @@ la part hors réserve (règle 19).
   | 6 | 60 000 | 60 000 | 40 000 |
   | 10 | 100 000 | 100 000 | 0 |
 
-- **Clôture du cycle** (dernière échéance passée, ou « terminée ») : écart = cotisé − reçu.
-  - S'il est positif : dépense **« Frais de tontine »** (entrée `fee` liée). Exemple : cagnotte
-    de 95 000 pour 100 000 cotisés, soit 5 000 de frais.
-  - S'il est négatif : revenu « Gain de tontine ».
-  - Ensuite, la position vaut 0. Un collecteur suit la même règle : 31 × 1 000 cotisés et
+- **Clôture du cycle** : toujours **confirmée par la personne** (« terminée », avec une date de
+  clôture `closedAt`). Quand la dernière échéance est passée, l'application **propose** de
+  clôturer (« Cette tontine semble terminée : la clôturer ? »), mais ne clôture jamais seule :
+  une personne qui a oublié de noter la cagnotte se verrait sinon compter des frais fictifs.
+  À la clôture, écart = cotisé − reçu :
+  - s'il est positif : **frais de tontine**, comptés dans les dépenses à la date de clôture,
+    et retirés de l'épargne nette. Exemple : cagnotte de 95 000 pour 100 000 cotisés, soit
+    5 000 de frais ;
+  - s'il est négatif : **gain de tontine**, compté dans les revenus à la date de clôture ;
+  - aucune opération n'est créée, puisque aucun argent ne bouge : l'argent est déjà sorti
+    (cotisations) ou rentré (cagnotte). C'est un reclassement, calculé à partir de la clôture ;
+  - ensuite, la position vaut 0. Un collecteur suit la même règle : 31 × 1 000 cotisés et
     30 000 remis donnent une commission de 1 000.
 - **Cotisation sans tour (D6)** : **dépense**, sous-catégorie `sub_informal_dues`. Elle entre dans
   le budget et ne crée aucune créance.
@@ -398,8 +409,12 @@ proposée qu'une fois, avec ce qui y est réellement libre :
 
 - Le complément et la sortie s'enregistrent **ensemble, tout ou rien** (`writeMany`).
   L'annulation après coup (`useEntrySave.ts:167-171`) ne suffit plus.
-- Si rien ne suffit : « Vous n'avez pas assez d'argent pour cette dépense. » Rien n'est
-  enregistré.
+- Si aucune source ne suffit seule : « Vous n'avez pas assez d'argent pour cette dépense. »
+  Seuls « J'ai reçu de l'argent » et « Annuler » restent proposés, et rien n'est enregistré
+  sans l'un d'eux.
+- Si plusieurs comptes manquent d'argent (phrase à plusieurs lignes), les compléments se
+  choisissent **l'un après l'autre**, et les sources sont recalculées après chaque choix :
+  la même source n'est jamais promise deux fois.
 - Pour une mise de côté (versement, contribution, cotisation), la même feuille s'ouvre, mais sans
   les choix 1 et 3 : on ne puise pas dans l'épargne pour la remettre en épargne.
 - **Dernier rempart** : `actions.saveTransaction` refuse toute nouvelle sortie qui rendrait un
@@ -443,6 +458,10 @@ proposée qu'une fois, avec ce qui y est réellement libre :
 - **Prudence** : tant que la paie attendue n'est pas confirmée reçue, le calcul suppose qu'elle
   n'est pas arrivée. H va alors jusqu'à la veille de la paie suivante, et une carte « Salaire
   attendu depuis le 25 : reçu ? » s'affiche.
+- **Paie confirmée** : un revenu de catégorie salaire, ou venant d'une récurrence de revenu,
+  daté au plus tôt **7 jours avant** le jour de paie de la période (une paie avancée parce que
+  le 25 tombe un dimanche compte). Le salaire de la période précédente, même arrivé en retard,
+  ne confirme jamais celui de la période en cours.
 - Jours restants = H − aujourd'hui + 1. Le résultat est arrondi **vers le bas**.
 - Aucune valeur par défaut : la valeur « 25 par défaut » (`payDay ?? 25`) disparaît.
 
@@ -456,8 +475,15 @@ E = récurrences de DÉPENSE non confirmées dues dans l'horizon, et celles en r
   + Σ objectifs et réserves : max(0, mise de côté prévue pour la période − déjà versé sur la période)
 ```
 
-- « Déjà versé sur la période » = Σ des contributions de la période à **cet** objectif (transfert,
-  mise de côté ou affectation).
+- « Déjà versé sur la période » = Σ **nette** des contributions de la période à **cet** objectif
+  qui viennent du disponible (transfert depuis un compte courant, ou mise de côté sur un compte
+  courant), retraits déduits, jamais moins que 0. Une affectation d'une épargne qui existait
+  déjà ne compte pas : elle fait avancer l'objectif, mais elle ne sort pas d'argent du
+  disponible.
+- **« En retard »** : une échéance non confirmée de la période en cours **ou de la période
+  précédente** (le loyer du 30 non payé ne disparaît pas le 1er). Plus ancienne, elle sort de
+  E et passe dans une liste « À régulariser », avec trois choix : « Payée » (date à indiquer),
+  « Je la dois encore » (elle redevient un engagement) ou « Pas due ».
 - Les revenus attendus (salaire, cagnotte, remboursement d'un prêt accordé) **ne réduisent
   jamais** E.
 - Une dépense payée par une réserve ne réduit D que de sa part hors réserve. C'est automatique,
@@ -687,6 +713,7 @@ Le sens des dettes est corrigé dans `core/entry/parse.ts` et `vocabulary.json` 
 | « J'ai reçu le prêt de la banque 500 000 » | revenu | emprunt reçu |
 | « J'ai reçu une facture de 20 000 » | revenu | dépense, champ surligné (règle 18 : jamais deviné) |
 | « J'ai reçu la cagnotte 100 000 » | revenu | retour de tontine, tontine à choisir |
+| « On m'a remboursé 20 000 » | revenu | entrée **à préciser** (remboursement d'un prêt que j'ai accordé, ou remboursement d'un achat), surligné, jamais un revenu par défaut |
 
 ---
 
@@ -760,6 +787,11 @@ restants**. Montants en FCFA. Chaque ligne devient au moins un test pur.
 |---|---|---|
 | E31 | 18 octobre, paie le 25, D = 42 000 ; tontine 10 000 le 20 ; loyer 30 000 le 28 | H = 24 octobre, 7 jours ; E = 10 000 (le loyer tombe après l'horizon) ; 32 000 / 7 = **4 571** |
 | E32 | 25 octobre, salaire **confirmé** 200 000, D = 204 000 ; loyer 30 000 le 28 ; tontine 10 000 le 20 novembre ; objectif 20 000 | H = 24 novembre, 31 jours ; E = 60 000 ; 144 000 / 31 = **4 645** |
+| E33b | Paie le 25 ; salaire de septembre reçu en retard le 27 septembre ; on est le 26 octobre, rien reçu en octobre | Le salaire d'octobre reste « attendu » : celui du 27 septembre ne le confirme pas. |
+| E33c | Paie le 25 (un dimanche) ; salaire reçu le 23 | Paie confirmée (moins de 7 jours avant). |
+| E34b | Loyer récurrent du 30 septembre non confirmé ; on est le 2 octobre, sans jour de paie | Le loyer reste dans E (période précédente). Celui d'août, non confirmé, est dans « À régulariser », hors de E. |
+| E11d | Objectif à 20 000 par mois ; 20 000 versés puis 20 000 retirés ce mois-ci | Versé net = 0 : l'engagement de 20 000 reste dans E. |
+| E11e | Objectif à 20 000 par mois ; 20 000 affectés depuis un compte d'épargne existant | L'engagement de 20 000 reste dans E (rien n'est sorti du disponible). |
 | E33 | 26 octobre, salaire du 25 **non confirmé**, D = 4 000 ; loyer 30 000 le 28 | « Vos engagements d'ici le 24 novembre dépassent votre argent disponible de 26 000 F », plus la carte « Salaire attendu : reçu ? ». Aucun revenu compté. |
 | E34 | D = 100 000, loyer récurrent 30 000 le 5, on est le 6, rien de confirmé | D = 100 000 ; le loyer en retard est dans E. Confirmé le 7 : D = 70 000, et le loyer sort de E. |
 | E35 | Le 10 : salaire saisi daté du 25 ; dépense de 15 000 datée du 20 | Le salaire ne compte pas dans D avant le 25 (affiché « à venir ») ; la dépense de 15 000 est dans E. |
@@ -784,7 +816,9 @@ restants**. Montants en FCFA. Chaque ligne devient au moins un test pur.
 |---|---|---|
 | E18 | 10 mains × 10 000 par mois, salaire 150 000, mon tour au 6e mois : cotisation 10 000, puis cagnotte 100 000 | Revenus du mois = **150 000** (pas 250 000). Retour d'épargne 60 000, avance du groupe 40 000 (dette). Le conseil des 10 % vaut **15 000**. |
 | E19 | Cycle complet (10 × 10 000, cagnotte 100 000) | Revenus 0, dépenses 0. D final = D initial, hors salaire. |
-| E19b | Même cycle, cagnotte de 95 000, cycle clôturé | Dépense « Frais de tontine » de 5 000 ; position 0. |
+| E19b | Même cycle, cagnotte de 95 000, cycle clôturé par la personne | Dépenses +5 000 (frais de tontine) à la date de clôture ; épargne nette −5 000 ; position 0 ; aucune opération créée. |
+| E19c | 10 × 10 000, mon tour au 6e, cycle complet | Épargne nette sur le cycle = **0** : +60 000 avant la cagnotte, −60 000 de retour, puis 4 × 10 000 en « Financement » (remboursement de l'avance). |
+| E19d | Dernière échéance passée, cagnotte jamais notée, tontine non clôturée | Aucun frais compté. Carte « Cette tontine semble terminée : la clôturer ? ». La créance de 100 000 reste au patrimoine. |
 | E20 | Collecteur 31 × 1 000, remise de 30 000 | Revenus 0 ; dépense « Commission » 1 000 à la clôture ; position 0. |
 | E21 | Cotisation sans tour (association), 5 000 par mois | Dépense de 5 000 (`sub_informal_dues`), dans le budget ; D −5 000 ; aucune créance. |
 | E25 | 6 cotisations de tournante de 10 000 depuis Espèces (formule gratuite) | D −60 000 ; mis de côté +60 000 (créance de tontine) ; patrimoine inchangé. |
