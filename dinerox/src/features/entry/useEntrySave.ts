@@ -12,7 +12,8 @@ import { useApp } from '@/store/app';
 import { ActionError, useActions } from '@/store/actions';
 import { useMoney } from '@/hooks/useFinance';
 import { useToast } from '@/components/ui';
-import { dailyAllowance } from '@/core/dailyAllowance';
+import { dailyAllowanceV2 } from '@/core/allowance';
+import { spendPlan } from '@/core/spendPlan';
 import { today } from '@/core/dates';
 import type { CurrencyCode } from '@/core/money';
 import type { EntryDraft } from '@/core/entry/parse';
@@ -20,8 +21,7 @@ import { recordEntrySuccess } from '@/services/entryStats';
 import { analytics } from '@/services/analytics';
 import { reserveEligible } from '@/core/reserve';
 import { markReviewMoment } from '@/services/storeReview';
-import { moneyTracked, shortfallAfter, spendingAccounts } from '@/core/savingsCircle';
-import { moneyPosition } from '@/core/balance';
+import { defaultSpendingAccountId, spendingAccounts } from '@/core/savingsCircle';
 import { withCircleView } from '@/core/savingsFlows';
 
 export type EntryMethod = 'voice' | 'text_phrase' | 'quick_manual' | 'full_form';
@@ -38,12 +38,13 @@ export function useEntrySave() {
   const toast = useToast();
   const money = useMoney();
   const actions = useActions();
-  const { engine, activeSpace, user, profile } = useApp();
+  const { engine, activeSpace, user, profile, role } = useApp();
 
   /** Message de confirmation : reste par jour recalculé APRÈS l'enregistrement. */
   const confirmation = useCallback(() => {
     if (!engine || !activeSpace) return t('entry.saved');
-    const r = dailyAllowance({ data: withCircleView(engine.getData(activeSpace.id)), currency: activeSpace.currency as CurrencyCode, today: today(), financial: profile?.financial });
+    // Argent disponible v2 : LA même fonction que l'accueil, le simulateur et la conversation.
+    const r = dailyAllowanceV2({ data: withCircleView(engine.getData(activeSpace.id)), currency: activeSpace.currency as CurrencyCode, today: today(), payDay: profile?.financial?.payDay ?? null });
     return r.status === 'ok' ? t('entry.savedPerDay', { amount: money(r.perDay) }) : t('entry.saved');
   }, [engine, activeSpace, profile?.financial, t, money]);
 
@@ -64,9 +65,9 @@ export function useEntrySave() {
 
   /**
    * Cercle fermé (2026-10-14), après l'enregistrement : la phrase nommait l'épargne pour une
-   * dépense (`redirectedTo` : compte courant utilisé) ou le disponible est passé SOUS zéro.
-   * Dans les deux cas : « Retirer de mon épargne ou d'un objectif » (montant proposé).
-   * Jamais si la personne n'a jamais renseigné son argent (`moneyTracked`).
+   * dépense (`redirectedTo` : compte courant utilisé) → « Retirer de mon épargne ou d'un
+   * objectif ». Argent disponible v2 (§6.3) : le message « Pas assez d'argent » APRÈS coup
+   * disparaît — le contrôle passe AVANT l'enregistrement (rien n'est enregistré sinon).
    */
   const circleNotice = useCallback(
     (ids: string[], redirectedTo?: string | null): { message: string; amount: number } | null => {
@@ -79,14 +80,9 @@ export function useEntrySave() {
         const amount = saved.filter((x) => x.type === 'expense' && x.accountId === redirectedTo).reduce((n, x) => n + x.amount, 0);
         return { message: t('circle.redirect', { account: name }), amount };
       }
-      const spending = new Set(spendingAccounts(d.accounts, currency).map((a) => a.id));
-      const outflow = saved.filter((x) => x.type === 'expense' && spending.has(x.accountId)).reduce((n, x) => n + x.amount, 0);
-      if (!outflow || !moneyTracked(d.accounts, d.transactions, currency)) return null;
-      const free = moneyPosition(d.accounts, d.transactions, d.goals, d.goalContributions, currency as CurrencyCode).free;
-      const missing = shortfallAfter(free + outflow, outflow);
-      return missing ? { message: t('circle.shortfall', { amount: money(missing) }), amount: missing } : null;
+      return null;
     },
-    [engine, activeSpace, t, money],
+    [engine, activeSpace, t],
   );
 
   /** « Voir » (Historique) et « Annuler » (suppression des opérations créées), 5 secondes. */
@@ -124,6 +120,18 @@ export function useEntrySave() {
       if (!activeSpace) throw new Error('notReady');
       const ids: string[] = [];
       const createdCategories: string[] = [];
+      // §6.1 — Plusieurs lignes : le contrôle porte sur le CUMUL par compte, AVANT tout
+      // enregistrement (la part prise sur une réserve est déduite d'abord). Rien n'est écrit sinon.
+      if (engine) {
+        const d = engine.getData(activeSpace.id);
+        const fallback = defaultSpendingAccountId(d.accounts, null, activeSpace.currency) ?? '';
+        const lines = drafts
+          .filter((x) => x.type === 'expense' && x.amount && !x.tontine)
+          .map((x) => ({ accountId: x.accountId ?? fallback ?? null, amount: x.amount as number, date: x.date, reserveId: x.reserveId && reserveEligible(x.categoryId, x.subcategoryId) ? x.reserveId : null }));
+        const plan = lines.length ? spendPlan({ data: d, currency: activeSpace.currency as CurrencyCode, today: today(), lines: lines.map((l) => ({ ...l, accountId: l.accountId || null })), role }) : null;
+        if (plan?.status === 'no_money') throw new ActionError('noMoney', { errors: ['money.none'] });
+        if (plan && plan.status !== 'ok') throw new ActionError('shortfall', { errors: ['money.shortfall'], accountId: plan.shortfalls[0].accountId, missing: plan.shortfalls[0].missing });
+      }
       try {
         // 1.9 — « Je crée la catégorie X » (réponse dans la conversation) : créée ici, à la validation,
         // avec le mot entendu comme mot-clé (la prochaine fois, plus de question).
@@ -148,21 +156,25 @@ export function useEntrySave() {
             ids.push(tx.id);
             continue;
           }
-          const tx = actions.saveTransaction({
-            type: d.type,
-            amount: d.amount as number,
-            currency: activeSpace.currency,
-            date: d.date,
-            // Aucun compte courant : « Espèces » est créé (règle 10), jamais l'épargne.
-            accountId: d.accountId ?? actions.ensureCashAccount(activeSpace.currency),
-            categoryId: d.categoryId,
-            subcategoryId: d.subcategoryId,
-            payee: d.payee,
-            note: null,
-          });
+          // « Prendre sur la réserve ? » accepté sur la carte : utilisation liée, dans le même lot.
+          const reserveId = d.reserveId && d.type === 'expense' && reserveEligible(d.categoryId, d.subcategoryId) ? d.reserveId : null;
+          const accountsNow = engine ? engine.getData(activeSpace.id).accounts : [];
+          const tx = actions.saveTransaction(
+            {
+              type: d.type,
+              amount: d.amount as number,
+              currency: activeSpace.currency,
+              date: d.date,
+              // Aucun compte courant : « Espèces » est créé APRÈS le contrôle (règle 10), jamais l'épargne.
+              accountId: d.accountId ?? defaultSpendingAccountId(accountsNow, null, activeSpace.currency) ?? '',
+              categoryId: d.categoryId,
+              subcategoryId: d.subcategoryId,
+              payee: d.payee,
+              note: null,
+            },
+            { reserveId },
+          );
           ids.push(tx.id);
-          // « Prendre sur la réserve ? » accepté sur la carte : utilisation liée à l'opération.
-          if (d.reserveId && d.type === 'expense' && reserveEligible(d.categoryId, d.subcategoryId)) actions.takeFromReserve(tx.id, d.reserveId);
         }
       } catch (e) {
         // Échec en cours de route : rien de partiel (les lignes et catégories déjà créées sont retirées).
@@ -192,7 +204,7 @@ export function useEntrySave() {
       else heldNotice = circleNotice(ids, redirected?.accountId ?? null);
       return ids;
     },
-    [actions, activeSpace, user, undoToast, engine, circleNotice],
+    [actions, activeSpace, user, undoToast, engine, circleNotice, role],
   );
 
   /** Message gardé pendant la conversation (null s'il n'y en a pas) : la conversation le dit tout de suite. */

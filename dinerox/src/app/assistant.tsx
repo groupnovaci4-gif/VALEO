@@ -19,7 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 import { useI18n, hasKey, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
-import { useActions } from '@/store/actions';
+import { ActionError, useActions } from '@/store/actions';
+import { useActionErrorMessage } from '@/hooks/useRunAction';
 import { useCategoryLabels, useFinance, useMoney } from '@/hooks/useFinance';
 import { useFormatParams } from '@/hooks/useInsightText';
 import { Button, Card, Chip, Icon, IconButton, Text } from '@/components/ui';
@@ -139,7 +140,8 @@ export default function Assistant() {
     bullets: a.bullets?.map((b) => (hasKey(b.key) ? t(b.key as TKey, fmt(b.params, { monthDates: true })) : '')).filter(Boolean),
   });
   // Cercle fermé : jamais un compte d'épargne par défaut (aucun compte courant : « Espèces » créé à la confirmation).
-  const { undoToast } = useEntrySave();
+  const { saveDrafts } = useEntrySave();
+  const errorMessage = useActionErrorMessage();
   const defaultAccount = defaultSpendingAccountId(data.accounts, null, currency);
   const minor = (n: number | null) => (n === null ? null : toMinor(n, currency));
 
@@ -208,9 +210,9 @@ export default function Assistant() {
     const p = m.proposal!;
     try {
       if (p.kind === 'tx') {
-        const saved = actions.saveTransaction({ type: p.type, amount: p.amount, currency, date: p.date, accountId: p.accountId ?? actions.ensureCashAccount(currency), categoryId: p.categoryId, payee: p.payee, note: null });
-        // Disponible passé sous zéro : « Retirer de mon épargne ou d'un objectif » (sinon la confirmation habituelle).
-        if (p.type === 'expense') undoToast([saved.id]);
+        // Argent disponible v2 (§6.3) : l'assistant passe par LE chemin de la saisie (contrôle avant
+        // enregistrement, compte « Espèces » créé après le contrôle, confirmation et « Annuler »).
+        saveDrafts([{ type: p.type, amount: p.amount, categoryId: p.categoryId, subcategoryId: null, accountId: p.accountId, date: p.date, payee: p.payee, uncertain: [], source: '' }], 'text_phrase');
       } else if (p.kind === 'transfer') {
         if (!p.from || !p.to) throw new Error('account');
         actions.saveTransaction({ type: 'transfer', amount: p.amount, currency, date: p.date, accountId: p.from, toAccountId: p.to });
@@ -237,7 +239,9 @@ export default function Assistant() {
       }
       update(m.id, { status: 'done' });
       push({ id: mid(), from: 'assistant', text: t('ai.recorded') });
-    } catch {
+    } catch (e) {
+      // Pas d'argent renseigné ou pas assez : rien n'est enregistré, la raison est dite (§6.2, §6.3).
+      if (e instanceof ActionError && (e.code === 'noMoney' || e.code === 'shortfall')) return push({ id: mid(), from: 'assistant', text: errorMessage(e) });
       // Information manquante : on ouvre le formulaire prérempli.
       edit(m);
     }

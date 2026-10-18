@@ -28,9 +28,8 @@ import type {
 import { validateTransaction, type TxError } from '@/core/transactions';
 import { applyGoalChanges } from '@/core/goals';
 import { hasFeature, withinLimit, type Feature, type LimitKey } from '@/core/subscription';
-import { can, canEditDoc, canUseReserve } from '@/core/permissions';
-import { isClassicGoal, isReserve, isSeason, reserveEligible, splitReserveUse } from '@/core/reserve';
-import { dueOccurrences, materialize } from '@/core/recurring';
+import { can, canCreateTransaction, canEditDoc, canUseReserve } from '@/core/permissions';
+import { isClassicGoal, isReserve, isSeason, reserveEligible } from '@/core/reserve';
 import { newId } from '@/core/sync';
 import { linkedRemovals } from '@/core/removal';
 import { today } from '@/core/dates';
@@ -47,6 +46,24 @@ import { analytics } from '@/services/analytics';
 import { useI18n } from '@/i18n';
 import { monthKey, type MonthKey } from '@/core/dates';
 import { touchedByWrite } from '@/core/coach/envelopeAlerts';
+import {
+  accountChangeError,
+  batchOutflowError,
+  planBalanceCorrection,
+  planDebtOpening,
+  planDebtRepayment,
+  planRecurringConfirmation,
+  planReserveUse,
+  planSpendWithComplements,
+  planTransferWithFee,
+  type OutflowError,
+  type PlanItem,
+  type SourceChoice,
+} from '@/core/writePlans';
+import { canDeleteAccount } from '@/core/accountRules';
+import { canDeleteDebt, debtStatus } from '@/core/debts';
+import { goalBacking } from '@/core/position';
+import { pocketClosure } from '@/core/spendPlan';
 import { notifyCoachWrite } from '@/features/coach/bus';
 
 /**
@@ -67,14 +84,25 @@ function budgetImpact(col: CollectionName, before: SyncedDoc | undefined, after:
 
 export class ActionError extends Error {
   constructor(
-    public readonly code: 'permission' | 'limit' | 'validation' | 'notReady' | 'feature',
-    public readonly details: { limit?: number; errors?: TxError[]; feature?: Feature } = {},
+    /**
+     * Argent disponible v2 (§6) : `noMoney` — aucun argent renseigné ; `shortfall` — la sortie
+     * rendrait un compte négatif (`accountId`, `missing` : ce qui manque). Rien n'est enregistré.
+     */
+    public readonly code: 'permission' | 'limit' | 'validation' | 'notReady' | 'feature' | 'noMoney' | 'shortfall',
+    public readonly details: { limit?: number; errors?: TxError[]; feature?: Feature; accountId?: string | null; missing?: number } = {},
   ) {
     super(code);
   }
 }
 
 type Draft<T extends SyncedDoc> = Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'> & { id?: string };
+
+/** Refus du dernier rempart (§6.3) : rien n'est enregistré. */
+function throwOutflow(e: OutflowError | null): void {
+  if (!e) return;
+  if (e.code === 'noMoney') throw new ActionError('noMoney', { errors: ['money.none'] });
+  throw new ActionError('shortfall', { errors: ['money.shortfall'], accountId: e.accountId, missing: e.missing });
+}
 
 const PREFIX: Record<CollectionName, string> = {
   accounts: 'acc_',
@@ -164,6 +192,30 @@ export function useActions() {
     [ctx, ensure],
   );
 
+  /**
+   * Argent disponible v2 : un LOT (complément + sortie, transfert + frais, capital + intérêts…)
+   * contrôlé puis écrit d'un bloc (`writeMany`) : tout ou rien. Droits vérifiés avant écriture.
+   */
+  const writeItems = useCallback(
+    (items: PlanItem[], opts: { check?: boolean } = {}) => {
+      const { engine: e, spaceId } = ctx();
+      for (const it of items) {
+        const existing = e.getDoc(spaceId, it.col, it.doc.id);
+        ensure(existing ? 'update' : 'create', it.col, existing);
+        if (it.col === 'transactions' && !existing && !canCreateTransaction(role, (it.doc as Transaction).type)) throw new ActionError('permission');
+      }
+      if (opts.check !== false) throwOutflow(batchOutflowError(e.getData(spaceId), items, today()));
+      const before = e.getData(spaceId);
+      e.writeMany(spaceId, items);
+      const txs = items.filter((i) => i.col === 'transactions');
+      if (txs.length) {
+        const prev = txs.map((i) => before.transactions.find((x) => x.id === i.doc.id)).filter((x): x is Transaction => !!x && !x.deleted);
+        notifyCoachWrite(spaceId, touchedByWrite([...prev, ...txs.map((i) => e.getDoc(spaceId, 'transactions', i.doc.id) as Transaction)], e.getData(spaceId).envelopes));
+      }
+    },
+    [ctx, ensure, role],
+  );
+
   // ─── Opérations ───────────────────────────────────────────────────
 
   /**
@@ -209,99 +261,142 @@ export function useActions() {
     [ctx, ensure],
   );
 
-  /**
-   * Prend une dépense (famille, cérémonies) sur une réserve : utilisation liée à
-   * l'opération, plafonnée au solde — le complément reste sur le budget du mois,
-   * rien n'est bloqué. Si la réserve est rangée sur un autre compte, l'argent
-   * en est réellement transféré vers le compte qui a payé.
-   */
-  const applyReserveUse = useCallback(
-    (tx: Transaction, reserveId: string): { fromReserve: number; complement: number } => {
+  /** Lot d'une réserve qui paie avec l'argent qui y est adossé (§5.3) ; le reste suit le §6. */
+  const reserveItems = useCallback(
+    (tx: Transaction, reserveId: string): PlanItem[] => {
       if (!canUseReserve(role)) throw new ActionError('permission');
       const d = data();
       const g = d.goals.find((x) => x.id === reserveId && !x.deleted && isReserve(x) && x.status === 'active' && x.currency === tx.currency);
       if (!g) throw new ActionError('validation', { errors: ['reserve.unavailable'] });
-      if (tx.type !== 'expense' || !reserveEligible(tx.categoryId, tx.subcategoryId)) throw new ActionError('validation', { errors: ['reserve.category'] });
-      const others = d.goalContributions.filter((c) => c.linkedTransactionId !== tx.id);
-      const split = splitReserveUse(tx.amount, goalSaved(g, others));
-      if (split.fromReserve <= 0) return split;
-      let transferId: string | null = null;
-      const from = g.accountId ? d.accounts.find((a) => a.id === g.accountId && a.active && !a.deleted) : undefined;
-      if (from && from.id !== tx.accountId) {
-        transferId = save<Transaction>('transactions', { type: 'transfer', amount: split.fromReserve, currency: tx.currency, date: tx.date, accountId: from.id, toAccountId: tx.accountId, toAmount: null, categoryId: null, envelopeId: null, goalId: g.id, payee: g.name, note: null }).id;
-      }
-      save<GoalContribution>('goalContributions', { goalId: g.id, amount: -split.fromReserve, date: tx.date, accountId: tx.accountId, transferId, linkedTransactionId: tx.id, note: null });
-      return split;
+      if (!reserveEligible(tx.categoryId, tx.subcategoryId)) throw new ActionError('validation', { errors: ['reserve.category'] });
+      return planReserveUse(d, tx, g.id, tx.currency, newId).items;
     },
-    [role, data, save],
+    [role, data],
   );
 
+  /** Modification d'une opération déjà enregistrée : ses opérations liées suivent. */
+  const saveEdited = useCallback(
+    (draft: Draft<Transaction> & { id: string }, d: SpaceData): Transaction => {
+    const errors = validateTransaction(draft, d.accounts);
+    if (errors.length) throw new ActionError('validation', { errors });
+    const tx = save<Transaction>('transactions', draft);
+    const payment = d.debtPayments.find((p) => p.transactionId === tx.id);
+    if (payment && (payment.amount !== tx.amount || payment.date !== tx.date)) save<DebtPayment>('debtPayments', { ...payment, amount: tx.amount, date: tx.date });
+    const te = d.tontineEntries.find((x) => !x.deleted && x.transactionId === tx.id);
+    if (te && (te.amount !== tx.amount || te.date !== tx.date)) save<TontineEntry>('tontineEntries', { ...te, amount: tx.amount, date: tx.date });
+    const contribution = d.goalContributions.find((c) => c.transferId === tx.id);
+    if (contribution) {
+      // Part complète : suit le montant ; part partielle (versement 1.8) : gardée, plafonnée.
+      const before = d.transactions.find((x) => x.id === tx.id)?.amount ?? null;
+      const amount = linkedPartAfterEdit(contribution.amount, before, tx.amount);
+      if (amount !== contribution.amount || contribution.date !== tx.date) save<GoalContribution>('goalContributions', { ...contribution, amount, date: tx.date });
+    }
+    // Utilisation de réserve : recalculée sur le nouveau montant (avec l'argent adossé),
+    // retirée si l'opération n'est plus une dépense famille ou cérémonie.
+    const use = d.goalContributions.find((c) => !c.deleted && c.linkedTransactionId === tx.id);
+    // Cotisation payée par un objectif (mouvement dans le cercle) : l'objectif baisse du nouveau montant.
+    if (use && isTontineContribution(tx)) {
+      if (use.amount !== -tx.amount || use.date !== tx.date) save<GoalContribution>('goalContributions', { ...use, amount: -tx.amount, date: tx.date, accountId: tx.accountId });
+    } else if (use) {
+      dropReserveUse(tx.id);
+      if (tx.type === 'expense' && reserveEligible(tx.categoryId, tx.subcategoryId)) {
+        try {
+          writeItems(reserveItems(tx, use.goalId), { check: false });
+        } catch {
+          // Réserve supprimée ou fermée entre-temps : la dépense reste sur le budget du mois.
+        }
+      }
+    }
+    return tx;
+  },
+    [save, dropReserveUse, writeItems, reserveItems],
+  );
+
+  /**
+   * Toute opération. Argent disponible v2 (§6.3) — DERNIER REMPART : une nouvelle sortie qui
+   * rendrait un compte négatif est refusée (`noMoney`, `shortfall`), contrôlée AVANT
+   * `ensureCashAccount` (un compte inexistant est un « Espèces » virtuel à 0 : on ne crée pas
+   * un compte pour refuser ensuite). Une nouvelle opération s'écrit en UN lot avec ce qui
+   * l'accompagne : frais d'un transfert (`fee`), utilisation d'une réserve (`reserveId`),
+   * écritures liées (`linked`, ex. la part d'un objectif libérée).
+   */
   const saveTransaction = useCallback(
-    (input: Draft<Transaction>): Transaction => {
+    (input: Draft<Transaction>, opts: { reserveId?: string | null; fee?: number; linked?: (tx: Transaction) => PlanItem[] } = {}): Transaction => {
       let d = data();
       // 1.8 : `legacyCategoryId` n'existe que dans la VUE des calculs (alias) : jamais enregistré.
       const { legacyCategoryId: _view, ...clean } = input as Draft<Transaction> & { legacyCategoryId?: unknown };
       void _view;
       let draft: Draft<Transaction> = clean;
-      const hasAccount = d.accounts.some((a) => a.id === draft.accountId && !a.deleted);
-      if (!hasAccount && draft.type !== 'transfer' && !d.accounts.some((a) => a.active && !a.deleted)) {
-        draft = { ...draft, accountId: ensureCashAccount(draft.currency) };
-        d = data();
-      }
       // Cercle fermé (2026-10-14) : une DÉPENSE n'est jamais prise sur un compte d'épargne
       // (une cotisation de tontine, si : mouvement dans le cercle). Elle est enregistrée sur un
-      // compte courant — « Espèces » créé s'il n'en existe aucun. Une ANCIENNE dépense déjà sur
-      // l'épargne et dont le compte ne change pas reste telle quelle (aucune donnée modifiée).
+      // compte courant. Une ANCIENNE dépense déjà sur l'épargne et dont le compte ne change pas
+      // reste telle quelle (aucune donnée modifiée).
       const previousTx = draft.id ? d.transactions.find((x) => x.id === draft.id) : undefined;
       const keepsLegacy = !!previousTx && previousTx.type === 'expense' && previousTx.accountId === draft.accountId;
       if (!keepsLegacy && draft.type === 'expense' && d.accounts.some((a) => a.id === draft.accountId && a.isSavings) && !isTontineContribution(draft)) {
+        draft = { ...draft, accountId: defaultSpendingAccountId(d.accounts, null, draft.currency) ?? '' };
+      }
+      // Même devise : le montant reçu est le montant envoyé (§3.4).
+      const to = draft.type === 'transfer' ? d.accounts.find((a) => a.id === draft.toAccountId) : undefined;
+      const sameCurrency = !!to && to.currency === draft.currency;
+      const shaped: Draft<Transaction> = {
+        ...draft,
+        toAccountId: draft.type === 'transfer' ? draft.toAccountId : null,
+        toAmount: draft.type === 'transfer' ? (sameCurrency && draft.toAmount === draft.amount ? null : (draft.toAmount ?? null)) : null,
+        categoryId: draft.type === 'transfer' ? null : (draft.categoryId ?? null),
+        envelopeId: draft.type === 'expense' ? (draft.envelopeId ?? null) : null,
+      };
+
+      // Modification : contrôle de la différence, puis l'ancien chemin (opérations liées).
+      if (draft.id && previousTx) {
+        throwOutflow(batchOutflowError(d, [{ col: 'transactions', doc: { ...previousTx, ...shaped, id: draft.id } as Transaction }], today()));
+        return saveEdited(shaped as Draft<Transaction> & { id: string }, d);
+      }
+
+      // Nouvelle opération : le lot complet, contrôlé avant tout compte créé.
+      if (!canCreateTransaction(role, draft.type)) throw new ActionError('permission');
+      const txId = draft.id ?? newId(PREFIX.transactions);
+      const lot = (accountId: string): PlanItem[] => {
+        const base = { ...shaped, accountId } as Transaction;
+        const main = shaped.type === 'transfer' ? planTransferWithFee(base, opts.fee ?? 0, newId).map((it, i) => (i === 0 ? { ...it, doc: { ...it.doc, id: txId } } : it)) : [{ col: 'transactions' as const, doc: { ...base, id: txId, createdAt: 0, updatedAt: 0, createdBy: '' } as Transaction }];
+        if (shaped.type === 'transfer' && main[1]) main[1] = { ...main[1], doc: { ...main[1].doc, linkedTransactionId: txId } as Transaction };
+        const tx = main[0].doc as Transaction;
+        const reserve = opts.reserveId && shaped.type === 'expense' ? reserveItems(tx, opts.reserveId) : [];
+        return [...main, ...reserve, ...(opts.linked ? opts.linked(tx) : [])];
+      };
+      throwOutflow(batchOutflowError(d, lot(draft.accountId), today()));
+      // Aucun compte (revenu, correction) : « Espèces » est créé, APRÈS le contrôle.
+      if (!d.accounts.some((a) => a.id === draft.accountId && !a.deleted) && draft.type !== 'transfer') {
         draft = { ...draft, accountId: ensureCashAccount(draft.currency) };
         d = data();
       }
-      const errors = validateTransaction(draft, d.accounts);
+      const errors = validateTransaction({ ...shaped, accountId: draft.accountId }, d.accounts);
       if (errors.length) throw new ActionError('validation', { errors });
       const isFirst = !d.transactions.some((t) => t.type === draft.type);
-      const tx = save<Transaction>('transactions', {
-        ...draft,
-        toAccountId: draft.type === 'transfer' ? draft.toAccountId : null,
-        toAmount: draft.type === 'transfer' ? (draft.toAmount ?? null) : null,
-        categoryId: draft.type === 'transfer' ? null : (draft.categoryId ?? null),
-        envelopeId: draft.type === 'expense' ? (draft.envelopeId ?? null) : null,
-      });
-      if (!draft.id && isFirst && draft.type !== 'transfer') analytics.track(draft.type === 'expense' ? 'first_expense' : 'first_income');
-      // Modification d'une opération liée : le remboursement / la contribution suit.
-      if (draft.id) {
-        const payment = d.debtPayments.find((p) => p.transactionId === tx.id);
-        if (payment && (payment.amount !== tx.amount || payment.date !== tx.date)) save<DebtPayment>('debtPayments', { ...payment, amount: tx.amount, date: tx.date });
-        const te = d.tontineEntries.find((x) => !x.deleted && x.transactionId === tx.id);
-        if (te && (te.amount !== tx.amount || te.date !== tx.date)) save<TontineEntry>('tontineEntries', { ...te, amount: tx.amount, date: tx.date });
-        const contribution = d.goalContributions.find((c) => c.transferId === tx.id);
-        if (contribution) {
-          // Part complète : suit le montant ; part partielle (versement 1.8) : gardée, plafonnée.
-          const before = d.transactions.find((x) => x.id === tx.id)?.amount ?? null;
-          const amount = linkedPartAfterEdit(contribution.amount, before, tx.amount);
-          if (amount !== contribution.amount || contribution.date !== tx.date) save<GoalContribution>('goalContributions', { ...contribution, amount, date: tx.date });
-        }
-        // Utilisation de réserve : recalculée sur le nouveau montant (jamais au-delà du
-        // solde), retirée si l'opération n'est plus une dépense famille ou cérémonie.
-        const use = d.goalContributions.find((c) => !c.deleted && c.linkedTransactionId === tx.id);
-        // Cotisation payée par un objectif (mouvement dans le cercle) : l'objectif baisse du nouveau montant.
-        if (use && isTontineContribution(tx)) {
-          if (use.amount !== -tx.amount || use.date !== tx.date) save<GoalContribution>('goalContributions', { ...use, amount: -tx.amount, date: tx.date, accountId: tx.accountId });
-        } else if (use) {
-          dropReserveUse(tx.id);
-          if (tx.type === 'expense' && reserveEligible(tx.categoryId, tx.subcategoryId)) {
-            try {
-              applyReserveUse(tx, use.goalId);
-            } catch {
-              // Réserve supprimée ou fermée entre-temps : la dépense reste sur le budget du mois.
-            }
-          }
-        }
-      }
+      writeItems(lot(draft.accountId), { check: false });
+      const tx = data().transactions.find((x) => x.id === txId) as Transaction;
+      if (isFirst && draft.type !== 'transfer') analytics.track(draft.type === 'expense' ? 'first_expense' : 'first_income');
       return tx;
     },
-    [data, save, ensureCashAccount, dropReserveUse, applyReserveUse],
+    [data, role, ensureCashAccount, writeItems, reserveItems, saveEdited],
+  );
+
+  /**
+   * Sorties et leur complément choisi sur la feuille (§6.3), en un lot : plusieurs comptes à
+   * compléter se choisissent l'un après l'autre (`choices` dans l'ordre), sources recalculées.
+   */
+  const saveWithComplements = useCallback(
+    (lines: Draft<Transaction>[], choices: SourceChoice[], purpose: 'spend' | 'set_aside' = 'spend'): string[] => {
+      const { currency } = ctx();
+      const r = planSpendWithComplements({ data: data(), currency: currency as CurrencyCode, today: today(), lines: lines.map((l) => ({ ...l, id: l.id ?? newId(PREFIX.transactions) })), choices, newId, purpose });
+      if ('error' in r) {
+        if (r.error === 'noMoney') throw new ActionError('noMoney', { errors: ['money.none'] });
+        throw new ActionError('shortfall', { errors: ['money.shortfall'], accountId: r.accountId, missing: 'missing' in r ? r.missing : undefined });
+      }
+      writeItems(r.items);
+      return r.items.filter((i) => i.col === 'transactions').map((i) => i.doc.id);
+    },
+    [ctx, data, writeItems],
   );
 
   /** Opération déjà enregistrée → prise sur une réserve (carte de confirmation, formulaire). */
@@ -310,31 +405,58 @@ export function useActions() {
       const tx = data().transactions.find((x) => x.id === transactionId && !x.deleted);
       if (!tx) throw new ActionError('validation', { errors: ['reserve.unavailable'] });
       dropReserveUse(tx.id);
-      return applyReserveUse(tx, reserveId);
+      const items = reserveItems(tx, reserveId);
+      writeItems(items, { check: false });
+      const fromReserve = items.filter((i) => i.col === 'goalContributions').reduce((n, i) => n - (i.doc as GoalContribution).amount, 0);
+      return { fromReserve, complement: tx.amount - fromReserve };
     },
-    [data, dropReserveUse, applyReserveUse],
+    [data, dropReserveUse, reserveItems, writeItems],
   );
 
   // ─── Comptes ──────────────────────────────────────────────────────
 
+  /**
+   * Création ou modification d'un compte. Argent disponible v2 (§3) : l'ouverture est une
+   * écriture DATÉE avec sa provenance (`openingDate`, `openingNote`), figée dès la première
+   * opération ; aucun compte ne change de devise ou de famille, ni n'est désactivé, avec un solde.
+   */
   const saveAccount = useCallback(
     (draft: Draft<Account>): Account => {
       if (!draft.name.trim()) throw new ActionError('validation');
-      if (!draft.id) limit('accounts', data().accounts.length);
-      return save<Account>('accounts', { ...draft, isSavings: draft.type === 'savings' || draft.isSavings });
+      const d = data();
+      const isSavings = draft.type === 'savings' || draft.isSavings;
+      const before = draft.id ? d.accounts.find((a) => a.id === draft.id && !a.deleted) : undefined;
+      if (before) {
+        const err = accountChangeError(before, { ...draft, isSavings }, d, today());
+        if (err) throw new ActionError('validation', { errors: [err] });
+      } else limit('accounts', d.accounts.length);
+      const openingDate = draft.openingBalance ? (draft.openingDate ?? before?.openingDate ?? today()) : (draft.openingDate ?? null);
+      return save<Account>('accounts', { ...draft, isSavings, openingDate, openingNote: draft.openingNote ?? before?.openingNote ?? null, overdraftLimit: draft.overdraftLimit ?? before?.overdraftLimit ?? null });
     },
     [data, limit, save],
   );
 
-  /** Un compte ayant des opérations ne se supprime pas (il se désactive). */
+  /** Supprimer : seulement sans opération ET avec une ouverture à 0 (§3.3) ; sinon on désactive d'abord. */
   const deleteAccount = useCallback(
     (id: string): 'deleted' | 'blocked' => {
-      const used = data().transactions.some((t) => t.accountId === id || t.toAccountId === id);
-      if (used) return 'blocked';
+      const d = data();
+      const account = d.accounts.find((a) => a.id === id && !a.deleted);
+      if (account && !canDeleteAccount(account, d.transactions)) return 'blocked';
       remove('accounts', id);
       return 'deleted';
     },
     [data, remove],
+  );
+
+  /** « Corriger le solde » (§3.2) sur tout compte : ajustement de l'écart, motif obligatoire ; l'ouverture n'est jamais réécrite. */
+  const correctBalance = useCallback(
+    (input: { accountId: string; actual: number; date: string; reason: string }): Transaction | null => {
+      const r = planBalanceCorrection(data(), input.accountId, input.actual, input.date, input.reason, newId);
+      if ('error' in r) throw new ActionError('validation', { errors: [r.error] });
+      writeItems(r.items, { check: false });
+      return data().transactions.find((x) => x.id === r.items[0].doc.id) ?? null;
+    },
+    [data, writeItems],
   );
 
   // ─── Enveloppes & budget ──────────────────────────────────────────
@@ -519,7 +641,9 @@ export function useActions() {
       else limit('goals', open.filter(isClassicGoal).length);
       const first = d.goals.length === 0;
       const rank = draft.rank || d.goals.filter((g) => g.status === 'active').length + 1;
-      const goal = save<Goal>('goals', { ...draft, rank, history: [] });
+      // §5.2 / §13 : un montant initial est de l'épargne HORS COMPTES (jamais dans le disponible).
+      const initialSource = draft.initialAmount > 0 ? (draft.initialSource ?? 'outside') : (draft.initialSource ?? null);
+      const goal = save<Goal>('goals', { ...draft, initialSource, rank, history: [] });
       if (first) analytics.track('first_goal', { kind: goal.type });
       return goal;
     },
@@ -540,7 +664,38 @@ export function useActions() {
     [ctx, ensure],
   );
 
-  const setGoalStatus = useCallback((id: string, status: GoalStatus) => updateGoal(id, { status }), [updateGoal]);
+  /**
+   * Archiver ou abandonner une poche demande un solde 0 (§5.1) : sinon `goal.notEmpty`, et
+   * `closePocket` dit où va l'argent. « Terminé » garde l'argent compté (il reste adossé).
+   */
+  const setGoalStatus = useCallback(
+    (id: string, status: GoalStatus) => {
+      const { currency } = ctx();
+      if ((status === 'archived' || status === 'abandoned') && (goalBacking(data(), currency as CurrencyCode).get(id)?.total ?? 0) > 0) throw new ActionError('validation', { errors: ['goal.notEmpty'] });
+      return updateGoal(id, { status });
+    },
+    [ctx, data, updateGoal],
+  );
+
+  /** Fermer une poche en disant où va son argent : « Remettre dans mon disponible » ou « Garder sur l'épargne » (§5.1). */
+  const closePocket = useCallback(
+    (id: string, status: Extract<GoalStatus, 'archived' | 'abandoned' | 'completed'>, destination: 'available' | 'savings') => {
+      const { currency } = ctx();
+      const d = data();
+      const goal = d.goals.find((g) => g.id === id && !g.deleted);
+      if (!goal) throw new ActionError('validation', { errors: ['goal.inactive'] });
+      const plan = pocketClosure(d, id, currency as CurrencyCode);
+      const date = today();
+      const drafts = plan.drafts(destination, date);
+      writeItems([
+        ...drafts.transactions.map((t) => ({ col: 'transactions' as const, doc: { ...t, currency: goal.currency, toAmount: null, categoryId: null, subcategoryId: null, envelopeId: null, payee: goal.name, note: null, goalId: goal.id, createdAt: 0, updatedAt: 0, createdBy: '' } as Transaction })),
+        ...drafts.contributions.map((c) => ({ col: 'goalContributions' as const, doc: { accountId: null, transferId: null, note: null, ...c, id: newId(PREFIX.goalContributions), createdAt: 0, updatedAt: 0, createdBy: '' } as GoalContribution })),
+      ]);
+      updateGoal(id, { status });
+      return plan.outside;
+    },
+    [ctx, data, writeItems, updateGoal],
+  );
 
   /** Réordonne les priorités (rangs 1..n). */
   const reorderGoals = useCallback(
@@ -560,9 +715,10 @@ export function useActions() {
   );
 
   /**
-   * Contribution à un objectif. Si `moveTo` est fourni, l'argent est
-   * RÉELLEMENT déplacé : un transfert est créé du compte source vers le
-   * compte associé à l'objectif. Sinon, la somme est simplement mise de côté.
+   * Contribution à un objectif. Argent disponible v2 (§5.1-5.2) : chaque franc est ADOSSÉ —
+   * transfert vers le compte d'épargne de l'objectif (`moveTo`), sinon mise de côté sur un
+   * compte courant ou affectation d'un compte d'épargne : un compte est obligatoire. Contrôlée
+   * comme toute sortie (le transfert et la contribution s'écrivent en un lot).
    */
   const contributeToGoal = useCallback(
     (input: { goalId: string; amount: number; date: string; accountId: string | null; note?: string | null; moveTo?: string | null; withdraw?: boolean }) => {
@@ -572,33 +728,24 @@ export function useActions() {
       if (goal.status !== 'active' && goal.status !== 'paused') throw new ActionError('validation', { errors: ['goal.inactive'] });
       // Un retrait ne peut pas dépasser ce qui est mis de côté pour cet objectif.
       if (input.withdraw && input.amount > goalSaved(goal, d.goalContributions)) throw new ActionError('validation', { errors: ['goal.withdrawTooMuch'] });
-      let transferId: string | null = null;
-      if (input.moveTo && input.accountId && input.moveTo !== input.accountId) {
+      if (!input.accountId) throw new ActionError('validation', { errors: ['account.missing'] });
+      const amount = input.withdraw ? -input.amount : input.amount;
+      const contribution = (transferId: string | null): PlanItem => ({
+        col: 'goalContributions',
+        doc: { goalId: goal.id, amount, date: input.date, accountId: input.accountId, transferId, note: input.note ?? null, id: newId(PREFIX.goalContributions), createdAt: 0, updatedAt: 0, createdBy: '' } as GoalContribution,
+      });
+      if (input.moveTo && input.moveTo !== input.accountId) {
         const from = input.withdraw ? input.moveTo : input.accountId;
         const to = input.withdraw ? input.accountId : input.moveTo;
-        const t = saveTransaction({
-          type: 'transfer',
-          amount: input.amount,
-          currency: goal.currency,
-          date: input.date,
-          accountId: from,
-          toAccountId: to,
-          goalId: goal.id,
-          payee: goal.name,
-          note: input.note ?? null,
-        });
-        transferId = t.id;
+        let linked: PlanItem | null = null;
+        saveTransaction({ type: 'transfer', amount: input.amount, currency: goal.currency, date: input.date, accountId: from, toAccountId: to, goalId: goal.id, payee: goal.name, note: input.note ?? null }, { linked: (tx) => [(linked = contribution(tx.id))] });
+        return linked!.doc as GoalContribution;
       }
-      return save<GoalContribution>('goalContributions', {
-        goalId: goal.id,
-        amount: input.withdraw ? -input.amount : input.amount,
-        date: input.date,
-        accountId: input.accountId,
-        transferId,
-        note: input.note ?? null,
-      });
+      const item = contribution(null);
+      writeItems([item]);
+      return item.doc as GoalContribution;
     },
-    [data, save, saveTransaction],
+    [data, saveTransaction, writeItems],
   );
 
   // ─── Épargne (1.8) : verser, retirer, ajuster ───────────────────────
@@ -616,15 +763,13 @@ export function useActions() {
       if (errors.length) throw new ActionError('validation', { errors });
       const sav = d.accounts.find((a) => a.id === input.savingsAccountId)!;
       const goal = input.goal ? d.goals.find((g) => g.id === input.goal!.goalId) : undefined;
-      const tx = input.fromAccountId
-        ? saveTransaction({ type: 'transfer', amount: input.amount, currency: sav.currency, date: input.date, accountId: input.fromAccountId, toAccountId: sav.id, goalId: goal?.id ?? null, payee: null, note: null })
-        : save<Transaction>('transactions', { type: 'adjustment', direction: 'in', amount: input.amount, currency: sav.currency, date: input.date, accountId: sav.id, toAccountId: null, categoryId: null, payee: null, note: null });
-      if (goal && input.goal) {
-        save<GoalContribution>('goalContributions', { goalId: goal.id, amount: input.goal.amount, date: input.date, accountId: sav.id, transferId: tx.id, note: null });
-      }
-      return tx;
+      const linked = (tx: Transaction): PlanItem[] =>
+        goal && input.goal ? [{ col: 'goalContributions', doc: { goalId: goal.id, amount: input.goal.amount, date: input.date, accountId: sav.id, transferId: tx.id, note: null, id: newId(PREFIX.goalContributions), createdAt: 0, updatedAt: 0, createdBy: '' } as GoalContribution }] : [];
+      return input.fromAccountId
+        ? saveTransaction({ type: 'transfer', amount: input.amount, currency: sav.currency, date: input.date, accountId: input.fromAccountId, toAccountId: sav.id, goalId: goal?.id ?? null, payee: null, note: null }, { linked })
+        : saveTransaction({ type: 'adjustment', direction: 'in', amount: input.amount, currency: sav.currency, date: input.date, accountId: sav.id, toAccountId: null, categoryId: null, payee: null, note: null }, { linked });
     },
-    [data, save, saveTransaction],
+    [data, saveTransaction],
   );
 
   /**
@@ -643,54 +788,92 @@ export function useActions() {
       // Cercle fermé : l'épargne ne paie jamais une dépense. « Pour une dépense » = un RETRAIT
       // visible vers un compte courant, puis la dépense sur ce compte (deux opérations).
       const via = input.toAccountId ?? (input.viaAccountId && d.accounts.some((a) => a.id === input.viaAccountId && a.active && !a.deleted && !a.isSavings) ? input.viaAccountId : ensureCashAccount(sav.currency));
-      const tx = saveTransaction({ type: 'transfer', amount: input.amount, currency: sav.currency, date: input.date, accountId: sav.id, toAccountId: via, goalId: goal?.id ?? null, payee: null, note: null });
-      if (!input.toAccountId) saveTransaction({ type: 'expense', amount: input.amount, currency: sav.currency, date: input.date, accountId: via, categoryId: input.categoryId ?? null, subcategoryId: input.subcategoryId ?? null, payee: null, note: null });
-      if (goal && input.goal) {
-        save<GoalContribution>('goalContributions', { goalId: goal.id, amount: -input.goal.amount, date: input.date, accountId: sav.id, transferId: tx.id, note: null });
-      }
-      return tx;
+      // Un seul lot : retrait (part de l'objectif libérée avec lui) puis, s'il y a lieu, la dépense.
+      return saveTransaction(
+        { type: 'transfer', amount: input.amount, currency: sav.currency, date: input.date, accountId: sav.id, toAccountId: via, goalId: goal?.id ?? null, payee: null, note: null },
+        {
+          linked: (tx) => [
+            ...(goal && input.goal ? [{ col: 'goalContributions' as const, doc: { goalId: goal.id, amount: -input.goal.amount, date: input.date, accountId: sav.id, transferId: tx.id, note: null, id: newId(PREFIX.goalContributions), createdAt: 0, updatedAt: 0, createdBy: '' } as GoalContribution }] : []),
+            ...(!input.toAccountId
+              ? [{ col: 'transactions' as const, doc: { type: 'expense', amount: input.amount, currency: sav.currency, date: input.date, accountId: via, toAccountId: null, toAmount: null, categoryId: input.categoryId ?? null, subcategoryId: input.subcategoryId ?? null, envelopeId: null, payee: null, note: null, id: newId(PREFIX.transactions), createdAt: 0, updatedAt: 0, createdBy: '' } as Transaction }]
+              : []),
+          ],
+        },
+      );
     },
-    [data, save, saveTransaction, ensureCashAccount],
+    [data, saveTransaction, ensureCashAccount],
   );
 
   /** Ajuster le solde : l'écart entre le solde réel et le solde calculé (ni revenu ni dépense). */
   const adjustSavingsBalance = useCallback(
-    (input: { accountId: string; date: string; direction: 'in' | 'out'; amount: number }): Transaction => {
+    (input: { accountId: string; date: string; direction: 'in' | 'out'; amount: number; reason?: string | null }): Transaction => {
       const acc = data().accounts.find((a) => a.id === input.accountId && !a.deleted);
       if (!acc || !isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
-      return save<Transaction>('transactions', { type: 'adjustment', direction: input.direction, amount: input.amount, currency: acc.currency, date: input.date, accountId: acc.id, toAccountId: null, categoryId: null, payee: null, note: null });
+      return save<Transaction>('transactions', { type: 'adjustment', direction: input.direction, amount: input.amount, currency: acc.currency, date: input.date, accountId: acc.id, toAccountId: null, categoryId: null, payee: null, note: null, reason: input.reason ?? null });
     },
     [data, save],
   );
 
   // ─── Dettes ───────────────────────────────────────────────────────
 
-  const saveDebt = useCallback((draft: Draft<Debt>) => save<Debt>('debts', draft), [save]);
+  /**
+   * Dette ou créance. Argent disponible v2 (§5.5) : à la création, l'emprunt reçu ou le prêt
+   * accordé est une VRAIE opération liée sur le compte choisi (`accountId`), écrite avec la
+   * dette ; sans compte, la dette est enregistrée seule (dette d'avant l'application).
+   */
+  const saveDebt = useCallback(
+    (draft: Draft<Debt>, opts: { accountId?: string | null; date?: string } = {}) => {
+      if (draft.id || !opts.accountId) return save<Debt>('debts', draft);
+      const id = newId(PREFIX.debts);
+      const debtDoc = { ...draft, id, createdAt: 0, updatedAt: 0, createdBy: '' } as Debt;
+      writeItems([{ col: 'debts', doc: debtDoc }, ...planDebtOpening(debtDoc, { accountId: opts.accountId, date: opts.date ?? today() }, newId)]);
+      return data().debts.find((x) => x.id === id) as Debt;
+    },
+    [save, writeItems, data],
+  );
 
-  /** Remboursement : crée aussi une opération si un compte est choisi (le solde suit). */
+  /** Une dette qui a des remboursements ne se supprime pas : on la clôture (E47). */
+  const deleteDebt = useCallback(
+    (id: string) => {
+      if (!canDeleteDebt(id, data().debtPayments)) throw new ActionError('validation', { errors: ['debt.hasPayments'] });
+      remove('debts', id);
+    },
+    [data, remove],
+  );
+
+  /**
+   * Clôturer (§5.5) : avec un reste, « Dette remise » (je dois) ou « Créance abandonnée » (on me
+   * doit), datée — ligne « Remises et pertes », ni revenu ni dépense, aucun argent ne bouge.
+   */
+  const closeDebt = useCallback(
+    (id: string, reason?: 'forgiven' | 'written_off') => {
+      const d = data();
+      const debt = d.debts.find((x) => x.id === id && !x.deleted);
+      if (!debt) return;
+      const remaining = debtStatus(debt, d.debtPayments).remaining;
+      const closedReason = remaining > 0 ? (reason ?? (debt.direction === 'i_owe' ? 'forgiven' : 'written_off')) : null;
+      save<Debt>('debts', { ...debt, status: 'closed', closedReason, closedAt: today() });
+    },
+    [data, save],
+  );
+
+  /**
+   * Remboursement = capital + intérêts (saisis, 0 par défaut) : opérations liées et
+   * remboursement du capital en UN lot. Pas de mouvement sans compte, sauf « Hors de mes
+   * comptes » choisi explicitement (`offAccounts`).
+   */
   const recordDebtPayment = useCallback(
-    (input: { debtId: string; amount: number; date: string; accountId: string | null; note?: string | null; label: string }) => {
+    (input: { debtId: string; amount: number; interest?: number; date: string; accountId: string | null; offAccounts?: boolean; note?: string | null; label: string }) => {
       const d = data();
       const debt = d.debts.find((x) => x.id === input.debtId);
       if (!debt || !isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
-      let transactionId: string | null = null;
-      if (input.accountId) {
-        const t = saveTransaction({
-          type: debt.direction === 'i_owe' ? 'expense' : 'income',
-          amount: input.amount,
-          currency: debt.currency,
-          date: input.date,
-          accountId: input.accountId,
-          categoryId: debt.direction === 'i_owe' ? 'cat_debts' : 'inc_other',
-          debtId: debt.id,
-          payee: debt.counterparty,
-          note: input.note ?? input.label,
-        });
-        transactionId = t.id;
-      }
-      return save<DebtPayment>('debtPayments', { debtId: debt.id, amount: input.amount, date: input.date, accountId: input.accountId, transactionId, note: input.note ?? null });
+      const r = planDebtRepayment(debt, { total: input.amount, interest: input.interest ?? 0, accountId: input.accountId, offAccounts: input.offAccounts, date: input.date, label: input.label, note: input.note ?? null }, d.categories, newId);
+      if ('error' in r) throw new ActionError('validation', { errors: [r.error] });
+      writeItems(r.items);
+      const paymentId = r.items.find((i) => i.col === 'debtPayments')?.doc.id;
+      return data().debtPayments.find((p) => p.id === paymentId) ?? null;
     },
-    [data, save, saveTransaction],
+    [data, writeItems],
   );
 
   // ─── Tontines (carnet de suivi : aucun argent n'est détenu par l'application) ──
@@ -733,20 +916,16 @@ export function useActions() {
     (source: TontineSource, amount: number, currency: string) => {
       const d = data();
       try {
-        return planTontinePayment({ source, amount, accounts: d.accounts.filter((a) => a.currency === currency), goals: d.goals, contributions: d.goalContributions, defaultAccountId: defaultSpendingAccountId(d.accounts, null, currency) ?? ensureCashAccount(currency) });
+        return planTontinePayment({ source, amount, accounts: d.accounts.filter((a) => a.currency === currency), goals: d.goals, contributions: d.goalContributions, defaultAccountId: defaultSpendingAccountId(d.accounts, null, currency) });
       } catch (e) {
         throw new ActionError('validation', { errors: [String((e as Error).message) as TxError] });
       }
     },
-    [data, ensureCashAccount],
+    [data],
   );
-  const linkGoalFunding = useCallback(
-    (tx: Transaction, goalId: string | null) => {
-      if (!goalId) return;
-      save<GoalContribution>('goalContributions', { goalId, amount: -tx.amount, date: tx.date, accountId: tx.accountId, transferId: null, linkedTransactionId: tx.id, note: null });
-    },
-    [save],
-  );
+  /** Cotisation payée par un objectif : la part de l'objectif libérée DANS LE MÊME LOT que la cotisation. */
+  const goalFunding = (goalId: string | null) => (tx: Transaction): PlanItem[] =>
+    goalId ? [{ col: 'goalContributions', doc: { goalId, amount: -tx.amount, date: tx.date, accountId: tx.accountId, transferId: null, linkedTransactionId: tx.id, note: null, id: newId(PREFIX.goalContributions), createdAt: 0, updatedAt: 0, createdBy: '' } as GoalContribution }] : [];
 
   const recordTontineGroupContribution = useCallback(
     (input: { groupId?: string; groupName: string; amount: number; currency: CurrencyCode; date: string; accountId?: string; source?: TontineSource }) => {
@@ -756,22 +935,23 @@ export function useActions() {
       if (!source) throw new ActionError('validation', { errors: ['account.missing'] });
       if (source.kind === 'account' && !d.accounts.some((a) => a.id === source.accountId && a.active && !a.deleted && a.currency === input.currency)) throw new ActionError('validation', { errors: ['account.missing'] });
       const plan = tontinePayment(source, input.amount, input.currency);
-      const tx = saveTransaction({
-        type: 'expense',
-        amount: input.amount,
-        currency: input.currency,
-        date: input.date,
-        accountId: plan.accountId,
-        ...tontineContributionCategory(d.categories),
-        // Lien avec la tontine partagée : une cotisation (de l'épargne) dans tous les pays.
-        tontineId: input.groupId ?? null,
-        payee: input.groupName,
-        note: null,
-      });
-      linkGoalFunding(tx, plan.fundingGoalId);
-      return tx;
+      return saveTransaction(
+        {
+          type: 'expense',
+          amount: input.amount,
+          currency: input.currency,
+          date: input.date,
+          accountId: plan.accountId,
+          ...tontineContributionCategory(d.categories),
+          // Lien avec la tontine partagée : une cotisation (de l'épargne) dans tous les pays.
+          tontineId: input.groupId ?? null,
+          payee: input.groupName,
+          note: null,
+        },
+        { linked: goalFunding(plan.fundingGoalId) },
+      );
     },
-    [data, saveTransaction, tontinePayment, linkGoalFunding],
+    [data, saveTransaction, tontinePayment],
   );
 
   const recordTontine = useCallback(
@@ -782,26 +962,30 @@ export function useActions() {
       const contribution = input.kind === 'contribution';
       // Cotisation payée depuis une source choisie (compte courant, épargne, objectif) : cercle fermé.
       const plan = contribution && input.source ? tontinePayment(input.source, input.amount, t.currency) : null;
-      const tx = saveTransaction({
+      const tx = saveTransaction(
+        {
         type: contribution ? 'expense' : 'income',
         amount: input.amount,
         currency: t.currency,
         date: input.date,
         // Source choisie, sinon compte choisi, sinon celui de la tontine, sinon un compte courant (« Espèces » créé si besoin).
-        accountId: plan?.accountId ?? input.accountId ?? (t.accountId && d.accounts.some((x) => x.id === t.accountId && x.active && !x.deleted) ? t.accountId : ensureCashAccount(t.currency)),
+        // Aucun compte : « Espèces » est créé par `saveTransaction`, APRÈS le contrôle (§6.1).
+        accountId: plan?.accountId ?? input.accountId ?? (t.accountId && d.accounts.some((x) => x.id === t.accountId && x.active && !x.deleted) ? t.accountId : (defaultSpendingAccountId(d.accounts, null, t.currency) ?? '')),
         // Cotisation : catégorie retrouvée PAR IDENTIFIANT (parent actuel de la sous-catégorie « Tontine »).
         ...(contribution ? tontineContributionCategory(d.categories) : { categoryId: categoryOr('inc_tontine', 'inc_other'), subcategoryId: null }),
         // Cotisation : lien avec le carnet (de l'épargne dans tous les pays). La cagnotte reçue reste un revenu.
-        tontineId: contribution ? t.id : null,
+        // Argent disponible v2 (D5) : la cagnotte est liée à la tontine — un retour, jamais un revenu.
+        tontineId: t.id,
         payee: t.name,
         note: input.note ?? null,
-      });
-      linkGoalFunding(tx, plan?.fundingGoalId ?? null);
+        },
+        { linked: goalFunding(plan?.fundingGoalId ?? null) },
+      );
       // Une échéance reportée (entrée « planned ») devient l'entrée payée.
       const previous = d.tontineEntries.find((e) => !e.deleted && e.tontineId === t.id && e.kind === input.kind && e.period === input.period && !e.transactionId);
       return save<TontineEntry>('tontineEntries', { ...(previous ? { id: previous.id } : {}), tontineId: t.id, kind: input.kind, period: input.period, amount: input.amount, date: input.date, transactionId: tx.id, status: 'done', note: null });
     },
-    [data, saveTransaction, categoryOr, save, ensureCashAccount, tontinePayment, linkGoalFunding],
+    [data, saveTransaction, categoryOr, save, tontinePayment],
   );
 
   /** « Reporter » une cotisation en retard : nouvelle date, rien n'est payé. */
@@ -835,36 +1019,43 @@ export function useActions() {
   const saveRecurring = useCallback((draft: Draft<RecurringRule>) => save<RecurringRule>('recurring', draft), [save]);
 
   /**
-   * Matérialise les échéances récurrentes dues (identifiants déterministes :
-   * aucun doublon même si deux appareils le font hors-ligne).
+   * Argent disponible v2 (§8, D7) : une récurrence n'est JAMAIS enregistrée seule. Gardée pour
+   * le démarrage (Bootstrap) : elle ne crée plus aucune opération. Les échéances se confirment
+   * d'un geste (`confirmRecurring`, cartes de `recurringToConfirm`).
    */
-  const runRecurring = useCallback(() => {
-    if (!engine || !activeSpace || !user || !can(role, 'create', 'recurring')) return 0;
-    const d = engine.getData(activeSpace.id);
-    const now = today();
-    const items: { col: CollectionName; doc: SyncedDoc }[] = [];
-    for (const rule of d.recurring) {
-      const dates = dueOccurrences(rule, now);
-      if (!dates.length) continue;
-      const account = d.accounts.find((a) => a.id === rule.accountId && a.active);
-      if (!account) continue;
-      for (const date of dates) items.push({ col: 'transactions', doc: materialize(rule, date, { now: Date.now(), uid: user.uid }) });
-      items.push({ col: 'recurring', doc: { ...rule, lastGenerated: dates[dates.length - 1] } as RecurringRule });
-    }
-    if (items.length) {
-      engine.writeMany(activeSpace.id, items);
-      // Échéances générées (loyer, abonnement…) : elles comptent dans les budgets.
-      const after = engine.getData(activeSpace.id);
-      notifyCoachWrite(activeSpace.id, touchedByWrite(items.filter((i) => i.col === 'transactions').map((i) => i.doc as Transaction), after.envelopes));
-    }
-    return items.length;
-  }, [engine, activeSpace, user, role]);
+  const runRecurring = useCallback(() => 0, []);
+
+  /**
+   * « Payé ? » / « Reçu ? » : l'échéance devient une opération avec l'identifiant DÉTERMINISTE
+   * de l'échéance (deux téléphones → un seul loyer), contrôlée comme toute sortie. Récurrence
+   * convertie en tontine : la confirmation EST la cotisation de la période.
+   */
+  const confirmRecurring = useCallback(
+    (input: { ruleId: string; occurrence: string; amount?: number; accountId?: string; date?: string }) => {
+      const d = data();
+      const rule = d.recurring.find((r) => r.id === input.ruleId && !r.deleted);
+      if (!rule) throw new ActionError('validation', { errors: ['amount.invalid'] });
+      if (input.amount !== undefined && !isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
+      const items = planRecurringConfirmation(d, rule, input.occurrence, { amount: input.amount, accountId: input.accountId, date: input.date ?? today() }, newId);
+      const errors = validateTransaction(items[0].doc as Transaction, d.accounts);
+      if (errors.length) throw new ActionError('validation', { errors });
+      writeItems(items);
+      return items[0].doc.id;
+    },
+    [data, writeItems],
+  );
 
   return useMemo(
     () => ({
       save,
       remove,
       saveTransaction,
+      saveWithComplements,
+      correctBalance,
+      closePocket,
+      deleteDebt,
+      closeDebt,
+      confirmRecurring,
       takeFromReserve,
       dropReserveUse,
       saveAccount,
@@ -899,7 +1090,7 @@ export function useActions() {
       postponeTontine,
       convertRecurringToTontine,
     }),
-    [save, remove, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, learnCategoryWord, depositToSavings, withdrawFromSavings, adjustSavingsBalance, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, recordTontineGroupContribution, postponeTontine, convertRecurringToTontine],
+    [save, remove, saveWithComplements, correctBalance, closePocket, deleteDebt, closeDebt, confirmRecurring, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, learnCategoryWord, depositToSavings, withdrawFromSavings, adjustSavingsBalance, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, recordTontineGroupContribution, postponeTontine, convertRecurringToTontine],
   );
 }
 

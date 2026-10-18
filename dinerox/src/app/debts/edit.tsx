@@ -61,7 +61,8 @@ function DebtEdit() {
   const remove = () =>
     Alert.alert(t('common.deleteConfirmTitle'), t('common.deleteConfirmBody'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => void (run(() => actions.remove('debts', existing!.id)) && router.replace('/debts')) },
+      { text: t('common.delete'), style: 'destructive', // Une dette qui a des remboursements ne se supprime pas : on la clôture (§5.5).
+        onPress: () => void (run(() => actions.deleteDebt(existing!.id)) && router.replace('/debts')) },
     ]);
   return (
     <Screen

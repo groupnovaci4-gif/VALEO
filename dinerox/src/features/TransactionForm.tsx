@@ -110,6 +110,8 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
           receiptFailed = true;
         }
       }
+      // Nouvelle dépense prise sur une réserve : la réserve paie DANS LE MÊME LOT (§5.3, §6.3).
+      const reserveAtCreation = !existing && !!reserveId && type === 'expense' && reserveEligible(categoryId, subcategoryId) ? reserveId : null;
       const saved = actions.saveTransaction({
         id: existing?.id,
         type,
@@ -128,11 +130,11 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
         recurringId: existing?.recurringId ?? null,
         goalId: existing?.goalId ?? null,
         debtId: existing?.debtId ?? null,
-      });
+      }, { reserveId: reserveAtCreation });
       // « Prendre sur la réserve ? » : utilisation liée (une modification la recalcule déjà).
       const wantsReserve = !!reserveId && saved.type === 'expense' && reserveEligible(saved.categoryId, saved.subcategoryId);
       try {
-        if (wantsReserve && reserveId !== currentUse?.goalId) actions.takeFromReserve(saved.id, reserveId);
+        if (wantsReserve && !reserveAtCreation && reserveId !== currentUse?.goalId) actions.takeFromReserve(saved.id, reserveId);
         else if (!wantsReserve && currentUse) actions.dropReserveUse(saved.id);
       } catch (err) {
         // Rien de partiel : une nouvelle opération dont la réserve échoue n'est pas gardée.

@@ -25,7 +25,9 @@ function DebtDetail() {
   const debt = data.debts.find((d) => d.id === id);
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState<number | null>(debt?.installment ?? null);
-  const [accountId, setAccountId] = useState<string>('none');
+  // Argent disponible v2 (§5.5) : « Aucun compte » n'est plus le choix par défaut.
+  const payAccounts = data.accounts.filter((a) => a.active && !a.deleted && a.currency === debt?.currency && (debt?.direction !== 'i_owe' || !a.isSavings));
+  const [accountId, setAccountId] = useState<string>(payAccounts.find((a) => !a.isSavings)?.id ?? 'none');
   const [day, setDay] = useState(today());
   if (!debt) return <Screen back><EmptyState title={t('debt.empty.title')} /></Screen>;
   const s = debtStatus(debt, data.debtPayments, now);
@@ -34,7 +36,7 @@ function DebtDetail() {
   const record = () => {
     const v = validateDebtPayment(amount ?? 0, s.remaining);
     const run = () => {
-      if (!runAction(() => actions.recordDebtPayment({ debtId: debt.id, amount: amount!, date: day, accountId: accountId === 'none' ? null : accountId, label: t('debt.paymentNote', { name: debt.counterparty }) }))) return;
+      if (!runAction(() => actions.recordDebtPayment({ debtId: debt.id, amount: amount!, date: day, accountId: accountId === 'none' ? null : accountId, offAccounts: accountId === 'none', label: t('debt.paymentNote', { name: debt.counterparty }) }))) return;
       setOpen(false);
       toast.show(t('common.saved'));
     };
@@ -73,7 +75,7 @@ function DebtDetail() {
       {canEdit && !s.settled ? (
         <View style={{ gap: 8, marginTop: 14 }}>
           <Button icon="cash-outline" label={t(debt.direction === 'i_owe' ? 'debt.pay' : 'debt.receive')} onPress={() => setOpen(true)} />
-          <Button variant="ghost" label={t('debt.close')} onPress={() => runAction(() => actions.saveDebt({ ...debt, status: 'closed' }))} />
+          <Button variant="ghost" label={t('debt.close')} onPress={() => runAction(() => actions.closeDebt(debt.id))} />
         </View>
       ) : null}
       <SectionHeader title={t('debt.payments')} />
@@ -88,7 +90,7 @@ function DebtDetail() {
         <Text variant="caption" tone="subtle" style={{ marginBottom: 6 }}>
           {t('debt.payment.accountHint')}
         </Text>
-        <ChipGroup scroll value={accountId} onChange={setAccountId} options={[{ value: 'none', label: t('common.none') }, ...data.accounts.filter((a) => a.active && a.currency === debt.currency && (debt.direction !== 'i_owe' || !a.isSavings)).map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))]} />
+        <ChipGroup scroll value={accountId} onChange={setAccountId} options={[...payAccounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color })), { value: 'none', label: t('common.none') }]} />
         <DateField label={t('common.date')} value={day} onChange={(d) => d && setDay(d)} />
         <Button full label={t('common.save')} onPress={record} />
       </Sheet>
