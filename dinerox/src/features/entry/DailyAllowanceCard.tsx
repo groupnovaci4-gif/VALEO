@@ -4,7 +4,8 @@
  * bouton « Masquer les montants ». Sous la carte : la part prise sur une réserve et la
  * source des chiffres (toujours visibles), et le détail du calcul, replié derrière
  * « Comment c'est calculé ? ».
- * Chiffres calculés par core/dailyAllowance (aucun calcul ici).
+ * Chiffres calculés par core/allowance (`dailyAllowanceV2` : argent disponible D − engagements E,
+ * horizon de paie ; aucun calcul ici). Textes actuels gardés : la carte est refaite à l'étape 3.
  */
 import React, { useMemo, useState } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
@@ -13,8 +14,7 @@ import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { Amount, Button, Card, GradientCard, Icon, Text } from '@/components/ui';
-import { SourceTag } from '@/features/Recommendation';
-import { allowanceDeductions, dailyAllowance } from '@/core/dailyAllowance';
+import { dailyAllowanceV2 } from '@/core/allowance';
 import { BIG_TEXT, useTheme } from '@/theme';
 
 const HIDDEN = '••••••';
@@ -26,7 +26,8 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, available }: { hidd
   const money = useMoney();
   const { fontScale } = useWindowDimensions();
   const { data, currency, now } = useFinance();
-  const r = useMemo(() => dailyAllowance({ data, currency, today: now, financial: profile?.financial }), [data, currency, now, profile?.financial]);
+  const payDay = profile?.financial?.payDay ?? null;
+  const r = useMemo(() => dailyAllowanceV2({ data, currency, today: now, payDay }), [data, currency, now, payDay]);
   const [open, setOpen] = useState(false);
   const show = (n: number) => (hidden ? HIDDEN : money(n));
   const big = fontScale >= BIG_TEXT;
@@ -59,17 +60,12 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, available }: { hidd
     );
   };
 
-  const detail =
-    r.status === 'needs_income' ? null : t('daily.detail', { income: show(r.income), expenses: show(r.expenses), upcoming: show(allowanceDeductions(r)) }); // « à venir » : tout ce qui est déduit en plus des dépenses (le détail explique toujours le chiffre)
+  // Texte actuel gardé jusqu'à l'étape 3 : « Revenus » = argent disponible D, « à venir » = engagements E
+  // (aucune dépense de plus : elles sont déjà sorties de D). Le détail explique toujours le chiffre.
+  const detail = r.status === 'needs_money' ? null : t('daily.detail', { income: show(r.available), expenses: show(0), upcoming: show(r.commitments) });
   // Sous la carte : réserve et source TOUJOURS visibles ; détail du calcul replié.
   const below = (
     <View style={{ marginTop: 8, marginBottom: 12, gap: 6 }}>
-      {r.status !== 'needs_income' && r.reserveCovered > 0 ? (
-        <Text variant="small" tone="muted">
-          {t('daily.reserveCovered', { amount: show(r.reserveCovered) })}
-        </Text>
-      ) : null}
-      {r.status !== 'needs_income' && r.incomeSource === 'declared' ? <SourceTag source="declared" /> : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('daily.howCalculated')}
@@ -94,7 +90,7 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, available }: { hidd
     </View>
   );
 
-  if (r.status === 'needs_income') {
+  if (r.status === 'needs_money') {
     return (
       <>
         <Card style={{ gap: 8 }}>

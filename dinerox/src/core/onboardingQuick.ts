@@ -5,7 +5,7 @@
  */
 import { addMonths, type ISODate } from './dates';
 import { findSubcategory } from './catalog';
-import { dailyAllowance, type DailyAllowance } from './dailyAllowance';
+import { dailyAllowanceV2, type AllowanceV2 } from './allowance';
 import type { CurrencyCode } from './money';
 import type { Goal, RecurringRule } from './types';
 
@@ -85,9 +85,13 @@ export function quickReserveGoal(monthly: number | null | undefined, meta: { cur
   };
 }
 
-/** Aperçu affiché à la fin du parcours (mêmes règles que l'accueil), réserve facultative comprise. */
-export function quickPreview(input: { monthlyIncome: number | null; charges: QuickCharge[]; currency: CurrencyCode; today: ISODate; reserveMonthly?: number | null }): DailyAllowance {
+/**
+ * Aperçu affiché à la fin du parcours : LA fonction de l'accueil (`dailyAllowanceV2`).
+ * Argent disponible v2 (E10, D1) : le revenu déclaré n'est jamais de l'argent ; sans argent
+ * renseigné, l'aperçu ne donne aucun « par jour » (`needs_money`).
+ */
+export function quickPreview(input: { monthlyIncome: number | null; charges: QuickCharge[]; currency: CurrencyCode; today: ISODate; reserveMonthly?: number | null }): AllowanceV2 {
   const recurring = quickChargeRules(input.charges, { accountId: 'preview', currency: input.currency, today: input.today, now: 0, uid: 'preview', label: (s) => s, id: (i) => `preview${i}` });
   const reserve = quickReserveGoal(input.reserveMonthly, { currency: input.currency, now: 0, uid: 'preview', name: '', id: 'preview_reserve' });
-  return dailyAllowance({ data: { transactions: [], recurring, goals: reserve ? [reserve] : [], goalContributions: [] }, currency: input.currency, today: input.today, financial: { monthlyIncome: input.monthlyIncome } });
+  return dailyAllowanceV2({ data: { accounts: [], transactions: [], recurring, goals: reserve ? [reserve] : [], goalContributions: [] }, currency: input.currency, today: input.today });
 }

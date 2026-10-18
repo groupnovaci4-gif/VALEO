@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { compareAmounts, simulateContribution } from '../src/core/simulator';
 import { emptySpaceData, type GoalContribution, type SpaceData } from '../src/core/types';
-import { envelope, goal, tx } from './helpers';
+import { account, envelope, goal, tx } from './helpers';
 
 const contrib = (p: Partial<GoalContribution>): GoalContribution => ({ id: p.id ?? `gc${Math.random()}`, createdAt: 1, updatedAt: 1, createdBy: 'u1', goalId: 'res', amount: 0, date: '2026-09-02', ...p });
 const reserve = goal({ id: 'res', kind: 'reserve', name: 'Réserve famille', categoryId: 'family', targetAmount: 200_000, monthlyContribution: null, targetDate: null });
 const income = tx({ id: 'inc', type: 'income', amount: 300_000, accountId: 'a', date: '2026-10-01', categoryId: 'inc_salary' });
-const base = (over: Partial<SpaceData> = {}): SpaceData => ({ ...emptySpaceData(), transactions: [income], ...over });
+// Argent disponible v2 : le reste par jour part de l'argent réellement sur les comptes (compte « a »).
+const base = (over: Partial<SpaceData> = {}): SpaceData => ({ ...emptySpaceData(), accounts: [account({ id: 'a' })], transactions: [income], ...over });
 // 15 octobre → 17 jours jusqu'au 31.
 const today = '2026-10-15';
 
@@ -31,7 +32,9 @@ describe('simulateur « Puis-je contribuer ? »', () => {
     const data = base({ goals: [reserve], goalContributions: [contrib({ amount: 10_000 })], envelopes: [fam] });
     const s = simulateContribution({ data, currency: 'XOF', today, amount: 30_000 });
     expect(s.reserve).toMatchObject({ before: 10_000, after: 0, fromReserve: 10_000, complement: 20_000 });
-    expect(s.after.status === 'ok' && s.after.available).toBe(280_000);
+    // v2 : la réserve (10 000) était mise de côté sur le compte : disponible 290 000 avant, 270 000 après.
+    expect(s.before.status === 'ok' && s.before.available).toBe(290_000);
+    expect(s.after.status === 'ok' && s.after.available).toBe(270_000);
     // Seul le complément (20 000) pèse sur l'enveloppe : 100 % → « entièrement utilisée ».
     expect(s.envelopes).toEqual([{ envelopeId: 'fam', name: 'Famille', before: 'ok', after: 'reached', remainingAfter: 0 }]);
   });

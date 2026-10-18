@@ -19,7 +19,7 @@ import { activeReserves } from '@/core/reserve';
 import { canUseReserve } from '@/core/permissions';
 import { FREE_SIMULATIONS_PER_MONTH, hasFeature } from '@/core/subscription';
 import { recordSimulation, simulationsThisMonth } from '@/services/simulatorStats';
-import type { DailyAllowance } from '@/core/dailyAllowance';
+import type { AllowanceV2 } from '@/core/allowance';
 
 const CATEGORIES = ['cat_social', 'cat_family'] as const;
 
@@ -65,7 +65,7 @@ function Simulate() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [used]);
 
-  const perDayLine = (a: number, r: DailyAllowance) =>
+  const perDayLine = (a: number, r: AllowanceV2) =>
     r.status === 'ok' ? t('sim.perDay', { amount: money(a), perDay: money(r.perDay), date: date(r.until) }) : r.status === 'deficit' ? t('sim.deficit', { amount: money(a), shortfall: money(r.deficit) }) : t('daily.needsIncome');
 
   if (locked) {

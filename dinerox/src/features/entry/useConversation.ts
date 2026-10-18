@@ -22,7 +22,7 @@ import { applyCommand, followUps, greeting, interpretReply, nextAck, recap, save
 import type { EntryContext, EntryDraft } from '@/core/entry/parse';
 import { envelopeStatuses, proposeIncomeAllocation, type EnvelopeStatus } from '@/core/budget';
 import { budgetTransactions } from '@/core/reserve';
-import { dailyAllowance } from '@/core/dailyAllowance';
+import { dailyAllowanceV2 } from '@/core/allowance';
 import { monthKey, today } from '@/core/dates';
 import { formatMoney, type CurrencyCode } from '@/core/money';
 import { readJSON, storageKey, writeJSON } from '@/services/storage';
@@ -285,12 +285,7 @@ export function useConversation(ctx: EntryContext) {
       const currency = activeSpace.currency as CurrencyCode;
       const month = monthKey(today());
       const afterStatuses = statusesNow();
-      const allowance = dailyAllowance({
-        data: after,
-        currency,
-        today: today(),
-        financial: profile?.financial,
-      });
+      const allowance = dailyAllowanceV2({ data: after, currency, today: today(), payDay: profile?.financial?.payDay ?? null });
       say(
         savedSummary({
           drafts,

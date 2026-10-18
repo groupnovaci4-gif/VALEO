@@ -36,12 +36,12 @@ describe('démarrage rapide', () => {
   // Argent disponible v2 (E10, D1) : aucun « X par jour » à l'inscription, le revenu déclaré n'est pas de l'argent.
   it('aperçu : jamais de « par jour » tiré du revenu déclaré (E10)', () => {
     const r = quickPreview({ monthlyIncome: 250_000, charges: [{ subcategoryId: 'sub_housing_rent', amount: 100_000, day: 25 }, { subcategoryId: 'sub_comm_airtime', amount: 5_000, day: 1 }], currency: 'XOF', today: '2026-10-10' });
-    expect(r.status).toBe('needs_income');
+    expect(r.status).toBe('needs_money');
     expect('perDay' in r).toBe(false);
   });
 
   it('aperçu sans revenu : invitation, aucun chiffre', () => {
-    expect(quickPreview({ monthlyIncome: null, charges: [], currency: 'XOF', today: '2026-10-10' }).status).toBe('needs_income');
+    expect(quickPreview({ monthlyIncome: null, charges: [], currency: 'XOF', today: '2026-10-10' }).status).toBe('needs_money');
   });
 });
 
@@ -57,7 +57,7 @@ describe('démarrage rapide : réserve facultative (1.6)', () => {
   it('aperçu avec réserve : toujours aucun « par jour » à l’inscription (E10)', async () => {
     const { quickPreview } = await import('../src/core/onboardingQuick');
     const base = { monthlyIncome: 310_000, charges: [], currency: 'XOF' as const, today: '2026-10-01' };
-    expect(quickPreview(base).status).toBe('needs_income');
-    expect(quickPreview({ ...base, reserveMonthly: 31_000 }).status).toBe('needs_income');
+    expect(quickPreview(base).status).toBe('needs_money');
+    expect(quickPreview({ ...base, reserveMonthly: 31_000 }).status).toBe('needs_money');
   });
 });

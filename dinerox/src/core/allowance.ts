@@ -19,13 +19,12 @@
  */
 import { addDays, addMonths, diffDays, monthKey, type ISODate } from './dates';
 import { nextPayday, payDate, payHorizon, previousCycleStart, type Horizon } from './payPeriod';
-import { firstSpendingAccountId } from './position';
 import { computeGoalPlan } from './goals';
 import { nextDueDate, debtStatus } from './debts';
 import { activeTontines, countedByRecurring, scheduleState } from './tontine';
 import { occurrencesBetween } from './recurring';
 import { occurrenceConfirmed } from './recurringConfirm';
-import { positionOf } from './position';
+import { firstSpendingAccountId, positionOf } from './position';
 import { envelopeStatuses } from './budget';
 import { budgetTransactions } from './reserve';
 import type { CurrencyCode } from './money';

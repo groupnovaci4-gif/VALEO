@@ -26,7 +26,6 @@ import { toMinor, type CurrencyCode } from '../money';
 import { LEVEL_RANK, resolveEnvelopeId, type EnvelopeStatus } from '../budget';
 import { hasDefinedBudget } from '../coach/envelopeAlerts';
 import { parseISODate, type ISODate, type MonthKey } from '../dates';
-import type { DailyAllowance } from '../dailyAllowance';
 import type { Account, BudgetPlan, Envelope } from '../types';
 
 /** Une phrase de DineroX : clé i18n + paramètres (montants en unités mineures, formatés par l'écran). */
@@ -328,12 +327,15 @@ export function crossedEnvelopes(before: EnvelopeStatus[], after: EnvelopeStatus
   return after.filter((s) => s.level !== 'ok' && hasDefinedBudget(s.envelope, month, budgets) && LEVEL_RANK[s.level] > LEVEL_RANK[prev.get(s.envelope.id) ?? 'ok']);
 }
 
+/** Reste par jour à annoncer (ancien calcul ou v2 : mêmes champs utiles). */
+type AllowanceSummary = { status: string; perDay?: number; until?: string; deficit?: number };
+
 /**
  * « C'est fait : 6 dépenses enregistrées, 205 000 F. Votre enveloppe Logement est
  * à 100 %. Il vous reste 2 150 F par jour jusqu'au 31. » — UNE seule phrase pour
  * toutes les enveloppes (jamais une alerte par ligne).
  */
-export function savedSummary(input: { drafts: EntryDraft[]; before: EnvelopeStatus[]; after: EnvelopeStatus[]; month: MonthKey; budgets: BudgetPlan[]; allowance: DailyAllowance | null }): Sentence[] {
+export function savedSummary(input: { drafts: EntryDraft[]; before: EnvelopeStatus[]; after: EnvelopeStatus[]; month: MonthKey; budgets: BudgetPlan[]; allowance: AllowanceSummary | null }): Sentence[] {
   const { drafts } = input;
   const out: Sentence[] = [];
   const types = new Set(drafts.map((d) => d.type));
@@ -350,8 +352,8 @@ export function savedSummary(input: { drafts: EntryDraft[]; before: EnvelopeStat
     out.push({ key: 'conv.done.envelopes', params: { list } });
   }
   const a = input.allowance;
-  if (a?.status === 'ok') out.push({ key: 'conv.done.perDay', params: { amount: a.perDay, day: parseISODate(a.until).getDate() } });
-  else if (a?.status === 'deficit') out.push({ key: 'conv.done.deficit', params: { amount: a.deficit } });
+  if (a?.status === 'ok' && a.perDay !== undefined && a.until) out.push({ key: 'conv.done.perDay', params: { amount: a.perDay, day: parseISODate(a.until).getDate() } });
+  else if (a?.status === 'deficit' && a.deficit !== undefined) out.push({ key: 'conv.done.deficit', params: { amount: a.deficit } });
   return out;
 }
 

@@ -1,4 +1,7 @@
 /**
+ * @deprecated Argent disponible v2 : les écrans lisent `core/allowance.ts › dailyAllowanceV2`
+ * (UNE seule fonction). Gardé pour les anciens tests ; à retirer à l'étape 3.
+ *
  * « Il vous reste X par jour jusqu'à la fin du mois » — module PUR.
  *
  *   disponible = revenus du mois ENREGISTRÉS (jamais le revenu déclaré : argent disponible v2, D1)

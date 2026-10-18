@@ -266,7 +266,7 @@ export default function Onboarding() {
                 </Text>
                 <Text variant="bodyStrong">{t('daily.perDay', { amount: fmt(preview.perDay), date: date(preview.until) })}</Text>
                 <Text variant="caption" tone="subtle" style={{ marginTop: 6 }}>
-                  {t('daily.detail', { income: fmt(preview.income), expenses: fmt(preview.expenses), upcoming: fmt(preview.upcomingRecurring + preview.goalsRemaining) })}
+                  {t('daily.detail', { income: fmt(preview.available), expenses: fmt(0), upcoming: fmt(preview.commitments) })}
                 </Text>
               </>
             ) : preview.status === 'deficit' ? (
