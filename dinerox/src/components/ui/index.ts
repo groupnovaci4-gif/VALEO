@@ -10,6 +10,7 @@ export * from './Segmented';
 export * from './Row';
 export * from './States';
 export * from './Screen';
+export * from './PhotoBanner';
 export * from './Sheet';
 export * from './DateField';
 export * from './Toast';

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 import { useI18n } from '@/i18n';
-import { Button, Text } from '@/components/ui';
+import { Button, PhotoBanner, Text } from '@/components/ui';
 import { Logo } from '@/components/Logo';
 import { useApp } from '@/store/app';
 import { env, isFirebaseConfigured } from '@/config/env';
@@ -13,16 +13,20 @@ export default function Welcome() {
   const { colors } = useTheme();
   const { t } = useI18n();
   const { enterLocalMode } = useApp();
+  const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState<'demo' | 'local' | null>(null);
   const start = (kind: 'demo' | 'local') => {
     setBusy(kind);
     void enterLocalMode({ demo: kind === 'demo' }).finally(() => setBusy(null));
   };
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.hero }}>
+    // Bas de l'écran : le panneau descend jusqu'en bas, sous la barre du système (sa marge est
+    // ajoutée à son padding) — plus de bande de couleur « hero » sous le panneau.
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.hero }}>
       {/* Petit écran (320 × 568) ou texte agrandi : l'ensemble défile au lieu d'être coupé. */}
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} bounces={false}>
         <View style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 18 }}>
+          <PhotoBanner photo="welcome" />
           <Logo size={96} />
           <Text variant="display" tone="onHero">
             {t('auth.welcome.title')}
@@ -32,7 +36,7 @@ export default function Welcome() {
           </Text>
           <Text tone="heroMuted">{t('auth.welcome.pitch')}</Text>
         </View>
-        <View style={{ padding: 24, gap: 12, backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
+        <View style={{ padding: 24, paddingBottom: 24 + insets.bottom, gap: 12, backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
           {isFirebaseConfigured ? (
             <>
               <Button full label={t('auth.welcome.signup')} onPress={() => router.push('/sign-up')} />

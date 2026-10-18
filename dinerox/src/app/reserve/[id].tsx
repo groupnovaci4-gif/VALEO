@@ -11,7 +11,7 @@ import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useAccountLabel, useCategoryLabels, useFinance, useMoney } from '@/hooks/useFinance';
 import { useRunAction } from '@/hooks/useRunAction';
-import { Badge, Banner, Button, Card, EmptyState, ProgressBar, Row, Screen, SectionHeader, Text, useToast } from '@/components/ui';
+import { Badge, Banner, Button, Card, EmptyState, PhotoBanner, ProgressBar, Row, Screen, SectionHeader, Text, useToast } from '@/components/ui';
 import { withSpaceReady } from '@/components/SpaceReady';
 import { isReserve, refillAmount, reserveHistory, reserveState } from '@/core/reserve';
 import { can, canUseReserve } from '@/core/permissions';
@@ -75,6 +75,7 @@ function ReserveDetail() {
 
   return (
     <Screen back title={`${reserve.icon} ${reserve.name}`} right={canEdit ? <Button small variant="ghost" icon="create-outline" label={t('common.edit')} onPress={() => router.push(`/reserve/new?id=${reserve.id}`)} /> : undefined}>
+      <PhotoBanner photo="reserve" style={{ marginBottom: 12 }} />
       <Card>
         <Text variant="small" tone="muted">
           {t('reserve.balance')}
