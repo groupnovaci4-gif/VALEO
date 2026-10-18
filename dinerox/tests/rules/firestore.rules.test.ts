@@ -327,6 +327,83 @@ describe('réserve famille et cérémonies (1.6)', () => {
   });
 });
 
+describe('argent disponible v2 : champs facultatifs (docs/argent-disponible.md)', () => {
+  const meta = (id: string, by = 'u1') => ({ id, createdAt: 1, updatedAt: 1, createdBy: by, syncedAt: serverTimestamp() });
+  const acc = (id: string, over: Record<string, unknown> = {}) => ({ ...meta(id), name: 'Espèces', type: 'cash', provider: 'none', currency: 'XOF', openingBalance: 0, color: '#000', icon: 'cash', active: true, isSavings: false, order: 0, ...over });
+  const goalDoc = (id: string, over: Record<string, unknown> = {}) => ({ ...meta(id), name: 'Moto', targetAmount: 500_000, initialAmount: 0, status: 'active', priority: 'normal', ...over });
+  const debtDoc = (id: string, over: Record<string, unknown> = {}) => ({ ...meta(id), direction: 'i_owe', principal: 50_000, counterparty: 'Banque', ...over });
+  const payDoc = (id: string, over: Record<string, unknown> = {}) => ({ ...meta(id), debtId: 'd1', amount: 10_000, date: '2026-10-04', ...over });
+  beforeEach(async () => {
+    await setDoc(doc(db('u1'), 'spaces/u1'), personal('u1'));
+  });
+
+  it('compte — openingDate : date ou absente ; autre format refusé', async () => {
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/accounts/a1'), acc('a1', { openingBalance: 35_000, openingDate: '2026-10-01' })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/accounts/a2'), acc('a2', { openingDate: null })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/accounts/a3'), acc('a3', { openingDate: '01/10/2026' })));
+  });
+  it('compte — openingNote : provenance en texte court', async () => {
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/accounts/a1'), acc('a1', { openingNote: 'argent gardé à la maison' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/accounts/a2'), acc('a2', { openingNote: 'x'.repeat(201) })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/accounts/a3'), acc('a3', { openingNote: 12 })));
+  });
+  it('compte — overdraftLimit : entier ≥ 0 ; négatif ou décimal refusé', async () => {
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/accounts/a1'), acc('a1', { overdraftLimit: 30_000 })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/accounts/a2'), acc('a2', { overdraftLimit: 0 })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/accounts/a3'), acc('a3', { overdraftLimit: -1 })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/accounts/a4'), acc('a4', { overdraftLimit: 10.5 })));
+  });
+  it('opération — reason : motif d’un ajustement, texte court', async () => {
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/transactions/t1'), tx('t1', 'u1', { type: 'adjustment', direction: 'out', reason: 'écart de caisse' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/t2'), tx('t2', 'u1', { type: 'adjustment', direction: 'out', reason: 'x'.repeat(201) })));
+  });
+  it('opération — linkedTransactionId : frais ou intérêts liés, identifiant borné', async () => {
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/transactions/t1'), tx('t1', 'u1', { linkedTransactionId: 'tr_1', subcategoryId: 'sub_other_fees' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/t2'), tx('t2', 'u1', { linkedTransactionId: 'x'.repeat(200) })));
+  });
+  it('E26b — transfert en même devise : montant reçu différent refusé ; entre devises accepté ; ancien montant égal accepté', async () => {
+    await setDoc(doc(db('u1'), 'spaces/u1/accounts/wave'), acc('wave'));
+    await setDoc(doc(db('u1'), 'spaces/u1/accounts/eur'), acc('eur', { currency: 'EUR' }));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/transactions/t1'), tx('t1', 'u1', { type: 'transfer', toAccountId: 'wave', amount: 50_000, toAmount: 49_000 })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/transactions/t2'), tx('t2', 'u1', { type: 'transfer', toAccountId: 'wave', amount: 50_000 })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/transactions/t3'), tx('t3', 'u1', { type: 'transfer', toAccountId: 'wave', amount: 50_000, toAmount: 50_000 })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/transactions/t4'), tx('t4', 'u1', { type: 'transfer', toAccountId: 'eur', amount: 655_957, toAmount: 100_000 })));
+  });
+  it('objectif — initialSource : « outside » ou absent ; autre valeur refusée', async () => {
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/goals/g1'), goalDoc('g1', { initialAmount: 80_000, initialSource: 'outside' })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/goals/g2'), goalDoc('g2', { initialSource: null })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/goals/g3'), goalDoc('g3', { initialSource: 'available' })));
+  });
+  it('objectif — initialNote : provenance en texte court', async () => {
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/goals/g1'), goalDoc('g1', { initialNote: 'confié à ma mère' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/goals/g2'), goalDoc('g2', { initialNote: 'x'.repeat(201) })));
+  });
+  it('dette — closedReason : remise ou abandon ; autre valeur refusée', async () => {
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/debts/d1'), debtDoc('d1', { status: 'closed', closedReason: 'forgiven' })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/debts/d2'), debtDoc('d2', { direction: 'owed_to_me', status: 'closed', closedReason: 'written_off' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/debts/d3'), debtDoc('d3', { closedReason: 'paid' })));
+  });
+  it('dette — closedAt : date de clôture', async () => {
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/debts/d1'), debtDoc('d1', { closedAt: '2026-10-10' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/debts/d2'), debtDoc('d2', { closedAt: 1760000000000 })));
+  });
+  it('remboursement — offAccounts : oui / non seulement', async () => {
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/debtPayments/p1'), payDoc('p1', { offAccounts: true })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/debtPayments/p2'), payDoc('p2', { offAccounts: null })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/debtPayments/p3'), payDoc('p3', { offAccounts: 'oui' })));
+  });
+  it('isolation : les nouveaux champs ne s’écrivent jamais dans l’espace d’un autre', async () => {
+    await assertFails(setDoc(doc(db('u2'), 'spaces/u1/accounts/a9'), acc('a9', { openingDate: '2026-10-01' })));
+  });
+  it('E41b — enfant : ni revenu, ni transfert, ni correction (miroir de canCreateTransaction)', async () => {
+    await seedFamily();
+    await assertFails(setDoc(doc(db('C'), 'spaces/fam_1/transactions/c1'), tx('c1', 'C', { type: 'income' })));
+    await assertFails(setDoc(doc(db('C'), 'spaces/fam_1/transactions/c2'), tx('c2', 'C', { type: 'transfer', toAccountId: 'acc2' })));
+    await assertFails(setDoc(doc(db('C'), 'spaces/fam_1/transactions/c3'), tx('c3', 'C', { type: 'adjustment', direction: 'in' })));
+    await assertSucceeds(setDoc(doc(db('C'), 'spaces/fam_1/transactions/c4'), tx('c4', 'C')));
+  });
+});
+
 describe('tontines — carnet personnel (1.7)', () => {
   const base = (id: string, by: string) => ({ id, createdAt: 1, updatedAt: 1, createdBy: by, syncedAt: serverTimestamp() });
   const tontine = (id: string, by: string, over: Record<string, unknown> = {}) => ({ ...base(id, by), type: 'rotating', name: 'Tontine du bureau', currency: 'XOF', amountPerShare: 10_000, sharesHeld: 1, frequency: 'monthly', startDate: '2026-01-05', membersCount: 10, myTurns: [6], status: 'active', ...over });

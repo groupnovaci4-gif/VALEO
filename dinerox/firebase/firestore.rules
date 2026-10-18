@@ -26,6 +26,11 @@ service cloud.firestore {
     function isISODate(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
     function optString(data, k, max) { return !(k in data) || data[k] == null || (data[k] is string && data[k].size() <= max); }
     function optInt(data, k) { return !(k in data) || data[k] == null || data[k] is int; }
+    // Argent disponible v2 (docs/argent-disponible.md) : champs FACULTATIFS (absents ou null acceptés).
+    function optISODate(data, k) { return !(k in data) || data[k] == null || isISODate(data[k]); }
+    function optBool(data, k) { return !(k in data) || data[k] == null || data[k] is bool; }
+    function optIn(data, k, values) { return !(k in data) || data[k] == null || data[k] in values; }
+    function optNonNegInt(data, k) { return !(k in data) || data[k] == null || (data[k] is int && data[k] >= 0); }
 
     // ─── Profil utilisateur ──────────────────────────────────────────
     match /users/{userId} {
@@ -171,7 +176,18 @@ service cloud.firestore {
             && d.accountId is string
             && (d.type != 'transfer' || (d.toAccountId is string && d.toAccountId != d.accountId))
             && optInt(d, 'toAmount')
-            && optString(d, 'payee', 120) && optString(d, 'note', 1000) && optString(d, 'receiptUrl', 2000);
+            && optString(d, 'payee', 120) && optString(d, 'note', 1000) && optString(d, 'receiptUrl', 2000)
+            // Argent disponible v2 : motif d'un ajustement (§3.2), opération liée — frais, intérêts (§3.4, §5.5).
+            && optString(d, 'reason', 200) && optString(d, 'linkedTransactionId', 128)
+            && sameCurrencyAmount(d);
+        }
+        // §3.4 — en même devise, le montant reçu est le montant envoyé : un `toAmount` DIFFÉRENT
+        // est refusé (un ancien `toAmount` égal au montant reste accepté, pour pouvoir le modifier
+        // ou le supprimer). Compte destinataire inconnu à cet instant : rien à comparer.
+        function sameCurrencyAmount(d) {
+          return d.type != 'transfer' || d.get('toAmount', null) == null || d.toAmount == d.amount
+            || !existsAfter(/databases/$(database)/documents/spaces/$(spaceId)/accounts/$(d.toAccountId))
+            || getAfter(/databases/$(database)/documents/spaces/$(spaceId)/accounts/$(d.toAccountId)).data.currency != d.currency;
         }
         // Un enfant fait un apport à une réserve familiale, il ne l'utilise jamais
         // (contribution négative refusée sur une réserve ; miroir de canUseReserve).
@@ -181,17 +197,26 @@ service cloud.firestore {
         }
         function validDoc(d) {
           return col == 'transactions' ? validTransaction(d)
-            : col == 'accounts' ? (d.name is string && d.name.size() <= 80 && isInt(d.openingBalance) && d.currency is string && d.currency.size() == 3 && d.active is bool)
+            : col == 'accounts' ? (d.name is string && d.name.size() <= 80 && isInt(d.openingBalance) && d.currency is string && d.currency.size() == 3 && d.active is bool
+                                // Argent disponible v2 : ouverture datée avec provenance (§3.1), découvert ≥ 0 (§3.5).
+                                && optISODate(d, 'openingDate') && optString(d, 'openingNote', 200)
+                                && optNonNegInt(d, 'overdraftLimit'))
             : col == 'goals' ? (d.name is string && d.name.size() <= 120 && isInt(d.targetAmount) && d.targetAmount >= 0 && isInt(d.initialAmount) && d.initialAmount >= 0
                                 && d.status in ['active', 'paused', 'completed', 'abandoned', 'archived']
                                 && d.priority in ['low', 'normal', 'high', 'urgent']
                                 // 1.6 : réserve rechargeable (absent = objectif classique).
-                                && (!('kind' in d) || d.kind == null || d.kind in ['goal', 'reserve']))
+                                && (!('kind' in d) || d.kind == null || d.kind in ['goal', 'reserve'])
+                                // Argent disponible v2 (§5.2) : montant initial « hors de mes comptes » et sa provenance.
+                                && optIn(d, 'initialSource', ['outside']) && optString(d, 'initialNote', 200))
             : col == 'goalContributions' ? (d.goalId is string && isInt(d.amount) && d.amount != 0 && isISODate(d.date)
                                 && optString(d, 'linkedTransactionId', 128))
             : col == 'envelopes' ? (d.name is string && d.name.size() <= 80 && isInt(d.monthlyBudget) && d.monthlyBudget >= 0)
-            : col == 'debts' ? (d.direction in ['i_owe', 'owed_to_me'] && isInt(d.principal) && d.principal > 0 && d.counterparty is string && d.counterparty.size() <= 120)
-            : col == 'debtPayments' ? (d.debtId is string && isInt(d.amount) && d.amount > 0 && isISODate(d.date))
+            : col == 'debts' ? (d.direction in ['i_owe', 'owed_to_me'] && isInt(d.principal) && d.principal > 0 && d.counterparty is string && d.counterparty.size() <= 120
+                                // Argent disponible v2 (§5.5) : clôture avec un reste — dette remise, créance abandonnée.
+                                && optIn(d, 'closedReason', ['forgiven', 'written_off']) && optISODate(d, 'closedAt'))
+            : col == 'debtPayments' ? (d.debtId is string && isInt(d.amount) && d.amount > 0 && isISODate(d.date)
+                                // §5.5 : « Hors de mes comptes », choisi explicitement.
+                                && optBool(d, 'offAccounts'))
             : col == 'assets' ? (d.name is string && d.name.size() <= 120 && isInt(d.value) && d.value >= 0)
             : col == 'recurring' ? (d.type in ['income', 'expense'] && isInt(d.amount) && d.amount > 0 && d.frequency in ['weekly', 'monthly', 'yearly'] && isISODate(d.startDate))
             : col == 'budgets' ? (d.month is string && d.month.matches('^[0-9]{4}-[0-9]{2}$') && d.id == d.month)
