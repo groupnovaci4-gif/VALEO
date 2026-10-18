@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   accountChangeError,
   applyItems,
+  batchOutflowError,
   outflowError,
   planBalanceCorrection,
   planDebtOpening,
@@ -197,5 +198,34 @@ describe('§5.3 — la réserve ne paie qu’avec l’argent adossé', () => {
     const d = space({ accounts: [cash(30_000)], goals: [goal({ id: 'res', kind: 'reserve', categoryId: 'family', targetAmount: 200_000, initialAmount: 50_000, initialSource: 'outside' })] });
     const r = planReserveUse(d, tx({ id: 'f', type: 'expense', amount: 20_000, accountId: 'cash', categoryId: 'cat_family' }), 'res', 'XOF', newId);
     expect([r.covered, r.items.length]).toEqual([0, 0]);
+  });
+});
+
+describe('§6.3 — contrôle d’un LOT : il ne crée ni n’aggrave un solde négatif', () => {
+  const t = (p: Partial<Transaction> & Pick<Transaction, 'type' | 'amount' | 'accountId'>) => ({ col: 'transactions' as const, doc: tx(p) });
+  it('retrait de la part d’un objectif sur un CE : accepté (la part se libère dans le même lot)', () => {
+    const d = space({ accounts: [cash(), ce(60_000)], goals: [goal({ id: 'moto', targetAmount: 500_000, accountId: 'ce' })], goalContributions: [contribution({ goalId: 'moto', amount: 60_000, accountId: 'ce' })] });
+    const w = tx({ id: 'w', type: 'transfer', amount: 10_000, accountId: 'ce', toAccountId: 'cash', date: TODAY });
+    expect(batchOutflowError(d, [{ col: 'transactions', doc: w }], TODAY)).toEqual({ code: 'shortfall', accountId: 'ce', missing: 10_000 });
+    expect(batchOutflowError(d, [{ col: 'transactions', doc: w }, { col: 'goalContributions', doc: contribution({ goalId: 'moto', amount: -10_000, accountId: 'ce', transferId: 'w', date: TODAY }) }], TODAY)).toBeNull();
+  });
+  it('mise de côté sur un compte courant au-delà de son disponible : refusée', () => {
+    const d = space({ accounts: [cash(20_000)], goals: [goal({ id: 'moto', targetAmount: 500_000 })] });
+    expect(batchOutflowError(d, [{ col: 'goalContributions', doc: contribution({ goalId: 'moto', amount: 30_000, accountId: 'cash', date: TODAY }) }], TODAY)).toEqual({ code: 'shortfall', accountId: 'cash', missing: 10_000 });
+  });
+  it('E40 — compte déjà à −20 000 : une dépense de 5 000 doit couvrir aussi le déficit (il manque 25 000)', () => {
+    const d = space({ accounts: [cash(40_000)], transactions: [tx({ type: 'expense', amount: 30_000, accountId: 'cash' }), tx({ type: 'expense', amount: 30_000, accountId: 'cash' })] });
+    expect(batchOutflowError(d, [t({ type: 'expense', amount: 5_000, accountId: 'cash', date: TODAY })], TODAY)).toEqual({ code: 'shortfall', accountId: 'cash', missing: 25_000 });
+  });
+  it('E1 — aucun argent renseigné, dépense sans compte : noMoney ; un revenu passe', () => {
+    expect(batchOutflowError(space(), [t({ type: 'expense', amount: 5_000, accountId: 'nouveau', date: TODAY })], TODAY)).toEqual({ code: 'noMoney' });
+    expect(batchOutflowError(space(), [t({ type: 'income', amount: 5_000, accountId: 'nouveau', date: TODAY })], TODAY)).toBeNull();
+  });
+  it('réserve sur un CE + dépense, même lot : la part de la réserve compte', () => {
+    const d = space({ accounts: [cash(30_000), ce(50_000)], goals: [goal({ id: 'res', kind: 'reserve', categoryId: 'family', targetAmount: 200_000, accountId: 'ce' })], goalContributions: [contribution({ goalId: 'res', amount: 50_000, accountId: 'ce' })] });
+    const fun = tx({ id: 'fun', type: 'expense', amount: 70_000, accountId: 'cash', categoryId: 'cat_family', date: TODAY });
+    const r = planReserveUse(d, fun, 'res', 'XOF', newId);
+    expect(batchOutflowError(d, [{ col: 'transactions', doc: fun }, ...r.items], TODAY)).toBeNull();
+    expect(batchOutflowError(d, [{ col: 'transactions', doc: fun }], TODAY)).toEqual({ code: 'shortfall', accountId: 'cash', missing: 40_000 });
   });
 });

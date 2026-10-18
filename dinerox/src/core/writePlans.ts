@@ -11,7 +11,7 @@ import { accountBalances } from './balance';
 import { accountChangeRules } from './accountRules';
 import { debtPaymentAccountError, splitRepayment } from './debts';
 import { monthKey, type ISODate } from './dates';
-import { balancesAt } from './position';
+import { accountPositions, balancesAt } from './position';
 import { recurringTxId } from './recurring';
 import { moneyTracked } from './savingsCircle';
 import { canDebit, complementDrafts, reserveCover, spendPlan, type SpendSource } from './spendPlan';
@@ -71,6 +71,58 @@ export function outflowError(d: Pick<SpaceData, 'accounts' | 'transactions' | 'g
   const exists = d.accounts.some((a) => a.id === draft.accountId && !a.deleted);
   const r = canDebit(d, { accountId: exists ? draft.accountId : null, amount: draft.amount, date: draft.date, replaces: draft.id }, draft.currency, today);
   return r.ok ? null : { code: 'shortfall', accountId: exists ? draft.accountId : null, missing: r.missing };
+}
+
+/**
+ * Contrôle d'un LOT (§6.1, §6.3) : accepté s'il ne crée ni n'aggrave un solde négatif sur un
+ * compte qu'il débite, à la date de chaque sortie et à toutes les dates suivantes. Un lot qui
+ * libère de l'argent dans le même geste (part d'un objectif, réserve, complément) est jugé avec
+ * elle. Un compte déjà négatif (deux téléphones, E40) : la nouvelle sortie doit couvrir le
+ * montant ET le déficit. Aucun argent renseigné et une sortie d'un compte courant : `noMoney`.
+ */
+export function batchOutflowError(d: SpaceData, items: PlanItem[], today: ISODate): OutflowError | null {
+  const byId = new Map(d.accounts.map((a) => [a.id, a]));
+  const debited = new Map<string, ISODate>();
+  const note = (accountId: string, date: ISODate) => debited.set(accountId, debited.has(accountId) && debited.get(accountId)! < date ? debited.get(accountId)! : date);
+  let currency: CurrencyCode | null = null;
+  for (const { col, doc } of items) {
+    if (col === 'transactions') {
+      const t = doc as Transaction;
+      if (t.deleted || (t.type !== 'expense' && t.type !== 'transfer')) continue;
+      const prev = d.transactions.find((x) => x.id === t.id && !x.deleted);
+      // Modification qui n'augmente pas la sortie : jamais refusée.
+      if (prev && prev.type === t.type && prev.accountId === t.accountId && t.amount <= prev.amount && t.date >= prev.date) continue;
+      currency = currency ?? t.currency;
+      note(t.accountId, t.date);
+    } else if (col === 'goalContributions') {
+      const c = doc as GoalContribution;
+      if (!c.deleted && c.amount > 0 && !c.transferId && c.accountId) note(c.accountId, c.date);
+    }
+  }
+  if (!debited.size) return null;
+  const after = applyItems(d, items);
+  for (const [accountId, date] of debited) {
+    const account = byId.get(accountId);
+    const cur = account?.currency ?? currency ?? d.accounts[0]?.currency ?? 'XOF';
+    if ((!account || !account.isSavings) && !moneyTracked(d.accounts, d.transactions, cur)) return { code: 'noMoney' };
+    if (!account) {
+      // Compte encore inexistant : un « Espèces » virtuel à 0.
+      const out = items.filter((i) => i.col === 'transactions' && (i.doc as Transaction).accountId === accountId && ((i.doc as Transaction).type === 'expense' || (i.doc as Transaction).type === 'transfer'));
+      return { code: 'shortfall', accountId: null, missing: out.reduce((n, i) => n + (i.doc as Transaction).amount, 0) };
+    }
+    const dates = new Set<ISODate>([date]);
+    if (today > date) dates.add(today);
+    for (const t of after.transactions) if (!t.deleted && t.date > date) dates.add(t.date);
+    for (const c of after.goalContributions) if (!c.deleted && c.date > date) dates.add(c.date);
+    let missing = 0;
+    for (const dd of dates) {
+      const before = accountPositions(d, cur, dd)[accountId]?.debitable ?? 0;
+      const now = accountPositions(after, cur, dd)[accountId]?.debitable ?? 0;
+      if (now < 0 && now < before) missing = Math.max(missing, Math.ceil(-now));
+    }
+    if (missing > 0) return { code: 'shortfall', accountId, missing };
+  }
+  return null;
 }
 
 // ─── Complément + sortie (§6.3) ──────────────────────────────────────
