@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { dailyAllowance } from '../src/core/dailyAllowance';
+import { dailyAllowanceV2 as v2 } from '../src/core/allowance';
 import { ceilingHelp, goalKind, isClassicGoal, isReserve, refillAmount, refillReminderDate, reserveEligible, reserveHistory, reserveState, reserveUseOf, splitReserveUse } from '../src/core/reserve';
 import { goalSaved } from '../src/core/balance';
 import { computeGoalPlan, goalPlanFor } from '../src/core/goals';
 import type { GoalContribution, Transaction } from '../src/core/types';
-import { goal, tx } from './helpers';
+import { account, goal, tx } from './helpers';
 
 const contrib = (p: Partial<GoalContribution>): GoalContribution => ({ id: p.id ?? `gc${Math.random()}`, createdAt: 1, updatedAt: 1, createdBy: 'u1', goalId: 'r1', amount: 0, date: '2026-10-02', ...p });
 const reserve = (p = {}) => goal({ id: 'r1', kind: 'reserve', name: 'Réserve famille et cérémonies', categoryId: 'family', targetAmount: 200_000, initialAmount: 0, monthlyContribution: 20_000, targetDate: null, ...p });
-const empty = { transactions: [] as Transaction[], recurring: [], goals: [], goalContributions: [] as GoalContribution[] };
+// Argent disponible v2 : le reste par jour part de l'argent sur les comptes (compte « a »).
+const empty = { accounts: [account({ id: 'a' })], transactions: [] as Transaction[], recurring: [], goals: [], goalContributions: [] as GoalContribution[] };
+const dailyAllowance = (input: Omit<Parameters<typeof v2>[0], 'payDay'>) => v2(input);
+const goalPart = (r: ReturnType<typeof v2>) => (r.status === 'ok' ? r.items.filter((c) => c.kind === 'goal').reduce((n, c) => n + c.amount, 0) : -1);
 const income = tx({ id: 'inc', type: 'income', amount: 300_000, accountId: 'a', date: '2026-10-01', categoryId: 'inc_salary' });
 
 describe('réserve : solde et utilisation', () => {
@@ -70,7 +73,7 @@ describe('reste par jour et réserve', () => {
 
   it('la mise de côté prévue de la réserve est déduite', () => {
     const r = dailyAllowance({ data: { ...empty, transactions: [income], goals: [reserve()] }, currency: 'XOF', today });
-    expect(r.status === 'ok' && r.goalsRemaining).toBe(20_000);
+    expect(goalPart(r)).toBe(20_000);
     expect(r.status === 'ok' && r.perDay).toBe(Math.floor(280_000 / daysLeft));
   });
 
@@ -92,8 +95,6 @@ describe('reste par jour et réserve', () => {
     expect(before.status === 'ok' && after.status === 'ok').toBe(true);
     if (before.status !== 'ok' || after.status !== 'ok') return;
     expect(after.perDay).toBe(before.perDay);
-    expect(after.reserveCovered).toBe(30_000);
-    expect(after.expenses).toBe(0);
   });
 
   it('réserve complète au début du mois : l’utiliser ne relance pas la mise de côté du mois', () => {
@@ -101,8 +102,8 @@ describe('reste par jour et réserve', () => {
     const before = dailyAllowance({ data: { ...empty, transactions: [income], goals: [reserve()], goalContributions: full }, currency: 'XOF', today });
     const gift = tx({ id: 'w', type: 'expense', amount: 50_000, accountId: 'a', date: '2026-10-10', categoryId: 'cat_social' });
     const after = dailyAllowance({ data: { ...empty, transactions: [income, gift], goals: [reserve()], goalContributions: [...full, contrib({ amount: -50_000, linkedTransactionId: 'w', date: '2026-10-10' })] }, currency: 'XOF', today });
-    expect(before.status === 'ok' && before.goalsRemaining).toBe(0);
-    expect(after.status === 'ok' && after.goalsRemaining).toBe(0);
+    expect(goalPart(before)).toBe(0);
+    expect(goalPart(after)).toBe(0);
     expect(after.status === 'ok' && before.status === 'ok' && after.perDay).toBe(before.status === 'ok' ? before.perDay : -1);
   });
 
@@ -112,8 +113,6 @@ describe('reste par jour et réserve', () => {
     const big = tx({ id: 'big', type: 'expense', amount: 34_000, accountId: 'a', date: '2026-10-10', categoryId: 'cat_social' });
     const after = dailyAllowance({ data: { ...empty, transactions: [income, big], goals: [reserve()], goalContributions: [...saved, contrib({ amount: -10_000, linkedTransactionId: 'big', date: '2026-10-10' })] }, currency: 'XOF', today });
     if (before.status !== 'ok' || after.status !== 'ok') throw new Error('ok attendu');
-    expect(after.reserveCovered).toBe(10_000);
-    expect(after.expenses).toBe(24_000);
     expect(before.available - after.available).toBe(24_000);
   });
 

@@ -129,6 +129,8 @@ export const SUBCATEGORIES: SubcategorySeed[] = [
   s('sub_debts_loan', 'cat_debts', 'Remboursement de prêt', 'Loan repayment', { fixed: true }),
   s('sub_debts_family', 'cat_debts', 'Dette familiale', 'Family debt', { zones: A }),
   s('sub_debts_card', 'cat_debts', 'Carte de crédit', 'Credit card', { zones: E }),
+  // Argent disponible v2 (§3.4) : frais d'un transfert ou d'un retrait (dépense liée, nature « frais »).
+  s('sub_other_fees', 'cat_other', "Frais d'envoi et de retrait", 'Transfer and withdrawal fees'),
 ];
 
 /** Zones des catégories principales régionales (leurs sous-catégories en héritent). */

@@ -9,16 +9,32 @@
  */
 import Anthropic from '@anthropic-ai/sdk';
 
-const SYSTEM_FR = `Tu es l'assistant financier d'une application de gestion de budget personnel et familial utilisée en Afrique francophone (montants en unités mineures de la devise indiquée ; pour XOF/XAF, 1 unité = 1 franc CFA).
+const SYSTEM_FR = `Tu es l'assistant financier d'une application de gestion de budget personnel et familial, utilisée par une personne qui vit {pays} (montants en unités mineures de la devise indiquée ; pour XOF/XAF, 1 unité = 1 franc CFA).
 Règles impératives :
 - Réponds en français simple, chaleureux et concret, en 120 mots maximum, sans jargon.
 - Utilise UNIQUEMENT les chiffres du résumé fourni. N'invente jamais de montant, de date ou de transaction. Si une information manque, dis-le et explique ce qu'il faudrait saisir.
 - Toute projection doit être présentée explicitement comme une estimation.
 - Formate les montants avec des espaces entre milliers et la devise (ex. 250 000 FCFA).
 - Tu n'es pas un conseiller financier réglementé : pas de recommandation d'investissement précise ni de produit financier nommé.
-- Ne demande jamais d'informations personnelles (numéro, code, mot de passe).`;
+- Ne demande jamais d'informations personnelles (numéro, code, mot de passe).
+- Les revenus du résumé sont les revenus REÇUS ; un emprunt, une cagnotte de tontine ou un remboursement n'en sont jamais. Ne recalcule aucun chiffre : reformule ceux du résumé.`;
 
 const SYSTEM_EN = SYSTEM_FR.replace('Réponds en français simple, chaleureux et concret', 'Answer in simple, warm, concrete English');
+
+/**
+ * Argent disponible v2 (§11.6) : le texte système dit le VRAI pays de la personne (code ISO
+ * transmis dans le résumé), jamais « Afrique francophone » pour tous. Code inconnu : sans pays.
+ */
+export function countryPhrase(summary: unknown): string {
+  const code = typeof (summary as { country?: unknown } | null)?.country === 'string' ? ((summary as { country: string }).country.toUpperCase()) : '';
+  if (!/^[A-Z]{2}$/.test(code)) return 'dans son pays';
+  try {
+    const name = new Intl.DisplayNames(['fr'], { type: 'region' }).of(code);
+    return name && name !== code ? `dans ce pays : ${name}` : 'dans son pays';
+  } catch {
+    return 'dans son pays';
+  }
+}
 
 export async function answerWithClaude(apiKey: string, question: string, summary: unknown, language: 'fr' | 'en'): Promise<string | null> {
   const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 50_000 });
@@ -30,7 +46,7 @@ export async function answerWithClaude(apiKey: string, question: string, summary
     // Repli automatique côté serveur si le modèle décline la demande.
     betas: ['server-side-fallback-2026-07-01'],
     fallbacks: 'default',
-    system: language === 'en' ? SYSTEM_EN : SYSTEM_FR,
+    system: (language === 'en' ? SYSTEM_EN : SYSTEM_FR).replace('{pays}', countryPhrase(summary)),
     messages: [
       {
         role: 'user',

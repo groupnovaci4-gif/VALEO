@@ -1689,6 +1689,27 @@
    "profileRules": [],
    "defaultEnabled": true,
    "keywords": []
+  },
+  {
+   "id": "sub_other_fees",
+   "parentId": "cat_other",
+   "label": {
+    "fr": "Frais d'envoi et de retrait",
+    "en": "Transfer and withdrawal fees"
+   },
+   "sortOrder": 1,
+   "bucket": "need",
+   "countries": [],
+   "profileRules": [],
+   "defaultEnabled": true,
+   "keywords": [
+    "frais",
+    "frais d envoi",
+    "frais de retrait",
+    "frais de transfert",
+    "frais de compte",
+    "frais bancaires"
+   ]
   }
  ],
  "legacyParentMap": {

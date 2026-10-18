@@ -192,17 +192,19 @@ describe('saisie et conversion', () => {
 describe('intégrations : reste par jour, calendrier, patrimoine', () => {
   const t = tontine({ startDate: '2026-10-20', membersCount: 3, myTurns: [3] });
   it('reste par jour : cotisation du mois déduite, cagnotte attendue non comptée', async () => {
-    const { dailyAllowance } = await import('../src/core/dailyAllowance');
+    // Argent disponible v2 (§7) : `dailyAllowanceV2` (l'ancien `dailyAllowance` est supprimé) — D − E.
+    const { dailyAllowanceV2 } = await import('../src/core/allowance');
     const income = { id: 'i', createdAt: 1, updatedAt: 1, createdBy: 'u', type: 'income' as const, amount: 170_000, currency: 'XOF' as const, date: '2026-10-01', accountId: 'a' };
-    const base = { transactions: [income], recurring: [], goals: [], goalContributions: [] };
-    const without = dailyAllowance({ data: base, currency: 'XOF', today: '2026-10-15' });
-    const withT = dailyAllowance({ data: { ...base, tontines: [t], tontineEntries: [] }, currency: 'XOF', today: '2026-10-15' });
-    expect(withT.status === 'ok' && [withT.upcomingTontines, withT.available]).toEqual([10_000, 160_000]);
-    expect(without.status === 'ok' && without.available).toBe(170_000);
+    const accounts = [{ id: 'a', createdAt: 1, updatedAt: 1, createdBy: 'u', name: 'Espèces', type: 'cash' as const, provider: 'none' as const, currency: 'XOF' as const, openingBalance: 0, color: '#000', icon: 'cash', active: true, isSavings: false, order: 0 }];
+    const base = { accounts, transactions: [income], recurring: [], goals: [], goalContributions: [] };
+    const without = dailyAllowanceV2({ data: base, currency: 'XOF', today: '2026-10-15' });
+    const withT = dailyAllowanceV2({ data: { ...base, tontines: [t], tontineEntries: [] }, currency: 'XOF', today: '2026-10-15' });
+    expect(withT.status === 'ok' && [withT.commitments, withT.available - withT.commitments]).toEqual([10_000, 160_000]);
+    expect(without.status === 'ok' && without.available - without.commitments).toBe(170_000);
     // Le tour où je reçois tombe dans le mois : la cagnotte n'est pas comptée tant qu'elle n'est pas reçue.
     const mine = tontine({ startDate: '2026-10-20', membersCount: 2, myTurns: [1] });
-    const r = dailyAllowance({ data: { ...base, tontines: [mine], tontineEntries: [] }, currency: 'XOF', today: '2026-10-15' });
-    expect(r.status === 'ok' && r.available).toBe(160_000);
+    const r = dailyAllowanceV2({ data: { ...base, tontines: [mine], tontineEntries: [] }, currency: 'XOF', today: '2026-10-15' });
+    expect(r.status === 'ok' && r.available - r.commitments).toBe(160_000);
   });
   it('calendrier : cotisations « Tontine » et cagnotte « Cagnotte de tontine », sans doublon avec la récurrence d’origine', async () => {
     const { financialCalendar } = await import('../src/core/calendar');
@@ -212,9 +214,14 @@ describe('intégrations : reste par jour, calendrier, patrimoine', () => {
     expect(financialCalendar({ recurring: [{ id: 'rec', createdAt: 1, updatedAt: 1, createdBy: 'u', type: 'expense', label: 'Tontine', amount: 10_000, currency: 'XOF', accountId: 'a', categoryId: 'cat_informal', frequency: 'monthly', startDate: '2026-10-20', active: true }], debts: [], debtPayments: [], goals: [], goalContributions: [], tontines: [linked], tontineEntries: [] }, '2026-10-15', 90).filter((e) => e.id.startsWith('ton'))).toEqual([]);
   });
   it('patrimoine : la position nette s’ajoute aux créances ou aux dettes', async () => {
+    // Argent disponible v2 (§5.6) : `netWorth(données, devise, jour)` lit les tontines elles-mêmes.
     const { netWorth } = await import('../src/core/networth');
-    expect(netWorth([], [], [], [], [], 'XOF', { receivable: 30_000, liability: 0 })).toMatchObject({ receivables: 30_000, net: 30_000 });
-    expect(netWorth([], [], [], [], [], 'XOF', { receivable: 0, liability: 40_000 })).toMatchObject({ liabilities: 40_000, net: -40_000 });
-    expect(netWorth([], [], [], [], [], 'XOF')).toMatchObject({ net: 0 });
+    const { emptySpaceData } = await import('../src/core/types');
+    const tt = tontine({ id: 'nw', startDate: '2026-01-05', membersCount: 10, myTurns: [6] });
+    const paid = [1, 2, 3].map((p) => entry({ tontineId: 'nw', period: p, amount: 10_000 }));
+    expect(netWorth({ ...emptySpaceData(), tontines: [tt], tontineEntries: paid }, 'XOF', '2026-03-20')).toMatchObject({ receivables: 30_000, net: 30_000 });
+    const after = [...[1, 2, 3, 4, 5, 6].map((p) => entry({ tontineId: 'nw', period: p, amount: 10_000 })), entry({ tontineId: 'nw', kind: 'payout', period: 6, amount: 100_000 })];
+    expect(netWorth({ ...emptySpaceData(), tontines: [tt], tontineEntries: after }, 'XOF', '2026-06-06')).toMatchObject({ liabilities: 40_000, net: -40_000 });
+    expect(netWorth(emptySpaceData(), 'XOF', '2026-06-06')).toMatchObject({ net: 0 });
   });
 });

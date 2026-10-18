@@ -21,7 +21,9 @@ import { useFormatParams } from '@/hooks/useInsightText';
 import { monthKey, today } from '@/core/dates';
 import { envelopeStatuses } from '@/core/budget';
 import { computeInsights } from '@/core/insights';
-import { financialSnapshot, recommendations } from '@/core/intelligence';
+import { coachRecommendations, financialSnapshot } from '@/core/intelligence';
+import { coachState } from '@/core/coachData';
+import { dailyAllowanceV2 } from '@/core/allowance';
 import { moneyPosition } from '@/core/balance';
 import { alertsAfterWrite, evaluateEnvelopeAlerts } from '@/core/coach/envelopeAlerts';
 import { detectPositiveEvents, fromEnvelopeAlert, fromInsights, fromRecommendations, type CoachEvent } from '@/core/coach/events';
@@ -40,7 +42,7 @@ import { evaluateRewards, monthToEvaluate, rewardKey, REWARDS } from '@/core/coa
 import { loadRewards, saveRewards, type StoredReward } from '@/services/rewards';
 import { budgetTransactions } from '@/core/reserve';
 import { setReviewOverlay } from '@/services/storeReview';
-import { withCircleView } from '@/core/savingsFlows';
+import { withLedgerView } from '@/core/nature';
 
 interface CoachValue {
   /** Résumé en attente (ouverture) : affiché sur l'accueil jusqu'à « J'ai compris ». */
@@ -126,7 +128,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
       const { engine: e, uid, profile: p, currency: cur } = latest.current;
       if (!e || !uid) return;
       const memory = await envelopeMemory(uid, signal.spaceId);
-      const r = alertsAfterWrite({ data: withCircleView(e.getData(signal.spaceId)), touched: signal.touched, currency: cur, memory, today: today() });
+      const r = alertsAfterWrite({ data: withLedgerView(e.getData(signal.spaceId)), touched: signal.touched, currency: cur, memory, today: today() });
       // Mémoire toujours à jour (même alertes coupées) : pas de rafale à la réactivation.
       await saveEnvelopeMemory(uid, signal.spaceId, r.memory);
       const now = Date.now();
@@ -144,7 +146,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
     if (!e || !uid || !spaceId || spaceKind !== 'personal' || !e.isLoaded(spaceId)) return [];
     const online = m === 'firebase';
     const history = await loadRewards(uid, online);
-    const fresh = evaluateRewards({ data: withCircleView(e.getData(spaceId)), currency: cur, month: monthToEvaluate(today()), history }, Date.now()).map((r) => ({ ...r, spaceId }));
+    const fresh = evaluateRewards({ data: withLedgerView(e.getData(spaceId)), currency: cur, month: monthToEvaluate(today()), history }, Date.now()).map((r) => ({ ...r, spaceId }));
     if (!fresh.length) {
       setRewards(history);
       return [];
@@ -181,7 +183,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
         .then((ids) => mergeDelivered(uid, ids))
         .catch(() => undefined);
     }
-    const data = withCircleView(e.getData(spaceId));
+    const data = withLedgerView(e.getData(spaceId));
     const day = today();
     const month = monthKey(day);
     const now = Date.now();
@@ -190,10 +192,13 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
     await saveEnvelopeMemory(uid, spaceId, env.memory);
     const free = moneyPosition(data.accounts, data.transactions, data.goals, data.goalContributions, cur).free;
     const snap = financialSnapshot({ data, currency: cur, now: day, available: free, financial: p.financial });
+    // Argent disponible v2 (§11.4) : un seul conseil par notion, dans l'ordre de `nextAdvice`.
+    const until = dailyAllowanceV2({ data, currency: cur, today: day, payDay: p.financial?.payDay ?? null }).until;
+    const recs = coachRecommendations(snap, coachState(data, cur, day, p.financial), data.goals, until);
     const events = [
       ...env.alerts.map((a) => fromEnvelopeAlert(a, spaceId, p.firstName, now)),
       ...fromInsights(computeInsights({ data, currency: cur, now: day, categoryName: label }), spaceId, month, now),
-      ...fromRecommendations(recommendations(snap, data.goals), spaceId, month, now),
+      ...fromRecommendations(recs, spaceId, month, now),
       ...detectPositiveEvents(data, cur, day, spaceId, now, (id) => label(data.categories.find((c) => c.id === id), id)),
       // Réserve famille, moments forts, soutiens réguliers : libellés du catalogue, jamais un nom saisi.
       // Tontines : cotisation demain, retard, cagnotte proche, mois à l'heure.

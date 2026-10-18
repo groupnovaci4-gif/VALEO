@@ -4,6 +4,9 @@
  * bénéficiaires, notes, noms de personnes, e-mails ou numéros.
  * Réserves et moments forts : un libellé GÉNÉRIQUE remplace le nom saisi
  * (« Funérailles de… », « Dot de… » pourraient nommer une personne).
+ * Argent disponible v2 (§11.6) : le résumé transmet D, E, R, C, Rb, S et les indicateurs
+ * DÉJÀ calculés (`coachState`) ; l'assistant reformule, il ne recalcule pas. Le pays réel
+ * de la personne est transmis (le texte système ne dit plus « Afrique francophone » pour tous).
  */
 import type { SpaceData } from '../types';
 import type { CurrencyCode } from '../money';
@@ -13,6 +16,9 @@ import { expensesByCategory, monthFlows } from '../insights';
 import { observedCapacity } from '../intelligence';
 import { goalPlanFor } from '../goals';
 import { moneyPosition } from '../balance';
+import { coachState, monthMetrics } from '../coachData';
+import { ensureLedgerView } from '../nature';
+import { tenPercent } from '../coachMetrics';
 import { debtTotals } from '../debts';
 import { budgetTransactions, isReserve, isSeason } from '../reserve';
 
@@ -27,6 +33,18 @@ export interface FinanceSummary {
   position: { available: number; free: number; savings: number };
   savingsCapacity: number | null;
   debts: { iOwe: number; owedToMe: number };
+  /** Pays de la personne (code ISO), pour le texte système. */
+  country: string | null;
+  /** D : argent disponible ; E : engagements restants. */
+  available: number;
+  commitments: number;
+  /** R, C, Rb, S du mois (revenus REÇUS, jamais le déclaré). */
+  received: number;
+  spent: number;
+  repaid: number;
+  saved: number;
+  /** Indicateurs déjà calculés (§11). */
+  indicators: { monthsCovered: number | null; savingsRate: number | null; fixedShare: number | null; debtShare: number | null; tenPercent: number | null; tenPercentFeasible: number | null };
 }
 
 export function buildFinanceSummary(
@@ -34,9 +52,13 @@ export function buildFinanceSummary(
   currency: CurrencyCode,
   now: ISODate,
   categoryName: (id: string) => string,
-  labels: { reserve: string; season: string } = { reserve: 'Réserve famille', season: 'Moment fort' },
+  labels: { reserve: string; season: string; country?: string | null } = { reserve: 'Réserve famille', season: 'Moment fort' },
 ): FinanceSummary {
+  data = ensureLedgerView(data);
   const m = monthKey(now);
+  const state = coachState(data, currency, now);
+  const mm = monthMetrics(data, m, currency);
+  const ten = tenPercent({ received: mm.received, available: state.available, commitments: state.commitments, saved: Math.max(0, mm.saved) });
   const p = previousMonth(m);
   const pos = moneyPosition(data.accounts, data.transactions, data.goals, data.goalContributions, currency);
   return {
@@ -60,5 +82,20 @@ export function buildFinanceSummary(
     position: { available: pos.available, free: pos.free, savings: pos.savings },
     savingsCapacity: observedCapacity(data, currency, now),
     debts: (({ iOwe, owedToMe }) => ({ iOwe, owedToMe }))(debtTotals(data.debts, data.debtPayments, currency)),
+    country: labels.country ?? null,
+    available: state.available,
+    commitments: state.commitments,
+    received: mm.received,
+    spent: mm.spent,
+    repaid: mm.repaid,
+    saved: mm.saved,
+    indicators: {
+      monthsCovered: state.monthsCovered === null ? null : Math.floor(state.monthsCovered * 10) / 10,
+      savingsRate: state.savingsRate,
+      fixedShare: state.fixedShare,
+      debtShare: state.debtShare,
+      tenPercent: ten.advice,
+      tenPercentFeasible: ten.feasible,
+    },
   };
 }

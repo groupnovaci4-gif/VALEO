@@ -118,7 +118,7 @@ function HomeScreen() {
       ) : null}
 
       {/* 1. Le repère : reste par jour + solde disponible, dans une seule carte. */}
-      <DailyAllowanceCard hidden={hidden} onToggleHidden={() => setHidden((h) => !h)} available={position.free} />
+      <DailyAllowanceCard hidden={hidden} onToggleHidden={() => setHidden((h) => !h)} position={f.money} />
       {/* Cercle fermé : disponible à zéro ou négatif → retirer de l'épargne ou d'un objectif. */}
       <ShortfallCard hidden={hidden} />
       <TontineDueCard hidden={hidden} />

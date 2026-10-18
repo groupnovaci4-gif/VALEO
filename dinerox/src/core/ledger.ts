@@ -22,7 +22,6 @@ import { natureContext, natureOf, SPENDING_NATURES, type Nature } from './nature
 import { firstSpendingAccountId } from './position';
 import { tontineClosure, tontineMovements } from './tontineLedger';
 import { writtenOffAmount } from './debts';
-import { csvCell } from './reports';
 import { inPeriod, toISODate, type ISODate } from './dates';
 import type { CurrencyCode } from './money';
 import type { Account, SpaceData, Transaction } from './types';
@@ -216,6 +215,13 @@ export function accountStatement(d: Pick<SpaceData, 'accounts' | 'transactions'>
   return { start, inflows, outflows, end: start + inflows - outflows, lines };
 }
 
+/** Cellule CSV : neutralise les formules (injection dans un tableur) ; un nombre seul reste un nombre. */
+export function csvCell(v: unknown): string {
+  const s = v === null || v === undefined ? '' : String(v);
+  const safe = /^[=+\-@\t\r]/.test(s) && !/^-\d+(\.\d+)?$/.test(s) ? `'${s}` : s;
+  return /[";\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
+
 /** Opérations liées à supprimer avec une opération (frais d'un transfert, intérêts d'un remboursement). */
 export function linkedToDelete(transactionId: string, transactions: Pick<Transaction, 'id' | 'deleted' | 'linkedTransactionId'>[]): string[] {
   return transactions.filter((t) => !t.deleted && t.linkedTransactionId === transactionId).map((t) => t.id);
@@ -229,8 +235,9 @@ export function linkedToDelete(transactionId: string, transactions: Pick<Transac
  */
 export function ledgerCsv(
   d: Pick<SpaceData, 'accounts' | 'transactions'> & Partial<LedgerData>,
-  ctx: { headers: string[]; accountName: (id: string) => string; categoryName: (id: string) => string; natureLabel: (n: Nature) => string; decimals: (currency: string) => number },
+  ctx: { headers: string[]; accountName: (id: string) => string; categoryName: (id: string) => string; natureLabel: (n: Nature) => string; decimals: (currency: string) => number; period?: Range },
 ): string {
+  const inRange = (date: ISODate) => !ctx.period || inPeriod(date, ctx.period);
   const nctx = natureContext(d);
   const major = (amount: number, currency: string) => {
     const dec = ctx.decimals(currency);
@@ -238,13 +245,13 @@ export function ledgerCsv(
   };
   const rows: { date: ISODate; cells: unknown[] }[] = [];
   for (const a of d.accounts) {
-    if (a.deleted || a.openingBalance === 0) continue;
+    if (a.deleted || a.openingBalance === 0 || !inRange(openingDateOf(a))) continue;
     const debit = a.openingBalance < 0 ? major(-a.openingBalance, a.currency) : '';
     const credit = a.openingBalance > 0 ? major(a.openingBalance, a.currency) : '';
     rows.push({ date: openingDateOf(a), cells: [openingDateOf(a), ctx.natureLabel('ouverture'), ctx.accountName(a.id), debit, credit, a.currency, '', '', '', '', '', '', a.openingNote ?? ''] });
   }
   const currencyOf = new Map(d.accounts.map((a) => [a.id, a.currency]));
-  const txs = d.transactions.filter((t) => !t.deleted).sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+  const txs = d.transactions.filter((t) => !t.deleted && inRange(t.date)).sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
   for (const t of txs) {
     const out = t.type === 'expense' || t.type === 'transfer' || (t.type === 'adjustment' && t.direction === 'out');
     const toCurrency = t.toAccountId ? (currencyOf.get(t.toAccountId) ?? t.currency) : '';

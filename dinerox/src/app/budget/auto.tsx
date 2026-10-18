@@ -18,7 +18,6 @@ import { UpgradeCard } from '@/features/rows';
 import { proposeBudget, type BudgetBucket } from '@/core/budget';
 import { hasFeature } from '@/core/subscription';
 import { personalBudget } from '@/core/personalBudget';
-import { recurringMonthlyIncome } from '@/core/intelligence';
 import { useIntelligence } from '@/hooks/useIntelligence';
 import type { BudgetMethod } from '@/core/types';
 import { withSpaceReady } from '@/components/SpaceReady';
@@ -41,13 +40,13 @@ function AutoBudget() {
   const toast = useToast();
   const { plan } = useApp();
   const money = useMoney();
-  const { data, currency, month, now } = useFinance();
+  const { data, currency, month, now, position } = useFinance();
   const actions = useActions();
   const run = useRunAction();
   const { profile } = useApp();
   const { snapshot } = useIntelligence();
-  const lastIncome = useMemo(() => recurringMonthlyIncome(data.recurring, currency), [data.recurring, currency]);
-  const [income, setIncome] = useState<number | null>(lastIncome || snapshot.income.value || null);
+  // Argent disponible v2 (§9) : « Montant à répartir » prérempli avec l'argent disponible D, jamais avec le déclaré.
+  const [income, setIncome] = useState<number | null>(position.free > 0 ? position.free : null);
   const activeEnvelopes = data.envelopes.filter((e) => e.active && !e.deleted);
   // Budget personnalisé par défaut dès qu'il y a des enveloppes : pas de règle universelle imposée.
   const [method, setMethod] = useState<BudgetMethod | 'personal'>(activeEnvelopes.length ? 'personal' : 'envelopes');

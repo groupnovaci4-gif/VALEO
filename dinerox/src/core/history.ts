@@ -5,6 +5,7 @@
 import { endOfMonth, monthKey, type MonthKey } from './dates';
 import { filterTransactions, sortTransactions } from './transactions';
 import type { Transaction, TransactionType } from './types';
+import { isRevenue, spendingAmount } from './nature';
 
 export interface HistoryFilter {
   type: TransactionType | 'all';
@@ -46,16 +47,18 @@ export interface PeriodTotals {
 }
 
 /**
- * Entrées et sorties de la liste, PAR DEVISE (jamais additionnées entre
- * devises). Les transferts ne sont ni des entrées ni des sorties.
+ * Revenus et dépenses de la liste, PAR DEVISE (jamais additionnées entre devises).
+ * Argent disponible v2 (§10.2) : par NATURE, comme le rapport de la même période —
+ * un emprunt, une cagnotte, un remboursement ne sont pas des revenus, le capital
+ * remboursé pas une dépense ; un transfert n'est ni l'un ni l'autre.
  */
 export function periodTotals(list: Transaction[]): Record<string, PeriodTotals> {
   const out: Record<string, PeriodTotals> = {};
   for (const t of list) {
     if (t.deleted || (t.type !== 'income' && t.type !== 'expense')) continue;
     const r = (out[t.currency] ??= { income: 0, expense: 0, net: 0, count: 0 });
-    if (t.type === 'income') r.income += t.amount;
-    else r.expense += t.amount;
+    if (isRevenue(t)) r.income += t.amount;
+    else r.expense += spendingAmount(t);
     r.net = r.income - r.expense;
     r.count += 1;
   }

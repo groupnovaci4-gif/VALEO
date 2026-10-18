@@ -13,7 +13,7 @@ import type { CurrencyCode } from './money';
 import { lastMonths, monthKey, type ISODate } from './dates';
 import { resolveEnvelopeId } from './budget';
 import { findSubcategory } from './catalog';
-import { isConsumption } from './savingsFlows';
+import { isSpending } from './nature';
 
 export type BudgetBasis = 'observed' | 'declared' | 'current' | 'goals';
 
@@ -53,7 +53,7 @@ export function personalBudget(input: {
   // Dépense moyenne par enveloppe (mois complets avec des dépenses).
   const spent: Record<string, Record<string, number>> = {};
   for (const t of transactions) {
-    if (t.deleted || !isConsumption(t) || t.currency !== currency) continue;
+    if (t.deleted || !isSpending(t) || t.currency !== currency) continue;
     const m = monthKey(t.date);
     if (!months.includes(m)) continue;
     const id = resolveEnvelopeId(t, active);

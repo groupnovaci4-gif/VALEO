@@ -6,7 +6,6 @@ import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { Banner, Card, EmptyState, IconButton, Row, Screen, SectionHeader, Text } from '@/components/ui';
 import { UpgradeCard } from '@/features/rows';
-import { tontinePositions } from '@/core/tontine';
 import { today } from '@/core/dates';
 import { netWorth } from '@/core/networth';
 import { hasFeature } from '@/core/subscription';
@@ -17,7 +16,7 @@ export default function Assets() {
   const { plan } = useApp();
   const money = useMoney();
   const { data, currency } = useFinance();
-  const nw = useMemo(() => netWorth(data.assets, data.accounts, data.transactions, data.debts, data.debtPayments, currency, tontinePositions(data, currency, today())), [data, currency]);
+  const nw = useMemo(() => netWorth(data, currency, today()), [data, currency]);
   if (!hasFeature(plan, 'net_worth')) {
     return (
       <Screen back title={t('nw.title')}>
@@ -37,6 +36,7 @@ export default function Assets() {
         <View style={{ marginTop: 10, gap: 4 }}>
           <Line label={t('nw.assets')} value={money(nw.assets)} />
           <Line label={t('nw.accounts')} value={money(nw.accounts)} />
+          {nw.outside ? <Line label={t('nw.outside')} value={money(nw.outside)} /> : null}
           <Line label={t('nw.receivables')} value={money(nw.receivables)} />
           <Line label={t('nw.liabilities')} value={money(-nw.liabilities)} />
         </View>

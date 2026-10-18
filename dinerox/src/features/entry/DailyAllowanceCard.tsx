@@ -14,12 +14,14 @@ import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { Amount, Button, Card, GradientCard, Icon, Text } from '@/components/ui';
-import { dailyAllowanceV2 } from '@/core/allowance';
+import { dailyAllowanceV2, type Commitment } from '@/core/allowance';
+import type { Position } from '@/core/position';
 import { BIG_TEXT, useTheme } from '@/theme';
 
 const HIDDEN = '••••••';
 
-export function DailyAllowanceCard({ hidden, onToggleHidden, available }: { hidden?: boolean; onToggleHidden: () => void; available: number }) {
+export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidden?: boolean; onToggleHidden: () => void; position: Position }) {
+  const available = position.available;
   const { t, date } = useI18n();
   const { colors } = useTheme();
   const { profile } = useApp();
@@ -32,15 +34,39 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, available }: { hidd
   const show = (n: number) => (hidden ? HIDDEN : money(n));
   const big = fontScale >= BIG_TEXT;
 
-  /** « Solde disponible » + montant : sur une ligne, ou deux étages si le texte est agrandi. */
-  const availableRow = (onHero: boolean) => (
-    <View style={{ flexDirection: big ? 'column' : 'row', alignItems: big ? 'flex-start' : 'center', justifyContent: 'space-between', gap: big ? 0 : 8, flexWrap: 'wrap' }}>
+  /** Une ligne « libellé + montant » : sur une ligne, ou deux étages si le texte est agrandi. */
+  const line = (onHero: boolean, label: string, value: number, size: 'M' | 'S' = 'S') => (
+    <View key={label} style={{ flexDirection: big ? 'column' : 'row', alignItems: big ? 'flex-start' : 'center', justifyContent: 'space-between', gap: big ? 0 : 8, flexWrap: 'wrap' }}>
       <Text variant="small" tone={onHero ? 'heroMuted' : 'muted'}>
-        {t('home.available')}
+        {label}
       </Text>
-      <Amount text={money(available)} hidden={hidden} size="M" tone={onHero ? 'onHero' : 'default'} />
+      <Amount text={money(value)} hidden={hidden} size={size} tone={onHero ? 'onHero' : 'default'} />
     </View>
   );
+  /** Argent disponible v2 (§4) : trois montants, jamais additionnés par erreur ; autres devises côte à côte. */
+  const others = Object.entries(position.otherCurrencies);
+  const availableRow = (onHero: boolean) => (
+    <View style={{ gap: 4 }}>
+      {line(onHero, t('home.available'), available, 'M')}
+      {line(onHero, t('home.setAside'), position.setAside)}
+      {line(onHero, t('home.totalAccounts'), position.totalAccounts)}
+      {others.map(([cur, v]) => (
+        <Text key={cur} variant="caption" tone={onHero ? 'heroMuted' : 'subtle'}>
+          {hidden ? HIDDEN : `${money(v!.available, { currency: cur })} · ${money(v!.totalAccounts, { currency: cur })}`}
+        </Text>
+      ))}
+    </View>
+  );
+  /** « Comment c'est calculé ? » : D, chaque engagement, le nombre de jours (§7.3). */
+  const itemText = (c: Commitment) => {
+    const amount = show(c.amount);
+    const day = date(c.date);
+    if (c.kind === 'recurring') return t('daily.item.recurring', { label: data.recurring.find((x) => x.id === c.id)?.label ?? '', date: day, amount });
+    if (c.kind === 'tontine') return t('daily.item.tontine', { label: data.tontines.find((x) => x.id === c.id)?.name ?? '', date: day, amount });
+    if (c.kind === 'debt') return t('daily.item.debt', { label: data.debts.find((x) => x.id === c.id)?.counterparty ?? '', date: day, amount });
+    if (c.kind === 'future') return t('daily.item.future', { date: day, amount });
+    return t('daily.item.goal', { label: data.goals.find((x) => x.id === c.id)?.name ?? '', amount });
+  };
   /** Bouton masquer/afficher : icône + texte (mêmes libellés qu'avant), 48 dp. */
   const hideButton = (onHero: boolean) => {
     const fg = onHero ? colors.onHero : colors.primary;
@@ -62,7 +88,8 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, available }: { hidd
 
   // Texte actuel gardé jusqu'à l'étape 3 : « Revenus » = argent disponible D, « à venir » = engagements E
   // (aucune dépense de plus : elles sont déjà sorties de D). Le détail explique toujours le chiffre.
-  const detail = r.status === 'needs_money' ? null : t('daily.detail', { income: show(r.available), expenses: show(0), upcoming: show(r.commitments) });
+  const detail = r.status === 'needs_money' ? null : t('daily.detail', { available: show(r.available), commitments: show(r.commitments), days: r.daysLeft });
+  const items = r.status === 'needs_money' ? [] : r.items;
   // Sous la carte : réserve et source TOUJOURS visibles ; détail du calcul replié.
   const below = (
     <View style={{ marginTop: 8, marginBottom: 12, gap: 6 }}>
@@ -82,6 +109,11 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, available }: { hidd
       {open ? (
         <View style={{ gap: 6, paddingLeft: 4 }}>
           {detail ? <Text variant="small">{detail}</Text> : null}
+          {items.map((c, i) => (
+            <Text key={`${c.kind}_${c.id}_${i}`} variant="caption" tone="subtle">
+              {itemText(c)}
+            </Text>
+          ))}
           <Text variant="small" tone="muted">
             {t('home.availableHint')}
           </Text>
@@ -105,7 +137,7 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, available }: { hidd
     );
   }
   if (r.status === 'deficit') {
-    const sentence = t('daily.deficit', { amount: show(r.deficit) });
+    const sentence = t('daily.deficit', { amount: show(r.deficit), date: date(r.until) });
     return (
       <>
         <Card tone="danger" style={{ gap: 8 }}>

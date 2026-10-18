@@ -12,6 +12,11 @@
  *  - 'external' : statistique officielle — interdite sans source identifiable.
  * DINEROX n'invente aucune statistique : aucune comparaison à une « moyenne
  * nationale » n'est faite tant qu'aucune source externe n'est intégrée.
+ *
+ * Argent disponible v2 (§11.1, §11.6) : les revenus sont les revenus REÇUS (nature
+ * `revenu`), jamais le déclaré ; la capacité d'épargne est remplacée par la MARGE
+ * (R − C − Rb − S) observée sur des mois CLOS — sans mois clos, aucun montant ;
+ * l'alerte « solde bas » ne compte jamais un revenu attendu.
  */
 import type { Category, Debt, DebtPayment, FinancialProfile, Goal, GoalContribution, RecurringRule, SpaceData, Transaction } from './types';
 import type { CurrencyCode } from './money';
@@ -20,7 +25,11 @@ import { debtStatus } from './debts';
 import { goalPlanFor, hasEmergencyFund } from './goals';
 import { occurrencesBetween } from './recurring';
 import { findSubcategory } from './catalog';
-import { isCircleMovement } from './savingsFlows';
+import { ensureLedgerView, isRevenue, isSpending, spendingAmount } from './nature';
+import { nextAdvice, precaution, tenPercent, type AdviceKey } from './coachMetrics';
+import type { CoachState } from './coachData';
+import { periodReport } from './ledger';
+import { endOfMonth } from './dates';
 
 export type DataSource = 'user' | 'declared' | 'estimate' | 'external';
 
@@ -68,11 +77,10 @@ function monthStats(transactions: Transaction[], month: MonthKey, currency: Curr
   const s: MonthStats = { month, income: 0, expense: 0, fixed: 0, byCategory: {} };
   for (const t of transactions) {
     if (t.deleted || t.currency !== currency || monthKey(t.date) !== month || (t.type !== 'income' && t.type !== 'expense')) continue;
-    // Un transfert entre ses propres comptes n'est NI un revenu NI une dépense.
-    if (t.type === 'income') s.income += t.amount;
-    else if (!isCircleMovement(t)) {
-      // Anciennes « dépenses » Épargne / Investissement : hors consommation (1.8).
-      s.expense += t.amount;
+    // Par NATURE : un emprunt, une cagnotte, un remboursement ne sont pas des revenus.
+    if (isRevenue(t)) s.income += t.amount;
+    else if (isSpending(t)) {
+      s.expense += spendingAmount(t);
       if (isFixedExpense(t, categories)) s.fixed += t.amount;
       const k = t.categoryId ?? 'none';
       s.byCategory[k] = (s.byCategory[k] ?? 0) + t.amount;
@@ -112,14 +120,16 @@ export interface FinancialSnapshot {
 }
 
 export interface SnapshotInput {
-  data: Pick<SpaceData, 'transactions' | 'recurring' | 'debts' | 'debtPayments' | 'goals' | 'goalContributions' | 'categories'>;
+  data: Pick<SpaceData, 'transactions' | 'recurring' | 'debts' | 'debtPayments' | 'goals' | 'goalContributions' | 'categories'> & Partial<Pick<SpaceData, 'accounts' | 'tontines' | 'tontineEntries'>>;
   currency: CurrencyCode;
   now: ISODate;
   available: number;
   financial?: FinancialProfile;
 }
 
-export function financialSnapshot({ data, currency, now, available, financial }: SnapshotInput): FinancialSnapshot {
+export function financialSnapshot({ data: input, currency, now, available, financial }: SnapshotInput): FinancialSnapshot {
+  // Natures calculées avec tout le contexte (liens anciens des dettes et du carnet compris).
+  const data = ensureLedgerView({ ...input, accounts: input.accounts ?? [] });
   const months = lastMonths(4, now);
   // Moyennes UNIQUEMENT sur des mois complets : un mois en cours (salaire reçu le 1er,
   // loyer pas encore payé) donnerait une capacité d'épargne largement surestimée.
@@ -129,7 +139,6 @@ export function financialSnapshot({ data, currency, now, available, financial }:
 
   // Charges fixes connues : récurrences actives (équivalent mensuel) et charges déclarées.
   const recurringFixed = data.recurring.filter((r) => r.active && !r.deleted && r.type === 'expense' && r.currency === currency).reduce((n, r) => n + monthlyEquivalent(r), 0);
-  const declaredFixed = Object.values(financial?.fixedCharges ?? {}).reduce((n, v) => n + (v > 0 ? v : 0), 0);
   const debtService = data.debts
     .filter((d: Debt) => !d.deleted && d.direction === 'i_owe' && d.currency === currency)
     .reduce((n, d) => {
@@ -137,32 +146,29 @@ export function financialSnapshot({ data, currency, now, available, financial }:
       return s.settled ? n : n + Math.min(d.installment ?? 0, s.remaining);
     }, 0);
 
+  // Marge observée d'un mois clos : R − C − Rb − S (grand livre, mêmes natures que les rapports).
+  const ledgerData = { tontines: [], tontineEntries: [], ...data } as unknown as SpaceData;
+  const margins = past.map((m) => {
+    const r = periodReport(ledgerData, { start: `${m.month}-01`, end: endOfMonth(`${m.month}-01`) }, currency);
+    return r.revenus - r.depenses - r.remboursements - r.epargneNette;
+  });
+  void financial;
   let income: Figure;
   let expenses: Figure;
   let fixedCharges: Figure;
   let capacity: Figure;
   if (hasHistory) {
-    const observedIncome = avg(past.map((m) => m.income));
-    const observedExpense = avg(past.map((m) => m.expense));
+    income = { value: avg(past.map((m) => m.income)), source: 'user' };
     const fixedValue = Math.max(avg(past.map((m) => m.fixed)), recurringFixed);
-    income = observedIncome > 0 ? { value: observedIncome, source: 'user' } : { value: financial?.monthlyIncome ?? 0, source: financial?.monthlyIncome ? 'declared' : 'user' };
-    fixedCharges = { value: fixedValue || declaredFixed, source: fixedValue ? 'user' : declaredFixed ? 'declared' : 'user' };
-    // Une charge fixe connue mais pas encore saisie reste une dépense.
-    expenses = { value: Math.max(observedExpense, fixedCharges.value), source: 'user' };
-    // Les remboursements saisis sont déjà des dépenses : pas de double comptage.
-    capacity = { value: income.value - expenses.value, source: income.source === 'user' ? 'user' : 'estimate' };
+    fixedCharges = { value: fixedValue, source: 'user' };
+    expenses = { value: Math.max(avg(past.map((m) => m.expense)), fixedValue), source: 'user' };
+    capacity = { value: avg(margins), source: 'user' };
   } else {
-    // Pas encore de mois complet : estimation à partir du déclaré et du mois en cours.
-    const declaredIncome = financial?.monthlyIncome ?? 0;
-    income = declaredIncome > 0 ? { value: declaredIncome, source: 'declared' } : { value: current.income, source: 'user' };
-    const knownFixed = Math.max(recurringFixed, declaredFixed);
-    fixedCharges = { value: knownFixed, source: recurringFixed >= declaredFixed && recurringFixed > 0 ? 'user' : declaredFixed > 0 ? 'declared' : 'user' };
-    expenses = { value: Math.max(current.expense, knownFixed + debtService), source: current.expense > knownFixed + debtService ? 'user' : 'estimate' };
-    capacity = { value: income.value - expenses.value, source: 'estimate' };
-    // Capacité déclarée : prise en compte seulement si rien d'autre n'est connu, et
-    // jamais pour masquer un déficit.
-    const declaredCapacity = financial?.savingCapacity ?? 0;
-    if (declaredCapacity > 0 && income.value === 0 && expenses.value === 0) capacity = { value: declaredCapacity, source: 'declared' };
+    // Pas encore de mois clos : « Pas encore assez de données » — rien n'est tiré du déclaré.
+    income = { value: current.income, source: 'user' };
+    fixedCharges = { value: recurringFixed, source: 'user' };
+    expenses = { value: Math.max(current.expense, recurringFixed), source: 'user' };
+    capacity = { value: 0, source: 'user' };
   }
 
   const goalNeeds = data.goals
@@ -178,8 +184,8 @@ export function financialSnapshot({ data, currency, now, available, financial }:
     // sauf celles déjà enregistrées en opération (déjà déduites du solde).
     for (const d of occurrencesBetween(r, now, horizon)) {
       if (r.lastGenerated && d <= r.lastGenerated) continue;
+      // Un revenu attendu n'est jamais compté (§11.6) : seules les sorties le sont.
       if (r.type === 'expense') upcomingOutflows += r.amount;
-      else upcomingInflows += r.amount;
     }
   }
   for (const d of data.debts) {
@@ -242,7 +248,19 @@ export type RecommendationKind =
   | 'category_spike'
   | 'debt_ratio_high'
   | 'emergency_fund'
-  | 'family_share';
+  | 'family_share'
+  // Argent disponible v2 (§11.4) : conseils de `nextAdvice`, un seul producteur par notion.
+  | 'money_unknown'
+  | 'commitments_over_available'
+  | 'overdue'
+  | 'precaution_low'
+  | 'living_beyond_means'
+  | 'ten_percent'
+  | 'ten_percent_none'
+  | 'ten_percent_partial'
+  | 'fixed_charges'
+  | 'debt_load'
+  | 'congrats';
 
 export interface Recommendation {
   id: string;
@@ -270,21 +288,82 @@ export function recommendations(s: FinancialSnapshot, goals: Pick<Goal, 'templat
     if (s.fixedRatio >= 50) out.push({ id: 'fixed_high', kind: 'fixed_ratio_high', severity: 'warning', params: { percent: s.fixedRatio, amount: s.fixedCharges.value }, source: s.fixedCharges.source, link: '/analysis', weight: 70 });
     else if (s.fixedCharges.value > 0) out.push({ id: 'fixed_ok', kind: 'fixed_ratio_ok', severity: 'info', params: { percent: s.fixedRatio, amount: s.fixedCharges.value }, source: s.fixedCharges.source, link: '/analysis', weight: 30 });
   }
-  if (s.income.value > 0) {
+  if (s.income.value > 0 && s.monthsOfData > 0) {
     if (s.savingsCapacity.value > 0) out.push({ id: 'capacity', kind: 'capacity_positive', severity: 'positive', params: { amount: s.savingsCapacity.value }, source: s.savingsCapacity.source, link: '/goals', weight: 60 });
     else out.push({ id: 'capacity_neg', kind: 'capacity_negative', severity: 'danger', params: { amount: -s.savingsCapacity.value }, source: s.savingsCapacity.source, link: '/budget', weight: 90 });
   }
   if (s.goalNeeds > 0) {
-    if (s.savingsCapacity.value < s.goalNeeds) out.push({ id: 'goals_gap', kind: 'goals_underfunded', severity: 'warning', params: { need: s.goalNeeds, capacity: Math.max(0, s.savingsCapacity.value), gap: s.goalNeeds - Math.max(0, s.savingsCapacity.value) }, source: 'estimate', link: '/goals', weight: 75 });
-    else out.push({ id: 'goals_ok', kind: 'goals_funded', severity: 'positive', params: { need: s.goalNeeds }, source: 'estimate', link: '/goals', weight: 40 });
+    if (s.monthsOfData > 0 && s.savingsCapacity.value < s.goalNeeds) out.push({ id: 'goals_gap', kind: 'goals_underfunded', severity: 'warning', params: { need: s.goalNeeds, capacity: Math.max(0, s.savingsCapacity.value), gap: s.goalNeeds - Math.max(0, s.savingsCapacity.value) }, source: 'estimate', link: '/goals', weight: 75 });
+    else if (s.monthsOfData > 0) out.push({ id: 'goals_ok', kind: 'goals_funded', severity: 'positive', params: { need: s.goalNeeds }, source: 'estimate', link: '/goals', weight: 40 });
   }
-  if (s.upcomingOutflows > 0 && s.available - s.upcomingOutflows + s.upcomingInflows < 0) {
-    out.push({ id: 'low_balance', kind: 'low_balance_risk', severity: 'danger', params: { shortfall: s.upcomingOutflows - s.upcomingInflows - s.available, outflows: s.upcomingOutflows }, source: 'estimate', link: '/calendar', weight: 95 });
+  if (s.upcomingOutflows > 0 && s.available - s.upcomingOutflows < 0) {
+    out.push({ id: 'low_balance', kind: 'low_balance_risk', severity: 'danger', params: { shortfall: s.upcomingOutflows - s.available, outflows: s.upcomingOutflows }, source: 'estimate', link: '/calendar', weight: 95 });
   }
   const spike = s.categoryTrends.find((c) => c.change >= 25 && c.current - c.average > 0);
   if (spike) out.push({ id: `spike_${spike.categoryId}`, kind: 'category_spike', severity: 'warning', params: { categoryId: spike.categoryId, percent: spike.change, amount: spike.current - spike.average }, source: 'user', link: '/reports', weight: 65 });
   if (s.debtRatio !== null && s.debtRatio >= 35) out.push({ id: 'debt_ratio', kind: 'debt_ratio_high', severity: 'warning', params: { percent: s.debtRatio, amount: s.debtService.value }, source: 'user', link: '/debts', weight: 80 });
-  if (!hasEmergencyFund(goals) && s.savingsCapacity.value > 0 && s.expenses.value > 0) out.push({ id: 'emergency', kind: 'emergency_fund', severity: 'info', params: { target: s.expenses.value * 3 }, source: 'estimate', link: '/goals/new', weight: 50 });
+  if (!hasEmergencyFund(goals) && s.monthsOfData > 0 && s.savingsCapacity.value > 0 && s.expenses.value > 0) out.push({ id: 'emergency', kind: 'emergency_fund', severity: 'info', params: { target: s.expenses.value * 3 }, source: 'estimate', link: '/goals/new', weight: 50 });
   if (s.familyShare !== null && s.familyShare >= 20) out.push({ id: 'family', kind: 'family_share', severity: 'info', params: { percent: s.familyShare }, source: 'user', link: '/budget', weight: 35 });
   return out.sort((a, b) => b.weight - a.weight);
+}
+
+// ─── Argent disponible v2 : conseils (§11.2-11.4) ─────────────────────
+
+/** Notions désormais produites par `nextAdvice` : leurs anciennes recommandations disparaissent (pas de doublon). */
+const REPLACED: ReadonlySet<RecommendationKind> = new Set(['no_data', 'capacity_positive', 'capacity_negative', 'goals_underfunded', 'goals_funded', 'low_balance_risk', 'debt_ratio_high', 'emergency_fund', 'fixed_ratio_high']);
+
+/**
+ * Recommandations v2 : EN TÊTE le conseil unique de `nextAdvice` (ordre du §11.4, chiffres de
+ * `coachState`, revenus REÇUS), puis les constats qui ne font pas doublon (hausse d'une
+ * catégorie, part de la famille, charges fixes raisonnables).
+ */
+export function coachRecommendations(s: FinancialSnapshot, state: CoachState, goals: Pick<Goal, 'templateId' | 'status' | 'deleted'>[], until: ISODate | null): Recommendation[] {
+  const key = nextAdvice({
+    tracked: state.tracked,
+    available: state.available,
+    commitments: state.commitments,
+    overdue: state.overdue,
+    monthsCovered: state.monthsCovered,
+    overspentMonths: state.overspentMonths,
+    savingsRate: state.savingsRate,
+    fixedShare: state.fixedShare,
+    debtShare: state.debtShare,
+    goalsBehind: state.goalsBehind,
+  });
+  const first = primary(key, s, state, until);
+  const rest = recommendations(s, goals).filter((r) => !REPLACED.has(r.kind) && r.kind !== first.kind);
+  return [first, ...rest];
+}
+
+function primary(key: AdviceKey, s: FinancialSnapshot, state: CoachState, until: ISODate | null): Recommendation {
+  const base = { id: `v2_${key}`, source: 'user' as DataSource, weight: 1000 };
+  const last = state.last;
+  switch (key) {
+    case 'money_unknown':
+      return { ...base, kind: 'money_unknown', severity: 'info', params: {}, link: '/' };
+    case 'commitments_over_available':
+      return { ...base, kind: 'commitments_over_available', severity: 'danger', params: { date: until ?? '', amount: Math.ceil(state.commitments - state.available) }, link: '/' };
+    case 'overdue':
+      return { ...base, kind: 'overdue', severity: 'danger', params: {}, link: '/debts' };
+    case 'precaution_low': {
+      const p = precaution({ fund: state.fund, essentials: state.essentials ?? 0, irregular: state.irregular });
+      return { ...base, kind: 'precaution_low', severity: 'warning', params: { months: p?.months ?? 0, targetMonths: p?.targetMonths ?? 3, target: p?.target ?? 0, missing: p?.missing ?? 0 }, link: '/savings' };
+    }
+    case 'living_beyond_means':
+      return { ...base, kind: 'living_beyond_means', severity: 'warning', params: { spent: (last?.spent ?? 0) + (last?.repaid ?? 0), received: last?.received ?? 0, over: Math.max(0, (last?.spent ?? 0) + (last?.repaid ?? 0) - (last?.received ?? 0)) }, link: '/reports' };
+    case 'ten_percent': {
+      const ten = tenPercent({ received: last?.received ?? 0, available: state.available, commitments: state.commitments, saved: Math.max(0, last?.saved ?? 0) });
+      if (ten.advice === null) return { ...base, kind: 'ten_percent_none', severity: 'info', params: {}, link: '/savings' };
+      if ((last?.saved ?? 0) > 0) return { ...base, kind: 'ten_percent_partial', severity: 'info', params: { saved: Math.max(0, last?.saved ?? 0), percent: ten.savedPercent ?? 0, missing: ten.toReach ?? 0 }, link: '/savings' };
+      return { ...base, kind: 'ten_percent', severity: 'info', params: { amount: ten.advice, feasible: ten.feasible ?? 0 }, link: '/savings' };
+    }
+    case 'fixed_charges':
+      return { ...base, kind: 'fixed_charges', severity: 'warning', params: { percent: state.fixedShare ?? 0 }, link: '/analysis' };
+    case 'debt_load':
+      return { ...base, kind: 'debt_load', severity: 'warning', params: { percent: state.debtShare ?? 0 }, link: '/debts' };
+    case 'goals_effort':
+      return { ...base, kind: 'goals_underfunded', severity: 'warning', params: { need: s.goalNeeds, capacity: Math.max(0, s.savingsCapacity.value), gap: Math.max(0, s.goalNeeds - Math.max(0, s.savingsCapacity.value)) }, link: '/goals' };
+    case 'congrats':
+      return { ...base, kind: 'congrats', severity: 'positive', params: { percent: state.savingsRate ?? 0 }, link: '/reports' };
+  }
 }

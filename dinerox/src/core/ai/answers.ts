@@ -10,6 +10,8 @@ import { monthKey, previousMonth, type ISODate } from '../dates';
 import { moneyPosition } from '../balance';
 import { budgetSummary, envelopeStatuses, resolveEnvelopeId } from '../budget';
 import { financialSnapshot, observedCapacity } from '../intelligence';
+import { coachState } from '../coachData';
+import { ensureLedgerView } from '../nature';
 import { expensesByCategory, monthFlows } from '../insights';
 import { goalPlanFor, sortGoals } from '../goals';
 import { budgetTransactions, isReserve } from '../reserve';
@@ -33,7 +35,8 @@ export interface AnswerContext {
 }
 
 export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' }>, ctx: AnswerContext): Answer {
-  const { data, currency, now, categoryName } = ctx;
+  const { currency, now, categoryName } = ctx;
+  const data = ensureLedgerView(ctx.data);
   const month = monthKey(now);
   const prev = previousMonth(month);
   const flows = monthFlows(data.transactions, month, currency);
@@ -92,9 +95,9 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
     case 'can_afford': {
       if (!intent.amount) return { key: 'ai.a.askAmount' };
       const pos = moneyPosition(data.accounts, data.transactions, data.goals, data.goalContributions, currency);
-      const statuses = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency, data.accounts);
-      // Ce qui reste à payer ce mois-ci selon le budget (hors « libre » non dépensé).
-      const committed = statuses.reduce((s, x) => s + Math.max(0, x.remaining), 0);
+      // Argent disponible v2 (§11.3) : comparé à D − E — loyer, cotisations, mensualités et mises
+      // de côté prévues d'ici la prochaine paie (ou la fin du mois) sont déjà engagés.
+      const committed = coachState(data, currency, now).commitments;
       const amount = intent.amount; // converti en unités mineures par l'appelant (toMinor)
       const afterPurchase = pos.free - amount;
       const capacity = observedCapacity(data, currency, now);

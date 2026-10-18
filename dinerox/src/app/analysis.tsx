@@ -42,14 +42,19 @@ function Analysis() {
           {t('intel.capacity').toUpperCase()}
         </Text>
         <Text variant="display" tone="onHero" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ marginVertical: 6 }}>
-          {money(s.savingsCapacity.value)}
+          {/* Argent disponible v2 (§11.6) : la Marge observée sur des mois clos ; sans mois clos, aucun montant. */}
+          {s.monthsOfData ? money(s.savingsCapacity.value) : t('intel.notEnoughData')}
         </Text>
-        <Text variant="small" tone="heroMuted">
-          {s.savingsCapacity.value > 0 ? t('intel.capacityHint', { amount: money(s.savingsCapacity.value) }) : t('intel.capacityNone')}
-        </Text>
-        <Text variant="caption" tone="heroMuted" style={{ marginTop: 8 }}>
-          {s.monthsOfData ? t('intel.basedOn', { count: s.monthsOfData }) : t('intel.basedOnDeclared')}
-        </Text>
+        {s.monthsOfData ? (
+          <>
+            <Text variant="small" tone="heroMuted">
+              {s.savingsCapacity.value > 0 ? t('intel.capacityHint', { amount: money(s.savingsCapacity.value) }) : t('intel.capacityNone')}
+            </Text>
+            <Text variant="caption" tone="heroMuted" style={{ marginTop: 8 }}>
+              {t('intel.basedOn', { count: s.monthsOfData })}
+            </Text>
+          </>
+        ) : null}
       </GradientCard>
 
       <SectionHeader title={t('intel.recommendations')} />

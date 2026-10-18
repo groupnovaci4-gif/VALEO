@@ -1,18 +1,25 @@
 /**
- * Patrimoine net = actifs − passifs, dans la devise principale.
- * Actifs : biens déclarés + soldes des comptes + créances (ce qu'on me doit).
- * Passifs : dettes restantes (ce que je dois).
- * Tontines (1.7, facultatif) : position nette — créance avant mon tour, dette
- * envers le groupe après (`tontinePositions`).
+ * Patrimoine net — argent disponible v2 (docs/argent-disponible.md §5.6), REDIRIGÉ vers la
+ * position (`positionOf`) : un seul calcul dans toute l'application.
+ *
+ *   patrimoine = Σ comptes (solde > 0) + épargne hors comptes + biens
+ *              + créances (prêts accordés, créances de tontine)
+ *              − dettes (emprunts, avances de tontine, découverts, cartes)
+ *
+ * On n'y ajoute JAMAIS les objectifs ni les réserves : ils sont déjà dans les comptes ou
+ * dans l'épargne hors comptes. Une tontine close vaut 0 ; en pause, elle reste comptée.
  */
-import type { Account, Asset, Debt, DebtPayment, Transaction } from './types';
-import { accountBalances } from './balance';
-import { debtStatus } from './debts';
+import type { SpaceData } from './types';
 import type { CurrencyCode } from './money';
+import type { ISODate } from './dates';
+import { debtStatus } from './debts';
+import { positionOf } from './position';
 
 export interface NetWorth {
   assets: number;
   accounts: number;
+  /** Épargne hors comptes (montants initiaux des objectifs et réserves). */
+  outside: number;
   receivables: number;
   liabilities: number;
   net: number;
@@ -21,60 +28,34 @@ export interface NetWorth {
   skippedOtherCurrency: number;
 }
 
-export function netWorth(
-  assets: Asset[],
-  accounts: Account[],
-  transactions: Transaction[],
-  debts: Debt[],
-  payments: DebtPayment[],
-  currency: CurrencyCode,
-  tontines: { receivable: number; liability: number } = { receivable: 0, liability: 0 },
-): NetWorth {
-  let assetTotal = 0;
+export function netWorth(data: SpaceData, currency: CurrencyCode, today: ISODate): NetWorth {
+  const p = positionOf(data, currency, today);
+  let assets = 0;
   let skipped = 0;
   const byAssetType: Record<string, number> = {};
-  for (const a of assets) {
+  for (const a of data.assets) {
     if (a.deleted) continue;
     if (a.currency !== currency) {
       skipped++;
       continue;
     }
-    assetTotal += a.value;
+    assets += a.value;
     byAssetType[a.type] = (byAssetType[a.type] ?? 0) + a.value;
   }
-  const balances = accountBalances(accounts, transactions);
-  let accountTotal = 0;
-  for (const acc of accounts) {
-    if (acc.deleted || !acc.active) continue;
-    if (acc.currency !== currency) {
-      skipped++;
-      continue;
-    }
-    accountTotal += balances[acc.id] ?? 0;
-  }
-  let receivables = 0;
-  let liabilities = 0;
-  for (const d of debts) {
+  let receivables = p.tontineReceivable;
+  let liabilities = p.tontineAdvance + p.shortTermDebt;
+  for (const d of data.debts) {
     if (d.deleted) continue;
     if (d.currency !== currency) {
       skipped++;
       continue;
     }
-    const st = debtStatus(d, payments);
-    const r = st.settled ? 0 : st.remaining; // dette clôturée : plus un passif
+    const s = debtStatus(d, data.debtPayments, today);
+    const r = s.settled ? 0 : s.remaining;
     if (d.direction === 'i_owe') liabilities += r;
     else receivables += r;
   }
-  receivables += tontines.receivable;
-  liabilities += tontines.liability;
-  const totalAssets = assetTotal + accountTotal + receivables;
-  return {
-    assets: assetTotal,
-    accounts: accountTotal,
-    receivables,
-    liabilities,
-    net: totalAssets - liabilities,
-    byAssetType,
-    skippedOtherCurrency: skipped,
-  };
+  skipped += data.accounts.filter((a) => !a.deleted && a.currency !== currency).length;
+  const accounts = Object.values(p.accounts).reduce((n, a) => n + Math.max(0, a.balance), 0);
+  return { assets, accounts, outside: p.outside, receivables, liabilities, net: p.netWorth, byAssetType, skippedOtherCurrency: skipped };
 }

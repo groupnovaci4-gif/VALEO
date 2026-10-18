@@ -3,6 +3,7 @@
  */
 import type { Account, BudgetMethod, BudgetPlan, Category, Envelope, GoalContribution, Transaction } from './types';
 import { isSavingExpense, isSavingsDeposit, isSavingsWithdrawal, isTontineContribution, savingsAccountIds } from './savingsFlows';
+import { isBudgetOutflow, txNature } from './nature';
 import type { CurrencyCode } from './money';
 import { roundTo } from './money';
 import { monthKey, type MonthKey } from './dates';
@@ -100,8 +101,10 @@ export function spentByEnvelope(
   const out: Record<string, number> = {};
   for (const t of transactions) {
     if (t.deleted || t.type !== 'expense' || t.currency !== currency || monthKey(t.date) !== month) continue;
-    // Cotisation de tontine : de l'épargne (cercle fermé), hors budget des dépenses.
-    if (isTontineContribution(t)) continue;
+    // Argent disponible v2 : pèsent sur une enveloppe les dépenses (C) et le capital remboursé ;
+    // jamais une cotisation de tournante (épargne) ni un prêt accordé. Une ancienne « dépense »
+    // Épargne remplit l'enveloppe d'épargne.
+    if (!isBudgetOutflow(t) && txNature(t) !== 'versement_epargne') continue;
     const id = resolveEnvelopeId(t, envelopes);
     if (id) out[id] = (out[id] ?? 0) + t.amount;
   }

@@ -11,8 +11,9 @@ import { useCategoryLabels, useAccountLabel, useFinance, useMoney } from '@/hook
 import { Button, Card, EmptyState, IconButton, ProgressBar, Row, Screen, SectionHeader, Segmented, Text, levelTone, useToast } from '@/components/ui';
 import { FlowBars, RankedBars } from '@/components/charts';
 import { UpgradeCard } from '@/features/rows';
-import { buildReport, transactionsToCsv } from '@/core/reports';
-import { addDays, addMonths, inPeriod, parseISODate, type PeriodKind } from '@/core/dates';
+import { buildReport } from '@/core/reports';
+import { ledgerCsv } from '@/core/ledger';
+import { addDays, addMonths, parseISODate, type PeriodKind } from '@/core/dates';
 import { currencyInfo } from '@/core/money';
 import { goalPlanFor } from '@/core/goals';
 import { hasFeature } from '@/core/subscription';
@@ -36,19 +37,21 @@ export default function Reports() {
   const periodLabel = kind === 'year' ? report.period.start.slice(0, 4) : kind === 'month' ? monthYear(report.period.start) : kind === 'day' ? date(report.period.start, { year: true }) : `${date(report.period.start)} – ${date(report.period.end, { year: true })}`;
   const pointLabel = (key: string) => (kind === 'year' ? monthName(lang, Number(key.slice(5)) - 1).slice(0, 3) : kind === 'week' ? String(parseISODate(key).getDate()) : String(Number(key.slice(8))));
   const advanced = hasFeature(plan, 'advanced_reports');
+  const f = report.ledger.financement;
+  // Financement (entrées − sorties) et corrections (+ / −) : sur des lignes à part, jamais dans les revenus ni les dépenses.
+  const financing = f.empruntsRecus + f.remboursementsRecus + f.avancesTontine - f.pretsAccordes - f.remboursementsAvance;
+  const corrections = report.ledger.corrections.plus - report.ledger.corrections.minus;
   const change = (v: number | null) => (v === null ? '' : ` (${v > 0 ? '+' : ''}${v} % ${t('rep.vsPrevious')})`);
 
   const exportCsv = async () => {
-    const list = data.transactions.filter((tx) => inPeriod(tx.date, report.period));
-    const csv = transactionsToCsv(list, {
+    // Argent disponible v2 (§10.3) : une ligne par opération avec sa NATURE, et l'ouverture de chaque compte.
+    const csv = ledgerCsv(data, {
+      period: report.period,
       accountName: (id) => accountLabel(id),
-      categoryName: (c, id) => cats.label(c, id),
-      categories: data.categories,
+      categoryName: (id) => cats.byId(id),
+      natureLabel: (n) => t(`nature.${n}` as TKey),
       decimals: (c) => currencyInfo(c).decimals,
       headers: t('rep.csv.headers').split(';'),
-      typeLabel: (ty) => t(`tx.${ty}` as TKey),
-      // Cotisation de tontine : de l'épargne, pas une dépense (cercle fermé).
-      circleLabel: t('rep.savedTontine'),
     });
     await shareCsv(`${brand.slug}-${report.period.start}_${report.period.end}.csv`, csv).catch(() => toast.show(t('error.generic'), 'error'));
     analytics.track('export_data', { kind: 'csv' });
@@ -64,7 +67,8 @@ export default function Reports() {
           rows: [
             [t('rep.income'), money(report.income)],
             [t('rep.expense'), money(report.expense)],
-            [t('rep.net'), money(report.net)],
+            [t('rep.repaid'), money(report.ledger.remboursements)],
+            [t('rep.result'), money(report.ledger.resultat)],
             [t('rep.saved'), money(report.saved)],
             ...(report.savedTontine ? [[t('rep.savedTontine'), money(report.savedTontine)] as [string, string]] : []),
             [t('rep.savingsRate'), report.savingsRate === null ? '—' : `${report.savingsRate} %`],
@@ -89,10 +93,15 @@ export default function Reports() {
       <Card>
         <Row title={t('rep.income')} subtitle={change(report.incomeChange) || undefined} right={<Text weight="700" tone="income">{money(report.income)}</Text>} />
         <Row title={t('rep.expense')} subtitle={change(report.expenseChange) || undefined} right={<Text weight="700" tone="expense">{money(report.expense)}</Text>} />
-        <Row title={t('rep.net')} right={<Text weight="700" tone={report.net < 0 ? 'danger' : 'default'}>{money(report.net, { signed: true })}</Text>} />
+        {/* Argent disponible v2 (§10.1) : remboursements à part, résultat = revenus − dépenses − remboursements. */}
+        {report.ledger.remboursements ? <Row title={t('rep.repaid')} right={<Text weight="700" tone="expense">{money(report.ledger.remboursements)}</Text>} /> : null}
+        <Row title={t('rep.result')} right={<Text weight="700" tone={report.ledger.resultat < 0 ? 'danger' : 'default'}>{money(report.ledger.resultat, { signed: true })}</Text>} />
         <Row title={t('rep.saved')} subtitle={report.savingsRate === null ? undefined : `${t('rep.savingsRate')} : ${report.savingsRate} %`} right={<Text weight="700">{money(report.saved)}</Text>} />
         {/* Cercle fermé : dont les cotisations de tontine payées depuis le disponible. */}
         {report.savedTontine ? <Row title={t('rep.savedTontine')} right={<Text weight="700">{money(report.savedTontine)}</Text>} /> : null}
+        {financing ? <Row title={t('rep.financing')} right={<Text weight="700">{money(financing, { signed: true })}</Text>} /> : null}
+        {corrections ? <Row title={t('rep.corrections')} right={<Text weight="700">{money(corrections, { signed: true })}</Text>} /> : null}
+        {report.ledger.remisesPertes ? <Row title={t('rep.writeOffs')} right={<Text weight="700">{money(report.ledger.remisesPertes)}</Text>} /> : null}
       </Card>
       {report.transactionCount === 0 ? (
         <EmptyState emoji="📊" title={t('rep.empty')} />

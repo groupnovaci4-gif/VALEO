@@ -6,12 +6,11 @@
 import type { Category, Debt, DebtPayment, Envelope, Goal, GoalContribution, SpaceData, Transaction } from './types';
 import type { CurrencyCode } from './money';
 import { envelopeStatuses, spentByEnvelope, envelopeBudgetFor } from './budget';
-import { hasEmergencyFund, goalPlanFor } from './goals';
+import { goalPlanFor } from './goals';
 import { budgetTransactions, isReserve } from './reserve';
-import { observedCapacity } from './intelligence';
 import { debtStatus } from './debts';
 import { lastMonths, monthKey, previousMonth, type ISODate, type MonthKey } from './dates';
-import { isConsumption } from './savingsFlows';
+import { ensureLedgerView, isRevenue, isSpending, spendingAmount } from './nature';
 
 export type InsightSeverity = 'info' | 'positive' | 'warning' | 'danger';
 
@@ -44,11 +43,11 @@ export interface Insight {
   weight: number;
 }
 
-/** Dépenses par catégorie pour un mois donné. */
+/** Dépenses par catégorie pour un mois donné (nature : dépense, frais, intérêts, cotisation sans tour). */
 export function expensesByCategory(transactions: Transaction[], month: MonthKey, currency: CurrencyCode): Record<string, number> {
   const out: Record<string, number> = {};
   for (const t of transactions) {
-    if (t.deleted || !isConsumption(t) || t.currency !== currency || monthKey(t.date) !== month) continue;
+    if (t.deleted || !isSpending(t) || t.currency !== currency || monthKey(t.date) !== month) continue;
     const k = t.categoryId ?? 'uncategorized';
     out[k] = (out[k] ?? 0) + t.amount;
   }
@@ -60,24 +59,11 @@ export function monthFlows(transactions: Transaction[], month: MonthKey, currenc
   let expense = 0;
   for (const t of transactions) {
     if (t.deleted || (t.type !== 'income' && t.type !== 'expense') || t.currency !== currency || monthKey(t.date) !== month) continue;
-    if (t.type === 'income') income += t.amount;
-    else if (isConsumption(t)) expense += t.amount;
+    // Argent disponible v2 : par NATURE (R reçu, C dépenses ; remboursement d'achat en déduction).
+    if (isRevenue(t)) income += t.amount;
+    else expense += spendingAmount(t);
   }
   return { income, expense, net: income - expense };
-}
-
-/**
- * Capacité d'épargne : moyenne du solde (revenus − dépenses) des 3 derniers
- * mois COMPLETS ayant au moins une opération. null si pas assez d'historique.
- */
-export function savingsCapacity(transactions: Transaction[], now: ISODate, currency: CurrencyCode): number | null {
-  const months = lastMonths(4, now).slice(0, 3);
-  const nets = months
-    .map((m) => ({ m, f: monthFlows(transactions, m, currency) }))
-    .filter((x) => x.f.income > 0 || x.f.expense > 0)
-    .map((x) => x.f.net);
-  if (!nets.length) return null;
-  return Math.round(nets.reduce((s, n) => s + n, 0) / nets.length);
 }
 
 function median(values: number[]): number {
@@ -92,7 +78,7 @@ export function detectRecurringPayments(transactions: Transaction[], now: ISODat
   const months = new Set(lastMonths(4, now));
   const groups = new Map<string, Transaction[]>();
   for (const t of transactions) {
-    if (t.deleted || !isConsumption(t) || t.recurringId || t.currency !== currency || !t.payee) continue;
+    if (t.deleted || !isSpending(t) || t.recurringId || t.currency !== currency || !t.payee) continue;
     if (!months.has(monthKey(t.date))) continue;
     const k = t.payee.trim().toLowerCase();
     groups.set(k, [...(groups.get(k) ?? []), t]);
@@ -115,7 +101,8 @@ export interface InsightInput {
   categoryName: (c: Category | undefined, id: string) => string;
 }
 
-export function computeInsights({ data, currency, now, categoryName }: InsightInput): Insight[] {
+export function computeInsights({ data: input, currency, now, categoryName }: InsightInput): Insight[] {
+  const data = ensureLedgerView(input);
   const out: Insight[] = [];
   const month = monthKey(now);
   const prev = previousMonth(month);
@@ -194,12 +181,12 @@ export function computeInsights({ data, currency, now, categoryName }: InsightIn
   const window = new Set(lastMonths(4, now));
   const byCat = new Map<string, number[]>();
   for (const t of tx) {
-    if (t.deleted || !isConsumption(t) || t.currency !== currency || !window.has(monthKey(t.date))) continue;
+    if (t.deleted || !isSpending(t) || t.currency !== currency || !window.has(monthKey(t.date))) continue;
     const k = t.categoryId ?? 'uncategorized';
     byCat.set(k, [...(byCat.get(k) ?? []), t.amount]);
   }
   for (const t of tx) {
-    if (t.deleted || !isConsumption(t) || t.currency !== currency || monthKey(t.date) !== month) continue;
+    if (t.deleted || !isSpending(t) || t.currency !== currency || monthKey(t.date) !== month) continue;
     const values = byCat.get(t.categoryId ?? 'uncategorized') ?? [];
     if (values.length < 4) continue;
     const med = median(values);
@@ -227,29 +214,10 @@ export function computeInsights({ data, currency, now, categoryName }: InsightIn
     });
   }
 
-  // 7. Capacité d'épargne & suggestions d'objectifs.
-  // Définition unique de la capacité (charges fixes connues comprises).
-  const capacity = observedCapacity(data, currency, now);
+  // 7. Argent disponible v2 (§11.4) : capacité, fonds d'urgence et mois négatif sont des conseils
+  // du moteur unique (`nextAdvice`, `coachRecommendations`) — plus de doublon ici.
   // Les réserves (rechargeables, sans date) ont leurs propres messages : hors constats d'objectifs.
   const activeGoals = data.goals.filter((g) => !g.deleted && g.status === 'active' && !isReserve(g));
-  if (capacity !== null) {
-    if (capacity > 0) {
-      out.push({ id: `capacity_${month}`, kind: 'savings_capacity', severity: 'positive', params: { amount: capacity }, weight: 35 });
-      if (!hasEmergencyFund(data.goals)) {
-        out.push({ id: `suggest_emergency_${month}`, kind: 'suggest_emergency_fund', severity: 'info', params: { amount: capacity }, weight: 30 });
-      } else if (activeGoals.length === 0) {
-        out.push({
-          id: `suggest_capacity_${month}`,
-          kind: 'suggest_goal_capacity',
-          severity: 'info',
-          params: { monthly: capacity, months: 12, total: capacity * 12 },
-          weight: 28,
-        });
-      }
-    } else {
-      out.push({ id: `negative_${month}`, kind: 'negative_month', severity: 'danger', params: { amount: -capacity }, weight: 75 });
-    }
-  }
 
   // 8. Objectifs : date estimée, presque atteint, atteint.
   for (const g of activeGoals as Goal[]) {

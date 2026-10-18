@@ -6,7 +6,10 @@ import { useCallback, useMemo } from 'react';
 import { useApp, useData } from '@/store/app';
 import { useI18n, hasKey } from '@/i18n';
 import { accountBalances, flowTotals, moneyPosition } from '@/core/balance';
-import { budgetSummary, envelopeStatuses } from '@/core/budget';
+import { budgetSummary, envelopeStatuses, outsideEnvelopeSpent } from '@/core/budget';
+import { withLedgerView } from '@/core/nature';
+import { positionOf } from '@/core/position';
+import { unallocated } from '@/core/allowance';
 import { computeInsights } from '@/core/insights';
 import { monthKey, periodOf, today } from '@/core/dates';
 import { formatMoney, type CurrencyCode } from '@/core/money';
@@ -15,7 +18,6 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/core/defaults';
 import { budgetTransactions } from '@/core/reserve';
 import { CATALOG_LABEL_PREFIX, catalogLabel, effectiveTransactions } from '@/core/categoryCatalog';
 import { useCategoryCatalog } from '@/services/categoryCatalog';
-import { withTontineLinks } from '@/core/savingsFlows';
 
 export function useCurrency(): CurrencyCode {
   const { activeSpace, profile } = useApp();
@@ -87,10 +89,13 @@ export function useFinance() {
   // Calculs (rapports, budgets, analyses, export) : une opération dont la sous-catégorie a
   // changé de parent est comptée sous le nouveau parent. Rien n'est réécrit en base.
   const data = useMemo(() => {
-    // Cercle fermé : une ancienne cotisation du carnet est reconnue par son échéance (vue seulement).
-    const transactions = withTontineLinks(effectiveTransactions(raw.transactions, raw.categories, catalog), raw.tontineEntries);
-    return transactions === raw.transactions ? raw : { ...raw, transactions };
+    // Vue des calculs : alias de catégories (1.8), liens anciens (tontine, dette) et NATURE de chaque
+    // opération (argent disponible v2, §2.3). Rien n'est réécrit en base.
+    const transactions = effectiveTransactions(raw.transactions, raw.categories, catalog);
+    return withLedgerView(transactions === raw.transactions ? raw : { ...raw, transactions });
   }, [raw, catalog]);
+  const { profile, activeSpace } = useApp();
+  const payDay = profile?.financial?.payDay ?? null;
   const currency = useCurrency();
   const labels = useCategoryLabels();
   const now = today();
@@ -100,9 +105,14 @@ export function useFinance() {
     const position = moneyPosition(data.accounts, data.transactions, data.goals, data.goalContributions, currency);
     const flows = flowTotals(data.transactions, periodOf('month', now), currency);
     const envelopes = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency, data.accounts);
-    const budget = budgetSummary(envelopes, flows.expense);
+    // « Dépenses hors enveloppe » : même base que les enveloppes (part d'une réserve exclue, §9).
+    const budget = { ...budgetSummary(envelopes, flows.expense), unassigned: outsideEnvelopeSpent(data.envelopes, data.transactions, data.goalContributions, month, currency) };
+    // Argent disponible v2 (§4) : Argent disponible / Mis de côté / Total de vos comptes.
+    const money = positionOf(data, currency, now);
+    // Reste à répartir (§9).
+    const toAllocate = unallocated({ data, currency, today: now, payDay });
     const insights = computeInsights({ data, currency, now, categoryName: labels.label });
     const activeAccounts: Account[] = data.accounts.filter((a) => a.active).sort((a, b) => a.order - b.order);
-    return { data, currency, now, month, balances, position, flows, envelopes, budget, insights, activeAccounts };
-  }, [data, currency, now, month, labels.label]);
+    return { data, currency, now, month, balances, position, money, toAllocate, payDay, spaceKind: activeSpace?.kind ?? 'personal', flows, envelopes, budget, insights, activeAccounts };
+  }, [data, currency, now, month, labels.label, payDay, activeSpace?.kind]);
 }

@@ -13,7 +13,9 @@
 import type { Account, Goal, GoalContribution, Transaction } from './types';
 import type { CurrencyCode } from './money';
 import { inPeriod, type ISODate } from './dates';
-import { isCircleMovement } from './savingsFlows';
+import { isRevenue, spendingAmount, txNature } from './nature';
+import { goalBacking, positionOf } from './position';
+import { today as todayISO } from './dates';
 
 export function accountBalance(account: Account, transactions: Transaction[]): number {
   let balance = account.openingBalance;
@@ -67,7 +69,9 @@ export interface FlowTotals {
 /**
  * Revenus et dépenses d'une période, dans UNE devise (les opérations d'autres
  * devises sont ignorées et comptées dans `otherCurrencyCount`). Les transferts
- * sont exclus.
+ * sont exclus. Argent disponible v2 (§2.3) : lus par NATURE (`withLedgerView`) —
+ * un emprunt, une cagnotte, un remboursement reçu ne sont jamais des revenus, le
+ * capital remboursé jamais une dépense ; un remboursement d'achat vient en déduction.
  */
 export function flowTotals(
   transactions: Transaction[],
@@ -87,9 +91,10 @@ export function flowTotals(
       continue;
     }
     count++;
-    if (t.type === 'income') income += t.amount;
-    else if (isCircleMovement(t)) savedAsExpense += t.amount;
-    else expense += t.amount;
+    const n = txNature(t);
+    if (isRevenue(t)) income += t.amount;
+    else expense += spendingAmount(t);
+    if (n === 'cotisation_tontine' || n === 'versement_epargne') savedAsExpense += t.amount;
   }
   return { income, expense, net: income - expense, count, otherCurrencyCount, savedAsExpense };
 }
@@ -102,79 +107,40 @@ export function goalSaved(goal: Goal, contributions: GoalContribution[]): number
 }
 
 export interface MoneyPosition {
-  /** Somme des soldes des comptes actifs non-épargne, dans la devise principale. */
+  /** Somme des soldes des comptes courants qui comptent, dans la devise principale. */
   available: number;
-  /** Somme des comptes d'épargne actifs. */
+  /** Somme des comptes d'épargne. */
   savings: number;
-  /** Argent affecté aux objectifs (information : il peut être dans l'épargne ou mis de côté). */
+  /** Argent des objectifs et réserves (adossé à un compte ou hors comptes). */
   allocatedToGoals: number;
-  /** Partie de l'affecté qui n'est PAS dans un compte d'épargne dédié : à retirer du disponible. */
+  /** Mises de côté sur des comptes courants. */
   earmarkedInSpending: number;
-  /** Disponible réellement libre : available − earmarkedInSpending (peut être négatif). */
+  /** Argent disponible D (§4) : max(0, solde) − mises de côté, opérations jusqu'à aujourd'hui. */
   free: number;
   /** Soldes dans d'autres devises, non convertis. */
   otherCurrencies: Partial<Record<CurrencyCode, number>>;
 }
 
 /**
- * Distingue l'argent DISPONIBLE de l'argent AFFECTÉ aux objectifs.
- *
- * Un objectif n'est jamais compté comme de l'argent disponible :
- *  - une contribution accompagnée d'un transfert vers un compte d'épargne
- *    est déjà sortie du disponible (elle est dans `savings`) ;
- *  - une contribution « mise de côté » sans déplacer l'argent reste dans un
- *    compte de dépense : on la soustrait du disponible pour obtenir `free`.
+ * Ancienne signature, REDIRIGÉE vers la position v2 (`positionOf`, §4) : un seul calcul de
+ * l'argent disponible dans toute l'application.
  */
-export function moneyPosition(
-  accounts: Account[],
-  transactions: Transaction[],
-  goals: Goal[],
-  contributions: GoalContribution[],
-  currency: CurrencyCode,
-): MoneyPosition {
-  const balances = accountBalances(accounts, transactions);
+export function moneyPosition(accounts: Account[], transactions: Transaction[], goals: Goal[], contributions: GoalContribution[], currency: CurrencyCode, today: string = todayISO()): MoneyPosition {
+  const d = { accounts, transactions, goals, goalContributions: contributions };
+  const p = positionOf(d, currency, today);
   let available = 0;
   let savings = 0;
-  const otherCurrencies: Partial<Record<CurrencyCode, number>> = {};
-  for (const a of accounts) {
-    if (a.deleted || !a.active) continue;
-    const b = balances[a.id] ?? 0;
-    if (a.currency !== currency) {
-      otherCurrencies[a.currency] = (otherCurrencies[a.currency] ?? 0) + b;
-      continue;
+  let earmarkedInSpending = 0;
+  for (const a of Object.values(p.accounts)) {
+    if (a.isSavings) savings += a.balance;
+    else {
+      available += a.balance;
+      earmarkedInSpending += a.setAside;
     }
-    if (a.isSavings) savings += b;
-    else available += b;
   }
   let allocatedToGoals = 0;
-  let earmarkedInSpending = 0;
-  const activeGoals = new Map<string, Goal>();
-  for (const g of goals) {
-    if (g.deleted || g.currency !== currency) continue;
-    if (g.status === 'archived' || g.status === 'abandoned') continue;
-    activeGoals.set(g.id, g);
-    allocatedToGoals += goalSaved(g, contributions);
-  }
-  // Seules les contributions « mises de côté » SANS transfert restent physiquement
-  // dans les comptes de dépense : on les retire du disponible libre. (Une
-  // contribution avec transfert a déjà quitté ces comptes.) Le calcul se fait
-  // PAR OBJECTIF et borné à [0, montant de l'objectif] : le retrait d'un objectif
-  // ne peut pas « libérer » l'argent réservé à un autre.
-  const perGoal = new Map<string, number>();
-  for (const c of contributions) {
-    if (c.deleted || c.transferId || !activeGoals.has(c.goalId)) continue;
-    perGoal.set(c.goalId, (perGoal.get(c.goalId) ?? 0) + c.amount);
-  }
-  for (const [goalId, amount] of perGoal) {
-    const g = activeGoals.get(goalId)!;
-    earmarkedInSpending += Math.min(Math.max(0, amount), goalSaved(g, contributions));
-  }
-  return {
-    available,
-    savings,
-    allocatedToGoals,
-    earmarkedInSpending,
-    free: available - earmarkedInSpending,
-    otherCurrencies,
-  };
+  for (const b of goalBacking(d, currency, today).values()) allocatedToGoals += b.total;
+  const otherCurrencies: Partial<Record<CurrencyCode, number>> = {};
+  for (const [cur, v] of Object.entries(p.otherCurrencies)) otherCurrencies[cur as CurrencyCode] = v!.totalAccounts;
+  return { available, savings, allocatedToGoals, earmarkedInSpending, free: p.available, otherCurrencies };
 }

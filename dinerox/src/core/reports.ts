@@ -1,10 +1,13 @@
 /**
- * Rapports : quotidien, hebdomadaire, mensuel, annuel.
+ * Rapports : quotidien, hebdomadaire, mensuel, annuel. Argent disponible v2 (§10.1) : les
+ * totaux viennent du grand livre (`periodReport`) — mêmes natures que l'historique, le
+ * relevé, l'export et le coach. L'export CSV est `ledger.ts › ledgerCsv`.
  */
-import type { Account, Category, SpaceData, Transaction } from './types';
+import type { SpaceData, Transaction } from './types';
 import type { CurrencyCode } from './money';
-import { flowTotals } from './balance';
-import { circlePaidFromAvailable, goalFundedIds, isCircleMovement, isConsumption, isSavingExpense, isTontineContribution } from './savingsFlows';
+import { periodReport, type PeriodReport } from './ledger';
+import { isRevenue, isSpending, spendingAmount, txNature, withLedgerView } from './nature';
+import { savingsRate } from './coachMetrics';
 import { addDays, inPeriod, monthKey, periodOf, previousPeriod, type ISODate, type Period, type PeriodKind } from './dates';
 
 export interface SeriesPoint {
@@ -26,7 +29,7 @@ export interface Report {
   income: number;
   expense: number;
   net: number;
-  /** Épargne de la période : transferts vers des comptes d'épargne + dépenses catégorie épargne + cotisations de tontine payées depuis le disponible. */
+  /** Épargne NETTE de la période (§10.1). */
   saved: number;
   /** Dont « Mis de côté › Tontine » : cotisations payées depuis un compte courant (cercle fermé, 2026-10-14). */
   savedTontine: number;
@@ -39,6 +42,8 @@ export interface Report {
   expenseChange: number | null;
   incomeChange: number | null;
   transactionCount: number;
+  /** Lignes du grand livre (§10.1) : remboursements, financement, corrections, remises et pertes, résultat. */
+  ledger: PeriodReport;
 }
 
 function pctChange(now: number, before: number): number | null {
@@ -46,59 +51,44 @@ function pctChange(now: number, before: number): number | null {
   return Math.round(((now - before) / before) * 100);
 }
 
-export function buildReport(data: SpaceData, kind: PeriodKind, ref: ISODate, currency: CurrencyCode): Report {
+export function buildReport(input: SpaceData, kind: PeriodKind, ref: ISODate, currency: CurrencyCode): Report {
+  const data = input.transactions.some((t) => t.nature) ? input : withLedgerView(input);
   const period = periodOf(kind, ref);
   const prev = previousPeriod(period);
-  const totals = flowTotals(data.transactions, period, currency);
-  const before = flowTotals(data.transactions, prev, currency);
-
-  const savingsIds = new Set(data.accounts.filter((a: Account) => a.isSavings && !a.deleted).map((a) => a.id));
-  let saved = 0;
-  let savedTontine = 0;
-  const goalFunded = goalFundedIds(data.goalContributions);
+  const now = periodReport(data, period, currency);
+  const before = periodReport(data, prev, currency);
   const cats: Record<string, number> = {};
+  let savedTontine = 0;
+  let count = 0;
+  const savingsIds = new Set(data.accounts.filter((a) => a.isSavings && !a.deleted).map((a) => a.id));
   for (const t of data.transactions) {
     if (t.deleted || t.currency !== currency || !inPeriod(t.date, period)) continue;
-    // Épargne NETTE : versements vers l'épargne moins retraits de l'épargne.
-    if (t.type === 'transfer' && t.toAccountId && savingsIds.has(t.toAccountId) && !savingsIds.has(t.accountId)) saved += t.amount;
-    if (t.type === 'transfer' && t.toAccountId && savingsIds.has(t.accountId) && !savingsIds.has(t.toAccountId)) saved -= t.amount;
-    // Cotisation de tontine : de l'épargne. Payée depuis un compte courant, elle est mise de côté
-    // (« Mis de côté › Tontine ») ; depuis l'épargne ou un objectif, elle reste dans le cercle.
-    if (isTontineContribution(t)) {
-      if (circlePaidFromAvailable(t, savingsIds, goalFunded)) {
-        saved += t.amount;
-        savedTontine += t.amount;
-      }
-    }
-    // Anciennes « dépenses » Épargne / Investissement : de l'épargne, pas de la consommation.
-    else if (isSavingExpense(t)) saved += t.amount;
-    else if (isConsumption(t)) {
+    if (t.type === 'income' || t.type === 'expense') count++;
+    // « Mis de côté › Tontine » : cotisations payées depuis un compte courant.
+    if (txNature(t) === 'cotisation_tontine' && !savingsIds.has(t.accountId)) savedTontine += t.amount;
+    if (isSpending(t)) {
       const k = t.categoryId ?? 'uncategorized';
       cats[k] = (cats[k] ?? 0) + t.amount;
     }
   }
   const byCategory = Object.entries(cats)
-    .map(([categoryId, amount]) => ({
-      categoryId,
-      amount,
-      percent: totals.expense > 0 ? Math.round((amount / totals.expense) * 100) : 0,
-    }))
+    .map(([categoryId, amount]) => ({ categoryId, amount, percent: now.depenses > 0 ? Math.round((amount / now.depenses) * 100) : 0 }))
     .sort((a, b) => b.amount - a.amount);
-
   return {
     period,
-    income: totals.income,
-    expense: totals.expense,
-    net: totals.net,
-    saved,
+    income: now.revenus,
+    expense: now.depenses,
+    net: now.revenus - now.depenses,
+    saved: now.epargneNette,
     savedTontine,
-    savingsRate: totals.income > 0 ? Math.round((saved / totals.income) * 100) : null,
+    savingsRate: savingsRate(now.epargneNette, now.revenus),
     byCategory,
     series: buildSeries(data.transactions, period, currency),
-    previous: { income: before.income, expense: before.expense, net: before.net },
-    expenseChange: pctChange(totals.expense, before.expense),
-    incomeChange: pctChange(totals.income, before.income),
-    transactionCount: totals.count,
+    previous: { income: before.revenus, expense: before.depenses, net: before.revenus - before.depenses },
+    expenseChange: pctChange(now.depenses, before.depenses),
+    incomeChange: pctChange(now.revenus, before.revenus),
+    transactionCount: count,
+    ledger: now,
   };
 }
 
@@ -119,60 +109,8 @@ export function buildSeries(transactions: Transaction[], period: Period, currenc
     if (t.deleted || (t.type !== 'income' && t.type !== 'expense') || t.currency !== currency || !inPeriod(t.date, period)) continue;
     const p = points.get(byYear ? monthKey(t.date) : t.date);
     if (!p) continue;
-    if (t.type === 'income') p.income += t.amount;
-    else if (!isCircleMovement(t)) p.expense += t.amount;
+    if (isRevenue(t)) p.income += t.amount;
+    else p.expense += spendingAmount(t);
   }
   return [...points.values()];
-}
-
-// ─── Export CSV ───────────────────────────────────────────────────────
-
-export function csvCell(v: unknown): string {
-  const s = v === null || v === undefined ? '' : String(v);
-  // Neutralise les formules (injection CSV dans un tableur).
-  // Un nombre seul (« -5000.00 ») n'est jamais une formule : il reste un nombre pour le tableur.
-  const safe = /^[=+\-@\t\r]/.test(s) && !/^-\d+(\.\d+)?$/.test(s) ? `'${s}` : s;
-  return /[";\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-}
-
-/**
- * Exporte des opérations au format CSV (séparateur « ; », compatible Excel
- * en français). Montants en unités MAJEURES avec point décimal.
- */
-export function transactionsToCsv(
-  transactions: Transaction[],
-  ctx: {
-    accountName: (id: string) => string;
-    categoryName: (c: Category | undefined, id: string) => string;
-    categories: Category[];
-    decimals: (currency: string) => number;
-    headers: string[];
-    typeLabel: (t: Transaction['type']) => string;
-    /** Type affiché pour une cotisation de tontine (« Mis de côté › Tontine ») : de l'épargne, pas une dépense. */
-    circleLabel?: string;
-  },
-): string {
-  const rows = [ctx.headers.map(csvCell).join(';')];
-  const sorted = [...transactions].filter((t) => !t.deleted).sort((a, b) => a.date.localeCompare(b.date));
-  for (const t of sorted) {
-    const dec = ctx.decimals(t.currency);
-    // Ajustement de solde (1.8) : le type ne dit pas le sens — un ajustement à la baisse est négatif.
-    const amount = ((t.type === 'adjustment' && t.direction === 'out' ? -t.amount : t.amount) / 10 ** dec).toFixed(dec);
-    rows.push(
-      [
-        t.date,
-        ctx.circleLabel && isTontineContribution(t) ? ctx.circleLabel : ctx.typeLabel(t.type),
-        amount,
-        t.currency,
-        ctx.accountName(t.accountId),
-        t.toAccountId ? ctx.accountName(t.toAccountId) : '',
-        t.categoryId ? ctx.categoryName(ctx.categories.find((c) => c.id === t.categoryId), t.categoryId) : '',
-        t.payee ?? '',
-        t.note ?? '',
-      ]
-        .map(csvCell)
-        .join(';'),
-    );
-  }
-  return '﻿' + rows.join('\n');
 }

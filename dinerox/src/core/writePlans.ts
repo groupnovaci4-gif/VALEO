@@ -182,11 +182,14 @@ export function planSpendWithComplements(input: {
 // ─── Transfert + frais (§3.4) ────────────────────────────────────────
 
 /** Transfert et frais liés (dépense de nature `frais`), supprimés ensemble. Frais 0 : le transfert seul. */
-export function planTransferWithFee(draft: TxInput & { id?: string }, fee: number, newId: NewId): PlanItem[] {
+export function planTransferWithFee(draft: TxInput & { id?: string }, fee: number, newId: NewId, categories: Pick<Category, 'id' | 'parentId' | 'deleted'>[] = []): PlanItem[] {
+  // Sous-catégorie « Frais d'envoi et de retrait » si elle existe chez la personne, sinon « Autres ».
+  const sub = categories.find((c) => c.id === 'sub_other_fees' && !c.deleted && c.parentId);
+  const feeCategory = sub ? { categoryId: sub.parentId as string, subcategoryId: sub.id } : { categoryId: 'cat_other', subcategoryId: null };
   const transfer = txDoc({ ...draft, toAmount: draft.toAmount ?? null }, draft.id ?? newId('tx_'));
   const out = [item('transactions', transfer)];
   if (fee > 0) {
-    out.push(item('transactions', txDoc({ type: 'expense', amount: fee, currency: draft.currency, date: draft.date, accountId: draft.accountId, categoryId: 'cat_other', linkedTransactionId: transfer.id }, newId('tx_'))));
+    out.push(item('transactions', txDoc({ type: 'expense', amount: fee, currency: draft.currency, date: draft.date, accountId: draft.accountId, ...feeCategory, linkedTransactionId: transfer.id }, newId('tx_'))));
   }
   return out;
 }

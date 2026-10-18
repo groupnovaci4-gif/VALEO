@@ -5,7 +5,7 @@ import { ACKS, MAX_QUESTIONS, answerPending, applyCommand, crossedEnvelopes, day
 import { catalogStarterDocs } from '../src/core/categoryCatalog';
 import { systemCategories } from '../src/core/defaults';
 import { envelopeStatuses } from '../src/core/budget';
-import { dailyAllowance } from '../src/core/dailyAllowance';
+import { dailyAllowanceV2 } from '../src/core/allowance';
 import type { Category, SpaceData } from '../src/core/types';
 import { account, envelope, tx } from './helpers';
 
@@ -167,10 +167,11 @@ describe('bilan après enregistrement (calculé par le code)', () => {
   const saved = drafts(REFERENCE);
   const after = [...before, ...saved.map((d, i) => tx({ id: `n${i}`, type: 'expense', amount: d.amount!, accountId: 'wave', categoryId: d.categoryId, subcategoryId: d.subcategoryId, date: d.date }))];
   const st = (list: typeof before) => envelopeStatuses([housing, food, transport], list, [], '2026-10', 'XOF');
-  const data = (list: typeof before): Pick<SpaceData, 'transactions' | 'recurring' | 'goals' | 'goalContributions'> => ({ transactions: list, recurring: [], goals: [], goalContributions: [] });
+  // Argent disponible v2 : le reste par jour part de l'argent sur les comptes (Wave).
+  const data = (list: typeof before): Pick<SpaceData, 'accounts' | 'transactions' | 'recurring' | 'goals' | 'goalContributions'> => ({ accounts: [wave], transactions: list, recurring: [], goals: [], goalContributions: [] });
 
   it('UNE phrase pour toutes les enveloppes qui franchissent un seuil, et le reste par jour exact', () => {
-    const allowance = dailyAllowance({ data: data(after), currency: 'XOF', today: TODAY, financial: undefined });
+    const allowance = dailyAllowanceV2({ data: data(after), currency: 'XOF', today: TODAY });
     const r = savedSummary({ drafts: saved, before: st(before), after: st(after), month: '2026-10', budgets: [], allowance });
     expect(r[0]).toEqual({ key: 'conv.done.expense.many', params: { count: 6, total: 205_000 } });
     // Logement 160 000 / 160 000 = 100 % ; Alimentation 30 000 / 35 000 = 85 % ; Transport 10 % : rien.

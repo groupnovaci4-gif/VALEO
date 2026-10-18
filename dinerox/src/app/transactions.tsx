@@ -15,6 +15,9 @@ import { TransactionRow } from '@/features/rows';
 import { useEntry } from '@/features/entry/EntryProvider';
 import { ALL_HISTORY, filterHistory, historyCategories, historyMonths, isFiltered, periodTotals, type HistoryFilter } from '@/core/history';
 import { formatMoney } from '@/core/money';
+import { accountStatement } from '@/core/ledger';
+import { isRevenue, spendingAmount } from '@/core/nature';
+import { endOfMonth } from '@/core/dates';
 import type { Transaction } from '@/core/types';
 import { useTheme } from '@/theme';
 import { analytics } from '@/services/analytics';
@@ -49,7 +52,8 @@ export default function History() {
     for (const tx of list) byDay.set(tx.date, [...(byDay.get(tx.date) ?? []), tx]);
     return [...byDay.entries()].map(([day, items]) => ({
       title: day,
-      net: items.reduce((s, x) => s + (x.type === 'income' ? x.amount : x.type === 'expense' ? -x.amount : 0), 0),
+      // Argent disponible v2 : résultat du jour par nature (revenus − dépenses), comme le rapport.
+      net: items.reduce((s, x) => s + (isRevenue(x) ? x.amount : -spendingAmount(x)), 0),
       data: items,
     }));
   }, [list]);
@@ -72,6 +76,19 @@ export default function History() {
     ]);
 
   const main = totals[currency];
+  // Vue par compte = RELEVÉ (§10.2) : solde au début, entrées, sorties, solde à la fin ;
+  // l'ouverture en tête, et chaque mise de côté portée par ce compte.
+  const account = f.accountId !== 'all' ? data.accounts.find((a) => a.id === f.accountId) : undefined;
+  const statement = useMemo(() => {
+    if (!account) return null;
+    const period = f.month === 'all' ? { start: '0000-01-01', end: '9999-12-31' } : { start: `${f.month}-01`, end: endOfMonth(`${f.month}-01`) };
+    const s = accountStatement(data, account.id, period);
+    const goals = new Map(data.goals.map((g) => [g.id, g.name]));
+    const setAside = data.goalContributions
+      .filter((c) => !c.deleted && !c.transferId && c.accountId === account.id && c.date >= period.start && c.date <= period.end)
+      .sort((a, b) => b.date.localeCompare(a.date));
+    return { s, setAside, goals };
+  }, [account, data, f.month]);
   const others = Object.entries(totals).filter(([c]) => c !== currency);
   const header = (
     <View>
@@ -93,6 +110,33 @@ export default function History() {
           onChange={(categoryId) => set({ categoryId })}
           options={[{ value: 'all', label: t('history.allCategories') }, ...categories.map((id) => ({ value: id, label: cats.byId(id), icon: cats.meta(id).icon, color: cats.meta(id).color }))]}
         />
+      ) : null}
+      {account && statement ? (
+        <View accessibilityRole="summary" style={{ backgroundColor: colors.surfaceAlt, borderRadius: radius.md, padding: 12, marginTop: 6, gap: 2 }}>
+          {statement.s.lines.filter((l) => l.nature === 'ouverture').map((l) => (
+            <Text key="opening" variant="small">
+              {t('history.opening', { amount: money(l.amount) })}
+              {account.openingNote ? ` · ${account.openingNote}` : ''}
+            </Text>
+          ))}
+          <Text variant="small">{t('history.statement.start', { amount: money(statement.s.start, { currency: account.currency }) })}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            <Text variant="small" tone="income">
+              {t('history.statement.in', { amount: money(statement.s.inflows, { currency: account.currency }) })}
+            </Text>
+            <Text variant="small" tone="expense">
+              {t('history.statement.out', { amount: money(statement.s.outflows, { currency: account.currency }) })}
+            </Text>
+          </View>
+          <Text variant="small" weight="700">
+            {t('history.statement.end', { amount: money(statement.s.end, { currency: account.currency }) })}
+          </Text>
+          {statement.setAside.map((c) => (
+            <Text key={c.id} variant="caption" tone="subtle">
+              {date(c.date)} · {c.amount > 0 ? t('history.setAside', { account: account.name, goal: statement.goals.get(c.goalId) ?? '' }) : t('history.setAsideEnd', { account: account.name, goal: statement.goals.get(c.goalId) ?? '' })} · {money(Math.abs(c.amount), { currency: account.currency })}
+            </Text>
+          ))}
+        </View>
       ) : null}
       {list.length ? (
         <View accessibilityRole="summary" style={{ backgroundColor: colors.surfaceAlt, borderRadius: radius.md, padding: 12, marginTop: 6, gap: 2 }}>

@@ -1,3 +1,4 @@
+import { emptySpaceData } from '../src/core/types';
 import { describe, expect, it } from 'vitest';
 import { debtStatus, debtTotals, nextDueDate, validateDebtPayment } from '../src/core/debts';
 import { netWorth } from '../src/core/networth';
@@ -52,7 +53,8 @@ describe('patrimoine net', () => {
       { ...base, id: 'a2', name: 'Appart Paris', type: 'real_estate', value: 100, currency: 'EUR' },
     ];
     const acc = account({ id: 'c', openingBalance: 200_000 });
-    const nw = netWorth(assets, [acc], [tx({ type: 'expense', amount: 50_000, accountId: 'c' })], [debt({})], [pay(400_000)], 'XOF');
+    // Argent disponible v2 (§5.6) : `netWorth(données, devise, jour)`, redirigé vers la position.
+    const nw = netWorth({ ...emptySpaceData(), assets, accounts: [acc], transactions: [tx({ type: 'expense', amount: 50_000, accountId: 'c' })], debts: [debt({})], debtPayments: [pay(400_000)] }, 'XOF', '2026-10-15');
     expect(nw.assets).toBe(5_000_000);
     expect(nw.accounts).toBe(150_000);
     expect(nw.liabilities).toBe(600_000);

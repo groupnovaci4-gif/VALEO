@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { financialSnapshot, isFixedExpense, monthlyEquivalent, recommendations } from '../src/core/intelligence';
+import { observedCapacity, financialSnapshot, isFixedExpense, monthlyEquivalent, recommendations } from '../src/core/intelligence';
 import { personalBudget } from '../src/core/personalBudget';
 import { simulateIndependence } from '../src/core/independence';
 import { financialCalendar } from '../src/core/calendar';
@@ -51,11 +51,13 @@ describe("moteur d'intelligence financière", () => {
     const s = financialSnapshot({ data: d, currency: 'XOF', now: NOW, available: 0 });
     expect(s.expenses.value).toBe(0);
   });
-  it('sans opérations : estimation à partir du profil déclaré', () => {
+  // Argent disponible v2 (§11.6, D1) : sans mois clos, aucun montant tiré du déclaré.
+  it('sans opérations : rien n’est tiré du profil déclaré (« Pas encore assez de données »)', () => {
     const s = financialSnapshot({ data: data(), currency: 'XOF', now: NOW, available: 0, financial: { monthlyIncome: 300_000, fixedCharges: { sub_housing_rent: 100_000 } } });
-    expect(s.income).toEqual({ value: 300_000, source: 'declared' });
-    expect(s.fixedCharges).toEqual({ value: 100_000, source: 'declared' });
-    expect(s.savingsCapacity).toEqual({ value: 200_000, source: 'estimate' });
+    expect(s.income).toEqual({ value: 0, source: 'user' });
+    expect(s.fixedCharges.value).toBe(0);
+    expect(s.monthsOfData).toBe(0);
+    expect(observedCapacity(data(), 'XOF', NOW, { monthlyIncome: 300_000 })).toBeNull();
   });
   it('hausse inhabituelle d’une catégorie (+32 % en alimentation)', () => {
     const d = threeMonths();

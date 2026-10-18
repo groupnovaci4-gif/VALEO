@@ -15,7 +15,8 @@ import {
   type CatalogEntry,
 } from '../src/core/categoryCatalog';
 import { resolveEnvelopeId } from '../src/core/budget';
-import { buildReport, transactionsToCsv } from '../src/core/reports';
+import { buildReport } from '../src/core/reports';
+import { ledgerCsv } from '../src/core/ledger';
 import { emptySpaceData, type Category } from '../src/core/types';
 import { envelope, tx } from './helpers';
 import { EXPENSE_CATEGORIES } from '../src/core/defaults';
@@ -34,7 +35,8 @@ const EXPECTED: [string, string, string, string[]][] = [
   ['cat_leisure', '🎉', 'Loisirs & divertissement', ['Sorties', 'Cinéma', 'Jeux', 'Voyages', 'Sports', 'Abonnements streaming', 'Autres']],
   ['cat_clothing', '👔', 'Personnel', ['Vêtements', 'Chaussures', 'Coiffure / beauté', 'Hygiène', 'Accessoires', 'Autres']],
   ['cat_debts', '💳', 'Dettes & remboursements', ['Remboursement de prêt', 'Dette familiale', 'Dette personnelle', 'Crédit', 'Intérêts', 'Autres']],
-  ['cat_other', '🛍️', 'Autres dépenses', []],
+  // Argent disponible v2 (validé par le fondateur) : frais d'envoi et de retrait.
+  ['cat_other', '🛍️', 'Autres dépenses', ["Frais d'envoi et de retrait"]],
 ];
 const label = (c: Category, lang: 'fr' | 'en' = 'fr') => EMBEDDED_CATALOG.entries.find((e) => e.id === c.id)!.label[lang];
 const meta = { now: 1, uid: 'u1' };
@@ -85,7 +87,7 @@ describe('catalogue : validation (le catalogue publié à distance ne passe que 
   const ok = { catalogVersion: 2, countries: ['CI'], entries: [{ id: 'cat_food', parentId: null, label: { fr: 'Alimentation', en: 'Food' } }, { id: 'sub_food_x', parentId: 'cat_food', label: { fr: 'X', en: 'X' } }] };
   it('le catalogue embarqué est valide', () => {
     expect(sanitizeCatalog(RAW)).not.toBeNull();
-    expect(EMBEDDED_CATALOG.entries.length).toBe(94);
+    expect(EMBEDDED_CATALOG.entries.length).toBe(95); // + sub_other_fees (argent disponible v2)
   });
   it('rejets : version, libellé anglais manquant, doublon, identifiant invalide, parent absent, deux niveaux', () => {
     expect(sanitizeCatalog(ok)).not.toBeNull();
@@ -163,13 +165,13 @@ describe('alias : la Tontine passe à « Finance sociale & obligations » sans r
   });
 
   it('export CSV : la catégorie affichée est « Finance sociale & obligations »', () => {
-    const csv = transactionsToCsv(effectiveTransactions([old], after), {
+    // Argent disponible v2 (§10.3) : l'export est `ledgerCsv` (l'ancien `transactionsToCsv` est supprimé).
+    const csv = ledgerCsv({ ...emptySpaceData(), transactions: effectiveTransactions([old], after) }, {
       accountName: () => 'Espèces',
-      categoryName: (_c, id) => (id === 'cat_social' ? 'Finance sociale & obligations' : id),
-      categories: after,
+      categoryName: (id) => (id === 'cat_social' ? 'Finance sociale & obligations' : id),
+      natureLabel: (n) => n,
       decimals: () => 0,
-      headers: ['Date', 'Type', 'Montant', 'Devise', 'Compte', 'Vers', 'Catégorie', 'Bénéficiaire', 'Note'],
-      typeLabel: () => 'Dépense',
+      headers: Array(13).fill('h'),
     });
     expect(csv).toContain('Finance sociale & obligations');
   });

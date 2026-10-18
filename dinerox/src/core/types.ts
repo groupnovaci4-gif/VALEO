@@ -187,6 +187,11 @@ export interface Transaction extends SyncedDoc {
    * Supprimée avec l'opération qu'elle accompagne (`linkedToDelete`).
    */
   linkedTransactionId?: ID | null;
+  /**
+   * Argent disponible v2 (§2.3) — champ de VUE seulement (`withLedgerView`) : la nature calculée
+   * avec tout le contexte de l'espace. JAMAIS enregistré (retiré par `saveTransaction`).
+   */
+  nature?: import('./nature').Nature;
 }
 
 export type Frequency = 'weekly' | 'monthly' | 'yearly';

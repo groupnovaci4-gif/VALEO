@@ -14,6 +14,7 @@
  * Aucune règle locale n'est inventée : frais, commission, pénalités et ordre
  * des tours viennent de l'utilisateur.
  */
+import { tontineLedgerPositions } from './tontineLedger';
 import type { Category, RecurringRule, SpaceData, Tontine, TontineEntry, TontineFrequency } from './types';
 import type { CurrencyCode } from './money';
 import { addDays, addMonths, diffDays, endOfMonth, monthKey, type ISODate, type MonthKey } from './dates';
@@ -270,21 +271,13 @@ export function tontineReminders(data: Pick<SpaceData, 'tontines' | 'tontineEntr
 }
 
 /**
- * Patrimoine : position de chaque tontine tournante (et collecteur avant
- * remise) — créance avant mon tour, dette envers le groupe après.
+ * Patrimoine : position des tontines. REDIRIGÉ vers le grand livre (argent disponible v2, §5.4,
+ * `tontineLedgerPositions`) : créance avant mon tour, avance du groupe après ; une tontine
+ * CLÔTURÉE (confirmée par la personne) vaut 0.
  */
 export function tontinePositions(data: Pick<SpaceData, 'tontines' | 'tontineEntries'>, currency: CurrencyCode, today: ISODate): { receivable: number; liability: number } {
-  let receivable = 0;
-  let liability = 0;
-  for (const t of data.tontines) {
-    if (t.deleted || t.status === 'paused' || t.currency !== currency) continue;
-    const p = netPosition(t, data.tontineEntries, today);
-    if (p.type === 'rotating') {
-      if (p.net > 0) receivable += p.net;
-      else liability += -p.net;
-    } else if (p.type === 'collector' && !p.received) receivable += p.paid;
-  }
-  return { receivable, liability };
+  const p = tontineLedgerPositions(data, currency, today);
+  return { receivable: p.receivable, liability: p.advance };
 }
 
 /** Toutes les cotisations dues le mois `month` ont-elles été faites au plus tard à leur date ? (≥ 1 cotisation) */

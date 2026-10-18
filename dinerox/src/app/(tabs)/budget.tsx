@@ -18,6 +18,7 @@ import { useFinance, useMoney } from '@/hooks/useFinance';
 import { Amount, Button, Card, EmptyState, GradientCard, Icon, ProgressBar, Screen, SectionHeader, Text } from '@/components/ui';
 import { InsightCard, SpaceSwitcher } from '@/features/rows';
 import { EnvelopeCard } from '@/features/budget/EnvelopeCard';
+import { shareOfDeclared } from '@/core/allowance';
 import { can } from '@/core/permissions';
 
 export default function Budget() {
@@ -32,7 +33,9 @@ function BudgetScreen() {
   const { t, monthYear } = useI18n();
   const { role } = useApp();
   const money = useMoney();
-  const { envelopes, budget, insights, now } = useFinance();
+  const { envelopes, budget, insights, now, toAllocate, spaceKind } = useFinance();
+  const { profile } = useApp();
+  const declared = profile?.financial?.monthlyIncome ?? null;
   const pct = budget.planned > 0 ? Math.round((budget.spent / budget.planned) * 100) : 0;
   const alerts = insights.filter((i) => i.kind === 'envelope_threshold' || i.kind === 'envelope_over_streak');
   const editable = can(role, 'create', 'envelopes');
@@ -51,6 +54,12 @@ function BudgetScreen() {
       {envelopes.length ? (
         <BudgetHero planned={budget.planned} spent={budget.spent} remaining={budget.remaining} unassigned={budget.unassigned} pct={pct} />
       ) : null}
+      {/* Argent disponible v2 (§9) : reste à répartir = D − enveloppes restantes − engagements hors enveloppes. */}
+      {envelopes.length ? (
+        <Text variant="small" weight="600" tone={toAllocate.amount < 0 ? 'danger' : 'default'} style={{ marginTop: 8 }} accessibilityRole="summary">
+          {toAllocate.amount < 0 ? t('budget.toAllocateOver', { amount: money(-toAllocate.amount) }) : t('budget.toAllocate', { amount: money(toAllocate.amount) })}
+        </Text>
+      ) : null}
 
       {alerts.length ? <View style={{ marginTop: 14 }}>{alerts.slice(0, 4).map((i) => <InsightCard key={i.id} insight={i} />)}</View> : null}
 
@@ -58,7 +67,7 @@ function BudgetScreen() {
       {envelopes.length ? (
         <>
           {envelopes.map((s) => (
-            <EnvelopeCard key={s.envelope.id} s={s} />
+            <EnvelopeCard key={s.envelope.id} s={s} declaredShare={shareOfDeclared(s.budget, declared, spaceKind)} />
           ))}
           {editable ? <Button variant="tertiary" icon="sparkles" label={t('budget.auto')} onPress={() => router.push('/budget/auto')} style={{ alignSelf: 'center' }} /> : null}
         </>

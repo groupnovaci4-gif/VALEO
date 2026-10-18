@@ -6,7 +6,6 @@ import { useApp } from '@/store/app';
 import { Badge, Card, GradientCard, Icon, IconCircle, Row, Screen, SectionHeader, Text } from '@/components/ui';
 import { can } from '@/core/permissions';
 import { hasFeature } from '@/core/subscription';
-import { tontinePositions } from '@/core/tontine';
 import { today } from '@/core/dates';
 import { netWorth } from '@/core/networth';
 import { useFinance, useMoney } from '@/hooks/useFinance';
@@ -60,7 +59,7 @@ export default function More() {
   const showNetWorth = hasFeature(plan, 'net_worth') && can(role, 'read', 'assets');
   // Chiffre réel : patrimoine net (formule qui l'inclut) sinon total des comptes.
   const headline = useMemo(
-    () => (showNetWorth ? netWorth(data.assets, data.accounts, data.transactions, data.debts, data.debtPayments, currency, tontinePositions(data, currency, today())).net : position.available + position.savings),
+    () => (showNetWorth ? netWorth(data, currency, today()).net : position.available + position.savings),
     [showNetWorth, data, currency, position.available, position.savings],
   );
   const groups: { title: TKey; aside: string; items: Item[] }[] = [

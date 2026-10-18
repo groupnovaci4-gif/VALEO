@@ -5,8 +5,10 @@ import { accountBalance, flowTotals, goalSaved, moneyPosition } from '../src/cor
 import { accountMovements, adjustmentFor, linkedPartAfterEdit, movementEffect, validateDeposit, validateWithdraw } from '../src/core/savings';
 import { periodTotals } from '../src/core/history';
 import { monthFlows } from '../src/core/insights';
-import { buildSeries, transactionsToCsv } from '../src/core/reports';
-import { dailyAllowance } from '../src/core/dailyAllowance';
+import { buildSeries } from '../src/core/reports';
+import { ledgerCsv } from '../src/core/ledger';
+import { emptySpaceData } from '../src/core/types';
+import { dailyAllowanceV2 as dailyAllowance } from '../src/core/allowance';
 import { validateTransaction } from '../src/core/transactions';
 import { parseEntryText, parseSavingsDeposit } from '../src/core/entry/parse';
 import { normalizeText } from '../src/core/ai/parser';
@@ -158,14 +160,13 @@ describe('anciennes « dépenses » Épargne / Investissement (décisions 2 et 3
 
 describe('export CSV', () => {
   it('un ajustement à la baisse est exporté en négatif (le sens n’est pas perdu)', () => {
-    const csv = transactionsToCsv(
-      [tx({ type: 'adjustment', direction: 'out', amount: 5_000, accountId: 'bank' }), tx({ type: 'adjustment', direction: 'in', amount: 7_000, accountId: 'bank' })],
-      { accountName: () => 'Ma banque', categoryName: () => '', categories: [], decimals: () => 0, headers: ['d', 't', 'm'], typeLabel: (t) => t },
-    );
-    expect(csv).toContain(';adjustment;-5000;');
-    expect(csv).toContain(';adjustment;7000;');
-    // Une formule déguisée en nombre reste neutralisée.
-    const bad = transactionsToCsv([tx({ type: 'expense', amount: 1, accountId: 'bank', payee: '-2+3' })], { accountName: () => 'x', categoryName: () => '', categories: [], decimals: () => 0, headers: ['d'], typeLabel: (t) => t });
+    // Argent disponible v2 (§10.3) : `ledgerCsv` — une correction à la baisse va au DÉBIT, à la hausse au CRÉDIT.
+    const ctx = { accountName: () => 'Ma banque', categoryName: () => '', natureLabel: (n: string) => n, decimals: () => 0, headers: ['d'] };
+    const csv = ledgerCsv({ ...emptySpaceData(), transactions: [tx({ type: 'adjustment', direction: 'out', amount: 5_000, accountId: 'bank' }), tx({ type: 'adjustment', direction: 'in', amount: 7_000, accountId: 'bank' })] }, ctx);
+    expect(csv).toContain(';ajustement;Ma banque;5000;;');
+    expect(csv).toContain(';ajustement;Ma banque;;7000;');
+    // Une formule déguisée en nombre reste neutralisée (colonne motif).
+    const bad = ledgerCsv({ ...emptySpaceData(), transactions: [tx({ type: 'adjustment', direction: 'out', amount: 1, accountId: 'bank', reason: '-2+3' })] }, ctx);
     expect(bad).toContain(";'-2+3;");
   });
 });

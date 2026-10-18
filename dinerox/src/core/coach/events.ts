@@ -16,7 +16,8 @@ import { debtStatus } from '../debts';
 import { monthKey, previousMonth, lastMonths, type ISODate, type MonthKey } from '../dates';
 import { envelopeAlertMessage, hasDefinedBudget, type EnvelopeAlert } from './envelopeAlerts';
 import { budgetTransactions } from '../reserve';
-import { circlePaidFromAvailable, goalFundedIds, isCircleMovement, isTontineContribution } from '../savingsFlows';
+import { isSpending } from '../nature';
+import { monthMetrics } from '../coachData';
 
 export type CoachSeverity = 'info' | 'advice' | 'warning' | 'critical' | 'celebration';
 
@@ -131,20 +132,9 @@ export function monthRespected(data: SpaceData, month: MonthKey, currency: Curre
   return budgeted.length > 0 && budgeted.every((s) => s.spent <= s.budget);
 }
 
-/** Épargne enregistrée dans un mois (virement vers l'épargne, contribution, dépense « épargne », cotisation de tontine payée depuis le disponible). */
+/** Épargne du mois : épargne NETTE positive (§10.1, grand livre) — versements, mises de côté, cotisations de tournante, moins les retraits. */
 export function savedInMonth(data: SpaceData, month: MonthKey, currency: CurrencyCode): boolean {
-  const savings = new Set(data.accounts.filter((a) => a.isSavings && !a.deleted).map((a) => a.id));
-  const funded = goalFundedIds(data.goalContributions);
-  return (
-    data.transactions.some(
-      (t) =>
-        !t.deleted &&
-        t.currency === currency &&
-        monthKey(t.date) === month &&
-        ((t.type === 'transfer' && !!t.toAccountId && savings.has(t.toAccountId)) || (t.type === 'expense' && t.categoryId === 'cat_savings') || (isTontineContribution(t) && circlePaidFromAvailable(t, savings, funded))),
-    ) ||
-    data.goalContributions.some((c) => !c.deleted && c.amount > 0 && monthKey(c.date) === month)
-  );
+  return monthMetrics(data, month, currency).saved > 0;
 }
 
 /** Catégories dont la baisse n'est pas un « bon comportement » (épargne, investissement, dettes). */
@@ -164,7 +154,7 @@ export function categoryDown(data: SpaceData, currency: CurrencyCode, today: ISO
   const spend = (m: MonthKey) => {
     const out = new Map<string, number>();
     for (const t of data.transactions) {
-      if (t.deleted || t.type !== 'expense' || isCircleMovement(t) || t.currency !== currency || !t.categoryId || NOT_A_SAVING.has(t.categoryId) || monthKey(t.date) !== m) continue;
+      if (t.deleted || !isSpending(t) || t.currency !== currency || !t.categoryId || NOT_A_SAVING.has(t.categoryId) || monthKey(t.date) !== m) continue;
       out.set(t.categoryId, (out.get(t.categoryId) ?? 0) + t.amount);
     }
     return out;

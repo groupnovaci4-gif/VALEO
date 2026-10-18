@@ -16,8 +16,9 @@ import type { EnvelopeStatus } from '@/core/budget';
 export const LEVEL_ICON = { ok: 'checkmark-circle', warning: 'warning', reached: 'warning', critical: 'alert-circle' } as const;
 
 /** Enveloppe : nom, reste (ou dépassement), barre, et l'état ÉCRIT avec une icône (jamais la couleur seule). */
-export function EnvelopeCard({ s, hidden = false }: { s: EnvelopeStatus; hidden?: boolean }) {
-  const { t } = useI18n();
+/** `declaredShare` : part du revenu DÉCLARÉ (information, deux décimales ; jamais dans un espace familial, §9). */
+export function EnvelopeCard({ s, hidden = false, declaredShare = null }: { s: EnvelopeStatus; hidden?: boolean; declaredShare?: number | null }) {
+  const { t, lang } = useI18n();
   const { colors } = useTheme();
   const money = useMoney();
   const show = (n: number) => (hidden ? '••••••' : money(n));
@@ -53,6 +54,11 @@ export function EnvelopeCard({ s, hidden = false }: { s: EnvelopeStatus; hidden?
       <Text variant="small" tone="muted">
         {t('env.of', { spent: show(s.spent), budget: show(s.budget) })}
       </Text>
+      {declaredShare !== null ? (
+        <Text variant="caption" tone="subtle">
+          {t('env.shareOfDeclared', { percent: lang === 'en' ? declaredShare.toFixed(2) : declaredShare.toFixed(2).replace('.', ',') })}
+        </Text>
+      ) : null}
     </Card>
   );
 }

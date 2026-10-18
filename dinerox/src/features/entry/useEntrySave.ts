@@ -22,7 +22,7 @@ import { analytics } from '@/services/analytics';
 import { reserveEligible } from '@/core/reserve';
 import { markReviewMoment } from '@/services/storeReview';
 import { defaultSpendingAccountId, spendingAccounts } from '@/core/savingsCircle';
-import { withCircleView } from '@/core/savingsFlows';
+import { withLedgerView } from '@/core/nature';
 
 export type EntryMethod = 'voice' | 'text_phrase' | 'quick_manual' | 'full_form';
 
@@ -44,7 +44,7 @@ export function useEntrySave() {
   const confirmation = useCallback(() => {
     if (!engine || !activeSpace) return t('entry.saved');
     // Argent disponible v2 : LA même fonction que l'accueil, le simulateur et la conversation.
-    const r = dailyAllowanceV2({ data: withCircleView(engine.getData(activeSpace.id)), currency: activeSpace.currency as CurrencyCode, today: today(), payDay: profile?.financial?.payDay ?? null });
+    const r = dailyAllowanceV2({ data: withLedgerView(engine.getData(activeSpace.id)), currency: activeSpace.currency as CurrencyCode, today: today(), payDay: profile?.financial?.payDay ?? null });
     return r.status === 'ok' ? t('entry.savedPerDay', { amount: money(r.perDay) }) : t('entry.saved');
   }, [engine, activeSpace, profile?.financial, t, money]);
 
@@ -72,7 +72,7 @@ export function useEntrySave() {
   const circleNotice = useCallback(
     (ids: string[], redirectedTo?: string | null): { message: string; amount: number } | null => {
       if (!engine || !activeSpace) return null;
-      const d = withCircleView(engine.getData(activeSpace.id));
+      const d = withLedgerView(engine.getData(activeSpace.id));
       const currency = activeSpace.currency;
       const saved = d.transactions.filter((x) => ids.includes(x.id) && !x.deleted && x.currency === currency);
       if (redirectedTo) {

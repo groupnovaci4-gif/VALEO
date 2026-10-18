@@ -11,7 +11,7 @@
  * compte (`ledger.ts`), produite à partir de `Account.openingBalance`.
  */
 import type { Account, Debt, DebtPayment, SpaceData, Tontine, TontineEntry, Transaction } from './types';
-import { CIRCLE_SUBCATEGORY_IDS, isSavingExpense } from './savingsFlows';
+import { CIRCLE_SUBCATEGORY_IDS, isSavingExpense, withTontineLinks } from './savingsFlows';
 
 export type Nature =
   | 'revenu'
@@ -95,6 +95,8 @@ export function natureOf(t: Transaction, ctx: NatureContext): Nature {
   const entry = ctx.tontineOfTx.get(t.id);
   const tontineId = t.tontineId ?? entry?.tontineId ?? null;
 
+  // Dette inconnue de ce contexte (vue partielle) : jamais un revenu ni une dépense.
+  if (debtId && !direction) return t.type === 'income' ? 'remboursement_recu' : 'remboursement_capital';
   if (t.type === 'income') {
     if (direction === 'i_owe') return 'emprunt_recu';
     if (direction === 'owed_to_me') return 'remboursement_recu';
@@ -123,4 +125,54 @@ export function natureOf(t: Transaction, ctx: NatureContext): Nature {
 export function naturesOf(d: Parameters<typeof natureContext>[0]): Map<string, Nature> {
   const ctx = natureContext(d);
   return new Map(d.transactions.filter((t) => !t.deleted).map((t) => [t.id, natureOf(t, ctx)]));
+}
+
+// ─── Vue des calculs (étape 3A) ───────────────────────────────────────
+
+/**
+ * Vue des écrans et des calculs : chaque opération porte sa nature calculée avec TOUT le
+ * contexte de l'espace (dettes, carnet de tontine, comptes d'épargne), et une ancienne
+ * cotisation du carnet porte le lien `tontineId`. Rien n'est réécrit en base.
+ */
+export function withLedgerView<D extends Pick<SpaceData, 'accounts' | 'transactions'> & Partial<Pick<SpaceData, 'tontines' | 'tontineEntries' | 'debts' | 'debtPayments'>>>(d: D): D {
+  const linked = withTontineLinks(d.transactions, d.tontineEntries ?? []);
+  const ctx = natureContext({ ...d, transactions: linked });
+  return { ...d, transactions: linked.map((t) => ({ ...t, nature: natureOf(t, ctx) })) };
+}
+
+/** La vue des natures si les opérations ne la portent pas encore (appel direct d'un calcul). */
+export function ensureLedgerView<D extends Parameters<typeof withLedgerView>[0]>(d: D): D {
+  return d.transactions.length && d.transactions.every((t) => t.deleted || t.nature) ? d : withLedgerView(d);
+}
+
+const BARE = natureContext({ accounts: [], transactions: [] });
+
+/** Nature d'une opération : celle de la vue, sinon calculée avec ce que porte l'opération (liens `debtId`, `tontineId`). */
+export function txNature(t: Transaction): Nature {
+  return t.nature ?? natureOf(t, BARE);
+}
+
+/** Un revenu (R) : jamais un emprunt, une cagnotte, un remboursement reçu ou d'achat. */
+export function isRevenue(t: Transaction): boolean {
+  return !t.deleted && txNature(t) === 'revenu';
+}
+
+/** Une dépense de la période (C) : dépense, frais, intérêts, cotisation sans tour — jamais le capital remboursé. */
+export function isSpending(t: Transaction): boolean {
+  return !t.deleted && SPENDING_NATURES.has(txNature(t));
+}
+
+/** Un remboursement d'achat : vient en déduction des dépenses. */
+export function isPurchaseRefund(t: Transaction): boolean {
+  return !t.deleted && txNature(t) === 'remboursement_achat';
+}
+
+/** Ce qui pèse sur une enveloppe : une dépense (C) ou un remboursement de capital (sortie prévue). */
+export function isBudgetOutflow(t: Transaction): boolean {
+  return isSpending(t) || (!t.deleted && txNature(t) === 'remboursement_capital');
+}
+
+/** Montant signé d'une opération dans C : + dépense, − remboursement d'achat, 0 sinon. */
+export function spendingAmount(t: Transaction): number {
+  return isSpending(t) ? t.amount : isPurchaseRefund(t) ? -t.amount : 0;
 }

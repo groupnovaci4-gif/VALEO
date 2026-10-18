@@ -14,9 +14,12 @@ import { describe, expect, it } from 'vitest';
 import { starterStructure } from '../src/core/defaults';
 import { parseEntryText, type EntryContext } from '../src/core/entry/parse';
 import { aiLinesToDrafts } from '../src/core/entry/aiGuard';
-import { allowanceDeductions, dailyAllowance } from '../src/core/dailyAllowance';
+import { dailyAllowanceV2 } from '../src/core/allowance';
+import { isSpending } from '../src/core/nature';
+import { ledgerCsv } from '../src/core/ledger';
+import { observedCapacity } from '../src/core/intelligence';
 import { flowTotals, moneyPosition } from '../src/core/balance';
-import { buildReport, buildSeries, transactionsToCsv } from '../src/core/reports';
+import { buildReport, buildSeries } from '../src/core/reports';
 import { envelopeStatuses } from '../src/core/budget';
 import { expensesByCategory, monthFlows } from '../src/core/insights';
 import { buildFinanceSummary } from '../src/core/ai/summary';
@@ -25,12 +28,12 @@ import { touchedByWrite } from '../src/core/coach/envelopeAlerts';
 import { budgetTransactions } from '../src/core/reserve';
 import { periodOf } from '../src/core/dates';
 import { emptySpaceData, type Account, type Envelope, type Goal, type GoalContribution, type SpaceData, type Transaction } from '../src/core/types';
-import { isCircleMovement, isConsumption, isTontineContribution, withTontineLinks } from '../src/core/savingsFlows';
+import { isCircleMovement, isTontineContribution, withTontineLinks } from '../src/core/savingsFlows';
 import { tontineContributionCategory } from '../src/core/tontine';
 import { defaultSpendingAccountId, expenseAccountFor, expenseAccountOptions, moneyTracked, planTontinePayment, shortfallAfter, spendingAccounts, withdrawSources } from '../src/core/savingsCircle';
 import { financialSnapshot } from '../src/core/intelligence';
 import { behaviorScore } from '../src/core/coach/score';
-import { computeInsights, detectRecurringPayments, savingsCapacity } from '../src/core/insights';
+import { computeInsights, detectRecurringPayments } from '../src/core/insights';
 import { personalBudget } from '../src/core/personalBudget';
 import { fr } from '../src/i18n/fr';
 
@@ -48,6 +51,10 @@ function signup(accounts: string[], balances: Record<string, number> = {}) {
   );
   return { accounts: s.accounts as Account[], categories: s.categories ?? [], recurring: s.recurring ?? [] };
 }
+/** Argent disponible v2 : la base du reste par jour est D − E (`dailyAllowanceV2`), l'ancien `dailyAllowance` est supprimé. */
+type V2Input = Parameters<typeof dailyAllowanceV2>[0];
+const dailyAllowance = (input: Omit<V2Input, 'payDay'> & { financial?: unknown }) => dailyAllowanceV2({ data: input.data, currency: input.currency, today: input.today });
+const baseOf = (d: ReturnType<typeof dailyAllowanceV2>) => (d.status === 'ok' ? d.available - d.commitments : d.status === 'deficit' ? -d.deficit : null);
 const cashOf = (a: Account[]) => a.find((x) => !x.isSavings)!.id;
 const savOf = (a: Account[]) => a.find((x) => x.isSavings)!.id;
 
@@ -56,7 +63,7 @@ function home(accounts: Account[], transactions: Transaction[], extra: { goals?:
   const contributions = extra.goalContributions ?? [];
   const pos = moneyPosition(accounts, transactions, goals, contributions, 'XOF');
   const d = dailyAllowance({ data: { transactions, recurring: [], goals, goalContributions: contributions, accounts }, currency: 'XOF', today: TODAY, financial: { monthlyIncome: extra.declared ?? 100_000 } });
-  return { disponible: pos.free, epargne: pos.savings, base: d.status === 'ok' ? d.available : d.status === 'deficit' ? -d.deficit : null, parJour: d.status === 'ok' ? d.perDay : null };
+  return { disponible: pos.free, epargne: pos.savings, base: baseOf(d), parJour: d.status === 'ok' ? d.perDay : null };
 }
 
 /** Compte de chaque façon de saisir « taxi 2000 » (la feuille, la voix avec IA, le formulaire, l'assistant). */
@@ -76,13 +83,13 @@ describe('A — aucune dépense ne part de l’épargne par défaut', () => {
     expect(home(a.accounts, [])).toEqual({ disponible: 0, epargne: 60_000, base: null, parJour: null });
   });
 
-  it('le détail affiché explique toujours le chiffre : revenus − dépenses − à venir = disponible (épargne de départ, cotisations comprises)', () => {
+  it('le détail affiché explique toujours le chiffre : (argent disponible − engagements) / jours = par jour', () => {
     const a = signup(['acc.cash', 'acc.savings'], { 'acc.savings': 60_000 });
     const cash = cashOf(a.accounts);
     const txs = [tx({ type: 'income', amount: 450_000, accountId: cash, categoryId: 'inc_salary' }), tx({ type: 'expense', amount: 20_000, accountId: cash, categoryId: 'cat_food' }), tx({ type: 'expense', amount: 30_000, accountId: cash, ...TONTINE })];
     const r = dailyAllowance({ data: { transactions: txs, recurring: [], goals: [], goalContributions: [], accounts: a.accounts }, currency: 'XOF', today: TODAY });
     expect(r.status).toBe('ok');
-    if (r.status === 'ok') expect(r.income - r.expenses - allowanceDeductions(r)).toBe(r.available);
+    if (r.status === 'ok') expect(r.perDay).toBe(Math.floor((r.available - r.commitments) / r.daysLeft));
   });
 
   it('a’) seul « Épargne » coché : « Espèces » est créé ; dépenses sur Espèces ; aucune récurrence de salaire (E10)', () => {
@@ -182,8 +189,9 @@ describe('cotisation de tontine : de l’épargne, pas une dépense', () => {
     }
     expect(isTontineContribution({ type: 'income', categoryId: 'inc_tontine', subcategoryId: null })).toBe(false);
     expect(isCircleMovement({ type: 'expense', categoryId: 'cat_savings', subcategoryId: null })).toBe(true);
-    expect(isConsumption({ type: 'expense', ...TONTINE })).toBe(false);
-    expect(isConsumption({ type: 'expense', categoryId: 'cat_food', subcategoryId: null })).toBe(true);
+    // Argent disponible v2 : « dépense » = nature (`isSpending`) ; `isConsumption` est supprimé.
+    expect(isSpending(tx({ type: 'expense', amount: 1, accountId: 'c', ...TONTINE }))).toBe(false);
+    expect(isSpending(tx({ type: 'expense', amount: 1, accountId: 'c', categoryId: 'cat_food', subcategoryId: null }))).toBe(true);
   });
 
   for (const planned of [false, true]) {
@@ -236,8 +244,8 @@ describe('cotisation de tontine : de l’épargne, pas une dépense', () => {
     const unpaid = run([income], []);
     const pay = tx({ type: 'expense', amount: 30_000, accountId: cash, ...TONTINE });
     const paid = run([income, pay], [{ id: 'e1', createdAt: NOW, updatedAt: NOW, createdBy: 'u1', tontineId: 'tn1', kind: 'contribution', period: 1, amount: 30_000, date: TODAY, transactionId: pay.id, status: 'done', note: null } as never]);
-    expect(unpaid.status === 'ok' && paid.status === 'ok' && unpaid.available).toBe(paid.status === 'ok' ? paid.available : -1);
-    expect(paid.status === 'ok' && paid.available).toBe(70_000);
+    expect(baseOf(unpaid)).toBe(baseOf(paid));
+    expect(baseOf(paid)).toBe(70_000);
   });
 
   // ── Chaque calcul utilise le même critère ──
@@ -253,7 +261,7 @@ describe('cotisation de tontine : de l’épargne, pas une dépense', () => {
     const r = buildReport(data, 'month', TODAY, 'XOF');
     expect([r.expense, r.saved, r.savedTontine, r.byCategory.map((c) => c.categoryId)]).toEqual([8000, 30_000, 30_000, ['cat_food']]);
     expect(buildSeries(data.transactions, month, 'XOF').reduce((n, p) => n + p.expense, 0)).toBe(8000);
-    const csv = transactionsToCsv([cot], { accountName: () => 'Cash', categoryName: () => 'Tontine', categories: [], decimals: () => 0, headers: ['d', 't'], typeLabel: (ty) => ty, circleLabel: 'Mis de côté › Tontine' });
+    const csv = ledgerCsv({ ...emptySpaceData(), transactions: [cot] }, { accountName: () => 'Cash', categoryName: () => 'Tontine', decimals: () => 0, headers: ['d', 't'], natureLabel: (n) => (n === 'cotisation_tontine' ? 'Mis de côté › Tontine' : n) });
     expect(csv.split('\n')[1].split(';')[1]).toBe('Mis de côté › Tontine');
   });
   it('rapports : payée depuis l’épargne, ni dépense ni nouvelle épargne', () => {
@@ -283,7 +291,9 @@ describe('cotisation de tontine : de l’épargne, pas une dépense', () => {
     expect(ins.filter((i) => i.kind === 'envelope_threshold')).toEqual([]);
     const months = ['2026-07-05', '2026-08-05', '2026-09-05'];
     const hist = months.flatMap((d) => [tx({ type: 'income', amount: 100_000, accountId: cash, categoryId: 'inc_salary', date: d }), tx({ type: 'expense', amount: 30_000, accountId: cash, ...TONTINE, payee: 'Marché', date: d })]);
-    expect(savingsCapacity(hist, TODAY, 'XOF')).toBe(100_000);
+    // Argent disponible v2 (§11.6) : la Marge observée = R − C − Rb − S — la cotisation n'est pas une dépense,
+    // mais elle est de l'épargne : 100 000 − 30 000 (et non plus la « capacité » 100 000).
+    expect(observedCapacity({ ...emptySpaceData(), transactions: hist }, 'XOF', TODAY)).toBe(70_000);
     expect(detectRecurringPayments(hist, TODAY, 'XOF')).toEqual([]);
     const pb = personalBudget({ envelopes: budgeted.envelopes, transactions: hist, currency: 'XOF', now: TODAY, income: 100_000, goalNeeds: 0 });
     expect(JSON.stringify(pb)).not.toContain('30000');
@@ -356,13 +366,13 @@ describe('tontine dans TOUS les pays : le lien avec la tontine fait la cotisatio
     const run = (txs: Transaction[]) => dailyAllowance({ data: { transactions: txs, recurring: [], goals: [], goalContributions: [], accounts }, currency: 'EUR', today: TODAY });
     const before = run([income]);
     const after = run([income, fromCurrent]);
-    expect(before.status === 'ok' && after.status === 'ok' && before.available - after.available).toBe(100_00);
+    expect((baseOf(before) ?? 0) - (baseOf(after) ?? 0)).toBe(100_00);
     expect(flowTotals([income, fromCurrent], periodOf('month', TODAY), 'EUR').expense).toBe(0);
     const r = buildReport({ ...emptySpaceData(), accounts, categories, transactions: [income, fromCurrent] }, 'month', TODAY, 'EUR');
     expect([r.expense, r.savedTontine]).toEqual([0, 100_00]);
     const fromSavings = eur({ type: 'expense', amount: 100_00, accountId: sav, ...cat, tontineId: 'carnet1' });
     const circle = run([income, fromSavings]);
-    expect(circle.status === 'ok' && before.status === 'ok' && circle.available).toBe(before.status === 'ok' ? before.available : -1);
+    expect(baseOf(circle)).toBe(baseOf(before));
   });
   it('ancienne cotisation du carnet (avant le lien) : reconnue par son échéance, sans rien réécrire', () => {
     const old = eur({ type: 'expense', amount: 50_00, accountId: cur, ...cat });

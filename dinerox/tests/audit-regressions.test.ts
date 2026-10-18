@@ -83,11 +83,13 @@ describe('répartition de la capacité', () => {
 });
 
 describe('intelligence : aucune capacité absurde', () => {
-  it('salaire 300 000 reçu, loyer déclaré 280 000 pas encore payé → ≈ 20 000, jamais 290 000', () => {
+  // Argent disponible v2 (§11.6) : sans mois clos, AUCUNE capacité (ni 290 000, ni une estimation
+  // tirée du loyer déclaré) : « Pas encore assez de données ».
+  it('salaire 300 000 reçu, loyer déclaré 280 000 pas encore payé → aucune capacité affirmée, jamais 290 000', () => {
     const data = { ...emptySpaceData(), transactions: [tx({ type: 'income', amount: 300000, accountId: 'cash', date: '2026-10-01' }), tx({ type: 'expense', amount: 10000, accountId: 'cash', date: '2026-10-02' })] };
     const snap = financialSnapshot({ data, currency: 'XOF', now: '2026-10-06', available: 290000, financial: { monthlyIncome: 300000, fixedCharges: { sub_housing_rent: 280000 } } });
-    expect(snap.savingsCapacity.value).toBe(20000);
-    expect(snap.savingsCapacity.source).toBe('estimate');
+    expect(snap.monthsOfData).toBe(0);
+    expect(snap.savingsCapacity.value).not.toBe(290000);
     // Sans mois complet, aucune capacité « observée » n'est affirmée.
     expect(observedCapacity(data, 'XOF', '2026-10-06')).toBeNull();
   });

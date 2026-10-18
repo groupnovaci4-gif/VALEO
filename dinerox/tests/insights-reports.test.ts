@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { computeInsights, savingsCapacity, detectRecurringPayments } from '../src/core/insights';
-import { buildReport, transactionsToCsv } from '../src/core/reports';
+import { computeInsights, detectRecurringPayments } from '../src/core/insights';
+import { buildReport } from '../src/core/reports';
+import { ledgerCsv } from '../src/core/ledger';
 import { emptySpaceData } from '../src/core/types';
 import { account, envelope, tx } from './helpers';
 
@@ -25,10 +26,6 @@ describe('moteur d analyse', () => {
   });
   it('hausse d une catégorie vs mois dernier', () => {
     expect(insights.find((i) => i.kind === 'category_increase')).toMatchObject({ params: { percent: 22 } });
-  });
-  it('capacité d épargne = moyenne des mois complets', () => {
-    // août : 450 − 370 = 80 ; sept : 450 − 50 = 400 → 240 000
-    expect(savingsCapacity(data.transactions, NOW, 'XOF')).toBe(240_000);
   });
   it('détection de paiements récurrents', () => {
     const list = ['2026-08-03', '2026-09-03', '2026-10-03'].map((date) => tx({ type: 'expense', amount: 10_000, accountId: 'c', payee: 'Canal+', date }));
@@ -59,11 +56,11 @@ describe('rapports', () => {
     expect(r.period).toMatchObject({ start: '2026-09-28', end: '2026-10-04' });
   });
   it('CSV : séparateur ; et neutralisation des formules', () => {
-    const csv = transactionsToCsv([tx({ type: 'expense', amount: 5000, accountId: 'c', payee: '=HACK()', note: 'a;b' })], {
-      accountName: () => 'Cash', categoryName: () => '', categories: [], decimals: () => 0, headers: ['Date', 'Type', 'Montant', 'Devise', 'Compte', 'Vers', 'Catégorie', 'Bénéficiaire', 'Note'], typeLabel: (t) => t,
+    // Argent disponible v2 (§10.3) : `ledgerCsv` ; le motif d'une correction est exporté, neutralisé.
+    const csv = ledgerCsv({ ...emptySpaceData(), transactions: [tx({ type: 'adjustment', direction: 'out', amount: 5000, accountId: 'c', reason: '=HACK()' }), tx({ type: 'adjustment', direction: 'out', amount: 1, accountId: 'c', reason: 'a;b' })] }, {
+      accountName: () => 'Cash', categoryName: () => '', natureLabel: (n) => n, decimals: () => 0, headers: Array(13).fill('h'),
     });
-    const line = csv.split('\n')[1];
-    expect(line).toContain("'=HACK()");
-    expect(line).toContain('"a;b"');
+    expect(csv.split('\n')[1]).toContain("'=HACK()");
+    expect(csv.split('\n')[2]).toContain('"a;b"');
   });
 });

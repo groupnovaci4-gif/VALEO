@@ -59,11 +59,6 @@ export function isCircleMovement(t: Pick<Transaction, 'type' | 'categoryId'> & {
   return isSavingExpense(t) || isTontineContribution(t);
 }
 
-/** Dépense de consommation (dépense hors argent mis de côté). */
-export function isConsumption(t: Pick<Transaction, 'type' | 'categoryId'> & { subcategoryId?: string | null; tontineId?: string | null }): boolean {
-  return t.type === 'expense' && !isCircleMovement(t);
-}
-
 /** Opérations payées par un objectif (contribution négative liée : réserve, cotisation payée depuis un objectif). */
 export function goalFundedIds(contributions: Pick<GoalContribution, 'deleted' | 'amount' | 'linkedTransactionId'>[]): Set<string> {
   return new Set(contributions.filter((c) => !c.deleted && c.amount < 0 && !!c.linkedTransactionId).map((c) => c.linkedTransactionId as string));
@@ -94,10 +89,4 @@ export function isSavingsDeposit(t: Pick<Transaction, 'type' | 'accountId' | 'to
 /** Retrait d'épargne : transfert d'un compte d'épargne vers un compte courant. */
 export function isSavingsWithdrawal(t: Pick<Transaction, 'type' | 'accountId' | 'toAccountId'>, savings: Set<string>): boolean {
   return t.type === 'transfer' && !!t.toAccountId && savings.has(t.accountId) && !savings.has(t.toAccountId);
-}
-
-/** Données d'un espace avec la vue des cotisations liées (`withTontineLinks`) : pour les calculs qui lisent le moteur directement. */
-export function withCircleView<D extends { transactions: Transaction[]; tontineEntries: TontineEntry[] }>(d: D): D {
-  const transactions = withTontineLinks(d.transactions, d.tontineEntries);
-  return transactions === d.transactions ? d : { ...d, transactions };
 }

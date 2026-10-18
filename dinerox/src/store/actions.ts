@@ -324,8 +324,10 @@ export function useActions() {
     (input: Draft<Transaction>, opts: { reserveId?: string | null; fee?: number; linked?: (tx: Transaction) => PlanItem[] } = {}): Transaction => {
       let d = data();
       // 1.8 : `legacyCategoryId` n'existe que dans la VUE des calculs (alias) : jamais enregistré.
-      const { legacyCategoryId: _view, ...clean } = input as Draft<Transaction> & { legacyCategoryId?: unknown };
+      // Argent disponible v2 : `nature` est un champ de VUE (withLedgerView), jamais enregistré.
+      const { legacyCategoryId: _view, nature: _nature, ...clean } = input as Draft<Transaction> & { legacyCategoryId?: unknown };
       void _view;
+      void _nature;
       let draft: Draft<Transaction> = clean;
       // Cercle fermé (2026-10-14) : une DÉPENSE n'est jamais prise sur un compte d'épargne
       // (une cotisation de tontine, si : mouvement dans le cercle). Elle est enregistrée sur un
@@ -358,7 +360,7 @@ export function useActions() {
       const txId = draft.id ?? newId(PREFIX.transactions);
       const lot = (accountId: string): PlanItem[] => {
         const base = { ...shaped, accountId } as Transaction;
-        const main = shaped.type === 'transfer' ? planTransferWithFee(base, opts.fee ?? 0, newId).map((it, i) => (i === 0 ? { ...it, doc: { ...it.doc, id: txId } } : it)) : [{ col: 'transactions' as const, doc: { ...base, id: txId, createdAt: 0, updatedAt: 0, createdBy: '' } as Transaction }];
+        const main = shaped.type === 'transfer' ? planTransferWithFee(base, opts.fee ?? 0, newId, data().categories).map((it, i) => (i === 0 ? { ...it, doc: { ...it.doc, id: txId } } : it)) : [{ col: 'transactions' as const, doc: { ...base, id: txId, createdAt: 0, updatedAt: 0, createdBy: '' } as Transaction }];
         if (shaped.type === 'transfer' && main[1]) main[1] = { ...main[1], doc: { ...main[1].doc, linkedTransactionId: txId } as Transaction };
         const tx = main[0].doc as Transaction;
         const reserve = opts.reserveId && shaped.type === 'expense' ? reserveItems(tx, opts.reserveId) : [];

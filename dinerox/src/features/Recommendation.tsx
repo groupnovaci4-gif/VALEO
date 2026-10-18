@@ -23,13 +23,16 @@ export function SourceTag({ source }: { source: DataSource }) {
   );
 }
 
+const NOT_MONEY = new Set(['percent', 'months', 'targetMonths']);
+
 export function useRecommendationText() {
-  const { t } = useI18n();
+  const { t, date } = useI18n();
   const money = useMoney();
   const cats = useCategoryLabels();
   return (r: Recommendation) => {
     const p: Record<string, string | number> = {};
-    for (const [k, v] of Object.entries(r.params)) p[k] = typeof v === 'number' && k !== 'percent' ? money(v) : v;
+    // Montants formatés ; pourcentages et nombres de mois tels quels ; date lisible.
+    for (const [k, v] of Object.entries(r.params)) p[k] = typeof v === 'number' && !NOT_MONEY.has(k) ? money(v) : k === 'date' && typeof v === 'string' && v ? date(v) : v;
     if (typeof r.params.categoryId === 'string') p.category = cats.byId(r.params.categoryId);
     return t(`intel.rec.${r.kind}` as TKey, p);
   };
