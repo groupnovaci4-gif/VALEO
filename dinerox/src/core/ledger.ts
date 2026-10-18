@@ -10,17 +10,20 @@
  *   Épargne nette (S) = versements − retraits : comptes d'épargne, mises de côté sur un compte
  *                       courant, cotisations de tournante payées depuis un compte courant,
  *                       revenus arrivés sur un compte d'épargne, moins les retours de tontine
+ *                       (une cotisation qui rembourse l'avance du groupe n'est pas de l'épargne)
  *   Financement       = emprunts reçus, prêts accordés, remboursements reçus, avances du groupe
+ *                       et leur remboursement par les cotisations suivantes (§5.4)
+ *   Clôture de tontine confirmée : frais (dépenses, épargne nette) ou gain (revenus) à `closedAt`
  *   Corrections       = ajustements + / −
  *   Remises et pertes = dettes remises, créances abandonnées
  *   Résultat          = R − C − remboursements (le mot « Solde » est réservé au solde d'un compte)
  */
 import { natureContext, natureOf, SPENDING_NATURES, type Nature } from './nature';
 import { firstSpendingAccountId } from './position';
-import { payoutSplit } from './tontineLedger';
+import { tontineClosure, tontineMovements } from './tontineLedger';
 import { writtenOffAmount } from './debts';
 import { csvCell } from './reports';
-import { inPeriod, type ISODate } from './dates';
+import { inPeriod, toISODate, type ISODate } from './dates';
 import type { CurrencyCode } from './money';
 import type { Account, SpaceData, Transaction } from './types';
 
@@ -35,7 +38,11 @@ export interface LedgerTotals {
 
 export interface PeriodReport extends LedgerTotals {
   remboursements: number;
-  financement: { empruntsRecus: number; pretsAccordes: number; remboursementsRecus: number; avancesTontine: number };
+  /**
+   * `avancesTontine` : avances du groupe reçues avec une cagnotte (moins un gain de clôture) ;
+   * `remboursementsAvance` : cotisations qui, après la cagnotte, remboursent cette avance (§5.4).
+   */
+  financement: { empruntsRecus: number; pretsAccordes: number; remboursementsRecus: number; avancesTontine: number; remboursementsAvance: number };
   corrections: { plus: number; minus: number };
   remisesPertes: number;
   resultat: number;
@@ -49,17 +56,46 @@ export function periodReport(d: LedgerData, period: Range, currency: CurrencyCod
     depenses: 0,
     epargneNette: 0,
     remboursements: 0,
-    financement: { empruntsRecus: 0, pretsAccordes: 0, remboursementsRecus: 0, avancesTontine: 0 },
+    financement: { empruntsRecus: 0, pretsAccordes: 0, remboursementsRecus: 0, avancesTontine: 0, remboursementsAvance: 0 },
     corrections: { plus: 0, minus: 0 },
     remisesPertes: 0,
     resultat: 0,
   };
-  const payoutOfTx = new Map((d.tontineEntries ?? []).filter((e) => !e.deleted && e.kind === 'payout' && e.transactionId).map((e) => [e.transactionId as string, e]));
-  const tontines = new Map((d.tontines ?? []).map((t) => [t.id, t]));
+  // Tontines suivies : cotisations et cagnottes lues dans l'ordre (épargne, retour, avance,
+  // remboursement de l'avance) ; leurs opérations ne sont pas recomptées plus bas.
+  const txById = new Map(d.transactions.map((t) => [t.id, t]));
+  const followed = new Set<string>();
+  for (const tontine of d.tontines ?? []) {
+    if (tontine.deleted || tontine.currency !== currency || tontine.type === 'fixed_contribution') continue;
+    followed.add(tontine.id);
+    for (const m of tontineMovements(tontine, d.tontineEntries ?? [], d.transactions)) {
+      if (!inPeriod(m.date, period)) continue;
+      const linked = m.transactionId ? txById.get(m.transactionId) : undefined;
+      // Payée depuis (ou reçue sur) un compte d'épargne : un mouvement à l'intérieur de l'épargne.
+      const onSavings = !!linked && ctx.savings.has(linked.accountId);
+      if (m.kind === 'contribution') {
+        if (!onSavings) r.epargneNette += m.savings;
+        r.financement.remboursementsAvance += m.repay;
+      } else {
+        if (!onSavings) r.epargneNette -= m.retour;
+        r.financement.avancesTontine += m.avance;
+      }
+    }
+    // Clôture confirmée : frais (dépense) ou gain (revenu) à la date de clôture, sans opération.
+    if (tontine.closedAt && inPeriod(tontine.closedAt, period)) {
+      const c = tontineClosure(tontine, d.tontineEntries ?? []);
+      r.depenses += c.fees;
+      r.epargneNette -= c.fees;
+      r.revenus += c.gain;
+      r.financement.avancesTontine -= c.gain;
+    }
+  }
+  const tontineOf = (t: Transaction) => t.tontineId ?? ctx.tontineOfTx.get(t.id)?.tontineId ?? null;
 
   for (const t of d.transactions) {
     if (t.deleted || t.currency !== currency || !inPeriod(t.date, period)) continue;
     const n = natureOf(t, ctx);
+    if ((n === 'cotisation_tontine' || n === 'retour_tontine') && followed.has(tontineOf(t) ?? '')) continue;
     const onSavings = ctx.savings.has(t.accountId);
     if (SPENDING_NATURES.has(n)) r.depenses += t.amount;
     switch (n) {
@@ -84,15 +120,10 @@ export function periodReport(d: LedgerData, period: Range, currency: CurrencyCod
         // Payée depuis un compte d'épargne : un mouvement à l'intérieur de l'épargne.
         if (!onSavings) r.epargneNette += t.amount;
         break;
-      case 'retour_tontine': {
-        const entry = payoutOfTx.get(t.id);
-        const tontine = entry ? tontines.get(entry.tontineId) : undefined;
-        // Sans entrée du carnet (ancienne cagnotte) : tout est un retour d'épargne.
-        const split = entry && tontine ? payoutSplit(tontine, d.tontineEntries ?? [], entry.id) : { retour: t.amount, avance: 0 };
-        if (!onSavings) r.epargneNette -= split.retour;
-        r.financement.avancesTontine += split.avance;
+      case 'retour_tontine':
+        // Ancienne cagnotte sans tontine suivie : tout est un retour d'épargne.
+        if (!onSavings) r.epargneNette -= t.amount;
         break;
-      }
       case 'emprunt_recu':
         r.financement.empruntsRecus += t.amount;
         break;
@@ -157,9 +188,9 @@ function effectOn(t: Transaction, accountId: string): number {
   return t.direction === 'out' ? -t.amount : t.amount;
 }
 
-/** Date de l'ouverture : sa date si elle est connue, sinon la création du compte. */
+/** Date de l'ouverture : sa date si elle est connue, sinon le jour LOCAL de création du compte. */
 export function openingDateOf(a: Pick<Account, 'openingDate' | 'createdAt'>): ISODate {
-  return a.openingDate ?? new Date(a.createdAt).toISOString().slice(0, 10);
+  return a.openingDate ?? toISODate(new Date(a.createdAt));
 }
 
 /** Relevé d'un compte : solde au début, entrées, sorties, solde à la fin — début + entrées − sorties = fin (§10.2). */

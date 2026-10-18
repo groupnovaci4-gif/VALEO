@@ -10,14 +10,16 @@
  * récurrences de DÉPENSE non confirmées, cotisations de tontine non payées, mensualités
  * de dettes « je dois », dépenses saisies à une date future, et pour chaque objectif ou
  * réserve max(0, mise de côté prévue pour la période − déjà versé sur la période).
- * « En retard » = échue depuis le début de la période en cours (dernière paie, sinon
- * début du mois) et non confirmée.
+ * « En retard » = échue, non confirmée, dans la période en cours ou la précédente ; plus
+ * ancienne, elle est « À régulariser » (`toRegularize`), hors de E.
  *
  * Le revenu déclaré n'y entre JAMAIS, pas plus que « revenus − dépenses du mois » ;
  * les revenus attendus (salaire, cagnotte, remboursement d'un prêt) ne réduisent jamais E.
  * H (D8) = veille de la prochaine paie si le jour de paie est connu, sinon fin du mois.
  */
-import { addDays, addMonths, diffDays, endOfMonth, monthKey, parseISODate, startOfMonth, toISODate, type ISODate } from './dates';
+import { addDays, addMonths, diffDays, monthKey, type ISODate } from './dates';
+import { nextPayday, payDate, payHorizon, previousCycleStart, type Horizon } from './payPeriod';
+import { firstSpendingAccountId } from './position';
 import { computeGoalPlan } from './goals';
 import { nextDueDate, debtStatus } from './debts';
 import { activeTontines, countedByRecurring, scheduleState } from './tontine';
@@ -27,39 +29,9 @@ import { positionOf } from './position';
 import { envelopeStatuses } from './budget';
 import { budgetTransactions } from './reserve';
 import type { CurrencyCode } from './money';
-import type { SpaceData, SpaceKind } from './types';
+import type { GoalContribution, SpaceData, SpaceKind, Transaction } from './types';
 
-/** Date du jour de paie dans un mois : le jour réel vaut min(jour, dernier jour du mois). */
-function payDate(ref: ISODate, monthOffset: number, payDay: number): ISODate {
-  const d = parseISODate(startOfMonth(ref));
-  const first = new Date(d.getFullYear(), d.getMonth() + monthOffset, 1, 12);
-  const last = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
-  return toISODate(new Date(first.getFullYear(), first.getMonth(), Math.min(Math.max(1, Math.floor(payDay)), last), 12));
-}
-
-export interface Horizon {
-  /** H : dernier jour compté. */
-  until: ISODate;
-  /** H − aujourd'hui + 1. */
-  daysLeft: number;
-  /** Début de la période en cours (dernière paie, sinon 1er du mois). */
-  cycleStart: ISODate;
-  /** Dernière paie prévue ≤ aujourd'hui (null sans jour de paie). */
-  lastPayday: ISODate | null;
-}
-
-/** Horizon du reste par jour (D8). Aucune valeur par défaut : sans jour de paie, la fin du mois. */
-export function payHorizon(today: ISODate, payDay: number | null | undefined): Horizon {
-  if (!payDay || payDay < 1) {
-    const until = endOfMonth(today);
-    return { until, daysLeft: diffDays(today, until) + 1, cycleStart: startOfMonth(today), lastPayday: null };
-  }
-  const thisMonth = payDate(today, 0, payDay);
-  const next = thisMonth > today ? thisMonth : payDate(today, 1, payDay);
-  const lastPayday = thisMonth <= today ? thisMonth : payDate(today, -1, payDay);
-  const until = addDays(next, -1);
-  return { until, daysLeft: diffDays(today, until) + 1, cycleStart: lastPayday, lastPayday };
-}
+export { payHorizon, type Horizon } from './payPeriod';
 
 export type CommitmentKind = 'recurring' | 'tontine' | 'debt' | 'future' | 'goal';
 
@@ -76,27 +48,81 @@ export interface Commitment {
 type AllowanceData = Pick<SpaceData, 'accounts' | 'transactions' | 'recurring' | 'goals' | 'goalContributions'> &
   Partial<Pick<SpaceData, 'tontines' | 'tontineEntries' | 'debts' | 'debtPayments' | 'envelopes' | 'budgets' | 'assets'>>;
 
-/** Engagements restants E sur [aujourd'hui ; H] (§7.2), retards de la période compris. */
-export function commitments(d: AllowanceData, currency: CurrencyCode, today: ISODate, h: Horizon): Commitment[] {
+/** Échéances de récurrences de DÉPENSE non confirmées entre deux dates. */
+function unconfirmedRecurring(d: AllowanceData, currency: CurrencyCode, from: ISODate, to: ISODate, txIds: Set<string>): Commitment[] {
   const out: Commitment[] = [];
-  const txIds = new Set(d.transactions.filter((t) => !t.deleted).map((t) => t.id));
-
   for (const r of d.recurring) {
-    if (r.deleted || !r.active || r.type !== 'expense' || r.currency !== currency) continue;
-    for (const date of occurrencesBetween(r, h.cycleStart, h.until)) {
+    if (r.deleted || !r.active || r.type !== 'expense' || r.currency !== currency || to < from) continue;
+    for (const date of occurrencesBetween(r, from, to)) {
       if (!occurrenceConfirmed(r, date, txIds)) out.push({ kind: 'recurring', id: r.id, date, amount: r.amount, categoryId: r.categoryId ?? null });
     }
   }
+  return out;
+}
 
-  // Cotisations de tontine dues dans l'horizon ou en retard, non payées. Une récurrence
-  // convertie compte déjà la cotisation de la période (D7) : jamais deux fois.
+/** Cotisations de tontine non payées entre deux dates (une récurrence convertie la compte déjà, D7). */
+function unpaidTontines(d: AllowanceData, currency: CurrencyCode, today: ISODate, from: ISODate, to: ISODate): Commitment[] {
+  const out: Commitment[] = [];
   for (const t of activeTontines(d.tontines ?? [], currency)) {
     if (countedByRecurring(t, d.recurring)) continue;
-    for (const s of scheduleState(t, d.tontineEntries ?? [], today, { until: h.until })) {
-      if (s.status === 'done' || s.contribution <= 0 || s.dueDate < h.cycleStart || s.dueDate > h.until) continue;
+    for (const s of scheduleState(t, d.tontineEntries ?? [], today, { until: to })) {
+      if (s.status === 'done' || s.contribution <= 0 || s.dueDate < from || s.dueDate > to) continue;
       out.push({ kind: 'tontine', id: t.id, date: s.dueDate, amount: s.contribution, categoryId: null });
     }
   }
+  return out;
+}
+
+/** Une contribution vient-elle du DISPONIBLE ? Signe compris (un retrait vers un compte courant compte en moins). */
+function fromAvailable(c: Pick<GoalContribution, 'amount' | 'accountId' | 'transferId'>, txById: Map<string, Pick<Transaction, 'accountId' | 'toAccountId' | 'deleted'>>, savings: Set<string>, firstCC: string | null): number {
+  if (c.transferId) {
+    const t = txById.get(c.transferId);
+    if (!t || t.deleted) return 0;
+    const ccSide = c.amount >= 0 ? t.accountId : t.toAccountId;
+    return ccSide && !savings.has(ccSide) ? c.amount : 0;
+  }
+  const loc = c.accountId ?? firstCC;
+  return loc && !savings.has(loc) ? c.amount : 0;
+}
+
+/** Période du reste par jour : horizon, période précédente, paie attendue (§7.1, §7.2). */
+export interface AllowancePeriod {
+  h: Horizon;
+  /** Début de la période précédente : avant, une échéance non confirmée est « À régulariser ». */
+  previousStart: ISODate;
+  /** Paie attendue depuis cette date et pas encore confirmée (carte « Salaire attendu : reçu ? »). */
+  salaryPending: ISODate | null;
+}
+
+/**
+ * Paie confirmée (§7.1) : un revenu de catégorie salaire, ou venant d'une récurrence de revenu,
+ * daté au plus tôt 7 jours avant le jour de paie de la période (le salaire de la période
+ * précédente, même arrivé en retard, ne la confirme jamais). Reçue en avance, avant le jour de
+ * paie : la nouvelle période commence le jour de la réception (horizon jusqu'à la paie suivante).
+ */
+export function allowancePeriod(d: Pick<SpaceData, 'transactions' | 'recurring'>, currency: CurrencyCode, today: ISODate, payDay: number | null | undefined): AllowancePeriod {
+  let h = payHorizon(today, payDay);
+  if (!h.lastPayday || !payDay) return { h, previousStart: previousCycleStart(h, payDay), salaryPending: null };
+  const incomeRules = new Set(d.recurring.filter((r) => !r.deleted && r.type === 'income').map((r) => r.id));
+  const salaries = d.transactions
+    .filter((t) => !t.deleted && t.type === 'income' && t.currency === currency && t.date <= today && (t.categoryId === 'inc_salary' || (!!t.recurringId && incomeRules.has(t.recurringId))))
+    .map((t) => t.date);
+  const next = nextPayday(today, payDay);
+  const early = next ? salaries.filter((x) => x >= addDays(next, -7)).sort()[0] : undefined;
+  if (next && early) {
+    const after = payHorizon(next, payDay);
+    h = { until: after.until, daysLeft: diffDays(today, after.until) + 1, cycleStart: early, lastPayday: next };
+    return { h, previousStart: previousCycleStart({ cycleStart: early, lastPayday: next }, payDay), salaryPending: null };
+  }
+  const confirmed = salaries.some((x) => x >= addDays(h.lastPayday!, -7));
+  return { h, previousStart: previousCycleStart(h, payDay), salaryPending: confirmed ? null : h.lastPayday };
+}
+
+/** Engagements restants E sur [aujourd'hui ; H] (§7.2), retards de la période en cours et de la précédente compris. */
+export function commitments(d: AllowanceData, currency: CurrencyCode, today: ISODate, p: Pick<AllowancePeriod, 'h' | 'previousStart'>): Commitment[] {
+  const { h } = p;
+  const txIds = new Set(d.transactions.filter((t) => !t.deleted).map((t) => t.id));
+  const out: Commitment[] = [...unconfirmedRecurring(d, currency, p.previousStart, h.until, txIds), ...unpaidTontines(d, currency, today, p.previousStart, h.until)];
 
   // Mensualités des dettes « je dois » (échéance en retard du mois comprise).
   for (const x of d.debts ?? []) {
@@ -121,7 +147,11 @@ export function commitments(d: AllowanceData, currency: CurrencyCode, today: ISO
     out.push({ kind: 'future', id: t.id, date: t.date, amount: t.amount, categoryId: t.categoryId ?? null });
   }
 
-  // Objectifs et réserves : mise de côté prévue pour la période − déjà versé sur la période.
+  // Objectifs et réserves : mise de côté prévue pour la période − versé NET de la période venant
+  // du disponible (transfert depuis un compte courant, mise de côté sur un compte courant),
+  // retraits déduits, jamais moins que 0. Une affectation d'une épargne existante ne compte pas.
+  const txById = new Map(d.transactions.map((t) => [t.id, t]));
+  const firstCC = firstSpendingAccountId(d.accounts, currency);
   for (const g of d.goals) {
     if (g.deleted || g.status !== 'active' || g.currency !== currency) continue;
     let savedAtStart = g.initialAmount;
@@ -129,15 +159,28 @@ export function commitments(d: AllowanceData, currency: CurrencyCode, today: ISO
     for (const c of d.goalContributions) {
       if (c.deleted || c.goalId !== g.id) continue;
       if (c.date < h.cycleStart) savedAtStart += c.amount;
-      else if (c.date <= today && c.amount > 0) paidInPeriod += c.amount;
+      else if (c.date <= today) paidInPeriod += fromAvailable(c, txById, savings, firstCC);
     }
     const plan = computeGoalPlan({ targetAmount: g.targetAmount, saved: Math.max(0, savedAtStart), targetDate: g.targetDate, monthlyContribution: g.monthlyContribution, planned: g.planned }, today);
     if (plan.reached) continue;
     const planned = Math.min(plan.pace ?? plan.requiredMonthly ?? 0, plan.remaining);
-    const amount = Math.max(0, planned - paidInPeriod);
+    const amount = Math.max(0, planned - Math.max(0, paidInPeriod));
     if (amount > 0) out.push({ kind: 'goal', id: g.id, date: h.until, amount, categoryId: null });
   }
   return out;
+}
+
+/**
+ * « À régulariser » (§7.2) : échéances non confirmées plus anciennes que la période précédente.
+ * Hors de E ; trois choix à l'écran : « Payée » (date), « Je la dois encore » (elle redevient
+ * un engagement), « Pas due ». Une seule année en arrière au plus.
+ */
+export function toRegularize(d: AllowanceData, currency: CurrencyCode, today: ISODate, payDay?: number | null): Commitment[] {
+  const p = allowancePeriod(d, currency, today, payDay);
+  const to = addDays(p.previousStart, -1);
+  const from = addMonths(today, -12);
+  const txIds = new Set(d.transactions.filter((t) => !t.deleted).map((t) => t.id));
+  return [...unconfirmedRecurring(d, currency, from, to, txIds), ...unpaidTontines(d, currency, today, from, to)].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export interface AllowanceV2Base {
@@ -156,26 +199,16 @@ export interface AllowanceV2Detail extends AllowanceV2Base {
 
 export type AllowanceV2 = ({ status: 'needs_money' } & AllowanceV2Base) | ({ status: 'deficit'; deficit: number } & AllowanceV2Detail) | ({ status: 'ok'; perDay: number } & AllowanceV2Detail);
 
-/** La paie de la période a-t-elle été confirmée reçue ? (revenu de salaire, ou d'une récurrence de revenu, depuis la paie précédente). */
-function salaryPendingSince(d: AllowanceData, currency: CurrencyCode, today: ISODate, h: Horizon): ISODate | null {
-  if (!h.lastPayday) return null;
-  const incomeRules = new Set(d.recurring.filter((r) => !r.deleted && r.type === 'income').map((r) => r.id));
-  const from = addMonths(h.lastPayday, -1);
-  const received = d.transactions.some(
-    (t) => !t.deleted && t.type === 'income' && t.currency === currency && t.date > from && t.date <= today && (t.categoryId === 'inc_salary' || (!!t.recurringId && incomeRules.has(t.recurringId))),
-  );
-  return received ? null : h.lastPayday;
-}
-
 export function dailyAllowanceV2(input: { data: AllowanceData; currency: CurrencyCode; today: ISODate; payDay?: number | null }): AllowanceV2 {
   const { data, currency, today } = input;
-  const h = payHorizon(today, input.payDay);
+  const p = allowancePeriod(data, currency, today, input.payDay);
+  const { h } = p;
   const position = positionOf(data, currency, today);
   if (!position.tracked) return { status: 'needs_money', until: h.until, daysLeft: h.daysLeft };
-  const items = commitments(data, currency, today, h);
+  const items = commitments(data, currency, today, p);
   const E = items.reduce((n, c) => n + c.amount, 0);
   const D = position.available;
-  const detail: AllowanceV2Detail = { until: h.until, daysLeft: h.daysLeft, available: D, commitments: E, items, salaryPending: salaryPendingSince(data, currency, today, h) };
+  const detail: AllowanceV2Detail = { until: h.until, daysLeft: h.daysLeft, available: D, commitments: E, items, salaryPending: p.salaryPending };
   if (D - E < 0) return { status: 'deficit', deficit: E - D, ...detail };
   return { status: 'ok', perDay: Math.floor((D - E) / h.daysLeft), ...detail };
 }
@@ -187,14 +220,14 @@ export function dailyAllowanceV2(input: { data: AllowanceData; currency: Currenc
  */
 export function unallocated(input: { data: AllowanceData; currency: CurrencyCode; today: ISODate; payDay?: number | null }) {
   const { data, currency, today } = input;
-  const h = payHorizon(today, input.payDay);
+  const p = allowancePeriod(data, currency, today, input.payDay);
   const available = positionOf(data, currency, today).available;
   const envelopes = (data.envelopes ?? []).filter((e) => !e.deleted && e.active);
   const view = budgetTransactions(data.transactions, data.goalContributions);
   const statuses = envelopeStatuses(envelopes, view, data.budgets ?? [], monthKey(today), currency, data.accounts);
   const envelopesRemaining = statuses.reduce((n, s) => n + Math.max(0, s.budget - s.spent), 0);
   const inEnvelopes = new Set(envelopes.flatMap((e) => e.categoryIds));
-  const outsideCommitments = commitments(data, currency, today, h)
+  const outsideCommitments = commitments(data, currency, today, p)
     .filter((c) => !c.categoryId || !inEnvelopes.has(c.categoryId))
     .reduce((n, c) => n + c.amount, 0);
   return { available, envelopesRemaining, outsideCommitments, amount: available - envelopesRemaining - outsideCommitments };

@@ -227,7 +227,9 @@ service cloud.firestore {
                                 && d.frequency in ['daily', 'weekly', 'biweekly', 'monthly', 'custom']
                                 && isISODate(d.startDate) && d.status in ['active', 'finished', 'paused']
                                 && d.currency is string && d.currency.size() == 3
-                                && optString(d, 'organizerName', 80) && optInt(d, 'membersCount') && optInt(d, 'potAmount'))
+                                && optString(d, 'organizerName', 80) && optInt(d, 'membersCount') && optInt(d, 'potAmount')
+                                // Argent disponible v2 (§5.4) : date de la clôture confirmée par la personne.
+                                && optISODate(d, 'closedAt'))
             : col == 'tontineEntries' ? (d.tontineId is string && d.kind in ['contribution', 'payout', 'fee', 'penalty']
                                 && isInt(d.period) && d.period > 0 && isInt(d.amount) && d.amount >= 0
                                 && isISODate(d.date) && d.status in ['planned', 'done', 'late'])

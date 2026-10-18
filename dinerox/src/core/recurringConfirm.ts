@@ -6,12 +6,13 @@
  * « payé ? » (dépense) ou « reçu ? » (revenu) ; la confirmation crée l'opération avec
  * l'identifiant DÉTERMINISTE de l'échéance (`recurringTxId`) : deux téléphones ne
  * créent pas deux loyers.
- *  - Dépense : chaque échéance non confirmée depuis le début de la période en cours.
+ *  - Dépense : chaque échéance non confirmée de la période en cours ou de la précédente.
  *  - Revenu : seulement la dernière échéance passée — jamais de rattrapage (une seule carte).
  * Une échéance déjà générée par l'ancien moteur (`lastGenerated`) est confirmée.
  */
 import { occurrencesBetween, recurringTxId } from './recurring';
-import { addMonths, startOfMonth, type ISODate } from './dates';
+import { addMonths, type ISODate } from './dates';
+import { payHorizon, previousCycleStart } from './payPeriod';
 import type { RecurringRule, SpaceData } from './types';
 
 export interface ConfirmCard {
@@ -28,7 +29,12 @@ export function occurrenceConfirmed(rule: Pick<RecurringRule, 'id' | 'lastGenera
   return (!!rule.lastGenerated && date <= rule.lastGenerated) || txIds.has(recurringTxId(rule.id, date));
 }
 
-export function recurringToConfirm(data: Pick<SpaceData, 'recurring' | 'transactions'>, today: ISODate, periodStart: ISODate = startOfMonth(today)): ConfirmCard[] {
+/**
+ * Cartes « payé ? » / « reçu ? » du jour. Dépenses : échéances de la période en cours et de la
+ * précédente (§7.2 ; plus anciennes : « À régulariser », `toRegularize`).
+ */
+export function recurringToConfirm(data: Pick<SpaceData, 'recurring' | 'transactions'>, today: ISODate, payDay?: number | null): ConfirmCard[] {
+  const periodStart = previousCycleStart(payHorizon(today, payDay), payDay);
   const txIds = new Set(data.transactions.filter((t) => !t.deleted).map((t) => t.id));
   const out: ConfirmCard[] = [];
   for (const r of data.recurring) {

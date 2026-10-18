@@ -135,7 +135,7 @@ describe('§7 — reste par jour v2 (D − E)', () => {
   });
 
   it('une récurrence convertie en tontine n’est comptée qu’une fois (D7)', () => {
-    const r1 = rule({ id: 'rec_t', amount: 10_000, accountId: 'cash', startDate: '2026-01-20', categoryId: 'cat_informal', subcategoryId: 'sub_informal_tontine' });
+    const r1 = rule({ id: 'rec_t', amount: 10_000, accountId: 'cash', startDate: '2026-01-20', lastGenerated: '2026-09-20', categoryId: 'cat_informal', subcategoryId: 'sub_informal_tontine' });
     const d = space({ accounts: [cash(50_000)], recurring: [r1], tontines: [tontine({ id: 'rot', startDate: '2026-10-20', linkedRecurringId: 'rec_t' })] });
     expect(ok(dailyAllowanceV2({ data: d, currency: 'XOF', today: TODAY })).commitments).toBe(10_000);
   });

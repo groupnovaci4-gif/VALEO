@@ -407,6 +407,11 @@ export interface Tontine extends SyncedDoc {
   status: 'active' | 'finished' | 'paused';
   /** Récurrence d'origine (conversion) : conservée, désactivée seulement si l'utilisateur le confirme. */
   linkedRecurringId?: ID | null;
+  /**
+   * Argent disponible v2 (§5.4) — date de la clôture CONFIRMÉE par la personne (avec `status:
+   * 'finished'`) : frais ou gain du cycle comptés à cette date. Jamais posée par l'application seule.
+   */
+  closedAt?: ISODate | null;
 }
 
 export type TontineEntryKind = 'contribution' | 'payout' | 'fee' | 'penalty';

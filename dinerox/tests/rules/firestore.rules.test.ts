@@ -392,6 +392,12 @@ describe('argent disponible v2 : champs facultatifs (docs/argent-disponible.md)'
     await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/debtPayments/p2'), payDoc('p2', { offAccounts: null })));
     await assertFails(setDoc(doc(db('u1'), 'spaces/u1/debtPayments/p3'), payDoc('p3', { offAccounts: 'oui' })));
   });
+  it('tontine — closedAt : date de clôture confirmée ; autre format refusé', async () => {
+    const ton = (id: string, over: Record<string, unknown> = {}) => ({ ...meta(id), type: 'rotating', name: 'Tontine', currency: 'XOF', amountPerShare: 10_000, sharesHeld: 1, frequency: 'monthly', startDate: '2026-01-05', status: 'finished', membersCount: 10, ...over });
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/tontines/t1'), ton('t1', { closedAt: '2026-10-20' })));
+    await assertSucceeds(setDoc(doc(db('u1'), 'spaces/u1/tontines/t2'), ton('t2', { closedAt: null, status: 'active' })));
+    await assertFails(setDoc(doc(db('u1'), 'spaces/u1/tontines/t3'), ton('t3', { closedAt: '20/10/2026' })));
+  });
   it('isolation : les nouveaux champs ne s’écrivent jamais dans l’espace d’un autre', async () => {
     await assertFails(setDoc(doc(db('u2'), 'spaces/u1/accounts/a9'), acc('a9', { openingDate: '2026-10-01' })));
   });

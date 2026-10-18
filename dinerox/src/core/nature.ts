@@ -54,8 +54,10 @@ export interface NatureContext {
   debtOfTx: Map<string, string>;
   /** Opération → tontine et sorte d'entrée du carnet (cotisation, cagnotte, frais, pénalité). */
   tontineOfTx: Map<string, { tontineId: string; kind: TontineEntry['kind'] }>;
-  /** Opérations qui ont des opérations liées (transferts avec frais, remboursements avec intérêts). */
+  /** Transferts (une dépense liée à un transfert = des frais). */
   transferIds: Set<string>;
+  /** Remboursements de dette « je dois » (une dépense liée à un remboursement = des intérêts). */
+  repaymentIds: Set<string>;
 }
 
 export function natureContext(
@@ -69,7 +71,10 @@ export function natureContext(
   const tontineOfTx = new Map<string, { tontineId: string; kind: TontineEntry['kind'] }>();
   for (const e of d.tontineEntries ?? []) if (!e.deleted && e.transactionId) tontineOfTx.set(e.transactionId, { tontineId: e.tontineId, kind: e.kind });
   const transferIds = new Set(d.transactions.filter((t) => !t.deleted && t.type === 'transfer').map((t) => t.id));
-  return { savings, tontineType, debtDirection, debtOfTx, tontineOfTx, transferIds };
+  const repaymentIds = new Set(
+    d.transactions.filter((t) => !t.deleted && t.type === 'expense' && debtDirection.get(t.debtId ?? debtOfTx.get(t.id) ?? '') === 'i_owe').map((t) => t.id),
+  );
+  return { savings, tontineType, debtDirection, debtOfTx, tontineOfTx, transferIds, repaymentIds };
 }
 
 /** La nature d'une opération (une seule). */
@@ -101,8 +106,11 @@ export function natureOf(t: Transaction, ctx: NatureContext): Nature {
   // Dépense (type `expense`).
   if (entry && (entry.kind === 'fee' || entry.kind === 'penalty')) return 'frais';
   if (t.subcategoryId === SUB_OTHER_FEES) return 'frais';
-  if (t.subcategoryId === SUB_DEBTS_INTEREST) return 'interets';
-  if (t.linkedTransactionId) return ctx.transferIds.has(t.linkedTransactionId) ? 'frais' : 'interets';
+  // Une dépense liée : des frais (transfert), des intérêts (remboursement de dette), sinon une dépense.
+  if (t.linkedTransactionId) {
+    if (ctx.transferIds.has(t.linkedTransactionId)) return 'frais';
+    if (ctx.repaymentIds.has(t.linkedTransactionId)) return 'interets';
+  } else if (t.subcategoryId === SUB_DEBTS_INTEREST) return 'interets';
   if (direction === 'i_owe') return 'remboursement_capital';
   if (direction === 'owed_to_me') return 'pret_accorde';
   if (tontineId) return ctx.tontineType.get(tontineId) === 'fixed_contribution' ? 'cotisation_association' : 'cotisation_tontine';

@@ -75,11 +75,14 @@ export interface EntryDraft {
   savingsRedirect?: boolean;
   /**
    * Argent disponible v2 (§11.7) — nature d'une opération de dette ou de tontine reconnue
-   * dans la phrase : jamais un revenu pour un remboursement ou un emprunt.
+   * dans la phrase : jamais un revenu pour un remboursement ou un emprunt (null : à préciser).
    */
   nature?: EntryNature | null;
-  /** §11.7 — Ce qui reste à choisir sur la carte (surligné) : la dette ou la tontine concernée. */
-  toChoose?: 'debt' | 'tontine' | null;
+  /**
+   * §11.7 — Ce qui reste à choisir sur la carte (surligné) : la dette ou la tontine concernée,
+   * ou la sorte de remboursement reçu (`refund` : prêt que j'ai accordé, ou achat).
+   */
+  toChoose?: 'debt' | 'tontine' | 'refund' | null;
 }
 
 /** Natures que le parseur sait reconnaître (sous-ensemble de `core/nature.ts`). */
@@ -90,7 +93,9 @@ export type EntryNature = 'remboursement_capital' | 'emprunt_recu' | 'pret_accor
  * « on m'a prêté » (emprunt) avant « j'ai prêté » (prêt accordé), « on m'a remboursé »
  * reste une entrée (jamais un remboursement de dette deviné).
  */
-const DEBT_PHRASES: { nature: EntryNature; type: 'expense' | 'income'; toChoose: 'debt' | 'tontine'; targets: string[]; re: RegExp }[] = [
+const DEBT_PHRASES: { nature: EntryNature | null; type: 'expense' | 'income'; toChoose: 'debt' | 'tontine' | 'refund'; targets: string[]; re: RegExp }[] = [
+  // « On m'a remboursé » : prêt accordé ou achat ? À préciser, jamais un revenu par défaut.
+  { nature: null, type: 'income', toChoose: 'refund', targets: [], re: /(?:^|[^a-z])(?:on m a rembourse|m a rembourse|on m a rendu|m a rendu)(?=$|[^a-z])/ },
   { nature: 'emprunt_recu', type: 'income', toChoose: 'debt', targets: [], re: /(?:^|[^a-z])(?:on m a prete|m a prete|on m a avance|j ai emprunte|je viens d emprunter|j emprunte|recu le pret|recu un pret|pret de la banque|credit de la banque)(?=$|[^a-z])/ },
   { nature: 'pret_accorde', type: 'expense', toChoose: 'debt', targets: ['sub_informal_loan_given', 'cat_informal'], re: /(?:^|[^a-z])(?:j ai prete|je prete|je viens de preter|j ai avance de l argent)(?=$|[^a-z])/ },
   { nature: 'remboursement_capital', type: 'expense', toChoose: 'debt', targets: ['sub_debts_loan', 'cat_debts'], re: /(?:^|[^a-z])(?:j ai rembourse|je rembourse|je viens de rembourser)(?=$|[^a-z])/ },
