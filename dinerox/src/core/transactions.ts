@@ -23,7 +23,19 @@ export type TxError =
   | 'category.missing'
   | 'savings.notSavings'
   | 'savings.goalPartTooBig'
-  | 'savings.insufficient';
+  | 'savings.insufficient'
+  // Argent disponible v2 (étape 2).
+  | 'money.none'
+  | 'money.shortfall'
+  | 'transfer.sameCurrencyAmount'
+  | 'account.notEmpty'
+  | 'account.currencyLocked'
+  | 'account.openingLocked'
+  | 'correction.none'
+  | 'correction.reason'
+  | 'goal.notEmpty'
+  | 'debt.hasPayments'
+  | 'debt.interest';
 
 export interface TxDraft {
   type: TransactionType;
@@ -63,6 +75,8 @@ export function validateTransaction(draft: TxDraft, accounts: Account[]): TxErro
       if (!to) errors.push('transfer.missingTarget');
       else if (!to.active) errors.push('account.inactive');
       else if (from && to.currency !== from.currency && !isValidAmount(draft.toAmount)) errors.push('transfer.currencyMismatch');
+      // Ancien transfert portant `toAmount` = montant : toléré (modification, suppression).
+      else if (from && to.currency === from.currency && draft.toAmount != null && draft.toAmount !== draft.amount) errors.push('transfer.sameCurrencyAmount');
     }
   }
   return errors;
@@ -71,9 +85,9 @@ export function validateTransaction(draft: TxDraft, accounts: Account[]): TxErro
 /**
  * Argent disponible v2 (§3.4, E26b) — en même devise, `toAmount` est INTERDIT : le
  * montant reçu est le montant envoyé (les frais sont une dépense liée). Reprise dans
- * firestore.rules. Pas encore dans `validateTransaction` : son message (texte
- * visible) attend l'accord du fondateur (étape 3) ; le formulaire n'envoie déjà
- * `toAmount` qu'entre deux devises.
+ * firestore.rules. Son message (texte
+ * visible) attend l'accord du fondateur (étape 2) ; le formulaire n'envoie déjà
+ * `toAmount` qu'entre deux devises. Reprise dans `validateTransaction`.
  */
 export function sameCurrencyTransferError(draft: Pick<TxDraft, 'type' | 'accountId' | 'toAccountId' | 'toAmount'>, accounts: Pick<Account, 'id' | 'currency' | 'deleted'>[]): 'transfer.sameCurrencyAmount' | null {
   if (draft.type !== 'transfer' || draft.toAmount == null) return null;

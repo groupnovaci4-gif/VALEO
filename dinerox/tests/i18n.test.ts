@@ -22,6 +22,10 @@ describe('i18n', () => {
       'transfer.missingTarget': true, 'transfer.currencyMismatch': true, 'currency.mismatch': true, 'goal.inactive': true,
       'goal.withdrawTooMuch': true, 'reserve.unavailable': true, 'reserve.category': true, 'category.merge': true,
       'category.missing': true, 'savings.notSavings': true, 'savings.goalPartTooBig': true, 'savings.insufficient': true,
+      // Argent disponible v2 (étape 2).
+      'money.none': true, 'money.shortfall': true, 'transfer.sameCurrencyAmount': true, 'account.notEmpty': true,
+      'account.currencyLocked': true, 'account.openingLocked': true, 'correction.none': true, 'correction.reason': true,
+      'goal.notEmpty': true, 'debt.hasPayments': true, 'debt.interest': true,
     };
     const sav: Record<SavingsError, true> = {
       'amount.invalid': true, 'date.invalid': true, 'account.missing': true, 'account.inactive': true, 'savings.notSavings': true,
