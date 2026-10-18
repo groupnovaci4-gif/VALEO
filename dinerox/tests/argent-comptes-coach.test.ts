@@ -174,7 +174,11 @@ describe('§11.7 — E39d : sens des dettes dans le parseur', () => {
   it('« J’ai reçu la cagnotte 100 000 » : retour de tontine, tontine à choisir', () => {
     expect(row(one("J'ai reçu la cagnotte 100 000"))).toEqual({ type: 'income', amount: 100_000, nature: 'retour_tontine', toChoose: 'tontine' });
   });
-  it('non-régression : « on m’a remboursé 5 000 » reste une entrée', () => {
-    expect(one("on m'a remboursé 5 000").type).toBe('income');
+  // Doc v2 révisé (§11.7) : « on m'a remboursé » est une entrée À PRÉCISER, jamais un revenu par défaut.
+  it('« On m’a remboursé 20 000 » : entrée à préciser (prêt accordé ou achat), surlignée, sans catégorie de revenu', () => {
+    const d = one("On m'a remboursé 20 000");
+    expect(row(d)).toEqual({ type: 'income', amount: 20_000, nature: null, toChoose: 'refund' });
+    expect(d.categoryId).toBeNull();
+    expect(d.uncertain).toContain('category');
   });
 });

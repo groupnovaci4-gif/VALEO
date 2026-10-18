@@ -126,14 +126,15 @@ describe('§5.4 — tontines : cagnotte = retour d’épargne + avance du groupe
   });
 
   it('E19b — cagnotte de 95 000 pour 100 000 cotisés, cycle clôturé : frais de tontine 5 000, position 0', () => {
-    const t = tontine({ id: 'rot', startDate: '2025-11-05', myTurns: [10], potAmount: 95_000, status: 'finished' });
+    const t = tontine({ id: 'rot', startDate: '2025-11-05', myTurns: [10], potAmount: 95_000, status: 'finished', closedAt: '2026-10-10' });
     const entries = Array.from({ length: 10 }, (_, i) => tentry({ tontineId: 'rot', kind: 'contribution', period: i + 1, amount: 10_000 }));
     entries.push(tentry({ tontineId: 'rot', kind: 'payout', period: 10, amount: 95_000 }));
     expect(tontineClosure(t, entries, '2026-10-15')).toEqual({ closed: true, paid: 100_000, received: 95_000, fees: 5_000, gain: 0 });
   });
 
   it('E20 — collecteur 31 × 1 000, remise de 30 000 : commission 1 000 à la clôture, revenus 0', () => {
-    const t = tontine({ id: 'col', type: 'collector', frequency: 'daily', startDate: '2026-09-01', cycleDays: 31, collectorCommission: 1_000, amountPerShare: 1_000, membersCount: null, myTurns: [] });
+    // Doc v2 révisé (§5.4) : la clôture est toujours confirmée (« terminée » + date).
+    const t = tontine({ id: 'col', type: 'collector', frequency: 'daily', startDate: '2026-09-01', cycleDays: 31, collectorCommission: 1_000, amountPerShare: 1_000, membersCount: null, myTurns: [], status: 'finished', closedAt: '2026-10-02' });
     const entries = Array.from({ length: 31 }, (_, i) => tentry({ tontineId: 'col', kind: 'contribution', period: i + 1, amount: 1_000 }));
     entries.push(tentry({ tontineId: 'col', kind: 'payout', period: 31, amount: 30_000, transactionId: 'remise' }));
     expect(tontineClosure(t, entries, '2026-10-15')).toMatchObject({ closed: true, fees: 1_000, gain: 0 });

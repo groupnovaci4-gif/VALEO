@@ -29,6 +29,9 @@ describe('§7.1 — horizon (D8)', () => {
   });
 });
 
+// Doc v2 révisé (§7.2) : une échéance non confirmée de la période PRÉCÉDENTE reste dans E.
+// Les exemples du §14 supposent le loyer de septembre payé : il est marqué comme tel
+// (`lastGenerated`, ancienne génération automatique).
 describe('§7 — reste par jour v2 (D − E)', () => {
   it('E2 — revenu déclaré 200 000, rien d’autre : aucun « par jour » (carte « Votre argent disponible aujourd’hui »)', () => {
     expect(dailyAllowanceV2({ data: space({ accounts: [cash()] }), currency: 'XOF', today: TODAY }).status).toBe('needs_money');
@@ -52,7 +55,7 @@ describe('§7 — reste par jour v2 (D − E)', () => {
   });
 
   it('E11 — D 100 000 ; loyer 30 000 le 28 ; objectif 20 000/mois rien versé : E = 50 000, 2 941 par jour', () => {
-    const d = space({ accounts: [cash(100_000)], recurring: [rule({ amount: 30_000, accountId: 'cash', categoryId: 'cat_housing', startDate: '2026-01-28' })], goals: [goal({ id: 'moto', targetAmount: 500_000, monthlyContribution: 20_000 })] });
+    const d = space({ accounts: [cash(100_000)], recurring: [rule({ amount: 30_000, accountId: 'cash', categoryId: 'cat_housing', startDate: '2026-01-28', lastGenerated: '2026-09-28' })], goals: [goal({ id: 'moto', targetAmount: 500_000, monthlyContribution: 20_000 })] });
     const r = ok(dailyAllowanceV2({ data: d, currency: 'XOF', today: TODAY }));
     expect([r.available, r.commitments, r.perDay]).toEqual([100_000, 50_000, 2_941]);
   });
@@ -60,7 +63,7 @@ describe('§7 — reste par jour v2 (D − E)', () => {
   it('E11b — E11 + mensualité de dette de 25 000 le 30 : E = 75 000, 1 470 par jour', () => {
     const d = space({
       accounts: [cash(100_000)],
-      recurring: [rule({ amount: 30_000, accountId: 'cash', startDate: '2026-01-28' })],
+      recurring: [rule({ amount: 30_000, accountId: 'cash', startDate: '2026-01-28', lastGenerated: '2026-09-28' })],
       goals: [goal({ id: 'moto', targetAmount: 500_000, monthlyContribution: 20_000 })],
       debts: [debt({ id: 'owe', principal: 300_000, installment: 25_000, dueDay: 30 })],
     });
@@ -71,7 +74,7 @@ describe('§7 — reste par jour v2 (D − E)', () => {
   it('E11c — E11, puis 20 000 versés à l’objectif depuis Espèces : D 80 000, E 30 000, toujours 2 941', () => {
     const d = space({
       accounts: [cash(100_000)],
-      recurring: [rule({ amount: 30_000, accountId: 'cash', startDate: '2026-01-28' })],
+      recurring: [rule({ amount: 30_000, accountId: 'cash', startDate: '2026-01-28', lastGenerated: '2026-09-28' })],
       goals: [goal({ id: 'moto', targetAmount: 500_000, monthlyContribution: 20_000 })],
       goalContributions: [contribution({ goalId: 'moto', amount: 20_000, accountId: 'cash', date: '2026-10-10' })],
     });
@@ -95,7 +98,7 @@ describe('§7 — reste par jour v2 (D − E)', () => {
       accounts: [cash(4_000)],
       transactions: [tx({ type: 'income', amount: 200_000, accountId: 'cash', categoryId: 'inc_salary', date: '2026-10-25' })],
       tontines: [tontine({ id: 'rot', startDate: '2026-11-20' })],
-      recurring: [rule({ amount: 30_000, accountId: 'cash', startDate: '2026-01-28' })],
+      recurring: [rule({ amount: 30_000, accountId: 'cash', startDate: '2026-01-28', lastGenerated: '2026-09-28' })],
       goals: [goal({ id: 'moto', targetAmount: 500_000, monthlyContribution: 20_000 })],
     });
     const r = ok(dailyAllowanceV2({ data: d, currency: 'XOF', today: '2026-10-25', payDay: 25 }));
@@ -103,7 +106,7 @@ describe('§7 — reste par jour v2 (D − E)', () => {
   });
 
   it('E33 — 26 octobre, salaire du 25 NON confirmé, D 4 000, loyer le 28 : dépassement de 26 000 jusqu’au 24 novembre, « Salaire attendu : reçu ? »', () => {
-    const d = space({ accounts: [cash(4_000)], recurring: [rule({ amount: 30_000, accountId: 'cash', startDate: '2026-01-28' })] });
+    const d = space({ accounts: [cash(4_000)], recurring: [rule({ amount: 30_000, accountId: 'cash', startDate: '2026-01-28', lastGenerated: '2026-09-28' })] });
     const r = dailyAllowanceV2({ data: d, currency: 'XOF', today: '2026-10-26', payDay: 25 });
     expect(r.status).toBe('deficit');
     if (r.status !== 'deficit') return;
@@ -111,7 +114,7 @@ describe('§7 — reste par jour v2 (D − E)', () => {
   });
 
   it('E34 — loyer du 5 en retard le 6 : dans E ; confirmé le 7 : D 70 000 et il sort de E', () => {
-    const r1 = rule({ id: 'loyer', amount: 30_000, accountId: 'cash', startDate: '2026-01-05' });
+    const r1 = rule({ id: 'loyer', amount: 30_000, accountId: 'cash', startDate: '2026-01-05', lastGenerated: '2026-09-05' });
     const late = ok(dailyAllowanceV2({ data: space({ accounts: [cash(100_000)], recurring: [r1] }), currency: 'XOF', today: '2026-10-06' }));
     expect([late.available, late.commitments]).toEqual([100_000, 30_000]);
     const paid = space({ accounts: [cash(100_000)], recurring: [r1], transactions: [tx({ id: recurringTxId('loyer', '2026-10-05'), type: 'expense', amount: 30_000, accountId: 'cash', recurringId: 'loyer', date: '2026-10-07' })] });
@@ -146,7 +149,7 @@ describe('§8 — récurrences : jamais enregistrées seules, confirmées d’un
   });
 
   it('E34 / E37 — dépense en retard : une carte « payé ? », identifiant déterministe (deux téléphones → une seule opération)', () => {
-    const loyer = rule({ id: 'loyer', amount: 30_000, accountId: 'cash', startDate: '2026-01-05' });
+    const loyer = rule({ id: 'loyer', amount: 30_000, accountId: 'cash', startDate: '2026-01-05', lastGenerated: '2026-09-05' });
     const [card] = recurringToConfirm(space({ accounts: [cash()], recurring: [loyer] }), '2026-10-06');
     expect(card).toMatchObject({ ruleId: 'loyer', type: 'expense', date: '2026-10-05' });
     expect(card.id).toBe(recurringTxId('loyer', '2026-10-05'));
@@ -170,7 +173,7 @@ describe('§9 — reste à répartir', () => {
       accounts: [cash(170_000)],
       transactions: [tx({ type: 'expense', amount: 70_000, accountId: 'cash', categoryId: 'cat_food', date: '2026-10-05' })],
       envelopes: [envelope({ id: 'food', monthlyBudget: 50_000, categoryIds: ['cat_food'] }), envelope({ id: 'maison', monthlyBudget: 30_000, categoryIds: ['cat_housing'] })],
-      recurring: [rule({ amount: 30_000, accountId: 'cash', categoryId: 'cat_housing', startDate: '2026-01-28' })],
+      recurring: [rule({ amount: 30_000, accountId: 'cash', categoryId: 'cat_housing', startDate: '2026-01-28', lastGenerated: '2026-09-28' })],
       tontines: [tontine({ id: 'rot', startDate: '2026-10-20' })],
     });
     const u = unallocated({ data: d, currency: 'XOF', today: TODAY });
