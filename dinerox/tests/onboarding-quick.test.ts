@@ -33,11 +33,11 @@ describe('démarrage rapide', () => {
     expect(rules[0]).toMatchObject({ id: 'rec_q0', accountId: 'acc1', label: 'L:sub_housing_rent', active: true, lastGenerated: null, createdBy: 'u1' });
   });
 
-  it('aperçu : revenu déclaré − charges à venir ce mois-ci, par jour restant', () => {
+  // Argent disponible v2 (E10, D1) : aucun « X par jour » à l'inscription, le revenu déclaré n'est pas de l'argent.
+  it('aperçu : jamais de « par jour » tiré du revenu déclaré (E10)', () => {
     const r = quickPreview({ monthlyIncome: 250_000, charges: [{ subcategoryId: 'sub_housing_rent', amount: 100_000, day: 25 }, { subcategoryId: 'sub_comm_airtime', amount: 5_000, day: 1 }], currency: 'XOF', today: '2026-10-10' });
-    // Loyer du 25 à venir ; crédit du 1er : échéance au mois prochain.
-    expect(r.status === 'ok' && r.available).toBe(150_000);
-    expect(r.status === 'ok' && r.perDay).toBe(Math.floor(150_000 / 22));
+    expect(r.status).toBe('needs_income');
+    expect('perDay' in r).toBe(false);
   });
 
   it('aperçu sans revenu : invitation, aucun chiffre', () => {
@@ -54,12 +54,10 @@ describe('démarrage rapide : réserve facultative (1.6)', () => {
     const g = quickReserveGoal(20_000, meta)!;
     expect([g.kind, g.targetAmount, g.monthlyContribution, g.targetDate]).toEqual(['reserve', 240_000, 20_000, null]);
   });
-  it('aperçu : la mise de côté prévue est déduite du reste par jour', async () => {
+  it('aperçu avec réserve : toujours aucun « par jour » à l’inscription (E10)', async () => {
     const { quickPreview } = await import('../src/core/onboardingQuick');
     const base = { monthlyIncome: 310_000, charges: [], currency: 'XOF' as const, today: '2026-10-01' };
-    const without = quickPreview(base);
-    const withReserve = quickPreview({ ...base, reserveMonthly: 31_000 });
-    expect(without.status === 'ok' && without.perDay).toBe(10_000);
-    expect(withReserve.status === 'ok' && withReserve.perDay).toBe(9_000);
+    expect(quickPreview(base).status).toBe('needs_income');
+    expect(quickPreview({ ...base, reserveMonthly: 31_000 }).status).toBe('needs_income');
   });
 });

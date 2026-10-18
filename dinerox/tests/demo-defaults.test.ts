@@ -23,10 +23,13 @@ describe('structure initiale de l onboarding', () => {
     { firstName: 'Awa', currency: 'XOF', monthlyIncome: 450_000, incomeFrequency: 'monthly', payDay: 25, mainExpenses: [], goals: ['buy_moto', 'emergency_fund'], budgetMethod: 'envelopes', accounts: ['acc.cash', 'acc.wave', 'acc.bank'] },
     { now: 1, uid: 'u', date: '2026-10-04', id: (p) => `${p}${++i}`, label: (k) => k },
   );
-  it('crée comptes, enveloppes budgétées, salaire récurrent et objectifs', () => {
+  // Argent disponible v2 (E10, D1, D7, §9) : le revenu déclaré n'est jamais de l'argent ;
+  // enveloppes à 0, aucune récurrence de salaire à l'inscription.
+  it('crée comptes, enveloppes À ZÉRO et objectifs ; aucune récurrence de salaire (E10)', () => {
     expect(s.accounts).toHaveLength(3);
-    expect(s.envelopes!.reduce((t, e) => t + e.monthlyBudget, 0)).toBe(450_000);
-    expect(s.recurring![0]).toMatchObject({ amount: 450_000, startDate: '2026-10-25', frequency: 'monthly' });
+    expect(s.envelopes!.length).toBeGreaterThan(0);
+    expect(s.envelopes!.every((e) => e.monthlyBudget === 0)).toBe(true);
+    expect(s.recurring).toHaveLength(0);
     expect(s.goals!.map((g) => g.templateId)).toEqual(['buy_moto', 'emergency_fund']);
     expect(s.categories!.length).toBeGreaterThan(14);
   });

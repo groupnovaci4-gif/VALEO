@@ -49,12 +49,14 @@ describe('reste par jour', () => {
     expect('perDay' in r).toBe(false);
   });
 
-  it('revenu déclaré seulement : utilisé, et la source est « déclaré »', () => {
+  // Argent disponible v2 (D1) : le revenu déclaré est une information, jamais de l'argent.
+  it('revenu déclaré seulement : jamais compté (invitation, aucun chiffre)', () => {
     const r = dailyAllowance({ data: empty, currency: 'XOF', today: '2026-10-22', financial: { monthlyIncome: 200_000 } });
-    expect(r.status === 'ok' && r.incomeSource === 'declared' && r.available === 200_000 && r.daysLeft === 10 && r.perDay === 20_000).toBe(true);
+    expect(r.status).toBe('needs_income');
+    expect('perDay' in r).toBe(false);
   });
 
-  it('un revenu enregistré prime sur le déclaré', () => {
+  it('un revenu enregistré est seul compté, le déclaré est ignoré', () => {
     const r = dailyAllowance({ data: { ...empty, transactions: [tx({ type: 'income', amount: 90_000, accountId: 'a', date: '2026-10-01' })] }, currency: 'XOF', today: '2026-10-22', financial: { monthlyIncome: 200_000 } });
     expect(r.status === 'ok' && r.incomeSource === 'user' && r.income === 90_000).toBe(true);
   });
