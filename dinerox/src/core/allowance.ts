@@ -160,7 +160,8 @@ export function commitments(d: AllowanceData, currency: CurrencyCode, today: ISO
     for (const c of d.goalContributions) {
       if (c.deleted || c.goalId !== g.id) continue;
       if (c.date < h.cycleStart) savedAtStart += c.amount;
-      else if (c.date <= today) paidInPeriod += fromAvailable(c, txById, savings, firstCC);
+      // Règle 19 : une utilisation de réserve (liée à une dépense) n'annule pas la mise de côté du mois.
+      else if (c.date <= today && !(c.amount < 0 && c.linkedTransactionId)) paidInPeriod += fromAvailable(c, txById, savings, firstCC);
     }
     const plan = computeGoalPlan({ targetAmount: g.targetAmount, saved: Math.max(0, savedAtStart), targetDate: g.targetDate, monthlyContribution: g.monthlyContribution, planned: g.planned }, today);
     if (plan.reached) continue;
@@ -196,9 +197,23 @@ export interface AllowanceV2Detail extends AllowanceV2Base {
   items: Commitment[];
   /** Paie attendue depuis cette date et pas encore confirmée : carte « Salaire attendu : reçu ? ». */
   salaryPending: ISODate | null;
+  /** Règle 19 : part des dépenses du mois prise sur une réserve (déjà mise de côté : D ne baisse pas). */
+  reserveCovered: number;
 }
 
 export type AllowanceV2 = ({ status: 'needs_money' } & AllowanceV2Base) | ({ status: 'deficit'; deficit: number } & AllowanceV2Detail) | ({ status: 'ok'; perDay: number } & AllowanceV2Detail);
+
+/** Utilisations de réserve (contributions négatives liées à une dépense) des dépenses du mois de `today`. */
+function reserveCoveredInMonth(data: AllowanceData, currency: CurrencyCode, today: ISODate): number {
+  const month = monthKey(today);
+  const spent = new Map(data.transactions.filter((t) => !t.deleted && t.type === 'expense' && t.currency === currency && monthKey(t.date) === month).map((t) => [t.id, t.amount]));
+  let n = 0;
+  for (const c of data.goalContributions) {
+    if (c.deleted || c.amount >= 0 || !c.linkedTransactionId || !spent.has(c.linkedTransactionId)) continue;
+    n += Math.min(-c.amount, spent.get(c.linkedTransactionId) as number);
+  }
+  return n;
+}
 
 export function dailyAllowanceV2(input: { data: AllowanceData; currency: CurrencyCode; today: ISODate; payDay?: number | null }): AllowanceV2 {
   const { data, currency, today } = input;
@@ -209,7 +224,7 @@ export function dailyAllowanceV2(input: { data: AllowanceData; currency: Currenc
   const items = commitments(data, currency, today, p);
   const E = items.reduce((n, c) => n + c.amount, 0);
   const D = position.available;
-  const detail: AllowanceV2Detail = { until: h.until, daysLeft: h.daysLeft, available: D, commitments: E, items, salaryPending: p.salaryPending };
+  const detail: AllowanceV2Detail = { until: h.until, daysLeft: h.daysLeft, available: D, commitments: E, items, salaryPending: p.salaryPending, reserveCovered: reserveCoveredInMonth(data, currency, today) };
   if (D - E < 0) return { status: 'deficit', deficit: E - D, ...detail };
   return { status: 'ok', perDay: Math.floor((D - E) / h.daysLeft), ...detail };
 }

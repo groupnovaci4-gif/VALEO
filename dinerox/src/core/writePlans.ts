@@ -135,6 +135,20 @@ export type SourceChoice =
 const sameSource = (s: SpendSource, c: SourceChoice) =>
   s.kind === c.kind && 'accountId' in s && s.accountId === c.accountId && (!('goalId' in c) || ('goalId' in s && s.goalId === c.goalId));
 
+/**
+ * Date du complément : la PREMIÈRE sortie du lot sur ce compte (jamais après aujourd'hui). Une
+ * note datée d'hier est complétée à sa date : sinon le solde d'hier resterait sous zéro.
+ */
+function complementDate(items: PlanItem[], accountId: string, today: ISODate): ISODate {
+  let date = today;
+  for (const { col, doc } of items) {
+    if (col !== 'transactions') continue;
+    const t = doc as Transaction;
+    if (!t.deleted && t.accountId === accountId && (t.type === 'expense' || t.type === 'transfer') && t.date < date) date = t.date;
+  }
+  return date;
+}
+
 /** Écritures d'un complément (devise du compte qui paie). */
 function complementItems(source: SpendSource, missing: number, payingAccountId: string, date: ISODate, currency: CurrencyCode, newId: NewId): PlanItem[] {
   const drafts = complementDrafts(source, missing, payingAccountId, date);
@@ -207,7 +221,7 @@ export function planComplementsFor(
     if (!choice) return { error: 'needsChoice', accountId: e.accountId, missing: e.missing, sources };
     const source = sources.find((x) => sameSource(x, choice));
     if (!source || !e.accountId) return { error: 'stale', accountId: e.accountId };
-    out.push(...complementItems(source, e.missing, e.accountId, today, currency, newId));
+    out.push(...complementItems(source, e.missing, e.accountId, complementDate(items, e.accountId, today), currency, newId));
   }
   return { error: 'stale', accountId: null };
 }

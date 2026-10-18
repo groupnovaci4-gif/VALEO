@@ -9,7 +9,8 @@ import { useCallback } from 'react';
 import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
-import { ActionError, useActions } from '@/store/actions';
+import { ActionError, useActions, type Draft } from '@/store/actions';
+import type { Transaction } from '@/core/types';
 import { useMoney } from '@/hooks/useFinance';
 import { useToast } from '@/components/ui';
 import { dailyAllowanceV2 } from '@/core/allowance';
@@ -122,6 +123,8 @@ export function useEntrySave() {
       if (!activeSpace) throw new Error('notReady');
       const ids: string[] = [];
       const createdCategories: string[] = [];
+      /** Complément du cumul (§6.3), écrit avant les lignes ; retiré avec elles si besoin. */
+      let complementIds: string[] = [];
       // §6.1 — Plusieurs lignes : le contrôle porte sur le CUMUL par compte, AVANT tout
       // enregistrement (la part prise sur une réserve est déduite d'abord). Rien n'est écrit sinon.
       if (engine && !choices.length) {
@@ -143,6 +146,21 @@ export function useEntrySave() {
           createdCategories.push(cat.id);
           return { ...d, categoryId: cat.id, subcategoryId: null, suggested: { categoryId: cat.id, subcategoryId: null } };
         });
+        // §6.1 + §6.3 — Le complément choisi couvre le CUMUL des dépenses de la note, en une fois :
+        // ensuite chaque ligne passe sans nouvelle feuille (sinon la 2e ligne redemanderait).
+        if (choices.length) {
+          const accountsNow = engine ? engine.getData(activeSpace.id).accounts : [];
+          const fallback = defaultSpendingAccountId(accountsNow, null, activeSpace.currency) ?? '';
+          complementIds = actions.coverGroupShortfall(
+            drafts
+              .filter((x) => x.type === 'expense' && x.amount && !x.tontine)
+              .map((x) => ({
+                draft: { type: 'expense', amount: x.amount as number, currency: activeSpace.currency, date: x.date, accountId: x.accountId ?? fallback, categoryId: x.categoryId, subcategoryId: x.subcategoryId, payee: x.payee, note: null } as Draft<Transaction>,
+                reserveId: x.reserveId && reserveEligible(x.categoryId, x.subcategoryId) ? x.reserveId : null,
+              })),
+            choices,
+          );
+        }
         for (const d of drafts) {
           // Ligne liée à une tontine : opération réelle + entrée de tontine, en une fois.
           if (d.tontine && d.amount) {
@@ -174,13 +192,17 @@ export function useEntrySave() {
               payee: d.payee,
               note: null,
             },
-            { reserveId, choices },
+            // Note déjà contrôlée au cumul et complétée : pas de second contrôle ligne à ligne
+            // (une ligne datée d'hier serait vue sans le complément, daté d'aujourd'hui).
+            complementIds.length ? { reserveId, covered: true } : { reserveId, choices },
           );
           ids.push(tx.id);
         }
+        // « Annuler » (5 s) retire aussi le complément : tout le groupe, d'un coup.
+        ids.push(...complementIds);
       } catch (e) {
-        // Échec en cours de route : rien de partiel (les lignes et catégories déjà créées sont retirées).
-        for (const id of ids) actions.remove('transactions', id);
+        // Échec en cours de route : rien de partiel (les lignes, le complément et les catégories déjà créés sont retirés).
+        for (const id of [...ids, ...complementIds.filter((x) => !ids.includes(x))]) actions.remove('transactions', id);
         for (const id of createdCategories) actions.remove('categories', id);
         throw e;
       }

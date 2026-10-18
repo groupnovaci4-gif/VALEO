@@ -12,6 +12,7 @@ import { useFinance, useMoney } from '@/hooks/useFinance';
 import { Chip, Text } from '@/components/ui';
 import { activeReserves, reserveBalance, reserveEligible, splitReserveUse } from '@/core/reserve';
 import { canUseReserve } from '@/core/permissions';
+import { reserveCover } from '@/core/spendPlan';
 
 /** Réserves proposables pour une dépense (vide : rien n'est proposé). */
 export function useReserveChoices(type: string, categoryId: string | null | undefined, subcategoryId?: string | null) {
@@ -48,7 +49,7 @@ export function ReserveUseToggle({
 }) {
   const { t } = useI18n();
   const money = useMoney();
-  const { data } = useFinance();
+  const { data, currency } = useFinance();
   const reserves = useReserveChoices(type, categoryId, subcategoryId);
   if (!reserves.length) return null;
   const chosen = reserves.find((r) => r.id === value) ?? null;
@@ -56,7 +57,10 @@ export function ReserveUseToggle({
   const balanceOf = (id: string) => Math.max(0, reserveBalance(reserves.find((r) => r.id === id)!, others) - (id === value ? alreadyTaken : 0));
   const shown = chosen ?? reserves[0];
   const balance = balanceOf(shown.id);
-  const split = chosen && amount ? splitReserveUse(amount, balance) : null;
+  // §5.3 : la réserve ne paie que l'argent mis de côté SUR UN COMPTE (jamais la part hors comptes) :
+  // la carte annonce exactement ce que l'enregistrement prendra.
+  const usable = chosen ? Math.max(0, reserveCover({ ...data, goalContributions: others }, chosen.id, Number.MAX_SAFE_INTEGER, null, currency).covered - alreadyTaken) : 0;
+  const split = chosen && amount ? splitReserveUse(amount, Math.min(balance, usable)) : null;
 
   return (
     <View style={[{ gap: 6 }, style]} accessibilityLabel={t('reserve.use.ask', { balance: money(balance) })}>

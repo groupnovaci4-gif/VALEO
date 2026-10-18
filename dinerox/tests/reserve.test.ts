@@ -77,6 +77,19 @@ describe('reste par jour et réserve', () => {
     expect(r.status === 'ok' && r.perDay).toBe(Math.floor(280_000 / daysLeft));
   });
 
+  it('une utilisation de la réserve dans le mois ne réduit pas la mise de côté déjà faite (règle 19)', () => {
+    const saved = [contrib({ id: 'old', amount: 100_000, date: '2026-09-05', accountId: 'a' })];
+    const funeral = tx({ id: 'fun', type: 'expense', amount: 15_000, accountId: 'a', date: '2026-10-08', categoryId: 'cat_social' });
+    const use = contrib({ id: 'use', amount: -15_000, linkedTransactionId: 'fun', date: '2026-10-08', accountId: 'a' });
+    const base = { ...empty, transactions: [income, funeral], goals: [reserve()] };
+    const before = dailyAllowance({ data: { ...base, goalContributions: [...saved, use] }, currency: 'XOF', today });
+    expect(goalPart(before)).toBe(20_000);
+    const after = dailyAllowance({ data: { ...base, goalContributions: [...saved, use, contrib({ id: 'in', amount: 20_000, date: '2026-10-12', accountId: 'a' })] }, currency: 'XOF', today });
+    expect(goalPart(after)).toBe(0);
+    if (before.status !== 'ok' || after.status !== 'ok') throw new Error('ok attendu');
+    expect(after.perDay).toBe(before.perDay);
+  });
+
   it('mettre la somme prévue de côté ne change pas le reste par jour', () => {
     const before = dailyAllowance({ data: { ...empty, transactions: [income], goals: [reserve()] }, currency: 'XOF', today });
     const after = dailyAllowance({ data: { ...empty, transactions: [income], goals: [reserve()], goalContributions: [contrib({ amount: 20_000, date: '2026-10-05' })] }, currency: 'XOF', today });
@@ -95,6 +108,21 @@ describe('reste par jour et réserve', () => {
     expect(before.status === 'ok' && after.status === 'ok').toBe(true);
     if (before.status !== 'ok' || after.status !== 'ok') return;
     expect(after.perDay).toBe(before.perDay);
+  });
+
+  it('détail : part des dépenses du mois prise sur une réserve (« Pris sur la réserve : X »)', () => {
+    const saved = [contrib({ id: 'old', amount: 100_000, date: '2026-09-05' })];
+    const funeral = tx({ id: 'fun', type: 'expense', amount: 30_000, accountId: 'a', date: '2026-10-10', categoryId: 'cat_social' });
+    const lastMonth = tx({ id: 'sep', type: 'expense', amount: 5_000, accountId: 'a', date: '2026-09-20', categoryId: 'cat_social' });
+    const r = dailyAllowance({
+      data: { ...empty, transactions: [income, funeral, lastMonth], goals: [reserve()], goalContributions: [...saved, contrib({ amount: -30_000, linkedTransactionId: 'fun', date: '2026-10-10' }), contrib({ amount: -5_000, linkedTransactionId: 'sep', date: '2026-09-20' })] },
+      currency: 'XOF',
+      today,
+    });
+    if (r.status !== 'ok') throw new Error('ok attendu');
+    expect(r.reserveCovered).toBe(30_000);
+    const none = dailyAllowance({ data: { ...empty, transactions: [income] }, currency: 'XOF', today });
+    expect(none.status === 'ok' && none.reserveCovered).toBe(0);
   });
 
   it('réserve complète au début du mois : l’utiliser ne relance pas la mise de côté du mois', () => {

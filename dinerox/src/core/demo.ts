@@ -18,7 +18,7 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
     ...base, id, name, type, provider, currency: 'XOF', openingBalance: opening, color, icon, active: true, isSavings, order,
   });
   const accounts = [
-    acc('demo_cash', meta.label('acc.cash'), 'cash', 'none', 25_000, '#16A34A', 'cash', false, 0),
+    acc('demo_cash', meta.label('acc.cash'), 'cash', 'none', 400_000, '#16A34A', 'cash', false, 0),
     acc('demo_om', meta.label('acc.orange'), 'mobile_money', 'orange_money', 40_000, '#F97316', 'phone-portrait', false, 1),
     acc('demo_bank', meta.label('acc.bank'), 'bank', 'bank', 60_000, '#334155', 'business', false, 2),
     acc('demo_sav', meta.label('acc.savings'), 'savings', 'none', 300_000, '#16A34A', 'wallet', true, 3),

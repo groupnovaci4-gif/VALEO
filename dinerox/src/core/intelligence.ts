@@ -330,6 +330,8 @@ export function coachRecommendations(s: FinancialSnapshot, state: CoachState, go
     debtShare: state.debtShare,
     goalsBehind: state.goalsBehind,
   });
+  // Aucun revenu reçu (taux d'épargne inconnu) : rien à féliciter — jamais « 0 % de vos revenus reçus ».
+  if (key === 'congrats' && state.savingsRate === null) return recommendations(s, goals).filter((r) => !REPLACED.has(r.kind) && r.kind !== 'congrats');
   const first = primary(key, s, state, until);
   const rest = recommendations(s, goals).filter((r) => !REPLACED.has(r.kind) && r.kind !== first.kind);
   return [first, ...rest];

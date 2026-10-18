@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { observedCapacity, financialSnapshot, isFixedExpense, monthlyEquivalent, recommendations } from '../src/core/intelligence';
+import { coachRecommendations, observedCapacity, financialSnapshot, isFixedExpense, monthlyEquivalent, recommendations } from '../src/core/intelligence';
+import { coachState } from '../src/core/coachData';
 import { personalBudget } from '../src/core/personalBudget';
 import { simulateIndependence } from '../src/core/independence';
 import { financialCalendar } from '../src/core/calendar';
 import { emptyDraft, toFinancialProfile, toOnboardingAnswers, validateDraft, withCountry, withNoBank } from '../src/core/financialProfile';
 import { emptySpaceData, type Debt, type RecurringRule } from '../src/core/types';
-import { envelope, goal, tx } from './helpers';
+import { account, envelope, goal, tx } from './helpers';
 
 const NOW = '2026-10-15';
 const base = { createdAt: 1, updatedAt: 1, createdBy: 'u1' };
@@ -181,5 +182,16 @@ describe('profil financier : rien de bloquant', () => {
     expect(p.payDay).toBeNull();
     expect(p.fixedCharges).toEqual({ sub_housing_rent: 0, sub_informal_tontine: 10_000 });
     expect(toOnboardingAnswers(d, 'A').fixedCharges).toEqual({ sub_informal_tontine: 10_000 });
+  });
+});
+
+describe('v2 — conseil principal sans revenu reçu', () => {
+  it('argent déclaré mais aucun revenu reçu : jamais « Vous épargnez 0 % de vos revenus reçus »', () => {
+    const d = { ...data(), accounts: [account({ id: 'a', openingBalance: 1_000_000, openingDate: '2026-10-01' })] };
+    const s = financialSnapshot({ data: d, currency: 'XOF', now: NOW, available: 1_000_000 });
+    const state = coachState(d, 'XOF', NOW);
+    expect(state.savingsRate).toBeNull();
+    const recs = coachRecommendations(s, state, d.goals, null);
+    expect(recs.some((r) => r.kind === 'congrats')).toBe(false);
   });
 });

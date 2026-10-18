@@ -3,6 +3,8 @@ import { buildDemoData } from '../src/core/demo';
 import { buildInitialStructure } from '../src/core/defaults';
 import { accountBalances } from '../src/core/balance';
 import { envelopeStatuses } from '../src/core/budget';
+import { positionOf } from '../src/core/position';
+import { withLedgerView } from '../src/core/nature';
 
 describe('données de démonstration', () => {
   const d = buildDemoData({ now: 1, uid: 'u', today: '2026-10-20', label: (k) => k });
@@ -14,6 +16,13 @@ describe('données de démonstration', () => {
     expect(b.demo_sav).toBeGreaterThan(300_000);
     const s = envelopeStatuses(d.envelopes, d.transactions, [], '2026-10', 'XOF');
     expect(s.find((x) => x.envelope.id === 'demo_env_home')!.spent).toBe(140_000);
+  });
+  // Argent disponible v2 (§6.4) : un compte sous zéro s'affiche « à régulariser » ; la démo n'en montre aucun.
+  it('aucun compte sous zéro, quel que soit le jour du mois', () => {
+    for (const today of ['2026-10-01', '2026-10-11', '2026-10-20', '2026-10-31'] as const) {
+      const demo = withLedgerView(buildDemoData({ now: 1, uid: 'u', today, label: (k) => k }));
+      expect(positionOf(demo, 'XOF', today).negatives, today).toEqual([]);
+    }
   });
 });
 

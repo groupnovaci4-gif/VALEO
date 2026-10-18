@@ -86,13 +86,19 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
     );
   };
 
-  // Texte actuel gardé jusqu'à l'étape 3 : « Revenus » = argent disponible D, « à venir » = engagements E
-  // (aucune dépense de plus : elles sont déjà sorties de D). Le détail explique toujours le chiffre.
+  // §7.3 : argent disponible D − engagements E, sur les jours jusqu'au prochain revenu (les dépenses
+  // sont déjà sorties de D). Le détail explique toujours le chiffre.
   const detail = r.status === 'needs_money' ? null : t('daily.detail', { available: show(r.available), commitments: show(r.commitments), days: r.daysLeft });
   const items = r.status === 'needs_money' ? [] : r.items;
   // Sous la carte : réserve et source TOUJOURS visibles ; détail du calcul replié.
   const below = (
     <View style={{ marginTop: 8, marginBottom: 12, gap: 6 }}>
+      {/* Règle 19 : la part prise sur une réserve reste visible (elle n'a pas fait baisser le reste par jour). */}
+      {r.status !== 'needs_money' && r.reserveCovered > 0 ? (
+        <Text variant="small" tone="muted">
+          {t('daily.reserveCovered', { amount: show(r.reserveCovered) })}
+        </Text>
+      ) : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t('daily.howCalculated')}

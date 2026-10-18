@@ -3,6 +3,7 @@
  * que `useActions` enregistre d'un bloc (`writeMany`) : tout ou rien.
  */
 import { describe, expect, it } from 'vitest';
+import { addDays } from '../src/core/dates';
 import {
   accountChangeError,
   applyItems,
@@ -248,6 +249,32 @@ describe('§6.3 — feuille de complément, pour TOUT lot (versement, contributi
     const items = [{ col: 'transactions' as const, doc: tx({ type: 'expense', amount: 1_000, accountId: 'cash', date: TODAY }) }];
     expect(planComplementsFor(space({ accounts: [cash(5_000)] }), items, [], TODAY, newId)).toEqual({ items: [] });
     expect(planComplementsFor(space({ accounts: [cash()] }), items, [], TODAY, newId)).toEqual({ error: 'noMoney' });
+  });
+  it('note de plusieurs lignes (§6.1) : UN complément pour le cumul, puis chaque ligne passe', () => {
+    const d = space({ accounts: [cash(80_000), om(100_000)] });
+    const lines = [60_000, 50_000, 12_000].map((amount, i) => ({ col: 'transactions' as const, doc: tx({ id: `l${i}`, type: 'expense', amount, accountId: 'cash', date: TODAY }) }));
+    // Ligne par ligne, la première passe seule : le manque n'apparaît qu'au cumul (42 000).
+    expect(planComplementsFor(d, lines.slice(0, 1), [], TODAY, newId)).toEqual({ items: [] });
+    expect(planComplementsFor(d, lines, [], TODAY, newId)).toMatchObject({ error: 'needsChoice', accountId: 'cash', missing: 42_000 });
+    const r = planComplementsFor(d, lines, [{ kind: 'account', accountId: 'om' }], TODAY, newId);
+    if (!('items' in r)) throw new Error(JSON.stringify(r));
+    let work = applyItems(d, r.items);
+    for (const l of lines) {
+      expect(batchOutflowError(work, [l], TODAY)).toBeNull();
+      work = applyItems(work, [l]);
+    }
+    const b = accountBalances(work.accounts, work.transactions);
+    expect([b.cash, b.om]).toEqual([0, 58_000]);
+  });
+  it('note datée d’hier (« C’était hier ») : le complément du jour couvre le cumul du lot', () => {
+    const d = space({ accounts: [cash(80_000), om(100_000)] });
+    const yesterday = addDays(TODAY, -1);
+    const lines = [60_000, 50_000].map((amount, i) => ({ col: 'transactions' as const, doc: tx({ id: `y${i}`, type: 'expense', amount, accountId: 'cash', date: yesterday }) }));
+    const r = planComplementsFor(d, lines, [{ kind: 'account', accountId: 'om' }], TODAY, newId);
+    if (!('items' in r)) throw new Error(JSON.stringify(r));
+    expect(batchOutflowError(applyItems(d, r.items), lines, TODAY)).toBeNull();
+    const b = accountBalances(applyItems(applyItems(d, r.items), lines).accounts, applyItems(applyItems(d, r.items), lines).transactions);
+    expect([b.cash, b.om]).toEqual([0, 70_000]);
   });
   it('choix devenu impossible : stale', () => {
     const d = space({ accounts: [cash(), om(5_000)] });

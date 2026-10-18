@@ -94,7 +94,7 @@ export class ActionError extends Error {
   }
 }
 
-type Draft<T extends SyncedDoc> = Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'> & { id?: string };
+export type Draft<T extends SyncedDoc> = Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'> & { id?: string };
 
 /**
  * Compléments choisis sur la feuille (§6.3), calculés pour CE lot : renvoie leurs écritures
@@ -326,7 +326,7 @@ export function useActions() {
    * écritures liées (`linked`, ex. la part d'un objectif libérée).
    */
   const saveTransaction = useCallback(
-    (input: Draft<Transaction>, opts: { reserveId?: string | null; fee?: number; linked?: (tx: Transaction) => PlanItem[]; choices?: SourceChoice[]; purpose?: 'spend' | 'set_aside' } = {}): Transaction => {
+    (input: Draft<Transaction>, opts: { reserveId?: string | null; fee?: number; linked?: (tx: Transaction) => PlanItem[]; choices?: SourceChoice[]; purpose?: 'spend' | 'set_aside'; covered?: boolean } = {}): Transaction => {
       let d = data();
       // 1.8 : `legacyCategoryId` n'existe que dans la VUE des calculs (alias) : jamais enregistré.
       // Argent disponible v2 : `nature` est un champ de VUE (withLedgerView), jamais enregistré.
@@ -373,7 +373,8 @@ export function useActions() {
         return [...main, ...reserve, ...(opts.linked ? opts.linked(tx) : [])];
       };
       let lotItems = lot(draft.accountId);
-      const comp = complementsOrThrow(d, lotItems, opts.choices ?? [], opts.purpose ?? 'spend');
+      // `covered` : ligne d'une note déjà contrôlée AU CUMUL, complément écrit (coverGroupShortfall).
+      const comp = opts.covered ? [] : complementsOrThrow(d, lotItems, opts.choices ?? [], opts.purpose ?? 'spend');
       // Aucun compte (revenu, correction) : « Espèces » est créé, APRÈS le contrôle.
       if (!d.accounts.some((a) => a.id === draft.accountId && !a.deleted) && draft.type !== 'transfer') {
         draft = { ...draft, accountId: ensureCashAccount(draft.currency) };
@@ -407,6 +408,27 @@ export function useActions() {
       return r.items.filter((i) => i.col === 'transactions').map((i) => i.doc.id);
     },
     [ctx, data, writeItems],
+  );
+
+  /**
+   * Note de plusieurs dépenses (§6.1, §6.3) : le complément choisi couvre le manque du CUMUL,
+   * écrit une seule fois AVANT les lignes (qui passent ensuite sans feuille). Les parts prises
+   * sur une réserve sont déduites comme à l'enregistrement. Renvoie les opérations du complément
+   * (à retirer si une ligne échoue ensuite : tout ou rien).
+   */
+  const coverGroupShortfall = useCallback(
+    (lines: { draft: Draft<Transaction>; reserveId?: string | null }[], choices: SourceChoice[]): string[] => {
+      if (!choices.length) return [];
+      const d = data();
+      const items = lines.flatMap(({ draft, reserveId }) => {
+        const tx = { ...draft, id: newId(PREFIX.transactions), createdAt: 0, updatedAt: 0, createdBy: '' } as Transaction;
+        return [{ col: 'transactions' as const, doc: tx }, ...(reserveId && tx.type === 'expense' ? reserveItems(tx, reserveId) : [])];
+      });
+      const comp = complementsOrThrow(d, items, choices, 'spend');
+      if (comp.length) writeItems(comp, { check: false });
+      return comp.filter((i) => i.col === 'transactions').map((i) => i.doc.id);
+    },
+    [data, reserveItems, writeItems],
   );
 
   /** Opération déjà enregistrée → prise sur une réserve (carte de confirmation, formulaire). */
@@ -1136,6 +1158,7 @@ export function useActions() {
       save,
       remove,
       saveTransaction,
+      coverGroupShortfall,
       saveWithComplements,
       correctBalance,
       closePocket,
@@ -1181,7 +1204,7 @@ export function useActions() {
       postponeTontine,
       convertRecurringToTontine,
     }),
-    [save, remove, saveWithComplements, correctBalance, closePocket, deleteDebt, closeDebt, confirmRecurring, declareOpenings, skipRecurringOccurrence, oweRecurringOccurrence, markTontineNotDue, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, learnCategoryWord, depositToSavings, withdrawFromSavings, adjustSavingsBalance, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, recordTontineGroupContribution, recordTontineGroupPayout, postponeTontine, convertRecurringToTontine],
+    [save, remove, saveWithComplements, coverGroupShortfall, correctBalance, closePocket, deleteDebt, closeDebt, confirmRecurring, declareOpenings, skipRecurringOccurrence, oweRecurringOccurrence, markTontineNotDue, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, learnCategoryWord, depositToSavings, withdrawFromSavings, adjustSavingsBalance, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, recordTontineGroupContribution, recordTontineGroupPayout, postponeTontine, convertRecurringToTontine],
   );
 }
 
