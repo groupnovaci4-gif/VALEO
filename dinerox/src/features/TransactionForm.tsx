@@ -12,8 +12,10 @@ import { analytics } from '@/services/analytics';
 import * as ImagePicker from 'expo-image-picker';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp, useData } from '@/store/app';
+import { removalWouldOverdraw, type SourceChoice } from '@/core/writePlans';
+import { HandledError, useMoneyGuard } from '@/features/money/MoneyGuard';
 import { ActionError, useActions } from '@/store/actions';
-import { useCategoryLabels, useCurrency } from '@/hooks/useFinance';
+import { useCategoryLabels, useCurrency, useMoney } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, Segmented, SwitchRow, Text, useToast } from '@/components/ui';
 import { CategoryPicker } from '@/features/categories/CategoryPicker';
 import { resolveEnvelopeId } from '@/core/budget';
@@ -47,6 +49,8 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
   const { role, user, mode, activeSpace } = useApp();
   const currency = useCurrency();
   const actions = useActions();
+  const { guard } = useMoneyGuard();
+  const money = useMoney();
   const cats = useCategoryLabels();
   const accounts = data.accounts.filter((a) => a.active || a.id === existing?.accountId || a.id === existing?.toAccountId);
   // Cercle fermé : le compte proposé d'office est toujours un compte courant (aucun : « Espèces » créé à l'enregistrement).
@@ -59,6 +63,8 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
   const accountId = chosenAccount ?? defaultAccount?.id ?? null;
   const [toAccountId, setToAccountId] = useState<string | null>(existing?.toAccountId ?? initial?.toAccountId ?? null);
   const [toAmount, setToAmount] = useState<number | null>(existing?.toAmount ?? null);
+  // Argent disponible v2 (§3.4) : frais d'un transfert (dépense liée, même lot).
+  const [fee, setFee] = useState<number | null>(null);
   const [categoryId, setCategoryIdRaw] = useState<string | null>(existing?.categoryId ?? initial?.categoryId ?? null);
   const [subcategoryId, setSubcategoryId] = useState<string | null>(existing?.subcategoryId ?? null);
   // Changer de catégorie efface la sous-catégorie (elle appartient à l'ancienne).
@@ -112,6 +118,30 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
       }
       // Nouvelle dépense prise sur une réserve : la réserve paie DANS LE MÊME LOT (§5.3, §6.3).
       const reserveAtCreation = !existing && !!reserveId && type === 'expense' && reserveEligible(categoryId, subcategoryId) ? reserveId : null;
+      // Argent disponible v2 (§6.3) : s'il manque de l'argent, la feuille de complément s'ouvre
+      // AVANT tout enregistrement ; le choix relance l'enregistrement, complément compris.
+      guard((choices) => {
+        try {
+          saveNow(receiptUrl, receiptFailed, reserveAtCreation, choices);
+        } catch (e) {
+          if (e instanceof ActionError && (e.code === 'noMoney' || e.code === 'shortfall')) throw e;
+          showErrors(e);
+          throw new HandledError();
+        }
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const showErrors = (e: unknown) => {
+    if (e instanceof ActionError && e.details.errors) setErrors(e.details.errors.map((k) => t(`error.${k}` as TKey)));
+    else if (e instanceof ActionError && e.code === 'permission') setErrors([t('error.permission')]);
+    else setErrors([t('error.generic')]);
+  };
+
+  const saveNow = (receiptUrl: string | null, receiptFailed: boolean, reserveAtCreation: string | null, choices: SourceChoice[]) => {
+    {
       const saved = actions.saveTransaction({
         id: existing?.id,
         type,
@@ -130,7 +160,7 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
         recurringId: existing?.recurringId ?? null,
         goalId: existing?.goalId ?? null,
         debtId: existing?.debtId ?? null,
-      }, { reserveId: reserveAtCreation });
+      }, { reserveId: reserveAtCreation, fee: type === 'transfer' && !existing ? (fee ?? 0) : 0, choices });
       // « Prendre sur la réserve ? » : utilisation liée (une modification la recalcule déjà).
       const wantsReserve = !!reserveId && saved.type === 'expense' && reserveEligible(saved.categoryId, saved.subcategoryId);
       try {
@@ -163,17 +193,13 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
       else toast.show(t('tx.saved'));
       if (!existing) analytics.track('entry_created', { method: 'full_form', count: 1 });
       goBack();
-    } catch (e) {
-      if (e instanceof ActionError && e.details.errors) setErrors(e.details.errors.map((k) => t(`error.${k}` as TKey)));
-      else if (e instanceof ActionError && e.code === 'permission') setErrors([t('error.permission')]);
-      else setErrors([t('error.generic')]);
-    } finally {
-      setBusy(false);
     }
   };
 
+  // Argent disponible v2 (§6.4, E40b) : si un compte passe sous zéro, la confirmation le dit.
+  const over = existing ? removalWouldOverdraw(data, existing.id) : null;
   const remove = () =>
-    Alert.alert(t('common.deleteConfirmTitle'), t('tx.deleteConfirm'), [
+    Alert.alert(t('common.deleteConfirmTitle'), over ? t('money.willBeNegative', { account: data.accounts.find((a) => a.id === over.accountId)?.name ?? '', amount: money(over.balance) }) : t('tx.deleteConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
@@ -252,6 +278,7 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
           </Text>
           <ChipGroup scroll options={accountOptions.filter((a) => a.value !== accountId)} value={toAccountId} onChange={setToAccountId} />
           {crossCurrency ? <AmountField label={t('tx.toAmount')} value={toAmount} onChange={setToAmount} currency={to!.currency} hint={t('tx.toAmountHint')} /> : null}
+          {!existing ? <AmountField label={t('tx.fee')} value={fee} onChange={setFee} currency={txCurrency} hint={t('tx.feeHint')} /> : null}
           <Text variant="caption" tone="subtle" style={{ marginBottom: 14 }}>
             {t('tx.transferHint')}
           </Text>

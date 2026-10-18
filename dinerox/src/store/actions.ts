@@ -48,22 +48,21 @@ import { monthKey, type MonthKey } from '@/core/dates';
 import { touchedByWrite } from '@/core/coach/envelopeAlerts';
 import {
   accountChangeError,
-  batchOutflowError,
   planBalanceCorrection,
+  planComplementsFor,
   planDebtOpening,
   planDebtRepayment,
   planRecurringConfirmation,
   planReserveUse,
   planSpendWithComplements,
   planTransferWithFee,
-  type OutflowError,
   type PlanItem,
   type SourceChoice,
 } from '@/core/writePlans';
 import { canDeleteAccount } from '@/core/accountRules';
 import { canDeleteDebt, debtStatus } from '@/core/debts';
 import { goalBacking } from '@/core/position';
-import { pocketClosure } from '@/core/spendPlan';
+import { pocketClosure, type SpendSource } from '@/core/spendPlan';
 import { notifyCoachWrite } from '@/features/coach/bus';
 
 /**
@@ -89,7 +88,7 @@ export class ActionError extends Error {
      * rendrait un compte négatif (`accountId`, `missing` : ce qui manque). Rien n'est enregistré.
      */
     public readonly code: 'permission' | 'limit' | 'validation' | 'notReady' | 'feature' | 'noMoney' | 'shortfall',
-    public readonly details: { limit?: number; errors?: TxError[]; feature?: Feature; accountId?: string | null; missing?: number } = {},
+    public readonly details: { limit?: number; errors?: TxError[]; feature?: Feature; accountId?: string | null; missing?: number; sources?: SpendSource[]; stale?: boolean } = {},
   ) {
     super(code);
   }
@@ -97,11 +96,17 @@ export class ActionError extends Error {
 
 type Draft<T extends SyncedDoc> = Omit<T, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'> & { id?: string };
 
-/** Refus du dernier rempart (§6.3) : rien n'est enregistré. */
-function throwOutflow(e: OutflowError | null): void {
-  if (!e) return;
-  if (e.code === 'noMoney') throw new ActionError('noMoney', { errors: ['money.none'] });
-  throw new ActionError('shortfall', { errors: ['money.shortfall'], accountId: e.accountId, missing: e.missing });
+/**
+ * Compléments choisis sur la feuille (§6.3), calculés pour CE lot : renvoie leurs écritures
+ * (à écrire avec le lot, tout ou rien), sinon refuse en disant ce qui manque, sur quel
+ * compte, et d'où on peut le prendre (`sources`, recalculées après chaque choix).
+ */
+function complementsOrThrow(d: SpaceData, items: PlanItem[], choices: SourceChoice[], purpose: 'spend' | 'set_aside'): PlanItem[] {
+  const r = planComplementsFor(d, items, choices, today(), newId, purpose);
+  if ('items' in r) return r.items;
+  if (r.error === 'noMoney') throw new ActionError('noMoney', { errors: ['money.none'] });
+  if (r.error === 'stale') throw new ActionError('shortfall', { errors: ['money.shortfall'], accountId: r.accountId, stale: true });
+  throw new ActionError('shortfall', { errors: ['money.shortfall'], accountId: r.accountId, missing: r.missing, sources: r.sources });
 }
 
 const PREFIX: Record<CollectionName, string> = {
@@ -197,14 +202,14 @@ export function useActions() {
    * contrôlé puis écrit d'un bloc (`writeMany`) : tout ou rien. Droits vérifiés avant écriture.
    */
   const writeItems = useCallback(
-    (items: PlanItem[], opts: { check?: boolean } = {}) => {
+    (items: PlanItem[], opts: { check?: boolean; choices?: SourceChoice[]; purpose?: 'spend' | 'set_aside' } = {}) => {
       const { engine: e, spaceId } = ctx();
       for (const it of items) {
         const existing = e.getDoc(spaceId, it.col, it.doc.id);
         ensure(existing ? 'update' : 'create', it.col, existing);
         if (it.col === 'transactions' && !existing && !canCreateTransaction(role, (it.doc as Transaction).type)) throw new ActionError('permission');
       }
-      if (opts.check !== false) throwOutflow(batchOutflowError(e.getData(spaceId), items, today()));
+      if (opts.check !== false) items = [...complementsOrThrow(e.getData(spaceId), items, opts.choices ?? [], opts.purpose ?? 'spend'), ...items];
       const before = e.getData(spaceId);
       e.writeMany(spaceId, items);
       const txs = items.filter((i) => i.col === 'transactions');
@@ -321,7 +326,7 @@ export function useActions() {
    * écritures liées (`linked`, ex. la part d'un objectif libérée).
    */
   const saveTransaction = useCallback(
-    (input: Draft<Transaction>, opts: { reserveId?: string | null; fee?: number; linked?: (tx: Transaction) => PlanItem[] } = {}): Transaction => {
+    (input: Draft<Transaction>, opts: { reserveId?: string | null; fee?: number; linked?: (tx: Transaction) => PlanItem[]; choices?: SourceChoice[]; purpose?: 'spend' | 'set_aside' } = {}): Transaction => {
       let d = data();
       // 1.8 : `legacyCategoryId` n'existe que dans la VUE des calculs (alias) : jamais enregistré.
       // Argent disponible v2 : `nature` est un champ de VUE (withLedgerView), jamais enregistré.
@@ -351,8 +356,9 @@ export function useActions() {
 
       // Modification : contrôle de la différence, puis l'ancien chemin (opérations liées).
       if (draft.id && previousTx) {
-        throwOutflow(batchOutflowError(d, [{ col: 'transactions', doc: { ...previousTx, ...shaped, id: draft.id } as Transaction }], today()));
-        return saveEdited(shaped as Draft<Transaction> & { id: string }, d);
+        const comp = complementsOrThrow(d, [{ col: 'transactions', doc: { ...previousTx, ...shaped, id: draft.id } as Transaction }], opts.choices ?? [], opts.purpose ?? 'spend');
+        if (comp.length) writeItems(comp, { check: false });
+        return saveEdited(shaped as Draft<Transaction> & { id: string }, comp.length ? data() : d);
       }
 
       // Nouvelle opération : le lot complet, contrôlé avant tout compte créé.
@@ -366,16 +372,18 @@ export function useActions() {
         const reserve = opts.reserveId && shaped.type === 'expense' ? reserveItems(tx, opts.reserveId) : [];
         return [...main, ...reserve, ...(opts.linked ? opts.linked(tx) : [])];
       };
-      throwOutflow(batchOutflowError(d, lot(draft.accountId), today()));
+      let lotItems = lot(draft.accountId);
+      const comp = complementsOrThrow(d, lotItems, opts.choices ?? [], opts.purpose ?? 'spend');
       // Aucun compte (revenu, correction) : « Espèces » est créé, APRÈS le contrôle.
       if (!d.accounts.some((a) => a.id === draft.accountId && !a.deleted) && draft.type !== 'transfer') {
         draft = { ...draft, accountId: ensureCashAccount(draft.currency) };
         d = data();
+        lotItems = lot(draft.accountId);
       }
       const errors = validateTransaction({ ...shaped, accountId: draft.accountId }, d.accounts);
       if (errors.length) throw new ActionError('validation', { errors });
       const isFirst = !d.transactions.some((t) => t.type === draft.type);
-      writeItems(lot(draft.accountId), { check: false });
+      writeItems([...comp, ...lotItems], { check: false });
       const tx = data().transactions.find((x) => x.id === txId) as Transaction;
       if (isFirst && draft.type !== 'transfer') analytics.track(draft.type === 'expense' ? 'first_expense' : 'first_income');
       return tx;
@@ -723,7 +731,7 @@ export function useActions() {
    * comme toute sortie (le transfert et la contribution s'écrivent en un lot).
    */
   const contributeToGoal = useCallback(
-    (input: { goalId: string; amount: number; date: string; accountId: string | null; note?: string | null; moveTo?: string | null; withdraw?: boolean }) => {
+    (input: { goalId: string; amount: number; date: string; accountId: string | null; note?: string | null; moveTo?: string | null; withdraw?: boolean; choices?: SourceChoice[] }) => {
       const d = data();
       const goal = d.goals.find((g) => g.id === input.goalId);
       if (!goal || !isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
@@ -740,11 +748,11 @@ export function useActions() {
         const from = input.withdraw ? input.moveTo : input.accountId;
         const to = input.withdraw ? input.accountId : input.moveTo;
         let linked: PlanItem | null = null;
-        saveTransaction({ type: 'transfer', amount: input.amount, currency: goal.currency, date: input.date, accountId: from, toAccountId: to, goalId: goal.id, payee: goal.name, note: input.note ?? null }, { linked: (tx) => [(linked = contribution(tx.id))] });
+        saveTransaction({ type: 'transfer', amount: input.amount, currency: goal.currency, date: input.date, accountId: from, toAccountId: to, goalId: goal.id, payee: goal.name, note: input.note ?? null }, { linked: (tx) => [(linked = contribution(tx.id))], choices: input.choices, purpose: 'set_aside' });
         return linked!.doc as GoalContribution;
       }
       const item = contribution(null);
-      writeItems([item]);
+      writeItems([item], { choices: input.choices, purpose: 'set_aside' });
       return item.doc as GoalContribution;
     },
     [data, saveTransaction, writeItems],
@@ -759,7 +767,7 @@ export function useActions() {
    * donc jamais comptée deux fois. Contrôles avant toute écriture.
    */
   const depositToSavings = useCallback(
-    (input: DepositInput): Transaction => {
+    (input: DepositInput & { choices?: SourceChoice[] }): Transaction => {
       const d = data();
       const errors: TxError[] = validateDeposit(input, d);
       if (errors.length) throw new ActionError('validation', { errors });
@@ -768,7 +776,7 @@ export function useActions() {
       const linked = (tx: Transaction): PlanItem[] =>
         goal && input.goal ? [{ col: 'goalContributions', doc: { goalId: goal.id, amount: input.goal.amount, date: input.date, accountId: sav.id, transferId: tx.id, note: null, id: newId(PREFIX.goalContributions), createdAt: 0, updatedAt: 0, createdBy: '' } as GoalContribution }] : [];
       return input.fromAccountId
-        ? saveTransaction({ type: 'transfer', amount: input.amount, currency: sav.currency, date: input.date, accountId: input.fromAccountId, toAccountId: sav.id, goalId: goal?.id ?? null, payee: null, note: null }, { linked })
+        ? saveTransaction({ type: 'transfer', amount: input.amount, currency: sav.currency, date: input.date, accountId: input.fromAccountId, toAccountId: sav.id, goalId: goal?.id ?? null, payee: null, note: null }, { linked, choices: input.choices, purpose: 'set_aside' })
         : saveTransaction({ type: 'adjustment', direction: 'in', amount: input.amount, currency: sav.currency, date: input.date, accountId: sav.id, toAccountId: null, categoryId: null, payee: null, note: null }, { linked });
     },
     [data, saveTransaction],
@@ -780,7 +788,7 @@ export function useActions() {
    * d'un objectif jamais plus que ce qui y est affecté (`goal.withdrawTooMuch`).
    */
   const withdrawFromSavings = useCallback(
-    (input: WithdrawInput & { subcategoryId?: string | null; viaAccountId?: string | null }): Transaction => {
+    (input: WithdrawInput & { subcategoryId?: string | null; viaAccountId?: string | null; choices?: SourceChoice[] }): Transaction => {
       const d = data();
       const errors: TxError[] = [...validateWithdraw(input, d)];
       if (!input.toAccountId && !input.categoryId) errors.push('category.missing');
@@ -800,6 +808,7 @@ export function useActions() {
               ? [{ col: 'transactions' as const, doc: { type: 'expense', amount: input.amount, currency: sav.currency, date: input.date, accountId: via, toAccountId: null, toAmount: null, categoryId: input.categoryId ?? null, subcategoryId: input.subcategoryId ?? null, envelopeId: null, payee: null, note: null, id: newId(PREFIX.transactions), createdAt: 0, updatedAt: 0, createdBy: '' } as Transaction }]
               : []),
           ],
+          choices: input.choices,
         },
       );
     },
@@ -824,11 +833,11 @@ export function useActions() {
    * dette ; sans compte, la dette est enregistrée seule (dette d'avant l'application).
    */
   const saveDebt = useCallback(
-    (draft: Draft<Debt>, opts: { accountId?: string | null; date?: string } = {}) => {
+    (draft: Draft<Debt>, opts: { accountId?: string | null; date?: string; choices?: SourceChoice[] } = {}) => {
       if (draft.id || !opts.accountId) return save<Debt>('debts', draft);
       const id = newId(PREFIX.debts);
       const debtDoc = { ...draft, id, createdAt: 0, updatedAt: 0, createdBy: '' } as Debt;
-      writeItems([{ col: 'debts', doc: debtDoc }, ...planDebtOpening(debtDoc, { accountId: opts.accountId, date: opts.date ?? today() }, newId)]);
+      writeItems([{ col: 'debts', doc: debtDoc }, ...planDebtOpening(debtDoc, { accountId: opts.accountId, date: opts.date ?? today() }, newId)], { choices: opts.choices });
       return data().debts.find((x) => x.id === id) as Debt;
     },
     [save, writeItems, data],
@@ -865,13 +874,13 @@ export function useActions() {
    * comptes » choisi explicitement (`offAccounts`).
    */
   const recordDebtPayment = useCallback(
-    (input: { debtId: string; amount: number; interest?: number; date: string; accountId: string | null; offAccounts?: boolean; note?: string | null; label: string }) => {
+    (input: { debtId: string; amount: number; interest?: number; date: string; accountId: string | null; offAccounts?: boolean; note?: string | null; label: string; choices?: SourceChoice[] }) => {
       const d = data();
       const debt = d.debts.find((x) => x.id === input.debtId);
       if (!debt || !isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
       const r = planDebtRepayment(debt, { total: input.amount, interest: input.interest ?? 0, accountId: input.accountId, offAccounts: input.offAccounts, date: input.date, label: input.label, note: input.note ?? null }, d.categories, newId);
       if ('error' in r) throw new ActionError('validation', { errors: [r.error] });
-      writeItems(r.items);
+      writeItems(r.items, { choices: input.choices });
       const paymentId = r.items.find((i) => i.col === 'debtPayments')?.doc.id;
       return data().debtPayments.find((p) => p.id === paymentId) ?? null;
     },
@@ -888,7 +897,9 @@ export function useActions() {
       const existing = draft.id ? d.tontines.find((x) => x.id === draft.id) : undefined;
       const becomesActive = draft.status === 'active' && existing?.status !== 'active';
       if (becomesActive) limit('tontines', d.tontines.filter((x) => !x.deleted && x.status === 'active').length);
-      return save<Tontine>('tontines', draft);
+      // Argent disponible v2 (§5.4) : la clôture est CONFIRMÉE par la personne, et datée.
+      const closedAt = draft.status === 'finished' ? (existing?.status === 'finished' ? (existing.closedAt ?? draft.closedAt ?? null) : today()) : null;
+      return save<Tontine>('tontines', { ...draft, closedAt });
     },
     [data, limit, save],
   );
@@ -930,7 +941,7 @@ export function useActions() {
     goalId ? [{ col: 'goalContributions', doc: { goalId, amount: -tx.amount, date: tx.date, accountId: tx.accountId, transferId: null, linkedTransactionId: tx.id, note: null, id: newId(PREFIX.goalContributions), createdAt: 0, updatedAt: 0, createdBy: '' } as GoalContribution }] : [];
 
   const recordTontineGroupContribution = useCallback(
-    (input: { groupId?: string; groupName: string; amount: number; currency: CurrencyCode; date: string; accountId?: string; source?: TontineSource }) => {
+    (input: { groupId?: string; groupName: string; amount: number; currency: CurrencyCode; date: string; accountId?: string; source?: TontineSource; choices?: SourceChoice[] }) => {
       const d = data();
       if (!isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
       const source: TontineSource | null = input.source ?? (input.accountId ? { kind: 'account', accountId: input.accountId } : null);
@@ -950,14 +961,26 @@ export function useActions() {
           payee: input.groupName,
           note: null,
         },
-        { linked: goalFunding(plan.fundingGoalId) },
+        { linked: goalFunding(plan.fundingGoalId), choices: input.choices, purpose: 'set_aside' },
       );
     },
     [data, saveTransaction, tontinePayment],
   );
 
+  /**
+   * Tontine partagée : « J'ai reçu la cagnotte » — une entrée réelle LIÉE à la tontine (D5 : un retour
+   * d'épargne, plus une avance du groupe s'il y a lieu ; jamais un revenu), sur le compte choisi.
+   */
+  const recordTontineGroupPayout = useCallback(
+    (input: { groupId: string; groupName: string; amount: number; currency: CurrencyCode; date: string; accountId: string }) => {
+      if (!isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
+      return saveTransaction({ type: 'income', amount: input.amount, currency: input.currency, date: input.date, accountId: input.accountId, categoryId: categoryOr('inc_tontine', 'inc_other'), subcategoryId: null, tontineId: input.groupId, payee: input.groupName, note: null });
+    },
+    [saveTransaction, categoryOr],
+  );
+
   const recordTontine = useCallback(
-    (input: { tontineId: string; period: number; kind: 'contribution' | 'payout'; amount: number; date: string; accountId?: string | null; source?: TontineSource | null; note?: string | null }) => {
+    (input: { tontineId: string; period: number; kind: 'contribution' | 'payout'; amount: number; date: string; accountId?: string | null; source?: TontineSource | null; note?: string | null; choices?: SourceChoice[] }) => {
       const d = data();
       const t = d.tontines.find((x) => x.id === input.tontineId && !x.deleted);
       if (!t || !isValidAmount(input.amount)) throw new ActionError('validation', { errors: ['amount.invalid'] });
@@ -981,7 +1004,7 @@ export function useActions() {
         payee: t.name,
         note: input.note ?? null,
         },
-        { linked: goalFunding(plan?.fundingGoalId ?? null) },
+        { linked: goalFunding(plan?.fundingGoalId ?? null), choices: input.choices, purpose: 'set_aside' },
       );
       // Une échéance reportée (entrée « planned ») devient l'entrée payée.
       const previous = d.tontineEntries.find((e) => !e.deleted && e.tontineId === t.id && e.kind === input.kind && e.period === input.period && !e.transactionId);
@@ -1021,6 +1044,67 @@ export function useActions() {
   const saveRecurring = useCallback((draft: Draft<RecurringRule>) => save<RecurringRule>('recurring', draft), [save]);
 
   /**
+   * « Votre argent disponible aujourd'hui » (§12.1) : crée les OUVERTURES datées, avec leur
+   * provenance. Un compte qui a déjà des opérations ne réécrit jamais son ouverture : l'écart
+   * devient une correction de solde (motif : la provenance, sinon « Argent que j'avais déjà »).
+   * Seuls l'administrateur et le conjoint renseignent l'argent de l'espace (§6.5).
+   */
+  const declareOpenings = useCallback(
+    (input: { lines: { accountId: string | null; amount: number }[]; note: string; date: string }) => {
+      if (role !== 'admin' && role !== 'partner') throw new ActionError('permission');
+      const { currency } = ctx();
+      for (const line of input.lines) {
+        if (!(line.amount > 0)) continue;
+        const d = data();
+        const accountId = line.accountId && d.accounts.some((a) => a.id === line.accountId && !a.deleted) ? line.accountId : ensureCashAccount(currency);
+        const account = data().accounts.find((a) => a.id === accountId)!;
+        const used = d.transactions.some((x) => !x.deleted && (x.accountId === accountId || x.toAccountId === accountId));
+        if (!used) {
+          save<Account>('accounts', { ...account, openingBalance: line.amount, openingDate: input.date, openingNote: input.note.trim() || null });
+          continue;
+        }
+        const r = planBalanceCorrection(data(), accountId, line.amount, input.date, input.note.trim() || t('money.opening.reason'), newId);
+        if ('items' in r) writeItems(r.items, { check: false });
+      }
+    },
+    [role, ctx, data, ensureCashAccount, save, writeItems, t],
+  );
+
+  /** « Pas due » (À régulariser, §7.2) : l'échéance (et les plus anciennes, déjà traitées) n'est plus attendue. */
+  const skipRecurringOccurrence = useCallback(
+    (ruleId: string, occurrence: string) => {
+      const rule = data().recurring.find((r) => r.id === ruleId && !r.deleted);
+      if (!rule) return;
+      if (!rule.lastGenerated || rule.lastGenerated < occurrence) save<RecurringRule>('recurring', { ...rule, lastGenerated: occurrence });
+    },
+    [data, save],
+  );
+
+  /**
+   * « Je la dois encore » (À régulariser, §7.2) : l'échéance redevient un ENGAGEMENT — une dette
+   * « je dois » du montant, due aujourd'hui (dans E), sans mouvement d'argent.
+   */
+  const oweRecurringOccurrence = useCallback(
+    (ruleId: string, occurrence: string) => {
+      const rule = data().recurring.find((r) => r.id === ruleId && !r.deleted);
+      if (!rule) return;
+      const date = today();
+      save<Debt>('debts', { direction: 'i_owe', kind: 'personal', counterparty: rule.label.slice(0, 120) || '—', principal: rule.amount, currency: rule.currency, startDate: occurrence, dueDate: date, installment: rule.amount, dueDay: null, rate: null, note: null, status: 'active' });
+      skipRecurringOccurrence(ruleId, occurrence);
+    },
+    [data, save, skipRecurringOccurrence],
+  );
+
+  /** « Pas due » pour une cotisation de tontine ancienne : l'échéance est marquée faite, sans argent. */
+  const markTontineNotDue = useCallback(
+    (tontineId: string, period: number, date: string) => {
+      const previous = data().tontineEntries.find((e) => !e.deleted && e.tontineId === tontineId && e.kind === 'contribution' && e.period === period);
+      save<TontineEntry>('tontineEntries', { ...(previous ? { id: previous.id } : {}), tontineId, kind: 'contribution', period, amount: 0, date, transactionId: null, status: 'done', note: null });
+    },
+    [data, save],
+  );
+
+  /**
    * Argent disponible v2 (§8, D7) : une récurrence n'est JAMAIS enregistrée seule. Gardée pour
    * le démarrage (Bootstrap) : elle ne crée plus aucune opération. Les échéances se confirment
    * d'un geste (`confirmRecurring`, cartes de `recurringToConfirm`).
@@ -1033,7 +1117,7 @@ export function useActions() {
    * convertie en tontine : la confirmation EST la cotisation de la période.
    */
   const confirmRecurring = useCallback(
-    (input: { ruleId: string; occurrence: string; amount?: number; accountId?: string; date?: string }) => {
+    (input: { ruleId: string; occurrence: string; amount?: number; accountId?: string; date?: string; choices?: SourceChoice[] }) => {
       const d = data();
       const rule = d.recurring.find((r) => r.id === input.ruleId && !r.deleted);
       if (!rule) throw new ActionError('validation', { errors: ['amount.invalid'] });
@@ -1041,7 +1125,7 @@ export function useActions() {
       const items = planRecurringConfirmation(d, rule, input.occurrence, { amount: input.amount, accountId: input.accountId, date: input.date ?? today() }, newId);
       const errors = validateTransaction(items[0].doc as Transaction, d.accounts);
       if (errors.length) throw new ActionError('validation', { errors });
-      writeItems(items);
+      writeItems(items, { choices: input.choices });
       return items[0].doc.id;
     },
     [data, writeItems],
@@ -1058,6 +1142,10 @@ export function useActions() {
       deleteDebt,
       closeDebt,
       confirmRecurring,
+      declareOpenings,
+      skipRecurringOccurrence,
+      oweRecurringOccurrence,
+      markTontineNotDue,
       takeFromReserve,
       dropReserveUse,
       saveAccount,
@@ -1089,10 +1177,11 @@ export function useActions() {
       saveTontine,
       recordTontine,
       recordTontineGroupContribution,
+      recordTontineGroupPayout,
       postponeTontine,
       convertRecurringToTontine,
     }),
-    [save, remove, saveWithComplements, correctBalance, closePocket, deleteDebt, closeDebt, confirmRecurring, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, learnCategoryWord, depositToSavings, withdrawFromSavings, adjustSavingsBalance, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, recordTontineGroupContribution, postponeTontine, convertRecurringToTontine],
+    [save, remove, saveWithComplements, correctBalance, closePocket, deleteDebt, closeDebt, confirmRecurring, declareOpenings, skipRecurringOccurrence, oweRecurringOccurrence, markTontineNotDue, applyCatalogUpdate, deleteCategory, setCategoryDisabled, mergeCategories, reorderCategories, restoreCategory, learnCategoryWord, depositToSavings, withdrawFromSavings, adjustSavingsBalance, saveTransaction, takeFromReserve, dropReserveUse, saveAccount, deleteAccount, saveEnvelope, applyBudget, saveCategory, createGoal, updateGoal, setGoalStatus, reorderGoals, contributeToGoal, saveDebt, recordDebtPayment, saveAsset, saveRecurring, runRecurring, ensureCashAccount, saveTontine, recordTontine, recordTontineGroupContribution, recordTontineGroupPayout, postponeTontine, convertRecurringToTontine],
   );
 }
 

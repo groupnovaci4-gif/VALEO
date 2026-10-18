@@ -8,6 +8,8 @@ import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
+import { InitialOrigin, resolvedOrigin, type GoalDraft } from '@/features/goals';
+import { useMoneyGuard } from '@/features/money/MoneyGuard';
 import { useActions } from '@/store/actions';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, Card, Chip, ChipGroup, Field, Screen, Text, useToast } from '@/components/ui';
@@ -33,6 +35,9 @@ function NewReserve() {
   const [ceiling, setCeiling] = useState<number | null>(existing?.targetAmount ?? null);
   const [monthly, setMonthly] = useState<number | null>(existing?.monthlyContribution ?? null);
   const [initial, setInitial] = useState<number | null>(null);
+  // Argent disponible v2 (§5.2-5.3) : d'où vient le montant de départ de la réserve.
+  const [originDraft, setOriginDraft] = useState<GoalDraft>({ initialAmount: null } as GoalDraft);
+  const { guard } = useMoneyGuard();
   const [lastYear, setLastYear] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<string>(existing?.accountId ?? 'none');
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +61,9 @@ function NewReserve() {
         router.back();
         return;
       }
+      const startAmount = initial && initial > 0 ? initial : 0;
+      const { origin, fromId } = resolvedOrigin({ ...originDraft, initialAmount: startAmount }, data.accounts, currency);
+      const viaContribution = startAmount > 0 && origin !== 'outside' && !!fromId;
       const g = actions.createGoal({
         kind: 'reserve',
         name: name.trim(),
@@ -65,7 +73,9 @@ function NewReserve() {
         icon: '🤝',
         currency,
         targetAmount: ceiling,
-        initialAmount: initial && initial > 0 ? initial : 0,
+        initialAmount: viaContribution ? 0 : startAmount,
+        initialSource: !viaContribution && startAmount > 0 ? 'outside' : null,
+        initialNote: !viaContribution && startAmount > 0 ? originDraft.initialNote?.trim() || null : null,
         targetDate: null,
         priority: 'normal',
         rank: 0,
@@ -75,7 +85,11 @@ function NewReserve() {
         status: 'active',
         history: [],
       });
-      router.replace(`/reserve/${g.id}`);
+      if (!viaContribution) return router.replace(`/reserve/${g.id}`);
+      const reserveAccount = data.accounts.find((a) => a.id === g.accountId && a.isSavings)?.id ?? null;
+      guard((choices) => actions.contributeToGoal({ goalId: g.id, amount: startAmount, date: now, accountId: fromId, moveTo: origin === 'available' ? reserveAccount : null, choices }), {
+        onDone: () => router.replace(`/reserve/${g.id}`),
+      });
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -128,6 +142,7 @@ function NewReserve() {
       </Text>
       <AmountField label={t('reserve.monthly')} value={monthly} onChange={setMonthly} currency={currency} />
       {!existing ? <AmountField label={t('reserve.initial')} value={initial} onChange={setInitial} currency={currency} /> : null}
+      {!existing && initial ? <InitialOrigin draft={{ ...originDraft, initialAmount: initial }} onChange={setOriginDraft} /> : null}
       {existing ? (
         <Text variant="caption" tone="subtle" style={{ marginBottom: 12 }}>
           {t('reserve.balance')} : {money(goalSaved(existing, data.goalContributions))}

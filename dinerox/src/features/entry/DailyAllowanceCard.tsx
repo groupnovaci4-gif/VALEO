@@ -9,12 +9,12 @@
  */
 import React, { useMemo, useState } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
-import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { Amount, Button, Card, GradientCard, Icon, Text } from '@/components/ui';
+import { Amount, Card, GradientCard, Icon, Text } from '@/components/ui';
 import { dailyAllowanceV2, type Commitment } from '@/core/allowance';
+import { OpeningCard } from '@/features/money/HomeMoneyCards';
 import type { Position } from '@/core/position';
 import { BIG_TEXT, useTheme } from '@/theme';
 
@@ -122,20 +122,8 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
     </View>
   );
 
-  if (r.status === 'needs_money') {
-    return (
-      <>
-        <Card style={{ gap: 8 }}>
-          <Text variant="titleS">{t('daily.needsIncome')}</Text>
-          <Button icon="cash-outline" label={t('daily.needsIncome.cta')} onPress={() => router.push('/settings/financial')} style={{ alignSelf: 'flex-start' }} />
-          <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 4 }} />
-          {availableRow(false)}
-          {hideButton(false)}
-        </Card>
-        {below}
-      </>
-    );
-  }
+  // Argent jamais renseigné (§4, §12.1) : la carte « Votre argent disponible aujourd'hui », à la place de tout montant.
+  if (r.status === 'needs_money') return <OpeningCard />;
   if (r.status === 'deficit') {
     const sentence = t('daily.deficit', { amount: show(r.deficit), date: date(r.until) });
     return (

@@ -3,7 +3,10 @@
  * (apports, utilisations, retraits — et qui les a faits). « Mettre X de côté »
  * demande toujours une confirmation (lien du rappel mensuel : `?refill=1`).
  */
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useMoneyGuard } from '@/features/money/MoneyGuard';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ClosePocketSheet } from '@/features/goals';
+import { goalBacking } from '@/core/position';
 import { Alert, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useI18n } from '@/i18n';
@@ -25,8 +28,10 @@ function ReserveDetail() {
   const accountLabel = useAccountLabel();
   const cats = useCategoryLabels();
   const actions = useActions();
+  const { guard } = useMoneyGuard();
   const { role, user, activeSpace } = useApp();
   const { data, now } = useFinance();
+  const [closing, setClosing] = useState(false);
   const reserve = data.goals.find((g) => g.id === id && isReserve(g) && !g.deleted);
   const state = useMemo(() => (reserve ? reserveState(reserve, data.goalContributions) : null), [reserve, data.goalContributions]);
   const history = useMemo(() => (reserve ? reserveHistory(reserve.id, data.goalContributions) : []), [reserve, data.goalContributions]);
@@ -43,8 +48,10 @@ function ReserveDetail() {
         text: t('common.confirm'),
         onPress: () => {
           const source = data.accounts.find((a) => a.active && !a.deleted && !a.isSavings && a.currency === reserve.currency && a.id !== reserve.accountId);
-          const ok = run(() => actions.contributeToGoal({ goalId: reserve.id, amount: toRefill, date: now, accountId: source?.id ?? null, moveTo: reserve.accountId ?? null }));
-          if (ok) toast.show(t('reserve.refill.done', { amount: money(toRefill) }), 'success');
+          // Argent disponible v2 (§6.3) : s'il manque de l'argent, la feuille de complément s'ouvre.
+          guard((choices) => actions.contributeToGoal({ goalId: reserve.id, amount: toRefill, date: now, accountId: source?.id ?? null, moveTo: reserve.accountId ?? null, choices }), {
+            onDone: () => toast.show(t('reserve.refill.done', { amount: money(toRefill) }), 'success'),
+          });
         },
       },
     ]);
@@ -70,7 +77,8 @@ function ReserveDetail() {
   const close = () =>
     Alert.alert(t('reserve.close.confirm'), reserve.name, [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.confirm'), style: 'destructive', onPress: () => run(() => (actions.setGoalStatus(reserve.id, 'archived'), router.back())) },
+      // Argent disponible v2 (§5.1) : s'il reste de l'argent, on demande où il va.
+      { text: t('common.confirm'), style: 'destructive', onPress: () => ((goalBacking(data, reserve.currency).get(reserve.id)?.total ?? 0) > 0 ? setClosing(true) : run(() => (actions.setGoalStatus(reserve.id, 'archived'), router.back()))) },
     ]);
 
   return (
@@ -141,6 +149,7 @@ function ReserveDetail() {
       </Card>
 
       {canEdit && reserve.status === 'active' ? <Button variant="ghost" icon="archive-outline" label={t('reserve.close')} onPress={close} style={{ marginTop: 20 }} /> : null}
+      <ClosePocketSheet goalId={closing && reserve ? reserve.id : null} status="archived" onClose={() => setClosing(false)} onDone={() => (setClosing(false), router.back())} />
     </Screen>
   );
 }

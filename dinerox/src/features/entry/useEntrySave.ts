@@ -14,6 +14,7 @@ import { useMoney } from '@/hooks/useFinance';
 import { useToast } from '@/components/ui';
 import { dailyAllowanceV2 } from '@/core/allowance';
 import { spendPlan } from '@/core/spendPlan';
+import type { SourceChoice } from '@/core/writePlans';
 import { today } from '@/core/dates';
 import type { CurrencyCode } from '@/core/money';
 import type { EntryDraft } from '@/core/entry/parse';
@@ -116,13 +117,14 @@ export function useEntrySave() {
   /** Enregistre les lignes confirmées ; renvoie les identifiants créés. */
   const saveDrafts = useCallback(
     /** `inline` : la conversation affiche elle-même le bilan et « Annuler » (le message serait caché par la feuille). */
-    (drafts: EntryDraft[], method: EntryMethod, corrected = false, inline = false): string[] => {
+    /** `choices` : compléments choisis sur la feuille (§6.3), appliqués dans le même lot que la sortie. */
+    (drafts: EntryDraft[], method: EntryMethod, corrected = false, inline = false, choices: SourceChoice[] = []): string[] => {
       if (!activeSpace) throw new Error('notReady');
       const ids: string[] = [];
       const createdCategories: string[] = [];
       // §6.1 — Plusieurs lignes : le contrôle porte sur le CUMUL par compte, AVANT tout
       // enregistrement (la part prise sur une réserve est déduite d'abord). Rien n'est écrit sinon.
-      if (engine) {
+      if (engine && !choices.length) {
         const d = engine.getData(activeSpace.id);
         const fallback = defaultSpendingAccountId(d.accounts, null, activeSpace.currency) ?? '';
         const lines = drafts
@@ -130,7 +132,7 @@ export function useEntrySave() {
           .map((x) => ({ accountId: x.accountId ?? fallback ?? null, amount: x.amount as number, date: x.date, reserveId: x.reserveId && reserveEligible(x.categoryId, x.subcategoryId) ? x.reserveId : null }));
         const plan = lines.length ? spendPlan({ data: d, currency: activeSpace.currency as CurrencyCode, today: today(), lines: lines.map((l) => ({ ...l, accountId: l.accountId || null })), role }) : null;
         if (plan?.status === 'no_money') throw new ActionError('noMoney', { errors: ['money.none'] });
-        if (plan && plan.status !== 'ok') throw new ActionError('shortfall', { errors: ['money.shortfall'], accountId: plan.shortfalls[0].accountId, missing: plan.shortfalls[0].missing });
+        if (plan && plan.status !== 'ok') throw new ActionError('shortfall', { errors: ['money.shortfall'], accountId: plan.shortfalls[0].accountId, missing: plan.shortfalls[0].missing, sources: plan.shortfalls[0].sources });
       }
       try {
         // 1.9 — « Je crée la catégorie X » (réponse dans la conversation) : créée ici, à la validation,
@@ -172,7 +174,7 @@ export function useEntrySave() {
               payee: d.payee,
               note: null,
             },
-            { reserveId },
+            { reserveId, choices },
           );
           ids.push(tx.id);
         }

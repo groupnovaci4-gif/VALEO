@@ -159,7 +159,7 @@ export function spendPlan(input: { data: PlanData; currency: CurrencyCode; today
 }
 
 /** Sources qui suffisent SEULES, dans l'ordre du §6.3 ; « J'ai reçu de l'argent » en dernier. */
-function sourcesFor(d: PlanData, accountId: string | null, missing: number, date: ISODate, currency: CurrencyCode, today: ISODate, purpose: 'spend' | 'set_aside'): SpendSource[] {
+export function sourcesFor(d: PlanData, accountId: string | null, missing: number, date: ISODate, currency: CurrencyCode, today: ISODate, purpose: 'spend' | 'set_aside'): SpendSource[] {
   const out: SpendSource[] = [];
   const backing = goalBacking(d, currency, today);
   const goalsById = new Map(d.goals.map((g) => [g.id, g]));

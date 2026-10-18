@@ -6,6 +6,7 @@
  *  - « Reporter » une cotisation en retard (nouvelle date, rien n'est payé).
  * Supprimer l'opération (Historique, « Annuler ») annule l'entrée.
  */
+import { useMoneyGuard } from '@/features/money/MoneyGuard';
 import React, { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useI18n } from '@/i18n';
@@ -56,7 +57,7 @@ export function useTontineGestures(tontine: Tontine) {
 export function PaySheet({ tontine, item, onClose }: { tontine: Tontine; item: ItemState | null; onClose: () => void }) {
   const { t } = useI18n();
   const money = useMoney();
-  const run = useRunAction();
+  const { guard } = useMoneyGuard();
   const actions = useActions();
   const { undoToast } = useEntrySave();
   const { now } = useFinance();
@@ -78,11 +79,14 @@ export function PaySheet({ tontine, item, onClose }: { tontine: Tontine; item: I
             icon="checkmark"
             label={t('common.confirm')}
             onPress={() => {
-              const ok = run(() => {
-                const e = actions.recordTontine({ tontineId: tontine.id, period: item.period, kind: 'contribution', amount, date: now, source });
-                if (e.transactionId) undoToast([e.transactionId]);
-              });
-              if (ok) close();
+              // Argent disponible v2 (§6.3) : une cotisation qui manque d'argent ouvre la feuille de complément.
+              guard(
+                (choices) => {
+                  const e = actions.recordTontine({ tontineId: tontine.id, period: item.period, kind: 'contribution', amount, date: now, source, choices });
+                  if (e.transactionId) undoToast([e.transactionId]);
+                },
+                { onDone: close },
+              );
             }}
           />
         </View>

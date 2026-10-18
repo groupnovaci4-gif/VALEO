@@ -2,6 +2,7 @@
  * Fiche d'une tontine : paramètres saisis et échéancier calculé (date,
  * cotisation, « Vous » ou « Tour n », cagnotte, statut de chaque échéance).
  */
+import { closureSuggested, tontineClosure } from '@/core/tontineLedger';
 import React, { useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -10,7 +11,7 @@ import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useAccountLabel, useFinance, useMoney } from '@/hooks/useFinance';
 import { useRunAction } from '@/hooks/useRunAction';
-import { Badge, Button, Card, EmptyState, Row, Screen, SectionHeader, Text } from '@/components/ui';
+import { Badge, Banner, Button, Card, EmptyState, Row, Screen, SectionHeader, Text } from '@/components/ui';
 import { withSpaceReady } from '@/components/SpaceReady';
 import { collectorTotals, nextContribution, nextPayout, potOf, scheduleState, type ItemState } from '@/core/tontine';
 import { NetPositionText } from '@/features/tontine/NetPositionText';
@@ -44,7 +45,10 @@ function TontineDetail() {
   const setStatus = (status: 'active' | 'paused' | 'finished') => {
     const go = () => run(() => actions.saveTontine({ ...tontine, status }));
     if (status !== 'finished') return void go();
-    Alert.alert(t('tontine.finish.confirm'), tontine.name, [
+    // Frais ou gain du cycle, comptés à la date de clôture (aucune opération n'est créée).
+    const c = tontineClosure({ ...tontine, status: 'finished' }, data.tontineEntries);
+    const body = c.fees ? t('tontine.close.fees', { amount: money(c.fees) }) : c.gain ? t('tontine.close.gain', { amount: money(c.gain) }) : tontine.name;
+    Alert.alert(t('tontine.finish.confirm'), body, [
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.confirm'), onPress: () => void go() },
     ]);
@@ -53,6 +57,8 @@ function TontineDetail() {
 
   return (
     <Screen back title={tontine.name}>
+      {/* Argent disponible v2 (§5.4) : la dernière échéance passée ne fait que PROPOSER la clôture. */}
+      {canEdit && closureSuggested(tontine, now) ? <Banner tone="info" icon="flag-outline" text={t('tontine.closeSuggest')} action={t('tontine.closeSuggest.cta')} onAction={() => setStatus('finished')} /> : null}
       <Card style={{ gap: 4 }}>
         <Text variant="small" tone="muted">
           {t(`tontine.type.${tontine.type}` as TKey)}

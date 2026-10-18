@@ -6,7 +6,10 @@ import { View } from 'react-native';
 import { useI18n, type TKey } from '@/i18n';
 import { useData } from '@/store/app';
 import { useCurrency, useMoney } from '@/hooks/useFinance';
-import { AmountField, Banner, Button, Card, ChipGroup, DateField, Field, Icon, IconButton, Text } from '@/components/ui';
+import { AmountField, Banner, Button, Card, ChipGroup, DateField, Field, Icon, IconButton, Sheet, Text } from '@/components/ui';
+import { useActions } from '@/store/actions';
+import { useRunAction } from '@/hooks/useRunAction';
+import { goalBacking } from '@/core/position';
 import { useTheme } from '@/theme';
 import { computeGoalPlan, plannedMonthly, type GoalPlan } from '@/core/goals';
 import { CUSTOM_GOAL_CATEGORY, DEFAULT_GOAL_CATEGORIES, resolveGoalCategories, suggestGoalCategory, type GoalCategory } from '@/core/goalCategories';
@@ -85,6 +88,13 @@ export interface GoalDraft {
   accountId: string | null;
   scope: GoalScope;
   planned: PlannedContribution[];
+  /**
+   * Argent disponible v2 (§5.2) — d'où vient le montant initial : pris sur le disponible (un compte
+   * courant), déjà sur un compte d'épargne (affectation), ou épargne hors de mes comptes.
+   */
+  initialOrigin?: 'available' | 'savings' | 'outside';
+  initialFromId?: string | null;
+  initialNote?: string;
 }
 
 export function draftFromGoal(g: Goal): GoalDraft {
@@ -139,6 +149,7 @@ export function GoalFields({ draft, onChange, categories, saved, editing }: { dr
       />
       <AmountField label={t('goal.target')} value={draft.targetAmount} onChange={(v) => set('targetAmount', v)} currency={currency} big />
       {!editing ? <AmountField label={`${t('goal.initial')} (${t('common.optional')})`} value={draft.initialAmount} onChange={(v) => set('initialAmount', v)} currency={currency} /> : null}
+      {!editing && draft.initialAmount ? <InitialOrigin draft={draft} onChange={onChange} /> : null}
       <DateField label={`${t('goal.targetDate')} (${t('common.optional')})`} value={draft.targetDate} onChange={(d) => set('targetDate', d)} allowClear shortcuts={false} minimumDate={today()} />
       <AmountField label={`${t('goal.monthly')} (${t('common.optional')})`} value={draft.monthlyContribution} onChange={(v) => set('monthlyContribution', v)} currency={currency} />
       <GoalPlanPanel plan={plan} targetDate={draft.targetDate} />
@@ -217,3 +228,73 @@ export function CategorySuggestion({ text, categories, onAccept, onChange }: { t
 }
 
 export { DEFAULT_GOAL_CATEGORIES };
+
+/** « D'où vient cet argent ? » (§5.2) : un choix obligatoire dès qu'un montant initial est saisi. */
+export function InitialOrigin({ draft, onChange }: { draft: GoalDraft; onChange: (d: GoalDraft) => void }) {
+  const { t } = useI18n();
+  const data = useData();
+  const currency = useCurrency();
+  const current = data.accounts.filter((a) => a.active && !a.deleted && !a.isSavings && a.currency === currency);
+  const savingsAccounts = data.accounts.filter((a) => a.active && !a.deleted && a.isSavings && a.currency === currency);
+  const origin = draft.initialOrigin ?? (current.length ? 'available' : 'outside');
+  const list = origin === 'available' ? current : origin === 'savings' ? savingsAccounts : [];
+  const fromId = list.find((a) => a.id === draft.initialFromId)?.id ?? list[0]?.id ?? null;
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
+        {t('acc.origin.title')}
+      </Text>
+      <ChipGroup
+        value={origin}
+        onChange={(o) => onChange({ ...draft, initialOrigin: o, initialFromId: null })}
+        options={[
+          ...(current.length ? [{ value: 'available' as const, label: t('goal.origin.available') }] : []),
+          ...(savingsAccounts.length ? [{ value: 'savings' as const, label: t('goal.origin.savings') }] : []),
+          { value: 'outside' as const, label: t('goal.origin.outside') },
+        ]}
+      />
+      {list.length ? <ChipGroup scroll value={fromId} onChange={(id) => onChange({ ...draft, initialOrigin: origin, initialFromId: id })} options={list.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))} /> : null}
+      {origin === 'outside' ? <Field label={t('acc.opening.note')} hint={t('goal.origin.noteHint')} value={draft.initialNote ?? ''} onChangeText={(v) => onChange({ ...draft, initialOrigin: origin, initialNote: v })} maxLength={200} /> : null}
+    </View>
+  );
+}
+
+/** Origine résolue du montant initial (pour l'enregistrement). */
+export function resolvedOrigin(draft: GoalDraft, accounts: { id: string; isSavings: boolean; active: boolean; deleted?: boolean; currency: string }[], currency: string): { origin: 'available' | 'savings' | 'outside'; fromId: string | null } {
+  const current = accounts.filter((a) => a.active && !a.deleted && !a.isSavings && a.currency === currency);
+  const savings = accounts.filter((a) => a.active && !a.deleted && a.isSavings && a.currency === currency);
+  const origin = draft.initialOrigin ?? (current.length ? 'available' : 'outside');
+  const list = origin === 'available' ? current : origin === 'savings' ? savings : [];
+  return { origin, fromId: list.find((a) => a.id === draft.initialFromId)?.id ?? list[0]?.id ?? null };
+}
+
+/**
+ * Fermeture d'une poche (§5.1) : archiver, abandonner ou terminer demande un solde 0. S'il reste de
+ * l'argent, on demande où il va — « Remettre dans mon disponible » (fin des mises de côté, retour
+ * depuis l'épargne) ou « Garder sur l'épargne » (fin de l'affectation) — et l'opération est créée.
+ */
+export function ClosePocketSheet({ goalId, status, onClose, onDone }: { goalId: string | null; status: 'archived' | 'abandoned' | 'completed'; onClose: () => void; onDone: () => void }) {
+  const { t } = useI18n();
+  const money = useMoney();
+  const data = useData();
+  const currency = useCurrency();
+  const actions = useActions();
+  const runAction = useRunAction();
+  const backing = goalId ? goalBacking(data, currency).get(goalId) : undefined;
+  const onSavings = !!backing && Object.keys(backing.byAccount).some((id) => data.accounts.find((a) => a.id === id)?.isSavings);
+  const close = (destination: 'available' | 'savings') => {
+    if (goalId && runAction(() => actions.closePocket(goalId, status, destination))) onDone();
+  };
+  return (
+    <Sheet visible={!!goalId} onClose={onClose} title={t('goal.close.title', { amount: money(backing?.total ?? 0) })}>
+      {backing?.outside ? (
+        <Text variant="small" tone="muted">
+          {t('goal.close.outside', { amount: money(backing.outside) })}
+        </Text>
+      ) : null}
+      <Button full label={t('goal.close.available')} onPress={() => close('available')} />
+      {onSavings ? <Button full variant="secondary" label={t('goal.close.savings')} onPress={() => close('savings')} /> : null}
+      <Button full variant="ghost" label={t('common.cancel')} onPress={onClose} />
+    </Sheet>
+  );
+}

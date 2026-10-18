@@ -3,12 +3,13 @@
  * DÉPLACE réellement l'argent vers le compte associé (transfert) ou s'il le
  * met simplement de côté (il n'est alors plus compté comme disponible).
  */
+import { HandledError, useMoneyGuard } from '@/features/money/MoneyGuard';
 import React, { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { goBack } from '@/hooks/goBack';
 import { useI18n } from '@/i18n';
 import { useData } from '@/store/app';
-import { useActions } from '@/store/actions';
+import { ActionError, useActions } from '@/store/actions';
 import { useAccountLabel, useCurrency } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, ChipGroup, DateField, EmptyState, Field, Screen, SwitchRow, Text, useToast } from '@/components/ui';
 import { today } from '@/core/dates';
@@ -26,6 +27,7 @@ function Contribute() {
   const currency = useCurrency();
   const accountLabel = useAccountLabel();
   const actions = useActions();
+  const { guard } = useMoneyGuard();
   const goal = data.goals.find((g) => g.id === id);
   const isWithdraw = withdraw === '1';
   const sources = data.accounts.filter((a) => a.active && a.id !== goal?.accountId && a.currency === goal?.currency);
@@ -45,14 +47,25 @@ function Contribute() {
     );
   const save = () => {
     setError(null);
-    try {
-      actions.contributeToGoal({ goalId: goal.id, amount: amount ?? 0, date, accountId, note: note.trim() || null, moveTo: move ? goal.accountId : null, withdraw: isWithdraw });
-      toast.show(t('goal.contribution.saved'));
-      if (from === 'goals') router.replace(`/goals/${goal.id}`);
-      else goBack();
-    } catch (e) {
-      setError(errorMessage(e, 'error.amount.invalid'));
-    }
+    // Argent disponible v2 (§5.2, §6.3) : une contribution qui manque d'argent ouvre la feuille de complément.
+    guard(
+      (choices) => {
+        try {
+          actions.contributeToGoal({ goalId: goal.id, amount: amount ?? 0, date, accountId, note: note.trim() || null, moveTo: move ? goal.accountId : null, withdraw: isWithdraw, choices });
+        } catch (e) {
+          if (e instanceof ActionError && (e.code === 'noMoney' || e.code === 'shortfall')) throw e;
+          setError(errorMessage(e, 'error.amount.invalid'));
+          throw new HandledError();
+        }
+      },
+      {
+        onDone: () => {
+          toast.show(t('goal.contribution.saved'));
+          if (from === 'goals') router.replace(`/goals/${goal.id}`);
+          else goBack();
+        },
+      },
+    );
   };
   return (
     <Screen back title={isWithdraw ? t('goal.withdraw') : t('goal.contribution.title', { name: goal.name })} edges={['top', 'bottom']} footer={<Button full label={t('common.save')} disabled={!amount} onPress={save} />}>

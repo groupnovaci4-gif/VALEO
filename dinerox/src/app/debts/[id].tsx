@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Alert, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useI18n } from '@/i18n';
+import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
-import { useActions } from '@/store/actions';
+import { ActionError, useActions } from '@/store/actions';
+import { HandledError, useMoneyGuard } from '@/features/money/MoneyGuard';
 import { useAccountLabel, useFinance, useMoney } from '@/hooks/useFinance';
 import { AmountField, Badge, Banner, Button, Card, ChipGroup, DateField, EmptyState, ProgressBar, Row, Screen, SectionHeader, Sheet, Text, useToast } from '@/components/ui';
 import { debtStatus, validateDebtPayment } from '@/core/debts';
@@ -29,17 +30,35 @@ function DebtDetail() {
   const payAccounts = data.accounts.filter((a) => a.active && !a.deleted && a.currency === debt?.currency && (debt?.direction !== 'i_owe' || !a.isSavings));
   const [accountId, setAccountId] = useState<string>(payAccounts.find((a) => !a.isSavings)?.id ?? 'none');
   const [day, setDay] = useState(today());
+  // Argent disponible v2 (§5.5) : intérêts SAISIS (0 par défaut), jamais inventés.
+  const [interest, setInterest] = useState<number | null>(null);
+  const { guard } = useMoneyGuard();
   if (!debt) return <Screen back><EmptyState title={t('debt.empty.title')} /></Screen>;
   const s = debtStatus(debt, data.debtPayments, now);
   const payments = data.debtPayments.filter((p) => p.debtId === id).sort((a, b) => b.date.localeCompare(a.date));
   const canEdit = can(role, 'update', 'debts');
   const record = () => {
     const v = validateDebtPayment(amount ?? 0, s.remaining);
-    const run = () => {
-      if (!runAction(() => actions.recordDebtPayment({ debtId: debt.id, amount: amount!, date: day, accountId: accountId === 'none' ? null : accountId, offAccounts: accountId === 'none', label: t('debt.paymentNote', { name: debt.counterparty }) }))) return;
-      setOpen(false);
-      toast.show(t('common.saved'));
-    };
+    const run = () =>
+      // Remboursement : capital + intérêts en un lot ; s'il manque de l'argent, la feuille de complément s'ouvre.
+      guard(
+        (choices) => {
+          try {
+            actions.recordDebtPayment({ debtId: debt.id, amount: amount!, interest: interest ?? 0, date: day, accountId: accountId === 'none' ? null : accountId, offAccounts: accountId === 'none', label: t('debt.paymentNote', { name: debt.counterparty }), choices });
+          } catch (e) {
+            if (e instanceof ActionError && (e.code === 'noMoney' || e.code === 'shortfall')) throw e;
+            toast.show(e instanceof ActionError && e.details.errors?.[0] ? t(`error.${e.details.errors[0]}` as TKey) : t('error.generic'), 'error');
+            throw new HandledError();
+          }
+        },
+        {
+          onDone: () => {
+            setOpen(false);
+            setInterest(null);
+            toast.show(t('common.saved'));
+          },
+        },
+      );
     if (v === 'invalid') return toast.show(t('error.amount.invalid'), 'error');
     if (v === 'exceeds') return Alert.alert(t('debt.payment.exceeds', { amount: money(s.remaining) }), '', [{ text: t('common.cancel'), style: 'cancel' }, { text: t('common.confirm'), onPress: run }]);
     run();
@@ -75,7 +94,15 @@ function DebtDetail() {
       {canEdit && !s.settled ? (
         <View style={{ gap: 8, marginTop: 14 }}>
           <Button icon="cash-outline" label={t(debt.direction === 'i_owe' ? 'debt.pay' : 'debt.receive')} onPress={() => setOpen(true)} />
-          <Button variant="ghost" label={t('debt.close')} onPress={() => runAction(() => actions.closeDebt(debt.id))} />
+          <Button variant="ghost" label={t('debt.close')} onPress={() =>
+            // Clôturer avec un reste : « Dette remise » (je dois) ou « Créance abandonnée » (on me doit) — §5.5.
+            s.remaining > 0
+              ? Alert.alert(t('debt.close.title', { amount: money(s.remaining) }), '', [
+                  { text: t('common.cancel'), style: 'cancel' },
+                  { text: t(debt.direction === 'i_owe' ? 'debt.close.forgiven' : 'debt.close.writtenOff'), onPress: () => void runAction(() => actions.closeDebt(debt.id, debt.direction === 'i_owe' ? 'forgiven' : 'written_off')) },
+                ])
+              : runAction(() => actions.closeDebt(debt.id))
+          } />
         </View>
       ) : null}
       <SectionHeader title={t('debt.payments')} />
@@ -90,7 +117,8 @@ function DebtDetail() {
         <Text variant="caption" tone="subtle" style={{ marginBottom: 6 }}>
           {t('debt.payment.accountHint')}
         </Text>
-        <ChipGroup scroll value={accountId} onChange={setAccountId} options={[...payAccounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color })), { value: 'none', label: t('common.none') }]} />
+        <ChipGroup scroll value={accountId} onChange={setAccountId} options={[...payAccounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color })), { value: 'none', label: t('debt.movement.outside') }]} />
+        {debt.direction === 'i_owe' ? <AmountField label={t('debt.interest')} value={interest} onChange={setInterest} currency={debt.currency} hint={t('debt.interestHint')} /> : null}
         <DateField label={t('common.date')} value={day} onChange={(d) => d && setDay(d)} />
         <Button full label={t('common.save')} onPress={record} />
       </Sheet>

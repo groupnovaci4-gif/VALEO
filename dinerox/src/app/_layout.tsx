@@ -18,6 +18,7 @@ import { OriginBootstrap } from '@/features/origin/OriginBootstrap';
 import { CoachProvider } from '@/features/coach/CoachProvider';
 import { QuickAddProvider } from '@/features/QuickAdd';
 import { EntryProvider } from '@/features/entry/EntryProvider';
+import { MoneyGuardProvider } from '@/features/money/MoneyGuard';
 import { listenNotificationTaps } from '@/services/notifications';
 import { installWebAlert } from '@/services/webAlert';
 import { purgeSpeechTempFiles } from '@/services/speechTempFiles';
@@ -104,6 +105,8 @@ function Navigator() {
         <CoachProvider>
           {/* Saisie (micro, clavier, phrase) : disponible depuis la barre, l'accueil, l'Historique, une notification. */}
           <QuickAddProvider>
+            {/* Argent disponible v2 (§6.3) : feuille de complément de toute sortie d'argent. */}
+            <MoneyGuardProvider>
             <EntryProvider>
               <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'slide_from_right' }}>
                 <Stack.Screen name="(tabs)" />
@@ -113,6 +116,7 @@ function Navigator() {
                 <Stack.Screen name="goals/new" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
               </Stack>
             </EntryProvider>
+            </MoneyGuardProvider>
           </QuickAddProvider>
         </CoachProvider>
       </LockGate>

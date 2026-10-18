@@ -11,11 +11,13 @@ import { Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/theme';
 import { useI18n } from '@/i18n';
-import { useApp } from '@/store/app';
+import { useApp, useData } from '@/store/app';
+import { useMoneyGuard } from '@/features/money/MoneyGuard';
+import { today } from '@/core/dates';
 import { ActionError, useActions } from '@/store/actions';
 import { useCurrency } from '@/hooks/useFinance';
 import { Banner, Button, Card, Field, Screen, Text, useToast } from '@/components/ui';
-import { CategorySuggestion, GoalFields, useGoalCategories, type GoalDraft } from '@/features/goals';
+import { CategorySuggestion, GoalFields, resolvedOrigin, useGoalCategories, type GoalDraft } from '@/features/goals';
 import { CUSTOM_GOAL_CATEGORY, type GoalCategory, type GoalTemplate } from '@/core/goalCategories';
 import { UpgradeCard } from '@/features/rows';
 import { withSpaceReady } from '@/components/SpaceReady';
@@ -45,6 +47,8 @@ function NewGoal() {
   const { activeSpace } = useApp();
   const currency = useCurrency();
   const actions = useActions();
+  const { guard } = useMoneyGuard();
+  const data = useData();
   const categories = useGoalCategories();
   const fromAi = !!p.name;
   const [step, setStep] = useState<Step>(fromAi ? 'custom' : 'choose');
@@ -68,6 +72,11 @@ function NewGoal() {
     if (!draft.name.trim()) return setError(t('error.name.required'));
     if (!draft.targetAmount) return setError(t('error.amount.invalid'));
     const cat = categories.find((c) => c.id === draft.categoryId);
+    // Argent disponible v2 (§5.2) : seul l'argent « hors de mes comptes » reste un montant initial ;
+    // pris sur le disponible ou déjà sur l'épargne, c'est une vraie contribution (adossée à un compte).
+    const initial = draft.initialAmount ?? 0;
+    const { origin, fromId } = resolvedOrigin(draft, data.accounts, currency);
+    const viaContribution = initial > 0 && origin !== 'outside' && !!fromId;
     try {
       const g = actions.createGoal({
         name: draft.name.trim(),
@@ -77,7 +86,9 @@ function NewGoal() {
         icon: draft.icon,
         currency,
         targetAmount: draft.targetAmount,
-        initialAmount: draft.initialAmount ?? 0,
+        initialAmount: viaContribution ? 0 : initial,
+        initialSource: !viaContribution && initial > 0 ? 'outside' : null,
+        initialNote: !viaContribution && initial > 0 ? draft.initialNote?.trim() || null : null,
         targetDate: draft.targetDate,
         priority: draft.priority,
         rank: 0,
@@ -88,8 +99,18 @@ function NewGoal() {
         status: 'active',
         history: [],
       });
-      toast.show(t('common.saved'));
-      router.replace(`/goals/${g.id}`);
+      const opened = () => {
+        toast.show(t('common.saved'));
+        router.replace(`/goals/${g.id}`);
+      };
+      if (!viaContribution) return opened();
+      const savingsGoalAccount = data.accounts.find((a) => a.id === g.accountId && a.isSavings)?.id ?? null;
+      guard(
+        (choices) =>
+          actions.contributeToGoal({ goalId: g.id, amount: initial, date: today(), accountId: fromId, moveTo: origin === 'available' ? savingsGoalAccount : null, choices }),
+        // Contribution annulée : l'objectif est créé sans montant (aucun argent n'a bougé).
+        { onDone: opened },
+      );
     } catch (e) {
       if (e instanceof ActionError && e.code === 'limit') setError('limit');
       else if (e instanceof ActionError && e.code === 'permission') setError(t('error.permission'));

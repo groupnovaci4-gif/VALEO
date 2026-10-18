@@ -37,7 +37,7 @@ import { speechInput, type SpeechPermission } from '@/services/speechInput';
 import { readEntryStats, voiceToday } from '@/services/entryStats';
 import { stopVoice } from '@/services/voice';
 import { analytics } from '@/services/analytics';
-import { ActionError } from '@/store/actions';
+import { useMoneyGuard } from '@/features/money/MoneyGuard';
 import { activeReserves, reserveBalance, reserveEligible } from '@/core/reserve';
 import { applyTontine } from '@/core/tontineEntry';
 import { tontineContributionCategory } from '@/core/tontine';
@@ -121,6 +121,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const { data, currency, now } = useFinance();
   const stats = useEntryStats();
   const { saveDrafts, undo, takeHeldNotice } = useEntrySave();
+  const { guard } = useMoneyGuard();
   /** Opérations du dernier « oui » : « Annuler » les retire toutes, pendant 5 secondes. */
   const [undoIds, setUndoIds] = useState<string[] | null>(null);
   useEffect(() => {
@@ -137,7 +138,7 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   const [moreOpen, setMoreOpen] = useState(false);
   const [voice, setVoice] = useState<VoiceState>('idle');
   const [partial, setPartial] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busy] = useState(false);
   const started = useRef(false);
   const ePrefs = entryPrefs(profile?.preferences);
   // I1 : sur l'appareil par défaut quand c'est possible, sinon accord demandé une fois.
@@ -457,12 +458,8 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       setView({ kind: 'confirm', drafts: [draft], method: 'quick_manual', text: '', edited: false });
       return;
     }
-    try {
-      saveDrafts([draft], 'quick_manual');
-      onClose();
-    } catch (e) {
-      toast.show(e instanceof ActionError && e.code === 'permission' ? t('error.permission') : t('error.generic'), 'error');
-    }
+    // Argent disponible v2 (§6.3) : la feuille de complément s'ouvre AVANT tout enregistrement.
+    guard((choices) => saveDrafts([draft], 'quick_manual', false, false, choices), { onDone: onClose });
   };
 
   // ─── Confirmation ──────────────────────────────────────────────────
@@ -477,33 +474,21 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
       conv.sayText(t('conv.toCheck', { count: drafts.filter((d) => !d.amount || (d.type === 'savings' && !d.savings?.savingsAccountId)).length }), [], aloud);
       return;
     }
-    setBusy(true);
-    try {
-      const before = conv.statusesNow();
-      const ids = saveDrafts(drafts, view.method, view.edited, true);
+    const before = conv.statusesNow();
+    guard((choices) => {
+      const ids = saveDrafts(drafts, view.method, view.edited, true, choices);
       conv.saved(drafts, before, aloud);
-      // Cercle fermé : l'épargne nommée pour une dépense, ou le disponible sous zéro — dit dans la conversation.
+      // Cercle fermé : l'épargne nommée pour une dépense — dit dans la conversation.
       const notice = takeHeldNotice();
       if (notice) conv.sayText(notice, [], aloud);
       setUndoIds(ids);
-    } catch (e) {
-      toast.show(e instanceof ActionError && e.code === 'permission' ? t('error.permission') : t('error.generic'), 'error');
-    } finally {
-      setBusy(false);
-    }
+    });
   };
 
   const validate = () => {
     if (view.kind !== 'confirm') return;
-    setBusy(true);
-    try {
-      saveDrafts(view.drafts, view.method, view.edited);
-      onClose();
-    } catch (e) {
-      toast.show(e instanceof ActionError && e.code === 'permission' ? t('error.permission') : t('error.generic'), 'error');
-    } finally {
-      setBusy(false);
-    }
+    const v = view;
+    guard((choices) => saveDrafts(v.drafts, v.method, v.edited, false, choices), { onDone: onClose });
   };
 
   // ─── Rendu ─────────────────────────────────────────────────────────

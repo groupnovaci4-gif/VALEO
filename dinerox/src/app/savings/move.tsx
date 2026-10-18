@@ -11,6 +11,7 @@
  *  - Ajuster le solde : on saisit le solde réel, l'écart devient un ajustement.
  * Chaque refus a un message clair ; double toucher : un seul enregistrement.
  */
+import { HandledError, useMoneyGuard } from '@/features/money/MoneyGuard';
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -18,7 +19,7 @@ import { goBack } from '@/hooks/goBack';
 import { useI18n, type TKey } from '@/i18n';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { useActions, ActionError } from '@/store/actions';
-import { AmountField, Banner, Button, ChipGroup, DateField, Screen, Segmented, SwitchRow, Text, useToast } from '@/components/ui';
+import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, Segmented, SwitchRow, Text, useToast } from '@/components/ui';
 import { CategoryPicker } from '@/features/categories/CategoryPicker';
 import { withSpaceReady } from '@/components/SpaceReady';
 import { isISODate, today } from '@/core/dates';
@@ -35,6 +36,7 @@ function SavingsMove() {
   const money = useMoney();
   const toast = useToast();
   const actions = useActions();
+  const { guard } = useMoneyGuard();
   const { data, balances, currency } = useFinance();
   const savings = data.accounts.filter((a) => a.isSavings && a.active && !a.deleted);
   const current = data.accounts.filter((a) => !a.isSavings && a.active && !a.deleted);
@@ -57,6 +59,8 @@ function SavingsMove() {
   const [goalId, setGoalId] = useState<string | null>(p.goalId ?? goals.find((g) => g.accountId === accountId)?.id ?? (goals.length === 1 ? goals[0].id : null));
   const [goalPart, setGoalPart] = useState<number | null>(null);
   const [real, setReal] = useState<number | null>(null);
+  // Argent disponible v2 (§3.2) : une correction de solde porte un motif obligatoire.
+  const [reason, setReason] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -78,17 +82,38 @@ function SavingsMove() {
     // Interrupteur « objectif » activé sans objectif choisi : jamais d'enregistrement sans lui.
     if (mode !== 'adjust' && withGoal && !goal) return void setErrors([t('sav.move.pickGoal')]);
     setErrors([]);
+    // Argent disponible v2 (§6.3) : un versement ou un retrait qui manque d'argent ouvre la feuille de complément.
+    if (mode !== 'adjust') {
+      const fail = (e: unknown) => {
+        if (e instanceof ActionError && (e.code === 'noMoney' || e.code === 'shortfall')) throw e;
+        if (e instanceof ActionError && e.details.errors) setErrors(e.details.errors.map((k) => t(`error.${k}` as TKey)));
+        else if (e instanceof ActionError && e.code === 'permission') setErrors([t('error.permission')]);
+        else setErrors([t('error.generic')]);
+        throw new HandledError();
+      };
+      guard(
+        (choices) => {
+          try {
+            if (mode === 'deposit') actions.depositToSavings({ savingsAccountId: account.id, amount: amount ?? 0, date, fromAccountId: source === 'account' ? otherId : null, goal: withGoal && goal ? { goalId: goal.id, amount: part } : null, choices });
+            else actions.withdrawFromSavings({ savingsAccountId: account.id, amount: amount ?? 0, date, toAccountId: dest === 'account' ? otherId : null, viaAccountId: dest === 'expense' ? otherId : null, categoryId: dest === 'expense' ? categoryId : null, subcategoryId: dest === 'expense' ? subcategoryId : null, goal: withGoal && goal ? { goalId: goal.id, amount: part } : null, choices });
+          } catch (e) {
+            fail(e);
+          }
+        },
+        {
+          onDone: () => {
+            toast.show(t(mode === 'deposit' ? 'sav.move.deposited' : 'sav.move.withdrawn'));
+            goBack();
+          },
+        },
+      );
+      return;
+    }
     setBusy(true);
     try {
-      if (mode === 'deposit') {
-        actions.depositToSavings({ savingsAccountId: account.id, amount: amount ?? 0, date, fromAccountId: source === 'account' ? otherId : null, goal: withGoal && goal ? { goalId: goal.id, amount: part } : null });
-        toast.show(t('sav.move.deposited'));
-      } else if (mode === 'withdraw') {
-        actions.withdrawFromSavings({ savingsAccountId: account.id, amount: amount ?? 0, date, toAccountId: dest === 'account' ? otherId : null, viaAccountId: dest === 'expense' ? otherId : null, categoryId: dest === 'expense' ? categoryId : null, subcategoryId: dest === 'expense' ? subcategoryId : null, goal: withGoal && goal ? { goalId: goal.id, amount: part } : null });
-        toast.show(t('sav.move.withdrawn'));
-      } else {
+      {
         if (!adjustment) return void setErrors([t('sav.move.noChange')]);
-        actions.adjustSavingsBalance({ accountId: account.id, date, ...adjustment });
+        actions.correctBalance({ accountId: account.id, actual: real ?? 0, date, reason });
         toast.show(t('sav.move.adjusted'));
       }
       goBack();
@@ -125,6 +150,7 @@ function SavingsMove() {
               {t(adjustment.direction === 'in' ? 'sav.move.adjust.plus' : 'sav.move.adjust.minus', { amount: money(adjustment.amount, { currency: account?.currency }) })}
             </Text>
           ) : null}
+          <Field label={t('acc.correct.reason')} hint={t('acc.correct.reasonHint')} value={reason} onChangeText={setReason} maxLength={200} />
         </>
       ) : (
         <AmountField label={t('common.amount')} value={amount} onChange={setAmount} currency={account?.currency ?? currency} big />

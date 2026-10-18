@@ -7,6 +7,8 @@ import {
   accountChangeError,
   applyItems,
   batchOutflowError,
+  planComplementsFor,
+  removalWouldOverdraw,
   outflowError,
   planBalanceCorrection,
   planDebtOpening,
@@ -227,5 +229,39 @@ describe('§6.3 — contrôle d’un LOT : il ne crée ni n’aggrave un solde n
     const r = planReserveUse(d, fun, 'res', 'XOF', newId);
     expect(batchOutflowError(d, [{ col: 'transactions', doc: fun }, ...r.items], TODAY)).toBeNull();
     expect(batchOutflowError(d, [{ col: 'transactions', doc: fun }], TODAY)).toEqual({ code: 'shortfall', accountId: 'cash', missing: 40_000 });
+  });
+});
+
+describe('§6.3 — feuille de complément, pour TOUT lot (versement, contribution, cotisation, remboursement)', () => {
+  it('versement vers l’épargne sans assez sur Espèces : complément depuis Orange Money, en un lot', () => {
+    const d = space({ accounts: [cash(5_000), om(50_000), ce()] });
+    const items = [{ col: 'transactions' as const, doc: tx({ id: 'dep', type: 'transfer', amount: 20_000, accountId: 'cash', toAccountId: 'ce', date: TODAY }) }];
+    expect(planComplementsFor(d, items, [], TODAY, newId, 'set_aside')).toEqual({ error: 'needsChoice', accountId: 'cash', missing: 15_000, sources: [{ kind: 'account', accountId: 'om', free: 50_000 }, { kind: 'received' }] });
+    const r = planComplementsFor(d, items, [{ kind: 'account', accountId: 'om' }], TODAY, newId, 'set_aside');
+    if (!('items' in r)) throw new Error(JSON.stringify(r));
+    const after = applyItems(applyItems(d, r.items), items);
+    const b = accountBalances(after.accounts, after.transactions);
+    expect([b.cash, b.om, b.ce]).toEqual([0, 35_000, 20_000]);
+    expect(batchOutflowError(applyItems(d, r.items), items, TODAY)).toBeNull();
+  });
+  it('rien à compléter : aucun complément ; argent non renseigné : noMoney', () => {
+    const items = [{ col: 'transactions' as const, doc: tx({ type: 'expense', amount: 1_000, accountId: 'cash', date: TODAY }) }];
+    expect(planComplementsFor(space({ accounts: [cash(5_000)] }), items, [], TODAY, newId)).toEqual({ items: [] });
+    expect(planComplementsFor(space({ accounts: [cash()] }), items, [], TODAY, newId)).toEqual({ error: 'noMoney' });
+  });
+  it('choix devenu impossible : stale', () => {
+    const d = space({ accounts: [cash(), om(5_000)] });
+    const items = [{ col: 'transactions' as const, doc: tx({ type: 'expense', amount: 10_000, accountId: 'cash', date: TODAY }) }];
+    expect(planComplementsFor(d, items, [{ kind: 'account', accountId: 'om' }], TODAY, newId)).toEqual({ error: 'stale', accountId: 'cash' });
+  });
+});
+
+describe('§6.4 — E40b : supprimer un revenu déjà dépensé', () => {
+  it('confirmation « Espèces passera à −40 000 F » ; la suppression reste permise', () => {
+    const d = space({ accounts: [cash()], transactions: [tx({ id: 'inc', type: 'income', amount: 50_000, accountId: 'cash', date: '2026-10-01' }), tx({ type: 'expense', amount: 40_000, accountId: 'cash', date: '2026-10-02' })] });
+    expect(removalWouldOverdraw(d, 'inc')).toEqual({ accountId: 'cash', balance: -40_000 });
+    expect(removalWouldOverdraw(d, 'absent')).toBeNull();
+    const ok = space({ accounts: [cash(100_000)], transactions: [tx({ id: 'inc', type: 'income', amount: 50_000, accountId: 'cash' })] });
+    expect(removalWouldOverdraw(ok, 'inc')).toBeNull();
   });
 });

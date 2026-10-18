@@ -20,7 +20,8 @@ import { useTheme } from '@/theme';
 import { useI18n, hasKey, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { ActionError, useActions } from '@/store/actions';
-import { useActionErrorMessage } from '@/hooks/useRunAction';
+import { HandledError, useMoneyGuard } from '@/features/money/MoneyGuard';
+import type { SourceChoice } from '@/core/writePlans';
 import { useCategoryLabels, useFinance, useMoney } from '@/hooks/useFinance';
 import { useFormatParams } from '@/hooks/useInsightText';
 import { Button, Card, Chip, Icon, IconButton, Text } from '@/components/ui';
@@ -141,7 +142,7 @@ export default function Assistant() {
   });
   // Cercle fermé : jamais un compte d'épargne par défaut (aucun compte courant : « Espèces » créé à la confirmation).
   const { saveDrafts } = useEntrySave();
-  const errorMessage = useActionErrorMessage();
+  const { guard } = useMoneyGuard();
   const defaultAccount = defaultSpendingAccountId(data.accounts, null, currency);
   const minor = (n: number | null) => (n === null ? null : toMinor(n, currency));
 
@@ -208,14 +209,31 @@ export default function Assistant() {
 
   const confirm = (m: Message) => {
     const p = m.proposal!;
+    const done = () => {
+      update(m.id, { status: 'done' });
+      push({ id: mid(), from: 'assistant', text: t('ai.recorded') });
+    };
+    // Argent disponible v2 (§6.3) : une sortie d'argent passe par la feuille de complément (rien
+    // n'est enregistré avant le choix) ; l'opération par LE chemin de la saisie (useEntrySave).
+    const run = (fn: (choices: SourceChoice[]) => void) =>
+      guard((choices) => {
+        try {
+          fn(choices);
+        } catch (e) {
+          if (e instanceof ActionError && (e.code === 'noMoney' || e.code === 'shortfall')) throw e;
+          // Information manquante : on ouvre le formulaire prérempli.
+          edit(m);
+          throw new HandledError();
+        }
+      }, { onDone: done });
     try {
       if (p.kind === 'tx') {
-        // Argent disponible v2 (§6.3) : l'assistant passe par LE chemin de la saisie (contrôle avant
-        // enregistrement, compte « Espèces » créé après le contrôle, confirmation et « Annuler »).
-        saveDrafts([{ type: p.type, amount: p.amount, categoryId: p.categoryId, subcategoryId: null, accountId: p.accountId, date: p.date, payee: p.payee, uncertain: [], source: '' }], 'text_phrase');
+        run((choices) => saveDrafts([{ type: p.type, amount: p.amount, categoryId: p.categoryId, subcategoryId: null, accountId: p.accountId, date: p.date, payee: p.payee, uncertain: [], source: '' }], 'text_phrase', false, false, choices));
       } else if (p.kind === 'transfer') {
         if (!p.from || !p.to) throw new Error('account');
-        actions.saveTransaction({ type: 'transfer', amount: p.amount, currency, date: p.date, accountId: p.from, toAccountId: p.to });
+        const from = p.from;
+        const to = p.to;
+        run((choices) => actions.saveTransaction({ type: 'transfer', amount: p.amount, currency, date: p.date, accountId: from, toAccountId: to }, { choices }));
       } else {
         if (!p.amount) return router.push({ pathname: '/goals/new', params: { name: p.name, ai: '1', targetDate: p.targetDate ?? undefined } });
         actions.createGoal({
@@ -236,12 +254,9 @@ export default function Assistant() {
           status: 'active',
           history: [],
         });
+        done();
       }
-      update(m.id, { status: 'done' });
-      push({ id: mid(), from: 'assistant', text: t('ai.recorded') });
-    } catch (e) {
-      // Pas d'argent renseigné ou pas assez : rien n'est enregistré, la raison est dite (§6.2, §6.3).
-      if (e instanceof ActionError && (e.code === 'noMoney' || e.code === 'shortfall')) return push({ id: mid(), from: 'assistant', text: errorMessage(e) });
+    } catch {
       // Information manquante : on ouvre le formulaire prérempli.
       edit(m);
     }

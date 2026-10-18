@@ -42,6 +42,8 @@ export interface Commitment {
   amount: number;
   /** Catégorie (reste à répartir : un engagement d'une enveloppe n'est pas compté deux fois). */
   categoryId: string | null;
+  /** Tontine : numéro de l'échéance. */
+  period?: number;
 }
 
 type AllowanceData = Pick<SpaceData, 'accounts' | 'transactions' | 'recurring' | 'goals' | 'goalContributions'> &
@@ -66,7 +68,7 @@ function unpaidTontines(d: AllowanceData, currency: CurrencyCode, today: ISODate
     if (countedByRecurring(t, d.recurring)) continue;
     for (const s of scheduleState(t, d.tontineEntries ?? [], today, { until: to })) {
       if (s.status === 'done' || s.contribution <= 0 || s.dueDate < from || s.dueDate > to) continue;
-      out.push({ kind: 'tontine', id: t.id, date: s.dueDate, amount: s.contribution, categoryId: null });
+      out.push({ kind: 'tontine', id: t.id, date: s.dueDate, amount: s.contribution, categoryId: null, period: s.period });
     }
   }
   return out;

@@ -16,6 +16,7 @@ import { useEntry } from '@/features/entry/EntryProvider';
 import { ALL_HISTORY, filterHistory, historyCategories, historyMonths, isFiltered, periodTotals, type HistoryFilter } from '@/core/history';
 import { formatMoney } from '@/core/money';
 import { accountStatement } from '@/core/ledger';
+import { removalWouldOverdraw } from '@/core/writePlans';
 import { isRevenue, spendingAmount } from '@/core/nature';
 import { endOfMonth } from '@/core/dates';
 import type { Transaction } from '@/core/types';
@@ -58,8 +59,11 @@ export default function History() {
     }));
   }, [list]);
 
-  const askDelete = (tx: Transaction) =>
-    Alert.alert(t('common.deleteConfirmTitle'), t('tx.deleteConfirm'), [
+  const askDelete = (tx: Transaction) => {
+    // Argent disponible v2 (§6.4, E40b) : supprimer est permis ; si un compte passe sous zéro, on le dit avant.
+    const over = removalWouldOverdraw(data, tx.id);
+    const body = over ? t('money.willBeNegative', { account: data.accounts.find((a) => a.id === over.accountId)?.name ?? '', amount: money(over.balance) }) : t('tx.deleteConfirm');
+    return Alert.alert(t('common.deleteConfirmTitle'), body, [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
@@ -74,6 +78,7 @@ export default function History() {
         },
       },
     ]);
+  };
 
   const main = totals[currency];
   // Vue par compte = RELEVÉ (§10.2) : solde au début, entrées, sorties, solde à la fin ;

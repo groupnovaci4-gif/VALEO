@@ -14,7 +14,7 @@ import { monthKey, type ISODate } from './dates';
 import { accountPositions, balancesAt } from './position';
 import { recurringTxId } from './recurring';
 import { moneyTracked } from './savingsCircle';
-import { canDebit, complementDrafts, reserveCover, spendPlan, type SpendSource } from './spendPlan';
+import { canDebit, complementDrafts, reserveCover, sourcesFor, spendPlan, type SpendSource } from './spendPlan';
 import { buildSchedule } from './tontine';
 import type { CurrencyCode } from './money';
 import type { Account, Category, CollectionName, Debt, DebtPayment, GoalContribution, RecurringRule, SpaceData, SyncedDoc, TontineEntry, Transaction } from './types';
@@ -177,6 +177,39 @@ export function planSpendWithComplements(input: {
   }
   for (const l of input.lines) items.push(item('transactions', txDoc(l, l.id ?? input.newId('tx_'))));
   return { items };
+}
+
+/**
+ * Compléments d'un LOT quelconque (§6.3 — versement, contribution, cotisation, remboursement,
+ * dépense) : tant que le lot rendrait un compte négatif, le choix suivant de la feuille est
+ * appliqué ; les sources sont RECALCULÉES après chaque choix. Renvoie les écritures du
+ * complément, à enregistrer AVEC le lot (tout ou rien), ou ce qui manque encore.
+ */
+export function planComplementsFor(
+  d: SpaceData,
+  items: PlanItem[],
+  choices: SourceChoice[],
+  today: ISODate,
+  newId: NewId,
+  purpose: 'spend' | 'set_aside' = 'spend',
+): { items: PlanItem[] } | { error: 'noMoney' } | { error: 'needsChoice'; accountId: string | null; missing: number; sources: SpendSource[] } | { error: 'stale'; accountId: string | null } {
+  const out: PlanItem[] = [];
+  let next = 0;
+  for (let guard = 0; guard <= choices.length + 1; guard++) {
+    const work = applyItems(d, out);
+    const e = batchOutflowError(work, items, today);
+    if (!e) return { items: out };
+    if (e.code === 'noMoney') return { error: 'noMoney' };
+    const account = e.accountId ? d.accounts.find((a) => a.id === e.accountId) : undefined;
+    const currency = account?.currency ?? (items.find((i) => i.col === 'transactions')?.doc as Transaction | undefined)?.currency ?? 'XOF';
+    const sources = sourcesFor(work, e.accountId, e.missing, today, currency, today, purpose);
+    const choice = choices[next++];
+    if (!choice) return { error: 'needsChoice', accountId: e.accountId, missing: e.missing, sources };
+    const source = sources.find((x) => sameSource(x, choice));
+    if (!source || !e.accountId) return { error: 'stale', accountId: e.accountId };
+    out.push(...complementItems(source, e.missing, e.accountId, today, currency, newId));
+  }
+  return { error: 'stale', accountId: null };
 }
 
 // ─── Transfert + frais (§3.4) ────────────────────────────────────────
@@ -346,4 +379,24 @@ export function planReserveUse(d: SpaceData, tx: Pick<Transaction, 'id' | 'amoun
     items.push(item('transactions', transfer), contribution(part.amount, part.accountId, transfer.id));
   }
   return { covered: cover.covered, uncovered: cover.uncovered, items };
+}
+
+// ─── Corriger le passé (§6.4) ────────────────────────────────────────
+
+/**
+ * Supprimer une opération (avec ses opérations liées) ferait-il passer un compte sous zéro ?
+ * La suppression reste PERMISE (c'est une correction) ; l'écran le dit avant : « Espèces passera
+ * à −40 000 F ; il faudra régulariser. » (E40b). null : aucun compte ne devient négatif.
+ */
+export function removalWouldOverdraw(d: Pick<SpaceData, 'accounts' | 'transactions'>, transactionId: string): { accountId: string; balance: number } | null {
+  if (!d.transactions.some((t) => t.id === transactionId && !t.deleted)) return null;
+  const gone = new Set([transactionId, ...d.transactions.filter((t) => !t.deleted && t.linkedTransactionId === transactionId).map((t) => t.id)]);
+  const before = accountBalances(d.accounts, d.transactions);
+  const after = accountBalances(d.accounts, d.transactions.filter((t) => !gone.has(t.id)));
+  for (const a of d.accounts) {
+    if (a.deleted) continue;
+    const b = after[a.id] ?? 0;
+    if (b < 0 && b < (before[a.id] ?? 0)) return { accountId: a.id, balance: b };
+  }
+  return null;
 }

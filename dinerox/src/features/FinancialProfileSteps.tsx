@@ -192,23 +192,9 @@ export function MoneyStep({ draft, onChange }: StepProps) {
         <Text variant="small" tone="muted" style={{ marginBottom: 12 }}>
           {t('fp.money.none')}
         </Text>
-      ) : (
-        <>
-          {/* Cercle fermé : le solde d'un compte courant n'inclut pas l'épargne (notée à part). */}
-          <Text variant="small" tone="muted" style={{ marginBottom: 12 }}>
-            {t('fp.money.spendingHint')}
-          </Text>
-          {draft.paymentMethods.map((k) => (
-          <AmountField
-            key={k}
-            label={t('fp.money.balance', { name: name(k, draft.country) })}
-            value={draft.balances[k] ?? null}
-            onChange={(v) => onChange({ ...draft, balances: { ...draft.balances, [k]: v } })}
-            currency={draft.currency}
-          />
-          ))}
-        </>
-      )}
+      ) : null}
+      {/* Argent disponible v2 (§12.1) : l'inscription choisit les sources, SANS montant ; l'argent
+          disponible s'indique ensuite sur l'accueil (« Votre argent disponible aujourd'hui »). */}
     </>
   );
 }

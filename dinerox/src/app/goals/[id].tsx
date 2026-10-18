@@ -9,8 +9,9 @@ import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useAccountLabel, useFinance, useMoney } from '@/hooks/useFinance';
+import { ClosePocketSheet , GoalPlanPanel } from '@/features/goals';
+import { goalBacking } from '@/core/position';
 import { Badge, Button, Card, EmptyState, ProgressBar, Row, Screen, SectionHeader, Text, useToast } from '@/components/ui';
-import { GoalPlanPanel } from '@/features/goals';
 import { goalPlanFor, shouldCelebrate } from '@/core/goals';
 import { can } from '@/core/permissions';
 import type { GoalStatus } from '@/core/types';
@@ -29,11 +30,12 @@ function GoalDetail() {
   const accountLabel = useAccountLabel();
   const actions = useActions();
   const runAction = useRunAction();
-  const { data, now } = useFinance();
+  const { data, now, currency } = useFinance();
   const goal = data.goals.find((g) => g.id === id);
   const plan = useMemo(() => (goal ? goalPlanFor(goal, data.goalContributions, now) : null), [goal, data.goalContributions, now]);
   const contributions = useMemo(() => data.goalContributions.filter((c) => c.goalId === id).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt), [data.goalContributions, id]);
   const [dismissed, setDismissed] = useState(false);
+  const [closing, setClosing] = useState<'archived' | 'abandoned' | null>(null);
   const celebrate = !dismissed && !!goal && shouldCelebrate(goal, data.goalContributions);
   const setCelebrate = (open: boolean) => {
     // Étape 4 : « Objectif atteint » fermé = moment positif (demande d'avis possible au retour à l'Accueil).
@@ -60,6 +62,8 @@ function GoalDetail() {
   const canContribute = can(role, 'create', 'goalContributions');
   const setStatus = (s: GoalStatus, confirmKey?: TKey) => {
     const run = () => {
+      // Argent disponible v2 (§5.1) : archiver ou abandonner une poche qui contient de l'argent → où va l'argent ?
+      if ((s === 'archived' || s === 'abandoned') && (goalBacking(data, currency).get(goal.id)?.total ?? 0) > 0) return setClosing(s);
       if (runAction(() => actions.setGoalStatus(goal.id, s))) toast.show(t(`goal.status.${s}` as TKey));
     };
     if (!confirmKey) return run();
@@ -177,7 +181,7 @@ function GoalDetail() {
               {canEdit ? (
                 <>
                   <Button full variant="success" icon="trophy" label={t('goal.action.complete')} onPress={() => (setCelebrate(false), setStatus('completed'))} />
-                  <Button full variant="secondary" icon="archive-outline" label={t('goal.action.archive')} onPress={() => (setCelebrate(false), runAction(() => (actions.setGoalStatus(goal.id, 'completed'), actions.setGoalStatus(goal.id, 'archived'))))} />
+                  <Button full variant="secondary" icon="archive-outline" label={t('goal.action.archive')} onPress={() => (setCelebrate(false), (goalBacking(data, currency).get(goal.id)?.total ?? 0) > 0 ? setClosing('archived') : runAction(() => (actions.setGoalStatus(goal.id, 'completed'), actions.setGoalStatus(goal.id, 'archived'))))} />
                 </>
               ) : null}
               <Button full variant="ghost" label={t('goal.celebrate.new')} onPress={() => (setCelebrate(false), router.push('/goals/new'))} />
@@ -186,6 +190,15 @@ function GoalDetail() {
           </ScrollView>
         </View>
       </Modal>
+      <ClosePocketSheet
+        goalId={closing ? goal.id : null}
+        status={closing ?? 'archived'}
+        onClose={() => setClosing(null)}
+        onDone={() => {
+          toast.show(t(`goal.status.${closing ?? 'archived'}` as TKey));
+          setClosing(null);
+        }}
+      />
     </Screen>
   );
 }

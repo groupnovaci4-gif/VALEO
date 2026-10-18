@@ -12,14 +12,17 @@
  *  - historique, quitter la tontine.
  * Aucun argent ne transite : DineroX suit la tontine.
  */
+import { HandledError, useMoneyGuard } from '@/features/money/MoneyGuard';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { DesignV2 } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
-import { useActions } from '@/store/actions';
+import { ActionError, useActions } from '@/store/actions';
 import { useMoney } from '@/hooks/useFinance';
-import { AmountField, Badge, Banner, Button, Card, Chip, EmptyState, Field, IconButton, Loading, Screen, SectionHeader, Sheet, SwitchRow, Text, useToast, type BadgeTone } from '@/components/ui';
+import { useData } from '@/store/app';
+import { useRunAction } from '@/hooks/useRunAction';
+import { AmountField, Badge, Banner, Button, Card, Chip, ChipGroup, EmptyState, Field, IconButton, Loading, Screen, SectionHeader, Sheet, SwitchRow, Text, useToast, type BadgeTone } from '@/components/ui';
 import { brand } from '@/config/brand';
 import { today } from '@/core/dates';
 import { cycleFinished, cycleSummary, groupSchedule, isGroupManager, nextPeriod, paidKey, reminderParams, slotStatusFor, type GroupPayment, type SlotStatus, type TontineGroup } from '@/core/tontineGroup';
@@ -123,6 +126,7 @@ function GroupView({ g, uid }: { g: TontineGroup; uid: string }) {
 
   /** « J'ai payé » : déclaration, puis la feuille « enregistrer aussi dans mes opérations ? » (compte choisi). */
   const [recording, setRecording] = useState(false);
+  const [potOpen, setPotOpen] = useState(false);
   const declare = (p: number, slotId: string) =>
     act(`declare-${p}-${slotId}`, 'declare', { period: p, slotId }, () => {
       analytics.track('tontine_payment_declared', {});
@@ -153,6 +157,10 @@ function GroupView({ g, uid }: { g: TontineGroup; uid: string }) {
         <Text variant="small" tone="muted">
           {t('tg.turn.receives', { name: nameOf(schedule[period - 1].beneficiarySlotId) })}
         </Text>
+        {/* Argent disponible v2 (§5.4, D5) : mon tour est passé → « J'ai reçu la cagnotte » (un retour, jamais un revenu). */}
+        {g.slots.find((s) => s.slotId === schedule[period - 1].beneficiarySlotId)?.uid === uid && schedule[period - 1].date <= now ? (
+          <Button small variant="success" icon="cash-outline" label={t('tg.gotPot')} onPress={() => setPotOpen(true)} style={{ alignSelf: 'flex-start' }} />
+        ) : null}
         {g.slots.map((s, i) => {
           const st = statusOf(period, s.slotId);
           const mine = s.uid === uid;
@@ -229,6 +237,7 @@ function GroupView({ g, uid }: { g: TontineGroup; uid: string }) {
       </Text>
 
       <RecordSheet visible={recording} g={g} date={now} onClose={() => setRecording(false)} />
+      <PotSheet visible={potOpen} g={g} date={now} onClose={() => setPotOpen(false)} />
 
       {!organizer ? (
         <Button
@@ -255,10 +264,40 @@ function GroupView({ g, uid }: { g: TontineGroup; uid: string }) {
  * JAMAIS de compte créé automatiquement : sans compte, la personne en crée un
  * elle-même, ou rien n'est enregistré.
  */
+/** « J'ai reçu la cagnotte » (tontine partagée) : le compte où l'argent est arrivé ; un retour de tontine. */
+function PotSheet({ visible, g, date, onClose }: { visible: boolean; g: TontineGroup; date: string; onClose: () => void }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const actions = useActions();
+  const run = useRunAction();
+  const data = useData();
+  const money = useMoney();
+  const accounts = data.accounts.filter((a) => a.active && !a.deleted && a.currency === g.currency);
+  const [accountId, setAccountId] = useState<string | null>(accounts.find((a) => !a.isSavings)?.id ?? accounts[0]?.id ?? null);
+  const pot = g.potAmount ?? g.amountPerShare * g.slots.length;
+  const record = () => {
+    if (!accountId) return;
+    if (run(() => actions.recordTontineGroupPayout({ groupId: g.id, groupName: g.name, amount: pot, currency: g.currency, date, accountId }))) {
+      toast.show(t('common.saved'));
+      onClose();
+    }
+  };
+  return (
+    <Sheet visible={visible} onClose={onClose} title={`${t('tg.gotPot')} · ${money(pot, { currency: g.currency })}`}>
+      <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
+        {t('tg.gotPot.account')}
+      </Text>
+      <ChipGroup scroll value={accountId} onChange={setAccountId} options={accounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))} />
+      <Button full label={t('common.confirm')} onPress={record} />
+    </Sheet>
+  );
+}
+
 function RecordSheet({ visible, g, date, onClose }: { visible: boolean; g: TontineGroup; date: string; onClose: () => void }) {
   const { t } = useI18n();
   const toast = useToast();
   const actions = useActions();
+  const { guard } = useMoneyGuard();
   // Cercle fermé : payée depuis un compte courant, un compte d'épargne ou un objectif.
   const { accounts, goals } = useTontineSources(g.currency, g.amountPerShare);
   const [picked, setPicked] = useState<TontineSource | null>(null);
@@ -266,13 +305,24 @@ function RecordSheet({ visible, g, date, onClose }: { visible: boolean; g: Tonti
   const source: TontineSource | null = picked ?? (fallback ? { kind: 'account', accountId: fallback.id } : null);
   const record = () => {
     if (!source) return;
-    try {
-      actions.recordTontineGroupContribution({ groupId: g.id, groupName: g.name, amount: g.amountPerShare, currency: g.currency, date, source });
-      toast.show(t('common.saved'));
-      onClose();
-    } catch {
-      toast.show(t('tg.err.generic'), 'error');
-    }
+    // Argent disponible v2 (§6.3) : une cotisation qui manque d'argent ouvre la feuille de complément.
+    guard(
+      (choices) => {
+        try {
+          actions.recordTontineGroupContribution({ groupId: g.id, groupName: g.name, amount: g.amountPerShare, currency: g.currency, date, source, choices });
+        } catch (e) {
+          if (e instanceof ActionError && (e.code === 'noMoney' || e.code === 'shortfall')) throw e;
+          toast.show(t('tg.err.generic'), 'error');
+          throw new HandledError();
+        }
+      },
+      {
+        onDone: () => {
+          toast.show(t('common.saved'));
+          onClose();
+        },
+      },
+    );
   };
   return (
     <Sheet visible={visible} onClose={onClose} title={t('tg.iPaid')}>
