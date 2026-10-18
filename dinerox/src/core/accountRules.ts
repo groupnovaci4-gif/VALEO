@@ -37,3 +37,21 @@ export function balanceCorrection(current: number, actual: number): { direction:
   if (!Number.isInteger(current) || !Number.isInteger(actual) || current === actual) return null;
   return actual > current ? { direction: 'in', amount: actual - current } : { direction: 'out', amount: current - actual };
 }
+
+/**
+ * Modification d'un compte (§3.1, §3.3) : refus si elle change la devise d'un compte utilisé,
+ * sa famille (courant ↔ épargne) ou le désactive avec un solde, ou réécrit l'ouverture
+ * après la première opération (« Corriger le solde » à la place). null : accepté.
+ */
+export function accountChangeRules(
+  before: Pick<Account, 'id' | 'currency' | 'isSavings' | 'active' | 'openingBalance'>,
+  draft: Pick<Account, 'currency' | 'isSavings' | 'active' | 'openingBalance'>,
+  balance: number,
+  transactions: Tx[],
+): 'account.notEmpty' | 'account.currencyLocked' | 'account.openingLocked' | null {
+  if (draft.currency !== before.currency && !canChangeCurrency(before, transactions)) return 'account.currencyLocked';
+  if (!!draft.isSavings !== !!before.isSavings && !canToggleSavings(balance)) return 'account.notEmpty';
+  if (before.active && !draft.active && !canDeactivate(balance)) return 'account.notEmpty';
+  if (draft.openingBalance !== before.openingBalance && usedBy(before.id, transactions)) return 'account.openingLocked';
+  return null;
+}
