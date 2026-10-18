@@ -15,7 +15,7 @@ import { BIG_TEXT, DesignV2, useTheme } from '@/theme';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { Amount, Button, Card, EmptyState, GradientCard, Icon, PhotoBanner, ProgressBar, Screen, SectionHeader, Text } from '@/components/ui';
+import { Amount, Button, Card, EmptyState, GradientCard, Icon, ProgressBar, Screen, SectionHeader, Text } from '@/components/ui';
 import { InsightCard, SpaceSwitcher } from '@/features/rows';
 import { EnvelopeCard } from '@/features/budget/EnvelopeCard';
 import { can } from '@/core/permissions';
@@ -39,7 +39,6 @@ function BudgetScreen() {
   return (
     <Screen brandSection={t('tab.budget')}>
       <SpaceSwitcher />
-      <PhotoBanner photo="budget" style={{ marginBottom: 12 }} />
       <View style={{ marginTop: 4, marginBottom: 12 }}>
         <Text variant="titleL" accessibilityRole="header">
           {t('budget.title')}

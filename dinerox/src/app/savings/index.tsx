@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { Button, Card, EmptyState, PhotoBanner, ProgressBar, Row, Screen, SectionHeader, Text } from '@/components/ui';
+import { Button, Card, EmptyState, ProgressBar, Row, Screen, SectionHeader, Text } from '@/components/ui';
 import { AccountRow } from '@/features/rows';
 import { goalPlanFor } from '@/core/goals';
 import { can } from '@/core/permissions';
@@ -26,7 +26,6 @@ export default function Savings() {
   const move = (mode: 'deposit' | 'withdraw' | 'adjust', accountId?: string) => router.push({ pathname: '/savings/move', params: { mode, ...(accountId ? { accountId } : {}) } });
   return (
     <Screen back title={t('sav.title')}>
-      <PhotoBanner photo="savings" style={{ marginBottom: 12 }} />
       <Card>
         <Text variant="caption" tone="muted">
           {t('sav.total')}

@@ -1,13 +1,32 @@
 import React, { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useTheme } from '@/theme';
 import { useI18n } from '@/i18n';
-import { Button, PhotoBanner, Text } from '@/components/ui';
+import { Button, Text } from '@/components/ui';
+import { PHOTO_SOURCES } from '@/components/ui/photoSources';
 import { Logo } from '@/components/Logo';
 import { useApp } from '@/store/app';
 import { env, isFirebaseConfigured } from '@/config/env';
+
+/** Hauteur minimale de la zone verte (hors barre d'état) : la photo reste visible au-dessus du texte. */
+const HERO_MIN_HEIGHT = 420;
+
+/**
+ * Fondu sur la photo (référence validée par le fondateur) : léger voile vert en haut (barre
+ * d'état lisible), photo nette au milieu, puis vert de plus en plus opaque jusqu'au vert
+ * plein sous le texte. [position, opacité du vert]
+ */
+const FADE: [string, number][] = [
+  ['0', 0.55],
+  ['0.18', 0],
+  ['0.42', 0],
+  ['0.72', 0.85],
+  ['0.92', 1],
+  ['1', 1],
+];
 
 export default function Welcome() {
   const { colors } = useTheme();
@@ -20,21 +39,36 @@ export default function Welcome() {
     void enterLocalMode({ demo: kind === 'demo' }).finally(() => setBusy(null));
   };
   return (
-    // Bas de l'écran : le panneau descend jusqu'en bas, sous la barre du système (sa marge est
-    // ajoutée à son padding) — plus de bande de couleur « hero » sous le panneau.
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.hero }}>
+    // Bord à bord : la photo monte sous la barre d'état ; en bas, le panneau descend jusqu'en
+    // bas de l'écran (la marge du système est ajoutée à son padding).
+    <View style={{ flex: 1, backgroundColor: colors.hero }}>
       {/* Petit écran (320 × 568) ou texte agrandi : l'ensemble défile au lieu d'être coupé. */}
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} bounces={false}>
-        <View style={{ flex: 1, padding: 24, justifyContent: 'center', gap: 18 }}>
-          <PhotoBanner photo="welcome" />
-          <Logo size={96} />
-          <Text variant="display" tone="onHero">
-            {t('auth.welcome.title')}
-          </Text>
-          <Text variant="h2" tone="onHero">
-            {t('auth.welcome.tagline')}
-          </Text>
-          <Text tone="heroMuted">{t('auth.welcome.pitch')}</Text>
+        {/* Zone verte : la photo l'occupe entièrement (décorative, styles fixes — règle 13). */}
+        <View style={{ flex: 1, minHeight: insets.top + HERO_MIN_HEIGHT, justifyContent: 'flex-end' }}>
+          <View style={StyleSheet.absoluteFill} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Image source={PHOTO_SOURCES.welcome} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
+            <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
+              <Defs>
+                <LinearGradient id="welcomeFade" x1="0" y1="0" x2="0" y2="1">
+                  {FADE.map(([offset, opacity]) => (
+                    <Stop key={offset} offset={offset} stopColor={colors.hero} stopOpacity={opacity} />
+                  ))}
+                </LinearGradient>
+              </Defs>
+              <Rect x="0" y="0" width="100%" height="100%" fill="url(#welcomeFade)" />
+            </Svg>
+          </View>
+          <View style={{ paddingHorizontal: 24, paddingBottom: 22, gap: 10 }}>
+            <Logo />
+            <Text variant="display" tone="onHero">
+              {t('auth.welcome.title')}
+            </Text>
+            <Text variant="h2" tone="onHero">
+              {t('auth.welcome.tagline')}
+            </Text>
+            <Text tone="heroMuted">{t('auth.welcome.pitch')}</Text>
+          </View>
         </View>
         <View style={{ padding: 24, paddingBottom: 24 + insets.bottom, gap: 12, backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
           {isFirebaseConfigured ? (
@@ -59,6 +93,6 @@ export default function Welcome() {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

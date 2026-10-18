@@ -388,7 +388,7 @@ export const en: Record<TKey, string> = {
 
   'auth.google.consent': 'By continuing with Google, you accept the terms of use and the privacy policy.',
   'auth.welcome.title': '{app}',
-  'auth.welcome.tagline': 'Your money, finally clear.',
+  'auth.welcome.tagline': 'Manage better. Plan better. Live better.',
   'auth.welcome.pitch': 'Your personal financial intelligence: understand where your money goes, plan your projects and improve your situation, at your own pace.',
   'auth.welcome.signup': 'Create my account',
   'auth.welcome.signin': 'I already have an account',

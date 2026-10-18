@@ -10,7 +10,7 @@ import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { AmountField, Badge, Button, Card, EmptyState, GradientCard, Icon, IconButton, PhotoBanner, Row, Screen, SectionHeader, Text } from '@/components/ui';
+import { AmountField, Badge, Button, Card, EmptyState, GradientCard, Icon, IconButton, Row, Screen, SectionHeader, Text } from '@/components/ui';
 import { useTheme } from '@/theme';
 import { useInsightText } from '@/hooks/useInsightText';
 import { GoalCard, SpaceSwitcher } from '@/features/rows';
@@ -69,7 +69,6 @@ export default function Goals() {
   return (
     <Screen brandSection={t('tab.goals')}>
       <SpaceSwitcher />
-      <PhotoBanner photo="goals" style={{ marginBottom: 12 }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 }}>
         <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <Text variant="h1">{t('goal.title')}</Text>

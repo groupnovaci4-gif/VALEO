@@ -9,7 +9,7 @@ import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useCategoryLabels } from '@/hooks/useFinance';
 import { useIntelligence } from '@/hooks/useIntelligence';
-import { Button, Card, PhotoBanner, Text } from '@/components/ui';
+import { Button, Card, Text } from '@/components/ui';
 import { SourceTag, useRecommendationText } from '@/features/Recommendation';
 import { adviceOfDay, reformulationQuestion } from '@/core/coach/advice';
 import { buildFinanceSummary } from '@/core/ai/summary';
@@ -47,7 +47,6 @@ export function AdviceOfDay({ excludeId }: { excludeId?: string }) {
   };
   return (
     <Card style={{ marginBottom: 14 }}>
-      <PhotoBanner photo="homeAdvice" style={{ marginBottom: 10 }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text variant="bodyStrong" accessibilityRole="header">
           {t('coach.advice.title')}

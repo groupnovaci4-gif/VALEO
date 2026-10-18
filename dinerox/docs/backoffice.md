@@ -625,7 +625,7 @@ Il refuse de s'exécuter contre l'émulateur sans `--emulator`, et inversement.
   uniquement** ; un test vérifie que `firebase/firestore` n'est importé nulle part).
 - **Marque** : `brand.ts` importé directement (`../src/config/brand.ts`) — nom, slogan, couleurs
   de marque, e-mail de support. Le slogan affiché est le texte existant de l'app
-  `auth.welcome.tagline` (« Votre argent, enfin lisible. ») : `brand.ts` n'a pas de champ
+  `auth.welcome.tagline` (« Mieux gérer. Mieux prévoir. Mieux vivre. ») : `brand.ts` n'a pas de champ
   slogan (voir D13).
 - **Montants** : `formatMoney` importé de `src/core/money.ts` (module pur, sans dépendance)
   → format identique à l'app (« 12 500 FCFA »).

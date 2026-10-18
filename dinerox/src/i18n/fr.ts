@@ -395,7 +395,7 @@ export const fr = {
   // Authentification
   'auth.google.consent': 'En continuant avec Google, vous acceptez les conditions générales d\'utilisation et la politique de confidentialité.',
   'auth.welcome.title': '{app}',
-  'auth.welcome.tagline': 'Votre argent, enfin lisible.',
+  'auth.welcome.tagline': 'Mieux gérer. Mieux prévoir. Mieux vivre.',
   'auth.welcome.pitch': "Votre intelligence financière personnelle : comprenez où va votre argent, planifiez vos projets et améliorez votre situation, à votre rythme.",
   'auth.welcome.signup': 'Créer mon compte',
   'auth.welcome.signin': "J'ai déjà un compte",

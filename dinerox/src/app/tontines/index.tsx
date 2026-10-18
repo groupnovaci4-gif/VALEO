@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { Badge, Button, Card, EmptyState, PhotoBanner, Screen, SectionHeader, Text } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, Screen, SectionHeader, Text } from '@/components/ui';
 import { withSpaceReady } from '@/components/SpaceReady';
 import { useTheme } from '@/theme';
 import { convertibleRecurring, nextContribution, nextPayout, scheduleState } from '@/core/tontine';
@@ -32,7 +32,6 @@ function Tontines() {
 
   return (
     <Screen back title={t('tontine.title')}>
-      <PhotoBanner photo="tontines" style={{ marginBottom: 12 }} />
       <Text variant="caption" tone="subtle" style={{ marginBottom: 10 }}>
         {t('tontine.legal')}
       </Text>
