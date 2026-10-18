@@ -8,7 +8,7 @@
  *     active `config/app/items/store`, ouvre DIRECTEMENT la page Play (interceptée), puis plus
  *     aucune demande automatique pour ce compte ; caché de nouveau si le réglage est retiré ou invalide.
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, declareMoney } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -56,6 +56,7 @@ const uidOf = async (email) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   await p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 15000 });
   await p.getByText('Plus tard', { exact: true }).click();
   await p.getByText('Bonjour Awa').first().waitFor({ timeout: 15000 }); await p.waitForTimeout(2500);
+  await declareMoney(p); // v2 : argent présent avant de dépenser
   const uid = await uidOf(email);
 
   // ── 1. Première ouverture retenue (par compte) ──

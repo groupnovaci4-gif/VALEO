@@ -9,7 +9,7 @@
  *  4. admin : statistiques agrégées, mode ambassadeur ;
  *  5. carte discrète de l'accueil après la 5e saisie.
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, declareMoney } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -54,6 +54,7 @@ async function signUp(h, first, email, code) {
   await h.p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 15000 });
   await h.p.getByText('Plus tard', { exact: true }).click();
   await h.p.getByText(`Bonjour ${first}`).first().waitFor({ timeout: 15000 });
+  await declareMoney(h.p); // v2 : argent présent avant de dépenser
 }
 
 /** Dépense saisie par le formulaire complet. */

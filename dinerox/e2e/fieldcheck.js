@@ -1,6 +1,9 @@
 /* Vérification générique de TOUS les champs visibles d'un écran. */
 module.exports.checkAllInputs = async (p, screen, ok, opts = {}) => {
-  const handles = await p.$$('input:not([type=checkbox]),textarea');
+  // Feuille ouverte : seuls ses champs sont atteignables (ceux de l'écran dessous sont masqués).
+  const dialogs = await p.$$('[role=dialog]');
+  const root = dialogs.length ? dialogs[dialogs.length - 1] : p;
+  const handles = await root.$$('input:not([type=checkbox]),textarea');
   const visible = [];
   for (const h of handles) if (await h.evaluate((e) => !!e.offsetParent && !e.disabled && !e.readOnly)) visible.push(h);
   if (!visible.length) { ok(!opts.expectInputs, `${screen} : aucun champ de saisie`); return 0; }

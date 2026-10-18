@@ -7,7 +7,7 @@
  *  2. Compte réel (formule gratuite) : question facultative du démarrage rapide,
  *     réserve créée, limite d'une réserve.
  */
-const { BASE, launch, dayOfMonth, phraseField } = require('./env.js');
+const { BASE, launch, dayOfMonth, phraseField, declareMoney, takeComplement } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -20,7 +20,6 @@ let b;
   // le 3, une saisie dépasse le budget Maison et l'alerte remplace « Enregistré ✓ »).
   const now = dayOfMonth(1);
   b = await launch({ date: now });
-  const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1;
   let ctx = await b.newContext({ viewport: { width: 390, height: 844 }, locale: 'fr-FR' });
   let p = await ctx.newPage();
   const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('dialog', (d) => d.accept());
@@ -76,40 +75,49 @@ let b;
   ok((await balance()) === 65_000, '« Annuler » : utilisation annulée avec l’opération (solde 65 000)');
 
   // Réserve insuffisante : complément montré, rien de bloqué ; seul le complément pèse sur le reste par jour.
-  const before = await perDay();
-  const avail0 = before * daysLeft;
-  // Ligne de détail de la carte (affichée aussi en cas de déficit) : « Revenus … − dépenses X − à venir … ».
-  const expenses = (s) => num((s.match(/dépenses ([\d ]+) FCFA − à venir/) || [])[1]);
-  const exp0 = expenses(await text());
-  await openKeyboard(); await phrase('Funérailles 100 000');
+  // v2 (§7.3) : détail « Argent disponible X − engagements … » (replié sous « Comment c'est calculé ? »).
+  const available = async () => {
+    await home(); // ouvre déjà « Comment c'est calculé ? »
+    return num(((await text()).match(/Argent disponible ([\d ]+) FCFA − engagements/) || [])[1]);
+  };
+  const avail0 = await available();
+  const bal0 = await balance();
+  await home(); await openKeyboard(); await phrase('Funérailles 100 000');
   await btn('Oui, sur la réserve').click(); await p.waitForTimeout(300);
   t = await text();
-  ok(t.includes('65 000 FCFA pris sur la réserve ; le complément de 35 000 FCFA est pris sur le budget du mois.'), 'réserve insuffisante : complément de 35 000 montré');
+  // v2 (§5.3) : la réserve ne paie que l'argent mis de côté sur un compte (la démo a 50 000 de départ
+  // déclarés hors comptes) : la carte annonce A pris sur la réserve et B de complément, A + B = 100 000.
+  const split = t.match(/([\d ]+) FCFA pris sur la réserve ; le complément de ([\d ]+) FCFA est pris sur le budget du mois\./) || [];
+  const [A, B] = [num(split[1]), num(split[2])];
+  ok(!!split[0] && A > 0 && B > 0 && A + B === 100_000, `réserve insuffisante : ${A} pris sur la réserve, complément de ${B} montré`);
   ok(!(await btn('Tout valider').isDisabled()), 'réserve insuffisante : enregistrement possible (jamais bloqué)');
   await btn('Tout valider').click(); await p.waitForTimeout(700);
-  await perDay();
-  const exp1 = expenses(await text());
-  ok(exp1 - exp0 === 35_000, `seul le complément compte dans le reste par jour : dépenses ${exp0} → ${exp1} (+35 000, pas +100 000)`);
-  ok((await balance()) === 0 && avail0 > 0, 'réserve vidée (0), le reste vient du budget');
+  await takeComplement(p); // le complément peut lui-même manquer sur le compte qui paie
+  const avail1 = await available();
+  ok(avail0 - avail1 === B, `seul le complément compte dans le reste par jour : argent disponible ${avail0} → ${avail1} (−${B}, pas −100 000)`);
+  ok((await balance()) === bal0 - A, `réserve : ${bal0} − ${A} = ${bal0 - A} (ce que la carte a annoncé)`);
 
   // Modification de l'opération liée : utilisation recalculée ; suppression : utilisation annulée.
+  const amountRe = (n) => new RegExp('^-' + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '[\\s\u00a0\u202f]') + '[\\s\u00a0\u202f]FCFA');
   await go('/reserve/demo_reserve');
-  await p.getByRole('button', { name: /^-65 000 FCFA/ }).first().click(); await p.waitForTimeout(2000);
+  await p.getByRole('button', { name: amountRe(A) }).first().click(); await p.waitForTimeout(2000);
   ok(p.url().includes('/transaction/'), 'historique : l’utilisation ouvre l’opération liée');
   ok((await text()).includes('Prendre sur la réserve ?'), 'formulaire : la réserve est proposée (et cochée)');
   await p.getByLabel('Montant', { exact: true }).first().fill('50000');
   await btn('Enregistrer').click(); await p.waitForTimeout(1200);
-  ok((await balance()) === 15_000, 'opération ramenée à 50 000 : utilisation recalculée (65 000 − 50 000 = 15 000)');
-  await p.getByRole('button', { name: /^-50 000 FCFA/ }).first().click(); await p.waitForTimeout(2000);
+  const A2 = Math.min(A, 50_000);
+  ok((await balance()) === bal0 - A2, `opération ramenée à 50 000 : utilisation recalculée (${bal0} − ${A2} = ${bal0 - A2})`);
+  await p.getByRole('button', { name: amountRe(A2) }).first().click(); await p.waitForTimeout(2000);
   await btn('Supprimer').click(); await p.waitForTimeout(1200);
-  ok((await balance()) === 65_000, 'opération supprimée : utilisation annulée (solde 65 000)');
+  ok((await balance()) === bal0, `opération supprimée : utilisation annulée (solde ${bal0})`);
 
   // Mise de côté du mois : confirmation, puis reste par jour inchangé (elle était déjà déduite).
   const r0 = await perDay();
   await go('/reserve/demo_reserve');
   await btn('Mettre 25 000 FCFA de côté').click(); await p.waitForTimeout(800);
   ok((await balance()) === 90_000, '« Mettre 25 000 de côté » (après confirmation) : solde 90 000');
-  ok((await perDay()) === r0, 'mettre de côté ce qui était prévu ne change pas le reste par jour');
+  const r1 = await perDay();
+  ok(r1 === r0, `mettre de côté ce qui était prévu ne change pas le reste par jour (${r0} → ${r1})`);
 
   // Création : aide au plafond (démo : 2 mois complets seulement → question, aucun chiffre inventé).
   await go('/reserve/new');
@@ -147,10 +155,14 @@ let b;
   await fill('Mise de côté chaque mois (facultatif)', '31000'); await p.waitForTimeout(300);
   ok((await text()).includes('Plafond proposé : 12 mois de mise de côté, soit 372 000 FCFA.'), 'plafond proposé annoncé (12 mois, modifiable)');
   await btn('Continuer').click(); await p.waitForTimeout(600);
-  const prev = num(((await text()).match(/Il vous reste ([\d ]+) FCFA par jour/) || [])[1]);
-  ok(prev === Math.floor((310_000 - 31_000) / daysLeft), `aperçu : mise de côté déduite (${prev})`);
+  // v2 (§7.3) : sans argent déclaré, l'aperçu ne tire aucun reste par jour du revenu déclaré.
+  ok((await text()).includes("Votre argent disponible aujourd'hui"), 'aperçu : demande l’argent disponible (aucun reste par jour inventé)');
   await btn('Commencer').click();
   await p.getByText('Bonjour Adjoua').first().waitFor({ timeout: 15000 }); await p.waitForTimeout(2500);
+  await declareMoney(p); // v2 : argent présent avant de dépenser
+  // La mise de côté mensuelle de la réserve est un engagement du reste par jour.
+  await go('/'); await btn("Comment c'est calculé ?").first().click(); await p.waitForTimeout(300);
+  ok(/Mise de côté prévue : Réserve famille et cérémonies — 31 000 FCFA/.test(await text()), 'reste par jour : mise de côté de la réserve (31 000) dans les engagements');
   await go('/goals');
   t = await text();
   ok(t.includes('Réserve famille et cérémonies') && t.includes('sur un plafond de 372 000 FCFA'), 'compte réel : réserve créée par le démarrage rapide');

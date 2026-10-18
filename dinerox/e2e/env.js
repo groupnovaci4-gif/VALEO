@@ -60,3 +60,31 @@ module.exports.phraseField = async (page) => {
   }
   return page.getByLabel('Écrivez comme vous parlez');
 };
+
+/**
+ * Argent disponible v2 (§2) : un compte neuf n'a pas d'argent déclaré, et une dépense ouvre
+ * alors la feuille de complément au lieu d'être enregistrée. Déclare l'argent présent sur le
+ * compte par défaut depuis la carte de l'accueil (comme le ferait l'utilisateur).
+ */
+module.exports.declareMoney = async (page, amount = 1000000, account = 'Cash') => {
+  await page.goto(module.exports.BASE + '/', { waitUntil: 'load' });
+  const field = page.getByLabel(account, { exact: true }).first();
+  await field.waitFor({ timeout: 15000 });
+  await field.fill(String(amount));
+  await page.getByRole('button', { name: 'Enregistrer mon argent disponible', exact: true }).click();
+  await page.waitForTimeout(2000);
+};
+
+/**
+ * Feuille de complément (v2 §6.3) : s'il manque de l'argent sur le compte choisi, prend la
+ * première source proposée (« Prendre sur … »). Renvoie le titre de la feuille, ou null si
+ * elle ne s'est pas ouverte.
+ */
+module.exports.takeComplement = async (page) => {
+  const title = page.getByText(/^Il manque .+ D'où voulez-vous les prendre \?$/).first();
+  if (!(await title.count())) return null;
+  const label = await title.innerText();
+  await page.getByRole('button', { name: /^Prendre sur / }).first().click();
+  await page.waitForTimeout(1500);
+  return label;
+};

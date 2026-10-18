@@ -46,7 +46,7 @@ let b;
     log('INTERRUPTEUR « COMPTE D\'ÉPARGNE » APRÈS LE MODÈLE :', await p.getByRole('switch').first().isChecked());
   }
   await fill('Nom du compte', 'Ma banque');
-  await fill('Solde actuel', '100000');
+  await fill('Argent déjà sur ce compte', '100000');
   await btn('Enregistrer').last().click(); await p.waitForTimeout(1500);
   t = await text();
   log('APRÈS CRÉATION :', p.url().replace(BASE, ''), '|', (t.match(/Épargne totale\s*\n\s*([^\n]+)/) || [])[1], '| message :', t.split('\n').filter((l) => /limite|formule|Plus|maximum/i.test(l)).slice(0, 3).join(' | '));

@@ -7,7 +7,7 @@
  *  2. Compte réel (gratuit) : date publiée dans le catalogue distant (émulateur),
  *     limite d'un moment fort, limite de 3 simulations par mois.
  */
-const { BASE, launch, phraseField } = require('./env.js');
+const { BASE, launch, phraseField, declareMoney } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -133,6 +133,7 @@ let b;
   await p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 15000 });
   await p.getByText('Plus tard', { exact: true }).click();
   await p.getByText('Bonjour Mariam').first().waitFor({ timeout: 15000 }); await p.waitForTimeout(2500);
+  await declareMoney(p); // v2 : argent présent avant de dépenser
   await go('/seasons/new?event=tabaski', 4000);
   t = await text();
   const shown = soon.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });

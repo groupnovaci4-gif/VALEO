@@ -11,7 +11,6 @@ let b;
   // le 3, une saisie dépasse le budget Maison et l'alerte remplace « Enregistré ✓ »).
   const now = dayOfMonth(1);
   b = await launch({ date: now });
-  const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1;
 
   // ── 1. Démonstration : ordre de l'accueil et cohérence du calcul affiché ──
   let ctx = await b.newContext({ viewport: { width: 390, height: 844 }, locale: 'fr-FR' });
@@ -30,12 +29,13 @@ let b;
   const iDaily = t.indexOf('Reste par jour'), iBubble = t.indexOf('Dites-moi ce que vous avez dépensé ou reçu'), iRecent = t.indexOf('Dernières opérations'), iCoach = t.indexOf('Votre coach');
   ok(iDaily >= 0 && iDaily < iBubble && iBubble < iRecent && iRecent < iCoach, `ordre : reste par jour → bulle → dernières opérations → autres blocs (${[iDaily, iBubble, iRecent, iCoach].join(' < ')})`);
   const sentence = (t.match(/Il vous reste ([\d ]+) FCFA par jour jusqu'au (\d+) (\w+)/) || []);
-  const detail = (t.match(/Revenus ([\d ]+) FCFA − dépenses ([\d ]+) FCFA − à venir ([\d ]+) FCFA/) || []);
+  // Argent disponible v2 (§7.3) : (argent disponible − engagements jusqu'au prochain revenu) / jours.
+  const detail = (t.match(/Argent disponible ([\d ]+) FCFA − engagements ([\d ]+) FCFA, sur (\d+) jour/) || []);
   ok(!!sentence[0] && !!detail[0], `phrase : « ${sentence[0] ?? '—'} »`);
   if (sentence[0] && detail[0]) {
-    const expected = Math.floor((num(detail[1]) - num(detail[2]) - num(detail[3])) / daysLeft);
-    ok(num(sentence[1]) === expected, `calcul affiché cohérent : (${detail[1]} − ${detail[2]} − ${detail[3]}) / ${daysLeft} j = ${expected}`);
-    ok(Number(sentence[2]) === new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(), 'jusqu’au dernier jour du mois');
+    const expected = Math.floor((num(detail[1]) - num(detail[2])) / Number(detail[3]));
+    ok(num(sentence[1]) === expected, `calcul affiché cohérent : (${detail[1]} − ${detail[2]}) / ${detail[3]} j = ${expected}`);
+    ok(Number(detail[3]) >= 1 && Number(detail[3]) <= 31, `période jusqu’au prochain revenu (${detail[3]} jour(s))`);
   }
   ok(/Par exemple : « .+ »/.test(t) && (await btn('Parler').count()) > 0 && (await btn('Saisir').count()) > 0, 'bulle : exemple + « Parler » + « Saisir »');
   // Recent : 5 dernières opérations au plus, juste sous la bulle.
@@ -86,17 +86,21 @@ let b;
   await p.getByLabel('Jour du mois (facultatif)').first().fill('28');
   await btn('Continuer').click(); await p.waitForTimeout(600);
   t = await text();
-  const rentDue = now.getDate() <= 28; // loyer du 28 encore à venir ce mois-ci
-  const expectedPreview = Math.floor((250000 - (rentDue ? 100000 : 0)) / daysLeft);
-  const prev = (t.match(/Il vous reste ([\d ]+) FCFA par jour/) || [])[1];
-  ok(num(prev) === expectedPreview, `aperçu immédiat : ${prev} FCFA/jour (attendu ${expectedPreview})`);
+  // v2 (§2, §7.3) : le revenu déclaré n'est pas de l'argent disponible ; aucun reste par jour inventé.
+  ok(t.includes('Votre argent disponible aujourd\'hui') && !/Il vous reste [\d ]+ FCFA par jour/.test(t), 'aperçu : demande l’argent disponible, aucun reste par jour tiré du revenu déclaré');
   await p.screenshot({ path: `${S}/lot-a-quick-result.png` });
   await btn('Commencer').click();
   await p.getByText('Bonjour Awa').first().waitFor({ timeout: 15000 }); await p.waitForTimeout(2500);
   t = await text();
+  ok(!/Il vous reste [\d ]+ FCFA par jour/.test(t) && (await btn('Enregistrer mon argent disponible').count()) > 0, 'accueil : carte « argent disponible » à remplir, pas de reste par jour');
+  // L'utilisateur indique l'argent présent : le reste par jour apparaît, cohérent avec son détail.
+  await p.getByLabel('Cash', { exact: true }).first().fill('300000');
+  await btn('Enregistrer mon argent disponible').click(); await p.waitForTimeout(2500);
+  await p.getByRole('button', { name: "Comment c'est calculé ?", exact: true }).first().click(); await p.waitForTimeout(300);
+  t = await text();
   const home = (t.match(/Il vous reste ([\d ]+) FCFA par jour/) || [])[1];
-  ok(num(home) === expectedPreview, `accueil : même reste par jour (${home})`);
-  ok(t.includes('Déclaré'), 'source « Déclaré » affichée (revenu déclaré, pas encore enregistré)');
+  const d2 = (t.match(/Argent disponible ([\d ]+) FCFA − engagements ([\d ]+) FCFA, sur (\d+) jour/) || []);
+  ok(num(d2[1]) === 300000 && num(home) === Math.floor((num(d2[1]) - num(d2[2])) / Number(d2[3])), `accueil : reste par jour sur l’argent déclaré (${home} = (${d2[1]} − ${d2[2]}) / ${d2[3]} j)`);
   await p.goto(BASE + '/recurring', { waitUntil: 'load' }); await p.waitForTimeout(3000);
   t = await text();
   ok(t.includes('Loyer') && t.includes('100 000'), 'charge fixe créée comme opération récurrente (Loyer 100 000)');

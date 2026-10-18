@@ -110,7 +110,7 @@ async function signIn(h, email) {
   // Awa crée ELLE-MÊME son compte Wave (formulaire habituel).
   await awa.go('/accounts/edit', 3000);
   await awa.p.getByText('Wave', { exact: true }).first().click(); await awa.p.waitForTimeout(300);
-  await awa.fill('Solde actuel', '50000');
+  await awa.fill('Argent déjà sur ce compte', '50000');
   await awa.btn('Enregistrer').last().click(); await awa.p.waitForTimeout(2500);
   const awaWave = (await listDocs(`spaces/${awaUid}/accounts`)).find((a) => a.name === 'Wave');
   ok(!!awaWave, 'Awa : compte Wave créé par elle-même');

@@ -1,5 +1,5 @@
 /* Coach — phase 2 : résumé unique à l'ouverture, aucune répétition, déduplication entre appareils. */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, declareMoney } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -52,6 +52,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   await a.p.getByRole('switch').first().click(); await a.p.getByRole('button', { name: 'Créer mon compte' }).click();
   await a.p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 10000 });
   await a.p.getByText('Plus tard', { exact: true }).click(); await a.p.getByText('Bonjour Awa').first().waitFor({ timeout: 10000 }); await a.p.waitForTimeout(2500);
+  await declareMoney(a.p); // v2 : argent présent avant de dépenser
   await go(a.p, '/budget'); await a.p.getByText('Nourriture', { exact: true }).first().click(); await a.p.waitForTimeout(1200);
   await a.p.getByText('Modifier', { exact: true }).first().click(); await a.p.waitForTimeout(1200);
   await a.p.getByLabel('Budget mensuel').first().fill('100000'); await a.p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click(); await a.p.waitForTimeout(2500);

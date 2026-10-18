@@ -6,7 +6,7 @@
  *  Phase 2 (si PHASE >= 2) : cotiser, recevoir, retard, reporter, suppression,
  *  phrase, reste par jour, calendrier, accueil.
  */
-const { BASE, launch, phraseField } = require('./env.js');
+const { BASE, launch, phraseField, declareMoney } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 const PHASE = Number(process.env.TONTINE_PHASE || 3);
@@ -170,6 +170,7 @@ let b;
   await p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 15000 });
   await p.getByText('Plus tard', { exact: true }).click();
   await p.getByText('Bonjour Aya').first().waitFor({ timeout: 15000 }); await p.waitForTimeout(4500);
+  await declareMoney(p); // v2 : argent présent avant de dépenser
   await go('/recurring/edit');
   await p.getByRole('tab', { name: 'Dépense', exact: true }).click(); await p.waitForTimeout(300);
   await fill('Libellé', 'Tontine marché'); await fill('Montant', '5000');

@@ -20,7 +20,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   ok(score >= 0 && score <= 100 && !Number.isNaN(score), `démo : score affiché (${score}/100)`);
   ok(t.includes("Ce n'est pas une note de crédit ni une évaluation bancaire"), 'mention obligatoire affichée');
   ok(t.includes('Visible par vous seul'), 'confidentialité affichée');
-  ok(['Respect des budgets', "Régularité de l'épargne", 'Progression des objectifs', 'Maîtrise des dettes', "Fonds d'urgence"].every((x) => t.includes(x)), 'les 5 composantes sont présentées');
+  ok(['Taux d\'épargne', 'Vivre selon ses moyens', 'Épargne de précaution', 'Respect du budget', 'Maîtrise des dettes et échéances'].every((x) => t.includes(x)), 'les 5 composantes sont présentées');
   ok(t.includes('Pourquoi mon score a changé'), 'section « Pourquoi mon score a changé »');
   await d.p.screenshot({ path: `${S}/score-demo.png`, fullPage: true });
   await go(d.p, '/analysis', 3000);

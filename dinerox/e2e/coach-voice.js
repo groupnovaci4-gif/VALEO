@@ -1,7 +1,7 @@
 /* Coach — phase 3 : voix, sons, confidentialité des montants, arrêt en arrière-plan.
    La synthèse vocale et l'audio du navigateur sont interceptés pour enregistrer
    exactement ce qui serait lu ou joué (aucun haut-parleur en environnement de test). */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, declareMoney } = require('./env.js');
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
 const SPY = () => {
@@ -36,6 +36,7 @@ const SPY = () => {
   await p.getByRole('switch').first().click(); await p.getByRole('button', { name: 'Créer mon compte' }).click();
   await p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 10000 });
   await p.getByText('Plus tard', { exact: true }).click(); await p.getByText('Bonjour Awa').first().waitFor({ timeout: 10000 }); await p.waitForTimeout(3000);
+  await declareMoney(p); // v2 : argent présent avant de dépenser
 
   // 1. Tester la voix (réglages).
   await go('/settings/notifications'); await reset();

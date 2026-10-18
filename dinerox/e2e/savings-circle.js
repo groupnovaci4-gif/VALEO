@@ -38,20 +38,26 @@ let b;
     };
     return { p, errs, text, btn, go, fill, tap, signUp };
   };
-  const today = new Date();
-  const daysLeft = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() - today.getDate() + 1;
 
   const h = await page();
   const { p, text, btn, go, fill, tap } = h;
   const savingsTotal = async () => { await go('/savings'); return num(((await text()).match(/Épargne totale\s*\n\s*([^\n]+)/) || [])[1]); };
-  const home = async () => { await go('/', 3500); const t = await text(); return { t, perDay: num((t.match(/Il vous reste ([\d ]+) FCFA par jour/) || [])[1]), available: num(((t.match(/Solde disponible\s*\n\s*([-−]?[\d ]+) FCFA/) || [])[1] || '').replace('−', '-')) }; };
+  // v2 (§7.3) : le détail « Comment c'est calculé ? » donne l'argent disponible, les engagements et les jours.
+  const home = async () => {
+    await go('/', 3500);
+    const how = btn("Comment c'est calculé ?"); if (await how.count()) { await how.first().click(); await p.waitForTimeout(300); }
+    const t = await text();
+    const d = t.match(/Argent disponible ([\d ]+) FCFA − engagements ([\d ]+) FCFA, sur (\d+) jour/) || [];
+    return { t, perDay: num((t.match(/Il vous reste ([\d ]+) FCFA par jour/) || [])[1]), available: num(d[1]), commitments: num(d[2]), days: Number(d[3]) };
+  };
 
   // ── 1. Revenu 100 000 + épargne 60 000 ──
   await h.signUp('Awa');
   await go('/transaction/new?type=income'); await fill('Montant', '100000'); await tap('Salaire'); await btn('Enregistrer').last().click(); await p.waitForTimeout(1500);
-  await go('/accounts/edit?savings=1'); await fill('Nom du compte', 'Mon épargne'); await fill('Combien y a-t-il déjà sur ce compte ?', '60000'); await btn('Enregistrer').last().click(); await p.waitForTimeout(1500);
+  // v2 (§5) : « Je le prends sur mon argent disponible » (choix par défaut) → versement depuis Espèces.
+  await go('/accounts/edit?savings=1'); await fill('Nom du compte', 'Mon épargne'); await fill('Montant', '60000'); await btn('Enregistrer').last().click(); await p.waitForTimeout(1500);
   let hm = await home();
-  ok(hm.perDay === Math.floor(40_000 / daysLeft), `revenu 100 000, épargne 60 000 : reste par jour calculé sur 40 000 (${hm.perDay} = 40 000 / ${daysLeft})`);
+  ok(hm.available === 40_000 && hm.perDay === Math.floor((40_000 - hm.commitments) / hm.days), `revenu 100 000, épargne 60 000 prise sur le disponible : reste par jour calculé sur 40 000 (${hm.perDay})`);
   ok((await savingsTotal()) === 60_000, 'épargne : 60 000');
 
   // ── 2. « loyer 10 000 avec l'épargne » ──
@@ -67,38 +73,30 @@ let b;
   await p.screenshot({ path: `${S}/circle-redirect.png` });
   ok((await savingsTotal()) === 60_000, 'épargne inchangée : 60 000 (la dépense est sur Espèces)');
   hm = await home();
-  ok(hm.available === 90_000, `solde disponible : 100 000 − 10 000 = 90 000 (${hm.available})`);
+  ok(hm.available === 30_000, `argent disponible : 100 000 − 60 000 épargnés − 10 000 = 30 000 (${hm.available})`);
 
-  // ── 3. Le disponible passe sous zéro ──
-  await go('/transaction/new?type=expense'); await fill('Montant', '95000'); await tap('Alimentation & boissons'); await btn('Enregistrer').last().click(); await p.waitForTimeout(900);
+  // ── 3. Dépense plus grande que le compte : la feuille de complément propose l'épargne (v2 §6.3) ──
+  await go('/transaction/new?type=expense'); await fill('Montant', '80000'); await tap('Alimentation & boissons'); await btn('Enregistrer').last().click(); await p.waitForTimeout(900);
   t = await text();
-  ok(t.includes('Votre argent disponible est passé sous zéro : il manque 5 000 FCFA.'), 'après la dépense : « il manque 5 000 FCFA »');
-  hm = await home();
-  ok(hm.t.includes("Plus d'argent disponible") && /Votre argent disponible est à [-−]\s?5 000 FCFA\./.test(hm.t), 'accueil : carte « Plus d’argent disponible »');
+  ok(/Il manque 50 000 FCFA sur .+ pour cette dépense\. D'où voulez-vous les prendre \?/.test(t), 'feuille : « Il manque 50 000 FCFA … D’où voulez-vous les prendre ? »');
+  ok(t.includes("Prendre sur l'épargne : Mon épargne, 60 000 FCFA libres"), 'source proposée : l’épargne, avec son montant libre');
   await p.screenshot({ path: `${S}/circle-card.png` });
-  await btn("Retirer de mon épargne ou d'un objectif").first().click(); await p.waitForTimeout(1500);
-  t = await text();
-  ok(p.url().includes('/withdraw') && t.includes("D'où voulez-vous retirer 5 000 FCFA ?") && t.includes('Mon épargne'), `« D’où voulez-vous retirer 5 000 FCFA ? » (${p.url().replace(BASE, '')})`);
-  await p.getByText('Mon épargne', { exact: true }).first().click(); await p.waitForTimeout(1500);
-  ok(p.url().includes('/savings/move') && (await p.getByRole('textbox', { name: 'Montant', exact: true }).first().inputValue()).replace(/\D/g, '') === '5000', 'retrait prérempli : 5 000');
-  await btn('Enregistrer le retrait').click(); await p.waitForTimeout(1500);
+  await p.getByRole('button', { name: /^Prendre sur l'épargne/ }).first().click(); await p.waitForTimeout(1800);
+  ok((await savingsTotal()) === 10_000, 'épargne : 60 000 − 50 000 = 10 000 (retrait créé avant la dépense)');
   hm = await home();
-  // Règle du fondateur : la carte reste tant que le disponible est à ZÉRO ou négatif.
-  ok(hm.available === 0 && hm.t.includes("Plus d'argent disponible") && hm.t.includes('Votre argent disponible est à 0 FCFA.'), `manque comblé, disponible à 0 : la carte reste (${hm.available})`);
-  ok((await savingsTotal()) === 55_000, 'épargne : 55 000 (retrait visible)');
-  // Un retrait de plus : le disponible repasse au-dessus de zéro, la carte disparaît.
-  await go('/withdraw', 2500); await p.getByText('Mon épargne', { exact: true }).first().click(); await p.waitForTimeout(1500);
-  await fill('Montant', '1000'); await btn('Enregistrer le retrait').click(); await p.waitForTimeout(1500);
-  hm = await home();
-  ok(hm.available === 1000 && !hm.t.includes("Plus d'argent disponible"), `disponible à 1 000 : la carte disparaît (${hm.available})`);
+  ok(hm.available === 0 && !/il faudra régulariser/.test(hm.t), `disponible à 0, aucun compte sous zéro (${hm.available})`);
+  await go('/transactions'); t = await text();
+  ok(t.includes('80 000') && /Mon épargne → /.test(t), 'historique : la dépense et le retrait d’épargne');
 
-  // ── 4. Personne qui n'a jamais renseigné son argent ──
+  // ── 4. Personne qui n'a jamais renseigné son argent : rien n'est enregistré sans argent ──
   const k = await page();
   await k.signUp('Kofi');
   await k.go('/transaction/new?type=expense'); await k.fill('Montant', '5000'); await k.tap('Alimentation & boissons'); await k.btn('Enregistrer').last().click(); await k.p.waitForTimeout(900);
-  ok(!(await k.text()).includes('il manque'), 'jamais renseigné son argent : aucun message « il manque »');
+  ok((await k.text()).includes("Votre argent disponible aujourd'hui") && (await k.btn('Indiquer mon argent disponible').count()) > 0, 'jamais renseigné son argent : feuille « Votre argent disponible aujourd’hui » + « Indiquer mon argent disponible »');
+  await k.go('/transactions', 2500);
+  ok(!(await k.text()).includes('5 000 FCFA'), 'jamais renseigné son argent : aucune dépense enregistrée');
   await k.go('/', 3500);
-  ok(!(await k.text()).includes("Plus d'argent disponible"), 'jamais renseigné son argent : aucune carte sur l’accueil');
+  ok((await k.btn('Enregistrer mon argent disponible').count()) > 0, 'jamais renseigné son argent : l’accueil demande l’argent disponible');
 
   const errs = [...h.errs, ...k.errs];
   ok(errs.length === 0, 'aucune erreur JS ' + errs.join(' | '));

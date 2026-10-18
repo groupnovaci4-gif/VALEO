@@ -5,7 +5,7 @@
  * réponse est affichée ET lue, que le toucher coupe la voix, et que rien n'est
  * enregistré avant « oui ».
  */
-const { BASE, launch, phraseField } = require('./env.js');
+const { BASE, launch, phraseField, takeComplement } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -142,6 +142,9 @@ let b;
   // ── 3. « Oui » → enregistrement groupé, bilan calculé ──
   await mark();
   await dictate('Oui', 'Répondre à la voix');
+  // v2 (§6.3) : Cash ne suffit pas pour 222 000 → la feuille de complément s'ouvre AVANT l'enregistrement.
+  const sheet = await takeComplement(p);
+  ok(!!sheet, `feuille de complément avant l’enregistrement (« ${sheet ?? '—'} »)`);
   t = await text();
   ok(/C'est fait : 6 dépenses enregistrées, 222 000 FCFA\./.test(t), 'bilan : 6 dépenses, 222 000');
   ok(/Il vous reste .+ par jour jusqu'au \d+\./.test(t) || /dépassent vos revenus/.test(t), 'bilan : nouveau reste par jour (ou déficit)');
@@ -159,8 +162,13 @@ let b;
   await go('/'); await closeCelebration();
   await dictate(REFERENCE);
   await btn('Tout valider').click(); await p.waitForTimeout(800);
+  const took = await takeComplement(p); // v2 : le reste est pris sur un autre compte si Cash ne suffit pas
   ok(/C'est fait : 6 dépenses enregistrées, 205 000 FCFA\./.test(await text()), '« Tout valider » : même bilan');
-  ok((await historyCount()) === before + 6, 'Historique : 6 opérations de plus');
+  // « Période affichée » compte les revenus et dépenses : 6 de plus. Le complément est un transfert
+  // (ni l'un ni l'autre), enregistré dans le même groupe et visible dans la liste.
+  const after4 = await historyCount();
+  ok(after4 === before + 6, `Historique : 6 opérations de plus (${before} → ${after4})`);
+  if (took) ok(/→ Cash/.test(await text()), 'Historique : le complément (transfert vers Cash) est visible');
 
   // ── 5. Ambiguïté : « 30 000 en eau » → une seule question, réponse par bouton ──
   await go('/'); await closeCelebration();

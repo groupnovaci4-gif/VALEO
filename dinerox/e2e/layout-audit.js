@@ -295,6 +295,23 @@ let b;
   };
   await step('/goals/new — objectif personnalisé (nom)', async () => { await go('/goals/new'); await A.p.getByText('Créer mon propre objectif', { exact: false }).first().click(); await A.p.waitForTimeout(600); });
   await step('/goals/new — objectif personnalisé (formulaire)', async () => { await A.p.getByPlaceholder('Ex. Acheter une machine à glace').fill('Audit'); await btn(A.p, 'Continuer').click(); await A.p.waitForTimeout(700); });
+  // Argent disponible v2 : feuilles et cartes nouvelles.
+  await step('/goals/new — origine du montant initial', async () => { await A.p.getByLabel('Montant déjà disponible (facultatif)').first().fill('10000'); await A.p.waitForTimeout(600); });
+  await step('/goals/new — origine hors de mes comptes (note)', async () => { await A.p.getByText('C\'est de l\'épargne hors de mes comptes', { exact: true }).first().click(); await A.p.waitForTimeout(600); });
+  await step('feuille — complément (il manque de l’argent)', async () => {
+    await go('/transaction/new?type=expense'); await A.p.getByLabel('Montant').first().fill('9000000');
+    await A.p.getByText('Alimentation & boissons', { exact: true }).first().click(); await A.p.waitForTimeout(300);
+    await btn(A.p, 'Enregistrer').last().click(); await A.p.waitForTimeout(1200);
+  });
+  await step('feuille — complément › « J’ai reçu de l’argent »', async () => { await btn(A.p, 'J\'ai reçu de l\'argent').last().click(); await A.p.waitForTimeout(900); });
+  await step('feuille — corriger le solde', async () => { await go('/accounts/edit?id=demo_cash'); await btn(A.p, 'Corriger le solde').first().click(); await A.p.waitForTimeout(900); });
+  await step('feuille — reste d’un compte désactivé', async () => { await go('/accounts/edit?id=demo_cash'); await A.p.getByRole('switch', { name: 'Compte actif' }).click(); await A.p.waitForTimeout(900); });
+  await step('feuille — fermeture d’une poche (archiver un objectif)', async () => {
+    await go('/goals/demo_goal_moto');
+    // La confirmation (fenêtre du navigateur) est acceptée ici seulement : ailleurs, refusée.
+    A.p.removeAllListeners('dialog'); A.p.once('dialog', (d) => { d.accept(); A.p.on('dialog', (x) => x.dismiss()); });
+    await btn(A.p, 'Archiver').last().click(); await A.p.waitForTimeout(1200);
+  });
   await step('/onboarding — étape 1', async () => { await go('/onboarding'); });
   await step('/onboarding — démarrage rapide', async () => { await go('/onboarding'); await btn(A.p, 'Démarrer rapidement').first().click(); await A.p.waitForTimeout(600); });
   await step('/onboarding — étape 2 (pied sur 2 rangées)', async () => { await go('/onboarding'); await btn(A.p, 'Continuer').last().click(); await A.p.waitForTimeout(800); });
@@ -305,11 +322,12 @@ let b;
   await step('/transaction/[id] — ajustement de solde (pied « Supprimer »)', async () => {
     await go('/savings/move?mode=adjust');
     await A.p.getByLabel('Solde réel aujourd\'hui').first().fill('123456');
+    await A.p.getByLabel('Motif').first().fill('Audit'); // v2 §3.2 : motif obligatoire
     await btn(A.p, 'Enregistrer le nouveau solde').last().click(); await A.p.waitForTimeout(1500);
     const id = await A.p.evaluate(() => {
       for (let i = 0; i < localStorage.length; i++) {
-        // Opérations rangées par identifiant : "tx_…":{"type":"adjustment",…}
-        const m = (localStorage.getItem(localStorage.key(i)) || '').match(/"([^"]+)":\{"type":"adjustment"/);
+        // Opérations rangées par identifiant : "tx_…":{…,"type":"adjustment",…} (ordre des champs libre).
+        const m = (localStorage.getItem(localStorage.key(i)) || '').match(/"(tx_[^"]+)":\{[^{}]*"type":"adjustment"/);
         if (m) return m[1];
       }
       return null;
@@ -385,7 +403,8 @@ let b;
     await scene(O.p, O.cdp, 'en ligne : onboarding après inscription');
     await setEnv(O.p, O.cdp, [393, 852], PROFILES[0]);
     await O.p.getByText('Plus tard', { exact: true }).click(); await O.p.getByText('Bonjour Page').first().waitFor({ timeout: 15000 }); await O.p.waitForTimeout(2000);
-    for (const r of ['/invite-code', '/tontines/join', '/tontines/group/new', '/family', '/settings/data']) { await og(r); await scene(O.p, O.cdp, `en ligne : ${r}`); }
+    // « / » : compte jamais déclaré → carte « argent disponible » de l'accueil (v2 §2).
+    for (const r of ['/', '/invite-code', '/tontines/join', '/tontines/group/new', '/family', '/settings/data']) { await og(r); await scene(O.p, O.cdp, `en ligne : ${r}`); }
     await O.ctx.close();
   }
 

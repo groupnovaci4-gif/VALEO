@@ -1,5 +1,5 @@
 /* Coach — phase 1 : réaction immédiate aux dépenses (85 % / 100 % / dépassement). */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, declareMoney } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -24,6 +24,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   await p.getByRole('switch').first().click(); await p.getByRole('button', { name: 'Créer mon compte' }).click();
   await p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 10000 });
   await p.getByText('Plus tard', { exact: true }).click(); await p.getByText('Bonjour Awa').first().waitFor({ timeout: 10000 }); await p.waitForTimeout(2500);
+  await declareMoney(p); // v2 : argent présent avant de dépenser
 
   // Enveloppe de départ « Nourriture » à 0 : aucune alerte (budget jamais fixé).
   let t = await expense(5000);

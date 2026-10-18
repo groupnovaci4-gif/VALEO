@@ -5,7 +5,7 @@
  * personne se reconnecte et retrouve ses données. La suspension est simulée
  * comme le fait boSetSuspended : compte Auth désactivé (API de l'émulateur).
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, declareMoney } = require('./env.js');
 const S = process.argv[2] || '.';
 const AUTH = process.env.E2E_AUTH_EMULATOR || 'http://127.0.0.1:9099';
 const PROJECT = process.env.E2E_PROJECT || 'demo-dinerox';
@@ -46,6 +46,7 @@ async function setDisabled(email, disabled) {
     await p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 10000 });
     await p.getByText('Plus tard', { exact: true }).click();
     await p.getByText(`Bonjour ${U.first}`).first().waitFor({ timeout: 10000 });
+    await declareMoney(p); // v2 : argent présent avant de dépenser
     await go('/transaction/new?type=expense');
     await p.getByLabel('Montant').first().fill('4321'); await p.getByText('Alimentation & boissons', { exact: true }).first().click();
     await p.getByLabel('Bénéficiaire / commerçant').fill(U.payee);

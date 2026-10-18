@@ -2,7 +2,7 @@
  * Lot A, phases 2-3 — saisie rapide, phrase écrite, saisie vocale (reconnaissance SIMULÉE :
  * le navigateur de test n'a pas de micro), carte de confirmation, routage, limite gratuite, « Annuler ».
  */
-const { BASE, launch, dayOfMonth, phraseField } = require('./env.js');
+const { BASE, launch, dayOfMonth, phraseField, declareMoney } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -212,6 +212,7 @@ let b;
   await q.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 15000 });
   await q.getByText('Plus tard', { exact: true }).click();
   await q.getByText('Bonjour Koffi').first().waitFor({ timeout: 15000 }); await q.waitForTimeout(2500);
+  await declareMoney(q); // v2 : argent présent avant de dépenser
   const qhome = async () => { await q.goto(BASE + '/', { waitUntil: 'load' }); await q.waitForTimeout(3000); };
   for (let i = 1; i <= 5; i++) {
     await qhome();

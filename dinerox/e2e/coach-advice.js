@@ -74,6 +74,8 @@ let b;
   const url = p.url();
   [card, spoken] = await listenNear('Estimation', 1);
   if (!card) [card, spoken] = await listenNear('Selon vos opérations');
+  // v2 (§11.6) : recommandations tirées de vos opérations, marquées « Vos données ».
+  if (!card) [card, spoken] = await listenNear('Vos données');
   ok(p.url() === url, 'appui sur « Écouter » dans une carte cliquable : aucune navigation, aucune action');
   ok(reads(card, spoken), `recommandation lue (« ${spoken.slice(0, 70)}… »)`);
 

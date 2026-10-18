@@ -1,5 +1,5 @@
 /* Coach — phase 4 : récompenses (célébration, écran, jamais deux fois, anti-triche, deux appareils). */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, declareMoney } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -39,11 +39,16 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   await a.p.getByRole('switch').first().click(); await a.p.getByRole('button', { name: 'Créer mon compte' }).click();
   await a.p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 10000 });
   await a.p.getByText('Plus tard', { exact: true }).click(); await a.p.getByText('Bonjour Awa').first().waitFor({ timeout: 10000 }); await a.p.waitForTimeout(2500);
+  await declareMoney(a.p); // v2 : argent présent avant de dépenser
   const newGoal = async (n, target, initial) => {
     await go(a.p, '/goals/new'); await a.p.getByText('Créer mon propre objectif', { exact: false }).click(); await a.p.waitForTimeout(500);
     await a.p.getByPlaceholder('Ex. Acheter une machine à glace').fill(n); await a.p.getByRole('button', { name: 'Continuer' }).click(); await a.p.waitForTimeout(600);
     await a.p.getByLabel('Montant cible').first().fill(String(target));
-    if (initial) await a.p.getByLabel('Montant déjà disponible (facultatif)').first().fill(String(initial));
+    if (initial) {
+      await a.p.getByLabel('Montant déjà disponible (facultatif)').first().fill(String(initial));
+      // v2 (§5) : montant DÉCLARÉ, hors de mes comptes (aucun argent ne bouge) — c'est lui que vise l'anti-triche.
+      await a.p.getByText("C'est de l'épargne hors de mes comptes", { exact: true }).first().click(); await a.p.waitForTimeout(300);
+    }
     await a.p.getByRole('button', { name: "Créer l'objectif" }).or(a.p.getByRole('button', { name: 'Créer l’objectif' })).first().click(); await a.p.waitForTimeout(1500);
   };
   // Triche : objectif créé déjà plein → aucune récompense.

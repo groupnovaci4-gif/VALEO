@@ -9,7 +9,7 @@
  * Le sélecteur de date natif n'existe pas sur le web : l'horloge du navigateur est fixée au 15,
  * puis au 21 (« Aujourd'hui » de l'écran de versement) — c'est la date ENREGISTRÉE qui est vérifiée.
  */
-const { BASE, launch, dayOfMonth } = require('./env.js');
+const { BASE, launch, dayOfMonth, declareMoney } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -57,6 +57,7 @@ const historyRows = (t) => (t.split('Historique des contributions')[1] || t.spli
   await h.p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 15000 });
   await h.p.getByText('Plus tard', { exact: true }).click();
   await h.p.getByText('Bonjour Awa').first().waitFor({ timeout: 15000 }); await h.p.waitForTimeout(3000);
+  await declareMoney(h.p); // v2 : argent présent avant de dépenser
 
   await h.go('/goals/new'); await h.p.getByText('Créer mon propre objectif', { exact: false }).first().click(); await h.p.waitForTimeout(500);
   await h.p.getByPlaceholder('Ex. Acheter une machine à glace').fill(GOAL); await h.btn('Continuer').click(); await h.p.waitForTimeout(700);

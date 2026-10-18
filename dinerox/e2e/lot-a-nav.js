@@ -36,7 +36,7 @@ let b;
   let t = await text();
   ok(t.includes('Historique'), 'écran « Historique » à l’URL /transactions');
   ok(t.includes('Tous les mois') && t.includes('Toutes les catégories'), 'sélecteur de mois et filtre par catégorie');
-  ok(/Période affichée : \d+ opération/.test(t) && t.includes('Entrées') && t.includes('Sorties'), 'total de la période filtrée');
+  ok(/Période affichée : \d+ opération/.test(t) && t.includes('Revenus') && t.includes('Dépenses'), 'total de la période filtrée (par nature, v2)');
   const before = (t.match(/Période affichée : (\d+)/) || [])[1];
   await p.getByPlaceholder('Rechercher').fill('zzz-introuvable'); await p.waitForTimeout(500);
   ok((await text()).includes('Aucune opération ne correspond'), 'recherche : état vide filtré');

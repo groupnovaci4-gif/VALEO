@@ -52,14 +52,21 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     ['/invite-code', 'Code d’invitation'],
     ['/tontines/join', 'Rejoindre une tontine'],
   ];
-  for (const [r, n] of screens) { await go(r); await step(n, () => checkAllInputs(p, n, ok, { expectInputs: true })); }
-  await step('Objectif (étapes)', async () => {
+  // AUDIT_FAST=1 : saute le contrôle champ par champ (mise au point des enregistrements réels).
+  const fast = !!process.env.AUDIT_FAST;
+  // v2 §2 : compte jamais déclaré → l'accueil demande l'argent de chaque compte.
+  if (!fast) { await go('/'); await step('Accueil (argent disponible)', () => checkAllInputs(p, 'Accueil (argent disponible)', ok, { expectInputs: true })); }
+  if (!fast) for (const [r, n] of screens) { await go(r); await step(n, () => checkAllInputs(p, n, ok, { expectInputs: true })); }
+  if (!fast) await step('Objectif (étapes)', async () => {
     await go('/goals/new'); await tap('✏️ Créer mon propre objectif', { exact: false });
     await checkAllInputs(p, 'Objectif — nom', ok, { expectInputs: true });
     await p.getByPlaceholder('Ex. Acheter une machine à glace').fill('Temp'); await btn('Continuer', 700);
     await checkAllInputs(p, 'Objectif — formulaire', ok, { expectInputs: true });
+    // v2 §5 : montant initial → « D'où vient cet argent ? » ; hors de mes comptes → note.
+    await fill('Montant déjà disponible (facultatif)', '10000'); await tap('C\'est de l\'épargne hors de mes comptes');
+    await checkAllInputs(p, 'Objectif — origine hors de mes comptes', ok, { expectInputs: true });
   });
-  await step('Saisie (feuille du micro, clavier)', async () => {
+  if (!fast) await step('Saisie (feuille du micro, clavier)', async () => {
     await go('/entry?mode=keyboard', 3500);
     await phraseField(p); // mode clavier : la phrase écrite est dans le repli « Autres façons de saisir »
     await checkAllInputs(p, 'Saisie (phrase écrite)', ok, { expectInputs: true });
@@ -68,7 +75,7 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     await checkAllInputs(p, 'Saisie (carte de confirmation)', ok, { expectInputs: true });
     await btn('Annuler', 400);
   });
-  await step('Catégories (feuille)', async () => {
+  if (!fast) await step('Catégories (feuille)', async () => {
     await go('/categories'); await p.getByText('Ajouter une sous-catégorie').first().click(); await p.waitForTimeout(800);
     await checkAllInputs(p, 'Sous-catégorie (feuille)', ok, { expectInputs: true });
   });
@@ -89,8 +96,12 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     await go('/transactions'); await has('Marché Cocody', 'dépense enregistrée'); await has('-18 500', 'montant de la dépense');
   });
   await step('compte', async () => {
-    await go('/accounts/edit'); await tap('Wave'); await fill('Solde actuel', '10000'); await btn('Enregistrer');
+    await go('/accounts/edit'); await tap('Wave'); await fill('Argent déjà sur ce compte', '10000'); await btn('Enregistrer');
     await go('/accounts'); await has('Wave', 'compte Wave créé');
+    // v2 §3.2 : « Corriger le solde » (solde réel + motif).
+    await tap('Wave'); await p.waitForTimeout(800); await btn('Modifier', 1500); await btn('Corriger le solde', 800);
+    await checkAllInputs(p, 'Corriger le solde (feuille)', ok, { expectInputs: true });
+    await btn('Fermer', 500);
   });
   await step('transfert', async () => {
     await go('/transaction/new?type=transfer'); await fill('Montant', '40000');
@@ -107,6 +118,7 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     await go('/goals/new'); await tap('✏️ Créer mon propre objectif', { exact: false });
     await p.getByPlaceholder('Ex. Acheter une machine à glace').fill('Moto Audit'); await btn('Continuer', 700);
     await tap('Véhicule'); await fill('Montant cible', '1200000'); await fill('Montant déjà disponible (facultatif)', '200000');
+    await tap('C\'est de l\'épargne hors de mes comptes'); // v2 §5 : l'argent initial ne sort pas du disponible
     await fill('Je peux mettre de côté chaque mois (facultatif)', '50000'); await tap('Importante');
     await p.getByRole('button', { name: "Créer l'objectif" }).or(p.getByRole('button', { name: 'Créer l’objectif' })).first().click(); await p.waitForTimeout(1500);
     await go('/goals'); await has('Moto Audit', 'objectif créé'); await has('17 %', 'progression 200 000 / 1 200 000');
@@ -122,11 +134,12 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   await step('dette + remboursement', async () => {
     await go('/debts/edit'); await fill('Personne / institution', 'Banque Audit'); await fill('Montant initial', '500000');
     await fill('Mensualité (facultatif)', '50000'); await p.getByLabel(/Jour d'échéance/).first().fill('31'); await p.getByLabel(/Taux annuel/).first().fill('7,5');
+    await tap('Hors de mes comptes'); // v2 : compte exigé ; une dette d'avant, sans mouvement
     await btn('Enregistrer');
     await go('/debts'); await tap('Banque Audit', { exact: false }); await p.waitForTimeout(800);
     await tap('Enregistrer un remboursement', { exact: false });
     await checkAllInputs(p, 'Remboursement (feuille)', ok, { expectInputs: true });
-    await fill('Montant', '50000'); await btn('Enregistrer');
+    await fill('Montant', '50000'); await p.getByText('Hors de mes comptes', { exact: true }).last().click(); await btn('Enregistrer');
     await has('450 000', 'dette : reste après remboursement');
   });
   await step('récurrence', async () => {
@@ -137,6 +150,14 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     await go('/recurring/edit'); await tap('Dépense'); await fill('Libellé', 'Loyer audit'); await fill('Montant', '100000');
     await tap('Maison & logement'); await tap('Chaque mois'); await btn('Enregistrer');
     await go('/recurring'); await has('Loyer audit', 'dépense récurrente créée');
+  });
+  // v2 (D7) : une échéance n'est plus générée seule ; l'accueil demande « reçu ? » / « payé ? ».
+  await step('échéances confirmées', async () => {
+    await go('/'); await has('Prime audit attendu : reçu ?', 'carte « reçu ? » de la prime');
+    await p.getByText('Prime audit attendu : reçu ?').locator('xpath=..').getByRole('button', { name: 'Confirmer', exact: true }).click(); await p.waitForTimeout(1500);
+    await has('Loyer audit 100 000 FCFA : payé ?', 'carte « payé ? » du loyer');
+    await btn('Oui, depuis Cash', 1500);
+    ok(!(await text()).includes('Loyer audit 100 000 FCFA : payé ?'), 'cartes d’échéance retirées après confirmation');
   });
   await step('enveloppe', async () => {
     await go('/envelopes/edit'); await fill('Nom', 'Enveloppe audit', true); await fill('Budget mensuel', '30000'); await tap('Loisirs & divertissement'); await btn('Enregistrer');
@@ -169,8 +190,8 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   const verifyAll = async (when) => {
     await go('/transactions'); const tx = await text();
     ok(tx.includes('Employeur SARL') && tx.includes('Marché Cocody'), `${when} : revenu et dépense présents`);
-    // La récurrence « Prime audit » (30 000, première échéance aujourd'hui) est matérialisée à l'ouverture.
-    ok(tx.includes('Prime audit') && tx.includes('Loyer audit'), `${when} : échéances récurrentes du jour générées (revenu et dépense)`);
+    // Les échéances du jour (« Prime audit » 30 000, « Loyer audit » 100 000) ont été confirmées depuis l'accueil.
+    ok(tx.includes('Prime audit') && tx.includes('Loyer audit'), `${when} : échéances récurrentes confirmées (revenu et dépense)`);
     await go('/accounts'); const ac = await text(); ok(ac.includes('121 500') && ac.includes('50 000'), `${when} : soldes des comptes (191 500 + 30 000 − 100 000 ; Wave 50 000)`);
     await go('/goals'); const gl = await text(); ok(gl.includes('Moto Audit') && gl.includes('25 %'), `${when} : objectif et contribution`);
     // Diagnostic : en cas d'échec, ce que la page montrait vraiment (capture et texte).

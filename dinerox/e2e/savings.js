@@ -48,9 +48,9 @@ const email = `sav${Date.now()}@ex.com`;
   await p.getByText('Plus tard', { exact: true }).click();
   await p.getByText('Bonjour Awa').first().waitFor({ timeout: 15000 }); await p.waitForTimeout(3000);
 
-  // Revenu du mois (pour le reste par jour), une petite dépense et un compte Wave.
+  // Revenu du mois (pour le reste par jour), une petite dépense et un compte Wave (130 000 : v2, le versement de 50 000 de la section 1 en sort).
   await go('/transaction/new?type=income'); await fill('Montant', '300000'); await tap('Salaire'); await btn('Enregistrer').last().click(); await p.waitForTimeout(1500);
-  await go('/accounts/edit'); await tap('Wave', 300); await fill('Nom du compte', 'Wave'); await fill('Solde actuel', '80000'); await btn('Enregistrer').last().click(); await p.waitForTimeout(1500);
+  await go('/accounts/edit'); await tap('Wave', 300); await fill('Nom du compte', 'Wave'); await fill('Argent déjà sur ce compte', '130000'); await btn('Enregistrer').last().click(); await p.waitForTimeout(1500);
 
   // ── 1. Le scénario exact du fondateur, modèle « Compte bancaire » touché ──
   await go('/savings');
@@ -58,17 +58,22 @@ const email = `sav${Date.now()}@ex.com`;
   await p.getByRole('button', { name: /^Compte bancaire|^Banque/ }).first().click(); await p.waitForTimeout(300);
   ok(await p.getByRole('switch').first().isChecked(), 'modèle « Compte bancaire » touché : le compte reste un compte d’épargne');
   await fill('Nom du compte', 'Ma banque');
-  await fill('Combien y a-t-il déjà sur ce compte ?', '100000');
-  await fill('Montant à verser maintenant (facultatif)', '50000');
-  await p.waitForTimeout(300);
-  await p.getByRole('tab', { name: 'Déjà sur ce compte' }).first().click(); await p.waitForTimeout(300);
-  await btn('Enregistrer').last().click(); await p.waitForTimeout(800);
+  // v2 (§5) : « D'où vient cet argent ? » — 100 000 déjà sur le compte (épargne existante), puis 50 000 versés depuis Wave.
+  await p.getByText("C'est de l'épargne que j'avais déjà", { exact: true }).first().click(); await p.waitForTimeout(300);
+  await fill('Montant', '100000');
+  await btn('Enregistrer').last().click(); await p.waitForTimeout(2000);
+  ok((await totalSavings()) === 100_000, 'épargne existante : 100 000 dans « Mon épargne », sans toucher au disponible');
+  await go('/savings');
+  await btn("Verser de l'argent").first().click(); await p.waitForTimeout(1500);
+  await fill('Montant', '50000');
+  await p.getByRole('button', { name: /^Wave · / }).first().click(); await p.waitForTimeout(200);
+  await btn('Enregistrer le versement').click(); await p.waitForTimeout(700);
   ok((await text()).includes('Versement enregistré ✓'), 'confirmation « Versement enregistré ✓ »');
   await p.waitForTimeout(1200);
-  ok((await totalSavings()) === 150_000, 'scénario du fondateur : 100 000 déjà sur le compte + 50 000 ajoutés = 150 000 dans « Mon épargne »');
+  ok((await totalSavings()) === 150_000, 'scénario du fondateur : 100 000 déjà sur le compte + 50 000 versés = 150 000 dans « Mon épargne »');
   await go('/transactions');
   let t = await text();
-  ok(t.includes('Ajustement de solde') && t.includes('+50 000 FCFA'), 'le versement apparaît dans l’historique (ajustement de solde +50 000)');
+  ok(t.includes('Wave → Ma banque') && t.includes('50 000 FCFA'), 'le versement apparaît dans l’historique (Wave → Ma banque, 50 000)');
 
   // ── 2. Versement depuis Wave ──
   const [wave0, day0, exp0] = [await balanceOf('Wave'), await perDay(), await monthExpenses()];
@@ -91,6 +96,7 @@ const email = `sav${Date.now()}@ex.com`;
   await go('/savings'); await btn('Ajuster le solde').first().click(); await p.waitForTimeout(1500);
   await fill("Solde réel aujourd'hui", '175000'); await p.waitForTimeout(300);
   ok((await text()).includes('Ajustement : +5 000 FCFA'), 'écart affiché : +5 000');
+  await fill('Motif', 'Intérêts de la banque'); // v2 §3.2 : motif obligatoire
   await btn('Enregistrer le nouveau solde').click(); await p.waitForTimeout(1800);
   ok((await totalSavings()) === 175_000, 'ajustement : épargne = solde réel (175 000)');
   ok((await monthExpenses()) === exp0, 'ajustement : ni revenu ni dépense (dépenses inchangées)');
