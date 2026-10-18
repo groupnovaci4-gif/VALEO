@@ -37,10 +37,18 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     crée « Espèces » si besoin. Une sous-catégorie précise la catégorie
     (`Transaction.subcategoryId`) sans la remplacer : budgets et rapports
     restent par catégorie principale.
+    **Argent disponible v2 (`docs/argent-disponible.md`, qui fait foi)** : « aucun blocage » ne vaut PLUS pour les
+    SORTIES d'argent (§6) : toute sortie passe par le contrôle unique
+    (`core/writePlans.ts › batchOutflowError`, dernier rempart de
+    `saveTransaction` : `ActionError('noMoney' | 'shortfall')`). `ensureCashAccount`
+    crée toujours « Espèces » à 0, mais APRÈS le contrôle.
 11. **Provenance des chiffres** (`core/intelligence.ts`) : `user` (opérations),
     `declared` (profil financier), `estimate` (estimation DINEROX). Aucune
     statistique externe sans source identifiable (`external` + `reference`).
     Les simulations (indépendance financière) sont présentées comme telles.
+    **Argent disponible v2 (`docs/argent-disponible.md`, qui fait foi)** : le revenu déclaré (`declared`) ne sert qu'à des
+    POURCENTAGES présentés comme tels et au préremplissage d'un champ modifiable.
+    Jamais à un montant, jamais à l'argent disponible.
 12. **Saisie au clavier** : écrans via `Screen` (react-native-keyboard-controller,
     Android edge-to-edge). Validation des formulaires d'identité dans
     `core/validation.ts`. Une action qui peut échouer passe par `useRunAction()`
@@ -81,6 +89,10 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     que les opérations saisies dans l'application (jamais « en temps réel »
     Orange Money, Wave ou banque). Clé ElevenLabs : secret Functions
     uniquement. Dictée (saisie vocale) : voir la règle 18.
+    **Argent disponible v2 (`docs/argent-disponible.md`)** : le coach lit les
+    définitions du §11 (`core/coachMetrics.ts` : R reçu, jamais le déclaré ; règle
+    des 10 % ; indicateurs ; score v2), et elles seules — un moteur, UN producteur
+    par conseil (`nextAdvice`). Branchement des écrans du coach : étape 3.
 18. **Saisie (1.5, `docs/lot-a.md`).** Une seule feuille de saisie
     (`features/entry`, ouverte par `useEntry().open()` ou le lien
     `/entry?mode=voice|keyboard`) et un seul chemin d'enregistrement
@@ -106,11 +118,16 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     Événements d'usage : propriétés de `core/analyticsProps.ts` uniquement
     (jamais de montant, texte, bénéficiaire ni catégorie). Limite vocale
     gratuite : `FREE_VOICE_ENTRIES_PER_DAY`. « Reste par jour » :
-    `core/dailyAllowance.ts`, jamais recalculé dans un écran.
+    `core/allowance.ts › dailyAllowanceV2` (§7 : argent disponible − engagements,
+    horizon de paie, jamais le déclaré), UNE seule fonction pour l'accueil, le
+    simulateur, le message après saisie et la conversation ; jamais recalculé dans
+    un écran (`core/dailyAllowance.ts` est déprécié). Parseur (§11.7) : un
+    remboursement, un emprunt, un prêt ou « on m'a remboursé » n'est JAMAIS un
+    revenu par défaut (`EntryDraft.nature`, `toChoose`).
 19. **Réserve famille et cérémonies (1.6, `docs/reserve.md`).** Une réserve est un
     objectif `kind: 'reserve'` (absent = objectif classique) ; une utilisation est
     une contribution négative liée à la dépense (`linkedTransactionId`), jamais
-    au-delà du solde (complément montré, jamais bloqué), supprimée avec
+    au-delà du solde, supprimée avec
     l'opération. Le budget du mois (enveloppes, alertes, score) lit
     `budgetTransactions` ; le reste par jour ne baisse pas pour la part prise sur
     une réserve. Un enfant n'utilise jamais une réserve (`canUseReserve` + règles).
@@ -130,6 +147,15 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     convertie reste active tant que l'utilisateur ne la désactive pas (pas de
     double comptage : `countedByRecurring`). Expressions locales de la saisie :
     inactives tant que le fondateur ne les a pas validées.
+    **Argent disponible v2 (`docs/argent-disponible.md`, qui fait foi)** : la réserve paie avec l'argent qui y est
+    ADOSSÉ (`planReserveUse`, §5.3) — « complément montré, jamais bloqué » est
+    remplacé par le §6 : le reste de la dépense passe par le contrôle des sorties.
+    Cagnotte reçue = retour d'épargne + avance du groupe, JAMAIS un revenu (D5) ;
+    après la cagnotte, les cotisations remboursent l'avance (Financement). Clôture
+    toujours confirmée par la personne (`status: 'finished'` + `closedAt`) : frais
+    ou gain comptés à cette date, sans opération. Cotisation sans tour
+    (`fixed_contribution`) = une DÉPENSE (D6). Une récurrence convertie ne génère
+    plus d'opération seule : sa confirmation EST la cotisation de la période (D7).
 21. **Catégories (1.8, `docs/voix-categories-epargne.md`).** Le catalogue de
     départ est une DONNÉE (`core/categoryCatalog.v2.json`, publiable dans
     `config/categories/items/v2`) ; identifiants stables, jamais renommés.
@@ -149,6 +175,11 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     (`type: 'adjustment'`, `direction`) n'est ni revenu ni dépense : toute
     nouvelle somme de revenus/dépenses doit l'exclure. « J'ai épargné… » =
     versement (`parseSavingsDeposit`), jamais une dépense.
+    **Argent disponible v2 (`docs/argent-disponible.md`, qui fait foi)** : la correction de solde (ajustement de l'écart avec
+    un MOTIF, `useActions().correctBalance`) existe sur TOUS les comptes ;
+    l'ouverture est figée dès la première opération. Sous-catégorie
+    `sub_other_fees` (frais d'envoi, de retrait, de compte) à ajouter au catalogue
+    comme une donnée (carte « Nouvelles catégories disponibles ») — étape 3.
 22. **Mini-conversation vocale (1.9, `docs/conversation-vocale.md`).** Compréhension
     LOCALE d'abord (`core/entry/parse.ts` : listes, mots de remplissage, auto-
     corrections, mot ambigu → UNE question, score de confiance) ; l'IA
@@ -277,4 +308,26 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
     créé ce mois-ci est déduite une fois. « Pas assez d'argent » : message après
     une dépense seulement si le disponible devient NÉGATIF, carte de l'accueil à
     zéro ou moins, jamais si la personne n'a jamais renseigné son argent
-    (`moneyTracked`), aucune notification ; une dépense est TOUJOURS enregistrée.
+    (`moneyTracked`), aucune notification.
+    **Argent disponible v2 (`docs/argent-disponible.md`, qui fait foi)** : « une dépense est TOUJOURS enregistrée » et le message
+    « Pas assez d'argent » APRÈS coup sont remplacés par le §6 : contrôle AVANT
+    l'enregistrement, feuille de complément, rien d'enregistré sinon. Une
+    cotisation de tournante ou de collecteur reste de l'épargne, mais PAS une
+    cotisation sans tour (dépense).
+30. **Argent disponible v2 (`docs/argent-disponible.md`, fondateur, 2026-10-18).**
+    1. Le revenu déclaré n'est JAMAIS de l'argent (§1, D1).
+    2. Toute opération a UNE nature calculée par `core/nature.ts › natureOf` (§2.3) :
+       rapports, historique, export, budget, coach la lisent.
+    3. Aucune récurrence n'est enregistrée sans confirmation (§8, D7) :
+       `runRecurring` ne crée rien ; `recurringToConfirm` + `confirmRecurring`
+       (identifiant déterministe de l'échéance).
+    4. Aucun compte n'est désactivé, supprimé, ne change de devise ou de famille
+       avec un solde (§3.3, `core/accountRules.ts`).
+    5. Toute sortie d'argent passe par le contrôle unique (§6) ; les écritures
+       qui vont ensemble (complément + sortie, transfert + frais, capital +
+       intérêts, réserve + dépense, part d'objectif libérée) s'écrivent en UN lot
+       (`core/writePlans.ts` → `writeMany`) : tout ou rien.
+    6. Chaque franc d'une poche est adossé (§5) : sur un compte d'épargne, mis de
+       côté sur un compte courant précis (`accountId` obligatoire), ou hors comptes
+       (montant initial, `initialSource: 'outside'`). Archiver ou abandonner une
+       poche demande un solde 0 (`closePocket`).
