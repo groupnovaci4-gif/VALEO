@@ -41,6 +41,7 @@ export interface TxDraft {
  * Renvoie la liste des erreurs (vide si valide).
  * Transfert entre devises différentes : autorisé UNIQUEMENT si l'utilisateur
  * saisit le montant reçu (`toAmount`) — DineroX n'invente jamais de taux.
+ * En même devise, le montant reçu est le montant envoyé : voir `sameCurrencyTransferError`.
  */
 export function validateTransaction(draft: TxDraft, accounts: Account[]): TxError[] {
   const errors: TxError[] = [];
@@ -65,6 +66,20 @@ export function validateTransaction(draft: TxDraft, accounts: Account[]): TxErro
     }
   }
   return errors;
+}
+
+/**
+ * Argent disponible v2 (§3.4, E26b) — en même devise, `toAmount` est INTERDIT : le
+ * montant reçu est le montant envoyé (les frais sont une dépense liée). Reprise dans
+ * firestore.rules. Pas encore dans `validateTransaction` : son message (texte
+ * visible) attend l'accord du fondateur (étape 3) ; le formulaire n'envoie déjà
+ * `toAmount` qu'entre deux devises.
+ */
+export function sameCurrencyTransferError(draft: Pick<TxDraft, 'type' | 'accountId' | 'toAccountId' | 'toAmount'>, accounts: Pick<Account, 'id' | 'currency' | 'deleted'>[]): 'transfer.sameCurrencyAmount' | null {
+  if (draft.type !== 'transfer' || draft.toAmount == null) return null;
+  const from = accounts.find((a) => a.id === draft.accountId && !a.deleted);
+  const to = accounts.find((a) => a.id === draft.toAccountId && !a.deleted);
+  return from && to && from.currency === to.currency ? 'transfer.sameCurrencyAmount' : null;
 }
 
 /** Tri antichronologique stable : date puis heure de création. */

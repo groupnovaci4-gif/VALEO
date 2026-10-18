@@ -15,11 +15,11 @@ import type {
   SpaceData,
 } from './types';
 import type { CurrencyCode } from './money';
-import { proposeBudget, type BudgetBucket } from './budget';
-import { today, type ISODate } from './dates';
+import type { BudgetBucket } from './budget';
+import type { ISODate } from './dates';
 import { DEFAULT_GOAL_CATEGORIES } from './goalCategories';
 import type { Zone } from './countries';
-import { findSubcategory, subcategoryDocs } from './catalog';
+import { subcategoryDocs } from './catalog';
 import { catalogStarterDocs, usesCatalog } from './categoryCatalog';
 import { SAVING_CATEGORY_IDS } from './savingsFlows';
 
@@ -174,7 +174,6 @@ export function buildInitialStructure(
   answers: OnboardingAnswers,
   meta: { now: number; uid: string; date?: ISODate; lang?: 'fr' | 'en'; id: (prefix: string) => string; label: Labeler },
 ): Partial<SpaceData> {
-  const date = meta.date ?? today();
   const base = { createdAt: meta.now, updatedAt: meta.now, createdBy: meta.uid };
   // Cercle fermé : il faut au moins un compte courant pour dépenser. Aucun coché
   // (ou seulement de l'épargne) → « Espèces » est créé, comme sans aucun compte.
@@ -200,44 +199,20 @@ export function buildInitialStructure(
       order: i,
     }));
 
-  const method: BudgetMethod = answers.budgetMethod === '50_30_20' ? 'envelopes' : answers.budgetMethod;
-  const lines = proposeBudget(answers.monthlyIncome, method, answers.currency);
-  // Charges déclarées : elles fixent le budget minimal de l'enveloppe correspondante
-  // (le montant réel de l'utilisateur prime sur une proportion théorique).
-  const declared: Partial<Record<string, number>> = {};
-  for (const [subId, amount] of Object.entries(answers.fixedCharges ?? {})) {
-    const sc = findSubcategory(subId);
-    if (!sc || !(amount > 0)) continue;
-    const bucket = (Object.keys(BUCKET_ENVELOPE) as (keyof typeof BUCKET_ENVELOPE)[]).find((b) => BUCKET_ENVELOPE[b].categoryIds.includes(sc.parent)) ?? 'free';
-    declared[bucket] = (declared[bucket] ?? 0) + Math.round(amount);
-  }
+  // Argent disponible v2 (§9, E10) : les enveloppes démarrent À ZÉRO. Le revenu déclaré
+  // n'est jamais de l'argent : il ne remplit aucune enveloppe et ne crée aucune
+  // récurrence de salaire (D1, D7) ; le budget automatique propose des montants sur demande.
   const envelopes: Envelope[] = [];
   const buckets: (keyof typeof BUCKET_ENVELOPE)[] = ['housing', 'food', 'transport', 'family', 'savings', 'project', 'free'];
-  // Budget de départ : les charges déclarées d'abord ; le reste du revenu est réparti
-  // sur les autres enveloppes au prorata de la proposition, sans jamais dépasser le revenu.
-  const amounts: Record<string, number> = {};
-  for (const b of buckets) amounts[b] = Math.max(lines.find((l) => l.bucket === b)?.amount ?? 0, declared[b] ?? 0);
-  const totalProposed = buckets.reduce((n, b) => n + amounts[b], 0);
-  if (answers.monthlyIncome > 0 && totalProposed > answers.monthlyIncome) {
-    const declaredTotal = buckets.reduce((n, b) => n + (declared[b] ?? 0), 0);
-    const room = Math.max(0, answers.monthlyIncome - declaredTotal);
-    const flexible = buckets.filter((b) => !declared[b]);
-    const flexTotal = flexible.reduce((n, b) => n + amounts[b], 0);
-    for (const b of flexible) amounts[b] = flexTotal > 0 ? Math.floor((amounts[b] * room) / flexTotal) : 0;
-    // Les arrondis profitent à l'enveloppe « libre » (total = revenu, ou charges déclarées si elles le dépassent).
-    const used = buckets.reduce((n, b) => n + amounts[b], 0);
-    if (!declared.free && used < answers.monthlyIncome) amounts.free += answers.monthlyIncome - used;
-  }
   buckets.forEach((b, i) => {
     const def = BUCKET_ENVELOPE[b];
-    const amount = amounts[b];
     envelopes.push({
       ...base,
       id: meta.id('env_'),
       name: meta.label(def.key),
       icon: def.icon,
       color: def.color,
-      monthlyBudget: amount,
+      monthlyBudget: 0,
       categoryIds: def.categoryIds,
       order: i,
       active: true,
@@ -245,26 +220,6 @@ export function buildInitialStructure(
   });
 
   const recurring: RecurringRule[] = [];
-  if (answers.monthlyIncome > 0 && answers.incomeFrequency === 'monthly' && accounts[0]) {
-    const day = Math.min(28, Math.max(1, answers.payDay ?? 25));
-    const start = `${date.slice(0, 7)}-${String(day).padStart(2, '0')}`;
-    recurring.push({
-      ...base,
-      id: meta.id('rec_'),
-      type: 'income',
-      label: meta.label('inc.salary'),
-      amount: answers.monthlyIncome,
-      currency: answers.currency,
-      // Le salaire arrive sur un compte courant (banque d'abord), jamais sur l'épargne.
-      accountId: (accounts.find((a) => a.type === 'bank') ?? accounts.find((a) => !a.isSavings) ?? accounts[0]).id,
-      categoryId: 'inc_salary',
-      frequency: 'monthly',
-      // Pas de génération rétroactive : première échéance = prochain jour de paie.
-      startDate: start >= date ? start : nextMonthSameDay(start),
-      active: true,
-      lastGenerated: null,
-    });
-  }
 
   const goals: Goal[] = answers.goals
     .map((tplId, i) => {
@@ -312,13 +267,6 @@ export function buildInitialStructure(
     recurring,
     goals,
   };
-}
-
-function nextMonthSameDay(d: ISODate): ISODate {
-  const [y, m, day] = d.split('-').map(Number);
-  const nm = m === 12 ? 1 : m + 1;
-  const ny = m === 12 ? y + 1 : y;
-  return `${ny}-${String(nm).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 /**

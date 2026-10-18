@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { balanceCorrection, canChangeCurrency, canDeactivate, canDeleteAccount, canToggleSavings } from '../src/core/accountRules';
-import { validateTransaction } from '../src/core/validation';
+import { sameCurrencyTransferError, validateTransaction } from '../src/core/transactions';
 import { canCreateTransaction } from '../src/core/permissions';
 import { behaviorScoreV2, isIrregularIncome, margin, nextAdvice, precaution, savingsRate, sourceSavingSuggestion, tenPercent } from '../src/core/coachMetrics';
 import { periodReport } from '../src/core/ledger';
@@ -48,7 +48,11 @@ describe('§3.2-3.3 — comptes : correction de solde et cycle de vie', () => {
 
   it('E26b — transfert en même devise avec un montant reçu différent : refusé par la validation pure', () => {
     const accounts = [account({ id: 'om' }), account({ id: 'wave' })];
-    expect(validateTransaction({ type: 'transfer', amount: 50_000, toAmount: 49_000, date: '2026-10-15', accountId: 'om', toAccountId: 'wave', currency: 'XOF' }, accounts)).toContain('transfer.sameCurrencyAmount');
+    expect(sameCurrencyTransferError({ type: 'transfer', toAmount: 49_000, accountId: 'om', toAccountId: 'wave' }, accounts)).toBe('transfer.sameCurrencyAmount');
+    expect(sameCurrencyTransferError({ type: 'transfer', toAmount: null, accountId: 'om', toAccountId: 'wave' }, accounts)).toBeNull();
+    // Entre deux devises, le montant reçu reste obligatoire (inchangé).
+    const eur = account({ id: 'eur', currency: 'EUR' });
+    expect(sameCurrencyTransferError({ type: 'transfer', toAmount: 1_000, accountId: 'om', toAccountId: 'eur' }, [...accounts, eur])).toBeNull();
     expect(validateTransaction({ type: 'transfer', amount: 50_000, date: '2026-10-15', accountId: 'om', toAccountId: 'wave', currency: 'XOF' }, accounts)).toEqual([]);
   });
 

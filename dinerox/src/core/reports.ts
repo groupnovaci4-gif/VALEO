@@ -127,7 +127,7 @@ export function buildSeries(transactions: Transaction[], period: Period, currenc
 
 // ─── Export CSV ───────────────────────────────────────────────────────
 
-function csvCell(v: unknown): string {
+export function csvCell(v: unknown): string {
   const s = v === null || v === undefined ? '' : String(v);
   // Neutralise les formules (injection CSV dans un tableur).
   // Un nombre seul (« -5000.00 ») n'est jamais une formule : il reste un nombre pour le tableur.

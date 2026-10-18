@@ -111,6 +111,7 @@ describe('environnement de départ par pays', () => {
     );
     expect(s.accounts!.find((a) => a.name === 'acc.wave')!.openingBalance).toBe(45000);
     expect(s.accounts!.find((a) => a.name === 'acc.cash')!.openingBalance).toBe(0);
-    expect(s.envelopes!.find((e) => e.categoryIds.includes('cat_housing'))!.monthlyBudget).toBe(80000);
+    // Argent disponible v2 (§9, E10) : une charge déclarée ne remplit plus l'enveloppe (elles démarrent à 0).
+    expect(s.envelopes!.find((e) => e.categoryIds.includes('cat_housing'))!.monthlyBudget).toBe(0);
   });
 });

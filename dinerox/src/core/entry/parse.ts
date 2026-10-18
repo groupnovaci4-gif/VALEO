@@ -73,7 +73,36 @@ export interface EntryDraft {
    * et l'application l'explique (avec « Retirer de mon épargne ou d'un objectif »).
    */
   savingsRedirect?: boolean;
+  /**
+   * Argent disponible v2 (§11.7) — nature d'une opération de dette ou de tontine reconnue
+   * dans la phrase : jamais un revenu pour un remboursement ou un emprunt.
+   */
+  nature?: EntryNature | null;
+  /** §11.7 — Ce qui reste à choisir sur la carte (surligné) : la dette ou la tontine concernée. */
+  toChoose?: 'debt' | 'tontine' | null;
 }
+
+/** Natures que le parseur sait reconnaître (sous-ensemble de `core/nature.ts`). */
+export type EntryNature = 'remboursement_capital' | 'emprunt_recu' | 'pret_accorde' | 'retour_tontine';
+
+/**
+ * §11.7 — Sens des dettes et de la cagnotte (texte normalisé). L'ordre compte :
+ * « on m'a prêté » (emprunt) avant « j'ai prêté » (prêt accordé), « on m'a remboursé »
+ * reste une entrée (jamais un remboursement de dette deviné).
+ */
+const DEBT_PHRASES: { nature: EntryNature; type: 'expense' | 'income'; toChoose: 'debt' | 'tontine'; targets: string[]; re: RegExp }[] = [
+  { nature: 'emprunt_recu', type: 'income', toChoose: 'debt', targets: [], re: /(?:^|[^a-z])(?:on m a prete|m a prete|on m a avance|j ai emprunte|je viens d emprunter|j emprunte|recu le pret|recu un pret|pret de la banque|credit de la banque)(?=$|[^a-z])/ },
+  { nature: 'pret_accorde', type: 'expense', toChoose: 'debt', targets: ['sub_informal_loan_given', 'cat_informal'], re: /(?:^|[^a-z])(?:j ai prete|je prete|je viens de preter|j ai avance de l argent)(?=$|[^a-z])/ },
+  { nature: 'remboursement_capital', type: 'expense', toChoose: 'debt', targets: ['sub_debts_loan', 'cat_debts'], re: /(?:^|[^a-z])(?:j ai rembourse|je rembourse|je viens de rembourser)(?=$|[^a-z])/ },
+  { nature: 'retour_tontine', type: 'income', toChoose: 'tontine', targets: ['inc_tontine'], re: /(?:^|[^a-z])(?:recu|touche|pris)(?: [a-z]+){0,2} (?:cagnotte|tontine)(?=$|[^a-z])/ },
+];
+
+function debtPhrase(seg: string) {
+  return DEBT_PHRASES.find((p) => p.re.test(seg)) ?? null;
+}
+
+/** « J'ai reçu une facture » : une dépense, catégorie à choisir (jamais devinée, règle 18). */
+const BILL_RE = /(?:^|[^a-z])factures?(?=$|[^a-z])/;
 
 export interface SavingsDepositDraft {
   /** Unités mineures ; null = montant non compris. */
@@ -334,19 +363,36 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
       if (expenseHit && incomeHit) uncertain.add('type');
     }
     if (explicit) lastDirection = explicit;
+    // §11.7 — dette, prêt, cagnotte : le sens vient de la tournure, jamais du mot « reçu ».
+    const debt = debtPhrase(seg);
+    if (debt) {
+      type = debt.type;
+      uncertain.delete('type');
+    }
+    const bill = !debt && type === 'income' && BILL_RE.test(seg);
+    if (bill) type = 'expense';
 
     const own_ = type === 'income' ? incomeKw : expenseKw;
     const hit = type === 'income' ? incomeHit : expenseHit;
-    let resolved = own_ ? { categoryId: own_.categoryId, subcategoryId: own_.subcategoryId } : hit && 'targets' in hit ? resolveTarget(hit.targets, ctx.categories) : null;
+    let resolved = debt
+      ? resolveTarget(debt.targets, ctx.categories)
+      : bill
+        ? null
+        : own_
+          ? { categoryId: own_.categoryId, subcategoryId: own_.subcategoryId }
+          : hit && 'targets' in hit
+            ? resolveTarget(hit.targets, ctx.categories)
+            : null;
     // Mot ambigu (« 30 000 en eau ») sans mot plus précis ni mot appris : on DEMANDE.
     let question: EntryQuestion | null = null;
-    const amb = type === 'expense' && !own_ && !hit ? findAmbiguous(seg) : null;
+    const amb = type === 'expense' && !debt && !bill && !own_ && !hit ? findAmbiguous(seg) : null;
     if (amb) {
       const options = amb.entry.options.map((o) => ({ id: o.id, ...resolveTarget(o.targets, ctx.categories) })).filter((o): o is { id: string; categoryId: string; subcategoryId: string | null } => !!o.categoryId);
       if (options.length >= 2) question = { id: amb.entry.id, word: amb.word, options };
       else if (options.length === 1) resolved = { categoryId: options[0].categoryId, subcategoryId: options[0].subcategoryId };
     }
-    if (!resolved || uncertain.has('type')) uncertain.add('category');
+    // Un emprunt reçu n'a pas de catégorie de revenu : c'est la dette qui reste à choisir.
+    if ((!resolved && debt?.nature !== 'emprunt_recu') || uncertain.has('type')) uncertain.add('category');
 
     // Compte : celui cité s'il existe chez l'utilisateur ; sinon compte par défaut, à confirmer.
     const own = accountHints(seg);
@@ -372,7 +418,21 @@ export function parseEntryText(original: string, ctx: EntryContext): EntryParse 
     const payee = type === 'expense' ? extractPayeeFrom(original, seg) : null;
     const categoryId = resolved?.categoryId ?? null;
     const subcategoryId = resolved?.subcategoryId ?? null;
-    const draft: EntryDraft = { type, amount, categoryId, subcategoryId, accountId, date, payee, uncertain: [...uncertain], source: seg, suggested: { categoryId, subcategoryId }, question, ...(savingsRedirect ? { savingsRedirect } : {}) };
+    const draft: EntryDraft = {
+      type,
+      amount,
+      categoryId,
+      subcategoryId,
+      accountId,
+      date,
+      payee,
+      uncertain: [...uncertain],
+      source: seg,
+      suggested: { categoryId, subcategoryId },
+      question,
+      ...(savingsRedirect ? { savingsRedirect } : {}),
+      ...(debt ? { nature: debt.nature, toChoose: debt.toChoose } : {}),
+    };
     items.push({ ...draft, confidence: lineConfidence(draft) });
   }
 

@@ -69,10 +69,11 @@ function entryAccounts(accounts: Account[], categories: SpaceData['categories'],
 }
 
 describe('A — aucune dépense ne part de l’épargne par défaut', () => {
-  it('a) épargne 60 000 tapée à l’inscription : dépenses sur Espèces ; reste par jour calculé sur 40 000', () => {
+  // Argent disponible v2 (D1, §3.1, E2, E8) : ni le revenu déclaré ni l'épargne de départ ne font un « par jour ».
+  it('a) épargne 60 000 tapée à l’inscription : dépenses sur Espèces ; aucun reste par jour tiré du revenu déclaré', () => {
     const a = signup(['acc.cash', 'acc.savings'], { 'acc.savings': 60_000 });
     for (const id of entryAccounts(a.accounts, a.categories, null)) expect(id).toBe(cashOf(a.accounts));
-    expect(home(a.accounts, [])).toEqual({ disponible: 0, epargne: 60_000, base: 40_000, parJour: 2222 });
+    expect(home(a.accounts, [])).toEqual({ disponible: 0, epargne: 60_000, base: null, parJour: null });
   });
 
   it('le détail affiché explique toujours le chiffre : revenus − dépenses − à venir = disponible (épargne de départ, cotisations comprises)', () => {
@@ -84,7 +85,7 @@ describe('A — aucune dépense ne part de l’épargne par défaut', () => {
     if (r.status === 'ok') expect(r.income - r.expenses - allowanceDeductions(r)).toBe(r.available);
   });
 
-  it('a’) seul « Épargne » coché : « Espèces » est créé ; dépenses et salaire de départ sur Espèces', () => {
+  it('a’) seul « Épargne » coché : « Espèces » est créé ; dépenses sur Espèces ; aucune récurrence de salaire (E10)', () => {
     const a = signup(['acc.savings'], { 'acc.savings': 60_000 });
     expect(a.accounts.map((x) => [x.type, x.isSavings])).toEqual([
       ['savings', true],
@@ -92,7 +93,7 @@ describe('A — aucune dépense ne part de l’épargne par défaut', () => {
     ]);
     const cash = cashOf(a.accounts);
     for (const id of entryAccounts(a.accounts, a.categories, null)) expect(id).toBe(cash);
-    expect(a.recurring[0]?.accountId).toBe(cash);
+    expect(a.recurring).toHaveLength(0);
   });
 
   it('b) revenu sur Espèces puis versement de 60 000 : disponible 40 000 (inchangé, déjà juste)', () => {

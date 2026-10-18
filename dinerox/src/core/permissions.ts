@@ -12,7 +12,7 @@
  *            dépenses et contribue aux objectifs ; ne voit ni dettes, ni
  *            patrimoine, ni comptes en détail ; ne modifie rien d'autre.
  */
-import type { CollectionName, Role, Space } from './types';
+import type { CollectionName, Role, Space, TransactionType } from './types';
 
 export type Action = 'read' | 'create' | 'update' | 'delete';
 
@@ -59,4 +59,14 @@ export function canChangeRole(space: Pick<Space, 'members'>, actorUid: string, t
  */
 export function canUseReserve(role: Role | null | undefined): boolean {
   return role === 'admin' || role === 'partner';
+}
+
+/**
+ * Argent disponible v2 (§6.5) — type d'opération qu'un rôle peut créer. Un enfant ne
+ * crée que des DÉPENSES : ni revenu, ni transfert, ni correction (miroir de
+ * firestore.rules : `type == 'expense'` pour un enfant).
+ */
+export function canCreateTransaction(role: Role | null | undefined, type: TransactionType): boolean {
+  if (role === 'admin' || role === 'partner') return true;
+  return role === 'child' && type === 'expense';
 }

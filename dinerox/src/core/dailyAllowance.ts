@@ -1,7 +1,7 @@
 /**
  * « Il vous reste X par jour jusqu'à la fin du mois » — module PUR.
  *
- *   disponible = revenus du mois (enregistrés ; à défaut, revenu déclaré)
+ *   disponible = revenus du mois ENREGISTRÉS (jamais le revenu déclaré : argent disponible v2, D1)
  *              − dépenses du mois (hors part prise sur une réserve)
  *              − récurrences de dépense restant à payer ce mois-ci
  *              − mise de côté prévue du mois (objectifs et réserves)
@@ -11,8 +11,8 @@
  *   une dépense. Payée depuis un compte courant, elle fait baisser le reste par
  *   jour de son montant ENTIER (jamais fondue dans la mise de côté prévue) ;
  *   payée depuis l'épargne ou un objectif, elle ne le change pas (mouvement à
- *   l'intérieur du cercle). L'épargne de départ d'un compte d'épargne créé ce
- *   mois-ci est de l'épargne du mois (comptée une seule fois).
+ *   l'intérieur du cercle). L'épargne de départ d'un compte d'épargne n'est PAS de
+ *   l'épargne du mois : elle existait avant (argent disponible v2, §3.1).
  *   (une cagnotte de tontine attendue n'est JAMAIS comptée avant d'être reçue :
  *   elle devient alors un revenu enregistré)
  *   reste par jour = disponible / jours restants (aujourd'hui inclus), arrondi vers le bas.
@@ -23,8 +23,8 @@
  * prise sur une réserve ne fait pas baisser le reste par jour : l'argent avait
  * déjà été mis de côté. Seul le complément (réserve insuffisante) compte.
  *
- * Aucun chiffre inventé : sans revenu (ni enregistré, ni déclaré), on invite
- * à le compléter. Un disponible négatif n'est jamais présenté « par jour ».
+ * Aucun chiffre inventé : sans revenu enregistré, on invite à le compléter
+ * (le revenu déclaré est une information, jamais de l'argent). Un disponible négatif n'est jamais présenté « par jour ».
  * Une seule devise (celle de l'espace) : aucune conversion.
  */
 import { endOfMonth, monthKey, parseISODate, type ISODate } from './dates';
@@ -92,11 +92,6 @@ export function dailyAllowance({ data, currency, today, financial }: AllowanceIn
   let tontinePaid = 0;
   const savings = savingsAccountIds(data.accounts ?? []);
   const goalFunded = goalFundedIds(data.goalContributions);
-  // Épargne de départ d'un compte d'épargne créé ce mois-ci : de l'épargne du mois.
-  for (const a of data.accounts ?? []) {
-    if (a.deleted || !a.isSavings || a.currency !== currency || !(a.openingBalance > 0)) continue;
-    if (monthKey(new Date(a.createdAt).toISOString().slice(0, 10) as ISODate) === month) savedThisMonth += a.openingBalance;
-  }
   for (const t of data.transactions) {
     if (t.deleted || t.currency !== currency || monthKey(t.date) !== month) continue;
     if (t.type === 'income') recordedIncome += t.amount;
@@ -112,10 +107,11 @@ export function dailyAllowance({ data, currency, today, financial }: AllowanceIn
     }
   }
 
-  const declared = financial?.monthlyIncome && financial.monthlyIncome > 0 ? financial.monthlyIncome : 0;
-  if (recordedIncome <= 0 && declared <= 0) return { status: 'needs_income', daysLeft, until, expenses, reserveCovered };
-  const income = recordedIncome > 0 ? recordedIncome : declared;
-  const incomeSource: IncomeSource = recordedIncome > 0 ? 'user' : 'declared';
+  // Argent disponible v2 (D1) : le revenu déclaré (`financial`) n'est jamais compté.
+  void financial;
+  if (recordedIncome <= 0) return { status: 'needs_income', daysLeft, until, expenses, reserveCovered };
+  const income = recordedIncome;
+  const incomeSource: IncomeSource = 'user';
 
   // Récurrences de dépense dont l'échéance tombe d'ici la fin du mois et qui
   // n'ont pas encore été enregistrées (sinon elles sont déjà des dépenses).

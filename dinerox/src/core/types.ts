@@ -87,6 +87,15 @@ export interface Account extends SyncedDoc {
   isSavings: boolean;
   savingsKind?: SavingsKind;
   order: number;
+  /**
+   * Argent disponible v2 (§3.1) — date de l'ouverture (argent qui existait avant
+   * l'application). Absente : l'ouverture compte depuis toujours (anciens comptes).
+   */
+  openingDate?: ISODate | null;
+  /** §3.1 — Provenance de l'ouverture, en texte libre (« argent gardé à la maison »). */
+  openingNote?: string | null;
+  /** §3.5 — Découvert autorisé (≥ 0, unités mineures). Absent = 0 : le solde ne descend pas sous zéro. */
+  overdraftLimit?: number | null;
 }
 
 export type SavingsKind = 'general' | 'emergency' | 'project' | 'child' | 'retirement';
@@ -171,6 +180,13 @@ export interface Transaction extends SyncedDoc {
    * pays, même sans sous-catégorie « Tontine ».
    */
   tontineId?: ID | null;
+  /** Argent disponible v2 (§3.2) — motif d'un ajustement de solde (« écart de caisse »). */
+  reason?: string | null;
+  /**
+   * §3.4 / §5.5 — Opération liée : frais d'un transfert, intérêts d'un remboursement.
+   * Supprimée avec l'opération qu'elle accompagne (`linkedToDelete`).
+   */
+  linkedTransactionId?: ID | null;
 }
 
 export type Frequency = 'weekly' | 'monthly' | 'yearly';
@@ -259,8 +275,15 @@ export interface Goal extends SyncedDoc {
   icon: string;
   currency: CurrencyCode;
   targetAmount: number;
-  /** Montant déjà disponible à la création. */
+  /**
+   * Montant déjà là à la création. Argent disponible v2 (§5.2, §13) : c'est de
+   * l'épargne HORS COMPTES (jamais dans le disponible ni dans un compte).
+   */
   initialAmount: number;
+  /** §5.2 — Provenance du montant initial : `outside` (hors de mes comptes). Absent : ancienne donnée, provenance non précisée. */
+  initialSource?: 'outside' | null;
+  /** §5.2 — Provenance en texte libre (« argent confié à ma mère »). */
+  initialNote?: string | null;
   targetDate?: ISODate | null;
   priority: GoalPriority;
   /** Rang d'affichage / de répartition (1 = le plus prioritaire). */
@@ -311,16 +334,23 @@ export interface Debt extends SyncedDoc {
   rate?: number | null;
   note?: string | null;
   status: 'active' | 'closed';
+  /** Argent disponible v2 (§5.5) — clôture avec un reste : dette remise ou créance abandonnée. */
+  closedReason?: 'forgiven' | 'written_off' | null;
+  /** §5.5 — Date de la clôture (ligne « Remises et pertes » du rapport). */
+  closedAt?: ISODate | null;
 }
 
 export interface DebtPayment extends SyncedDoc {
   debtId: ID;
+  /** Capital remboursé (argent disponible v2, §5.5 : les intérêts sont une dépense liée, jamais ici). */
   amount: number;
   date: ISODate;
   accountId?: ID | null;
   /** Opération créée dans un compte, le cas échéant. */
   transactionId?: ID | null;
   note?: string | null;
+  /** Argent disponible v2 (§5.5) — « Hors de mes comptes », choisi explicitement (sinon un compte est exigé). */
+  offAccounts?: boolean | null;
 }
 
 // ─── Patrimoine ───────────────────────────────────────────────────────

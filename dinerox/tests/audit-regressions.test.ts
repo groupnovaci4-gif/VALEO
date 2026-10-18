@@ -26,11 +26,12 @@ describe('budgets : jamais de ligne négative, jamais plus que le revenu', () =>
         expect(l.reduce((s, x) => s + x.amount, 0)).toBe(inc);
       }
   });
-  it('budget de départ : loyer déclaré conservé, total = revenu', () => {
+  // Argent disponible v2 (§9, E10) : les enveloppes démarrent à 0 — ni revenu déclaré, ni charge déclarée ne les remplit.
+  it('budget de départ : enveloppes à zéro, jamais négatives, même avec un loyer déclaré', () => {
     const s = starterStructure({ firstName: 'A', currency: 'XOF', country: 'CI', zone: 'africa', monthlyIncome: 300000, fixedCharges: { sub_housing_rent: 280000 } }, { now: 1, uid: 'u', lang: 'fr', label: (k) => k, date: '2026-10-06' });
     const total = s.envelopes!.reduce((n, e) => n + e.monthlyBudget, 0);
-    expect(total).toBe(300000);
-    expect(s.envelopes!.find((e) => e.categoryIds.includes('cat_housing'))!.monthlyBudget).toBe(280000);
+    expect(total).toBe(0);
+    expect(s.envelopes!.find((e) => e.categoryIds.includes('cat_housing'))!.monthlyBudget).toBe(0);
     expect(s.envelopes!.every((e) => e.monthlyBudget >= 0)).toBe(true);
   });
 });

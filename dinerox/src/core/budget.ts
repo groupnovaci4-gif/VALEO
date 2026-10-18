@@ -1,7 +1,7 @@
 /**
  * Budget & enveloppes : consommation, alertes de seuil, budget automatique.
  */
-import type { Account, BudgetMethod, BudgetPlan, Category, Envelope, Transaction } from './types';
+import type { Account, BudgetMethod, BudgetPlan, Category, Envelope, GoalContribution, Transaction } from './types';
 import { isSavingExpense, isSavingsDeposit, isSavingsWithdrawal, isTontineContribution, savingsAccountIds } from './savingsFlows';
 import type { CurrencyCode } from './money';
 import { roundTo } from './money';
@@ -338,4 +338,30 @@ export function bucketForCategory(cat: Pick<Category, 'labelKey'>): BudgetBucket
     default:
       return null;
   }
+}
+
+/**
+ * Argent disponible v2 (§9) — dépenses du mois HORS ENVELOPPE, sur la même base que
+ * les enveloppes : la part payée par une réserve n'y apparaît pas (n° 17 de l'audit B),
+ * les mouvements du cercle (cotisations de tournante, épargne) non plus.
+ */
+export function outsideEnvelopeSpent(
+  envelopes: Envelope[],
+  transactions: Transaction[],
+  contributions: Pick<GoalContribution, 'deleted' | 'amount' | 'linkedTransactionId'>[],
+  month: MonthKey,
+  currency: CurrencyCode,
+): number {
+  const covered = new Map<string, number>();
+  for (const c of contributions) {
+    if (c.deleted || !c.linkedTransactionId || c.amount >= 0) continue;
+    covered.set(c.linkedTransactionId, (covered.get(c.linkedTransactionId) ?? 0) - c.amount);
+  }
+  let total = 0;
+  for (const t of transactions) {
+    if (t.deleted || t.type !== 'expense' || t.currency !== currency || monthKey(t.date) !== month) continue;
+    if (isTontineContribution(t) || isSavingExpense(t) || resolveEnvelopeId(t, envelopes)) continue;
+    total += Math.max(0, t.amount - (covered.get(t.id) ?? 0));
+  }
+  return total;
 }

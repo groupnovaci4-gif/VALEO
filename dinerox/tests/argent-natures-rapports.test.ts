@@ -181,10 +181,11 @@ describe('§5.5 — dettes et prêts', () => {
   it('E23b — crédit de 1 000 000, six mensualités avec intérêts : reste dû = principal − Σ capital', () => {
     const owe = debt({ id: 'owe', principal: 1_000_000 });
     const pays = [0, 1, 2, 3, 4, 5].map((i) => {
-      const s = splitRepayment(180_000, 15_000 - i * 2_000)!;
+      const s = splitRepayment(150_000, 15_000 - i * 2_000)!;
       return payment({ debtId: 'owe', amount: s.capital });
     });
     const capital = pays.reduce((n, p) => n + p.amount, 0);
+    expect(capital).toBe(840_000);
     expect(debtStatus(owe, pays, '2026-10-15').remaining).toBe(1_000_000 - capital);
   });
 

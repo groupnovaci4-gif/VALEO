@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { dailyAllowanceV2, payHorizon, shareOfDeclared, unallocated } from '../src/core/allowance';
 import { recurringToConfirm } from '../src/core/recurringConfirm';
 import { recurringTxId } from '../src/core/recurring';
-import { account, contribution, debt, envelope, goal, rule, space, tentry, tontine, tx } from './helpers';
+import { account, contribution, debt, envelope, goal, rule, space, tontine, tx } from './helpers';
 
 const TODAY = '2026-10-15';
 const cash = (opening = 0) => account({ id: 'cash', name: 'Espèces', openingBalance: opening });

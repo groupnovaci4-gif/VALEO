@@ -104,3 +104,35 @@ export function validateDebtPayment(amount: number, remaining: number): 'ok' | '
   if (amount > remaining) return 'exceeds';
   return 'ok';
 }
+
+// ─── Argent disponible v2 (docs/argent-disponible.md §5.5) ──────────────
+
+/**
+ * Remboursement M = capital c + intérêts i. Les intérêts sont SAISIS (0 par
+ * défaut), jamais inventés ; le capital fait baisser la dette (le remboursement
+ * enregistre le capital), les intérêts sont une dépense liée. null : saisie impossible.
+ */
+export function splitRepayment(total: number, interest: number): { capital: number; interest: number } | null {
+  if (!Number.isInteger(total) || !Number.isInteger(interest) || total <= 0 || interest < 0 || interest > total) return null;
+  return { capital: total - interest, interest };
+}
+
+/** Une dette qui a des remboursements ne se supprime pas : on la clôture (E47). */
+export function canDeleteDebt(debtId: string, payments: DebtPayment[]): boolean {
+  return !payments.some((p) => !p.deleted && p.debtId === debtId);
+}
+
+/** Pas de mouvement sans compte : « Hors de mes comptes » seulement par choix explicite (E49). */
+export function debtPaymentAccountError(p: Pick<DebtPayment, 'accountId' | 'offAccounts'>): 'account.missing' | null {
+  return p.accountId || p.offAccounts ? null : 'account.missing';
+}
+
+/**
+ * Reste remis ou abandonné à la clôture (ligne « Remises et pertes ») : principal −
+ * capital remboursé jusqu'à la clôture. 0 pour une dette soldée ou close sans motif.
+ */
+export function writtenOffAmount(debt: Debt, payments: DebtPayment[]): number {
+  if (debt.status !== 'closed' || !debt.closedReason || !debt.closedAt) return 0;
+  const paid = payments.filter((p) => !p.deleted && p.debtId === debt.id && p.date <= debt.closedAt!).reduce((n, p) => n + p.amount, 0);
+  return Math.max(0, debt.principal - paid);
+}
