@@ -25,7 +25,7 @@ export function iaData(): SpaceData {
       account({ id: 'om', name: 'Orange Money', type: 'mobile_money', provider: 'orange_money', openingBalance: 80_000, order: 1 }),
       account({ id: 'wave', name: 'Wave', type: 'mobile_money', provider: 'wave', openingBalance: 40_000, order: 2 }),
       account({ id: 'bank', name: 'Banque', type: 'bank', provider: 'bank', openingBalance: 300_000, order: 3 }),
-      account({ id: 'sav', name: 'Mon épargne', type: 'savings', isSavings: true, openingBalance: 200_000, order: 4 }),
+      account({ id: 'sav', name: 'Mon épargne', type: 'savings', isSavings: true, openingBalance: 400_000, order: 4 }),
     ],
     envelopes: [
       envelope({ id: 'env_home', name: 'Maison', monthlyBudget: 120_000, categoryIds: ['cat_housing'] }),

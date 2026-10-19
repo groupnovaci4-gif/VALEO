@@ -34,6 +34,7 @@ function port() {
     saveRecurring: vi.fn(() => written),
     remove: vi.fn(),
     save: vi.fn(),
+    currentTransactions: vi.fn(() => []),
   };
   return p as typeof p & ActionPort;
 }

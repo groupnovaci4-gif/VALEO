@@ -2,6 +2,7 @@
  * Captures « L'IA qui comprend toute l'application » pour le fondateur (docs/ia-comprend-tout.md) :
  * web, thème clair, mode démonstration, 412×915. Sortie : docs/captures-ia/<nn-nom>.png.
  *   node e2e/captures-ia.js
+ *   ONLY=09 node e2e/captures-ia.js   (seules ces captures sont réécrites)
  * La démonstration n'a pas de dette envers « Koffi » : elle est ajoutée par le formulaire
  * Dettes (100 000) avant la question, comme le ferait la personne.
  * Pas dans run-all.sh : ce n'est pas un test, c'est une galerie.
@@ -12,7 +13,10 @@ const { BASE, launch, phraseField } = require('./env.js');
 
 const OUT = path.join(__dirname, '..', 'docs', 'captures-ia');
 fs.mkdirSync(OUT, { recursive: true });
-for (const f of fs.readdirSync(OUT)) if (f.endsWith('.png')) fs.unlinkSync(path.join(OUT, f));
+// ONLY=09 : seules ces captures sont réécrites (le parcours complet tourne, les autres images restent).
+const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(',').map((x) => x.trim())) : null;
+const wanted = (name) => !ONLY || ONLY.has(name.slice(0, 2));
+for (const f of fs.readdirSync(OUT)) if (f.endsWith('.png') && wanted(f)) fs.unlinkSync(path.join(OUT, f));
 const log = [];
 
 (async () => {
@@ -22,7 +26,7 @@ const log = [];
   p.on('dialog', (d) => d.accept());
   const go = async (route, w = 3000) => { await p.goto(BASE + route, { waitUntil: 'load' }); await p.waitForTimeout(w); };
   const btn = (name) => p.getByRole('button', { name, exact: true });
-  const shot = async (name) => { await p.screenshot({ path: path.join(OUT, `${name}.png`) }); log.push(name); };
+  const shot = async (name) => { if (!wanted(name)) return; await p.screenshot({ path: path.join(OUT, `${name}.png`) }); log.push(name); };
   const closeCelebration = async () => { for (const l of ['Continuer']) { const c = btn(l).filter({ visible: true }); if (await c.count()) { await c.first().click().catch(() => {}); await p.waitForTimeout(400); } } };
   /** Une conversation neuve, une phrase, la capture. */
   const ask = async (name, phrase, after) => {

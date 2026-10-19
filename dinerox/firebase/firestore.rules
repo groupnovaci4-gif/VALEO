@@ -294,6 +294,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ─── IA (docs/ia-comprend-tout.md §5) : jetons consommés par jour (nombres seulement) ─
+    // Serveur seul (`understandPhrase`) : aucune lecture ni écriture client, même administrateur.
+    match /aiUsage/{day} {
+      allow read, write: if false;
+    }
+
     // ─── Origine des inscriptions (étape 5) : compteurs anonymes par jour ─
     // Serveur seul (`recordSignupOrigin`) ; lus par `adminOriginStats`, déjà regroupés.
     match /originStats/{day} {

@@ -128,6 +128,8 @@ export interface ActionPort {
   saveRecurring: (draft: never) => { id: string };
   remove: (col: CollectionName, id: string) => void;
   save: (col: CollectionName, draft: never) => unknown;
+  /** Opérations de l'espace au moment de « Annuler » (opération d'ouverture d'une dette). */
+  currentTransactions: () => Pick<SpaceData['transactions'][number], 'id' | 'debtId' | 'deleted'>[];
 }
 
 /** Prochaine date au jour `day` du mois (aujourd'hui compris). */
@@ -166,7 +168,14 @@ export function runAction(i: ActionIntent, port: ActionPort, ctx: CardCtx, choic
     case 'debt_create': {
       const accountId = i.direction === 'i_owe' ? i.to?.id : i.from?.id;
       const draft = { direction: i.direction ?? 'i_owe', kind: 'personal', counterparty: i.label ?? '', principal: a, currency: ctx.currency, startDate: i.date, status: 'active' };
-      return removeUndo('debts', port.saveDebt(draft as never, { accountId: accountId ?? null, date: i.date, choices } as never).id);
+      const debtId = port.saveDebt(draft as never, { accountId: accountId ?? null, date: i.date, choices } as never).id;
+      // L'emprunt reçu (ou le prêt accordé) est écrit AVEC la dette : « Annuler » retire les deux.
+      return {
+        undo: () => {
+          for (const t of port.currentTransactions()) if (!t.deleted && t.debtId === debtId) port.remove('transactions', t.id);
+          port.remove('debts', debtId);
+        },
+      };
     }
     case 'recurring_confirm': {
       const rule = ctx.data.recurring.find((r) => r.id === i.ref?.id);

@@ -208,7 +208,7 @@ export function openForm(i: Intent) {
 function ActionCardView({ intent, engine, onDone }: { intent: ActionIntent; engine: Engine; onDone?: () => void }) {
   const { t } = useI18n();
   const { colors, radius } = useTheme();
-  const { role } = useApp();
+  const { role, engine: sync, activeSpace } = useApp();
   const toast = useToast();
   const actions = useActions();
   const { guard } = useMoneyGuard();
@@ -218,6 +218,8 @@ function ActionCardView({ intent, engine, onDone }: { intent: ActionIntent; engi
   const [from, setFrom] = useState<EntityRef | null>(intent.from ?? null);
   const [to, setTo] = useState<EntityRef | null>(intent.to ?? null);
   const [status, setStatus] = useState<'pending' | 'done' | 'cancelled'>('pending');
+  /** Ce qui a été enregistré (titre de la carte et « Depuis … → vers … »), montré sous « C'est noté ✅ ». */
+  const [summary, setSummary] = useState<string[]>([]);
   const edited: ActionIntent = useMemo(() => ({ ...intent, amount, date, from, to }), [intent, amount, date, from, to]);
   const cctx = { data, currency: currency as CurrencyCode, today: now };
   const card = buildActionCard(edited, cctx);
@@ -241,7 +243,10 @@ function ActionCardView({ intent, engine, onDone }: { intent: ActionIntent; engi
     guard(
       (choices) => {
         try {
-          const r = runAction(edited, actions as unknown as ActionPort, cctx, choices);
+          const port = { ...(actions as unknown as ActionPort), currentTransactions: () => (sync && activeSpace ? sync.getData(activeSpace.id).transactions : []) };
+          const r = runAction(edited, port, cctx, choices);
+          const route = card.lines.find((l) => l.key === 'ia.card.fromTo' || l.key === 'ia.card.from' || l.key === 'ia.card.to');
+          setSummary([engine.text(card.titleKey, card.titleParams), ...(route ? [engine.text(route.key, route.params)] : [])]);
           setStatus('done');
           toast.show(t('tx.saved'), 'success', { duration: UNDO_MS, actions: [{ label: t('entry.toast.undo'), onPress: () => (r.undo(), toast.show(t('entry.undone'), 'info')) }] });
           onDone?.();
@@ -259,8 +264,15 @@ function ActionCardView({ intent, engine, onDone }: { intent: ActionIntent; engi
 
   if (status !== 'pending') {
     return (
-      <Card>
+      <Card style={{ gap: 4 }}>
         <Text tone={status === 'done' ? 'success' : 'subtle'}>{status === 'done' ? t('ai.recorded') : t('ai.cancelled')}</Text>
+        {status === 'done'
+          ? summary.map((line, i) => (
+              <Text key={i} variant={i === 0 ? 'bodyStrong' : 'small'} tone={i === 0 ? 'default' : 'muted'}>
+                {line}
+              </Text>
+            ))
+          : null}
       </Card>
     );
   }

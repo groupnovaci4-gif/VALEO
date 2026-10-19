@@ -260,6 +260,19 @@ describe('autres collections', () => {
     await assertSucceeds(setDoc(doc(db('boss', { admin: true }), 'config/goalCategories/items/health'), { icon: '🩺' }));
     await assertSucceeds(getDoc(doc(db('u1'), 'config/goalCategories/items/health')));
   });
+  it('IA : compteurs de jetons du jour (aiUsage/{jour}) — ni lus ni écrits par un client, même administrateur', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore() as unknown as Firestore, 'aiUsage/2026-10-19'), { day: '2026-10-19', calls: 3, tokensIn: 1200, tokensOut: 90 });
+    });
+    for (const who of [db('u1'), db('boss', { admin: true }), db(null)]) {
+      await assertFails(getDoc(doc(who, 'aiUsage/2026-10-19')));
+      await assertFails(getDocs(collection(who, 'aiUsage')));
+      await assertFails(setDoc(doc(who, 'aiUsage/2026-10-19'), { calls: 0 }));
+      await assertFails(setDoc(doc(who, 'aiUsage/2026-10-20'), { day: '2026-10-20', calls: 1 }));
+      await assertFails(updateDoc(doc(who, 'aiUsage/2026-10-19'), { tokensIn: 0 }));
+      await assertFails(deleteDoc(doc(who, 'aiUsage/2026-10-19')));
+    }
+  });
   it('abonnements et quotas : jamais écrits par le client', async () => {
     await assertFails(setDoc(doc(db('u1'), 'subscriptions/u1'), { plan: 'family' }));
     await assertFails(setDoc(doc(db('u1'), 'usage/u1'), { ai: 0 }));
