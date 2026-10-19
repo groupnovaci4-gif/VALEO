@@ -117,7 +117,7 @@ export function IntentResult({
     const key = intent.entity === 'account' && intent.word === 'epargne' ? 'ia.none.savings' : list ? `ia.notFound.${intent.entity}` : `ia.none.${intent.entity}`;
     return (
       <Card style={{ gap: 8 }}>
-        <Text>{t(key as TKey, { word: intent.word, list })}</Text>
+        <Text>{t(key as TKey, { word: intent.word.charAt(0).toUpperCase() + intent.word.slice(1), list })}</Text>
         {intent.entity === 'account' && intent.word === 'epargne' ? <Button small variant="secondary" icon="add" label={t('sav.newAccount')} onPress={() => (onDone?.(), router.push('/accounts/edit?savings=1'))} /> : null}
       </Card>
     );

@@ -10,7 +10,8 @@
  * règles 18 et 22) → inconnu. Le vocabulaire vient de l'application (`vocabulary.ts`).
  */
 import { normalizeText, parseIntent } from './parser';
-import { amountSpans } from '../entry/numbers';
+import { amountSpans, hasUnvalidatedUnit } from '../entry/numbers';
+import VOCAB from '../entry/vocabulary.json';
 import { parseEntryText, type EntryContext, type EntryDraft } from '../entry/parse';
 import { matchKeyword } from '../entry/keywords';
 import { applyTontine } from '../tontineEntry';
@@ -136,7 +137,11 @@ export function clean(original: string): string {
 
 const has = (t: string, re: RegExp) => re.test(t);
 
+/** Unités d'argot pas encore validées par le fondateur (« bâton », « brique ») : inactives (règle 18). */
+const SLANG_OFF = (VOCAB as unknown as { slangUnits: { word: string; actif: boolean }[] }).slangUnits.filter((u) => !u.actif).map((u) => u.word);
+
 function amountOf(t: string, currency: CurrencyCode): number | null {
+  if (hasUnvalidatedUnit(t, SLANG_OFF)) return null;
   const spans = amountSpans(t.replace(/\b(10|dix) ?(%|pour ?cent)/g, ' '));
   return spans.length ? toMinor(spans[0].value, currency) : null;
 }
@@ -264,7 +269,7 @@ function question(t: string, original: string, ctx: IntentContext): Intent | nul
   const cur = ctx.entry.currency;
   const spent = has(t, /\b(depense|depenses|depenser|spent|spend|paye|payer|paid)\b/);
 
-  if (has(t, /^(si (je|j)|if i)\b.*\b(donne|verse|envoie|contribue|cotise|participe|offre|paie|paye|give|pay|send)/)) return q('contribution_sim', { amount: amountOf(t, cur) });
+  if (has(t, /^(si (je|j)|if i)\b.*\b(donne|verse|envoie|contribue|cotise|participe|offre|paie|paye|give|pay|send)/)) return q('contribution_sim', { amount: amountOf(t, cur), ...(categoryIn(t, ctx) ?? {}) });
   if (has(t, /pourquoi.*(epargn|economis)|n arrive pas.*(epargn|economis)|why.*\b(save|saving)/)) return q('why_no_savings');
   if (has(t, /\b(depenser moins|reduire mes depenses|diminuer mes depenses|faire des economies|spend less|cut (my )?spending)\b/)) return q('reduce_spending');
   if (has(t, /^compare|par rapport au mois dernier|compared? (to|with) last month/)) return q('compare_months');
@@ -417,7 +422,7 @@ function action(t: string, ctx: IntentContext): Intent | null {
     return complete(a('save', { from, to }), ctx);
   }
   // Ajouter à un objectif : « Ajoute 25 000 à ma moto ».
-  if (goalCited && has(t, /\b(ajoute|ajouter|verse|verser|mets|mettre|met|garde|add|put|save)\b/) && amount) {
+  if (goalCited && has(t, /\b(ajoute|ajouter|verse|verser|mets|mettre|met|garde|add|put|save)\b/) && (amount || /\d/.test(t))) {
     return complete(a('goal_contribute', { ref: toRef(goalCited), from: accounts[0] ?? null }), ctx);
   }
   // Remboursement : « J'ai remboursé 50 000 à Koffi (avec Orange Money) ».

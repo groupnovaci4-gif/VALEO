@@ -243,6 +243,13 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
     const understood = engine.understandLocal(text);
     if (understood.kind === 'entry') return analyzeEntry(text, method);
     analytics.track('mic_routed', { to: understood.kind === 'question' ? 'assistant' : understood.kind === 'unknown' ? 'ambiguous' : 'entry', method });
+    if (understood.kind === 'question' && understood.topic === 'contribution_sim') {
+      // « Si je donne 30 000… » : le simulateur calcule l'effet (rien n'est enregistré), comme avant.
+      onClose();
+      const category = understood.categoryId === 'cat_family' || understood.categoryId === 'cat_social' ? understood.categoryId : undefined;
+      router.push({ pathname: '/simulate', params: { ...(understood.amount ? { amount: String(understood.amount) } : {}), ...(category ? { category } : {}) } });
+      return true;
+    }
     if (understood.kind === 'unknown' && engine.remoteAllowed) {
       // Repli : la phrase et la langue seulement (§5), réponse revérifiée sur le téléphone.
       setView({ kind: 'intent', intent: understood, text, thinking: true });

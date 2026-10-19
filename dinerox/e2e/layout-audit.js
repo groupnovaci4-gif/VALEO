@@ -295,13 +295,6 @@ let b;
   };
   await step('/goals/new — objectif personnalisé (nom)', async () => { await go('/goals/new'); await A.p.getByText('Créer mon propre objectif', { exact: false }).first().click(); await A.p.waitForTimeout(600); });
   await step('/goals/new — objectif personnalisé (formulaire)', async () => { await A.p.getByPlaceholder('Ex. Acheter une machine à glace').fill('Audit'); await btn(A.p, 'Continuer').click(); await A.p.waitForTimeout(700); });
-  // IA qui comprend toute l'application : question « Lequel ? », carte de validation, réponse (assistant et feuille).
-  const iaSay = async (phrase) => { await A.p.getByPlaceholder('Écrivez comme vous parlez…').fill(phrase); await btn(A.p, 'Confirmer').last().click(); await A.p.waitForTimeout(1500); };
-  await step('IA — question « Depuis quel compte ? » (assistant)', async () => { await go('/assistant'); await iaSay('Mets 50 000 de côté'); });
-  await step('IA — carte « Mettre de côté » (assistant)', async () => { await go('/assistant'); await iaSay('Mets 50 000 de Cash sur mon épargne'); });
-  await step('IA — réponse et interdit (assistant)', async () => { await go('/assistant'); await iaSay('Quand est-ce que je paie ma tontine ?'); await iaSay('Supprime ma dernière dépense'); });
-  await step('IA — carte dans la feuille de saisie', async () => { await go('/entry?mode=keyboard'); await (await phraseField(A.p)).fill('Mets 50 000 de Cash sur mon épargne'); await btn(A.p, 'Comprendre').click(); await A.p.waitForTimeout(1200); });
-  await step('IA — non compris (feuille de saisie)', async () => { await go('/entry?mode=keyboard'); await (await phraseField(A.p)).fill('Explique-moi ma situation comme à un enfant'); await btn(A.p, 'Comprendre').click(); await A.p.waitForTimeout(1200); });
   // Argent disponible v2 : feuilles et cartes nouvelles.
   await step('/goals/new — origine du montant initial', async () => { await A.p.getByLabel('Montant de départ (facultatif)').first().fill('10000'); await A.p.waitForTimeout(600); });
   await step('/goals/new — origine hors de mes comptes (note)', async () => { await A.p.getByText('C\'est de l\'épargne hors de mes comptes', { exact: true }).first().click(); await A.p.waitForTimeout(600); });
@@ -342,6 +335,13 @@ let b;
     if (!id) throw new Error('ajustement introuvable');
     await go(`/transaction/${id}`);
   });
+  // IA qui comprend toute l'application : question « Lequel ? », carte de validation, réponse (assistant et feuille).
+  const iaSay = async (phrase) => { await A.p.getByPlaceholder('Écrivez comme vous parlez…').fill(phrase); await btn(A.p, 'Confirmer').last().click(); await A.p.waitForTimeout(1500); };
+  await step('IA — question « Depuis quel compte ? » (assistant)', async () => { await go('/assistant'); await iaSay('Mets 50 000 de côté'); });
+  await step('IA — carte « Mettre de côté » (assistant)', async () => { await go('/assistant'); await iaSay('Mets 50 000 de Cash sur mon épargne'); });
+  await step('IA — réponse et interdit (assistant)', async () => { await go('/assistant'); await iaSay('Quand est-ce que je paie ma tontine ?'); await iaSay('Supprime ma dernière dépense'); });
+  await step('IA — carte dans la feuille de saisie', async () => { await go('/entry?mode=keyboard'); await (await phraseField(A.p)).fill('Mets 50 000 de Cash sur mon épargne'); await btn(A.p, 'Comprendre').click(); await A.p.waitForTimeout(1200); });
+  await step('IA — non compris (feuille de saisie)', async () => { await go('/entry?mode=keyboard'); await (await phraseField(A.p)).fill('Explique-moi ma situation comme à un enfant'); await btn(A.p, 'Comprendre').click(); await A.p.waitForTimeout(1200); });
   await step('« Objectif atteint » (goals/[id])', async () => {
     await go('/goals/new'); await A.p.getByText('Créer mon propre objectif', { exact: false }).first().click(); await A.p.waitForTimeout(500);
     await A.p.getByPlaceholder('Ex. Acheter une machine à glace').fill('Audit atteint'); await btn(A.p, 'Continuer').click(); await A.p.waitForTimeout(700);

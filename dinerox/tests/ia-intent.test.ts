@@ -123,6 +123,15 @@ describe('interdits, ambiguïtés, données', () => {
     if (f.kind === 'notFound') expect(f.options.map((o) => o.label)).toEqual(['Koffi', 'Prêt banque', 'Awa']);
   });
 
+  it('argot non validé par le fondateur (« 2 bâtons », « 3 briques ») : aucun montant deviné (§4, règle 18)', () => {
+    for (const text of ['Mets 2 bâtons de côté', 'Ajoute 3 briques à ma moto']) {
+      const i = understand(text, ctx);
+      const inner = i.kind === 'ask' ? i.intent : i;
+      expect(inner.kind, text).toBe('action');
+      if (inner.kind === 'action') expect(inner.amount, text).toBeNull();
+    }
+  });
+
   it('comprendre ne modifie rien (fonction pure : mêmes données avant et après)', () => {
     const before = JSON.stringify(data);
     for (const p of phrases) understand(p.text, ctx);
