@@ -331,3 +331,13 @@ voisin) : ne rien partager entre les deux. Code et commentaires en français.
        côté sur un compte courant précis (`accountId` obligatoire), ou hors comptes
        (montant initial, `initialSource: 'outside'`). Archiver ou abandonner une
        poche demande un solde 0 (`closePocket`).
+31. **L'IA qui comprend toute l'application (`docs/ia-comprend-tout.md`, fondateur,
+    2026-10-19).** C'est la référence. Un seul modèle : `claude-haiku-5-5` (réflexion
+    désactivée, sans `fallbacks`). Le téléphone d'abord : `core/ai/intent.ts` (pur) comprend
+    la phrase avec le vocabulaire construit depuis l'application (catalogue, noms de la
+    personne, rubriques) ; l'IA en ligne ne fait que TRADUIRE une phrase non comprise en
+    intention (schéma fermé, phrase + langue seulement, jamais journalisée, quotas existants).
+    L'IA ne calcule jamais un chiffre (`src/core`) ; aucune écriture sans « Valider » sur une
+    carte (`useActions`, contrôles du §6) ; ambiguïté → une question ; intentions interdites
+    (§2.4) refusées ; `can()` et `hasFeature()` jamais contournés. Toute rubrique ou entrée du
+    catalogue ajoutée doit avoir une phrase dans `tests/fixtures/ia-phrases.json`.
