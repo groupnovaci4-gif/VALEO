@@ -53,3 +53,15 @@ Données `src/core/money.ts` (`inWords`, en-tête « En euros » des lignes par 
 Back-office (`admin/`, fr seulement) : « N opération(s) liée(s) (frais ou intérêts) » ; journal : « opération liée (frais ou intérêts) ».
 
 Carte IA d'un transfert entre devises : champ « Montant reçu » / « Amount received » (clé existante `tx.toAmount`).
+
+## Retouche — carte du coach chez un enfant (B6)
+
+Chez un membre enfant, la carte « Votre coach » ne dit plus « Indiquez d'abord votre argent disponible » ; elle reprend l'idée de la carte du haut (capture 07).
+
+```diff
++  'intel.rec.ask_parent': 'Demandez à un parent : les dettes, les tontines et les charges sont gérées par les parents.',
+```
+
+```diff
++  'intel.rec.ask_parent': 'Ask a parent: debts, tontines and bills are managed by the parents.',
+```
