@@ -19,10 +19,11 @@
  * avec la sortie, tout ou rien.
  */
 import { accountPositions, goalBacking } from './position';
-import { moneyTracked } from './savingsCircle';
+import { defaultSpendingAccountId, expenseAccountFor, moneyTracked } from './savingsCircle';
+import { reserveEligible } from './reserve';
 import type { CurrencyCode } from './money';
 import type { ISODate } from './dates';
-import type { GoalContribution, Role, SpaceData, Transaction } from './types';
+import type { Account, GoalContribution, Role, SpaceData, Transaction } from './types';
 
 type PlanData = Pick<SpaceData, 'accounts' | 'transactions' | 'goals' | 'goalContributions'>;
 
@@ -60,6 +61,36 @@ export type SpendPlan =
   | { status: 'insufficient'; shortfalls: Shortfall[] }
   /** Enfant d'un espace famille : « Demander à un parent » (§6.5). */
   | { status: 'ask_parent'; shortfalls: Shortfall[] };
+
+/** Une ligne de dépense d'une note (saisie, conversation), telle qu'elle sera enregistrée. */
+export interface NoteLine {
+  type: string;
+  accountId?: string | null;
+  amount: number | null;
+  date: ISODate;
+  categoryId?: string | null;
+  subcategoryId?: string | null;
+  reserveId?: string | null;
+  tontine?: unknown;
+}
+
+/**
+ * §6.1 — Lignes à contrôler d'une note, sur le compte où chacune sera RÉELLEMENT enregistrée :
+ * sans compte, le premier compte courant ; une dépense saisie sur un compte d'épargne est
+ * reportée sur ce compte courant (cercle fermé, comme `saveTransaction`), sauf une cotisation
+ * de tontine. Le contrôle et le complément se calculent donc sur ce compte, jamais sur l'épargne.
+ */
+export function noteSpendLines(lines: NoteLine[], accounts: Pick<Account, 'id' | 'isSavings' | 'active' | 'deleted' | 'currency'>[], currency: CurrencyCode): SpendLine[] {
+  const fallback = defaultSpendingAccountId(accounts, null, currency);
+  return lines
+    .filter((x) => x.type === 'expense' && x.amount && !x.tontine)
+    .map((x) => ({
+      accountId: x.accountId ? expenseAccountFor({ type: 'expense', accountId: x.accountId, categoryId: x.categoryId ?? null, subcategoryId: x.subcategoryId ?? null, tontineId: null }, accounts, fallback).accountId : fallback,
+      amount: x.amount as number,
+      date: x.date,
+      reserveId: x.reserveId && reserveEligible(x.categoryId ?? null, x.subcategoryId ?? null) ? x.reserveId : null,
+    }));
+}
 
 /** Dates à vérifier pour une sortie datée `date` : la sienne et toutes les suivantes qui changent un solde, aujourd'hui compris. */
 function datesFrom(d: PlanData, date: ISODate, today: ISODate): ISODate[] {

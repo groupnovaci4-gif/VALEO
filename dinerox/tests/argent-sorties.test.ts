@@ -3,7 +3,7 @@
  * d'argent et feuille de complément, §5.2-5.3 utilisation d'une poche. Exemples du §14.
  */
 import { describe, expect, it } from 'vitest';
-import { canDebit, complementDrafts, pocketClosure, reserveCover, spendPlan, type SpendSource } from '../src/core/spendPlan';
+import { canDebit, complementDrafts, noteSpendLines, pocketClosure, reserveCover, spendPlan, type SpendSource } from '../src/core/spendPlan';
 import { positionOf } from '../src/core/position';
 import { accountBalances } from '../src/core/balance';
 import { account, contribution, goal, space, tx } from './helpers';
@@ -171,5 +171,20 @@ describe('§5.1 — fermeture d’une poche', () => {
     const after = apply(d, c.drafts('available', TODAY));
     expect(positionOf(after, 'XOF', TODAY).available - before).toBe(300_000);
     expect(pocketClosure(after, 'moto', 'XOF').needsDestination).toBe(false);
+  });
+});
+
+describe('§6.1 — note de plusieurs lignes : ligne saisie sur un compte d’épargne', () => {
+  const draft = (p: { accountId: string | null; amount: number; categoryId?: string; subcategoryId?: string | null }) => ({ type: 'expense' as const, date: TODAY, categoryId: 'cat_food', subcategoryId: null, reserveId: null, ...p });
+  it('la ligne est reportée sur le compte courant : contrôle et complément sur CE compte, jamais sur l’épargne', () => {
+    const d = space({ accounts: [cash(10_000), ce(500_000)] });
+    const lines = noteSpendLines([draft({ accountId: 'ce', amount: 30_000 }), draft({ accountId: null, amount: 5_000 })], d.accounts, 'XOF');
+    expect(lines.map((l) => l.accountId)).toEqual(['cash', 'cash']);
+    const plan = spendPlan({ data: d, currency: 'XOF', today: TODAY, lines });
+    expect(plan.status !== 'ok' && plan.status !== 'no_money' && plan.shortfalls.map((s) => [s.accountId, s.missing])).toEqual([['cash', 25_000]]);
+  });
+  it('une cotisation de tontine sur un compte d’épargne reste sur ce compte (mouvement dans le cercle)', () => {
+    const d = space({ accounts: [cash(10_000), ce(500_000)] });
+    expect(noteSpendLines([draft({ accountId: 'ce', amount: 10_000, categoryId: 'cat_informal', subcategoryId: 'sub_informal_tontine' })], d.accounts, 'XOF').map((l) => l.accountId)).toEqual(['ce']);
   });
 });

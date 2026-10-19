@@ -14,7 +14,7 @@ import type { Transaction } from '@/core/types';
 import { useMoney } from '@/hooks/useFinance';
 import { useToast } from '@/components/ui';
 import { dailyAllowanceV2 } from '@/core/allowance';
-import { spendPlan } from '@/core/spendPlan';
+import { noteSpendLines, spendPlan } from '@/core/spendPlan';
 import type { SourceChoice } from '@/core/writePlans';
 import { today } from '@/core/dates';
 import type { CurrencyCode } from '@/core/money';
@@ -129,11 +129,9 @@ export function useEntrySave() {
       // enregistrement (la part prise sur une réserve est déduite d'abord). Rien n'est écrit sinon.
       if (engine && !choices.length) {
         const d = engine.getData(activeSpace.id);
-        const fallback = defaultSpendingAccountId(d.accounts, null, activeSpace.currency) ?? '';
-        const lines = drafts
-          .filter((x) => x.type === 'expense' && x.amount && !x.tontine)
-          .map((x) => ({ accountId: x.accountId ?? fallback ?? null, amount: x.amount as number, date: x.date, reserveId: x.reserveId && reserveEligible(x.categoryId, x.subcategoryId) ? x.reserveId : null }));
-        const plan = lines.length ? spendPlan({ data: d, currency: activeSpace.currency as CurrencyCode, today: today(), lines: lines.map((l) => ({ ...l, accountId: l.accountId || null })), role }) : null;
+        // Chaque ligne sur le compte où elle sera enregistrée (épargne → compte courant).
+        const lines = noteSpendLines(drafts, d.accounts, activeSpace.currency as CurrencyCode);
+        const plan = lines.length ? spendPlan({ data: d, currency: activeSpace.currency as CurrencyCode, today: today(), lines, role }) : null;
         if (plan?.status === 'no_money') throw new ActionError('noMoney', { errors: ['money.none'] });
         if (plan && plan.status !== 'ok') throw new ActionError('shortfall', { errors: ['money.shortfall'], accountId: plan.shortfalls[0].accountId, missing: plan.shortfalls[0].missing, sources: plan.shortfalls[0].sources });
       }
@@ -150,14 +148,14 @@ export function useEntrySave() {
         // ensuite chaque ligne passe sans nouvelle feuille (sinon la 2e ligne redemanderait).
         if (choices.length) {
           const accountsNow = engine ? engine.getData(activeSpace.id).accounts : [];
-          const fallback = defaultSpendingAccountId(accountsNow, null, activeSpace.currency) ?? '';
+          // Même compte que le contrôle : une ligne saisie sur l'épargne est complétée sur le compte courant.
+          const outflows = drafts.filter((x) => x.type === 'expense' && x.amount && !x.tontine);
+          const lines = noteSpendLines(outflows, accountsNow, activeSpace.currency as CurrencyCode);
           complementIds = actions.coverGroupShortfall(
-            drafts
-              .filter((x) => x.type === 'expense' && x.amount && !x.tontine)
-              .map((x) => ({
-                draft: { type: 'expense', amount: x.amount as number, currency: activeSpace.currency, date: x.date, accountId: x.accountId ?? fallback, categoryId: x.categoryId, subcategoryId: x.subcategoryId, payee: x.payee, note: null } as Draft<Transaction>,
-                reserveId: x.reserveId && reserveEligible(x.categoryId, x.subcategoryId) ? x.reserveId : null,
-              })),
+            outflows.map((x, i) => ({
+              draft: { type: 'expense', amount: x.amount as number, currency: activeSpace.currency, date: x.date, accountId: lines[i].accountId ?? '', categoryId: x.categoryId, subcategoryId: x.subcategoryId, payee: x.payee, note: null } as Draft<Transaction>,
+              reserveId: lines[i].reserveId,
+            })),
             choices,
           );
         }
