@@ -131,6 +131,7 @@ export default function Ops({ setTitle }: { setTitle: (t: string) => void }) {
 }
 
 const EFFECT_TEXT: Record<string, (n: number) => string> = {
+  linkedTransaction: (n) => `${n} opération${n > 1 ? 's' : ''} liée${n > 1 ? 's' : ''} (frais ou intérêts)`,
   debtPayment: (n) => `${n} remboursement${n > 1 ? 's' : ''} de dette`,
   goalContribution: (n) => `${n} versement${n > 1 ? 's' : ''} à un objectif ou à l’épargne`,
   reserveUse: (n) => `${n} utilisation${n > 1 ? 's' : ''} de réserve`,

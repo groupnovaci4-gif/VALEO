@@ -6,6 +6,7 @@
  * « Comment c'est calculé ? ».
  * Chiffres calculés par core/allowance (`dailyAllowanceV2` : argent disponible D − engagements E,
  * horizon de paie ; aucun calcul ici). Textes actuels gardés : la carte est refaite à l'étape 3.
+ * Membre enfant (audit B6) : reste par jour masqué, « Demandez à un parent ».
  */
 import React, { useMemo, useState } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
@@ -24,7 +25,7 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
   const available = position.available;
   const { t, date } = useI18n();
   const { colors } = useTheme();
-  const { profile } = useApp();
+  const { profile, role } = useApp();
   const money = useMoney();
   const { fontScale } = useWindowDimensions();
   const { data, currency, now } = useFinance();
@@ -135,6 +136,26 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
     </View>
   );
 
+  // Audit B6 (b) : un membre enfant ne voit ni les dettes, ni les tontines, ni les charges de
+  // l'espace — un reste par jour serait faux. Il est masqué : « Demandez à un parent ».
+  if (role === 'child') {
+    return (
+      <GradientCard style={{ marginBottom: 12, gap: 4 }}>
+        <Text variant="small" tone="heroMuted">
+          {t('daily.label')}
+        </Text>
+        <Text variant="titleS" tone="onHero">
+          {t('child.askParent')}
+        </Text>
+        <Text variant="small" tone="heroMuted">
+          {t('child.askParent.why')}
+        </Text>
+        <View style={{ height: 1, backgroundColor: colors.heroTrack, marginVertical: 12 }} />
+        {availableRow(true)}
+        {hideButton(true)}
+      </GradientCard>
+    );
+  }
   // Argent jamais renseigné (§4, §12.1) : la carte « Votre argent disponible aujourd'hui », à la place de tout montant.
   if (r.status === 'needs_money') return <OpeningCard />;
   if (r.status === 'deficit') {

@@ -52,8 +52,9 @@ export function behaviorScore(data: SpaceData, currency: CurrencyCode, month: Mo
 }
 
 /** Score du dernier mois COMPLET (jamais le mois en cours). */
-export function latestScore(data: SpaceData, currency: CurrencyCode, today: ISODate): BehaviorScore {
-  return behaviorScore(data, currency, previousMonth(monthKey(today)));
+export function latestScore(data: SpaceData, currency: CurrencyCode, today: ISODate, financial?: Pick<FinancialProfile, 'incomeNature'> | null): BehaviorScore {
+  // Audit I4 : le profil (revenus irréguliers → 6 mois de précaution) compte, comme dans l'IA et le coach.
+  return behaviorScore(data, currency, previousMonth(monthKey(today)), financial);
 }
 
 export interface ScoreChange {

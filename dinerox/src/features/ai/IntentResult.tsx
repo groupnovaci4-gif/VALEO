@@ -217,20 +217,23 @@ function ActionCardView({ intent, engine, onDone }: { intent: ActionIntent; engi
   const [date, setDate] = useState(intent.date);
   const [from, setFrom] = useState<EntityRef | null>(intent.from ?? null);
   const [to, setTo] = useState<EntityRef | null>(intent.to ?? null);
+  const [toAmount, setToAmount] = useState<number | null>(intent.toAmount ?? null);
   const [status, setStatus] = useState<'pending' | 'done' | 'cancelled'>('pending');
   /** Ce qui a été enregistré (titre de la carte et « Depuis … → vers … »), montré sous « C'est noté ✅ ». */
   const [summary, setSummary] = useState<string[]>([]);
-  const edited: ActionIntent = useMemo(() => ({ ...intent, amount, date, from, to }), [intent, amount, date, from, to]);
+  const edited: ActionIntent = useMemo(() => ({ ...intent, amount, date, from, to, toAmount }), [intent, amount, date, from, to, toAmount]);
   const cctx = { data, currency: currency as CurrencyCode, today: now };
   const card = buildActionCard(edited, cctx);
   const gate = actionGate(intent.action, role);
   const accounts = data.accounts.filter((a) => a.active && !a.deleted && a.currency === currency);
-  const accountChips = (current: EntityRef | null, set: (r: EntityRef) => void, onlySavings: boolean | null) => (
+  // Audit I6 : un transfert peut arriver sur un compte dans une autre devise (le montant reçu est alors demandé).
+  const anyCurrency = data.accounts.filter((a) => a.active && !a.deleted);
+  const accountChips = (current: EntityRef | null, set: (r: EntityRef) => void, onlySavings: boolean | null, list = accounts) => (
     <ChipGroup
       scroll
-      options={accounts.filter((a) => onlySavings === null || a.isSavings === onlySavings).map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))}
+      options={list.filter((a) => onlySavings === null || a.isSavings === onlySavings).map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))}
       value={current?.id ?? null}
-      onChange={(id) => set({ kind: 'account', id, label: accounts.find((a) => a.id === id)?.name ?? '' })}
+      onChange={(id) => set({ kind: 'account', id, label: list.find((a) => a.id === id)?.name ?? '' })}
     />
   );
   const fromSavings = intent.action === 'withdraw_savings' ? true : intent.action === 'goal_contribute' ? null : false;
@@ -251,7 +254,7 @@ function ActionCardView({ intent, engine, onDone }: { intent: ActionIntent; engi
           toast.show(t('tx.saved'), 'success', { duration: UNDO_MS, actions: [{ label: t('entry.toast.undo'), onPress: () => (r.undo(), toast.show(t('entry.undone'), 'info')) }] });
           onDone?.();
         } catch (e) {
-          if (e instanceof Error && (e.message === 'amount' || e.message === 'recurring')) {
+          if (e instanceof Error && (e.message === 'amount' || e.message === 'recurring' || e.message === 'toAmount')) {
             toast.show(t('ia.card.missing'), 'error');
             throw new HandledError();
           }
@@ -305,7 +308,12 @@ function ActionCardView({ intent, engine, onDone }: { intent: ActionIntent; engi
           {showTo ? (
             <View style={{ gap: 4 }}>
               <Text variant="label">{t('ia.card.toLabel')}</Text>
-              {accountChips(to, setTo, toSavings)}
+              {accountChips(to, setTo, toSavings, intent.action === 'transfer' ? anyCurrency : accounts)}
+            </View>
+          ) : null}
+          {card.needsReceived ? (
+            <View style={highlight(card.uncertain.includes('toAmount'))}>
+              <AmountField label={t('tx.toAmount')} value={toAmount} onChange={setToAmount} currency={card.needsReceived} />
             </View>
           ) : null}
           {!['goal_create', 'envelope_budget', 'recurring_create'].includes(intent.action) ? <DateField label={t('common.date')} value={date} onChange={(d) => setDate(d ?? now)} /> : null}
@@ -315,7 +323,7 @@ function ActionCardView({ intent, engine, onDone }: { intent: ActionIntent; engi
             </Text>
           ) : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <Button small icon="checkmark" label={t('ia.card.validate')} onPress={validate} disabled={(amount === null && intent.action !== 'recurring_confirm') || (showFrom && !from && intent.action !== 'goal_create') || (showTo && !to)} />
+            <Button small icon="checkmark" label={t('ia.card.validate')} onPress={validate} disabled={(amount === null && intent.action !== 'recurring_confirm') || (showFrom && !from && intent.action !== 'goal_create') || (showTo && !to) || card.uncertain.includes('toAmount')} />
             <Button small variant="secondary" label={t('common.edit')} onPress={() => (setStatus('cancelled'), onDone?.(), openForm(edited))} />
             <Button small variant="tertiary" label={t('common.cancel')} onPress={() => (setStatus('cancelled'), onDone?.())} />
           </View>

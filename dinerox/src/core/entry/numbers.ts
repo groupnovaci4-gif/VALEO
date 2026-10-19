@@ -84,14 +84,15 @@ const MULT: Record<string, number> = { k: 1_000, mille: 1_000, mil: 1_000, milli
 /** Chiffres, avec position (mêmes formes que l'assistant, sans les unités argotiques non validées). */
 function digitAmounts(text: string): AmountSpan[] {
   const out: AmountSpan[] = [];
-  const re = /(\d{1,3}(?:[ .]\d{3})+|\d+(?:[.,]\d+)?)\s*(k|mille|mil|milliers?|millions?|m|milliards?|mds?)?(?![a-z0-9])(\s*(?:ans?|annees?|mois|semaines?|jours?|%|pour ?cent|h\b|heures?|janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre|january|february|march|april|june|july|august|september|october|november|december))?/g;
+  const re = /(\d{1,3}(?:[ .]\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d+)?)\s*(k|mille|mil|milliers?|millions?|m|milliards?|mds?)?(?![a-z0-9])(\s*(?:ans?|annees?|mois|semaines?|jours?|%|pour ?cent|h\b|heures?|janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre|january|february|march|april|june|july|august|september|october|november|december))?/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
     if (m[3]) continue; // durée, pourcentage, heure, date (« le 5 octobre »)
     // Groupes de milliers (« 1 000 », « 1.000 ») ou nombre décimal (« 12,50 ») : décimales conservées,
     // l'arrondi se fait à la conversion en unités mineures de la devise.
     const raw = m[1];
-    const base = /^\d{1,3}(?:[ .]\d{3})+$/.test(raw) ? Number(raw.replace(/[ .]/g, '')) : Number(raw.replace(',', '.'));
+    // « 1 500,75 » : milliers puis décimales (audit B4).
+    const base = /^\d{1,3}(?:[ .]\d{3})+(?:,\d{1,2})?$/.test(raw) ? Number(raw.replace(/[ .]/g, '').replace(',', '.')) : Number(raw.replace(',', '.'));
     const value = base * (m[2] ? MULT[m[2]] ?? MULT[m[2].replace(/s$/, '')] ?? 1 : 1);
     if (Number.isFinite(value) && value > 0) out.push({ value, start: m.index, end: m.index + m[0].trimEnd().length });
   }

@@ -14,7 +14,8 @@ import { UpgradeCard } from '@/features/rows';
 import { buildReport } from '@/core/reports';
 import { ledgerCsv } from '@/core/ledger';
 import { addDays, addMonths, parseISODate, type PeriodKind } from '@/core/dates';
-import { currencyInfo } from '@/core/money';
+import { currencyInfo, currencyInWords } from '@/core/money';
+import { otherCurrencyFlows } from '@/core/monthSummary';
 import { goalPlanFor } from '@/core/goals';
 import { hasFeature } from '@/core/subscription';
 import { shareCsv, sharePdf } from '@/services/export';
@@ -33,6 +34,7 @@ export default function Reports() {
   const [kind, setKind] = useState<PeriodKind>((['day', 'week', 'month', 'year'].includes(params.period ?? '') ? params.period : 'month') as PeriodKind);
   const [ref, setRef] = useState(now);
   const report = useMemo(() => buildReport(data, kind, ref, currency), [data, kind, ref, currency]);
+  const others = useMemo(() => otherCurrencyFlows(data, currency, report.period), [data, currency, report.period]);
   const shift = (dir: 1 | -1) => setRef((r) => (kind === 'day' ? addDays(r, dir) : kind === 'week' ? addDays(r, 7 * dir) : kind === 'month' ? addMonths(r, dir) : addMonths(r, 12 * dir)));
   const periodLabel = kind === 'year' ? report.period.start.slice(0, 4) : kind === 'month' ? monthYear(report.period.start) : kind === 'day' ? date(report.period.start, { year: true }) : `${date(report.period.start)} – ${date(report.period.end, { year: true })}`;
   const pointLabel = (key: string) => (kind === 'year' ? monthName(lang, Number(key.slice(5)) - 1).slice(0, 3) : kind === 'week' ? String(parseISODate(key).getDate()) : String(Number(key.slice(8))));
@@ -52,6 +54,7 @@ export default function Reports() {
       natureLabel: (n) => t(`nature.${n}` as TKey),
       decimals: (c) => currencyInfo(c).decimals,
       headers: t('rep.csv.headers').split(';'),
+      decimalComma: lang === 'fr',
     });
     await shareCsv(`${brand.slug}-${report.period.start}_${report.period.end}.csv`, csv).catch(() => toast.show(t('error.generic'), 'error'));
     analytics.track('export_data', { kind: 'csv' });
@@ -103,6 +106,12 @@ export default function Reports() {
         {corrections ? <Row title={t('rep.corrections')} right={<Text weight="700">{money(corrections, { signed: true })}</Text>} /> : null}
         {report.ledger.remisesPertes ? <Row title={t('rep.writeOffs')} right={<Text weight="700">{money(report.ledger.remisesPertes)}</Text>} /> : null}
       </Card>
+      {/* Audit I5 : une ligne par autre devise (jamais convertie, jamais additionnée). */}
+      {others.map((o) => (
+        <Text key={o.currency} variant="small" tone="muted" style={{ marginTop: 4 }}>
+          {t('rep.otherCurrency', { inCur: currencyInWords(o.currency, lang === 'en' ? 'en' : 'fr'), income: money(o.income, { currency: o.currency }), expense: money(o.expense, { currency: o.currency }) })}
+        </Text>
+      ))}
       {report.transactionCount === 0 ? (
         <EmptyState emoji="📊" title={t('rep.empty')} />
       ) : (

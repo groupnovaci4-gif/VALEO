@@ -34,7 +34,7 @@ function BudgetScreen() {
   const { colors } = useTheme();
   const { role, profile } = useApp();
   const money = useMoney();
-  const { envelopes, budget, insights, now, toAllocate, spaceKind } = useFinance();
+  const { envelopes, budget, insights, now, toAllocate, spaceKind, envelopeSoon } = useFinance();
   const declared = profile?.financial?.monthlyIncome ?? null;
   const pct = budget.planned > 0 ? Math.round((budget.spent / budget.planned) * 100) : 0;
   const alerts = insights.filter((i) => i.kind === 'envelope_threshold' || i.kind === 'envelope_over_streak');
@@ -85,10 +85,20 @@ function BudgetScreen() {
             <TileText variant="small" tone="muted">
               {t('budget.toAllocateLabel')}
             </TileText>
-            <TileText variant="amountS" tone={toAllocate.amount < 0 ? 'danger' : 'default'}>
-              {money(toAllocate.amount)}
-            </TileText>
-            {toAllocate.amount < 0 ? (
+            {role === 'child' ? (
+              // Audit B6 : masqué chez un enfant (dettes, tontines et charges gérées par les parents).
+              <>
+                <TileText variant="bodyStrong">{t('child.askParent')}</TileText>
+                <TileText variant="small" tone="muted">
+                  {t('child.askParent.why')}
+                </TileText>
+              </>
+            ) : (
+              <TileText variant="amountS" tone={toAllocate.amount < 0 ? 'danger' : 'default'}>
+                {money(toAllocate.amount)}
+              </TileText>
+            )}
+            {role !== 'child' && toAllocate.amount < 0 ? (
               // Négatif : écrit, avec une icône (jamais la couleur seule).
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
                 <TileIcon name="alert-circle" size={18} color={colors.danger} />
@@ -122,7 +132,7 @@ function BudgetScreen() {
       {envelopes.length ? (
         <TileGrid>
           {envelopes.map((s) => (
-            <EnvelopeTile key={s.envelope.id} s={s} declaredShare={shareOfDeclared(s.budget, declared, spaceKind)} />
+            <EnvelopeTile key={s.envelope.id} s={s} declaredShare={shareOfDeclared(s.budget, declared, spaceKind)} upcoming={envelopeSoon[s.envelope.id] ?? 0} />
           ))}
         </TileGrid>
       ) : (

@@ -43,9 +43,9 @@ describe('réponses locales : les chiffres viennent de src/core', () => {
     expect(ask('C’est combien ma cotisation pour la tontine du marché ?')).toMatchObject({ key: 'ia.a.tontineAmount', params: { amount: 5_000 } });
   });
 
-  it('famille et échéances : Maman 50 000 par mois ; prochain loyer le 5', () => {
+  it('famille et échéances : Maman 50 000 par mois ; loyer du 5 octobre pas confirmé, prochain le 5 novembre (audit I8)', () => {
     expect(ask('Combien j’envoie à Maman par mois ?')).toMatchObject({ key: 'ia.a.recurringAmount', params: { name: 'Maman', amount: 50_000 } });
-    expect(ask('C’est quand le loyer ?')).toMatchObject({ key: 'ia.a.recurringNext', params: { name: 'Loyer', date: '2026-11-05', amount: 100_000 } });
+    expect(ask('C’est quand le loyer ?')).toMatchObject({ key: 'ia.a.recurringLate', params: { name: 'Loyer', late: '2026-10-05', date: '2026-11-05', amount: 100_000 } });
   });
 
   it('dépenses par catégorie et période : loyer du mois, maquis de la semaine', () => {

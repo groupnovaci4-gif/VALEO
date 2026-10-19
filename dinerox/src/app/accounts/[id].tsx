@@ -12,10 +12,11 @@ import { withSpaceReady } from '@/components/SpaceReady';
 
 function AccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { t } = useI18n();
+  const { t, date } = useI18n();
   const { role } = useApp();
   const money = useMoney();
-  const { data, balances } = useFinance();
+  const { data, balances, upcoming } = useFinance();
+  const soon = upcoming[id ?? ''];
   const account = data.accounts.find((a) => a.id === id);
   const txs = useMemo(() => sortTransactions(data.transactions.filter((tx) => tx.accountId === id || tx.toAccountId === id)), [data.transactions, id]);
   if (!account) return <Screen back><EmptyState title={t('acc.empty.title')} /></Screen>;
@@ -39,6 +40,12 @@ function AccountDetail() {
             <Text variant="h1" tone={(balances[account.id] ?? 0) < 0 ? 'danger' : 'default'}>
               {money(balances[account.id] ?? 0, { currency: account.currency })}
             </Text>
+            {/* Audit B5 : solde à aujourd'hui (le même partout) ; les opérations futures à part. */}
+            {soon ? (
+              <Text variant="small" tone="muted">
+                {t('acc.upcoming', { amount: money(soon.amount, { currency: account.currency, signed: true }), date: date(soon.from) })}
+              </Text>
+            ) : null}
             <Text variant="small" tone="muted">
               {t(`acc.type.${account.type}`)} · {account.currency}
             </Text>

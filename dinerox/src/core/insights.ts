@@ -10,7 +10,7 @@ import { goalPlanFor } from './goals';
 import { budgetTransactions, isReserve } from './reserve';
 import { debtStatus } from './debts';
 import { lastMonths, monthKey, previousMonth, type ISODate, type MonthKey } from './dates';
-import { ensureLedgerView, isRevenue, isSpending, spendingAmount } from './nature';
+import { ensureLedgerView, INC_REFUND, isPurchaseRefund, isRevenue, isSpending, spendingAmount } from './nature';
 
 export type InsightSeverity = 'info' | 'positive' | 'warning' | 'danger';
 
@@ -44,12 +44,20 @@ export interface Insight {
 }
 
 /** Dépenses par catégorie pour un mois donné (nature : dépense, frais, intérêts, cotisation sans tour). */
-export function expensesByCategory(transactions: Transaction[], month: MonthKey, currency: CurrencyCode): Record<string, number> {
+/**
+ * Dépenses du mois par catégorie. Audit I3 : un remboursement d'achat est DÉDUIT, sur sa propre
+ * ligne (`inc_refund`, montant négatif) — l'achat remboursé n'est pas connu, rien n'est deviné —
+ * pour que la somme des catégories = les dépenses de l'accueil. Audit I1 : `until` borne le mois
+ * à aujourd'hui (dépenses réglées).
+ */
+export function expensesByCategory(transactions: Transaction[], month: MonthKey, currency: CurrencyCode, until?: ISODate): Record<string, number> {
   const out: Record<string, number> = {};
   for (const t of transactions) {
-    if (t.deleted || !isSpending(t) || t.currency !== currency || monthKey(t.date) !== month) continue;
-    const k = t.categoryId ?? 'uncategorized';
-    out[k] = (out[k] ?? 0) + t.amount;
+    if (t.deleted || t.currency !== currency || monthKey(t.date) !== month || (until && t.date > until)) continue;
+    const amount = spendingAmount(t);
+    if (!amount) continue;
+    const k = isPurchaseRefund(t) ? INC_REFUND : (t.categoryId ?? 'uncategorized');
+    out[k] = (out[k] ?? 0) + amount;
   }
   return out;
 }

@@ -6,13 +6,15 @@
 import type { SpaceData } from '../types';
 import type { CurrencyCode } from '../money';
 import type { ParsedIntent } from './parser';
-import { monthKey, previousMonth, type ISODate } from '../dates';
+import { endOfMonth, monthKey, previousMonth, type ISODate } from '../dates';
 import { moneyPosition } from '../balance';
 import { budgetSummary, envelopeStatuses, resolveEnvelopeId } from '../budget';
 import { financialSnapshot, observedCapacity } from '../intelligence';
 import { coachState } from '../coachData';
 import { ensureLedgerView } from '../nature';
-import { expensesByCategory, monthFlows } from '../insights';
+import { expensesByCategory } from '../insights';
+import { monthSummary } from '../monthSummary';
+import { periodReport } from '../ledger';
 import { goalPlanFor, sortGoals } from '../goals';
 import { budgetTransactions, isReserve } from '../reserve';
 
@@ -39,8 +41,13 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
   const data = ensureLedgerView(ctx.data);
   const month = monthKey(now);
   const prev = previousMonth(month);
-  const flows = monthFlows(data.transactions, month, currency);
-  const hasData = data.transactions.some((t) => !t.deleted);
+  // Audit I1, I2 : le mois jusqu'à aujourd'hui, avec le calcul des rapports (clôtures de tontine comprises).
+  const ms = monthSummary(data, currency, now);
+  const flows = { income: ms.income, expense: ms.expense, net: ms.income - ms.expense };
+  const byCat = (m: string) => expensesByCategory(data.transactions, m, currency, m === month ? now : undefined);
+  /** Catégories réellement dépensées (la ligne des remboursements, négative, n'est jamais « la plus chère »). */
+  const ranked = (m: string) => Object.entries(byCat(m)).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const hasData = data.transactions.some((t) => !t.deleted) || data.tontineEntries.some((e) => !e.deleted);
   if (!hasData) return { key: 'ai.a.noData', lowData: true };
 
   switch (intent.topic) {
@@ -55,8 +62,8 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
 
     case 'spent_category': {
       const id = intent.categoryId!;
-      const cur = expensesByCategory(data.transactions, month, currency)[id] ?? 0;
-      const before = expensesByCategory(data.transactions, prev, currency)[id] ?? 0;
+      const cur = byCat(month)[id] ?? 0;
+      const before = byCat(prev)[id] ?? 0;
       return { key: 'ai.a.spentCategory', params: { name: categoryName(id), amount: cur, before } };
     }
 
@@ -71,7 +78,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
     }
 
     case 'top_category': {
-      const cats = Object.entries(expensesByCategory(data.transactions, month, currency)).sort((a, b) => b[1] - a[1]);
+      const cats = ranked(month);
       if (!cats.length) return { key: 'ai.a.noExpenseMonth' };
       const total = cats.reduce((s, [, v]) => s + v, 0);
       return {
@@ -134,7 +141,8 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
     }
 
     case 'compare_months': {
-      const before = monthFlows(data.transactions, prev, currency);
+      const b = periodReport(data, { start: `${prev}-01`, end: endOfMonth(`${prev}-01`) }, currency);
+      const before = { income: b.revenus, expense: b.depenses };
       const pct = before.expense > 0 ? Math.round(((flows.expense - before.expense) / before.expense) * 100) : null;
       return {
         key: pct === null ? 'ai.a.compareNoRef' : 'ai.a.compare',
@@ -145,7 +153,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
     case 'month_summary': {
       const statuses = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency, data.accounts);
       const summary = budgetSummary(statuses, flows.expense);
-      const top = Object.entries(expensesByCategory(data.transactions, month, currency)).sort((a, b) => b[1] - a[1])[0];
+      const top = ranked(month)[0];
       const over = statuses.filter((s) => s.level === 'critical');
       const bullets: AnswerLine[] = [
         { key: 'ai.a.sumIncome', params: { amount: flows.income } },
@@ -160,8 +168,8 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
 
     case 'reduce_spending': {
       const statuses = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency, data.accounts);
-      const cats = Object.entries(expensesByCategory(data.transactions, month, currency)).sort((a, b) => b[1] - a[1]);
-      const last = expensesByCategory(data.transactions, prev, currency);
+      const cats = ranked(month);
+      const last = byCat(prev);
       const bullets: AnswerLine[] = [];
       for (const s of statuses.filter((x) => x.level === 'critical' || x.level === 'reached').slice(0, 2)) {
         bullets.push({ key: 'ai.a.reduceEnvelope', params: { name: s.envelope.name, spent: s.spent, budget: s.budget } });
@@ -180,7 +188,7 @@ export function answerQuestion(intent: Extract<ParsedIntent, { kind: 'question' 
       const statuses = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency, data.accounts);
       const bullets: AnswerLine[] = [];
       if (capacity !== null && capacity <= 0) bullets.push({ key: 'ai.a.whyNegative', params: { amount: -capacity } });
-      const cats = Object.entries(expensesByCategory(data.transactions, month, currency)).sort((a, b) => b[1] - a[1]);
+      const cats = ranked(month);
       if (cats[0] && flows.expense > 0) {
         bullets.push({ key: 'ai.a.whyTop', params: { name: categoryName(cats[0][0]), percent: Math.round((cats[0][1] / flows.expense) * 100) } });
       }

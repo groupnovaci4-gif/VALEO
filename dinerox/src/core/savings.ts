@@ -17,6 +17,7 @@
  */
 import type { Account, Goal, GoalContribution, Transaction } from './types';
 import { accountBalance, goalSaved } from './balance';
+import { balancesAt } from './position';
 import { isValidAmount } from './money';
 import { isISODate } from './dates';
 
@@ -92,7 +93,9 @@ export function validateWithdraw(i: WithdrawInput, d: Data): SavingsError[] {
   const sav = live(d.accounts, i.savingsAccountId);
   if (!sav) return [...errors, 'account.missing'];
   if (!sav.isSavings) errors.push('savings.notSavings');
-  if (isValidAmount(i.amount) && i.amount > accountBalance(sav, d.transactions)) errors.push('savings.insufficient');
+  // Audit B5 : jamais plus que le solde À LA DATE du retrait, ni que le solde final (opérations futures comprises).
+  const available = Math.min(balancesAt([sav], d.transactions, isISODate(i.date) ? i.date : '9999-12-31')[sav.id] ?? 0, accountBalance(sav, d.transactions));
+  if (isValidAmount(i.amount) && i.amount > available) errors.push('savings.insufficient');
   if (i.toAccountId) {
     const to = live(d.accounts, i.toAccountId);
     if (!to) errors.push('account.missing');

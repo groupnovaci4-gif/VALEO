@@ -45,6 +45,32 @@ export function balancesAt(accounts: Account[], transactions: Transaction[], dat
   return out;
 }
 
+/**
+ * Audit B5 — opérations datées APRÈS aujourd'hui, par compte : le solde affiché est celui
+ * d'aujourd'hui (`balancesAt`), l'avenir est écrit à part (« À venir : −30 000 FCFA, dès le 28 oct. »).
+ * `amount` : effet net sur le compte ; `from` : date de la première opération à venir.
+ */
+export function upcomingByAccount(accounts: Account[], transactions: Transaction[], today: ISODate): Record<string, { amount: number; from: ISODate }> {
+  const known = new Set(accounts.map((a) => a.id));
+  const out: Record<string, { amount: number; from: ISODate }> = {};
+  const add = (id: string | null | undefined, amount: number, date: ISODate) => {
+    if (!id || !known.has(id)) return;
+    const cur = out[id] ?? { amount: 0, from: date };
+    out[id] = { amount: cur.amount + amount, from: date < cur.from ? date : cur.from };
+  };
+  for (const t of transactions) {
+    if (t.deleted || t.date <= today) continue;
+    if (t.type === 'income') add(t.accountId, t.amount, t.date);
+    else if (t.type === 'expense') add(t.accountId, -t.amount, t.date);
+    else if (t.type === 'adjustment') add(t.accountId, t.direction === 'out' ? -t.amount : t.amount, t.date);
+    else if (t.type === 'transfer') {
+      add(t.accountId, -t.amount, t.date);
+      add(t.toAccountId, t.toAmount ?? t.amount, t.date);
+    }
+  }
+  return out;
+}
+
 /** Une poche (objectif, réserve) qui détient encore de l'argent : ni supprimée, ni archivée, ni abandonnée. */
 export function holdsMoney(g: Pick<Goal, 'deleted' | 'status'>): boolean {
   return !g.deleted && g.status !== 'archived' && g.status !== 'abandoned';

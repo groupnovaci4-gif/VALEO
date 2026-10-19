@@ -7,10 +7,10 @@ import { MONEY_PARAM_KEYS } from '../coach/voice';
 
 export const IA_MONEY_PARAMS: ReadonlySet<string> = new Set([
   ...MONEY_PARAM_KEYS,
-  'setAside', 'outside', 'perDay', 'deficit', 'commitments', 'saved', 'advice', 'feasible', 'toReach', 'paid', 'net', 'assets', 'accounts', 'liabilities', 'availableAfter',
+  'setAside', 'outside', 'perDay', 'deficit', 'commitments', 'saved', 'advice', 'feasible', 'toReach', 'paid', 'net', 'assets', 'accounts', 'liabilities', 'availableAfter', 'receivables', 'received',
 ]);
 /** Dates affichées au jour (« 5 nov. »). */
-export const IA_DATE_PARAMS: ReadonlySet<string> = new Set(['date', 'until']);
+export const IA_DATE_PARAMS: ReadonlySet<string> = new Set(['date', 'until', 'late']);
 /** Dates affichées au mois (« octobre 2026 »). */
 export const IA_MONTH_PARAMS: ReadonlySet<string> = new Set(['month']);
 

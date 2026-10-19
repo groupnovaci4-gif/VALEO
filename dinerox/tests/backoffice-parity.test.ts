@@ -26,7 +26,7 @@ describe('parité back-office ↔ application', () => {
     for (let round = 0; round < 500; round++) {
       const tx = ids('tx', 1 + rnd(6));
       const d: RemovalData = {
-        transactions: tx.filter(() => rnd(5) !== 0).map((id) => ({ id })),
+        transactions: tx.filter(() => rnd(5) !== 0).map((id) => ({ id, linkedTransactionId: pick(tx) })),
         debtPayments: ids('dp', rnd(4)).map((id) => ({ id, transactionId: pick(tx) })),
         goalContributions: ids('gc', rnd(5)).map((id) => ({ id, transferId: pick(tx), linkedTransactionId: pick(tx) })),
         tontineEntries: ids('te', rnd(3)).map((id) => ({ id, transactionId: pick(tx) })),
@@ -40,13 +40,13 @@ describe('parité back-office ↔ application', () => {
 
   it('le serveur, qui ne charge QUE les écritures liées (requêtes ciblées), obtient la même liste que l’app', () => {
     const d: RemovalData = {
-      transactions: [{ id: 't1' }, { id: 't2' }, { id: 'tr' }],
+      transactions: [{ id: 't1' }, { id: 't2' }, { id: 'tr' }, { id: 'fee', linkedTransactionId: 't1' }, { id: 'int', linkedTransactionId: 't2' }],
       debtPayments: [{ id: 'dp1', transactionId: 't1' }, { id: 'dp2', transactionId: 't2' }],
       goalContributions: [{ id: 'g1', transferId: 't1', linkedTransactionId: null }, { id: 'g2', transferId: 'tr', linkedTransactionId: 't1' }, { id: 'g3', transferId: null, linkedTransactionId: 't2' }],
       tontineEntries: [{ id: 'e1', transactionId: 't1' }],
     };
     const filtered: RemovalData = {
-      transactions: [],
+      transactions: d.transactions.filter((x) => x.linkedTransactionId === 't1'),
       debtPayments: d.debtPayments.filter((x) => x.transactionId === 't1'),
       goalContributions: d.goalContributions.filter((x) => x.transferId === 't1' || x.linkedTransactionId === 't1'),
       tontineEntries: d.tontineEntries.filter((x) => x.transactionId === 't1'),

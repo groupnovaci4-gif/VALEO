@@ -79,7 +79,7 @@ describe('aucune écriture sans « Valider »', () => {
       ['Ajoute 25 000 à ma moto', 'contributeToGoal'],
       ['Je veux économiser pour un frigo à 300 000', 'createGoal'],
       ['J’ai remboursé 50 000 à Koffi avec Orange Money', 'recordDebtPayment'],
-      ['J’ai prêté 20 000 à Awa par Wave', 'saveDebt'],
+      ['J’ai prêté 20 000 à Fatou par Wave', 'saveDebt'],
       ['J’ai payé le loyer', 'confirmRecurring'],
       ['Mets le transport à 50 000 ce mois-ci', 'saveEnvelope'],
     ];

@@ -18,7 +18,7 @@ import { applyTontine } from '../tontineEntry';
 import { tontineContributionCategory } from '../tontine';
 import { accountPositions } from '../position';
 import { defaultSpendingAccountId } from '../savingsCircle';
-import { toMinor, type CurrencyCode } from '../money';
+import { currencyInfo, toMinor, type CurrencyCode } from '../money';
 import type { ISODate } from '../dates';
 import type { SpaceData } from '../types';
 import { bestEntity, buildVocabulary, entitiesOf, matchEntities, sameWord, toRef, tokens, type EntityKind, type EntityRef, type Vocabulary, type VocabularyOptions } from './vocabulary';
@@ -55,7 +55,7 @@ export const FORBIDDEN_REASONS = ['delete', 'edit_past', 'subscription', 'securi
 export type ForbiddenReason = (typeof FORBIDDEN_REASONS)[number];
 
 export type Period = 'week' | 'month' | 'last_month' | 'year';
-export type AskField = 'from' | 'to' | 'account' | 'tontine' | 'goal' | 'debt' | 'reserve' | 'envelope' | 'recurring' | 'season' | 'asset';
+export type AskField = 'from' | 'to' | 'account' | 'tontine' | 'goal' | 'debt' | 'reserve' | 'envelope' | 'recurring' | 'season' | 'asset' | 'debtMode';
 
 export interface QuestionIntent {
   kind: 'question';
@@ -87,6 +87,8 @@ export interface ActionIntent {
   direction?: 'i_owe' | 'owed_to_me';
   type?: 'expense' | 'income';
   dueDay?: number | null;
+  /** Transfert entre deux devises (audit I6) : montant REÇU, en unités mineures de la devise d'arrivée (saisi sur la carte). */
+  toAmount?: number | null;
 }
 
 export type Intent =
@@ -104,7 +106,7 @@ export type Intent =
 export interface IntentContext {
   vocab: Vocabulary;
   entry: EntryContext;
-  data: Pick<SpaceData, 'tontines' | 'tontineEntries' | 'categories' | 'accounts' | 'transactions' | 'goals' | 'goalContributions' | 'recurring' | 'envelopes'>;
+  data: Pick<SpaceData, 'tontines' | 'tontineEntries' | 'categories' | 'accounts' | 'transactions' | 'goals' | 'goalContributions' | 'recurring' | 'envelopes'> & Partial<Pick<SpaceData, 'debts'>>;
   /** Ce que chaque compte courant peut payer (solde + découvert − mises de côté). */
   debitable: Record<string, number>;
 }
@@ -144,6 +146,19 @@ function amountOf(t: string, currency: CurrencyCode): number | null {
   if (hasUnvalidatedUnit(t, SLANG_OFF)) return null;
   const spans = amountSpans(t.replace(/\b(10|dix) ?(%|pour ?cent)/g, ' '));
   return spans.length ? toMinor(spans[0].value, currency) : null;
+}
+
+/**
+ * Audit B4 — montant d'une ACTION lu sur la phrase d'origine, comme la saisie : virgule décimale
+ * française (« 12,50 », « 1 500,75 »). Dans une devise à décimales, « 1,500 » est ambigu (1,5 ou
+ * 1 500 ?) : null, le montant est surligné sur la carte, jamais deviné. En FCFA, « 50,000 » = 50 000.
+ */
+function actionAmount(original: string, currency: CurrencyCode): number | null {
+  const n = normalizeText(original);
+  const decimals = currencyInfo(currency).decimals > 0;
+  if (decimals && /\d,\d{3}(?!\d)/.test(n)) return null;
+  const text = (decimals ? n : n.replace(/(\d)[,.](\d{3})(?!\d)/g, '$1$2')).replace(/[?!;:«»"()]/g, ' ').replace(/[.,](?!\d)/g, ' ');
+  return amountOf(text, currency);
 }
 
 function periodOf(t: string): Period {
@@ -390,10 +405,10 @@ export function withRef<T extends QuestionIntent | ActionIntent>(intent: T, r: R
 
 // ─── 4. Actions (§2.2) ──────────────────────────────────────────────
 
-function action(t: string, ctx: IntentContext): Intent | null {
+function action(t: string, ctx: IntentContext, original: string = t): Intent | null {
   const cur = ctx.entry.currency;
   const today = ctx.entry.today;
-  const amount = amountOf(t, cur);
+  const amount = actionAmount(original, cur);
   const a = (kind: ActionKind, extra: Partial<ActionIntent> = {}): ActionIntent => ({ kind: 'action', action: kind, amount, date: today, ...extra });
   const accounts = accountsInOrder(t, ctx);
   const isSavingsAcc = (r: EntityRef) => ctx.entry.accounts.some((x) => x.id === r.id && x.isSavings);
@@ -435,11 +450,11 @@ function action(t: string, ctx: IntentContext): Intent | null {
   const lentMe = t.match(/^([a-z][a-z-]+) m a (prete|avance)\b|^([a-z][a-z-]+) lent me\b/);
   if (lentMe) {
     const name = (lentMe[1] ?? lentMe[3])!;
-    return complete(a('debt_create', { direction: 'i_owe', label: cap(name), to: accounts.find((x) => !isSavingsAcc(x)) ?? null }), ctx);
+    return askIfDebtExists(a('debt_create', { direction: 'i_owe', label: cap(name), to: accounts.find((x) => !isSavingsAcc(x)) ?? null }), ctx);
   }
   if (has(t, /\b(j ai prete|je prete|i lent)\b/)) {
     const name = wordAfter(t, /\b(?:a|to)\s+([a-z][a-z-]+)/);
-    if (name) return complete(a('debt_create', { direction: 'owed_to_me', label: cap(name), from: accounts.find((x) => !isSavingsAcc(x)) ?? null }), ctx);
+    if (name) return askIfDebtExists(a('debt_create', { direction: 'owed_to_me', label: cap(name), from: accounts.find((x) => !isSavingsAcc(x)) ?? null }), ctx);
   }
   // Montant d'une enveloppe : « Mets le transport à 50 000 ce mois-ci ».
   const env = bestEntity(t, ctx.vocab, ['envelope']).one;
@@ -555,12 +570,24 @@ export function complete(intent: Intent, ctx: IntentContext, asked = 0): Intent 
   }
 }
 
+/**
+ * Audit C5 : une dette dans le même sens envers la même personne existe déjà → UNE question :
+ * « Nouvelle dette » ou la dette existante (ouvre l'écran des dettes : rien n'est écrit, rien n'est deviné).
+ */
+function askIfDebtExists(i: ActionIntent, ctx: IntentContext): Intent {
+  const who = normalizeText(i.label ?? '');
+  const same = (ctx.data.debts ?? []).filter((d) => !d.deleted && d.status === 'active' && d.direction === i.direction && normalizeText(d.counterparty) === who);
+  if (!same.length) return complete(i, ctx);
+  return { kind: 'ask', field: 'debtMode', options: [{ kind: 'section', id: '__new__', label: 'ia.ask.debtNew' }, ...same.map((d): EntityRef => ({ kind: 'debt', id: d.id, label: d.counterparty }))], intent: i, asked: 0 };
+}
+
 /** Réponse à une question « Lequel ? » : le choix complète l'intention (au plus 2 questions, §4). */
 export function answerAsk(ask: Extract<Intent, { kind: 'ask' }>, optionId: string, ctx: IntentContext): Intent {
   const opt = ask.options.find((o) => o.id === optionId);
   if (!opt) return ask;
   const i = ask.intent;
   const field = ask.field;
+  if (field === 'debtMode') return opt.id === '__new__' ? complete(i, ctx, ask.asked + 1) : { kind: 'open', section: 'debts' };
   const next: QuestionIntent | ActionIntent =
     field === 'from' || field === 'to' || field === 'account'
       ? i.kind === 'action'
@@ -620,7 +647,7 @@ function entry(original: string, ctx: IntentContext): Intent | null {
 export function understand(original: string, ctx: IntentContext): Intent {
   const t = clean(original);
   if (!t) return { kind: 'unknown' };
-  const steps = [() => forbidden(t), () => openScreen(t, ctx), () => question(t, original, ctx), () => action(t, ctx), () => entry(original.replace(/(\d)[,](\d{3})(?!\d)/g, '$1$2'), ctx), () => legacyQuestion(original, ctx)];
+  const steps = [() => forbidden(t), () => openScreen(t, ctx), () => question(t, original, ctx), () => action(t, ctx, original), () => entry(original.replace(/(\d)[,](\d{3})(?!\d)/g, '$1$2'), ctx), () => legacyQuestion(original, ctx)];
   for (const s of steps) {
     const r = s();
     if (r) return r;

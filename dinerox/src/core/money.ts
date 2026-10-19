@@ -24,35 +24,43 @@ export interface CurrencyInfo {
   /** Symbole avant (true) ou après (false) le montant. */
   prefix: boolean;
   name: { fr: string; en: string };
+  /** « en euros » : ligne d'une autre devise (accueil, rapports, IA), jamais additionnée. */
+  inWords: { fr: string; en: string };
 }
 
 export const CURRENCIES: Record<CurrencyCode, CurrencyInfo> = {
-  XOF: { code: 'XOF', decimals: 0, symbol: 'FCFA', prefix: false, name: { fr: 'Franc CFA (UEMOA)', en: 'CFA franc (WAEMU)' } },
-  XAF: { code: 'XAF', decimals: 0, symbol: 'FCFA', prefix: false, name: { fr: 'Franc CFA (CEMAC)', en: 'CFA franc (CEMAC)' } },
-  EUR: { code: 'EUR', decimals: 2, symbol: '€', prefix: false, name: { fr: 'Euro', en: 'Euro' } },
-  USD: { code: 'USD', decimals: 2, symbol: '$', prefix: true, name: { fr: 'Dollar américain', en: 'US dollar' } },
-  CAD: { code: 'CAD', decimals: 2, symbol: '$ CA', prefix: false, name: { fr: 'Dollar canadien', en: 'Canadian dollar' } },
-  GBP: { code: 'GBP', decimals: 2, symbol: '£', prefix: true, name: { fr: 'Livre sterling', en: 'Pound sterling' } },
-  CHF: { code: 'CHF', decimals: 2, symbol: 'CHF', prefix: false, name: { fr: 'Franc suisse', en: 'Swiss franc' } },
-  GNF: { code: 'GNF', decimals: 0, symbol: 'GNF', prefix: false, name: { fr: 'Franc guinéen', en: 'Guinean franc' } },
-  MAD: { code: 'MAD', decimals: 2, symbol: 'DH', prefix: false, name: { fr: 'Dirham marocain', en: 'Moroccan dirham' } },
-  GHS: { code: 'GHS', decimals: 2, symbol: 'GH₵', prefix: true, name: { fr: 'Cedi ghanéen', en: 'Ghanaian cedi' } },
-  NGN: { code: 'NGN', decimals: 2, symbol: '₦', prefix: true, name: { fr: 'Naira nigérian', en: 'Nigerian naira' } },
-  DZD: { code: 'DZD', decimals: 2, symbol: 'DA', prefix: false, name: { fr: 'Dinar algérien', en: 'Algerian dinar' } },
-  TND: { code: 'TND', decimals: 3, symbol: 'DT', prefix: false, name: { fr: 'Dinar tunisien', en: 'Tunisian dinar' } },
-  KES: { code: 'KES', decimals: 2, symbol: 'KSh', prefix: true, name: { fr: 'Shilling kényan', en: 'Kenyan shilling' } },
-  CDF: { code: 'CDF', decimals: 2, symbol: 'FC', prefix: false, name: { fr: 'Franc congolais', en: 'Congolese franc' } },
-  SEK: { code: 'SEK', decimals: 2, symbol: 'kr', prefix: false, name: { fr: 'Couronne suédoise', en: 'Swedish krona' } },
-  NOK: { code: 'NOK', decimals: 2, symbol: 'kr', prefix: false, name: { fr: 'Couronne norvégienne', en: 'Norwegian krone' } },
-  DKK: { code: 'DKK', decimals: 2, symbol: 'kr', prefix: false, name: { fr: 'Couronne danoise', en: 'Danish krone' } },
-  PLN: { code: 'PLN', decimals: 2, symbol: 'zł', prefix: false, name: { fr: 'Złoty polonais', en: 'Polish złoty' } },
-  CZK: { code: 'CZK', decimals: 2, symbol: 'Kč', prefix: false, name: { fr: 'Couronne tchèque', en: 'Czech koruna' } },
+  XOF: { code: 'XOF', decimals: 0, symbol: 'FCFA', prefix: false, name: { fr: 'Franc CFA (UEMOA)', en: 'CFA franc (WAEMU)' }, inWords: { fr: 'en francs CFA', en: 'in CFA francs' } },
+  XAF: { code: 'XAF', decimals: 0, symbol: 'FCFA', prefix: false, name: { fr: 'Franc CFA (CEMAC)', en: 'CFA franc (CEMAC)' }, inWords: { fr: 'en francs CFA (CEMAC)', en: 'in CFA francs (CEMAC)' } },
+  EUR: { code: 'EUR', decimals: 2, symbol: '€', prefix: false, name: { fr: 'Euro', en: 'Euro' }, inWords: { fr: 'en euros', en: 'in euros' } },
+  USD: { code: 'USD', decimals: 2, symbol: '$', prefix: true, name: { fr: 'Dollar américain', en: 'US dollar' }, inWords: { fr: 'en dollars américains', en: 'in US dollars' } },
+  CAD: { code: 'CAD', decimals: 2, symbol: '$ CA', prefix: false, name: { fr: 'Dollar canadien', en: 'Canadian dollar' }, inWords: { fr: 'en dollars canadiens', en: 'in Canadian dollars' } },
+  GBP: { code: 'GBP', decimals: 2, symbol: '£', prefix: true, name: { fr: 'Livre sterling', en: 'Pound sterling' }, inWords: { fr: 'en livres sterling', en: 'in pounds sterling' } },
+  CHF: { code: 'CHF', decimals: 2, symbol: 'CHF', prefix: false, name: { fr: 'Franc suisse', en: 'Swiss franc' }, inWords: { fr: 'en francs suisses', en: 'in Swiss francs' } },
+  GNF: { code: 'GNF', decimals: 0, symbol: 'GNF', prefix: false, name: { fr: 'Franc guinéen', en: 'Guinean franc' }, inWords: { fr: 'en francs guinéens', en: 'in Guinean francs' } },
+  MAD: { code: 'MAD', decimals: 2, symbol: 'DH', prefix: false, name: { fr: 'Dirham marocain', en: 'Moroccan dirham' }, inWords: { fr: 'en dirhams', en: 'in dirhams' } },
+  GHS: { code: 'GHS', decimals: 2, symbol: 'GH₵', prefix: true, name: { fr: 'Cedi ghanéen', en: 'Ghanaian cedi' }, inWords: { fr: 'en cedis', en: 'in cedis' } },
+  NGN: { code: 'NGN', decimals: 2, symbol: '₦', prefix: true, name: { fr: 'Naira nigérian', en: 'Nigerian naira' }, inWords: { fr: 'en nairas', en: 'in naira' } },
+  DZD: { code: 'DZD', decimals: 2, symbol: 'DA', prefix: false, name: { fr: 'Dinar algérien', en: 'Algerian dinar' }, inWords: { fr: 'en dinars algériens', en: 'in Algerian dinars' } },
+  TND: { code: 'TND', decimals: 3, symbol: 'DT', prefix: false, name: { fr: 'Dinar tunisien', en: 'Tunisian dinar' }, inWords: { fr: 'en dinars tunisiens', en: 'in Tunisian dinars' } },
+  KES: { code: 'KES', decimals: 2, symbol: 'KSh', prefix: true, name: { fr: 'Shilling kényan', en: 'Kenyan shilling' }, inWords: { fr: 'en shillings kényans', en: 'in Kenyan shillings' } },
+  CDF: { code: 'CDF', decimals: 2, symbol: 'FC', prefix: false, name: { fr: 'Franc congolais', en: 'Congolese franc' }, inWords: { fr: 'en francs congolais', en: 'in Congolese francs' } },
+  SEK: { code: 'SEK', decimals: 2, symbol: 'kr', prefix: false, name: { fr: 'Couronne suédoise', en: 'Swedish krona' }, inWords: { fr: 'en couronnes suédoises', en: 'in Swedish kronor' } },
+  NOK: { code: 'NOK', decimals: 2, symbol: 'kr', prefix: false, name: { fr: 'Couronne norvégienne', en: 'Norwegian krone' }, inWords: { fr: 'en couronnes norvégiennes', en: 'in Norwegian kroner' } },
+  DKK: { code: 'DKK', decimals: 2, symbol: 'kr', prefix: false, name: { fr: 'Couronne danoise', en: 'Danish krone' }, inWords: { fr: 'en couronnes danoises', en: 'in Danish kroner' } },
+  PLN: { code: 'PLN', decimals: 2, symbol: 'zł', prefix: false, name: { fr: 'Złoty polonais', en: 'Polish złoty' }, inWords: { fr: 'en złotys', en: 'in złoty' } },
+  CZK: { code: 'CZK', decimals: 2, symbol: 'Kč', prefix: false, name: { fr: 'Couronne tchèque', en: 'Czech koruna' }, inWords: { fr: 'en couronnes tchèques', en: 'in Czech koruna' } },
 };
 
 export const DEFAULT_CURRENCY: CurrencyCode = 'XOF';
 
 export function currencyInfo(code: string): CurrencyInfo {
   return CURRENCIES[code as CurrencyCode] ?? CURRENCIES[DEFAULT_CURRENCY];
+}
+
+/** « En euros » / « In euros » : en-tête d'une ligne dans une autre devise. */
+export function currencyInWords(code: string, lang: 'fr' | 'en'): string {
+  const w = currencyInfo(code).inWords[lang];
+  return w.charAt(0).toUpperCase() + w.slice(1);
 }
 
 export function isCurrency(code: unknown): code is CurrencyCode {

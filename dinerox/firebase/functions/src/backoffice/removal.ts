@@ -12,7 +12,7 @@ export interface RemovalTarget {
 }
 
 export interface RemovalData {
-  transactions: { id: string }[];
+  transactions: { id: string; linkedTransactionId?: string | null }[];
   debtPayments: { id: string; transactionId?: string | null }[];
   goalContributions: { id: string; transferId?: string | null; linkedTransactionId?: string | null }[];
   tontineEntries: { id: string; transactionId?: string | null }[];
@@ -27,6 +27,8 @@ export interface RemovedDoc {
 export function linkedRemovals(d: RemovalData, col: CollectionName, removed: RemovedDoc | undefined, id: string): RemovalTarget[] {
   const out: RemovalTarget[] = [];
   if (col === 'transactions') {
+    // Opérations qui l'accompagnent (frais d'un transfert, intérêts d'un remboursement).
+    for (const t of d.transactions) if (t.linkedTransactionId === id) out.push({ col: 'transactions', id: t.id });
     for (const p of d.debtPayments) if (p.transactionId === id) out.push({ col: 'debtPayments', id: p.id });
     for (const c of d.goalContributions) if (c.transferId === id) out.push({ col: 'goalContributions', id: c.id });
     // Tontine : l'entrée (cotisation ou cagnotte) part avec son opération.
@@ -40,7 +42,11 @@ export function linkedRemovals(d: RemovalData, col: CollectionName, removed: Rem
   } else if (col === 'debtPayments' || col === 'goalContributions') {
     const txId = removed?.transactionId ?? removed?.transferId;
     const linked = txId ? d.transactions.find((t) => t.id === txId) : undefined;
-    if (linked) out.push({ col: 'transactions', id: linked.id });
+    if (linked) {
+      out.push({ col: 'transactions', id: linked.id });
+      // …et les intérêts ou frais qui accompagnent cette opération.
+      for (const t of d.transactions) if (t.linkedTransactionId === linked.id) out.push({ col: 'transactions', id: t.id });
+    }
   }
   return out;
 }

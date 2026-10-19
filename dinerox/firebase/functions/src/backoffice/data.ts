@@ -112,7 +112,7 @@ export async function listTransactions(req: CallableRequest) {
   const linked = new Map<string, number>();
   if (ids.length) {
     const base = `spaces/${spaceId}`;
-    const lookups: [string, string][] = [['debtPayments', 'transactionId'], ['goalContributions', 'transferId'], ['goalContributions', 'linkedTransactionId'], ['tontineEntries', 'transactionId']];
+    const lookups: [string, string][] = [['transactions', 'linkedTransactionId'], ['debtPayments', 'transactionId'], ['goalContributions', 'transferId'], ['goalContributions', 'linkedTransactionId'], ['tontineEntries', 'transactionId']];
     for (let i = 0; i < ids.length; i += 30) {
       const chunk = ids.slice(i, i + 30);
       const res = await Promise.all(lookups.map(([cn, f]) => db().collection(`${base}/${cn}`).where(f, 'in', chunk).get()));
@@ -162,17 +162,18 @@ async function planDelete(spaceId: string, txId: string, t?: Transaction): Promi
   };
   const tx = await get(db().doc(`${base}/transactions/${txId}`));
   if (!tx.exists || tx.get('deleted') === true) throw new HttpsError('not-found', 'bo/tx-not-found');
-  const [dp, gcTransfer, te, gcLinked] = await Promise.all([query('debtPayments', 'transactionId'), query('goalContributions', 'transferId'), query('tontineEntries', 'transactionId'), query('goalContributions', 'linkedTransactionId')]);
+  const [txLinked, dp, gcTransfer, te, gcLinked] = await Promise.all([query('transactions', 'linkedTransactionId'), query('debtPayments', 'transactionId'), query('goalContributions', 'transferId'), query('tontineEntries', 'transactionId'), query('goalContributions', 'linkedTransactionId')]);
   const visibleDocs = (s: FirebaseFirestore.QuerySnapshot) => s.docs.filter((d) => d.get('deleted') !== true);
   const gcDocs = [...new Map([...visibleDocs(gcTransfer), ...visibleDocs(gcLinked)].map((d) => [d.id, d])).values()];
   const data: RemovalData = {
-    transactions: [],
+    // Frais d'un transfert, intérêts d'un remboursement : partent avec l'opération.
+    transactions: visibleDocs(txLinked).map((d) => ({ id: d.id, linkedTransactionId: d.get('linkedTransactionId') ?? null })),
     debtPayments: visibleDocs(dp).map((d) => ({ id: d.id, transactionId: d.get('transactionId') ?? null })),
     goalContributions: gcDocs.map((d) => ({ id: d.id, transferId: d.get('transferId') ?? null, linkedTransactionId: d.get('linkedTransactionId') ?? null })),
     tontineEntries: visibleDocs(te).map((d) => ({ id: d.id, transactionId: d.get('transactionId') ?? null })),
   };
   const targets = uniqueTargets(linkedRemovals(data, 'transactions', { id: txId }, txId));
-  const byKey = new Map<string, DocumentSnapshot>([...visibleDocs(dp), ...gcDocs, ...visibleDocs(te)].map((d) => [`${d.ref.parent.id}/${d.id}`, d]));
+  const byKey = new Map<string, DocumentSnapshot>([...visibleDocs(txLinked), ...visibleDocs(dp), ...gcDocs, ...visibleDocs(te)].map((d) => [`${d.ref.parent.id}/${d.id}`, d]));
   const out: Plan['targets'] = [];
   for (const target of targets) {
     // Transfert d'une utilisation de réserve : chargé à part (une opération).
@@ -186,7 +187,7 @@ async function planDelete(spaceId: string, txId: string, t?: Transaction): Promi
 function effectsOf(p: Plan): Record<string, number> {
   const e: Record<string, number> = {};
   for (const { target, snap } of p.targets) {
-    const k = target.col === 'goalContributions' ? (snap.get('linkedTransactionId') ? 'reserveUse' : 'goalContribution') : target.col === 'transactions' ? 'reserveTransfer' : target.col === 'debtPayments' ? 'debtPayment' : 'tontineEntry';
+    const k = target.col === 'goalContributions' ? (snap.get('linkedTransactionId') ? 'reserveUse' : 'goalContribution') : target.col === 'transactions' ? (snap.get('linkedTransactionId') ? 'linkedTransaction' : 'reserveTransfer') : target.col === 'debtPayments' ? 'debtPayment' : 'tontineEntry';
     e[k] = (e[k] ?? 0) + 1;
   }
   return e;

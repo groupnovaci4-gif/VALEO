@@ -34,7 +34,9 @@ export interface ActionCard {
   /** Le montant dépasse ce que le compte peut payer : complément (§6.3) avant toute écriture. */
   shortfall: boolean;
   /** Champs à vérifier, surlignés (jamais devinés). */
-  uncertain: ('amount' | 'from' | 'to' | 'ref')[];
+  uncertain: ('amount' | 'from' | 'to' | 'ref' | 'toAmount')[];
+  /** Transfert entre deux devises (audit I6) : devise du compte d'arrivée, le montant reçu est demandé. */
+  needsReceived: CurrencyCode | null;
 }
 
 export interface CardCtx {
@@ -49,7 +51,8 @@ const OUTFLOW: ReadonlySet<ActionKind> = new Set(['save', 'transfer', 'goal_cont
 /** Effet sur l'argent disponible (D) : − sortie d'un compte courant, + entrée sur un compte courant. */
 function deltaOnAvailable(i: ActionIntent, ctx: CardCtx): number | null {
   const amount = i.amount ?? 0;
-  const isCurrent = (id?: string | null) => !!id && ctx.data.accounts.some((a) => a.id === id && !a.isSavings);
+  // Compte courant DANS la devise de l'espace (un compte en euros ne change pas l'argent disponible en FCFA).
+  const isCurrent = (id?: string | null) => !!id && ctx.data.accounts.some((a) => a.id === id && !a.isSavings && a.currency === ctx.currency);
   switch (i.action) {
     case 'save':
     case 'debt_repayment':
@@ -109,7 +112,18 @@ export function buildActionCard(i: ActionIntent, ctx: CardCtx): ActionCard {
   const uncertain: ActionCard['uncertain'] = [];
   if (i.amount === null && i.action !== 'recurring_confirm') uncertain.push('amount');
   if (needsRef(i.action) && !i.ref) uncertain.push('ref');
-  return { intent: i, titleKey, titleParams, lines, availableAfter, shortfall, uncertain };
+  const needsReceived = receivedCurrency(i, ctx);
+  if (needsReceived && !(i.toAmount && i.toAmount > 0)) uncertain.push('toAmount');
+  return { intent: i, titleKey, titleParams, lines, availableAfter, shortfall, uncertain, needsReceived };
+}
+
+/** Devise d'arrivée d'un transfert quand elle diffère de celle du départ (sinon null). */
+function receivedCurrency(i: ActionIntent, ctx: CardCtx): CurrencyCode | null {
+  if (i.action !== 'transfer' || !i.from || !i.to) return null;
+  const cur = (id: string) => ctx.data.accounts.find((a) => a.id === id)?.currency;
+  const from = cur(i.from.id) ?? ctx.currency;
+  const to = cur(i.to.id) ?? ctx.currency;
+  return from === to ? null : to;
 }
 
 const needsRef = (a: ActionKind) => a === 'goal_contribute' || a === 'debt_repayment' || a === 'recurring_confirm' || a === 'reserve_use' || a === 'envelope_budget';
@@ -154,8 +168,14 @@ export function runAction(i: ActionIntent, port: ActionPort, ctx: CardCtx, choic
       return removeUndo('transactions', port.depositToSavings({ savingsAccountId: i.to!.id, fromAccountId: i.from?.id ?? null, amount: a, date: i.date, goal: null, choices }).id);
     case 'withdraw_savings':
       return removeUndo('transactions', port.withdrawFromSavings({ savingsAccountId: i.from!.id, toAccountId: i.to!.id, amount: a, date: i.date, goal: null, choices }).id);
-    case 'transfer':
-      return removeUndo('transactions', port.saveTransaction({ type: 'transfer', amount: a, currency: ctx.currency, date: i.date, accountId: i.from!.id, toAccountId: i.to!.id } as never, { choices } as never).id);
+    case 'transfer': {
+      // Audit I6 : entre deux devises, le montant reçu (saisi sur la carte) accompagne le transfert.
+      const received = receivedCurrency(i, ctx);
+      if (received && !(i.toAmount && i.toAmount > 0)) throw new Error('toAmount');
+      const currency = ctx.data.accounts.find((x) => x.id === i.from!.id)?.currency ?? ctx.currency;
+      const draft = { type: 'transfer', amount: a, currency, date: i.date, accountId: i.from!.id, toAccountId: i.to!.id, ...(received ? { toAmount: i.toAmount } : {}) };
+      return removeUndo('transactions', port.saveTransaction(draft as never, { choices } as never).id);
+    }
     case 'goal_contribute':
       return removeUndo('goalContributions', port.contributeToGoal({ goalId: i.ref!.id, amount: a, date: i.date, accountId: i.from?.id ?? null, choices }).id);
     case 'goal_create':

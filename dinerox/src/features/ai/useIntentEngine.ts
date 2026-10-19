@@ -21,7 +21,7 @@ import { paramKind } from '@/core/ai/answerParams';
 import { transcriptConsent } from '@/core/aiConsent';
 import { hasFeature } from '@/core/subscription';
 import { useCoach } from '@/features/coach/CoachProvider';
-import type { CurrencyCode } from '@/core/money';
+import { currencyInWords, type CurrencyCode } from '@/core/money';
 
 export type Door = 'entry' | 'assistant';
 
@@ -65,13 +65,16 @@ export function useIntentEngine(door: Door) {
   const params = useCallback(
     (p: Record<string, string | number> = {}) => {
       const out: Record<string, string | number> = {};
+      // `cur` : devise des montants de la ligne (compte dans une autre devise), sinon celle de l'espace.
+      const cur = typeof p.cur === 'string' ? { currency: p.cur } : undefined;
       for (const [k, v] of Object.entries(p)) {
         const kind = paramKind(k, v);
-        out[k] = kind === 'money' ? money(v as number) : kind === 'date' ? date(v as string) : kind === 'month' ? monthYear(v as string) : k === 'category' ? categoryName(String(v)) : v;
+        out[k] = kind === 'money' ? money(v as number, cur) : kind === 'date' ? date(v as string) : kind === 'month' ? monthYear(v as string) : k === 'category' ? categoryName(String(v)) : v;
       }
+      if (cur) out.inCur = currencyInWords(cur.currency, lang === 'en' ? 'en' : 'fr');
       return out;
     },
-    [money, date, monthYear, categoryName],
+    [money, date, monthYear, categoryName, lang],
   );
   const text = useCallback((key: string, p?: Record<string, string | number>) => (hasKey(key) ? t(key as TKey, params(p)) : ''), [t, params]);
   const render = useCallback((a: Answer) => ({ text: text(a.key, a.params), bullets: (a.bullets ?? []).map((b) => text(b.key, b.params)).filter(Boolean) }), [text]);

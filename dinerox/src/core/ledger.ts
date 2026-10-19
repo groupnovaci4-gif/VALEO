@@ -26,7 +26,7 @@ import { inPeriod, toISODate, type ISODate } from './dates';
 import type { CurrencyCode } from './money';
 import type { Account, SpaceData, Transaction } from './types';
 
-type LedgerData = Pick<SpaceData, 'accounts' | 'transactions' | 'goals' | 'goalContributions'> & Partial<Pick<SpaceData, 'tontines' | 'tontineEntries' | 'debts' | 'debtPayments'>>;
+export type LedgerData = Pick<SpaceData, 'accounts' | 'transactions' | 'goals' | 'goalContributions'> & Partial<Pick<SpaceData, 'tontines' | 'tontineEntries' | 'debts' | 'debtPayments'>>;
 type Range = { start: ISODate; end: ISODate };
 
 export interface LedgerTotals {
@@ -235,13 +235,15 @@ export function linkedToDelete(transactionId: string, transactions: Pick<Transac
  */
 export function ledgerCsv(
   d: Pick<SpaceData, 'accounts' | 'transactions'> & Partial<LedgerData>,
-  ctx: { headers: string[]; accountName: (id: string) => string; categoryName: (id: string) => string; natureLabel: (n: Nature) => string; decimals: (currency: string) => number; period?: Range },
+  ctx: { headers: string[]; accountName: (id: string) => string; categoryName: (id: string) => string; natureLabel: (n: Nature) => string; decimals: (currency: string) => number; period?: Range; decimalComma?: boolean },
 ): string {
   const inRange = (date: ISODate) => !ctx.period || inPeriod(date, ctx.period);
   const nctx = natureContext(d);
   const major = (amount: number, currency: string) => {
     const dec = ctx.decimals(currency);
-    return (amount / 10 ** dec).toFixed(dec);
+    const v = (amount / 10 ** dec).toFixed(dec);
+    // Audit C2 : virgule décimale quand l'application est en français (lu comme un nombre par Excel en français).
+    return ctx.decimalComma ? v.replace('.', ',') : v;
   };
   const rows: { date: ISODate; cells: unknown[] }[] = [];
   for (const a of d.accounts) {

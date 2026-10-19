@@ -26,7 +26,7 @@ import { RewardsTile } from '@/features/coach/RewardsTile';
 import { goalPlanFor, sortGoals } from '@/core/goals';
 import { isReserve } from '@/core/reserve';
 import { sortTransactions } from '@/core/transactions';
-import { formatMoney, type CurrencyCode } from '@/core/money';
+import { currencyInWords, formatMoney, type CurrencyCode } from '@/core/money';
 import { authErrorKey, resendVerification } from '@/services/auth';
 import { DailyAllowanceCard } from '@/features/entry/DailyAllowanceCard';
 import { TontineDueCard } from '@/features/tontine/TontineDueCard';
@@ -49,15 +49,15 @@ export default function Home() {
 
 function HomeScreen() {
   const { colors } = useTheme();
-  const { t, monthYear } = useI18n();
-  const { profile, user, mode, activeSpace, signOutLocal } = useApp();
+  const { t, lang, monthYear } = useI18n();
+  const { profile, user, mode, activeSpace, signOutLocal, role } = useApp();
   const money = useMoney();
   const toast = useToast();
   const entry = useEntry();
   const { fontScale } = useWindowDimensions();
   const big = fontScale >= BIG_TEXT;
   const f = useFinance();
-  const { data, position, flows, envelopes, toAllocate, monthNetSavings, insights, now } = f;
+  const { data, money: pos, monthSum, envelopes, toAllocate, monthNetSavings, insights, now, envelopeSoon } = f;
   // Étape 4 : demande d'avis possible au retour ici après un moment positif (règles : core/storeReview.ts).
   useStoreReviewPrompt(data.transactions);
 
@@ -67,7 +67,11 @@ function HomeScreen() {
   );
   const recent = useMemo(() => sortTransactions(data.transactions).slice(0, 5), [data.transactions]);
   const myEntries = useMemo(() => data.transactions.filter((tx) => !tx.deleted && tx.createdBy === user?.uid).length, [data.transactions, user?.uid]);
-  const others = Object.entries(position.otherCurrencies).filter(([, v]) => v !== 0);
+  // Audit I5 : une ligne par autre devise (mois en cours + comptes), jamais convertie ni additionnée.
+  const others = useMemo(() => {
+    const curs = new Set<CurrencyCode>([...monthSum.others.map((o) => o.currency), ...(Object.keys(pos.otherCurrencies) as CurrencyCode[])]);
+    return [...curs].sort().map((c) => ({ currency: c, income: 0, expense: 0, ...monthSum.others.find((o) => o.currency === c), balance: pos.otherCurrencies[c]?.totalAccounts ?? 0 }));
+  }, [monthSum.others, pos.otherCurrencies]);
 
   // Montants masquables d'un geste (consultation en public).
   const [hidden, setHidden] = useState(false);
@@ -167,18 +171,29 @@ function HomeScreen() {
       {/* Mois en cours : une ligne par chiffre, montant à droite (deux étages si le texte est agrandi). */}
       <SectionHeader title={t('home.month')} action={monthLabel} onAction={() => router.push('/reports')} />
       <Card style={{ paddingVertical: 4 }}>
-        <MonthRow kind="income" label={t('home.stat.income')} sub={t('home.stat.income.sub')} value={show(flows.income)} hidden={hidden} onPress={() => router.push('/transactions?from=home')} />
-        <MonthRow kind="expense" label={t('home.stat.expense')} sub={t('home.stat.expense.sub')} value={show(flows.expense)} hidden={hidden} onPress={() => router.push('/transactions?from=home')} />
+        <MonthRow kind="income" label={t('home.stat.income')} sub={t('home.stat.income.sub')} value={show(monthSum.income)} hidden={hidden} onPress={() => router.push('/transactions?from=home')} />
+        <MonthRow kind="expense" label={t('home.stat.expense')} sub={t('home.stat.expense.sub')} value={show(monthSum.expense)} hidden={hidden} onPress={() => router.push('/transactions?from=home')} />
         {/* Épargne nette du mois (grand livre, mêmes natures que les rapports). */}
         <MonthRow kind="savings" label={t('home.stat.savings')} sub={t('home.stat.savings.sub')} value={show(monthNetSavings)} hidden={hidden} onPress={() => router.push('/savings')} />
         {/* Reste à répartir : EXACTEMENT le chiffre de l'onglet Budget (`unallocated`, §9). */}
-        <MonthRow kind={toAllocate.amount < 0 ? 'over' : 'budget'} label={t('home.stat.budget')} value={show(toAllocate.amount)} hidden={hidden} onPress={() => router.push('/budget')} />
+        {/* Audit B6 : masqué chez un enfant (engagements de l'espace invisibles pour lui). */}
+        {role === 'child' ? (
+          <MonthRow kind="budget" label={t('home.stat.budget')} value={t('child.askParent')} hidden={false} onPress={() => router.push('/budget')} />
+        ) : (
+          <MonthRow kind={toAllocate.amount < 0 ? 'over' : 'budget'} label={t('home.stat.budget')} value={show(toAllocate.amount)} hidden={hidden} onPress={() => router.push('/budget')} />
+        )}
       </Card>
-      {others.length ? (
+      {/* Audit I1 : les opérations datées après aujourd'hui, sous la carte (la carte ne change pas). */}
+      {monthSum.upcoming.income || monthSum.upcoming.expense ? (
         <Text variant="small" tone="muted" style={{ marginTop: 4 }}>
-          {t('home.otherCurrencies')} : {others.map(([c, v]) => (hidden ? '••••••' : formatMoney(v, c as CurrencyCode))).join(' · ')}
+          {t('home.upcomingMonth', { income: show(monthSum.upcoming.income), expense: show(monthSum.upcoming.expense) })}
         </Text>
       ) : null}
+      {others.map((o) => (
+        <Text key={o.currency} variant="small" tone="muted" style={{ marginTop: 4 }}>
+          {t('home.otherCurrency', { inCur: currencyInWords(o.currency, lang === 'en' ? 'en' : 'fr'), income: hidden ? '••••••' : formatMoney(o.income, o.currency), expense: hidden ? '••••••' : formatMoney(o.expense, o.currency), balance: hidden ? '••••••' : formatMoney(o.balance, o.currency) })}
+        </Text>
+      ))}
 
       {/* Coach : ce qu'il faut savoir depuis la dernière ouverture (un seul résumé), puis le conseil du jour. */}
       <View style={{ marginTop: 24 }}>
@@ -198,7 +213,7 @@ function HomeScreen() {
       {envelopes.length ? (
         <TileGrid>
           {envelopes.slice(0, 5).map((s) => (
-            <EnvelopeTile key={s.envelope.id} s={s} hidden={hidden} />
+            <EnvelopeTile key={s.envelope.id} s={s} hidden={hidden} upcoming={envelopeSoon[s.envelope.id] ?? 0} />
           ))}
         </TileGrid>
       ) : (

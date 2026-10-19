@@ -5,12 +5,12 @@
 import { useCallback, useMemo } from 'react';
 import { useApp, useData } from '@/store/app';
 import { useI18n, hasKey } from '@/i18n';
-import { accountBalances, flowTotals, moneyPosition } from '@/core/balance';
-import { budgetSummary, debtRepaymentsInMonth, envelopeStatuses, outsideEnvelopeSpent } from '@/core/budget';
+import { flowTotals, moneyPosition } from '@/core/balance';
+import { budgetSummary, debtRepaymentsInMonth, envelopeStatuses, envelopeUpcoming, outsideEnvelopeSpent } from '@/core/budget';
 import { withLedgerView } from '@/core/nature';
-import { positionOf } from '@/core/position';
+import { balancesAt, positionOf, upcomingByAccount } from '@/core/position';
 import { unallocated } from '@/core/allowance';
-import { periodReport } from '@/core/ledger';
+import { monthSummary } from '@/core/monthSummary';
 import { computeInsights } from '@/core/insights';
 import { monthKey, periodOf, today } from '@/core/dates';
 import { formatMoney, type CurrencyCode } from '@/core/money';
@@ -102,7 +102,9 @@ export function useFinance() {
   const now = today();
   const month = monthKey(now);
   return useMemo(() => {
-    const balances = accountBalances(data.accounts, data.transactions);
+    // Audit B5 : UN seul solde, celui d'aujourd'hui (comme l'accueil et l'IA) ; l'avenir à part.
+    const balances = balancesAt(data.accounts, data.transactions, now);
+    const upcoming = upcomingByAccount(data.accounts, data.transactions, now);
     const position = moneyPosition(data.accounts, data.transactions, data.goals, data.goalContributions, currency);
     const flows = flowTotals(data.transactions, periodOf('month', now), currency);
     const envelopes = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency, data.accounts);
@@ -117,10 +119,13 @@ export function useFinance() {
     const money = positionOf(data, currency, now);
     // Reste à répartir (§9).
     const toAllocate = unallocated({ data, currency, today: now, payDay });
-    // Épargne nette du mois en cours (grand livre, mêmes natures que les rapports).
-    const monthNetSavings = periodReport(data, periodOf('month', now), currency).epargneNette;
+    // Mois en cours (audit I1, I2, I5) : calcul des rapports, jusqu'à aujourd'hui ; « à venir » et
+    // autres devises à part. Épargne nette du mois : même calcul.
+    const monthSum = monthSummary(data, currency, now);
+    const monthNetSavings = monthSum.savings;
+    const envelopeSoon = envelopeUpcoming(data, currency, now);
     const insights = computeInsights({ data, currency, now, categoryName: labels.label });
     const activeAccounts: Account[] = data.accounts.filter((a) => a.active).sort((a, b) => a.order - b.order);
-    return { data, currency, now, month, balances, position, money, toAllocate, monthNetSavings, payDay, spaceKind: activeSpace?.kind ?? 'personal', flows, envelopes, budget, insights, activeAccounts };
+    return { data, currency, now, month, balances, upcoming, monthSum, envelopeSoon, position, money, toAllocate, monthNetSavings, payDay, spaceKind: activeSpace?.kind ?? 'personal', flows, envelopes, budget, insights, activeAccounts };
   }, [data, currency, now, month, labels.label, payDay, activeSpace?.kind]);
 }

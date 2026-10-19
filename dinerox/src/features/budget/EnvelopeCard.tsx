@@ -18,9 +18,10 @@ export const LEVEL_ICON = { ok: 'checkmark-circle', warning: 'warning', reached:
 /**
  * Enveloppe en PAVÉ (accueil et onglet Budget) : nom, reste (ou dépassement), barre, l'état
  * ÉCRIT avec une icône (jamais la couleur seule), « dépensé sur budget · % » sur une ligne.
+ * `upcoming` : part des dépenses datées après aujourd'hui (« dont X à venir »).
  * `declaredShare` : part du revenu DÉCLARÉ (information, deux décimales ; jamais dans un espace familial, §9).
  */
-export function EnvelopeTile({ s, hidden = false, declaredShare = null }: { s: EnvelopeStatus; hidden?: boolean; declaredShare?: number | null }) {
+export function EnvelopeTile({ s, hidden = false, declaredShare = null, upcoming = 0 }: { s: EnvelopeStatus; hidden?: boolean; declaredShare?: number | null; upcoming?: number }) {
   const { t, lang } = useI18n();
   const { colors } = useTheme();
   const money = useMoney();
@@ -45,6 +46,12 @@ export function EnvelopeTile({ s, hidden = false, declaredShare = null }: { s: E
       <TileText variant="small" tone="muted">
         {t('env.ofPercent', { spent: show(s.spent), budget: show(s.budget), percent: s.percent })}
       </TileText>
+      {/* Audit I1 : l'enveloppe compte les dépenses prévues du mois (c'est un budget) — dites « à venir ». */}
+      {upcoming > 0 ? (
+        <TileText variant="small" tone="muted">
+          {t('env.upcoming', { amount: show(upcoming) })}
+        </TileText>
+      ) : null}
       {declaredShare !== null ? (
         <TileText variant="caption" tone="subtle">
           {t('env.shareOfDeclared', { percent: lang === 'en' ? declaredShare.toFixed(2) : declaredShare.toFixed(2).replace('.', ',') })}

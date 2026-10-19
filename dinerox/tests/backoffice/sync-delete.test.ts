@@ -80,9 +80,11 @@ describe('suppression par le back-office sur deux appareils', () => {
     w('transactions', { id: 'trf1', type: 'transfer', amount: 20000, accountId: 'acc2', toAccountId: 'acc1' });
     w('goalContributions', { id: 'gc1', goalId: 'res1', amount: -20000, accountId: 'acc1', transferId: 'trf1', linkedTransactionId: 'tx1' });
     w('transactions', { id: 'tx2', type: 'expense', amount: 1000, accountId: 'acc1' });
+    // Intérêts qui accompagnent le remboursement (audit B2) : partent avec lui.
+    w('transactions', { id: 'int1', type: 'expense', amount: 2000, accountId: 'acc1', linkedTransactionId: 'tx1' });
 
     // B reçoit tout.
-    await waitFor(() => B.engine.getData(s).transactions.length === 3 && B.engine.getData(s).goalContributions.length === 1 && B.engine.getData(s).tontineEntries.length === 1);
+    await waitFor(() => B.engine.getData(s).transactions.length === 4 && B.engine.getData(s).goalContributions.length === 1 && B.engine.getData(s).tontineEntries.length === 1);
     expect(A.engine.getStatus().pending).toBe(0);
 
     // B passe hors ligne et modifie l'opération (horloge en avance d'une heure).
@@ -101,17 +103,17 @@ describe('suppression par le back-office sur deux appareils', () => {
     // Le Super Admin : motif, aperçu des effets, double confirmation.
     const access = await call<{ accessId: string }>('boOpenData', superAdmin, { uid: user.uid, reasonCode: 'client_request' });
     const list = await call<{ items: Record<string, unknown>[] }>('boListTransactions', superAdmin, { accessId: access.accessId, spaceId: s });
-    expect(list.items.map((t) => t.id).sort()).toEqual(['trf1', 'tx1', 'tx2']);
+    expect(list.items.map((t) => t.id).sort()).toEqual(['int1', 'trf1', 'tx1', 'tx2']);
     expect(JSON.stringify(list.items)).not.toMatch(/remboursement|payee|"note"/); // D9
-    expect(list.items.find((t) => t.id === 'tx1')?.linked).toBe(3);
+    expect(list.items.find((t) => t.id === 'tx1')?.linked).toBe(4);
     const preview = await call<{ effects: Record<string, number> }>('boPreviewDelete', superAdmin, { accessId: access.accessId, spaceId: s, txId: 'tx1' });
-    expect(preview.effects).toEqual({ debtPayment: 1, tontineEntry: 1, reserveUse: 1, reserveTransfer: 1 });
+    expect(preview.effects).toEqual({ linkedTransaction: 1, debtPayment: 1, tontineEntry: 1, reserveUse: 1, reserveTransfer: 1 });
     expect(await outcome('boDeleteTransaction', superAdmin, { accessId: access.accessId, spaceId: s, txId: 'tx1', reasonCode: 'client_request', confirm: 'oui' })).toEqual({ status: 'invalid-argument', message: 'bo/confirm' });
     const res = await call<{ removed: number }>('boDeleteTransaction', superAdmin, { accessId: access.accessId, spaceId: s, txId: 'tx1', reasonCode: 'client_request', confirm: 'SUPPRIMER' });
-    expect(res.removed).toBe(5);
+    expect(res.removed).toBe(6);
 
     // Serveur : marques horodatées, jamais d'effacement physique, contenu intact.
-    for (const [col, id] of [['transactions', 'tx1'], ['debtPayments', 'dp1'], ['tontineEntries', 'te1'], ['goalContributions', 'gc1'], ['transactions', 'trf1']]) {
+    for (const [col, id] of [['transactions', 'tx1'], ['debtPayments', 'dp1'], ['tontineEntries', 'te1'], ['goalContributions', 'gc1'], ['transactions', 'trf1'], ['transactions', 'int1']]) {
       const d = await db().doc(`spaces/${s}/${col}/${id}`).get();
       expect(d.exists, `${col}/${id}`).toBe(true);
       expect(d.get('deleted')).toBe(true);
@@ -145,7 +147,7 @@ describe('suppression par le back-office sur deux appareils', () => {
 
     // Journal : motif, références, types d'effets — aucun montant, bénéficiaire ni note.
     const line = (await auditLines((l) => l.action === 'data.delete' && l.result === 'ok')).pop()!;
-    expect(line).toMatchObject({ actorUid: superAdmin.uid, targetUid: user.uid, spaceId: s, reasonCode: 'client_request', effects: { debtPayment: 1, tontineEntry: 1, reserveUse: 1, reserveTransfer: 1 } });
+    expect(line).toMatchObject({ actorUid: superAdmin.uid, targetUid: user.uid, spaceId: s, reasonCode: 'client_request', effects: { linkedTransaction: 1, debtPayment: 1, tontineEntry: 1, reserveUse: 1, reserveTransfer: 1 } });
     expect(JSON.stringify(line)).not.toMatch(/25000|99000|remboursement|Banque/);
     expect((await auditLines((l) => l.action === 'data.view' && l.actorUid === admin.uid))[0]).toMatchObject({ reasonCode: 'client_request', result: 'ok' });
 

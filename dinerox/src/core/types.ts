@@ -184,7 +184,7 @@ export interface Transaction extends SyncedDoc {
   reason?: string | null;
   /**
    * §3.4 / §5.5 — Opération liée : frais d'un transfert, intérêts d'un remboursement.
-   * Supprimée avec l'opération qu'elle accompagne (`linkedToDelete`).
+   * Supprimée avec l'opération qu'elle accompagne (`core/removal.ts`).
    */
   linkedTransactionId?: ID | null;
   /**

@@ -62,6 +62,6 @@ export const reasonLabel = (code: string | null | undefined, note?: string | nul
 export const ROLE_NAMES: Record<string, string> = { superAdmin: 'Super Admin', admin: 'Administrateur', support: 'Support', analyste: 'Analyste' };
 export const roleName = (id: string | null | undefined) => (id ? ROLE_NAMES[id] ?? id : '—');
 
-const EFFECTS: Record<string, string> = { debtPayment: 'remboursement de dette', goalContribution: 'versement à un objectif', reserveUse: 'utilisation de réserve', reserveTransfer: 'transfert de réserve', tontineEntry: 'écriture de tontine' };
+const EFFECTS: Record<string, string> = { linkedTransaction: 'opération liée (frais ou intérêts)', debtPayment: 'remboursement de dette', goalContribution: 'versement à un objectif', reserveUse: 'utilisation de réserve', reserveTransfer: 'transfert de réserve', tontineEntry: 'écriture de tontine' };
 export const effectsText = (e: Record<string, number> | null | undefined) =>
   e && Object.keys(e).length ? Object.entries(e).map(([k, n]) => `${n} ${EFFECTS[k] ?? k}`).join(', ') : '';

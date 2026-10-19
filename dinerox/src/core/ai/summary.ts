@@ -67,6 +67,7 @@ export function buildFinanceSummary(
     month: (({ income, expense }) => ({ income, expense }))(monthFlows(data.transactions, m, currency)),
     previousMonth: (({ income, expense }) => ({ income, expense }))(monthFlows(data.transactions, p, currency)),
     topCategories: Object.entries(expensesByCategory(data.transactions, m, currency))
+      .filter(([, amount]) => amount > 0)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 6)
       .map(([id, amount]) => ({ name: categoryName(id), amount })),

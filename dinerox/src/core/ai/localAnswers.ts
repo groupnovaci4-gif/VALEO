@@ -19,6 +19,7 @@ import { seasonPlanFor } from '../seasons';
 import { myContribution, nextContribution, nextPayout, scheduleState } from '../tontine';
 import { debtStatus, debtTotals } from '../debts';
 import { upcomingOccurrence } from '../recurring';
+import { recurringToConfirm } from '../recurringConfirm';
 import { familyObligations, obligationTotals, yearlyAmount } from '../obligations';
 import { financialCalendar } from '../calendar';
 import { netWorth } from '../networth';
@@ -75,9 +76,15 @@ const GATES: Partial<Record<Topic, { can?: Parameters<typeof can>[2]; feature?: 
   due_week: { can: 'recurring' },
 };
 
+/** Chiffres masqués chez un membre enfant (audit B6) : ils dépendent d'engagements qu'il ne voit pas. */
+const CHILD_HIDDEN = new Set<Topic>(['per_day', 'until_payday', 'to_allocate']);
+
 /** null : le sujet est ouvert ; sinon le message à afficher (formule ou rôle). */
 export function topicGate(topic: Topic, who: { plan: PlanId; role: Role | null; spaceKind: SpaceKind }): Answer | null {
   if (ASSISTANT_TOPICS.has(topic) && !hasFeature(who.plan, 'ai_assistant')) return { key: 'ai.locked', link: 'subscription' };
+  // Audit B6 (b) : un enfant ne voit ni les dettes, ni les tontines, ni les charges — le reste par
+  // jour et le reste à répartir seraient faux : « Demandez à un parent ».
+  if (who.role === 'child' && CHILD_HIDDEN.has(topic)) return { key: 'ia.a.childAsk' };
   const g = GATES[topic];
   if (g?.can && !can(who.role, 'read', g.can)) return { key: 'ia.a.roleLocked' };
   if (g?.feature && !hasFeature(who.plan, g.feature)) return { key: 'ai.locked', link: 'subscription' };
@@ -90,14 +97,18 @@ function spentIn(data: SpaceData, currency: CurrencyCode, start: ISODate, end: I
   return data.transactions.filter((t) => !t.deleted && t.currency === currency && t.date >= start && t.date <= end && match(t)).reduce((n, t) => n + spendingAmount(t), 0);
 }
 
+/** Période d'une question, jusqu'à AUJOURD'HUI (audit I1 : une opération future n'est pas encore « dépensée »). */
 function range(period: QuestionIntent['period'], now: ISODate): { start: ISODate; end: ISODate } {
-  if (period === 'week') return periodOf('week', now);
+  if (period === 'week') {
+    const w = periodOf('week', now);
+    return { start: w.start, end: w.end < now ? w.end : now };
+  }
   if (period === 'year') return { start: `${now.slice(0, 4)}-01-01`, end: now };
   if (period === 'last_month') {
     const m = previousMonth(monthKey(now));
     return { start: `${m}-01`, end: endOfMonth(`${m}-01`) };
   }
-  return { start: `${monthKey(now)}-01`, end: endOfMonth(now) };
+  return { start: `${monthKey(now)}-01`, end: now };
 }
 
 /** Réponse à une question comprise. Les références (`ref`) viennent du vocabulaire de l'espace. */
@@ -119,12 +130,16 @@ export function answerIntent(q: QuestionIntent, ctx: AnswerCtx): Answer {
     // ─── Argent ─────────────────────────────────────────────
     case 'available': {
       const p = position();
-      return { key: 'ia.a.available', params: { available: p.available, setAside: p.setAside, total: p.totalAccounts }, link: 'home' };
+      // Audit B3 : une ligne par autre devise, jamais additionnée.
+      const others = Object.entries(p.otherCurrencies).map(([cur, o]): AnswerLine => ({ key: 'ia.a.availableOther', params: { available: o.available, total: o.totalAccounts, cur } }));
+      return { key: 'ia.a.available', params: { available: p.available, setAside: p.setAside, total: p.totalAccounts }, ...(others.length ? { bullets: others } : {}), link: 'home' };
     }
     case 'account_balance': {
-      const p = position();
+      // Audit B3 : le solde d'un compte dans SA devise (`cur` : devise du montant affiché).
       const acc = data.accounts.find((a) => a.id === id);
-      return { key: 'ia.a.accountBalance', params: { name: acc?.name ?? q.ref?.label ?? '', amount: p.accounts[id ?? '']?.balance ?? 0 }, link: 'accounts' };
+      const cur = acc?.currency ?? currency;
+      const balance = positionOf(data, cur, now).accounts[id ?? '']?.balance ?? 0;
+      return { key: 'ia.a.accountBalance', params: { name: acc?.name ?? q.ref?.label ?? '', amount: balance, cur }, link: 'accounts' };
     }
     case 'set_aside': {
       const p = position();
@@ -133,9 +148,14 @@ export function answerIntent(q: QuestionIntent, ctx: AnswerCtx): Answer {
     case 'total_accounts':
       return { key: 'ia.a.totalAccounts', params: { amount: position().totalAccounts }, link: 'accounts' };
     case 'accounts_list': {
-      const p = position();
-      const live = data.accounts.filter((a) => !a.deleted && a.active && a.currency === currency).sort((a, b) => a.order - b.order);
-      return { key: 'ia.a.accountsList', params: { count: live.length }, bullets: live.map((a): AnswerLine => ({ key: 'ia.a.accountLine', params: { name: a.name, amount: p.accounts[a.id]?.balance ?? 0 } })), link: 'accounts' };
+      // Audit B3 : tous les comptes, chacun dans sa devise (la devise de l'espace d'abord).
+      const live = data.accounts.filter((a) => !a.deleted && a.active).sort((a, b) => Number(a.currency !== currency) - Number(b.currency !== currency) || a.order - b.order);
+      const byCur = new Map<CurrencyCode, ReturnType<typeof positionOf>>();
+      const balanceOf = (a: (typeof live)[number]) => {
+        if (!byCur.has(a.currency)) byCur.set(a.currency, positionOf(data, a.currency, now));
+        return byCur.get(a.currency)!.accounts[a.id]?.balance ?? 0;
+      };
+      return { key: 'ia.a.accountsList', params: { count: live.length }, bullets: live.map((a): AnswerLine => ({ key: 'ia.a.accountLine', params: { name: a.name, amount: balanceOf(a), cur: a.currency } })), link: 'accounts' };
     }
     case 'per_day': {
       const r = allowance();
@@ -171,8 +191,12 @@ export function answerIntent(q: QuestionIntent, ctx: AnswerCtx): Answer {
     case 'spent_category': {
       const r = range(q.period, now);
       const target = q.subcategoryId ?? q.categoryId ?? '';
-      const amount = spentIn(data, currency, r.start, r.end, (t) => isSpending(t) && (q.subcategoryId ? t.subcategoryId === q.subcategoryId : t.categoryId === q.categoryId));
-      return { key: `ia.a.spentCat.${q.period ?? 'month'}`, params: { name: ctx.categoryName(target), amount }, link: 'history' };
+      const match = (t: SpaceData['transactions'][number]) => isSpending(t) && (q.subcategoryId ? t.subcategoryId === q.subcategoryId : t.categoryId === q.categoryId);
+      const amount = spentIn(data, currency, r.start, r.end, match);
+      // Audit C6 : la part prise sur une réserve est dite (l'enveloppe, elle, ne la compte pas — règle 19).
+      const ids = new Set(data.transactions.filter((t) => !t.deleted && t.currency === currency && t.date >= r.start && t.date <= r.end && match(t)).map((t) => t.id));
+      const fromReserve = data.goalContributions.filter((c) => !c.deleted && c.amount < 0 && c.linkedTransactionId && ids.has(c.linkedTransactionId)).reduce((n, c) => n - c.amount, 0);
+      return { key: `ia.a.spentCat.${q.period ?? 'month'}`, params: { name: ctx.categoryName(target), amount }, ...(fromReserve > 0 ? { bullets: [{ key: 'ia.a.reservePart', params: { amount: Math.min(fromReserve, amount) } }] } : {}), link: 'history' };
     }
 
     // ─── Épargne ────────────────────────────────────────────
@@ -207,8 +231,10 @@ export function answerIntent(q: QuestionIntent, ctx: AnswerCtx): Answer {
           : { key: 'ia.a.goalMonthlyNoDate', params: { name: g.name, remaining: plan.remaining }, link: 'goals' };
       }
       if (q.topic === 'goal_eta') {
-        const date = plan.estimatedDate ?? g.targetDate ?? null;
-        return date ? { key: 'ia.a.goalEta', params: { name: g.name, date, remaining: plan.remaining } } : { key: 'ai.a.goalNoPlan', params: { name: g.name, remaining: plan.remaining }, link: 'goals' };
+        // Audit C3 : sans rythme régulier, la date CIBLE est dite « date visée », jamais « au rythme actuel ».
+        if (plan.estimatedDate) return { key: 'ia.a.goalEta', params: { name: g.name, date: plan.estimatedDate, remaining: plan.remaining } };
+        if (g.targetDate) return { key: 'ia.a.goalTargetDate', params: { name: g.name, date: g.targetDate, remaining: plan.remaining }, link: 'goals' };
+        return { key: 'ai.a.goalNoPlan', params: { name: g.name, remaining: plan.remaining }, link: 'goals' };
       }
       if (!(g.targetAmount > 0)) return { key: 'ia.a.goalNoTarget', params: { name: g.name, saved: plan.saved }, link: 'goals' };
       return { key: 'ia.a.goalStatus', params: { name: g.name, saved: plan.saved, target: plan.target, percent: plan.percent }, link: 'goals' };
@@ -285,13 +311,27 @@ export function answerIntent(q: QuestionIntent, ctx: AnswerCtx): Answer {
       const r = data.recurring.find((x) => x.id === id && !x.deleted);
       const date = r ? upcomingOccurrence(r, now) : null;
       if (!r || !date) return { key: 'ia.a.noRecurring', link: 'recurring' };
+      // Audit I8 : une échéance passée non confirmée est citée d'abord (même lecture que l'accueil).
+      const late = recurringToConfirm(data, now, ctx.payDay ?? null).filter((c) => c.ruleId === r.id);
+      if (late.length) {
+        const more = late.length > 1 ? { bullets: [{ key: 'ia.a.recurringLateCount', params: { count: late.length } }] } : {};
+        return { key: 'ia.a.recurringLate', params: { name: r.label, late: late[late.length - 1].date, date, amount: r.amount }, ...more, link: 'home' };
+      }
       return { key: 'ia.a.recurringNext', params: { name: r.label, date, amount: r.amount }, link: 'calendar' };
     }
     case 'next_payday': {
-      const dates = data.recurring.filter((r) => !r.deleted && r.active && r.type === 'income' && r.currency === currency).map((r) => ({ r, d: upcomingOccurrence(r, now) })).filter((x): x is { r: typeof x.r; d: ISODate } => !!x.d).sort((a, b) => a.d.localeCompare(b.d));
-      if (dates.length) return { key: 'ia.a.nextPayday', params: { name: dates[0].r.label, date: dates[0].d, amount: dates[0].r.amount }, link: 'calendar' };
+      // Audit I7 : le jour de paie du PROFIL fait foi (c'est celui du reste par jour) ; si la
+      // récurrence du salaire tombe un autre jour, l'écart est signalé.
       const pd = nextPayday(now, ctx.payDay ?? null);
-      return pd ? { key: 'ia.a.nextPaydayDay', params: { date: pd }, link: 'calendar' } : { key: 'ia.a.noPayday', link: 'calendar' };
+      if (pd) {
+        const income = data.recurring.filter((r) => !r.deleted && r.active && r.type === 'income' && r.currency === currency && r.frequency === 'monthly');
+        const salary = income.find((r) => r.categoryId === 'inc_salary') ?? income[0];
+        const day = salary ? Number(salary.startDate.slice(8, 10)) : null;
+        const mismatch = salary && day !== ctx.payDay ? [{ key: 'ia.a.paydayMismatch', params: { name: salary.label, day: day as number, payDay: ctx.payDay as number } }] : [];
+        return { key: 'ia.a.nextPaydayDay', params: { date: pd }, ...(mismatch.length ? { bullets: mismatch } : {}), link: 'calendar' };
+      }
+      const dates = data.recurring.filter((r) => !r.deleted && r.active && r.type === 'income' && r.currency === currency).map((r) => ({ r, d: upcomingOccurrence(r, now) })).filter((x): x is { r: typeof x.r; d: ISODate } => !!x.d).sort((a, b) => a.d.localeCompare(b.d));
+      return dates.length ? { key: 'ia.a.nextPayday', params: { name: dates[0].r.label, date: dates[0].d, amount: dates[0].r.amount }, link: 'calendar' } : { key: 'ia.a.noPayday', link: 'calendar' };
     }
     case 'due_week': {
       const events = financialCalendar(data, now, 7).filter((e) => e.kind !== 'income' && e.kind !== 'tontine_payout' && e.currency === currency);
@@ -302,7 +342,7 @@ export function answerIntent(q: QuestionIntent, ctx: AnswerCtx): Answer {
     // ─── Patrimoine, historique, analyse ───────────────────
     case 'net_worth': {
       const n = netWorth(data, currency, now);
-      return { key: 'ia.a.netWorth', params: { net: n.net, assets: n.assets, accounts: n.accounts, liabilities: n.liabilities }, link: 'assets' };
+      return { key: 'ia.a.netWorth', params: { net: n.net, assets: n.assets, accounts: n.accounts, outside: n.outside, receivables: n.receivables, liabilities: n.liabilities }, link: 'assets' };
     }
     case 'asset_value': {
       const a = data.assets.find((x) => x.id === id && !x.deleted);

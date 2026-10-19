@@ -15,10 +15,11 @@ import { withSpaceReady } from '@/components/SpaceReady';
 function Score() {
   const { t, monthYear } = useI18n();
   const { data, currency, now } = useFinance();
-  const { activeSpace, spaces, setActiveSpace } = useApp();
+  const { activeSpace, spaces, setActiveSpace, profile } = useApp();
+  const financial = profile?.financial ?? null;
   const personal = spaces.find((s) => s.kind === 'personal');
-  const current = useMemo(() => latestScore(data, currency, now), [data, currency, now]);
-  const before = useMemo(() => behaviorScore(data, currency, previousMonth(current.month)), [data, currency, current.month]);
+  const current = useMemo(() => latestScore(data, currency, now, financial), [data, currency, now, financial]);
+  const before = useMemo(() => behaviorScore(data, currency, previousMonth(current.month), financial), [data, currency, current.month, financial]);
   const why = useMemo(() => explainChange(before, current), [before, current]);
   const monthLabel = (m: string) => monthYear(`${m}-01`);
   const signed = (n: number) => `${n > 0 ? '+' : ''}${String(n).replace('.', ',')}`;

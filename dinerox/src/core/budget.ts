@@ -370,6 +370,31 @@ export function outsideEnvelopeSpent(
   return total;
 }
 
+/**
+ * Audit I1 — part « à venir » des dépenses d'une enveloppe : opérations du mois datées après
+ * aujourd'hui (l'enveloppe les compte déjà, c'est un budget ; l'écran l'écrit « dont X à venir »).
+ * Même base que les enveloppes : la part prise sur une réserve n'y est pas.
+ */
+export function envelopeUpcoming(
+  d: { envelopes: Envelope[]; transactions: Transaction[]; goalContributions: Pick<GoalContribution, 'deleted' | 'amount' | 'linkedTransactionId'>[]; accounts?: Account[] },
+  currency: CurrencyCode,
+  today: string,
+): Record<string, number> {
+  const covered = new Map<string, number>();
+  for (const c of d.goalContributions) {
+    if (c.deleted || !c.linkedTransactionId || c.amount >= 0) continue;
+    covered.set(c.linkedTransactionId, (covered.get(c.linkedTransactionId) ?? 0) - c.amount);
+  }
+  const future: Transaction[] = [];
+  for (const t of d.transactions) {
+    if (t.deleted || t.date <= today) continue;
+    const part = t.type === 'expense' ? Math.min(t.amount, covered.get(t.id) ?? 0) : 0;
+    if (part < t.amount || t.type !== 'expense') future.push(part > 0 ? { ...t, amount: t.amount - part } : t);
+  }
+  const spent = spentByEnvelope(future, d.envelopes, monthKey(today), currency, d.accounts);
+  return Object.fromEntries(Object.entries(spent).filter(([, v]) => v > 0));
+}
+
 /** « Remboursements de dettes du mois » (§9, E44b) : le capital remboursé, hors enveloppes ; les intérêts sont des dépenses. */
 export function debtRepaymentsInMonth(transactions: Transaction[], month: MonthKey, currency: CurrencyCode): number {
   let total = 0;
