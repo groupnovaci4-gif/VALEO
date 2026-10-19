@@ -60,7 +60,7 @@ import {
   type SourceChoice,
 } from '@/core/writePlans';
 import { canDeleteAccount } from '@/core/accountRules';
-import { canDeleteDebt, debtStatus } from '@/core/debts';
+import { debtDeletion, debtStatus } from '@/core/debts';
 import { goalBacking } from '@/core/position';
 import { pocketClosure, type SpendSource } from '@/core/spendPlan';
 import { notifyCoachWrite } from '@/features/coach/bus';
@@ -865,10 +865,15 @@ export function useActions() {
     [save, writeItems, data],
   );
 
-  /** Une dette qui a des remboursements ne se supprime pas : on la clôture (E47). */
+  /**
+   * Une dette qui a des remboursements ne se supprime pas : on la clôture (E47). Sans
+   * remboursement, l'opération créée avec elle (emprunt reçu ou prêt versé) part avec elle.
+   */
   const deleteDebt = useCallback(
     (id: string) => {
-      if (!canDeleteDebt(id, data().debtPayments)) throw new ActionError('validation', { errors: ['debt.hasPayments'] });
+      const plan = debtDeletion(data(), id);
+      if (!plan.allowed) throw new ActionError('validation', { errors: ['debt.hasPayments'] });
+      for (const txId of plan.openingIds) remove('transactions', txId);
       remove('debts', id);
     },
     [data, remove],

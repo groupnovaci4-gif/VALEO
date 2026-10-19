@@ -2438,6 +2438,9 @@ export const fr = {
   'ia.ex.1': 'J\'ai dépensé 30 000 en loyer',
   'ia.ex.2': 'Quand est-ce que je paie ma tontine ?',
   'ia.ex.3': 'Mets 20 000 de côté',
+  // Supprimer une dette : l'opération créée avec elle part avec elle.
+  'debt.deleteConfirm.borrowed': "L'emprunt reçu avec cette dette ({amount} sur {account}) sera supprimé aussi.",
+  'debt.deleteConfirm.lent': 'Le prêt versé avec cette créance ({amount} depuis {account}) sera supprimé aussi.',
 } as const;
 
 export type TKey = keyof typeof fr;

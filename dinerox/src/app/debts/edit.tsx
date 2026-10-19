@@ -6,7 +6,9 @@ import { useI18n, type TKey } from '@/i18n';
 import { useData } from '@/store/app';
 import { ActionError, useActions } from '@/store/actions';
 import { HandledError, useMoneyGuard } from '@/features/money/MoneyGuard';
-import { useCurrency } from '@/hooks/useFinance';
+import { useCurrency, useMoney } from '@/hooks/useFinance';
+import { debtDeletion } from '@/core/debts';
+import { removalWouldOverdraw } from '@/core/writePlans';
 import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, Segmented, Text, useToast } from '@/components/ui';
 import { today } from '@/core/dates';
 import type { DebtDirection, DebtKind } from '@/core/types';
@@ -83,12 +85,27 @@ function DebtEdit() {
       { onDone: done },
     );
   };
-  const remove = () =>
-    Alert.alert(t('common.deleteConfirmTitle'), t('common.deleteConfirmBody'), [
+  const money = useMoney();
+  const remove = () => {
+    const plan = debtDeletion(data, existing!.id);
+    // Une dette qui a des remboursements ne se supprime pas : on la clôture (§5.5) — dit tout de suite.
+    if (!plan.allowed) return Alert.alert(t('common.deleteConfirmTitle'), t('error.debt.hasPayments'), [{ text: t('common.close'), style: 'cancel' }]);
+    // L'opération créée avec la dette (emprunt reçu ou prêt versé) est supprimée avec elle.
+    const lines = plan.openingIds.flatMap((txId) => {
+      const tx = data.transactions.find((x) => x.id === txId);
+      if (!tx) return [];
+      const account = data.accounts.find((a) => a.id === tx.accountId)?.name ?? '';
+      const over = removalWouldOverdraw(data, txId);
+      return [
+        t(existing!.direction === 'i_owe' ? 'debt.deleteConfirm.borrowed' : 'debt.deleteConfirm.lent', { amount: money(tx.amount, { currency: tx.currency }), account }),
+        ...(over ? [t('money.willBeNegative', { account: data.accounts.find((a) => a.id === over.accountId)?.name ?? '', amount: money(over.balance) })] : []),
+      ];
+    });
+    Alert.alert(t('common.deleteConfirmTitle'), [...lines, t('common.deleteConfirmBody')].join('\n\n'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', // Une dette qui a des remboursements ne se supprime pas : on la clôture (§5.5).
-        onPress: () => void (run(() => actions.deleteDebt(existing!.id)) && router.replace('/debts')) },
+      { text: t('common.delete'), style: 'destructive', onPress: () => void (run(() => actions.deleteDebt(existing!.id)) && router.replace('/debts')) },
     ]);
+  };
   return (
     <Screen
       back

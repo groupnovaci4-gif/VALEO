@@ -2,7 +2,7 @@
  * Dettes et crédits : restant dû, échéances, progression.
  * Le restant n'est jamais stocké : principal − Σ remboursements.
  */
-import type { Debt, DebtPayment } from './types';
+import type { Debt, DebtPayment, Transaction } from './types';
 import { addMonths, diffDays, parseISODate, startOfMonth, toISODate, today, type ISODate } from './dates';
 
 export interface DebtStatus {
@@ -120,6 +120,17 @@ export function splitRepayment(total: number, interest: number): { capital: numb
 /** Une dette qui a des remboursements ne se supprime pas : on la clôture (E47). */
 export function canDeleteDebt(debtId: string, payments: DebtPayment[]): boolean {
   return !payments.some((p) => !p.deleted && p.debtId === debtId);
+}
+
+/**
+ * Supprimer une dette depuis son écran : permis seulement sans remboursement (sinon on la
+ * clôture, E47). L'opération créée AVEC la dette (emprunt reçu ou prêt versé, `debtId`) part
+ * avec elle ; une opération de remboursement n'est jamais concernée.
+ */
+export function debtDeletion(d: { transactions: Pick<Transaction, 'id' | 'debtId' | 'deleted'>[]; debtPayments: DebtPayment[] }, debtId: string): { allowed: boolean; openingIds: string[] } {
+  if (!canDeleteDebt(debtId, d.debtPayments)) return { allowed: false, openingIds: [] };
+  const repayments = new Set(d.debtPayments.filter((p) => !p.deleted && p.transactionId).map((p) => p.transactionId as string));
+  return { allowed: true, openingIds: d.transactions.filter((t) => !t.deleted && t.debtId === debtId && !repayments.has(t.id)).map((t) => t.id) };
 }
 
 /** Pas de mouvement sans compte : « Hors de mes comptes » seulement par choix explicite (E49). */

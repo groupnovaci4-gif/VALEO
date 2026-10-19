@@ -2406,4 +2406,7 @@ export const en: Record<TKey, string> = {
   'ia.ex.1': 'I spent 30,000 on rent',
   'ia.ex.2': 'When do I pay my tontine?',
   'ia.ex.3': 'Put 20,000 aside',
+  // Deleting a debt: the transaction created with it goes with it.
+  'debt.deleteConfirm.borrowed': 'The loan received with this debt ({amount} on {account}) will be deleted too.',
+  'debt.deleteConfirm.lent': 'The loan paid out with this claim ({amount} from {account}) will be deleted too.',
 };
