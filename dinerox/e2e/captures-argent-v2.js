@@ -114,7 +114,10 @@ async function run(size) {
   await step('22-budget-reste-a-repartir', async () => {
     await go('/envelopes/edit'); await fill('Nom', 'Maison', true); await fill('Budget mensuel', '50000'); await tap('Maison & logement'); await btn('Enregistrer', { w: 1500 });
     await setFinancial(uid, 'monthlyIncome', 400000); await p.waitForTimeout(1500);
-    await go('/budget'); await shot('22-budget-reste-a-repartir');
+    await go('/budget');
+    // La ligne « Remboursements de dettes du mois » est sous les enveloppes : on la fait venir à l'écran.
+    await p.getByText('Remboursements de dettes du mois', { exact: false }).first().scrollIntoViewIfNeeded().catch(() => {}); await p.waitForTimeout(500);
+    await shot('22-budget-reste-a-repartir', false);
   });
   await step('23-analyse', async () => { await go('/analysis'); await shot('23-analyse'); });
   await step('24-score', async () => { await go('/score'); await shot('24-score'); });
