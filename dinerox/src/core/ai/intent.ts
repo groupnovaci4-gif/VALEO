@@ -127,7 +127,7 @@ export function intentContext(
 // ─── Outils ──────────────────────────────────────────────────────────
 
 /** Texte de travail : normalisé, ponctuation retirée, « 50,000 » → « 50000 ». */
-function clean(original: string): string {
+export function clean(original: string): string {
   return normalizeText(original.replace(/(\d)[,.](\d{3})(?!\d)/g, '$1$2'))
     .replace(/[?!.,;:«»"()]/g, ' ')
     .replace(/\s+/g, ' ')
@@ -157,14 +157,14 @@ function wordAfter(t: string, re: RegExp): string | null {
 }
 const STOPWORDS = new Set(['mon', 'ma', 'mes', 'la', 'le', 'les', 'moi', 'toi', 'lui', 'nous', 'vous', 'eux', 'elle', 'quel', 'quelle', 'combien', 'quand', 'pour', 'avec', 'mois', 'semaine', 'annee', 'cette', 'cet', 'deja', 'the', 'my', 'me', 'him', 'her', 'them', 'you', 'avance', 'pret', 'payer', 'paie', 'paye']);
 
-type Resolved = { ref: EntityRef } | { tied: EntityRef[] } | { notFound: string | null; options: EntityRef[] };
+export type Resolved = { ref: EntityRef } | { tied: EntityRef[] } | { notFound: string | null; options: EntityRef[] };
 
 /**
  * Élément d'une sorte cité dans la phrase. Un nom précis introuvable → « Je ne trouve pas »
  * (jamais un autre élément à la place) ; un seul élément de cette sorte → lui ; sinon la
  * question « Lequel ? ».
  */
-function resolve(t: string, ctx: IntentContext, kinds: EntityKind[], named: string | null): Resolved {
+export function resolve(t: string, ctx: IntentContext, kinds: EntityKind[], named: string | null): Resolved {
   const all = kinds.flatMap((k) => entitiesOf(ctx.vocab, k));
   const { one, tied } = bestEntity(t, ctx.vocab, kinds);
   if (one) return { ref: toRef(one) };
@@ -176,7 +176,7 @@ function resolve(t: string, ctx: IntentContext, kinds: EntityKind[], named: stri
 }
 
 /** Catégorie citée : nom complet (le plus précis), sinon mot-clé du catalogue, sinon nom partiel. */
-function categoryIn(text: string, ctx: IntentContext, kind: 'expense' | 'income' = 'expense'): { categoryId: string; subcategoryId: string | null } | null {
+export function categoryIn(text: string, ctx: IntentContext, kind: 'expense' | 'income' = 'expense'): { categoryId: string; subcategoryId: string | null } | null {
   // Le verbe (« j'ai dépensé », « payé ») n'est pas un nom de catégorie (« Autres dépenses »).
   const t = text.replace(/\b(depense|depenser|depensee|paye|payer|spent|spend|paid)\b/g, ' ');
   const toIds = (id: string, parentId: string | null | undefined) => (parentId ? { categoryId: parentId, subcategoryId: id } : { categoryId: id, subcategoryId: null });
@@ -232,6 +232,11 @@ const FORBIDDEN: { reason: ForbiddenReason; section: SectionId | null; re: RegEx
   { reason: 'delete', section: 'history', re: /\b(supprime|supprimer|efface|effacer|delete|remove|erase)\b/ },
   { reason: 'edit_past', section: 'history', re: /\b(modifie|modifier|corrige|corriger|change|changer|annule|annuler|edit|modify|cancel|undo)\b.*\b(depense|depenses|operation|revenu|transfert|hier|derniere|dernier|passe|expense|transaction|yesterday|last)\b|\b(annule|annuler)\b.*\b(d hier|de hier)\b/ },
 ];
+
+/** Écran concerné par une demande interdite (lien « Ouvrir l'écran »). */
+export function forbiddenSection(reason: ForbiddenReason): SectionId | null {
+  return FORBIDDEN.find((f) => f.reason === reason)?.section ?? null;
+}
 
 function forbidden(t: string): Intent | null {
   for (const f of FORBIDDEN) if (f.re.test(t) && !(f.unless && f.unless.test(t))) return { kind: 'forbidden', reason: f.reason, section: f.section };
@@ -372,7 +377,7 @@ function question(t: string, original: string, ctx: IntentContext): Intent | nul
 }
 
 /** Complète une intention avec l'élément résolu, ou la transforme en question / « introuvable ». */
-function withRef<T extends QuestionIntent | ActionIntent>(intent: T, r: Resolved, field: AskField, asked = 0): Intent {
+export function withRef<T extends QuestionIntent | ActionIntent>(intent: T, r: Resolved, field: AskField, asked = 0): Intent {
   if ('ref' in r) return { ...intent, ref: r.ref };
   if ('tied' in r) return { kind: 'ask', field, options: r.tied, intent, asked };
   return { kind: 'notFound', entity: r.options[0]?.kind ?? (field as EntityKind), word: r.notFound ?? '', options: r.options };

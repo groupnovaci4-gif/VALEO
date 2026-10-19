@@ -18,6 +18,7 @@ import { elevenLabsRequest, nextVoiceUsage, validateSpeak } from './voice';
 import { collectEntryCounts, entryUsage, firestoreCounter } from './usage';
 import { answerWithClaude } from './assistant';
 import { AI_CONSENT_VERSION, parseWithClaude, validateParseInput } from './voiceEntry';
+import { understandWithClaude, validateUnderstandInput } from './understand';
 import { deleteUserData } from './accountDeletion';
 import { resolveRole, type StaffDoc } from './backoffice/context';
 import { sendExpoPush, type PushMessage } from './push';
@@ -302,6 +303,79 @@ export const parseVoiceEntry = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSec
   }
   // Usage du jour (affiché : « Compréhension avancée : 2/3 aujourd'hui »).
   return { lines, used, limit: VOICE_PARSE_DAILY_LIMIT[plan] };
+});
+
+// ─── IA qui comprend toute l'application : repli de compréhension ─────
+
+/**
+ * Phrase que le TÉLÉPHONE n'a pas comprise → intention de la liste fermée (docs/ia-comprend-tout.md
+ * §1.2, §5, §6). Entrée : la phrase (300 caractères) et la langue seulement ; jamais journalisée ni
+ * stockée. Consentement au texte actuel obligatoire. Quotas EXISTANTS de la porte d'entrée :
+ * feuille de saisie → celui de `parseVoiceEntry` (seul un appel réussi compte, plafond de
+ * tentatives) ; « Parler à DineroX » → celui de `financeAssistant` (formule avec l'assistant).
+ * Seuls les jetons consommés du jour sont comptés (nombres), pour mesurer le coût réel.
+ */
+export const understandPhrase = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 15, memory: '256MiB' }, async (req) => {
+  const { uid } = requireAuth(req);
+  const input = validateUnderstandInput(req.data);
+  if ('error' in input) throw new HttpsError('invalid-argument', input.error);
+  const user = await db.doc(`users/${uid}`).get();
+  if (user.get('preferences.aiConsent') !== true || Number(user.get('preferences.aiConsentVersion') ?? 0) < AI_CONSENT_VERSION) throw new HttpsError('failed-precondition', 'consent/ai');
+  let plan = effectivePlan(user.get('subscription'), Date.now(), user.get('grants'));
+  if (input.spaceId?.startsWith('fam_')) {
+    const space = await db.doc(`spaces/${input.spaceId}`).get();
+    const members = (space.get('memberIds') as string[] | undefined) ?? [];
+    if (space.exists && members.includes(uid)) {
+      const owner = await db.doc(`users/${space.get('ownerId')}`).get();
+      plan = bestPlan(plan, effectivePlan(owner.get('subscription'), Date.now(), owner.get('grants')));
+    }
+  }
+  if (input.door === 'assistant' && !hasAiAssistant(plan)) throw new HttpsError('permission-denied', 'plan/ai');
+  const day = new Date().toISOString().slice(0, 10);
+  const usageRef = db.doc(`usage/${uid}`);
+  // Le quota de la porte est RÉSERVÉ avant l'appel, puis RENDU si l'appel échoue.
+  await db.runTransaction(async (tx) => {
+    const u = await tx.get(usageRef);
+    if (input.door === 'assistant') {
+      const count = u.get('day') === day ? Number(u.get('ai') ?? 0) : 0;
+      if (count >= AI_DAILY_LIMIT) throw new HttpsError('resource-exhausted', 'ai/quota');
+      tx.set(usageRef, { day, ai: count + 1 }, { merge: true });
+      return;
+    }
+    const attempt = nextVoiceParseAttempt({ day: u.get('voiceParseTriesDay'), tries: u.get('voiceParseTries') }, day);
+    if (!attempt.allowed) throw new HttpsError('resource-exhausted', 'voiceParse/attempts');
+    tx.set(usageRef, attempt.patch, { merge: true });
+    const next = nextVoiceParseUsage({ day: u.get('voiceParseDay'), count: u.get('voiceParse') }, day, plan);
+    if (!next.allowed) throw new HttpsError('resource-exhausted', 'voiceParse/quota');
+    tx.set(usageRef, next.patch, { merge: true });
+  });
+  const refund = () =>
+    db
+      .runTransaction(async (tx) => {
+        const u = await tx.get(usageRef);
+        if (input.door === 'assistant') {
+          const count = u.get('day') === day ? Number(u.get('ai') ?? 0) : 0;
+          if (count > 0) tx.set(usageRef, { day, ai: count - 1 }, { merge: true });
+          return;
+        }
+        const patch = refundVoiceParseUsage({ day: u.get('voiceParseDay'), count: u.get('voiceParse') }, day);
+        if (patch) tx.set(usageRef, patch, { merge: true });
+      })
+      .catch(() => logger.warn('understand refund failed'));
+  try {
+    const r = await understandWithClaude(ANTHROPIC_API_KEY.value(), input);
+    // Coût réel : jetons du jour (nombres seulement, jamais la phrase).
+    await db.doc(`aiUsage/${day}`).set({ day, calls: FieldValue.increment(1), tokensIn: FieldValue.increment(r.tokensIn), tokensOut: FieldValue.increment(r.tokensOut) }, { merge: true }).catch(() => undefined);
+    if (!r.understanding) {
+      await refund();
+      return { understanding: null };
+    }
+    return { understanding: r.understanding };
+  } catch (e) {
+    await refund();
+    logger.warn('understand failed', { status: (e as { status?: number })?.status ?? 'timeout' });
+    throw new HttpsError('unavailable', 'understand/unavailable');
+  }
 });
 
 // ─── Voix premium du coach ────────────────────────────────────────────

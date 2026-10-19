@@ -27,3 +27,19 @@ export async function askRemoteAssistant(question: string, summary: FinanceSumma
     return null;
   }
 }
+
+/**
+ * Repli de compréhension (docs/ia-comprend-tout.md §1.2) : la phrase que le téléphone n'a pas
+ * comprise (300 caractères au plus) et la langue SEULEMENT. 'quota' : quota de la porte épuisé
+ * (compréhension locale seule, jamais de blocage) ; null : indisponible, refus ou hors ligne.
+ */
+export async function understandRemote(text: string, language: Language, door: 'entry' | 'assistant', spaceId?: string): Promise<unknown | 'quota' | null> {
+  if (!isFirebaseConfigured) return null;
+  try {
+    const fn = httpsCallable<{ text: string; language: Language; door: 'entry' | 'assistant'; spaceId?: string }, { understanding: unknown }>(firebase().functions, 'understandPhrase', { timeout: 10_000 });
+    const res = await fn({ text: text.trim().slice(0, 300), language: language === 'en' ? 'en' : 'fr', door, ...(spaceId ? { spaceId } : {}) });
+    return res.data.understanding ?? null;
+  } catch (e) {
+    return String((e as { message?: string })?.message ?? '').includes('quota') ? 'quota' : null;
+  }
+}
