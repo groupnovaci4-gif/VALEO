@@ -2,19 +2,19 @@
  * Gestes du carnet de tontine, TOUJOURS confirmés :
  *  - « J'ai cotisé » / « Je l'ai payée » : opération réelle (dépense « Tontine /
  *    cotisation ») + entrée liée ;
- *  - « J'ai reçu la cagnotte » : revenu (« Tontine reçue ») + entrée `payout` ;
+ *  - « J'ai reçu la cagnotte » : montant proposé MODIFIABLE (§5.4), retour de tontine + entrée `payout` ;
  *  - « Reporter » une cotisation en retard (nouvelle date, rien n'est payé).
  * Supprimer l'opération (Historique, « Annuler ») annule l'entrée.
  */
 import { useMoneyGuard } from '@/features/money/MoneyGuard';
 import React, { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { useI18n } from '@/i18n';
 import { useActions } from '@/store/actions';
 import { useAccountLabel, useFinance, useMoney } from '@/hooks/useFinance';
 import { useRunAction } from '@/hooks/useRunAction';
 import { useEntrySave } from '@/features/entry/useEntrySave';
-import { Button, DateField, Sheet, Text } from '@/components/ui';
+import { AmountField, Button, DateField, Sheet, Text } from '@/components/ui';
 import { addDays } from '@/core/dates';
 import type { ItemState } from '@/core/tontine';
 import type { Tontine } from '@/core/types';
@@ -22,32 +22,48 @@ import { markReviewMoment } from '@/services/storeReview';
 import { TontineSourcePicker, useTontineSources } from './TontineSourcePicker';
 import type { TontineSource } from '@/core/savingsCircle';
 
-export function useTontineGestures(tontine: Tontine) {
+/** « J'ai reçu la cagnotte » : le montant proposé (cagnotte du tour) reste modifiable avant validation (§5.4). */
+export function ReceiveSheet({ tontine, item, onClose }: { tontine: Tontine; item: ItemState | null; onClose: () => void }) {
   const { t } = useI18n();
-  const money = useMoney();
   const run = useRunAction();
   const actions = useActions();
   const { undoToast } = useEntrySave();
   const accountLabel = useAccountLabel();
   const { now } = useFinance();
+  const [edited, setEdited] = useState<number | null | undefined>(undefined);
+  const amount = edited === undefined ? (item?.payout ?? null) : edited;
   const from = tontine.accountId ? accountLabel(tontine.accountId) : t('acc.type.cash');
-
-  const receive = (item: ItemState) =>
-    Alert.alert(t('tontine.receive.confirm', { amount: money(item.payout) }), t('tontine.receive.body', { name: tontine.name, account: from }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.confirm'),
-        onPress: () =>
-          void run(() => {
-            const e = actions.recordTontine({ tontineId: tontine.id, period: item.period, kind: 'payout', amount: item.payout, date: now });
-            if (e.transactionId) undoToast([e.transactionId]);
-            // Étape 4 : cagnotte reçue = moment positif.
-            markReviewMoment('tontine');
-          }),
-      },
-    ]);
-
-  return { receive };
+  const close = () => {
+    setEdited(undefined);
+    onClose();
+  };
+  return (
+    <Sheet visible={!!item} onClose={close} title={t('tontine.gotPot')}>
+      {item ? (
+        <View style={{ gap: 10 }}>
+          <Text variant="small" tone="muted">
+            {t('tontine.receive.body', { name: tontine.name, account: from })}
+          </Text>
+          <AmountField label={t('common.amount')} value={amount} onChange={setEdited} currency={tontine.currency} />
+          <Button
+            icon="checkmark"
+            label={t('common.confirm')}
+            disabled={!amount || amount <= 0}
+            onPress={() => {
+              if (!amount || amount <= 0) return;
+              const ok = run(() => {
+                const e = actions.recordTontine({ tontineId: tontine.id, period: item.period, kind: 'payout', amount, date: now });
+                if (e.transactionId) undoToast([e.transactionId]);
+                // Étape 4 : cagnotte reçue = moment positif.
+                markReviewMoment('tontine');
+              });
+              if (ok) close();
+            }}
+          />
+        </View>
+      ) : null}
+    </Sheet>
+  );
 }
 
 /**

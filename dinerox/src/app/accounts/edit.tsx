@@ -170,11 +170,20 @@ function AccountEdit() {
         // Argent disponible v2 (§3.2) : le solde s'affiche ; il ne se corrige que par un ajustement avec motif.
         <View style={{ gap: 6, marginBottom: 12 }}>
           <Text variant="bodyStrong">{t('acc.balanceNow', { amount: money(balance, { currency: existing.currency }) })}</Text>
-          {existing.openingBalance ? (
-            <Text variant="caption" tone="subtle">
-              {t('acc.openingShown', { amount: money(existing.openingBalance, { currency: existing.currency }) })}
-              {existing.openingNote ? ` · ${existing.openingNote}` : ''}
-            </Text>
+          {used ? (
+            // Dès la première opération, « Argent déjà sur ce compte » est en LECTURE SEULE (§3.2).
+            <View accessible accessibilityLabel={`${t('acc.openingBalance')}, ${money(existing.openingBalance, { currency: existing.currency })}`} style={{ gap: 2, marginTop: 4 }}>
+              <Text variant="small" weight="600">
+                {t('acc.openingBalance')}
+              </Text>
+              <Text variant="body">
+                {money(existing.openingBalance, { currency: existing.currency })}
+                {existing.openingNote ? ` · ${existing.openingNote}` : ''}
+              </Text>
+              <Text variant="caption" tone="subtle">
+                {t('error.account.openingLocked')}
+              </Text>
+            </View>
           ) : null}
           {existing.active ? <Button variant="secondary" icon="create-outline" label={t('acc.correct')} onPress={() => setCorrectOpen(true)} /> : null}
         </View>

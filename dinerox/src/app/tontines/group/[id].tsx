@@ -264,31 +264,40 @@ function GroupView({ g, uid }: { g: TontineGroup; uid: string }) {
  * JAMAIS de compte créé automatiquement : sans compte, la personne en crée un
  * elle-même, ou rien n'est enregistré.
  */
-/** « J'ai reçu la cagnotte » (tontine partagée) : le compte où l'argent est arrivé ; un retour de tontine. */
+/**
+ * « J'ai reçu la cagnotte » (tontine partagée) : le compte où l'argent est arrivé ; un retour de tontine.
+ * Le montant proposé (cagnotte saisie, sinon cotisation × membres) reste MODIFIABLE (§5.4).
+ */
 function PotSheet({ visible, g, date, onClose }: { visible: boolean; g: TontineGroup; date: string; onClose: () => void }) {
   const { t } = useI18n();
   const toast = useToast();
   const actions = useActions();
   const run = useRunAction();
   const data = useData();
-  const money = useMoney();
   const accounts = data.accounts.filter((a) => a.active && !a.deleted && a.currency === g.currency);
   const [accountId, setAccountId] = useState<string | null>(accounts.find((a) => !a.isSavings)?.id ?? accounts[0]?.id ?? null);
-  const pot = g.potAmount ?? g.amountPerShare * g.slots.length;
+  const proposed = g.potAmount ?? g.amountPerShare * g.slots.length;
+  const [edited, setEdited] = useState<number | null | undefined>(undefined);
+  const amount = edited === undefined ? proposed : edited;
+  const close = () => {
+    setEdited(undefined);
+    onClose();
+  };
   const record = () => {
-    if (!accountId) return;
-    if (run(() => actions.recordTontineGroupPayout({ groupId: g.id, groupName: g.name, amount: pot, currency: g.currency, date, accountId }))) {
+    if (!accountId || !amount || amount <= 0) return;
+    if (run(() => actions.recordTontineGroupPayout({ groupId: g.id, groupName: g.name, amount, currency: g.currency, date, accountId }))) {
       toast.show(t('common.saved'));
-      onClose();
+      close();
     }
   };
   return (
-    <Sheet visible={visible} onClose={onClose} title={`${t('tg.gotPot')} · ${money(pot, { currency: g.currency })}`}>
+    <Sheet visible={visible} onClose={close} title={t('tg.gotPot')}>
+      <AmountField label={t('common.amount')} value={amount} onChange={setEdited} currency={g.currency} />
       <Text variant="small" weight="600" style={{ marginBottom: 6 }}>
         {t('tg.gotPot.account')}
       </Text>
       <ChipGroup scroll value={accountId} onChange={setAccountId} options={accounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color }))} />
-      <Button full label={t('common.confirm')} onPress={record} />
+      <Button full label={t('common.confirm')} disabled={!accountId || !amount || amount <= 0} onPress={record} />
     </Sheet>
   );
 }

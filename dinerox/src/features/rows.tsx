@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/theme';
-import { useI18n } from '@/i18n';
+import { useI18n, type TKey } from '@/i18n';
 import { Amount, Badge, Button, Card, Icon, IconCircle, ProgressBar, Row, Sheet, Text } from '@/components/ui';
 import { useAccountLabel, useCategoryLabels, useMoney } from '@/hooks/useFinance';
 import { useInsightText } from '@/hooks/useInsightText';
@@ -16,6 +16,7 @@ import type { GoalPlan } from '@/core/goals';
 import type { Insight } from '@/core/insights';
 import { minimumPlanFor, type Feature } from '@/core/subscription';
 import { findGoalCategory } from '@/core/goalCategories';
+import { financingNature } from '@/core/nature';
 import { ListenButton } from '@/features/coach/ListenButton';
 
 export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx: Transaction; onPress?: () => void; onLongPress?: () => void; longPressHint?: string }) {
@@ -25,7 +26,16 @@ export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx
   const cats = useCategoryLabels();
   const accountLabel = useAccountLabel();
   // Ajustement de solde (1.8) : ni revenu ni dépense, signé selon son sens, en ton neutre.
-  const meta = tx.type === 'transfer' ? { name: t('tx.transfer'), icon: 'swap-horizontal', color: colors.info } : tx.type === 'adjustment' ? { name: t('tx.adjustment'), icon: 'create-outline', color: colors.info } : cats.meta(tx.categoryId);
+  // Financement (emprunt, prêt, remboursements) : la nature, jamais « Autres revenus » (§2.3).
+  const financing = financingNature(tx);
+  const meta =
+    tx.type === 'transfer'
+      ? { name: t('tx.transfer'), icon: 'swap-horizontal', color: colors.info }
+      : tx.type === 'adjustment'
+        ? { name: t('tx.adjustment'), icon: 'create-outline', color: colors.info }
+        : financing
+          ? { name: t(`nature.${financing}` as TKey), icon: 'people-outline', color: colors.info }
+          : cats.meta(tx.categoryId);
   const title = tx.payee || meta.name;
   const sub = tx.type === 'transfer' ? `${accountLabel(tx.accountId)} → ${accountLabel(tx.toAccountId)}` : tx.type === 'adjustment' ? accountLabel(tx.accountId) : `${meta.name} · ${accountLabel(tx.accountId)}`;
   const amount =

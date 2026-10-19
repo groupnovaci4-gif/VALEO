@@ -2,21 +2,21 @@
  * Fiche d'une tontine : paramètres saisis et échéancier calculé (date,
  * cotisation, « Vous » ou « Tour n », cagnotte, statut de chaque échéance).
  */
-import { closureSuggested, tontineClosure } from '@/core/tontineLedger';
+import { closureGaps, closureSuggested, tontineClosure } from '@/core/tontineLedger';
 import React, { useMemo, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useAccountLabel, useFinance, useMoney } from '@/hooks/useFinance';
 import { useRunAction } from '@/hooks/useRunAction';
-import { Badge, Banner, Button, Card, EmptyState, Row, Screen, SectionHeader, Text } from '@/components/ui';
+import { Badge, Banner, Button, Card, EmptyState, Row, Screen, SectionHeader, Sheet, Text } from '@/components/ui';
 import { withSpaceReady } from '@/components/SpaceReady';
 import { collectorTotals, nextContribution, nextPayout, potOf, scheduleState, type ItemState } from '@/core/tontine';
 import { NetPositionText } from '@/features/tontine/NetPositionText';
 import { UnderstandCard } from '@/features/tontine/UnderstandCard';
-import { PaySheet, PostponeSheet, useTontineGestures } from '@/features/tontine/TontineActions';
+import { PaySheet, PostponeSheet, ReceiveSheet } from '@/features/tontine/TontineActions';
 import { can } from '@/core/permissions';
 import type { Tontine } from '@/core/types';
 
@@ -35,6 +35,8 @@ function TontineDetail() {
   const canRecord = can(role, 'create', 'transactions');
   const [postponing, setPostponing] = useState<ItemState | null>(null);
   const [paying, setPaying] = useState<ItemState | null>(null);
+  const [receiving, setReceiving] = useState<ItemState | null>(null);
+  const [closing, setClosing] = useState(false);
   if (!tontine) {
     return (
       <Screen back>
@@ -42,17 +44,8 @@ function TontineDetail() {
       </Screen>
     );
   }
-  const setStatus = (status: 'active' | 'paused' | 'finished') => {
-    const go = () => run(() => actions.saveTontine({ ...tontine, status }));
-    if (status !== 'finished') return void go();
-    // Frais ou gain du cycle, comptés à la date de clôture (aucune opération n'est créée).
-    const c = tontineClosure({ ...tontine, status: 'finished' }, data.tontineEntries);
-    const body = c.fees ? t('tontine.close.fees', { amount: money(c.fees) }) : c.gain ? t('tontine.close.gain', { amount: money(c.gain) }) : tontine.name;
-    Alert.alert(t('tontine.finish.confirm'), body, [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.confirm'), onPress: () => void go() },
-    ]);
-  };
+  // Clôturer passe par une feuille qui signale d'abord ce qui n'est pas noté (§5.4).
+  const setStatus = (status: 'active' | 'paused' | 'finished') => (status === 'finished' ? setClosing(true) : void run(() => actions.saveTontine({ ...tontine, status })));
   const statusTone = { done: 'success', late: 'danger', postponed: 'warning', due: 'neutral' } as const;
 
   return (
@@ -90,9 +83,21 @@ function TontineDetail() {
 
       <UnderstandCard tontine={tontine} />
 
-      {tontine.status === 'active' && canRecord ? <TodoList tontine={tontine} states={states} onPostpone={setPostponing} onPay={setPaying} /> : null}
+      {tontine.status === 'active' && canRecord ? <TodoList states={states} onPostpone={setPostponing} onPay={setPaying} onReceive={setReceiving} /> : null}
       <PostponeSheet tontine={tontine} item={postponing} onClose={() => setPostponing(null)} />
       <PaySheet tontine={tontine} item={paying} onClose={() => setPaying(null)} />
+      <ReceiveSheet tontine={tontine} item={receiving} onClose={() => setReceiving(null)} />
+      <CloseSheet
+        tontine={tontine}
+        visible={closing}
+        canRecord={canRecord}
+        onClose={() => setClosing(false)}
+        onPay={(s) => (setClosing(false), setPaying(s))}
+        onReceive={(s) => (setClosing(false), setReceiving(s))}
+        onConfirm={() => {
+          if (run(() => actions.saveTontine({ ...tontine, status: 'finished' }))) setClosing(false);
+        }}
+      />
 
       <SectionHeader title={t('tontine.schedule')} />
       <Card>
@@ -124,11 +129,10 @@ function TontineDetail() {
 }
 
 /** « À faire » : cotisations en retard (payée / reporter), prochaine cotisation, cagnotte à recevoir. */
-function TodoList({ tontine, states, onPostpone, onPay }: { tontine: Tontine; states: ItemState[]; onPostpone: (i: ItemState) => void; onPay: (i: ItemState) => void }) {
+function TodoList({ states, onPostpone, onPay, onReceive }: { states: ItemState[]; onPostpone: (i: ItemState) => void; onPay: (i: ItemState) => void; onReceive: (i: ItemState) => void }) {
   const { t, date } = useI18n();
   const money = useMoney();
   const { now } = useFinance();
-  const { receive } = useTontineGestures(tontine);
   const pay = onPay;
   const late = states.filter((s) => s.status === 'late');
   const next = nextContribution(states.filter((s) => s.status !== 'late'));
@@ -158,11 +162,66 @@ function TodoList({ tontine, states, onPostpone, onPay }: { tontine: Tontine; st
         {payout ? (
           <View style={{ gap: 6 }}>
             <Text variant="small">{t('tontine.nextPayout', { amount: money(payout.payout), date: date(payout.date) })}</Text>
-            {payout.date <= now ? <Button small variant="success" icon="cash-outline" label={t('tontine.gotPot')} onPress={() => receive(payout)} style={{ alignSelf: 'flex-start' }} /> : null}
+            {payout.date <= now ? <Button small variant="success" icon="cash-outline" label={t('tontine.gotPot')} onPress={() => onReceive(payout)} style={{ alignSelf: 'flex-start' }} /> : null}
           </View>
         ) : null}
       </Card>
     </>
+  );
+}
+
+/**
+ * Clôturer (§5.4) : les cotisations et cagnottes échues non notées sont signalées D'ABORD,
+ * avec de quoi les noter ; puis les frais ou le gain du cycle, comptés à la clôture.
+ */
+function CloseSheet({
+  tontine,
+  visible,
+  canRecord,
+  onClose,
+  onPay,
+  onReceive,
+  onConfirm,
+}: {
+  tontine: Tontine;
+  visible: boolean;
+  canRecord: boolean;
+  onClose: () => void;
+  onPay: (s: ItemState) => void;
+  onReceive: (s: ItemState) => void;
+  onConfirm: () => void;
+}) {
+  const { t, date } = useI18n();
+  const money = useMoney();
+  const { data, now } = useFinance();
+  const gaps = useMemo(() => closureGaps(tontine, data.tontineEntries, now), [tontine, data.tontineEntries, now]);
+  const n = gaps.contributions.length;
+  const pot = gaps.payouts.length > 0;
+  const summary = n && pot ? t(n === 1 ? 'tontine.close.gaps.both.one' : 'tontine.close.gaps.both', { count: n }) : n ? t(n === 1 ? 'tontine.close.gaps.contrib.one' : 'tontine.close.gaps.contrib', { count: n }) : pot ? t('tontine.close.gaps.pot') : null;
+  // Frais ou gain du cycle, comptés à la date de clôture (aucune opération n'est créée).
+  const c = tontineClosure({ ...tontine, status: 'finished' }, data.tontineEntries);
+  const result = c.fees ? t('tontine.close.fees', { amount: money(c.fees) }) : c.gain ? t('tontine.close.gain', { amount: money(c.gain) }) : null;
+  return (
+    <Sheet visible={visible} onClose={onClose} title={t('tontine.finish.confirm')}>
+      <View style={{ gap: 10 }}>
+        {summary ? (
+          <>
+            <Text variant="bodyStrong">{summary}</Text>
+            <Text variant="small" tone="muted">
+              {t('tontine.close.gaps.hint')}
+            </Text>
+            {canRecord
+              ? [
+                  ...gaps.contributions.map((s) => <Button key={`c${s.period}`} small variant="secondary" icon="checkmark" label={t('tontine.close.noteContribution', { date: date(s.dueDate), amount: money(s.contribution) })} onPress={() => onPay(s)} />),
+                  ...gaps.payouts.map((s) => <Button key={`p${s.period}`} small variant="secondary" icon="cash-outline" label={t('tontine.close.notePot', { date: date(s.date), amount: money(s.payout) })} onPress={() => onReceive(s)} />),
+                ]
+              : null}
+          </>
+        ) : null}
+        {result ? <Text variant="small">{result}</Text> : null}
+        <Button icon="flag-outline" variant={summary ? 'ghost' : 'primary'} label={summary ? t('tontine.close.anyway') : t('tontine.closeSuggest.cta')} onPress={onConfirm} />
+      </View>
+    </Sheet>
   );
 }
 

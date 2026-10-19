@@ -111,12 +111,15 @@ function DebtDetail() {
       </Card>
       <Sheet visible={open} onClose={() => setOpen(false)} title={t(debt.direction === 'i_owe' ? 'debt.pay' : 'debt.receive')}>
         <AmountField label={t('common.amount')} value={amount} onChange={setAmount} currency={debt.currency} big />
+        {/* Compte exigé (E49) : celui d'où sort le remboursement, ou celui où il arrive ; « Hors de mes comptes » seulement s'il a été payé autrement. */}
         <Text variant="small" weight="600" style={{ marginBottom: 2 }}>
-          {t('debt.payment.account')}
+          {t(debt.direction === 'i_owe' ? 'debt.payment.account' : 'debt.movement.received')}
         </Text>
-        <Text variant="caption" tone="subtle" style={{ marginBottom: 6 }}>
-          {t('debt.payment.accountHint')}
-        </Text>
+        {debt.direction === 'i_owe' ? (
+          <Text variant="caption" tone="subtle" style={{ marginBottom: 6 }}>
+            {t('debt.payment.accountHint')}
+          </Text>
+        ) : null}
         <ChipGroup scroll value={accountId} onChange={setAccountId} options={[...payAccounts.map((a) => ({ value: a.id, label: a.name, icon: a.icon, color: a.color })), { value: 'none', label: t('debt.movement.outside') }]} />
         {debt.direction === 'i_owe' ? <AmountField label={t('debt.interest')} value={interest} onChange={setInterest} currency={debt.currency} hint={t('debt.interestHint')} /> : null}
         <DateField label={t('common.date')} value={day} onChange={(d) => d && setDay(d)} />

@@ -81,6 +81,12 @@ function BudgetScreen() {
           {t('budget.unassigned')} : {money(budget.unassigned)}
         </Text>
       ) : null}
+      {/* §9 (E44b) : le capital remboursé n'est pas une dépense — ligne à part, hors enveloppes. */}
+      {budget.debtRepayments > 0 ? (
+        <Text variant="small" tone="muted" style={{ marginTop: 8 }}>
+          {t('budget.debtRepayments', { amount: money(budget.debtRepayments) })}
+        </Text>
+      ) : null}
     </Screen>
   );
 }

@@ -12,7 +12,7 @@ import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { useRunAction } from '@/hooks/useRunAction';
-import { AmountField, Button, Card, ChipGroup, Field, Text, useToast } from '@/components/ui';
+import { AmountField, Button, Card, ChipGroup, DateField, Field, Text, useToast } from '@/components/ui';
 import { useMoneyGuard } from './MoneyGuard';
 import { recurringToConfirm, type ConfirmCard } from '@/core/recurringConfirm';
 import { allowancePeriod, toRegularize, type Commitment } from '@/core/allowance';
@@ -184,14 +184,20 @@ export function RegularizeList({ hidden }: { hidden?: boolean }) {
   const { role } = useApp();
   const { data, currency, now, payDay } = useFinance();
   const items = useMemo(() => toRegularize(data, currency, now, payDay), [data, currency, now, payDay]);
+  // « Payée » : la date proposée est la date de l'échéance, modifiable (§7.2).
+  const [paying, setPaying] = useState<{ key: string; date: string } | null>(null);
   if (!items.length || role === 'child') return null;
   const labelOf = (c: Commitment) => (c.kind === 'recurring' ? (data.recurring.find((r) => r.id === c.id)?.label ?? '') : (data.tontines.find((x) => x.id === c.id)?.name ?? ''));
-  const paid = (c: Commitment) => {
-    if (c.kind === 'recurring') {
-      const rule = data.recurring.find((r) => r.id === c.id);
-      if (!rule) return;
-      guard((choices) => actions.confirmRecurring({ ruleId: c.id, occurrence: c.date, date: now, choices }), { onDone: () => toast.show(t('common.saved')) });
-    } else router.push({ pathname: '/tontines/[id]', params: { id: c.id } });
+  const keyOf = (c: Commitment) => `${c.kind}_${c.id}_${c.date}`;
+  const paid = (c: Commitment, day: string) => {
+    const rule = data.recurring.find((r) => r.id === c.id);
+    if (!rule) return;
+    guard((choices) => actions.confirmRecurring({ ruleId: c.id, occurrence: c.date, date: day, choices }), {
+      onDone: () => {
+        setPaying(null);
+        toast.show(t('common.saved'));
+      },
+    });
   };
   // Tontine : « Je la dois encore » la reporte à aujourd'hui (elle redevient un engagement) ; « Pas due » la marque faite, sans argent.
   const owe = (c: Commitment) => (c.kind === 'recurring' ? run(() => actions.oweRecurringOccurrence(c.id, c.date)) : run(() => actions.postponeTontine({ tontineId: c.id, period: c.period ?? 1, amount: c.amount, date: now })));
@@ -200,13 +206,27 @@ export function RegularizeList({ hidden }: { hidden?: boolean }) {
     <Card style={{ gap: 10, marginBottom: 12 }}>
       <Text variant="titleS">{t('reg.title')}</Text>
       {items.slice(0, 6).map((c) => (
-        <View key={`${c.kind}_${c.id}_${c.date}`} style={{ gap: 6 }}>
+        <View key={keyOf(c)} style={{ gap: 6 }}>
           <Text variant="small">{t('reg.item', { label: labelOf(c), date: date(c.date), amount: hidden ? '••••••' : money(c.amount) })}</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            <Button small label={t('reg.paid')} onPress={() => paid(c)} />
-            <Button small variant="secondary" label={t('reg.owe')} onPress={() => owe(c)} />
-            <Button small variant="ghost" label={t('reg.notDue')} onPress={() => notDue(c)} />
-          </View>
+          {paying?.key === keyOf(c) ? (
+            <>
+              <DateField label={t('common.date')} value={paying.date} onChange={(d) => d && setPaying({ key: keyOf(c), date: d })} shortcuts={false} />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                <Button small icon="checkmark" label={t('common.confirm')} onPress={() => paid(c, paying.date)} />
+                <Button small variant="ghost" label={t('common.cancel')} onPress={() => setPaying(null)} />
+              </View>
+            </>
+          ) : (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <Button
+                small
+                label={t('reg.paid')}
+                onPress={() => (c.kind === 'recurring' ? setPaying({ key: keyOf(c), date: c.date }) : router.push({ pathname: '/tontines/[id]', params: { id: c.id } }))}
+              />
+              <Button small variant="secondary" label={t('reg.owe')} onPress={() => owe(c)} />
+              <Button small variant="ghost" label={t('reg.notDue')} onPress={() => notDue(c)} />
+            </View>
+          )}
         </View>
       ))}
     </Card>

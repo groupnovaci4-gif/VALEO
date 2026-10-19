@@ -41,10 +41,17 @@ function Analysis() {
         <Text variant="overline" tone="heroMuted">
           {t('intel.capacity').toUpperCase()}
         </Text>
-        <Text variant="display" tone="onHero" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ marginVertical: 6 }}>
-          {/* Argent disponible v2 (§11.6) : la Marge observée sur des mois clos ; sans mois clos, aucun montant. */}
-          {s.monthsOfData ? money(s.savingsCapacity.value) : t('intel.notEnoughData')}
-        </Text>
+        {/* Argent disponible v2 (§11.6) : la Marge observée sur des mois clos ; sans mois clos, aucun montant
+            — une phrase, qui passe à la ligne au lieu d'être coupée. */}
+        {s.monthsOfData ? (
+          <Text variant="display" tone="onHero" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ marginVertical: 6 }}>
+            {money(s.savingsCapacity.value)}
+          </Text>
+        ) : (
+          <Text variant="titleL" tone="onHero" style={{ marginVertical: 6 }}>
+            {t('intel.notEnoughData')}
+          </Text>
+        )}
         {s.monthsOfData ? (
           <>
             <Text variant="small" tone="heroMuted">
@@ -62,13 +69,14 @@ function Analysis() {
         <RecommendationCard key={r.id} r={r} />
       ))}
 
-      <SectionHeader title={t('intel.breakdown')} action={t('intel.perMonth')} />
+      {/* Lignes observées sur UNE période : moyenne des mois clos, sinon le mois en cours. */}
+      <SectionHeader title={t('intel.breakdown')} action={s.period === 'closed' ? t('intel.perMonth') : t('intel.thisMonth')} />
       <Card>
         {line('intel.income', s.income)}
         {line('intel.expenses', s.expenses)}
         {line('intel.fixed', s.fixedCharges, s.fixedRatio !== null ? t('intel.fixedRatio', { percent: s.fixedRatio }) : undefined)}
         {line('intel.variable', s.variableSpending)}
-        {line('intel.debtService', s.debtService, s.debtRatio !== null && s.debtService.value > 0 ? t('intel.debtRatio', { percent: s.debtRatio }) : undefined)}
+        {line('intel.debtService', s.debtRepaid, s.debtRepaidRatio !== null && s.debtRepaid.value > 0 ? t('intel.debtRatio', { percent: s.debtRepaidRatio }) : undefined)}
         {line('intel.goalNeeds', s.goalNeeds)}
         {line('intel.upcoming', s.upcomingOutflows, t('intel.upcomingHint'))}
       </Card>

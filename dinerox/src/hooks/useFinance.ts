@@ -6,7 +6,7 @@ import { useCallback, useMemo } from 'react';
 import { useApp, useData } from '@/store/app';
 import { useI18n, hasKey } from '@/i18n';
 import { accountBalances, flowTotals, moneyPosition } from '@/core/balance';
-import { budgetSummary, envelopeStatuses, outsideEnvelopeSpent } from '@/core/budget';
+import { budgetSummary, debtRepaymentsInMonth, envelopeStatuses, outsideEnvelopeSpent } from '@/core/budget';
 import { withLedgerView } from '@/core/nature';
 import { positionOf } from '@/core/position';
 import { unallocated } from '@/core/allowance';
@@ -106,7 +106,12 @@ export function useFinance() {
     const flows = flowTotals(data.transactions, periodOf('month', now), currency);
     const envelopes = envelopeStatuses(data.envelopes, budgetTransactions(data.transactions, data.goalContributions), data.budgets, month, currency, data.accounts);
     // « Dépenses hors enveloppe » : même base que les enveloppes (part d'une réserve exclue, §9).
-    const budget = { ...budgetSummary(envelopes, flows.expense), unassigned: outsideEnvelopeSpent(data.envelopes, data.transactions, data.goalContributions, month, currency) };
+    // Le capital remboursé n'est ni dans une enveloppe ni hors enveloppe : ligne à part (§9, E44b).
+    const budget = {
+      ...budgetSummary(envelopes, flows.expense),
+      unassigned: outsideEnvelopeSpent(data.envelopes, data.transactions, data.goalContributions, month, currency),
+      debtRepayments: debtRepaymentsInMonth(data.transactions, month, currency),
+    };
     // Argent disponible v2 (§4) : Argent disponible / Mis de côté / Total de vos comptes.
     const money = positionOf(data, currency, now);
     // Reste à répartir (§9).
