@@ -3,6 +3,7 @@
  * modification. Saisie en quelques secondes : montant en premier, compte et
  * catégorie pré-sélectionnés, date « aujourd'hui ».
  */
+import { offerIncomeSaving } from '@/store/incomeSavingOffer';
 import React, { useMemo, useState } from 'react';
 import { Alert, Image, View } from 'react-native';
 import { router } from 'expo-router';
@@ -192,6 +193,8 @@ export function TransactionForm({ existing, initial }: { existing?: Transaction;
       else if (!existing) undoToast([saved.id]);
       else toast.show(t('tx.saved'));
       if (!existing) analytics.track('entry_created', { method: 'full_form', count: 1 });
+      // §11.2 : revenus irréguliers — l'accueil propose d'en mettre 10 % de côté (calcul pur, la carte décide).
+      if (!existing && type === 'income') offerIncomeSaving([saved.id]);
       goBack();
     }
   };

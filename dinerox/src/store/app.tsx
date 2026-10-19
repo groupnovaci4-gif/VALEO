@@ -31,6 +31,7 @@ import { applyPending, pendingOf, queuePatch, type OwnedPending, type PendingPro
 import { isSuspendedAuthError, type AccountCheckTrigger } from '@/core/accountStatus';
 import { signOut as authSignOut } from '@/services/auth';
 import { deviceLanguage, translate } from '@/i18n';
+import { clearIncomeSaving } from './incomeSavingOffer';
 
 export type AppMode = 'firebase' | 'local';
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
@@ -114,6 +115,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     sessionUid.current = null;
     pendingProfile.current = null;
     resetCoachMemoryCache();
+    clearIncomeSaving();
     profileRef.current = null;
     setUser(null);
     setProfile(null);

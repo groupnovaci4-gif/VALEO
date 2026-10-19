@@ -71,8 +71,12 @@ let b;
   // Recherche dans la liste de choix.
   await fill('Rechercher une catégorie', 'yango');
   await p.waitForTimeout(300);
+  // L'enveloppe de départ porte aussi le nom « Alimentation & boissons » (avant la 1.6) : on compte les
+  // occurrences — la CATÉGORIE disparaît de la liste filtrée, l'enveloppe reste affichée plus bas.
+  const occ = (x) => x.split('Alimentation & boissons').length - 1;
+  const before = occ(t);
   t = await text();
-  ok(t.includes('Transport') && !t.includes('Alimentation & boissons'), 'recherche « yango » → Transport (via sa sous-catégorie)');
+  ok(t.includes('Transport') && occ(t) < before, 'recherche « yango » → Transport (via sa sous-catégorie)');
   await fill('Rechercher une catégorie', '');
   // « Nouvelle catégorie… » depuis le formulaire : créée et choisie.
   await btn('Nouvelle catégorie…').click(); await p.waitForTimeout(500);

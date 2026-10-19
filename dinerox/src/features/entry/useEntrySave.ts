@@ -3,6 +3,7 @@
  * (validation, droits, outbox hors ligne), puis message « Enregistré ✓ — il
  * vous reste X par jour » avec « Voir » et « Annuler » pendant 5 secondes.
  */
+import { offerIncomeSaving } from '@/store/incomeSavingOffer';
 import { learnableWord } from '@/core/entry/keywords';
 import { normalizeWord } from '@/core/categoryCatalog';
 import { useCallback } from 'react';
@@ -222,6 +223,8 @@ export function useEntrySave() {
       const spendingIds = new Set(spendingAccounts(accountsNow).map((a) => a.id));
       if (user) void recordEntrySuccess(user.uid, { voice: method === 'voice', items: drafts.map((d) => ({ type: d.type === 'savings' ? ('transfer' as const) : d.type, categoryId: d.categoryId, accountId: d.accountId && spendingIds.has(d.accountId) ? d.accountId : null })) }).catch(() => undefined);
       const redirected = drafts.find((d) => d.savingsRedirect && d.type === 'expense');
+      // §11.2 : un revenu reçu dans la note → l'accueil peut proposer d'en mettre 10 % de côté.
+      offerIncomeSaving(ids);
       if (!inline) undoToast(ids, { redirectedTo: redirected?.accountId ?? null });
       else heldNotice = circleNotice(ids, redirected?.accountId ?? null);
       return ids;

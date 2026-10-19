@@ -44,8 +44,8 @@ const SPY = () => {
   const test = await spoken();
   ok(test.length === 1 && test[0].includes('Bonjour Awa, je suis votre coach'), `« Tester la voix » : ${JSON.stringify(test)}`);
 
-  // Budget Nourriture 100 000.
-  await go('/budget'); await p.getByText('Nourriture', { exact: true }).first().click(); await p.waitForTimeout(1200);
+  // Budget Alimentation & boissons 100 000.
+  await go('/budget'); await p.getByText('Alimentation & boissons', { exact: true }).first().click(); await p.waitForTimeout(1200);
   await p.getByText('Modifier', { exact: true }).first().click(); await p.waitForTimeout(1200);
   await p.getByLabel('Budget mensuel').first().fill('100000'); await p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click(); await p.waitForTimeout(2000);
 
@@ -57,7 +57,7 @@ const SPY = () => {
   // 3. Dépassement : voix SANS montant (confidentialité par défaut) + alarme.
   await reset(); await expense(35000); // 120 000
   let s = await spoken();
-  ok(s.length === 1 && s[0].includes('vous avez dépassé votre budget Nourriture') && !/\d/.test(s[0]), `dépassement : voix sans montant (« ${s[0]} »)`);
+  ok(s.length === 1 && s[0].includes('vous avez dépassé votre budget Alimentation & boissons') && !/\d/.test(s[0]), `dépassement : voix sans montant (« ${s[0]} »)`);
   ok((await sounds()).some((x) => x.includes('alarm')), 'dépassement : son d’alarme');
 
   // 4. Lire les montants activé → le montant est prononcé ; le dépassement suivant (lendemain) n'existe pas ici,

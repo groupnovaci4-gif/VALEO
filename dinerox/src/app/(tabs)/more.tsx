@@ -3,7 +3,7 @@ import { Linking, Platform, View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
-import { Badge, Card, GradientCard, Icon, IconCircle, Row, Screen, SectionHeader, Text } from '@/components/ui';
+import { Badge, GradientCard, Icon, IconCircle, Screen, SectionHeader, Text, Tile, TileGrid, TileText } from '@/components/ui';
 import { can } from '@/core/permissions';
 import { hasFeature } from '@/core/subscription';
 import { today } from '@/core/dates';
@@ -156,21 +156,27 @@ export default function More() {
       {groups.map((g) => (
         <React.Fragment key={g.title}>
           <SectionHeader title={t(g.title).toUpperCase()} action={g.aside || undefined} />
-          <Card padded={false} style={{ paddingHorizontal: 14, paddingVertical: 4 }}>
+          {/* Rubriques en pavés : icône, titre, sous-titre court (grille de deux colonnes). */}
+          <TileGrid>
             {g.items
               .filter((i) => i.show !== false)
               .map((i) => (
-                <Row
+                <Tile
                   key={i.key}
-                  title={t(i.key)}
-                  subtitle={t(i.sub)}
-                  left={<IconCircle icon={i.icon} color={i.color} size={44} />}
-                  right={i.locked ? <Badge tone="ai" label="PRO" /> : undefined}
-                  chevron
+                  accessibilityLabel={`${t(i.key)}, ${t(i.sub)}`}
                   onPress={() => (i.onPress ? i.onPress() : i.url ? void Linking.openURL(i.url).catch(() => undefined) : router.push(i.path as never))}
-                />
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                    <IconCircle icon={i.icon} color={i.color} size={40} />
+                    {i.locked ? <Badge tone="ai" label="PRO" /> : null}
+                  </View>
+                  <TileText variant="bodyStrong">{t(i.key)}</TileText>
+                  <TileText variant="small" tone="muted">
+                    {t(i.sub)}
+                  </TileText>
+                </Tile>
               ))}
-          </Card>
+          </TileGrid>
         </React.Fragment>
       ))}
     </Screen>

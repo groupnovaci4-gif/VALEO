@@ -4,6 +4,7 @@
  * `toRegularize`, `dailyAllowanceV2`) ; toute écriture passe par `useActions` et, quand de
  * l'argent sort, par la feuille de complément (`useMoneyGuard`).
  */
+import { offerIncomeSaving } from '@/store/incomeSavingOffer';
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
@@ -137,7 +138,14 @@ function ConfirmCardView({ card, hidden, onSnooze }: { card: ConfirmCard; hidden
   const accountName = accounts.find((a) => a.id === accountId)?.name ?? '';
   const confirm = () => {
     if (!accountId || !amount) return;
-    guard((choices) => actions.confirmRecurring({ ruleId: card.ruleId, occurrence: card.date, amount, accountId, date: now, choices }), { onDone: () => toast.show(t('common.saved')) });
+    guard(
+      (choices) => {
+        const id = actions.confirmRecurring({ ruleId: card.ruleId, occurrence: card.date, amount, accountId, date: now, choices });
+        // §11.2 : revenu reçu → l'accueil peut proposer d'en mettre 10 % de côté.
+        if (card.type === 'income') offerIncomeSaving([id]);
+      },
+      { onDone: () => toast.show(t('common.saved')) },
+    );
   };
   const show = (n: number) => (hidden ? '••••••' : money(n));
   return (

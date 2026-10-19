@@ -13,7 +13,7 @@ import { debtStatus } from './debts';
 import { envelopeStatuses } from './budget';
 import { budgetTransactions, isReserve } from './reserve';
 import { goalPlanFor } from './goals';
-import { behaviorScoreV2, isIrregularIncome, savingsRate, type ScoreV2Id } from './coachMetrics';
+import { behaviorScoreV2, isIrregularIncome, savingsRate, sourceSavingSuggestion, type ScoreV2Id } from './coachMetrics';
 import { addDays, endOfMonth, lastMonths, monthKey, type ISODate, type MonthKey } from './dates';
 import type { CurrencyCode } from './money';
 import type { FinancialProfile, SpaceData } from './types';
@@ -119,14 +119,41 @@ export interface CoachState {
   goalsBehind: boolean;
 }
 
+/** Revenus irréguliers : le profil le dit, ou R varie trop sur les 6 derniers mois clos (§11.2). */
+export function irregularIncome(d: Data, currency: CurrencyCode, today: ISODate, financial?: Pick<FinancialProfile, 'incomeNature'> | null): boolean {
+  const received6 = activeClosedMonths(d, currency, today, 6).map((m) => monthMetrics(d, m, currency).received);
+  return isIrregularIncome(financial ?? null, received6);
+}
+
+/**
+ * §11.2 — épargne à la source : après l'enregistrement d'opérations (`ids`), si elles comptent
+ * un REVENU reçu (nature `revenu` : jamais un emprunt, une cagnotte ou un remboursement), daté
+ * d'aujourd'hui au plus tard, sur un compte courant de la devise, et si les revenus sont
+ * irréguliers : proposer d'en mettre 10 % de côté. null : pas de carte.
+ */
+export function incomeSavingPrompt(
+  d: Data,
+  ids: string[],
+  currency: CurrencyCode,
+  today: ISODate,
+  financial?: Pick<FinancialProfile, 'incomeNature'> | null,
+): { received: number; suggestion: number; accountId: string } | null {
+  const ctx = natureContext(d);
+  const wanted = new Set(ids);
+  const revenues = d.transactions.filter((t) => wanted.has(t.id) && !t.deleted && t.currency === currency && t.date <= today && !ctx.savings.has(t.accountId) && natureOf(t, ctx) === 'revenu');
+  if (!revenues.length) return null;
+  const received = revenues.reduce((n, t) => n + t.amount, 0);
+  const suggestion = sourceSavingSuggestion(received, irregularIncome(d, currency, today, financial));
+  return suggestion ? { received, suggestion, accountId: revenues[0].accountId } : null;
+}
+
 export function coachState(d: Data, currency: CurrencyCode, today: ISODate, financial?: Pick<FinancialProfile, 'payDay' | 'incomeNature'> | null): CoachState {
   const position = positionOf(d, currency, today);
   const allowance = dailyAllowanceV2({ data: d, currency, today, payDay: financial?.payDay ?? null });
   const months = activeClosedMonths(d, currency, today, 3);
   const metrics = months.map((m) => monthMetrics(d, m, currency));
   const last = metrics.length ? metrics[metrics.length - 1] : null;
-  const received6 = activeClosedMonths(d, currency, today, 6).map((m) => monthMetrics(d, m, currency).received);
-  const irregular = isIrregularIncome(financial ?? null, received6);
+  const irregular = irregularIncome(d, currency, today, financial);
   const ess = essentials(d, currency, today);
   const fund = precautionFund(d, currency, today);
   const averageReceived = metrics.length ? avg(metrics.map((m) => m.received)) : null;

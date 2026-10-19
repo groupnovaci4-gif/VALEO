@@ -7,7 +7,7 @@ import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
-import { Amount, Badge, Button, Card, Icon, IconCircle, ProgressBar, Row, Sheet, Text } from '@/components/ui';
+import { Amount, Badge, Button, Card, Icon, IconCircle, ProgressBar, Row, Sheet, Text, Tile, TileCell, TileIcon, TileText } from '@/components/ui';
 import { useAccountLabel, useCategoryLabels, useMoney } from '@/hooks/useFinance';
 import { useInsightText } from '@/hooks/useInsightText';
 import { useApp } from '@/store/app';
@@ -78,7 +78,11 @@ export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx
   );
 }
 
-export function GoalCard({ goal, plan, compact, rank }: { goal: Goal; plan: GoalPlan; compact?: boolean; rank?: number }) {
+/**
+ * Objectif en PAVÉ (accueil, onglet Objectifs) : emoji, nom, rang, catégorie et date, montant
+ * mis de côté / cible et %, barre ; hors `compact`, le reste et le rythme mensuel.
+ */
+export function GoalTile({ goal, plan, compact, rank }: { goal: Goal; plan: GoalPlan; compact?: boolean; rank?: number }) {
   const { t, monthYear, lang } = useI18n();
   const money = useMoney();
   const { colors, radius, v2 } = useTheme();
@@ -93,72 +97,56 @@ export function GoalCard({ goal, plan, compact, rank }: { goal: Goal; plan: Goal
         ? t('goal.atPaceChip', { date: monthYear(plan.estimatedDate) })
         : null;
   return (
-    <Card
+    <Tile
       onPress={() => router.push(`/goals/${goal.id}`)}
-      // v2 : le lecteur d'écran entend aussi le montant et la progression (pas seulement le nom).
+      // Le lecteur d'écran entend aussi le montant et la progression (pas seulement le nom).
       accessibilityLabel={v2 && goal.targetAmount > 0 ? `${goal.name}, ${money(plan.saved)} / ${money(plan.target)}, ${plan.percent} %` : goal.name}
-      style={{ marginBottom: 12 }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <IconCircle emoji={goal.icon} color={colors.primary} size={48} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-            <Text variant="h3" numberOfLines={2} style={{ flexShrink: 1 }}>
-              {goal.name}
-            </Text>
-            {rank ? (v2 ? <Badge tone={rank === 1 ? 'info' : 'neutral'} label={t('goal.rank', { rank })} /> : <Badge tone={rank === 1 ? 'danger' : 'neutral'} label={t('goal.rank', { rank }).toUpperCase()} />) : null}
-          </View>
-          {category ? (
-            <Text variant="small" tone="muted" numberOfLines={1}>
-              {category}
-              {goal.targetDate ? ` · ${monthYear(goal.targetDate)}` : ''}
-            </Text>
-          ) : null}
-        </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+        <IconCircle emoji={goal.icon} color={colors.primary} size={40} />
+        {rank ? (v2 ? <Badge tone={rank === 1 ? 'info' : 'neutral'} label={t('goal.rank', { rank })} /> : <Badge tone={rank === 1 ? 'danger' : 'neutral'} label={t('goal.rank', { rank }).toUpperCase()} />) : null}
       </View>
+      <TileText variant="bodyStrong">{goal.name}</TileText>
+      {category ? (
+        <TileText variant="small" tone="muted">
+          {category}
+          {goal.targetDate ? ` · ${monthYear(goal.targetDate)}` : ''}
+        </TileText>
+      ) : null}
       {goal.targetAmount > 0 ? (
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: 8 }}>
-          {v2 ? (
-            <Amount text={money(plan.saved)} size="M" style={{ color: accent, flexShrink: 1 }} />
-          ) : (
-            <Text variant="h2" numberOfLines={1} adjustsFontSizeToFit style={{ color: accent, flexShrink: 1 }}>
-              {money(plan.saved)}
-            </Text>
-          )}
-          <Text variant="small" tone="muted" numberOfLines={1} style={{ flexShrink: 1, marginBottom: 3 }}>
-            / {money(plan.target)}
-          </Text>
-          <View style={{ flex: 1 }} />
-          <Text variant="bodyStrong" style={{ color: accent }}>
-            {plan.percent} %
-          </Text>
+        <View>
+          <TileText variant="amountS" color={accent}>
+            {money(plan.saved)}
+          </TileText>
+          <TileText variant="small" tone="muted">
+            / {money(plan.target)} · {plan.percent} %
+          </TileText>
         </View>
       ) : (
-        <Text variant="small" tone="muted" style={{ marginBottom: 8 }}>
+        <TileText variant="small" tone="muted">
           {t('goal.setAmount')}
-        </Text>
+        </TileText>
       )}
       <ProgressBar value={plan.percent} tone={tone} height={10} label={goal.name} />
       {!compact && goal.targetAmount > 0 ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
-            <Icon name="time-outline" size={16} color={colors.textMuted} />
-            <Text variant="small" numberOfLines={1} style={{ flexShrink: 1 }}>
+        <View style={{ gap: 6 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <TileIcon name="time-outline" size={16} color={colors.textMuted} />
+            <TileText variant="small" style={{ flexShrink: 1 }}>
               {t('goal.left', { amount: money(plan.remaining) })}
-            </Text>
+            </TileText>
           </View>
-          <View style={{ flex: 1 }} />
           {chip ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.infoBg, borderRadius: radius.md, paddingHorizontal: 10, paddingVertical: 6, maxWidth: '100%' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.infoBg, borderRadius: radius.md, paddingHorizontal: 10, paddingVertical: 6, alignSelf: 'flex-start', maxWidth: '100%' }}>
               <Icon name="repeat" size={14} color={colors.info} />
-              <Text variant="caption" weight="600" style={{ color: colors.info, flexShrink: 1 }} numberOfLines={1}>
+              <Text variant="caption" weight="600" style={{ color: colors.info, flexShrink: 1 }}>
                 {chip}
               </Text>
             </View>
           ) : null}
         </View>
       ) : null}
-    </Card>
+    </Tile>
   );
 }
 
@@ -178,6 +166,29 @@ export function AccountRow({ account, balance, onPress }: { account: Account; ba
       onPress={onPress ?? (() => router.push(`/accounts/${account.id}`))}
       chevron
     />
+  );
+}
+
+/**
+ * Alerte en PAVÉ (onglet Budget) : icône de gravité et texte ; un toucher ouvre l'élément
+ * concerné. « Écouter » reste À CÔTÉ du pavé (jamais un bouton dans un bouton).
+ */
+export function InsightTile({ insight }: { insight: Insight }) {
+  const { colors } = useTheme();
+  const render = useInsightText();
+  const fg = { info: colors.info, positive: colors.success, warning: colors.warning, danger: colors.danger }[insight.severity];
+  const icon = { info: 'information-circle', positive: 'sparkles', warning: 'warning', danger: 'alert-circle' }[insight.severity];
+  const r = insight.ref;
+  const path = r ? (r.type === 'envelope' ? `/envelopes/${r.id}` : r.type === 'goal' ? `/goals/${r.id}` : r.type === 'debt' ? `/debts/${r.id}` : r.type === 'transaction' ? `/transaction/${r.id}` : null) : null;
+  const text = render(insight);
+  return (
+    <TileCell>
+      <Tile onPress={path ? () => router.push(path as never) : undefined} accessibilityLabel={text}>
+        <TileIcon name={icon} size={22} color={fg} />
+        <TileText variant="small">{text}</TileText>
+      </Tile>
+      <ListenButton text={text} />
+    </TileCell>
   );
 }
 

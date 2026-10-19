@@ -10,6 +10,7 @@ import { budgetSummary, debtRepaymentsInMonth, envelopeStatuses, outsideEnvelope
 import { withLedgerView } from '@/core/nature';
 import { positionOf } from '@/core/position';
 import { unallocated } from '@/core/allowance';
+import { periodReport } from '@/core/ledger';
 import { computeInsights } from '@/core/insights';
 import { monthKey, periodOf, today } from '@/core/dates';
 import { formatMoney, type CurrencyCode } from '@/core/money';
@@ -116,8 +117,10 @@ export function useFinance() {
     const money = positionOf(data, currency, now);
     // Reste à répartir (§9).
     const toAllocate = unallocated({ data, currency, today: now, payDay });
+    // Épargne nette du mois en cours (grand livre, mêmes natures que les rapports).
+    const monthNetSavings = periodReport(data, periodOf('month', now), currency).epargneNette;
     const insights = computeInsights({ data, currency, now, categoryName: labels.label });
     const activeAccounts: Account[] = data.accounts.filter((a) => a.active).sort((a, b) => a.order - b.order);
-    return { data, currency, now, month, balances, position, money, toAllocate, payDay, spaceKind: activeSpace?.kind ?? 'personal', flows, envelopes, budget, insights, activeAccounts };
+    return { data, currency, now, month, balances, position, money, toAllocate, monthNetSavings, payDay, spaceKind: activeSpace?.kind ?? 'personal', flows, envelopes, budget, insights, activeAccounts };
   }, [data, currency, now, month, labels.label, payDay, activeSpace?.kind]);
 }

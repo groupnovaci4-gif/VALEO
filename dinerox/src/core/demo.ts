@@ -1,8 +1,8 @@
 /**
  * Données de démonstration (mode développement). Générées dans un espace
  * « Démo » séparé et local : jamais mélangées aux données réelles.
- * Scénario de référence : revenu 450 000, logement 100 000, nourriture
- * 80 000, transport 40 000, famille 50 000, objectif Moto 1 200 000.
+ * Scénario de référence : revenu 450 000, logement 100 000, alimentation &
+ * boissons 80 000, transport 40 000, famille 50 000, objectif Moto 1 200 000.
  * Réserve famille et cérémonies : 25 000 par mois, plafond 300 000, une
  * cérémonie du mois dernier prise dessus. Deux soutiens réguliers (Maman,
  * scolarité d'un neveu) et la rentrée scolaire comme moment fort à préparer.

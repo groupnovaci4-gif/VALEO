@@ -250,3 +250,12 @@ export function positionOf(d: PositionData, currency: CurrencyCode, today: ISODa
     otherCurrencies,
   };
 }
+
+/**
+ * Accueil, sous « Mis de côté » : « dont X hors de vos comptes » = épargne hors comptes
+ * + créances de tontine (déjà comprises dans « Mis de côté »). null : pas de ligne.
+ */
+export function setAsideOutsideAccounts(p: Pick<Position, 'outside' | 'tontineReceivable'>): number | null {
+  const n = p.outside + p.tontineReceivable;
+  return n !== 0 ? n : null;
+}

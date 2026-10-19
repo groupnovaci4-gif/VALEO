@@ -4,8 +4,8 @@
  *  1. carte principale — reste par jour + solde disponible (masquables) ;
  *  2. échéance de tontine, raccourcis (Historique en un toucher, Revenu, Transfert) ;
  *  3. saisie (bulle) et dernières opérations ;
- *  4. alertes, mois en cours, coach, conseil, analyse, enveloppes, objectifs,
- *     récompenses, assistant, rapports.
+ *  4. alertes, mois en cours, coach, conseil, analyse ; enveloppes, objectifs,
+ *     récompenses et assistant en PAVÉS (grille de deux colonnes) ; rapports.
  * Aucune formule ici : tous les chiffres viennent de `useFinance` / `core`.
  */
 import React, { useMemo, useState } from 'react';
@@ -15,9 +15,9 @@ import { BIG_TEXT, DesignV2, useTheme } from '@/theme';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { Amount, Badge, Banner, Button, Card, EmptyState, Icon, Row, Screen, SectionHeader, Text, useToast } from '@/components/ui';
-import { GoalCard, InsightCard, SpaceSwitcher, TransactionRow } from '@/features/rows';
-import { EnvelopeCard } from '@/features/budget/EnvelopeCard';
+import { Amount, Badge, Banner, Button, Card, EmptyState, Icon, Row, Screen, SectionHeader, Text, Tile, TileGrid, TileText, useToast } from '@/components/ui';
+import { GoalTile, InsightCard, SpaceSwitcher, TransactionRow } from '@/features/rows';
+import { EnvelopeTile } from '@/features/budget/EnvelopeCard';
 import { useIntelligence } from '@/hooks/useIntelligence';
 import { RecommendationCard } from '@/features/Recommendation';
 import { CoachSummaryCard } from '@/features/coach/CoachSummaryCard';
@@ -35,6 +35,7 @@ import { CatalogUpdateCard } from '@/features/categories/CatalogUpdateCard';
 import { EntryPrompt } from '@/features/entry/EntryPrompt';
 import { InviteCard } from '@/features/referral/InviteCard';
 import { WeekCard } from '@/features/referral/WeekCard';
+import { IncomeSavingCard } from '@/features/money/IncomeSavingCard';
 import { useEntry } from '@/features/entry/EntryProvider';
 import { useStoreReviewPrompt } from '@/features/storeReview/useStoreReviewPrompt';
 
@@ -56,7 +57,7 @@ function HomeScreen() {
   const { fontScale } = useWindowDimensions();
   const big = fontScale >= BIG_TEXT;
   const f = useFinance();
-  const { data, position, flows, envelopes, budget, insights, now } = f;
+  const { data, position, flows, envelopes, toAllocate, monthNetSavings, insights, now } = f;
   // Étape 4 : demande d'avis possible au retour ici après un moment positif (règles : core/storeReview.ts).
   useStoreReviewPrompt(data.transactions);
 
@@ -123,6 +124,8 @@ function HomeScreen() {
       <NegativeCard hidden={hidden} />
       <RecurringCards hidden={hidden} />
       <RegularizeList hidden={hidden} />
+      {/* §11.2 : revenus irréguliers — après un revenu reçu, « Mettre X de côté maintenant ? ». */}
+      <IncomeSavingCard hidden={hidden} />
       <TontineDueCard hidden={hidden} />
       <CatalogUpdateCard dismissible />
       {/* Filleul : « Votre semaine DineroX » (compteurs du serveur, aucun montant). */}
@@ -166,14 +169,11 @@ function HomeScreen() {
       <Card style={{ paddingVertical: 4 }}>
         <MonthRow kind="income" label={t('home.stat.income')} sub={t('home.stat.income.sub')} value={show(flows.income)} hidden={hidden} onPress={() => router.push('/transactions?from=home')} />
         <MonthRow kind="expense" label={t('home.stat.expense')} sub={t('home.stat.expense.sub')} value={show(flows.expense)} hidden={hidden} onPress={() => router.push('/transactions?from=home')} />
-        <MonthRow kind="savings" label={t('home.stat.savings')} sub={t('home.stat.savings.sub')} value={show(position.savings)} hidden={hidden} onPress={() => router.push('/savings')} />
-        <MonthRow kind={budget.remaining < 0 ? 'over' : 'budget'} label={t('home.stat.budget')} sub={t('home.stat.budget.sub')} value={show(budget.remaining)} hidden={hidden} onPress={() => router.push('/budget')} />
+        {/* Épargne nette du mois (grand livre, mêmes natures que les rapports). */}
+        <MonthRow kind="savings" label={t('home.stat.savings')} sub={t('home.stat.savings.sub')} value={show(monthNetSavings)} hidden={hidden} onPress={() => router.push('/savings')} />
+        {/* Reste à répartir : EXACTEMENT le chiffre de l'onglet Budget (`unallocated`, §9). */}
+        <MonthRow kind={toAllocate.amount < 0 ? 'over' : 'budget'} label={t('home.stat.budget')} value={show(toAllocate.amount)} hidden={hidden} onPress={() => router.push('/budget')} />
       </Card>
-      {position.allocatedToGoals > 0 ? (
-        <Text variant="small" tone="muted" style={{ marginTop: 8 }}>
-          {t('home.goalsAllocated')} : {show(position.allocatedToGoals)}
-        </Text>
-      ) : null}
       {others.length ? (
         <Text variant="small" tone="muted" style={{ marginTop: 4 }}>
           {t('home.otherCurrencies')} : {others.map(([c, v]) => (hidden ? '••••••' : formatMoney(v, c as CurrencyCode))).join(' · ')}
@@ -196,7 +196,11 @@ function HomeScreen() {
 
       <SectionHeader title={t('home.envelopesActive')} action={t('common.manageCount', { count: envelopes.length })} onAction={() => router.push('/budget')} />
       {envelopes.length ? (
-        envelopes.slice(0, 5).map((s) => <EnvelopeCard key={s.envelope.id} s={s} hidden={hidden} />)
+        <TileGrid>
+          {envelopes.slice(0, 5).map((s) => (
+            <EnvelopeTile key={s.envelope.id} s={s} hidden={hidden} />
+          ))}
+        </TileGrid>
       ) : (
         <Card>
           <EmptyState icon="pie-chart-outline" title={t('env.empty.title')} body={t('env.empty.body', {})} action={t('env.empty.cta')} onAction={() => router.push('/budget/auto')} />
@@ -205,32 +209,33 @@ function HomeScreen() {
 
       <SectionHeader title={t('home.goals')} action={t('common.seeAll')} onAction={() => router.push('/goals')} />
       {goals.length ? (
-        goals.map(({ g, plan }) => <GoalCard key={g.id} goal={g} plan={plan} compact />)
+        <TileGrid>
+          {goals.map(({ g, plan }) => (
+            <GoalTile key={g.id} goal={g} plan={plan} compact />
+          ))}
+        </TileGrid>
       ) : (
         <Card>
           <EmptyState icon="flag-outline" title={t('goal.empty.title')} body={t('goal.empty.body')} action={t('goal.empty.cta')} onAction={() => router.push('/goals/new')} />
         </Card>
       )}
 
-      {/* Récompenses et assistant : deux lignes simples (une seule carte en dégradé par écran). */}
-      <View style={{ marginTop: 24 }}>
+      {/* Récompenses et assistant : deux pavés côte à côte. */}
+      <TileGrid style={{ marginTop: 24 }}>
         <RewardsTile />
-        <Card onPress={() => router.push('/assistant')} accessibilityLabel={t('home.ai.title')} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Tile onPress={() => router.push('/assistant')} accessibilityLabel={t('home.ai.title')}>
           <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentContainer, alignItems: 'center', justifyContent: 'center' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <Icon name="sparkles" size={22} color={colors.onAccentContainer} />
           </View>
-          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Text variant="bodyStrong">{t('home.ai.title')}</Text>
-              <Badge tone="ai" label={t('home.ai.badge')} />
-            </View>
-            <Text variant="small" tone="muted">
-              {t('home.askAssistantHint')}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <TileText variant="bodyStrong">{t('home.ai.title')}</TileText>
+            <Badge tone="ai" label={t('home.ai.badge')} />
           </View>
-          <Icon name="chevron-forward" size={20} color={colors.textSubtle} />
-        </Card>
-      </View>
+          <TileText variant="small" tone="muted">
+            {t('home.askAssistantHint')}
+          </TileText>
+        </Tile>
+      </TileGrid>
 
       {/* Parrainage : carte discrète après la 5e saisie réussie. */}
       <InviteCard entries={myEntries} />
@@ -274,7 +279,7 @@ function Shortcut({ icon, label, onPress, full }: { icon: string; label: string;
 type MonthKind = 'income' | 'expense' | 'savings' | 'budget' | 'over';
 
 /** Ligne « Mois en cours » : pastille (icône + couleur de rôle), libellé, montant à droite. */
-function MonthRow({ kind, label, sub, value, hidden, onPress }: { kind: MonthKind; label: string; sub: string; value: string; hidden: boolean; onPress: () => void }) {
+function MonthRow({ kind, label, sub, value, hidden, onPress }: { kind: MonthKind; label: string; sub?: string; value: string; hidden: boolean; onPress: () => void }) {
   const { colors } = useTheme();
   const { t } = useI18n();
   const look = {
@@ -288,7 +293,7 @@ function MonthRow({ kind, label, sub, value, hidden, onPress }: { kind: MonthKin
     <Row
       title={label}
       subtitle={sub}
-      accessibilityLabel={`${label}, ${hidden ? t('common.amountHidden') : value}, ${sub}`}
+      accessibilityLabel={[label, hidden ? t('common.amountHidden') : value, sub].filter(Boolean).join(', ')}
       left={
         <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: look.bg, alignItems: 'center', justifyContent: 'center' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <Icon name={look.icon} size={20} color={look.fg} />

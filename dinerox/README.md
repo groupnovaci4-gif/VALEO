@@ -56,7 +56,7 @@ Firebase.
 
 En développement, **Paramètres › Mes données › Générer des données de
 démonstration** crée un espace « Démo » séparé (revenu 450 000, logement
-100 000, nourriture 80 000, transport 40 000, famille 50 000, objectif Moto
+100 000, alimentation & boissons 80 000, transport 40 000, famille 50 000, objectif Moto
 1 200 000…), jamais mélangé aux données réelles.
 
 ## Fonctionnalités

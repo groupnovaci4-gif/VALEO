@@ -53,7 +53,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   await a.p.getByText('Dans quel pays vivez-vous actuellement ?').waitFor({ timeout: 10000 });
   await a.p.getByText('Plus tard', { exact: true }).click(); await a.p.getByText('Bonjour Awa').first().waitFor({ timeout: 10000 }); await a.p.waitForTimeout(2500);
   await declareMoney(a.p); // v2 : argent présent avant de dépenser
-  await go(a.p, '/budget'); await a.p.getByText('Nourriture', { exact: true }).first().click(); await a.p.waitForTimeout(1200);
+  await go(a.p, '/budget'); await a.p.getByText('Alimentation & boissons', { exact: true }).first().click(); await a.p.waitForTimeout(1200);
   await a.p.getByText('Modifier', { exact: true }).first().click(); await a.p.waitForTimeout(1200);
   await a.p.getByLabel('Budget mensuel').first().fill('100000'); await a.p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click(); await a.p.waitForTimeout(2500);
   // Appareil B : dépense qui dépasse le budget → alerte immédiate sur B.
@@ -64,7 +64,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   await bdev.p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click();
   let toast = '';
   for (let i = 0; i < 20 && !toast; i++) { toast = (await bdev.p.locator('[role=alert][aria-live]').allInnerTexts()).join(' '); await bdev.p.waitForTimeout(150); }
-  ok(toast.includes('dépassé votre budget Nourriture'), `appareil B : alerte immédiate (« ${toast.trim()} »)`);
+  ok(toast.includes('dépassé votre budget Alimentation & boissons'), `appareil B : alerte immédiate (« ${toast.trim()} »)`);
   await bdev.p.waitForTimeout(3000);
   // Appareil A rouvert : la synchro apporte la dépense, mais l'alerte déjà donnée sur B n'est pas répétée.
   await a.p.close(); a.p = await a.ctx.newPage(); a.p.on('pageerror', (e) => errs.push(e.message));
@@ -72,7 +72,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   const t = (await a.p.locator('body').innerText()).replace(/[  ]/g, ' ');
   ok(t.includes('120 000'), 'appareil A : la dépense de B est synchronisée');
   const cA = (await card(a.p)) ?? [];
-  ok(!cA.some((l) => l.includes('dépassé votre budget Nourriture')), `appareil A : l'alerte déjà donnée sur B n'est pas répétée (${JSON.stringify(cA)})`);
+  ok(!cA.some((l) => l.includes('dépassé votre budget Alimentation & boissons')), `appareil A : l'alerte déjà donnée sur B n'est pas répétée (${JSON.stringify(cA)})`);
   await a.p.screenshot({ path: `${S}/coach-open-2.png` });
   ok(errs.length === 0, 'aucune erreur JS ' + errs.slice(0, 2).join(' | '));
   process.exitCode = fails ? 1 : 0;

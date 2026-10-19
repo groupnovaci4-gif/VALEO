@@ -1,6 +1,7 @@
 /**
  * Objectifs : projets de vie, triés par priorité (réordonnables), aide à la
- * répartition de la capacité d'épargne, suggestions, objectifs terminés.
+ * répartition de ce qui reste chaque mois (Marge), suggestions, objectifs terminés.
+ * Objectifs, réserves et moments forts en PAVÉS (grille de deux colonnes).
  */
 import { useRunAction } from '@/hooks/useRunAction';
 import React, { useMemo, useState } from 'react';
@@ -10,10 +11,10 @@ import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { AmountField, Badge, Button, Card, EmptyState, GradientCard, Icon, IconButton, Row, Screen, SectionHeader, Text } from '@/components/ui';
+import { AmountField, Badge, Button, Card, EmptyState, GradientCard, Icon, IconButton, Row, Screen, SectionHeader, Text, TileCell, TileGrid } from '@/components/ui';
 import { useTheme } from '@/theme';
 import { useInsightText } from '@/hooks/useInsightText';
-import { GoalCard, SpaceSwitcher } from '@/features/rows';
+import { GoalTile, SpaceSwitcher } from '@/features/rows';
 import { allocateCapacity, goalPlanFor, sortGoals } from '@/core/goals';
 import { observedCapacity } from '@/core/intelligence';
 import { can } from '@/core/permissions';
@@ -149,40 +150,39 @@ export default function Goals() {
       ) : (
         <>
           <SectionHeader title={t('goal.running')} action={t('goal.byPriority')} />
-          {plans.map(({ g, plan }) => (
-            <View key={g.id}>
-              {g.status !== 'active' ? (
-                <Text variant="caption" tone="subtle">
-                  {t('goal.status.paused')}
-                </Text>
-              ) : null}
-              <GoalCard goal={g} plan={plan} rank={g.status === 'active' ? rankedIds.indexOf(g.id) + 1 : undefined} />
-              {/* « Ajouter de l'argent » sous la carte (hors de sa zone cliquable, pour rester joignable au
-                  lecteur d'écran) : même écran de versement que la fiche, qui s'ouvre ensuite sur la progression. */}
-              {(canContribute || canEdit) && g.status === 'active' ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -4, marginBottom: 12 }}>
-                  {canContribute ? (
-                    <Button
-                      variant="secondary"
-                      icon="add"
-                      label={t('goal.contribute')}
-                      accessibilityLabel={`${t('goal.contribute')}, ${g.name}`}
-                      onPress={() => router.push(`/goals/contribute?id=${g.id}&from=goals`)}
-                      style={{ flex: 1 }}
-                    />
-                  ) : (
-                    <View style={{ flex: 1 }} />
-                  )}
-                  {canEdit && rankedIds.length > 1 ? (
-                    <>
-                      <IconButton icon="chevron-up" label={t('goal.moveUp')} onPress={() => move(g.id, -1)} size={18} />
-                      <IconButton icon="chevron-down" label={t('goal.moveDown')} onPress={() => move(g.id, 1)} size={18} />
-                    </>
-                  ) : null}
-                </View>
-              ) : null}
-            </View>
-          ))}
+          <TileGrid>
+            {plans.map(({ g, plan }) => (
+              <TileCell key={g.id}>
+                {g.status !== 'active' ? (
+                  <Text variant="caption" tone="subtle">
+                    {t('goal.status.paused')}
+                  </Text>
+                ) : null}
+                <GoalTile goal={g} plan={plan} rank={g.status === 'active' ? rankedIds.indexOf(g.id) + 1 : undefined} />
+                {/* « Ajouter de l'argent » sous le pavé (hors de sa zone cliquable, pour rester joignable au
+                    lecteur d'écran) : même écran de versement que la fiche, qui s'ouvre ensuite sur la progression. */}
+                {(canContribute || canEdit) && g.status === 'active' ? (
+                  <View style={{ gap: 4 }}>
+                    {canContribute ? (
+                      <Button
+                        variant="secondary"
+                        icon="add"
+                        label={t('goal.contribute')}
+                        accessibilityLabel={`${t('goal.contribute')}, ${g.name}`}
+                        onPress={() => router.push(`/goals/contribute?id=${g.id}&from=goals`)}
+                      />
+                    ) : null}
+                    {canEdit && rankedIds.length > 1 ? (
+                      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 4 }}>
+                        <IconButton icon="chevron-up" label={t('goal.moveUp')} onPress={() => move(g.id, -1)} size={18} />
+                        <IconButton icon="chevron-down" label={t('goal.moveDown')} onPress={() => move(g.id, 1)} size={18} />
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+              </TileCell>
+            ))}
+          </TileGrid>
         </>
       )}
 

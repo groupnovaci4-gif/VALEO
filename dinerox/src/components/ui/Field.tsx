@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Platform, TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, Pressable, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme, MIN_TOUCH } from '@/theme';
 import { fontFor } from '@/theme/fonts';
 import { Text } from './Text';
 import { Icon } from './Icon';
 import { fieldBoxProps } from './fieldStyle';
 import { currencyInfo, formatMoney, parseAmountInput, toMajor } from '@/core/money';
+import { useI18n } from '@/i18n';
 
 export interface FieldProps extends TextInputProps {
   label?: string;
@@ -18,9 +19,13 @@ export interface FieldProps extends TextInputProps {
   preview?: string;
 }
 
-export function Field({ label, hint, error, suffix, preview, style, inputRef, onFocus, onBlur, ...rest }: FieldProps) {
+export function Field({ label, hint, error, suffix, preview, style, inputRef, onFocus, onBlur, secureTextEntry, ...rest }: FieldProps) {
   const { colors, radius, v2 } = useTheme();
+  const { t } = useI18n();
   const [focused, setFocused] = useState(false);
+  // Mot de passe : bouton œil pour afficher / masquer. Il est TOUJOURS présent (jamais selon le
+  // focus) : la structure native du champ ne change pas (règle 13).
+  const [revealed, setRevealed] = useState(false);
   // v2 (§8.6) : contour des contrôles `borderStrong` (≥ 3:1), boîte de 52 dp. Seule la
   // COULEUR du contour change selon l'état : la structure native reste fixe (règle 13).
   const boxColors = v2 ? { ...colors, border: colors.borderStrong } : colors;
@@ -45,6 +50,7 @@ export function Field({ label, hint, error, suffix, preview, style, inputRef, on
           maxFontSizeMultiplier={v2 ? 1.6 : 1.3}
           placeholderTextColor={colors.textSubtle}
           {...rest}
+          secureTextEntry={!!secureTextEntry && !revealed}
           // Après {...rest} : le suivi du focus ne peut pas être écrasé par l'écran appelant.
           onFocus={(e) => {
             setFocused(true);
@@ -57,6 +63,17 @@ export function Field({ label, hint, error, suffix, preview, style, inputRef, on
           style={[{ flex: 1, minWidth: 0, color: colors.text, fontSize: 16, fontFamily: fontFor('body', 400), paddingVertical: 10 }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null, style]}
         />
         {suffix ? <Text tone="muted">{suffix}</Text> : null}
+        {secureTextEntry ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? t('field.hidePassword') : t('field.showPassword')}
+            onPress={() => setRevealed((r) => !r)}
+            hitSlop={4}
+            style={{ width: 44, height: 44, marginRight: -8, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Icon name={revealed ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
       </View>
       {error && v2 ? (
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 4, marginTop: 4 }} accessibilityLiveRegion="polite">

@@ -26,25 +26,25 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   await p.getByText('Plus tard', { exact: true }).click(); await p.getByText('Bonjour Awa').first().waitFor({ timeout: 10000 }); await p.waitForTimeout(2500);
   await declareMoney(p); // v2 : argent présent avant de dépenser
 
-  // Enveloppe de départ « Nourriture » à 0 : aucune alerte (budget jamais fixé).
+  // Enveloppe de départ « Alimentation & boissons » à 0 : aucune alerte (budget jamais fixé).
   let t = await expense(5000);
   ok(!t.includes('budget'), `enveloppe à 0 jamais fixée : pas d'alerte de dépassement (« ${t} »)`);
   // Budget fixé : 100 000.
-  await go('/budget'); await p.getByText('Nourriture', { exact: true }).first().click(); await p.waitForTimeout(1200);
+  await go('/budget'); await p.getByText('Alimentation & boissons', { exact: true }).first().click(); await p.waitForTimeout(1200);
   await p.getByText('Modifier', { exact: true }).first().click(); await p.waitForTimeout(1200);
   await p.getByLabel('Budget mensuel').first().fill('100000'); await btn('Enregistrer', 1500);
   t = await expense(79999); // 84 999
   ok(!/Attention|utilisé/.test(t), `84 999 / 100 000 : aucune alerte (« ${t} »)`);
   t = await expense(1); // 85 000
-  ok(t.includes('Attention Awa, vous avez utilisé 85 % de votre budget Nourriture. Il vous reste 15 000 FCFA.'), `85 000 : « ${t} »`);
+  ok(t.includes('Attention Awa, vous avez utilisé 85 % de votre budget Alimentation & boissons. Il vous reste 15 000 FCFA.'), `85 000 : « ${t} »`);
   t = await expense(5000); // 90 000
   ok(!/Attention|utilisé/.test(t), `90 000 : pas de répétition (« ${t} »)`);
   t = await expense(10000); // 100 000
-  ok(t.includes('Awa, votre budget Nourriture est entièrement utilisé.'), `100 000 : « ${t} »`);
+  ok(t.includes('Awa, votre budget Alimentation & boissons est entièrement utilisé.'), `100 000 : « ${t} »`);
   t = await expense(20000); // 120 000
-  ok(t.includes('Attention Awa, vous avez dépassé votre budget Nourriture de 20 000 FCFA.'), `120 000 : « ${t} »`);
+  ok(t.includes('Attention Awa, vous avez dépassé votre budget Alimentation & boissons de 20 000 FCFA.'), `120 000 : « ${t} »`);
   await go('/budget'); const bt = await text();
-  ok(bt.includes('Dépassé de 20 000 FCFA') && bt.includes('Budget Nourriture dépassé de 20 000 FCFA'), 'écran Budget : « Dépassé de 20 000 FCFA » + constat');
+  ok(bt.includes('Dépassé de 20 000 FCFA') && bt.includes('Budget Alimentation & boissons dépassé de 20 000 FCFA'), 'écran Budget : « Dépassé de 20 000 FCFA » + constat');
   await go('/'); ok((await text()).includes('Dépassée'), 'accueil : carte d’enveloppe « Dépassée »');
   await p.screenshot({ path: `${S}/coach-budget.png` });
   ok(errs.length === 0, 'aucune erreur JS ' + errs.slice(0, 2).join(' | '));

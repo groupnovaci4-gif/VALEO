@@ -15,7 +15,7 @@ import { useFinance, useMoney } from '@/hooks/useFinance';
 import { Amount, Card, GradientCard, Icon, Text } from '@/components/ui';
 import { dailyAllowanceV2, type Commitment } from '@/core/allowance';
 import { OpeningCard } from '@/features/money/HomeMoneyCards';
-import type { Position } from '@/core/position';
+import { setAsideOutsideAccounts, type Position } from '@/core/position';
 import { BIG_TEXT, useTheme } from '@/theme';
 
 const HIDDEN = '••••••';
@@ -45,10 +45,17 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
   );
   /** Argent disponible v2 (§4) : trois montants, jamais additionnés par erreur ; autres devises côte à côte. */
   const others = Object.entries(position.otherCurrencies);
+  // Sous « Mis de côté » : la part hors de vos comptes (épargne hors comptes + créances de tontine).
+  const outsideAccounts = setAsideOutsideAccounts(position);
   const availableRow = (onHero: boolean) => (
     <View style={{ gap: 4 }}>
       {line(onHero, t('home.available'), available, 'M')}
       {line(onHero, t('home.setAside'), position.setAside)}
+      {outsideAccounts !== null ? (
+        <Text variant="caption" tone={onHero ? 'heroMuted' : 'subtle'}>
+          {t('home.setAsideOutside', { amount: show(outsideAccounts) })}
+        </Text>
+      ) : null}
       {line(onHero, t('home.totalAccounts'), position.totalAccounts)}
       {others.map(([cur, v]) => (
         <Text key={cur} variant="caption" tone={onHero ? 'heroMuted' : 'subtle'}>
