@@ -2188,6 +2188,7 @@ export const fr = {
   'daily.item.goal': 'Mise de côté prévue : {label} — {amount}',
   'home.setAside': 'Mis de côté',
   'home.totalAccounts': 'Total de vos comptes',
+  'intel.rec.ask_parent': 'Demandez à un parent : les dettes, les tontines et les charges sont gérées par les parents.',
   'intel.rec.money_unknown': 'Indiquez d\'abord votre argent disponible : les conseils se calculeront à partir de l\'argent réellement là.',
   'intel.rec.commitments_over_available': 'Vos engagements d\'ici le {date} dépassent votre argent disponible de {amount}.',
   'intel.rec.overdue': 'Une échéance de dette ou une cotisation est en retard : c\'est la priorité avant toute autre dépense.',

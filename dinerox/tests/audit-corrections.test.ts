@@ -17,6 +17,8 @@ import { expensesByCategory } from '../src/core/insights';
 import { latestScore } from '../src/core/coach/score';
 import { scoreForMonth } from '../src/core/coachData';
 import { netWorth } from '../src/core/networth';
+import { coachRecommendations, financialSnapshot } from '../src/core/intelligence';
+import { coachState } from '../src/core/coachData';
 import { ledgerCsv } from '../src/core/ledger';
 import { fr } from '../src/i18n/fr';
 import { en } from '../src/i18n/en';
@@ -247,5 +249,23 @@ describe('Carte « montant d’une enveloppe » : pour tous les mois', () => {
   it('le texte le dit', () => {
     expect(fr['ia.card.envelope']).toContain('tous les mois');
     expect(en['ia.card.envelope']).toContain('every month');
+  });
+});
+
+describe('B6 — la carte du coach chez un enfant', () => {
+  // Un enfant ne voit ni dettes, ni tontines, ni charges : le coach ne lui demande pas
+  // « Indiquez d'abord votre argent disponible » ; il reprend l'idée de la carte du haut.
+  const d = withLedgerView(space({ accounts: [account({ id: 'c', openingBalance: 0 })] }));
+  const recs = (role: 'child' | 'admin') => coachRecommendations(financialSnapshot({ data: d, currency: 'XOF', now: TODAY, available: 0 }), coachState(d, 'XOF', TODAY), d.goals, null, role);
+  it('enfant : « Demandez à un parent », jamais « money_unknown »', () => {
+    expect(recs('child')[0]).toMatchObject({ kind: 'ask_parent' });
+    expect(recs('child').map((r) => r.kind)).not.toContain('money_unknown');
+  });
+  it('parent : inchangé', () => {
+    expect(recs('admin')[0]).toMatchObject({ kind: 'money_unknown' });
+  });
+  it('texte : la même idée que la carte du haut', () => {
+    expect(fr['intel.rec.ask_parent']).toContain('Demandez à un parent');
+    expect(en['intel.rec.ask_parent']).toContain('Ask a parent');
   });
 });

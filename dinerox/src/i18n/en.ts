@@ -2156,6 +2156,7 @@ export const en: Record<TKey, string> = {
   'daily.item.goal': 'Planned saving: {label} — {amount}',
   'home.setAside': 'Set aside',
   'home.totalAccounts': 'Total of your accounts',
+  'intel.rec.ask_parent': 'Ask a parent: debts, tontines and bills are managed by the parents.',
   'intel.rec.money_unknown': 'First enter your available money: advice will be computed from the money you really have.',
   'intel.rec.commitments_over_available': 'Your commitments until {date} exceed your available money by {amount}.',
   'intel.rec.overdue': 'A debt instalment or a contribution is overdue: it comes before any other spending.',

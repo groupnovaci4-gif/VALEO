@@ -10,12 +10,12 @@ import { dailyAllowanceV2 } from '@/core/allowance';
  * Argent disponible v2 (§11) : disponible D (position v2), revenus REÇUS, conseils de `nextAdvice`.
  */
 export function useIntelligence() {
-  const { profile } = useApp();
+  const { profile, role } = useApp();
   const { data, currency, now, money } = useFinance();
   return useMemo(() => {
     const snapshot = financialSnapshot({ data, currency, now, available: money.available, financial: profile?.financial });
     const state = coachState(data, currency, now, profile?.financial);
     const allowance = dailyAllowanceV2({ data, currency, today: now, payDay: profile?.financial?.payDay ?? null });
-    return { snapshot, state, recommendations: coachRecommendations(snapshot, state, data.goals, allowance.until) };
-  }, [data, currency, now, money.available, profile?.financial]);
+    return { snapshot, state, recommendations: coachRecommendations(snapshot, state, data.goals, allowance.until, role) };
+  }, [data, currency, now, money.available, profile?.financial, role]);
 }

@@ -18,7 +18,7 @@
  * (R − C − Rb − S) observée sur des mois CLOS — sans mois clos, aucun montant ;
  * l'alerte « solde bas » ne compte jamais un revenu attendu.
  */
-import type { Category, Debt, DebtPayment, FinancialProfile, Goal, GoalContribution, RecurringRule, SpaceData, Transaction } from './types';
+import type { Category, Debt, DebtPayment, FinancialProfile, Goal, GoalContribution, RecurringRule, Role, SpaceData, Transaction } from './types';
 import type { CurrencyCode } from './money';
 import { addDays, lastMonths, monthKey, type ISODate, type MonthKey } from './dates';
 import { debtStatus } from './debts';
@@ -256,6 +256,8 @@ export type RecommendationKind =
   | 'family_share'
   // Argent disponible v2 (§11.4) : conseils de `nextAdvice`, un seul producteur par notion.
   | 'money_unknown'
+  /** Membre enfant (audit B6) : dettes, tontines et charges gérées par les parents. */
+  | 'ask_parent'
   | 'commitments_over_available'
   | 'overdue'
   | 'precaution_low'
@@ -322,7 +324,13 @@ const REPLACED: ReadonlySet<RecommendationKind> = new Set(['no_data', 'capacity_
  * `coachState`, revenus REÇUS), puis les constats qui ne font pas doublon (hausse d'une
  * catégorie, part de la famille, charges fixes raisonnables).
  */
-export function coachRecommendations(s: FinancialSnapshot, state: CoachState, goals: Pick<Goal, 'templateId' | 'status' | 'deleted'>[], until: ISODate | null): Recommendation[] {
+export function coachRecommendations(s: FinancialSnapshot, state: CoachState, goals: Pick<Goal, 'templateId' | 'status' | 'deleted'>[], until: ISODate | null, role?: Role | null): Recommendation[] {
+  // Audit B6 : un enfant ne voit ni dettes, ni tontines, ni charges — aucun conseil sur l'argent de
+  // l'espace (il serait faux) ; la même idée que la carte du haut : « Demandez à un parent ».
+  if (role === 'child') {
+    const ask: Recommendation = { id: 'v2_ask_parent', source: 'user', weight: 1000, kind: 'ask_parent', severity: 'info', params: {}, link: '/' };
+    return [ask, ...recommendations(s, goals).filter((r) => !REPLACED.has(r.kind) && r.kind !== 'congrats')];
+  }
   const key = nextAdvice({
     tracked: state.tracked,
     available: state.available,

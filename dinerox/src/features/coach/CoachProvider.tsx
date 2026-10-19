@@ -64,7 +64,7 @@ export function useCoach(): CoachValue {
 
 
 export function CoachProvider({ children }: { children: React.ReactNode }) {
-  const { engine, user, profile, mode, activeSpace } = useApp();
+  const { engine, user, profile, mode, activeSpace, role } = useApp();
   const ready = useSpaceReady();
   const currency = useCurrency();
   const labels = useCategoryLabels();
@@ -86,9 +86,9 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Valeurs courantes lues par les gestionnaires asynchrones.
-  const latest = useRef({ engine, uid: user?.uid ?? null, profile, mode, currency, label: labels.label, toast, text, spaceId: activeSpace?.id ?? null, spaceKind: activeSpace?.kind ?? null });
+  const latest = useRef({ engine, uid: user?.uid ?? null, profile, mode, currency, label: labels.label, toast, text, spaceId: activeSpace?.id ?? null, spaceKind: activeSpace?.kind ?? null, role });
   useEffect(() => {
-    latest.current = { engine, uid: user?.uid ?? null, profile, mode, currency, label: labels.label, toast, text, spaceId: activeSpace?.id ?? null, spaceKind: activeSpace?.kind ?? null };
+    latest.current = { engine, uid: user?.uid ?? null, profile, mode, currency, label: labels.label, toast, text, spaceId: activeSpace?.id ?? null, spaceKind: activeSpace?.kind ?? null, role };
   });
 
   /** Applique la politique puis présente : texte (toujours), son et voix (phase 3). */
@@ -175,7 +175,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Ouverture / retour au premier plan : un seul résumé ─────────────
   const evaluateOpen = useCallback(async () => {
-    const { engine: e, uid, profile: p, mode: m, currency: cur, label, spaceId } = latest.current;
+    const { engine: e, uid, profile: p, mode: m, currency: cur, label, spaceId, role: r } = latest.current;
     if (!e || !uid || !spaceId || !p?.onboarding.completed || !e.isLoaded(spaceId)) return;
     if (m === 'firebase' && remoteMergedFor.current !== uid) {
       remoteMergedFor.current = uid;
@@ -194,7 +194,7 @@ export function CoachProvider({ children }: { children: React.ReactNode }) {
     const snap = financialSnapshot({ data, currency: cur, now: day, available: free, financial: p.financial });
     // Argent disponible v2 (§11.4) : un seul conseil par notion, dans l'ordre de `nextAdvice`.
     const until = dailyAllowanceV2({ data, currency: cur, today: day, payDay: p.financial?.payDay ?? null }).until;
-    const recs = coachRecommendations(snap, coachState(data, cur, day, p.financial), data.goals, until);
+    const recs = coachRecommendations(snap, coachState(data, cur, day, p.financial), data.goals, until, r);
     const events = [
       ...env.alerts.map((a) => fromEnvelopeAlert(a, spaceId, p.firstName, now)),
       ...fromInsights(computeInsights({ data, currency: cur, now: day, categoryName: label }), spaceId, month, now),
