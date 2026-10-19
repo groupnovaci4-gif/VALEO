@@ -20,10 +20,11 @@ import { Animated, Pressable, View, useWindowDimensions, type StyleProp, type Te
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme, type TypographyVariant } from '@/theme';
 import { textStyle, toneColor, type TextTone } from './Text';
-import { TILE_FADE_MS, TILE_GAP, TILE_RADIUS, gridColumns, tileColors, tileRows } from './tileStyle';
+import { TILE_FADE_MS, TILE_GAP, TILE_RADIUS, gridColumns, tileColors, tileGlyph, tileRows } from './tileStyle';
 
+// Seuls des composants NATIFS sont animés côté JS : `Ionicons` animé plantait sur Android
+// (pas de `setNativeProps` sur l'icône interne → application figée, tests/defilement.test.ts).
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-const AnimatedIonicons = Animated.createAnimatedComponent(Ionicons);
 
 /** Avancement du fondu du pavé englobant (0 = blanc, 1 = vert) ; null hors d'un pavé cliquable. */
 const TileFade = createContext<Animated.Value | null>(null);
@@ -119,11 +120,14 @@ export function TileText({
   );
 }
 
-/** Icône d'un pavé (Ionicons) : couleur qui passe au blanc au toucher. */
+/** Icône d'un pavé (glyphe Ionicons dans un `Animated.Text`) : couleur qui passe au blanc au toucher. */
 export function TileIcon({ name, size = 22, color }: { name: string; size?: number; color: string }) {
   const animated = useTileColor(color);
-  const glyph = (name in Ionicons.glyphMap ? name : 'ellipse') as React.ComponentProps<typeof Ionicons>['name'];
-  return <AnimatedIonicons name={glyph} size={size} color={animated as never} />;
+  return (
+    <Animated.Text allowFontScaling={false} importantForAccessibility="no" accessibilityElementsHidden style={{ fontFamily: Ionicons.getFontFamily(), fontSize: size, lineHeight: size, color: animated as never }}>
+      {tileGlyph(Ionicons.glyphMap as Record<string, number>, name)}
+    </Animated.Text>
+  );
 }
 
 /** Cellule de grille : le pavé, et éventuellement des actions À CÔTÉ (sous le pavé). */

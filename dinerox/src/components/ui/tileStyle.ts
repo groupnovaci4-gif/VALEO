@@ -46,3 +46,12 @@ export function tileRows<T>(items: T[], columns: number): T[][] {
 export function gridColumns(count: number, width: number, fontScale: number): 1 | 2 {
   return count <= 1 ? 1 : tileColumns(width, fontScale);
 }
+
+/**
+ * Glyphe (caractère de la police Ionicons) de l'icône d'un pavé ; « ellipse » pour un nom
+ * inconnu. L'icône est un `Animated.Text` : animer `Ionicons` lui-même plante sur Android
+ * (pas de `setNativeProps` sur l'icône interne → application figée, tests/defilement.test.ts).
+ */
+export function tileGlyph(glyphMap: Record<string, number>, name: string): string {
+  return String.fromCodePoint(glyphMap[name] ?? glyphMap.ellipse);
+}

@@ -3,6 +3,7 @@ import { Stack, router, useSegments, SplashScreen, type ErrorBoundaryProps, type
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { FONT_ASSETS } from '@/theme/fonts';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -29,7 +30,8 @@ void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
   // Polices de la charte ; en cas d'échec de chargement, on continue avec les polices système.
-  const [fontsLoaded, fontError] = useFonts(FONT_ASSETS);
+  // Ionicons aussi : l'icône d'un pavé est un texte qui porte le glyphe (tests/defilement.test.ts).
+  const [fontsLoaded, fontError] = useFonts({ ...FONT_ASSETS, ...Ionicons.font });
   if (!fontsLoaded && !fontError) return null;
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
