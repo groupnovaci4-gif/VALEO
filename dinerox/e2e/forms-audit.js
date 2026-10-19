@@ -1,6 +1,7 @@
 /* Audit de TOUS les formulaires : champs (générique) + enregistrements réels + persistance. */
 const { BASE, launch, phraseField } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
+const { uidOf, put, list, shift } = require('./seed.js');
 const S = process.argv[2] || '.';
 const email = `audit${Date.now()}@ex.com`;
 let fails = 0, total = 0;
@@ -63,7 +64,7 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     await p.getByPlaceholder('Ex. Acheter une machine à glace').fill('Temp'); await btn('Continuer', 700);
     await checkAllInputs(p, 'Objectif — formulaire', ok, { expectInputs: true });
     // v2 §5 : montant initial → « D'où vient cet argent ? » ; hors de mes comptes → note.
-    await fill('Montant déjà disponible (facultatif)', '10000'); await tap('C\'est de l\'épargne hors de mes comptes');
+    await fill('Montant de départ (facultatif)', '10000'); await tap('C\'est de l\'épargne hors de mes comptes');
     await checkAllInputs(p, 'Objectif — origine hors de mes comptes', ok, { expectInputs: true });
   });
   if (!fast) await step('Saisie (feuille du micro, clavier)', async () => {
@@ -117,7 +118,7 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   await step('objectif', async () => {
     await go('/goals/new'); await tap('✏️ Créer mon propre objectif', { exact: false });
     await p.getByPlaceholder('Ex. Acheter une machine à glace').fill('Moto Audit'); await btn('Continuer', 700);
-    await tap('Véhicule'); await fill('Montant cible', '1200000'); await fill('Montant déjà disponible (facultatif)', '200000');
+    await tap('Véhicule'); await fill('Montant cible', '1200000'); await fill('Montant de départ (facultatif)', '200000');
     await tap('C\'est de l\'épargne hors de mes comptes'); // v2 §5 : l'argent initial ne sort pas du disponible
     await fill('Je peux mettre de côté chaque mois (facultatif)', '50000'); await tap('Importante');
     await p.getByRole('button', { name: "Créer l'objectif" }).or(p.getByRole('button', { name: 'Créer l’objectif' })).first().click(); await p.waitForTimeout(1500);
@@ -167,6 +168,31 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     await go('/categories'); await p.getByText('Ajouter une sous-catégorie').first().click(); await p.waitForTimeout(800);
     await p.getByLabel('Nom', { exact: true }).last().fill('Sous-cat audit'); await btn('Enregistrer');
     await has('Sous-cat audit', 'sous-catégorie créée');
+  });
+  // v2 §5.4 : clôturer signale d'abord ce qui n'est pas noté ; la cagnotte a un montant modifiable.
+  await step('tontine : clôture et cagnotte', async () => {
+    const uid = await uidOf(email);
+    await put(uid, 'tontines', { id: 'audit_ton', type: 'rotating', name: 'Tontine audit', currency: 'XOF', amountPerShare: 10000, sharesHeld: 1, frequency: 'monthly', startDate: shift(-5), membersCount: 3, myTurns: [3], status: 'active', accountId: null, organizerName: null });
+    await p.waitForTimeout(2500);
+    await go('/tontines/audit_ton'); await btn('Clôturer', 1000);
+    await has('3 cotisations et la cagnotte ne sont pas notées.', 'clôture : cotisations et cagnotte non notées signalées d’abord');
+    await p.getByRole('button', { name: /^Noter la cagnotte du/ }).last().click(); await p.waitForTimeout(900);
+    await checkAllInputs(p, 'Cagnotte reçue (feuille)', ok, { expectInputs: true });
+    ok((await p.getByLabel('Montant', { exact: true }).last().inputValue()).replace(/\D/g, '') === '30000', 'cagnotte : 30 000 proposés (3 × 10 000), modifiables');
+    await btn('Fermer', 500);
+  });
+  // v2 §7.2 : « Payée » propose la date de l'échéance, modifiable (rien n'est enregistré ici).
+  await step('à régulariser : « Payée » à la date de l’échéance', async () => {
+    const uid = await uidOf(email);
+    const cash = (await list(uid, 'accounts')).find((a) => a.name === 'Cash')?.id ?? 'acc_cash_auto';
+    await put(uid, 'recurring', { id: 'audit_old', type: 'expense', label: 'Eau audit', amount: 1000, currency: 'XOF', accountId: cash, categoryId: 'cat_housing', frequency: 'monthly', startDate: shift(-4, -1), endDate: shift(-3), active: true, lastGenerated: null });
+    await p.waitForTimeout(2500); await go('/');
+    const item = (await text()).match(/Eau audit — ([^:]+?) :/);
+    ok(!!item, 'à régulariser : échéance ancienne listée');
+    await p.getByText(/^Eau audit —/).first().locator('xpath=..').getByRole('button', { name: 'Payée', exact: true }).click(); await p.waitForTimeout(600);
+    const t = await text();
+    ok(!!item && t.split(item[1].trim()).length - 1 >= 2 && t.includes('Confirmer'), `« Payée » : date proposée = date de l’échéance (${item ? item[1].trim() : '?'})`);
+    await btn('Annuler', 500);
   });
   await step('patrimoine (formule gratuite)', async () => {
     await go('/assets/edit'); const t = await text();

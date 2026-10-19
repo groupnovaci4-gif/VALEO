@@ -12,7 +12,6 @@ ACTUELLE dans `src/i18n/fr.ts` et `src/i18n/en.ts`. Les 11 messages d'erreur et
 | `acc.correct.done` | Solde corrigé. | Balance corrected. |
 | `acc.leftover.title` | Ce compte a encore {amount}. | This account still holds {amount}. |
 | `acc.opening.note` | D'où vient cet argent ? (facultatif) | Where does this money come from? (optional) |
-| `acc.openingShown` | Solde de départ : {amount} | Starting balance: {amount} |
 | `daily.item.debt` | Mensualité {label} — {date} : {amount} | Instalment {label} — {date}: {amount} |
 | `daily.item.future` | Dépense prévue — {date} : {amount} | Planned expense — {date}: {amount} |
 | `daily.item.goal` | Mise de côté prévue : {label} — {amount} | Planned saving: {label} — {amount} |
@@ -179,3 +178,34 @@ ACTUELLE dans `src/i18n/fr.ts` et `src/i18n/en.ts`. Les 11 messages d'erreur et
 | `score.c.budgets` | Respect des budgets | Respect du budget | Staying on budget |
 | `score.c.emergency` | Fonds d'urgence | Épargne de précaution | Emergency savings |
 | `score.c.savings` | Régularité de l'épargne | Taux d'épargne | Savings rate |
+
+## Après relecture du fondateur (corrections)
+
+Les 74 textes ci-dessus sont validés. `acc.openingShown` est retiré (remplacé par l'affichage en
+lecture seule de `acc.openingBalance`) ; `tontine.receive.confirm` est retiré (la cagnotte a sa feuille).
+
+### Modifiés à la demande du fondateur
+
+| Clé | Français | English |
+|---|---|---|
+| `goal.initial` | Montant de départ | Starting amount |
+| `reserve.initial` | Montant de départ | Starting amount |
+| `debt.payment.account` | Depuis quel compte ? | From which account? |
+| `debt.payment.accountHint` | Le remboursement sort de ce compte. « Hors de mes comptes » : seulement s'il a été payé autrement. | The repayment leaves this account. “Outside my accounts”: only if it was paid another way. |
+
+### Nouveaux ou modifiés par les corrections (à valider)
+
+| Clé | Français | English |
+|---|---|---|
+| `budget.debtRepayments` | Remboursements de dettes du mois : {amount} | Debt repayments this month: {amount} |
+| `intel.thisMonth` | ce mois-ci | this month |
+| `tontine.receive.body` (modifié) | « {name} ». La cagnotte sera notée sur {account} : un retour de tontine, pas un revenu. | “{name}”. The payout will be recorded on {account}: a tontine return, not income. |
+| `tontine.close.gaps.both.one` | 1 cotisation et la cagnotte ne sont pas notées. | 1 contribution and the payout are not recorded. |
+| `tontine.close.gaps.both` | {count} cotisations et la cagnotte ne sont pas notées. | {count} contributions and the payout are not recorded. |
+| `tontine.close.gaps.contrib.one` | 1 cotisation n'est pas notée. | 1 contribution is not recorded. |
+| `tontine.close.gaps.contrib` | {count} cotisations ne sont pas notées. | {count} contributions are not recorded. |
+| `tontine.close.gaps.pot` | La cagnotte n'est pas notée. | The payout is not recorded. |
+| `tontine.close.gaps.hint` | Notez-les avant de clôturer : les frais ou le gain de la tontine en dépendent. | Record them before closing: the tontine's fees or gain depend on them. |
+| `tontine.close.noteContribution` | Noter la cotisation du {date} ({amount}) | Record the {date} contribution ({amount}) |
+| `tontine.close.notePot` | Noter la cagnotte du {date} ({amount}) | Record the {date} payout ({amount}) |
+| `tontine.close.anyway` | Clôturer sans les noter | Close without recording them |

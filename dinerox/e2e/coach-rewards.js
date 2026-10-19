@@ -45,7 +45,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
     await a.p.getByPlaceholder('Ex. Acheter une machine à glace').fill(n); await a.p.getByRole('button', { name: 'Continuer' }).click(); await a.p.waitForTimeout(600);
     await a.p.getByLabel('Montant cible').first().fill(String(target));
     if (initial) {
-      await a.p.getByLabel('Montant déjà disponible (facultatif)').first().fill(String(initial));
+      await a.p.getByLabel('Montant de départ (facultatif)').first().fill(String(initial));
       // v2 (§5) : montant DÉCLARÉ, hors de mes comptes (aucun argent ne bouge) — c'est lui que vise l'anti-triche.
       await a.p.getByText("C'est de l'épargne hors de mes comptes", { exact: true }).first().click(); await a.p.waitForTimeout(300);
     }

@@ -3,6 +3,7 @@
  * pour relecture du fondateur AVANT tout APK : web, deux tailles de téléphone, thème clair.
  * Sortie : docs/captures-argent-v2/<taille>/<nn-nom>.png. Lancement (émulateurs + export servis) :
  *   node e2e/captures-argent-v2.js
+ *   ONLY=09,10,19 node e2e/captures-argent-v2.js   (tout le parcours, mais seules ces images sont réécrites)
  * Pas dans run-all.sh : ce n'est pas un test, c'est une galerie.
  */
 const fs = require('fs');
@@ -16,6 +17,9 @@ const SIZES = [
   { name: '412x915', viewport: { width: 412, height: 915 } },
 ];
 const log = [];
+// ONLY=09,10 : le parcours complet tourne (les états en dépendent), seules ces images sont réécrites.
+const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(',').map((x) => x.trim())) : null;
+const wanted = (name) => !ONLY || ONLY.has(name.slice(0, 2));
 
 async function run(size) {
   const b = await launch();
@@ -28,7 +32,7 @@ async function run(size) {
   const fill = (label, v, exact = false) => p.getByLabel(label, { exact }).first().fill(v);
   const btn = async (name, opts = {}) => { await p.getByRole('button', { name, exact: opts.exact ?? true }).filter({ visible: true }).last().click({ timeout: 8000 }); await p.waitForTimeout(opts.w ?? 1200); };
   const tap = async (t, opts = {}) => { await p.getByText(t, { exact: opts.exact ?? true }).filter({ visible: true }).nth(opts.nth ?? 0).click(); await p.waitForTimeout(opts.w ?? 500); };
-  const shot = async (name, full = true) => { await p.screenshot({ path: path.join(dir, `${name}.png`), fullPage: full }); log.push(`${size.name}/${name}`); };
+  const shot = async (name, full = true) => { if (!wanted(name)) return; await p.screenshot({ path: path.join(dir, `${name}.png`), fullPage: full }); log.push(`${size.name}/${name}`); };
   const step = async (name, fn) => { console.log(`… ${size.name} ${name}`); try { await fn(); } catch (e) { console.log(`✗ ${size.name} ${name} : ${e.message.split('\n')[0]}`); await shot(`${name}-ERREUR`).catch(() => {}); } };
 
   // ── Compte neuf ──
@@ -73,21 +77,22 @@ async function run(size) {
     cash = (await list(uid, 'accounts')).find((a) => a.name === 'Cash')?.id ?? cash;
     await put(uid, 'recurring', { id: 'cap_loyer', type: 'expense', label: 'Loyer', amount: 30000, currency: 'XOF', accountId: cash, categoryId: 'cat_housing', frequency: 'monthly', startDate: shift(-3, -1), active: true, lastGenerated: null });
     await put(uid, 'recurring', { id: 'cap_salaire', type: 'income', label: 'Salaire', amount: 200000, currency: 'XOF', accountId: cash, categoryId: 'inc_salary', frequency: 'monthly', startDate: shift(-2, -2), active: true, lastGenerated: null });
-    await put(uid, 'accounts', { id: 'cap_wave', name: 'Wave', type: 'mobile_money', provider: 'wave', currency: 'XOF', openingBalance: 10000, openingDate: shift(-1), openingNote: null, color: '#1D9BF0', icon: 'phone-portrait', active: true, isSavings: false, order: 5 });
+    await put(uid, 'accounts', { id: 'cap_wave', name: 'Wave', type: 'mobile_money', provider: 'wave', currency: 'XOF', openingBalance: 10000, openingDate: shift(-1), openingNote: 'Reste du mois dernier', color: '#1D9BF0', icon: 'phone-portrait', active: true, isSavings: false, order: 5 });
     for (const [i, amount] of [[1, 15000], [2, 15000]]) await put(uid, 'transactions', { id: `cap_neg${i}`, type: 'expense', amount, currency: 'XOF', date: shift(0, -1), accountId: 'cap_wave', categoryId: 'cat_food', toAccountId: null, toAmount: null, subcategoryId: null, envelopeId: null, payee: null, note: null });
     await put(uid, 'tontines', { id: 'cap_tontine', type: 'rotating', name: 'Tontine du marché', currency: 'XOF', amountPerShare: 10000, sharesHeld: 1, frequency: 'monthly', startDate: shift(-5), membersCount: 3, myTurns: [3], status: 'active', accountId: null, organizerName: null });
     await setFinancial(uid, 'payDay', Number(shift(0, -3).slice(8)));
     await p.waitForTimeout(3000);
   });
   await step('09-accueil-cartes', async () => { await go('/', 4000); await shot('09-accueil-cartes'); });
-  await step('10-compte-edition', async () => { await go(`/accounts/edit?id=${cash}`); await shot('10-compte-edition'); });
+  // Un compte qui a déjà des opérations : « Argent déjà sur ce compte » en lecture seule (§3.2).
+  await step('10-compte-edition', async () => { await go('/accounts/edit?id=cap_wave'); await shot('10-compte-edition'); });
   await step('11-feuille-corriger-le-solde', async () => { await btn('Corriger le solde', { w: 800 }); await fill('Motif', 'Écart de caisse'); await shot('11-feuille-corriger-le-solde', false); });
   await step('12-feuille-reste-desactivation', async () => { await go(`/accounts/edit?id=${cash}`); await p.getByRole('switch', { name: 'Compte actif' }).click(); await p.waitForTimeout(800); await shot('12-feuille-reste-desactivation', false); });
   await step('13-epargne-origine', async () => { await go('/accounts/edit?savings=1'); await fill('Montant', '50000'); await shot('13-epargne-origine'); });
   await step('14-objectif-origine', async () => {
     await go('/goals/new'); await tap('✏️ Créer mon propre objectif', { exact: false });
     await p.getByPlaceholder('Ex. Acheter une machine à glace').fill('Moto'); await btn('Continuer', { w: 800 });
-    await fill('Montant cible', '500000'); await fill('Montant déjà disponible (facultatif)', '30000');
+    await fill('Montant cible', '500000'); await fill('Montant de départ (facultatif)', '30000');
     await shot('14-objectif-origine');
     await p.getByRole('button', { name: "Créer l'objectif" }).or(p.getByRole('button', { name: 'Créer l’objectif' })).first().click(); await p.waitForTimeout(2500);
   });
@@ -102,7 +107,8 @@ async function run(size) {
     await shot('17-remboursement-interets', false); await btn('Enregistrer', { w: 2000 });
   });
   await step('18-dette-cloture', async () => { await btn('Clôturer', { exact: false, w: 800 }).catch(() => {}); await shot('18-dette-cloture', false); });
-  await step('19-tontine-cloturer', async () => { await go('/tontines/cap_tontine'); await shot('19-tontine-cloturer'); });
+  // Clôturer : la feuille signale d'abord les cotisations et la cagnotte non notées (§5.4).
+  await step('19-tontine-cloturer', async () => { await go('/tontines/cap_tontine'); await btn('Clôturer', { w: 1000 }); await shot('19-tontine-cloturer', false); await btn('Fermer', { w: 500 }).catch(() => {}); });
   await step('20-rapport', async () => { await go('/reports'); await shot('20-rapport'); });
   await step('21-releve-compte', async () => { await go(`/transactions?accountId=${cash}`); await shot('21-releve-compte'); });
   await step('22-budget-reste-a-repartir', async () => {
@@ -112,7 +118,7 @@ async function run(size) {
   });
   await step('23-analyse', async () => { await go('/analysis'); await shot('23-analyse'); });
   await step('24-score', async () => { await go('/score'); await shot('24-score'); });
-  await step('25-reserve-origine', async () => { await go('/reserve/new'); await fill('Plafond cible', '120000').catch(() => {}); await fill('Déjà disponible pour cette réserve', '20000').catch(() => {}); await shot('25-reserve-origine'); });
+  await step('25-reserve-origine', async () => { await go('/reserve/new'); await fill('Plafond cible', '120000').catch(() => {}); await fill('Montant de départ', '20000').catch(() => {}); await shot('25-reserve-origine'); });
   await step('26-inscription-sources-sans-montant', async () => { await go('/settings/financial'); await shot('26-inscription-sources-sans-montant'); });
   await step('27-historique', async () => { await go('/transactions'); await shot('27-historique'); });
   await b.close();
@@ -120,8 +126,8 @@ async function run(size) {
 
 (async () => {
   // Seulement les images (index.md, rédigé à la main, est gardé).
-  for (const sz of SIZES) fs.rmSync(path.join(OUT, sz.name), { recursive: true, force: true });
+  if (!ONLY) for (const sz of SIZES) fs.rmSync(path.join(OUT, sz.name), { recursive: true, force: true });
   for (const s of SIZES) await run(s);
-  fs.writeFileSync(path.join(OUT, 'liste.txt'), log.join('\n') + '\n');
+  if (!ONLY) fs.writeFileSync(path.join(OUT, 'liste.txt'), log.join('\n') + '\n');
   console.log(`${log.length} captures → ${OUT}`);
 })().catch((e) => { console.log('ARRÊT', e.message); process.exitCode = 1; });

@@ -296,7 +296,7 @@ let b;
   await step('/goals/new — objectif personnalisé (nom)', async () => { await go('/goals/new'); await A.p.getByText('Créer mon propre objectif', { exact: false }).first().click(); await A.p.waitForTimeout(600); });
   await step('/goals/new — objectif personnalisé (formulaire)', async () => { await A.p.getByPlaceholder('Ex. Acheter une machine à glace').fill('Audit'); await btn(A.p, 'Continuer').click(); await A.p.waitForTimeout(700); });
   // Argent disponible v2 : feuilles et cartes nouvelles.
-  await step('/goals/new — origine du montant initial', async () => { await A.p.getByLabel('Montant déjà disponible (facultatif)').first().fill('10000'); await A.p.waitForTimeout(600); });
+  await step('/goals/new — origine du montant initial', async () => { await A.p.getByLabel('Montant de départ (facultatif)').first().fill('10000'); await A.p.waitForTimeout(600); });
   await step('/goals/new — origine hors de mes comptes (note)', async () => { await A.p.getByText('C\'est de l\'épargne hors de mes comptes', { exact: true }).first().click(); await A.p.waitForTimeout(600); });
   await step('feuille — complément (il manque de l’argent)', async () => {
     await go('/transaction/new?type=expense'); await A.p.getByLabel('Montant').first().fill('9000000');
