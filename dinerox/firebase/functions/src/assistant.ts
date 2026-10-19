@@ -36,16 +36,20 @@ export function countryPhrase(summary: unknown): string {
   }
 }
 
-export async function answerWithClaude(apiKey: string, question: string, summary: unknown, language: 'fr' | 'en'): Promise<string | null> {
-  const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 50_000 });
-  const response = await client.beta.messages.create({
-    model: 'claude-opus-5-5',
-    max_tokens: 16000,
-    // Effort explicite (défaut du modèle : medium) — bon compromis pour une réponse courte et fiable.
-    output_config: { effort: 'medium' },
-    // Repli automatique côté serveur si le modèle décline la demande.
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
+/** Un seul modèle dans toute l'application (docs/ia-comprend-tout.md §0.1). */
+export const ASSISTANT_MODEL = 'claude-haiku-5-5';
+
+/**
+ * Requête au modèle (§6) : Haiku, réflexion DÉSACTIVÉE, effort `low`, `max_tokens` adapté à une
+ * réponse de 120 mots au plus. Ni modèle de repli ni en-tête bêta de repli serveur (non pris en
+ * charge par Haiku) : un refus ou une erreur → l'application garde sa réponse locale.
+ */
+export function buildAssistantRequest(question: string, summary: unknown, language: 'fr' | 'en'): Anthropic.Beta.Messages.MessageCreateParamsNonStreaming {
+  return {
+    model: ASSISTANT_MODEL,
+    max_tokens: 1000,
+    thinking: { type: 'disabled' },
+    output_config: { effort: 'low' },
     system: (language === 'en' ? SYSTEM_EN : SYSTEM_FR).replace('{pays}', countryPhrase(summary)),
     messages: [
       {
@@ -53,7 +57,12 @@ export async function answerWithClaude(apiKey: string, question: string, summary
         content: `Résumé financier (JSON, données réelles de l'utilisateur) :\n${JSON.stringify(summary)}\n\nQuestion : ${question}`,
       },
     ],
-  });
+  };
+}
+
+export async function answerWithClaude(apiKey: string, question: string, summary: unknown, language: 'fr' | 'en'): Promise<string | null> {
+  const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 50_000 });
+  const response = await client.beta.messages.create(buildAssistantRequest(question, summary, language));
   if (response.stop_reason === 'refusal') return null;
   const text = response.content
     .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text')
