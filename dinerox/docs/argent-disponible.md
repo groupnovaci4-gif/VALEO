@@ -203,6 +203,11 @@ D = Σ sur les CC actifs de la devise principale de :
       max(0, solde à aujourd'hui) − mises de côté portées par ce compte
 ```
 
+- **Solde négatif non couvert** (sans découvert autorisé, ou au-delà de la limite) : la partie
+  négative est **retirée de D**. Exemple : Espèces 100 000, Orange Money 40 000, Wave −20 000
+  → D = **120 000**, jamais 140 000. L'argent disponible ne dépasse jamais le total des comptes
+  courants : les 20 000 manquants sur Wave devront être pris quelque part (« Régulariser »).
+  Seul un découvert **autorisé** (§3.5) est traité comme une dette, sans réduire D.
 - Seules les opérations datées **jusqu'à aujourd'hui** comptent. Une opération à date future
   est « à venir » : une dépense future est un engagement (§7), un revenu futur ne compte pas.
 - Ne comptent **jamais** dans D : le revenu déclaré, un revenu récurrent non confirmé, une
@@ -321,7 +326,10 @@ la part hors réserve (règle 19).
 - **Une période = une seule opération.** Une récurrence convertie ne génère plus d'opération
   seule (D7) : sa confirmation **est** la cotisation de la période (`recordTontine`). On ne
   paie donc plus deux fois (n° 16 de l'audit C).
-- La tontine partagée suit les mêmes règles, avec l'action « J'ai reçu la cagnotte ».
+- La tontine partagée suit les mêmes règles, avec l'action « J'ai reçu la cagnotte ». Le montant
+  proposé (cagnotte saisie, sinon cotisation × membres) reste **modifiable** avant validation.
+- **Clôturer** : si des cotisations ou la cagnotte n'ont pas été notées, la feuille de clôture le
+  dit d'abord (« 2 cotisations et la cagnotte ne sont pas notées ») et propose de les noter.
 - Mettre une tontine en pause ne la retire pas du patrimoine.
 
 ### 5.5 Dettes et prêts
@@ -432,7 +440,7 @@ proposée qu'une fois, avec ce qui y est réellement libre :
   après la synchronisation, le solde négatif est **affiché tel quel**. Une carte propose
   « Régulariser » (transfert ou correction), et rien n'est masqué.
   - Une nouvelle sortie sur ce compte doit couvrir le montant **plus** le déficit.
-  - Les calculs ne plantent jamais sur un négatif (D compte max(0, solde)).
+  - Les calculs ne plantent jamais sur un négatif. Un négatif non autorisé est retiré de D (§4).
 
 ### 6.5 Espace famille
 
@@ -483,7 +491,8 @@ E = récurrences de DÉPENSE non confirmées dues dans l'horizon, et celles en r
 - **« En retard »** : une échéance non confirmée de la période en cours **ou de la période
   précédente** (le loyer du 30 non payé ne disparaît pas le 1er). Plus ancienne, elle sort de
   E et passe dans une liste « À régulariser », avec trois choix : « Payée » (date à indiquer),
-  « Je la dois encore » (elle redevient un engagement) ou « Pas due ».
+  « Je la dois encore » (elle redevient un engagement) ou « Pas due ». Pour « Payée », la date
+  proposée est la **date de l'échéance**, modifiable.
 - Les revenus attendus (salaire, cagnotte, remboursement d'un prêt accordé) **ne réduisent
   jamais** E.
 - Une dépense payée par une réserve ne réduit D que de sa part hors réserve. C'est automatique,
@@ -543,6 +552,10 @@ sinon                    → reste par jour = ⌊(D − E) / jours restants⌋
   - Si le résultat est négatif : « Vos enveloppes dépassent votre argent disponible de X F. »
 - Pour chaque enveloppe, sa part en % du revenu déclaré, à **deux décimales**, présentée comme
   une information (« 18,75 % de votre revenu déclaré »). Rien de tel dans un espace familial.
+- **Remboursements de dettes** (le capital) : ce ne sont pas des dépenses. Ils n'entrent ni dans
+  une enveloppe ni dans « Dépenses hors enveloppe ». Le budget les montre sur une ligne à part,
+  « Remboursements de dettes du mois », et les mensualités à venir sont déjà retirées du reste
+  à répartir comme engagements (§7.2). Les **intérêts**, eux, sont des dépenses.
 - « Dépenses hors enveloppe » se calcule sur la même base que les enveloppes
   (`budgetTransactions`) : la part payée par une réserve n'y apparaît plus (n° 17 de l'audit B).
 - Les mouvements du cercle (versements, cotisations de tournante) ne sont pas des dépenses.
@@ -851,6 +864,8 @@ restants**. Montants en FCFA. Chaque ligne devient au moins un test pur.
 | E46 | Salaire de 300 000 viré directement sur un CE | R +300 000 ; S +300 000 ; D inchangé ; jamais un ajustement. |
 | E49b | Supprimer un compte jamais utilisé avec une ouverture de 80 000 | Refusé ; on désactive d'abord (solde 0 exigé). |
 | E50 | Passer en épargne un Wave à 50 000 | Refusé ; on propose un transfert vers un CE. |
+| E40c | Espèces 100 000, Orange Money 40 000, Wave −20 000 (sans découvert) | D = **120 000** (jamais 140 000) ; carte « Wave est à −20 000 FCFA : il faudra régulariser ». |
+| E44b | Remboursement de 55 000 dont 5 000 d'intérêts, budget du mois | Dépenses hors enveloppe : 5 000 (les intérêts) ; ligne « Remboursements de dettes du mois » : 50 000. |
 | E40 | Espèces 40 000 ; deux téléphones dépensent chacun 30 000 hors ligne | Après la synchronisation : Espèces −20 000 affiché, carte « Régulariser ». Une nouvelle dépense de 5 000 sur Espèces : il manque 25 000. |
 | E40b | Supprimer un revenu de 50 000 déjà dépensé (Espèces 10 000 après dépenses) | Confirmation : « Espèces passera à −40 000 F ; il faudra régulariser. » La suppression est permise. |
 | E42 | Banque avec découvert autorisé de 300 €, solde 100 € ; dépense de 350 € | Acceptée ; solde −250 € ; D = 0 ; dette à court terme 250 €. Une dépense de 450 € : il manque 50 €. |
