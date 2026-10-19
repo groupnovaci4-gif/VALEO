@@ -17,67 +17,53 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
-import { useI18n, hasKey, type TKey } from '@/i18n';
+import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
-import { ActionError, useActions } from '@/store/actions';
-import { HandledError, useMoneyGuard } from '@/features/money/MoneyGuard';
-import type { SourceChoice } from '@/core/writePlans';
+import { useMoneyGuard } from '@/features/money/MoneyGuard';
 import { useCategoryLabels, useFinance, useMoney } from '@/hooks/useFinance';
-import { useFormatParams } from '@/hooks/useInsightText';
 import { Button, Card, Chip, Icon, IconButton, Text } from '@/components/ui';
-import { normalizeText, parseIntent, type ParsedIntent } from '@/core/ai/parser';
-import { parseSavingsDeposit } from '@/core/entry/parse';
-import { answerQuestion, type Answer } from '@/core/ai/answers';
 import { buildFinanceSummary } from '@/core/ai/summary';
-import { proposeIncomeAllocation } from '@/core/budget';
-import { computeGoalPlan } from '@/core/goals';
-import { suggestGoalCategory } from '@/core/goalCategories';
-import { addMonths } from '@/core/dates';
-import { toMinor } from '@/core/money';
 import { hasFeature } from '@/core/subscription';
-import { askRemoteAssistant, resolveAccountHint } from '@/services/ai';
+import { askRemoteAssistant } from '@/services/ai';
 import { analytics } from '@/services/analytics';
 import { brand } from '@/config/brand';
 import { ListenButton } from '@/features/coach/ListenButton';
 import { goBack } from '@/hooks/goBack';
 import { stopVoice } from '@/services/voice';
 import { speechInput } from '@/services/speechInput';
-import { defaultSpendingAccountId } from '@/core/savingsCircle';
-import { isTontineContribution } from '@/core/savingsFlows';
 import { useEntrySave } from '@/features/entry/useEntrySave';
-
-type Proposal =
-  | { kind: 'tx'; type: 'expense' | 'income'; amount: number; categoryId: string | null; payee: string | null; date: string; accountId: string | null; allocation?: { envelopeId: string | null; amount: number }[] }
-  | { kind: 'transfer'; amount: number; from: string | null; to: string | null; date: string }
-  | { kind: 'goal'; name: string; amount: number | null; months: number | null; targetDate: string | null; categoryId: string; icon: string };
+import { useIntentEngine } from '@/features/ai/useIntentEngine';
+import { IntentResult } from '@/features/ai/IntentResult';
+import type { Intent } from '@/core/ai/intent';
+import type { EntryDraft } from '@/core/entry/parse';
 
 interface Message {
   id: string;
   from: 'user' | 'assistant';
   text?: string;
   bullets?: string[];
-  proposal?: Proposal;
+  /** Ce que le moteur a compris (docs/ia-comprend-tout.md) : réponse, carte, question, écran… */
+  intent?: Intent;
+  /** Quota de compréhension avancée épuisé (compréhension sur le téléphone seule). */
+  quota?: boolean;
+  /** Dépenses et revenus compris : une carte, « Tout valider ». */
+  drafts?: EntryDraft[];
   status?: 'pending' | 'done' | 'cancelled';
   question?: string;
   remote?: boolean;
 }
-
-/** Thèmes de question accessibles en formule gratuite. */
-const FREE_TOPICS = new Set(['spent_month', 'income_month', 'remaining_category', 'balance', 'spent_category']);
 
 let seq = 0;
 const mid = () => `m${Date.now()}${++seq}`;
 
 export default function Assistant() {
   const { colors, radius } = useTheme();
-  const { t, lang, monthYear } = useI18n();
+  const { t, lang } = useI18n();
   const { plan, profile, updateProfile, role } = useApp();
   const money = useMoney();
-  const fmt = useFormatParams();
   const cats = useCategoryLabels();
-  const actions = useActions();
   const f = useFinance();
-  const { data, currency, now, envelopes } = f;
+  const { data, currency, now } = f;
   const [input, setInput] = useState('');
   // Saisie vocale préparée, non activée : le micro reste désactivé tant
   // qu'aucun fournisseur n'est branché (services/speechInput.ts).
@@ -136,138 +122,40 @@ export default function Assistant() {
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
   };
   const update = (id: string, patch: Partial<Message>) => setMessages((cur) => cur.map((m) => (m.id === id ? { ...m, ...patch } : m)));
-  const renderAnswer = (a: Answer) => ({
-    text: hasKey(a.key) ? t(a.key, fmt(a.params, { monthDates: true })) : '',
-    bullets: a.bullets?.map((b) => (hasKey(b.key) ? t(b.key as TKey, fmt(b.params, { monthDates: true })) : '')).filter(Boolean),
-  });
-  // Cercle fermé : jamais un compte d'épargne par défaut (aucun compte courant : « Espèces » créé à la confirmation).
   const { saveDrafts } = useEntrySave();
   const { guard } = useMoneyGuard();
-  const defaultAccount = defaultSpendingAccountId(data.accounts, null, currency);
-  const minor = (n: number | null) => (n === null ? null : toMinor(n, currency));
 
+  // docs/ia-comprend-tout.md §1 : le MÊME moteur que la feuille de saisie (local d'abord, repli Haiku).
+  const engine = useIntentEngine('assistant');
   const handle = (raw: string) => {
     const text = raw.trim();
     if (!text) return;
     setInput('');
     push({ id: mid(), from: 'user', text });
     analytics.track('ai_used', { source: 'assistant' });
-    // 1.8 — « J'ai épargné 20 000 » : un versement d'épargne, jamais une dépense ; il est
-    // confirmé sur l'écran de versement (compte, source, objectif), rien n'est enregistré ici.
-    const d = parseSavingsDeposit(normalizeText(text), { today: now, currency, accounts: data.accounts, categories: data.categories, defaultAccountId: null, goals: data.goals });
-    if (d) {
-      push({ id: mid(), from: 'assistant', text: t('sav.ai.route') });
-      router.push({ pathname: '/savings/move', params: { mode: 'deposit', ask: '1', ...(d.amount ? { amount: String(d.amount) } : {}), ...(d.savingsAccountId ? { accountId: d.savingsAccountId } : {}), ...(d.goalId ? { goalId: d.goalId } : {}), ...(d.fromAccountId ? { fromId: d.fromAccountId } : {}), date: d.date } });
-      return;
-    }
-    const intent: ParsedIntent = parseIntent(text, now);
-    switch (intent.kind) {
-      case 'expense':
-      case 'income': {
-        // Sans compte : un compte « Espèces » sera créé à la confirmation (aucun blocage).
-        if (intent.amount === null) return push({ id: mid(), from: 'assistant', text: t('ai.incomeNoAmount') });
-        const amount = minor(intent.amount)!;
-        const hinted = resolveAccountHint(intent.accountHint, data.accounts);
-        // L'épargne ne paie jamais une dépense (une cotisation de tontine, si) : compte courant, et on l'explique.
-        const redirect = intent.kind === 'expense' && !!hinted?.isSavings && !isTontineContribution({ type: 'expense', categoryId: intent.categoryId });
-        const accountId = redirect ? defaultAccount : (hinted?.id ?? defaultAccount);
-        if (redirect) push({ id: mid(), from: 'assistant', text: t('circle.redirect', { account: data.accounts.find((a) => a.id === accountId)?.name ?? t('acc.type.cash') }) });
-        const p: Proposal = { kind: 'tx', type: intent.kind, amount, categoryId: intent.categoryId, payee: intent.payee, date: intent.date, accountId };
-        if (intent.kind === 'income') {
-          p.allocation = proposeIncomeAllocation(amount, envelopes, currency);
-          return push({ id: mid(), from: 'assistant', text: t('ai.incomeAsk', { amount: money(amount) }), proposal: p, status: 'pending' });
-        }
-        return push({ id: mid(), from: 'assistant', proposal: p, status: 'pending' });
-      }
-      case 'transfer': {
-        const from = resolveAccountHint(intent.from, data.accounts)?.id ?? null;
-        const to = resolveAccountHint(intent.to, data.accounts)?.id ?? null;
-        return push({ id: mid(), from: 'assistant', proposal: { kind: 'transfer', amount: minor(intent.amount)!, from, to, date: intent.date }, status: 'pending' });
-      }
-      case 'goal': {
-        const s = suggestGoalCategory(intent.name);
-        return push({
-          id: mid(),
-          from: 'assistant',
-          text: intent.amount === null ? t('ai.propose.goalNoAmount') : undefined,
-          proposal: { kind: 'goal', name: intent.name, amount: minor(intent.amount), months: intent.months, targetDate: intent.targetDate, categoryId: s?.category.id ?? 'custom', icon: s?.template?.icon ?? s?.category.icon ?? '🎯' },
-          status: 'pending',
-        });
-      }
-      case 'question': {
-        if (!aiPlan && !FREE_TOPICS.has(intent.topic)) return push({ id: mid(), from: 'assistant', text: t('ai.locked') });
-        const a = answerQuestion({ ...intent, amount: minor(intent.amount) }, { data, currency, now, categoryName: cats.byId });
-        const r = renderAnswer(a);
-        // Complément « dans N mois » pour un achat hors de portée.
-        if (a.key === 'ai.a.affordNo' && a.params?.hasMonths) r.bullets = [...(r.bullets ?? []), t('ai.a.affordNoMonths', { months: a.params.months })];
-        return push({ id: mid(), from: 'assistant', ...r, question: text });
-      }
-      default:
-        return push({ id: mid(), from: 'assistant', text: t('ai.unknown'), question: aiPlan ? text : undefined });
-    }
+    setBusy(true);
+    void engine
+      .understandText(text)
+      .then((r) => {
+        if (r.intent.kind === 'entry') return push({ id: mid(), from: 'assistant', drafts: r.intent.drafts, status: 'pending' });
+        // Questions et phrases non comprises : l'analyse détaillée reste proposée (résumé agrégé, §5).
+        push({ id: mid(), from: 'assistant', intent: r.intent, quota: r.quota, question: r.intent.kind === 'question' || r.intent.kind === 'unknown' ? text : undefined });
+      })
+      .finally(() => setBusy(false));
   };
 
-  const confirm = (m: Message) => {
-    const p = m.proposal!;
-    const done = () => {
-      update(m.id, { status: 'done' });
-      push({ id: mid(), from: 'assistant', text: t('ai.recorded') });
-    };
-    // Argent disponible v2 (§6.3) : une sortie d'argent passe par la feuille de complément (rien
-    // n'est enregistré avant le choix) ; l'opération par LE chemin de la saisie (useEntrySave).
-    const run = (fn: (choices: SourceChoice[]) => void) =>
-      guard((choices) => {
-        try {
-          fn(choices);
-        } catch (e) {
-          if (e instanceof ActionError && (e.code === 'noMoney' || e.code === 'shortfall')) throw e;
-          // Information manquante : on ouvre le formulaire prérempli.
-          edit(m);
-          throw new HandledError();
-        }
-      }, { onDone: done });
-    try {
-      if (p.kind === 'tx') {
-        run((choices) => saveDrafts([{ type: p.type, amount: p.amount, categoryId: p.categoryId, subcategoryId: null, accountId: p.accountId, date: p.date, payee: p.payee, uncertain: [], source: '' }], 'text_phrase', false, false, choices));
-      } else if (p.kind === 'transfer') {
-        if (!p.from || !p.to) throw new Error('account');
-        const from = p.from;
-        const to = p.to;
-        run((choices) => actions.saveTransaction({ type: 'transfer', amount: p.amount, currency, date: p.date, accountId: from, toAccountId: to }, { choices }));
-      } else {
-        if (!p.amount) return router.push({ pathname: '/goals/new', params: { name: p.name, ai: '1', targetDate: p.targetDate ?? undefined } });
-        actions.createGoal({
-          name: p.name,
-          categoryId: p.categoryId,
-          templateId: null,
-          type: 'custom',
-          icon: p.icon,
-          currency,
-          targetAmount: p.amount,
-          initialAmount: 0,
-          targetDate: p.targetDate,
-          priority: 'normal',
-          rank: 0,
-          accountId: null,
-          monthlyContribution: null,
-          scope: 'personal',
-          status: 'active',
-          history: [],
-        });
-        done();
-      }
-    } catch {
-      // Information manquante : on ouvre le formulaire prérempli.
-      edit(m);
-    }
-  };
-
-  const edit = (m: Message) => {
-    const p = m.proposal!;
+  /** Dépenses et revenus : le chemin de la saisie (useEntrySave), complément du §6 avant d'écrire. */
+  const confirmDrafts = (m: Message) =>
+    guard((choices) => saveDrafts(m.drafts!, 'text_phrase', false, false, choices), {
+      onDone: () => {
+        update(m.id, { status: 'done' });
+        push({ id: mid(), from: 'assistant', text: t('ai.recorded') });
+      },
+    });
+  const editDrafts = (m: Message) => {
+    const d = m.drafts![0];
     update(m.id, { status: 'cancelled' });
-    if (p.kind === 'tx') router.push({ pathname: '/transaction/new', params: { type: p.type, amount: String(p.amount), categoryId: p.categoryId ?? undefined, payee: p.payee ?? undefined, accountId: p.accountId ?? undefined, date: p.date } });
-    else if (p.kind === 'transfer') router.push({ pathname: '/transaction/new', params: { type: 'transfer', amount: String(p.amount), accountId: p.from ?? undefined, toAccountId: p.to ?? undefined } });
-    else router.push({ pathname: '/goals/new', params: { name: p.name, amount: p.amount ? String(p.amount) : undefined, targetDate: p.targetDate ?? undefined, ai: '1' } });
+    router.push({ pathname: '/transaction/new', params: { type: d.type === 'income' ? 'income' : 'expense', ...(d.amount ? { amount: String(d.amount) } : {}), ...(d.categoryId ? { categoryId: d.categoryId } : {}), ...(d.accountId ? { accountId: d.accountId } : {}), date: d.date } });
   };
 
   // `consented` : consentement donné à l'instant (le profil de cette closure
@@ -275,7 +163,7 @@ export default function Assistant() {
   const askRemote = async (m: Message, consented = false) => {
     if (!m.question) return;
     if (!consented && !profile?.preferences.aiConsent) {
-      push({ id: mid(), from: 'assistant', text: t('ai.remoteConsent'), question: m.question, proposal: undefined, status: 'pending', remote: true });
+      push({ id: mid(), from: 'assistant', text: t('ai.remoteConsent'), question: m.question, status: 'pending', remote: true });
       return;
     }
     setBusy(true);
@@ -303,64 +191,32 @@ export default function Assistant() {
 
   const examples = useMemo(() => (['ai.ex1', 'ai.ex2', 'ai.ex3', 'ai.ex4', 'ai.ex5', 'ai.ex6'] as TKey[]).map((k) => t(k)), [t]);
 
-  const renderProposal = (m: Message) => {
-    const p = m.proposal!;
-    let title = '';
-    let detail: string | null = null;
-    if (p.kind === 'tx') {
-      title = p.type === 'expense' ? t('ai.propose.expense', { amount: money(p.amount), category: cats.byId(p.categoryId ?? '') }) : t('ai.propose.income', { amount: money(p.amount) });
-      detail = [p.payee, data.accounts.find((a) => a.id === p.accountId)?.name, p.date !== now ? p.date : null].filter(Boolean).join(' · ') || null;
-    } else if (p.kind === 'transfer') {
-      title = t('ai.propose.transfer', { amount: money(p.amount), from: data.accounts.find((a) => a.id === p.from)?.name ?? '?', to: data.accounts.find((a) => a.id === p.to)?.name ?? '?' });
-    } else {
-      title = t('ai.propose.goal', { name: `${p.icon} ${p.name}` });
-      if (p.amount) {
-        const months = p.months ?? null;
-        const target = p.targetDate ?? (months ? addMonths(now, months) : null);
-        const gp = computeGoalPlan({ targetAmount: p.amount, saved: 0, targetDate: target }, now);
-        detail = months || gp.monthsToTarget ? t('ai.propose.goalPlan', { amount: money(p.amount), months: months ?? gp.monthsToTarget ?? 0, monthly: money(gp.requiredMonthly ?? 0) }) : money(p.amount);
-        if (target && !months) detail += ` · ${monthYear(target)}`;
-      }
-    }
-    return (
-      <Card style={{ marginTop: 8, gap: 8 }}>
-        <Text variant="bodyStrong">{title}</Text>
-        {detail ? (
-          <Text variant="small" tone="muted">
-            {detail}
-          </Text>
-        ) : null}
-        {p.kind === 'tx' && p.allocation?.length ? (
-          <View style={{ gap: 4 }}>
-            {p.allocation.map((a, i) => (
-              <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text variant="small">{a.envelopeId ? (data.envelopes.find((e) => e.id === a.envelopeId)?.name ?? '') : t('env.allocate.free')}</Text>
-                <Text variant="small" weight="700">
-                  {money(a.amount)}
-                </Text>
-              </View>
-            ))}
+  const renderDrafts = (m: Message) => (
+    <Card style={{ marginTop: 8, gap: 8 }}>
+      {m.drafts!.map((d, i) => (
+        <Text key={i} variant="bodyStrong">
+          {d.type === 'income' ? t('ai.propose.income', { amount: d.amount ? money(d.amount) : '…' }) : t('ai.propose.expense', { amount: d.amount ? money(d.amount) : '…', category: cats.byId(d.subcategoryId ?? d.categoryId ?? '') })}
+          {d.accountId ? ` · ${data.accounts.find((a) => a.id === d.accountId)?.name ?? ''}` : ''}
+        </Text>
+      ))}
+      {m.status === 'pending' ? (
+        <>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <Button small variant="success" icon="checkmark" label={m.drafts!.length > 1 ? t('entry.confirm.validate') : t('ia.card.validate')} disabled={m.drafts!.some((d) => d.amount === null)} onPress={() => confirmDrafts(m)} />
+            <Button small variant="secondary" label={t('common.edit')} onPress={() => editDrafts(m)} />
+            <Button small variant="ghost" label={t('common.cancel')} onPress={() => (update(m.id, { status: 'cancelled' }), push({ id: mid(), from: 'assistant', text: t('ai.cancelled') }))} />
           </View>
-        ) : null}
-        {m.status === 'pending' ? (
-          <>
-            <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-              <Button small variant="success" icon="checkmark" label={t('common.confirm')} onPress={() => confirm(m)} />
-              <Button small variant="secondary" label={t('common.edit')} onPress={() => edit(m)} />
-              <Button small variant="ghost" label={t('common.cancel')} onPress={() => (update(m.id, { status: 'cancelled' }), push({ id: mid(), from: 'assistant', text: t('ai.cancelled') }))} />
-            </View>
-            <Text variant="caption" tone="subtle">
-              {t('ai.confirmHint')}
-            </Text>
-          </>
-        ) : (
-          <Text variant="caption" tone={m.status === 'done' ? 'success' : 'subtle'}>
-            {m.status === 'done' ? t('ai.recorded') : t('ai.cancelled')}
+          <Text variant="caption" tone="subtle">
+            {t('ai.confirmHint')}
           </Text>
-        )}
-      </Card>
-    );
-  };
+        </>
+      ) : (
+        <Text variant="caption" tone={m.status === 'done' ? 'success' : 'subtle'}>
+          {m.status === 'done' ? t('ai.recorded') : t('ai.cancelled')}
+        </Text>
+      )}
+    </Card>
+  );
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1, backgroundColor: colors.background }}>
@@ -419,7 +275,12 @@ export default function Assistant() {
                   </View>
                 ) : null}
               </View>
-              {m.proposal ? <View style={{ width: '88%' }}>{renderProposal(m)}</View> : null}
+              {m.drafts ? <View style={{ width: '88%' }}>{renderDrafts(m)}</View> : null}
+              {m.intent ? (
+                <View style={{ width: '88%' }}>
+                  <IntentResult intent={m.intent} engine={engine} quota={m.quota} onIntent={(next) => update(m.id, { intent: next })} onExample={handle} onManual={() => router.push('/transaction/new')} />
+                </View>
+              ) : null}
               {m.remote && m.status === 'pending' ? (
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                   <Button

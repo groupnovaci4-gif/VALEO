@@ -155,14 +155,16 @@ let b;
   ok(t.includes('Indiquez le montant de chaque opération') && (await btn('Tout valider').isDisabled()), '« Taxi » sans montant : enregistrement impossible, montant demandé');
   await btn('Annuler').click(); await p.waitForTimeout(300);
 
-  // ── Routage : question → réponse + conversation ; doute → « opération ou question ? » ──
+  // ── Routage : question → réponse + conversation ; non compris → exemples et saisie à la main ──
   await home(); await openKeyboard(); await phrase("Combien j'ai dépensé ce mois-ci ?");
   t = await text();
   ok(t.includes('Ouvrir la conversation') && !t.includes('Tout valider'), 'question : réponse de l’assistant (pas d’opération)');
   await btn('Ouvrir la conversation').click(); await p.waitForTimeout(2500);
   ok(p.url().includes('/assistant') && (await text()).includes("Combien j'ai dépensé ce mois-ci"), '« Ouvrir la conversation » : l’assistant reprend la question');
   await home(); await openKeyboard(); await phrase('bonjour');
-  ok((await text()).includes('Voulez-vous enregistrer une opération ou poser une question ?'), 'doute : « opération ou question ? »');
+  // IA qui comprend toute l'application : « Je n'ai pas compris » + 3 exemples + « Saisir à la main ».
+  t = await text();
+  ok(t.includes("Je n'ai pas compris.") && t.includes('Saisir à la main') && t.includes("J'ai dépensé 30 000 en loyer"), 'non compris : 3 exemples et « Saisir à la main »');
   await p.keyboard.press('Escape');
 
   // ── Voix (reconnaissance simulée) ──

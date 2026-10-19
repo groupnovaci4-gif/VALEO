@@ -135,10 +135,11 @@ const email = `sav${Date.now()}@ex.com`;
   const exp2 = await monthExpenses();
   await go('/entry?mode=keyboard', 3500);
   await (await phraseField(p)).fill("J'ai épargné 20 000"); await btn('Comprendre').click(); await p.waitForTimeout(2000);
-  ok(p.url().includes('/savings/move'), `« J'ai épargné 20 000 » → écran de versement (${p.url().replace(BASE, '')})`);
+  // IA qui comprend toute l'application : une carte de validation (« Depuis quel compte ? » si besoin).
+  if ((await text()).includes('Depuis quel compte ?')) { await p.getByRole('button', { name: 'Wave', exact: true }).first().click(); await p.waitForTimeout(600); }
+  ok(/Mettre 20.000.FCFA de côté/.test(await text()), `« J'ai épargné 20 000 » → carte « Mettre 20 000 FCFA de côté »`);
   ok((await p.getByRole('textbox', { name: 'Montant', exact: true }).first().inputValue()).replace(/\D/g, '') === '20000', 'montant prérempli : 20 000');
-  await p.getByRole('button', { name: /^Wave · / }).first().click(); await p.waitForTimeout(200);
-  await btn('Enregistrer le versement').click(); await p.waitForTimeout(1800);
+  await btn('Valider').click(); await p.waitForTimeout(1800);
   ok((await totalSavings()) === 190_000, 'versement confirmé : épargne 190 000');
   ok((await monthExpenses()) === exp2, 'aucune dépense créée');
 

@@ -601,8 +601,11 @@ function entry(original: string, ctx: IntentContext): Intent | null {
     contributionSubcategory: tontineCat.subcategoryId,
   });
   const drafts = withTontine ?? items;
-  // Une ligne sans montant (ni tontine reconnue) n'est pas comprise : repli.
-  if (!drafts.length || drafts.every((d) => d.amount === null && !d.tontine)) return null;
+  // Une ligne sans montant (ni tontine) n'est une saisie que si la phrase est courte (« Taxi » : le
+  // montant sera demandé sur la carte) ou dit clairement une opération ; sinon : repli.
+  const t = clean(original);
+  const saysEntry = tokens(t).length <= 3 || /\b(j ai|je viens d|on m a|i)\s?(paye|achete|depense|envoye|donne|recu|regle|cotise|paid|bought|spent|sent|received)\b/.test(t);
+  if (!drafts.length || drafts.every((d) => d.amount === null && !d.tontine && (!saysEntry || !d.categoryId))) return null;
   return { kind: 'entry', drafts };
 }
 

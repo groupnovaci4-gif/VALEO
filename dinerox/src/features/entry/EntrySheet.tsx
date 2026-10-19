@@ -63,6 +63,9 @@ import { needsConsentRenewal, transcriptConsent, withConsent } from '@/core/aiCo
 import { parseVoiceRemotely } from '@/services/voiceParse';
 import { coachPrefs } from '@/core/coach/prefs';
 import { defaultSpendingAccountId } from '@/core/savingsCircle';
+import { useIntentEngine } from '@/features/ai/useIntentEngine';
+import { IntentResult } from '@/features/ai/IntentResult';
+import type { Intent } from '@/core/ai/intent';
 
 type View_ =
   | { kind: 'input' }
@@ -70,7 +73,9 @@ type View_ =
   | { kind: 'conversation'; method: EntryMethod; text: string; edited: boolean; thinking?: boolean }
   | { kind: 'confirm'; drafts: EntryDraft[]; method: EntryMethod; text: string; edited: boolean }
   | { kind: 'answer'; text: string; bullets: string[]; question: string }
-  | { kind: 'ambiguous'; text: string };
+  | { kind: 'ambiguous'; text: string }
+  /** L'IA qui comprend toute l'application : question, action, écran, interdit, introuvable, non compris. */
+  | { kind: 'intent'; intent: Intent; text: string; quota?: boolean; thinking?: boolean };
 
 /** Message sous le micro (l'état de l'enregistrement lui-même vit dans `core/entry/recorder`). */
 // I1 : `consent` (demande d'accord, une seule fois) et `pack` (langue à télécharger) avant d'ouvrir le micro.
@@ -229,8 +234,31 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
   };
 
   // ─── Analyse d'un texte (voix ou phrase) ───────────────────────────
+  // docs/ia-comprend-tout.md §1 : le MÊME moteur que « Parler à DineroX ». Dépenses et revenus
+  // (cotisations et cagnottes comprises) gardent la carte de la saisie (règles 18 et 22).
+  const engine = useIntentEngine('entry');
   /** Analyse un texte ; faux si rien n'a été compris (« Je n'ai rien entendu »). */
   const analyze = (text: string, method: 'voice' | 'text_phrase'): boolean => {
+    if (!text.trim()) return analyzeEntry(text, method);
+    const understood = engine.understandLocal(text);
+    if (understood.kind === 'entry') return analyzeEntry(text, method);
+    analytics.track('mic_routed', { to: understood.kind === 'question' ? 'assistant' : understood.kind === 'unknown' ? 'ambiguous' : 'entry', method });
+    if (understood.kind === 'unknown' && engine.remoteAllowed) {
+      // Repli : la phrase et la langue seulement (§5), réponse revérifiée sur le téléphone.
+      setView({ kind: 'intent', intent: understood, text, thinking: true });
+      void engine.understandText(text).then((r) => setView({ kind: 'intent', intent: r.intent, text, quota: r.quota }));
+      return true;
+    }
+    setView({ kind: 'intent', intent: understood, text });
+    if (method === 'voice' && understood.kind === 'question') {
+      const r = engine.render(engine.answer(understood));
+      conv.speakNow([r.text, ...r.bullets]);
+    }
+    return true;
+  };
+
+  /** Saisie d'opérations (dépenses, revenus, tontines) : la mini-conversation et sa carte. */
+  const analyzeEntry = (text: string, method: 'voice' | 'text_phrase'): boolean => {
     const r: EntryParse = parseEntryText(text, entryCtx);
     // Tontine : « Tontine 10 000 », « J'ai cotisé ma tontine du bureau », « J'ai reçu la tontine »
     // → la tontine correspondante est proposée sur la carte de confirmation.
@@ -598,6 +626,51 @@ function EntryBody({ mode, onClose, onModeChange }: { mode: EntryMode; onClose: 
               router.push({ pathname: '/assistant', params: { q: view.question } });
             }}
           />
+          <Button variant="tertiary" label={t('common.close')} full={big} onPress={onClose} />
+        </View>
+      </View>
+    );
+  }
+  if (view.kind === 'intent') {
+    const v = view;
+    return (
+      <View style={{ gap: 10 }}>
+        <Text variant="small" tone="muted">
+          « {v.text} »
+        </Text>
+        {v.thinking ? (
+          <Text variant="small" tone="ai">
+            {t('ai.remoteThinking')}
+          </Text>
+        ) : (
+          <IntentResult
+            intent={v.intent}
+            engine={engine}
+            quota={v.quota}
+            onIntent={(next) => setView({ ...v, intent: next })}
+            onDone={onClose}
+            onExample={(x) => void analyze(x, 'text_phrase')}
+            onManual={() => {
+              setPhrase(v.text);
+              setMoreOpen(true);
+              setView({ kind: 'input' });
+              onModeChange('keyboard');
+            }}
+          />
+        )}
+        <View style={{ flexDirection: big ? 'column' : 'row', gap: 8, flexWrap: 'wrap' }}>
+          {v.intent.kind === 'question' ? (
+            <Button
+              variant="secondary"
+              icon="chatbubble-ellipses-outline"
+              label={t('entry.answer.open')}
+              full={big}
+              onPress={() => {
+                onClose();
+                router.push({ pathname: '/assistant', params: { q: v.text } });
+              }}
+            />
+          ) : null}
           <Button variant="tertiary" label={t('common.close')} full={big} onPress={onClose} />
         </View>
       </View>
