@@ -243,13 +243,13 @@ export function planTransferWithFee(draft: TxInput & { id?: string }, fee: numbe
 
 // ─── Dettes (§5.5) ───────────────────────────────────────────────────
 
-/** Emprunt reçu (entrée liée) ou prêt accordé (sortie liée) sur un compte : jamais un revenu ni une dépense. */
+/** Emprunt reçu (entrée liée) ou prêt accordé (sortie liée) sur un compte : jamais un revenu ni une dépense (sans catégorie : sa nature le dit). */
 export function planDebtOpening(debt: Pick<Debt, 'id' | 'direction' | 'principal' | 'currency' | 'counterparty'>, input: { accountId: string; date: ISODate }, newId: NewId): PlanItem[] {
   const received = debt.direction === 'i_owe';
   return [
     item(
       'transactions',
-      txDoc({ type: received ? 'income' : 'expense', amount: debt.principal, currency: debt.currency, date: input.date, accountId: input.accountId, categoryId: received ? 'inc_other' : 'cat_other', debtId: debt.id, payee: debt.counterparty }, newId('tx_')),
+      txDoc({ type: received ? 'income' : 'expense', amount: debt.principal, currency: debt.currency, date: input.date, accountId: input.accountId, categoryId: null, debtId: debt.id, payee: debt.counterparty }, newId('tx_')),
     ),
   ];
 }
@@ -279,7 +279,7 @@ export function planDebtRepayment(
   if (input.accountId) {
     const owe = debt.direction === 'i_owe';
     const capital = txDoc(
-      { type: owe ? 'expense' : 'income', amount: split.capital, currency: debt.currency, date: input.date, accountId: input.accountId, categoryId: owe ? 'cat_debts' : 'inc_other', debtId: debt.id, payee: debt.counterparty, note: input.note ?? input.label },
+      { type: owe ? 'expense' : 'income', amount: split.capital, currency: debt.currency, date: input.date, accountId: input.accountId, categoryId: owe ? 'cat_debts' : null, debtId: debt.id, payee: debt.counterparty, note: input.note ?? input.label },
       newId('tx_'),
     );
     transactionId = capital.id;

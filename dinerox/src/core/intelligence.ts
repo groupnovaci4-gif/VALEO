@@ -25,7 +25,7 @@ import { debtStatus } from './debts';
 import { goalPlanFor, hasEmergencyFund } from './goals';
 import { occurrencesBetween } from './recurring';
 import { findSubcategory } from './catalog';
-import { ensureLedgerView, isRevenue, isSpending, spendingAmount } from './nature';
+import { ensureLedgerView, isRevenue, isSpending, spendingAmount, txNature } from './nature';
 import { nextAdvice, precaution, tenPercent, type AdviceKey } from './coachMetrics';
 import type { CoachState } from './coachData';
 import { periodReport } from './ledger';
@@ -70,11 +70,13 @@ interface MonthStats {
   income: number;
   expense: number;
   fixed: number;
+  /** Capital remboursé (remboursements de dettes, ni dépense ni enveloppe). */
+  repaid: number;
   byCategory: Record<string, number>;
 }
 
 function monthStats(transactions: Transaction[], month: MonthKey, currency: CurrencyCode, categories: Category[]): MonthStats {
-  const s: MonthStats = { month, income: 0, expense: 0, fixed: 0, byCategory: {} };
+  const s: MonthStats = { month, income: 0, expense: 0, fixed: 0, repaid: 0, byCategory: {} };
   for (const t of transactions) {
     if (t.deleted || t.currency !== currency || monthKey(t.date) !== month || (t.type !== 'income' && t.type !== 'expense')) continue;
     // Par NATURE : un emprunt, une cagnotte, un remboursement ne sont pas des revenus.
@@ -84,7 +86,7 @@ function monthStats(transactions: Transaction[], month: MonthKey, currency: Curr
       if (isFixedExpense(t, categories)) s.fixed += t.amount;
       const k = t.categoryId ?? 'none';
       s.byCategory[k] = (s.byCategory[k] ?? 0) + t.amount;
-    }
+    } else if (txNature(t) === 'remboursement_capital') s.repaid += t.amount;
   }
   return s;
 }
@@ -95,6 +97,9 @@ export interface FinancialSnapshot {
   currency: CurrencyCode;
   /** Mois complets avec au moins une opération (base des moyennes). */
   monthsOfData: number;
+  /** Période des lignes observées (revenus, dépenses, charges fixes, variables, remboursements) :
+   *  moyenne des mois clos, sinon le mois en cours — jamais un mélange des deux. */
+  period: 'closed' | 'current';
   income: Figure;
   expenses: Figure;
   fixedCharges: Figure;
@@ -104,6 +109,9 @@ export interface FinancialSnapshot {
   /** Mensualités de dettes à rembourser. */
   debtService: Figure;
   debtRatio: number | null;
+  /** Capital remboursé sur la même période que les revenus (tableau de l'analyse). */
+  debtRepaid: Figure;
+  debtRepaidRatio: number | null;
   /** Capacité d'épargne estimée (peut être négative). */
   savingsCapacity: Figure;
   /** Effort mensuel nécessaire pour tenir les dates des objectifs actifs. */
@@ -137,8 +145,6 @@ export function financialSnapshot({ data: input, currency, now, available, finan
   const current = monthStats(data.transactions, months[3], currency, data.categories);
   const hasHistory = past.length > 0;
 
-  // Charges fixes connues : récurrences actives (équivalent mensuel) et charges déclarées.
-  const recurringFixed = data.recurring.filter((r) => r.active && !r.deleted && r.type === 'expense' && r.currency === currency).reduce((n, r) => n + monthlyEquivalent(r), 0);
   const debtService = data.debts
     .filter((d: Debt) => !d.deleted && d.direction === 'i_owe' && d.currency === currency)
     .reduce((n, d) => {
@@ -157,19 +163,15 @@ export function financialSnapshot({ data: input, currency, now, available, finan
   let expenses: Figure;
   let fixedCharges: Figure;
   let capacity: Figure;
-  if (hasHistory) {
-    income = { value: avg(past.map((m) => m.income)), source: 'user' };
-    const fixedValue = Math.max(avg(past.map((m) => m.fixed)), recurringFixed);
-    fixedCharges = { value: fixedValue, source: 'user' };
-    expenses = { value: Math.max(avg(past.map((m) => m.expense)), fixedValue), source: 'user' };
-    capacity = { value: avg(margins), source: 'user' };
-  } else {
-    // Pas encore de mois clos : « Pas encore assez de données » — rien n'est tiré du déclaré.
-    income = { value: current.income, source: 'user' };
-    fixedCharges = { value: recurringFixed, source: 'user' };
-    expenses = { value: Math.max(current.expense, recurringFixed), source: 'user' };
-    capacity = { value: 0, source: 'user' };
-  }
+  // Toutes les lignes observées sur la MÊME période : les mois clos, sinon le mois en cours.
+  // Une récurrence à venir n'y est jamais mêlée (elle est dans « Sorties prévues »).
+  const base = hasHistory ? past : [current];
+  income = { value: avg(base.map((m) => m.income)), source: 'user' };
+  fixedCharges = { value: avg(base.map((m) => m.fixed)), source: 'user' };
+  expenses = { value: avg(base.map((m) => m.expense)), source: 'user' };
+  const debtRepaid: Figure = { value: avg(base.map((m) => m.repaid)), source: 'user' };
+  // Pas encore de mois clos : « Pas encore assez de données » — rien n'est tiré du déclaré.
+  capacity = { value: hasHistory ? avg(margins) : 0, source: 'user' };
 
   const goalNeeds = data.goals
     .filter((g: Goal) => g.status === 'active' && !g.deleted && g.currency === currency)
@@ -209,6 +211,7 @@ export function financialSnapshot({ data: input, currency, now, available, finan
   return {
     currency,
     monthsOfData: past.length,
+    period: hasHistory ? 'closed' : 'current',
     income,
     expenses,
     fixedCharges,
@@ -216,6 +219,8 @@ export function financialSnapshot({ data: input, currency, now, available, finan
     variableSpending: { value: Math.max(0, expenses.value - fixedCharges.value), source: expenses.source },
     debtService: { value: debtService, source: 'user' },
     debtRatio: income.value > 0 ? Math.round((debtService / income.value) * 100) : null,
+    debtRepaid,
+    debtRepaidRatio: income.value > 0 ? Math.round((debtRepaid.value / income.value) * 100) : null,
     savingsCapacity: capacity,
     goalNeeds,
     available,

@@ -118,6 +118,16 @@ describe('§5.5 — dettes : opérations liées, capital + intérêts', () => {
     expect(positionOf(after, 'XOF', TODAY).available).toBe(30_000);
     expect(periodReport(after, OCT, 'XOF').financement.pretsAccordes).toBe(50_000);
   });
+  it('§2.3 — un emprunt, un prêt ou un remboursement reçu ne porte pas « Autres revenus » / « Autres » : sa nature suffit', () => {
+    const owe = debt({ id: 'owe', principal: 200_000 });
+    const lent = debt({ id: 'lent', direction: 'owed_to_me', principal: 50_000 });
+    const cats = (items: { doc: unknown }[]) => items.map((i) => (i.doc as { categoryId?: string | null }).categoryId ?? null);
+    expect(cats(planDebtOpening(owe, { accountId: 'om', date: TODAY }, newId))).toEqual([null]);
+    expect(cats(planDebtOpening(lent, { accountId: 'cash', date: TODAY }, newId))).toEqual([null]);
+    const r = planDebtRepayment(lent, { total: 20_000, interest: 0, accountId: 'cash', date: TODAY, label: '' }, [], newId);
+    if (!('items' in r)) throw new Error(r.error);
+    expect(cats(r.items.filter((i) => i.col === 'transactions'))).toEqual([null]);
+  });
   it('E23 — remboursement 110 000 dont 10 000 d’intérêts : capital + intérêts liés, dette −100 000', () => {
     const owe = debt({ id: 'owe', principal: 200_000 });
     const d = space({ accounts: [cash(200_000)], debts: [owe] });

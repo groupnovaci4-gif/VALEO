@@ -73,6 +73,22 @@ describe('§4 — argent disponible D', () => {
     expect(p.negatives).toEqual(['cash']);
   });
 
+  it('E40c — Espèces 100 000, Orange Money 40 000, Wave −20 000 sans découvert : D = 120 000 (jamais 140 000)', () => {
+    const om = account({ id: 'om', type: 'mobile_money', openingBalance: 40_000 });
+    const wave = account({ id: 'wave', type: 'mobile_money', openingBalance: 0 });
+    const d = space({ accounts: [cash(100_000), om, wave], transactions: [tx({ type: 'expense', amount: 20_000, accountId: 'wave' })] });
+    const p = positionOf(d, 'XOF', TODAY);
+    expect([p.available, p.totalAccounts, p.negatives]).toEqual([120_000, 120_000, ['wave']]);
+  });
+
+  it('§4 — au-delà du découvert autorisé, seule la partie non couverte est retirée de D', () => {
+    const bank = account({ id: 'bank', type: 'bank', openingBalance: 0, overdraftLimit: 30_000 });
+    const d = space({ accounts: [cash(100_000), bank], transactions: [tx({ type: 'expense', amount: 40_000, accountId: 'bank' })] });
+    expect(positionOf(d, 'XOF', TODAY).available).toBe(90_000);
+    const within = space({ accounts: [cash(100_000), bank], transactions: [tx({ type: 'expense', amount: 25_000, accountId: 'bank' })] });
+    expect(positionOf(within, 'XOF', TODAY).available).toBe(100_000);
+  });
+
   it('E42 — découvert autorisé : solde −250 €, D = 0, dette à court terme 250 €', () => {
     const bank = account({ id: 'bank', type: 'bank', currency: 'EUR', openingBalance: 10_000, overdraftLimit: 30_000 });
     const d = space({ accounts: [bank], transactions: [tx({ type: 'expense', amount: 35_000, currency: 'EUR', accountId: 'bank' })] });

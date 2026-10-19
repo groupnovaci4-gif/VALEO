@@ -46,6 +46,28 @@ describe("moteur d'intelligence financière", () => {
     expect(s.fixedRatio).toBe(40);
     expect(s.variableSpending.value).toBe(250_000);
   });
+  it('§11 — tableau de l’analyse : toutes les lignes sur la même période (mois clos), jamais une récurrence à venir mêlée', () => {
+    const d = threeMonths();
+    // Une récurrence ajoutée aujourd'hui (pas encore payée) ne gonfle pas les charges fixes des mois clos.
+    d.recurring.push(rec({ amount: 300_000 }));
+    const s = financialSnapshot({ data: d, currency: 'XOF', now: NOW, available: 0 });
+    expect([s.period, s.fixedCharges.value, s.expenses.value, s.variableSpending.value]).toEqual(['closed', 200_000, 450_000, 250_000]);
+  });
+  it('§11 — sans mois clos : toutes les lignes sur le mois en cours (dépenses 5 000, charges fixes 0, remboursements 0)', () => {
+    const d = data();
+    d.recurring.push(rec({ amount: 30_000 }));
+    d.debts.push(debt({}));
+    d.transactions.push(tx({ type: 'expense', amount: 5_000, accountId: 'a', date: '2026-10-05', categoryId: 'cat_food' }));
+    const s = financialSnapshot({ data: d, currency: 'XOF', now: NOW, available: 0 });
+    expect([s.period, s.income.value, s.expenses.value, s.fixedCharges.value, s.variableSpending.value, s.debtRepaid.value]).toEqual(['current', 0, 5_000, 0, 5_000, 0]);
+  });
+  it('§11 — remboursements de dettes du tableau : le capital remboursé sur les mêmes mois', () => {
+    const d = threeMonths();
+    d.debts.push(debt({}));
+    for (const m of ['2026-07', '2026-08', '2026-09']) d.transactions.push(tx({ type: 'expense', amount: 50_000, accountId: 'a', date: `${m}-20`, categoryId: 'cat_debts', debtId: 'd1' }));
+    const s = financialSnapshot({ data: d, currency: 'XOF', now: NOW, available: 0 });
+    expect([s.debtRepaid.value, s.debtRepaidRatio]).toEqual([50_000, 10]);
+  });
   it('transfert interne : jamais compté comme dépense', () => {
     const d = data();
     d.transactions.push(tx({ type: 'transfer', amount: 70_000, accountId: 'a', toAccountId: 'b', date: '2026-09-02' }));

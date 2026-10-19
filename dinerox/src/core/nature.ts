@@ -162,14 +162,19 @@ export function isSpending(t: Transaction): boolean {
   return !t.deleted && SPENDING_NATURES.has(txNature(t));
 }
 
+/** Natures de financement : ni revenu ni dépense ; les listes affichent la nature, jamais une catégorie. */
+export const FINANCING_NATURES: ReadonlySet<Nature> = new Set(['emprunt_recu', 'pret_accorde', 'remboursement_recu', 'remboursement_capital']);
+
+/** La nature de financement d'une opération (« Emprunt reçu »…), sinon null. */
+export function financingNature(t: Transaction): Nature | null {
+  if (t.type !== 'income' && t.type !== 'expense') return null;
+  const n = txNature(t);
+  return FINANCING_NATURES.has(n) ? n : null;
+}
+
 /** Un remboursement d'achat : vient en déduction des dépenses. */
 export function isPurchaseRefund(t: Transaction): boolean {
   return !t.deleted && txNature(t) === 'remboursement_achat';
-}
-
-/** Ce qui pèse sur une enveloppe : une dépense (C) ou un remboursement de capital (sortie prévue). */
-export function isBudgetOutflow(t: Transaction): boolean {
-  return isSpending(t) || (!t.deleted && txNature(t) === 'remboursement_capital');
 }
 
 /** Montant signé d'une opération dans C : + dépense, − remboursement d'achat, 0 sinon. */

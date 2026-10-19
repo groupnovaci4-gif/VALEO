@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { periodReport, openingDateOf } from '../src/core/ledger';
-import { closureSuggested, tontineClosure } from '../src/core/tontineLedger';
+import { closureGaps, closureSuggested, tontineClosure } from '../src/core/tontineLedger';
 import { positionOf } from '../src/core/position';
 import { dailyAllowanceV2, toRegularize } from '../src/core/allowance';
 import { recurringToConfirm } from '../src/core/recurringConfirm';
@@ -196,5 +196,23 @@ describe('A8 — date d’ouverture par défaut : date LOCALE de création', () 
     expect(toISODate(new Date(createdAt))).toBe('2026-10-01');
     expect(openingDateOf({ openingDate: '2026-09-15', createdAt })).toBe('2026-09-15');
     process.env.TZ = tz;
+  });
+});
+
+describe('§5.4 — clôturer : ce qui n’est pas noté est signalé d’abord', () => {
+  // 4 membres, 10 000 par mois depuis le 5 juin, mon tour = 2 (cagnotte 40 000 le 5 juillet).
+  const t = tontine({ id: 'rot', startDate: '2026-06-05', membersCount: 4, myTurns: [2] });
+  it('« 2 cotisations et la cagnotte ne sont pas notées » : périodes 3 et 4, cagnotte du tour 2', () => {
+    const entries = [1, 2].map((period) => tentry({ tontineId: 'rot', kind: 'contribution', period, amount: 10_000 }));
+    const g = closureGaps(t, entries, '2026-10-15');
+    expect([g.contributions.map((s) => s.period), g.payouts.map((s) => s.period)]).toEqual([[3, 4], [2]]);
+  });
+  it('tout est noté (ou marqué « Pas due ») : rien à signaler', () => {
+    const entries = [...[1, 2, 3, 4].map((period) => tentry({ tontineId: 'rot', kind: 'contribution', period, amount: 10_000 })), tentry({ tontineId: 'rot', kind: 'payout', period: 2, amount: 40_000 })];
+    expect(closureGaps(t, entries, '2026-10-15')).toEqual({ contributions: [], payouts: [] });
+  });
+  it('une échéance encore à venir n’est pas « non notée »', () => {
+    const g = closureGaps(tontine({ id: 'rot', startDate: '2026-09-05', membersCount: 4, myTurns: [4] }), [], '2026-10-15');
+    expect([g.contributions.map((s) => s.period), g.payouts]).toEqual([[1, 2], []]);
   });
 });

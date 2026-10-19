@@ -3,6 +3,7 @@
  * Module PUR (testé : tests/argent-position.test.ts).
  *
  *   D = Σ sur les comptes courants (CC) de la devise : max(0, solde à aujourd'hui) − mises de côté
+ *       − parties négatives non couvertes par un découvert autorisé (E40c) ; jamais sous zéro.
  *
  *  - Seules les opérations datées jusqu'à aujourd'hui comptent (une opération future est « à venir »).
  *  - Ne comptent JAMAIS dans D : le revenu déclaré, une récurrence non confirmée, une cagnotte
@@ -128,6 +129,8 @@ export interface AccountPosition {
   free: number;
   /** Ce qu'une sortie peut prendre : solde + découvert − mises de côté (peut être négatif). */
   debitable: number;
+  /** CC : partie négative non couverte par un découvert autorisé, retirée de D (§4, E40c). */
+  uncovered: number;
 }
 
 export interface Position {
@@ -174,6 +177,7 @@ export function accountPositions(d: PositionData, currency: CurrencyCode, date: 
       assigned: a.isSavings ? held : 0,
       free: Math.max(0, balance) - held,
       debitable: balance + Math.max(0, a.overdraftLimit ?? 0) - held,
+      uncovered: a.isSavings ? 0 : Math.max(0, -balance - Math.max(0, a.overdraftLimit ?? 0)),
     };
   }
   return out;
@@ -184,9 +188,10 @@ function currencyTotals(accounts: Record<string, AccountPosition>) {
   let totalAccounts = 0;
   for (const a of Object.values(accounts)) {
     totalAccounts += a.balance;
-    if (!a.isSavings) available += a.free;
+    if (!a.isSavings) available += a.free - a.uncovered;
   }
-  return { available, totalAccounts };
+  // Un négatif non autorisé est retiré de D (§4) ; D ne descend jamais sous zéro (E40).
+  return { available: Math.max(0, available), totalAccounts };
 }
 
 export function positionOf(d: PositionData, currency: CurrencyCode, today: ISODate): Position {

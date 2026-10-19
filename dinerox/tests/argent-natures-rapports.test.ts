@@ -8,7 +8,8 @@ import { accountStatement, historyTotals, ledgerCsv, linkedToDelete, periodRepor
 import { payoutSplit, tontineClosure } from '../src/core/tontineLedger';
 import { canDeleteDebt, debtPaymentAccountError, splitRepayment, debtStatus } from '../src/core/debts';
 import { budgetTransactions } from '../src/core/reserve';
-import { envelopeStatuses, outsideEnvelopeSpent } from '../src/core/budget';
+import { debtRepaymentsInMonth, envelopeStatuses, outsideEnvelopeSpent } from '../src/core/budget';
+import { withLedgerView } from '../src/core/nature';
 import { accountBalances } from '../src/core/balance';
 import { account, contribution, debt, envelope, goal, payment, space, tentry, tontine, tx } from './helpers';
 import type { SpaceData, Transaction } from '../src/core/types';
@@ -308,6 +309,32 @@ describe('§10 — rapport, historique, relevé, export', () => {
     expect(outsideEnvelopeSpent([], txs, contribs, '2026-10', 'XOF')).toBe(20_000);
   });
 
+  it('E44b — remboursement de 55 000 dont 5 000 d’intérêts : hors enveloppe 5 000, « Remboursements de dettes du mois » 50 000', () => {
+    const d = withLedgerView(
+      space({
+        accounts: [cash],
+        debts: [debt({ id: 'pret', direction: 'i_owe', principal: 200_000 })],
+        transactions: [
+          tx({ id: 'cap', type: 'expense', amount: 50_000, accountId: 'cash', categoryId: 'cat_debts', debtId: 'pret', date: '2026-10-05' }),
+          tx({ id: 'int', type: 'expense', amount: 5_000, accountId: 'cash', categoryId: 'cat_debts', subcategoryId: 'sub_debts_interest', linkedTransactionId: 'cap', date: '2026-10-05' }),
+        ],
+      }),
+    );
+    expect(outsideEnvelopeSpent([], d.transactions, [], '2026-10', 'XOF')).toBe(5_000);
+    expect(debtRepaymentsInMonth(d.transactions, '2026-10', 'XOF')).toBe(50_000);
+    // Une enveloppe « Dettes » ne reçoit que les intérêts (une dépense) ; jamais le capital.
+    const dettes = envelope({ id: 'det', name: 'Dettes', monthlyBudget: 60_000, categoryIds: ['cat_debts'] });
+    expect(envelopeStatuses([dettes], d.transactions, [], '2026-10', 'XOF')[0].spent).toBe(5_000);
+    expect(outsideEnvelopeSpent([dettes], d.transactions, [], '2026-10', 'XOF')).toBe(0);
+  });
+
+  it('§9 — un prêt accordé n’est pas une dépense hors enveloppe', () => {
+    const d = withLedgerView(
+      space({ accounts: [cash], debts: [debt({ id: 'ami', direction: 'owed_to_me', principal: 30_000 })], transactions: [tx({ type: 'expense', amount: 30_000, accountId: 'cash', categoryId: 'cat_other', debtId: 'ami', date: '2026-10-05' })] }),
+    );
+    expect(outsideEnvelopeSpent([], d.transactions, [], '2026-10', 'XOF')).toBe(0);
+  });
+
   it('E51 — relevé de Wave : début 0, transfert reçu 50 000, dépense 10 000 → fin 40 000', () => {
     const d = space({
       accounts: [om, wave],
@@ -342,5 +369,26 @@ describe('§10 — rapport, historique, relevé, export', () => {
     expect(sum).toBe(70_000);
     expect(sum).toBe(accountBalances(d.accounts, d.transactions).a);
     expect(rows[0][12]).toBe('maison');
+  });
+});
+
+describe('§2.3 — listes : une opération de financement affiche sa nature', () => {
+  it('emprunt reçu, prêt accordé, remboursement reçu, remboursement de dette : nature ; revenu et dépense : catégorie', async () => {
+    const { financingNature, withLedgerView } = await import('../src/core/nature');
+    const d = withLedgerView(
+      space({
+        accounts: [cash],
+        debts: [debt({ id: 'owe', direction: 'i_owe', principal: 100_000 }), debt({ id: 'lent', direction: 'owed_to_me', principal: 20_000 })],
+        transactions: [
+          tx({ id: 'a', type: 'income', amount: 100_000, accountId: 'cash', categoryId: 'inc_other', debtId: 'owe' }),
+          tx({ id: 'b', type: 'expense', amount: 20_000, accountId: 'cash', debtId: 'lent' }),
+          tx({ id: 'c', type: 'income', amount: 5_000, accountId: 'cash', debtId: 'lent' }),
+          tx({ id: 'd', type: 'expense', amount: 10_000, accountId: 'cash', categoryId: 'cat_debts', debtId: 'owe' }),
+          tx({ id: 'e', type: 'income', amount: 1_000, accountId: 'cash', categoryId: 'inc_other' }),
+          tx({ id: 'f', type: 'expense', amount: 1_000, accountId: 'cash', categoryId: 'cat_food' }),
+        ],
+      }),
+    );
+    expect(d.transactions.map(financingNature)).toEqual(['emprunt_recu', 'pret_accorde', 'remboursement_recu', 'remboursement_capital', null, null]);
   });
 });

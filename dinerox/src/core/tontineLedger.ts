@@ -14,7 +14,7 @@
  *    n'est créée (reclassement à la date de clôture) ; ensuite la position vaut 0.
  *  - Cotisation sans tour (`fixed_contribution`, D6) : une dépense, aucune créance.
  */
-import { buildSchedule } from './tontine';
+import { buildSchedule, scheduleState, type ItemState } from './tontine';
 import type { CurrencyCode } from './money';
 import type { ISODate } from './dates';
 import type { SpaceData, Tontine, TontineEntry, Transaction } from './types';
@@ -70,6 +70,19 @@ export function tontineClosure(t: Tontine, entries: TontineEntry[], _today?: ISO
   const closed = t.type !== 'fixed_contribution' && t.status === 'finished';
   const gap = paid - received;
   return { closed, paid, received, fees: closed && gap > 0 ? gap : 0, gain: closed && gap < 0 ? -gap : 0 };
+}
+
+/**
+ * Avant de clôturer (§5.4) : cotisations et cagnottes échues et NON notées (ni payées, ni
+ * marquées « Pas due »), pour les signaler d'abord et proposer de les noter. Une échéance
+ * à venir n'est jamais « non notée ».
+ */
+export function closureGaps(t: Tontine, entries: TontineEntry[], today: ISODate): { contributions: ItemState[]; payouts: ItemState[] } {
+  const states = scheduleState(t, entries, today, { until: today });
+  return {
+    contributions: states.filter((s) => s.contribution > 0 && s.status !== 'done' && s.date <= today),
+    payouts: states.filter((s) => s.payout > 0 && !s.received && s.date <= today),
+  };
 }
 
 export interface TontineMovement {

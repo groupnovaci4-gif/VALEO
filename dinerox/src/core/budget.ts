@@ -3,7 +3,7 @@
  */
 import type { Account, BudgetMethod, BudgetPlan, Category, Envelope, GoalContribution, Transaction } from './types';
 import { isSavingExpense, isSavingsDeposit, isSavingsWithdrawal, isTontineContribution, savingsAccountIds } from './savingsFlows';
-import { isBudgetOutflow, txNature } from './nature';
+import { isSpending, txNature } from './nature';
 import type { CurrencyCode } from './money';
 import { roundTo } from './money';
 import { monthKey, type MonthKey } from './dates';
@@ -101,10 +101,10 @@ export function spentByEnvelope(
   const out: Record<string, number> = {};
   for (const t of transactions) {
     if (t.deleted || t.type !== 'expense' || t.currency !== currency || monthKey(t.date) !== month) continue;
-    // Argent disponible v2 : pèsent sur une enveloppe les dépenses (C) et le capital remboursé ;
-    // jamais une cotisation de tournante (épargne) ni un prêt accordé. Une ancienne « dépense »
-    // Épargne remplit l'enveloppe d'épargne.
-    if (!isBudgetOutflow(t) && txNature(t) !== 'versement_epargne') continue;
+    // Argent disponible v2 : pèsent sur une enveloppe les dépenses (C), intérêts compris ; jamais
+    // le capital remboursé (ligne à part, E44b), une cotisation de tournante (épargne) ni un prêt
+    // accordé. Une ancienne « dépense » Épargne remplit l'enveloppe d'épargne.
+    if (!isSpending(t) && txNature(t) !== 'versement_epargne') continue;
     const id = resolveEnvelopeId(t, envelopes);
     if (id) out[id] = (out[id] ?? 0) + t.amount;
   }
@@ -346,7 +346,8 @@ export function bucketForCategory(cat: Pick<Category, 'labelKey'>): BudgetBucket
 /**
  * Argent disponible v2 (§9) — dépenses du mois HORS ENVELOPPE, sur la même base que
  * les enveloppes : la part payée par une réserve n'y apparaît pas (n° 17 de l'audit B),
- * les mouvements du cercle (cotisations de tournante, épargne) non plus.
+ * les mouvements du cercle (cotisations de tournante, épargne) non plus, ni le capital
+ * remboursé ou prêté (E44b : ce ne sont pas des dépenses).
  */
 export function outsideEnvelopeSpent(
   envelopes: Envelope[],
@@ -363,8 +364,18 @@ export function outsideEnvelopeSpent(
   let total = 0;
   for (const t of transactions) {
     if (t.deleted || t.type !== 'expense' || t.currency !== currency || monthKey(t.date) !== month) continue;
-    if (isTontineContribution(t) || isSavingExpense(t) || resolveEnvelopeId(t, envelopes)) continue;
+    if (!isSpending(t) || isTontineContribution(t) || isSavingExpense(t) || resolveEnvelopeId(t, envelopes)) continue;
     total += Math.max(0, t.amount - (covered.get(t.id) ?? 0));
+  }
+  return total;
+}
+
+/** « Remboursements de dettes du mois » (§9, E44b) : le capital remboursé, hors enveloppes ; les intérêts sont des dépenses. */
+export function debtRepaymentsInMonth(transactions: Transaction[], month: MonthKey, currency: CurrencyCode): number {
+  let total = 0;
+  for (const t of transactions) {
+    if (t.deleted || t.type !== 'expense' || t.currency !== currency || monthKey(t.date) !== month) continue;
+    if (txNature(t) === 'remboursement_capital') total += t.amount;
   }
   return total;
 }
