@@ -114,7 +114,8 @@ const n = (c, k, sub) => (sub ? (c?.[k]?.[sub] ?? 0) : (c?.[k] ?? 0));
   txt = await boss.text();
   const stats = txt.split('Origine des inscriptions')[1].split('Créer un lien de campagne')[0];
   ok(/Inscriptions\s*12/.test(stats) && /Dont venues d'un lien d'invitation\s*6/.test(stats) && /Origine inconnue[\s\S]*Moins de 5/.test(stats), 'mois dernier : 12 inscriptions, 6 par invitation, inconnue « Moins de 5 »');
-  ok(stats.includes('WhatsApp') && stats.includes('7 · 58 %') && stats.includes('WhatsApp › lancement'), 'groupes d’au moins 5 : WhatsApp (7, 58 %), WhatsApp › lancement');
+  // « 58 % » : espace insécable avant « % » (jamais coupé) — normalisée ici.
+  ok(stats.includes('WhatsApp') && stats.replace(/\u00A0/g, ' ').includes('7 · 58 %') && stats.includes('WhatsApp › lancement'), 'groupes d’au moins 5 : WhatsApp (7, 58 %), WhatsApp › lancement');
   ok(stats.includes('Autres (groupes de moins de 5)') && !/Facebook|TikTok|tante-awa/.test(stats), 'petits groupes réunis dans « Autres », sans leur nom');
   ok(stats.includes("Installation sans lien suivi : APK installé directement, iPhone, lien sans paramètre."), 'explication de « Origine inconnue » lisible en entier');
   await boss.p.screenshot({ path: `${S}/origin-admin.png`, fullPage: true });

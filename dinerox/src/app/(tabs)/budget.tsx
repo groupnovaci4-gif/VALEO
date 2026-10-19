@@ -57,7 +57,7 @@ function BudgetScreen() {
         {envelopes.length ? (
           <Tile>
             <TileText variant="small" tone="muted">
-              {t('budget.remaining')}
+              {t('budget.leftInEnvelopes')}
             </TileText>
             <TileText variant="amountM" tone={over ? 'danger' : 'default'}>
               {money(budget.remaining)}
@@ -82,9 +82,21 @@ function BudgetScreen() {
         {/* Argent disponible v2 (§9) : reste à répartir = D − enveloppes restantes − engagements hors enveloppes. */}
         {envelopes.length ? (
           <Tile>
-            <TileText variant="small" weight="600" tone={toAllocate.amount < 0 ? 'danger' : 'default'}>
-              {toAllocate.amount < 0 ? t('budget.toAllocateOver', { amount: money(-toAllocate.amount) }) : t('budget.toAllocate', { amount: money(toAllocate.amount) })}
+            <TileText variant="small" tone="muted">
+              {t('budget.toAllocateLabel')}
             </TileText>
+            <TileText variant="amountS" tone={toAllocate.amount < 0 ? 'danger' : 'default'}>
+              {money(toAllocate.amount)}
+            </TileText>
+            {toAllocate.amount < 0 ? (
+              // Négatif : écrit, avec une icône (jamais la couleur seule).
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
+                <TileIcon name="alert-circle" size={18} color={colors.danger} />
+                <TileText variant="small" weight="600" tone="danger" style={{ flexShrink: 1 }}>
+                  {t('budget.toAllocateOver', { amount: money(-toAllocate.amount) })}
+                </TileText>
+              </View>
+            ) : null}
           </Tile>
         ) : null}
         {budget.unassigned > 0 ? <SummaryTile label={t('budget.unassigned')} value={money(budget.unassigned)} /> : null}
@@ -123,7 +135,7 @@ function BudgetScreen() {
       {/* Accès : créer une enveloppe, budget automatique. */}
       {editable ? (
         <TileGrid>
-          <AccessTile icon="add-circle" label={t('env.new')} onPress={() => router.push('/envelopes/edit')} />
+          <AccessTile icon="add" label={t('env.new')} onPress={() => router.push('/envelopes/edit')} />
           {envelopes.length ? <AccessTile icon="sparkles" label={t('budget.auto')} onPress={() => router.push('/budget/auto')} /> : null}
         </TileGrid>
       ) : null}

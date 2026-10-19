@@ -17,7 +17,7 @@ export const LEVEL_ICON = { ok: 'checkmark-circle', warning: 'warning', reached:
 
 /**
  * Enveloppe en PAVÉ (accueil et onglet Budget) : nom, reste (ou dépassement), barre, l'état
- * ÉCRIT avec une icône (jamais la couleur seule), le % utilisé, dépensé / budget.
+ * ÉCRIT avec une icône (jamais la couleur seule), « dépensé sur budget · % » sur une ligne.
  * `declaredShare` : part du revenu DÉCLARÉ (information, deux décimales ; jamais dans un espace familial, §9).
  */
 export function EnvelopeTile({ s, hidden = false, declaredShare = null }: { s: EnvelopeStatus; hidden?: boolean; declaredShare?: number | null }) {
@@ -43,10 +43,7 @@ export function EnvelopeTile({ s, hidden = false, declaredShare = null }: { s: E
         </TileText>
       </View>
       <TileText variant="small" tone="muted">
-        {t('env.consumed', { percent: s.percent })}
-      </TileText>
-      <TileText variant="small" tone="muted">
-        {t('env.of', { spent: show(s.spent), budget: show(s.budget) })}
+        {t('env.ofPercent', { spent: show(s.spent), budget: show(s.budget), percent: s.percent })}
       </TileText>
       {declaredShare !== null ? (
         <TileText variant="caption" tone="subtle">

@@ -86,7 +86,7 @@ function DebtDetail() {
         ) : null}
         {debt.rate ? (
           <Text variant="small" tone="muted">
-            {t('debt.rate')} : {debt.rate} %
+            {t('debt.rate')} : {`${debt.rate}\u00A0%`}
           </Text>
         ) : null}
         {s.overpaid > 0 ? <Banner tone="warning" text={money(s.overpaid, { signed: true })} /> : null}

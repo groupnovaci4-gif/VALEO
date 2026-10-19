@@ -8,7 +8,8 @@
  * (information seule, pas un bouton).
  *
  * Grille : deux colonnes ; une seule sous 340 px de large ou avec un texte agrandi
- * (`tileColumns`). Les pavés d'une rangée ont la même hauteur.
+ * (`tileColumns`) ; un pavé seul dans sa section prend toute la largeur. Les pavés d'une
+ * rangée ont la même hauteur.
  *
  * Dans un pavé, `TileText` et `TileIcon` suivent le fondu. Jamais de bouton dans un pavé :
  * un bouton propre à l'élément (« Écouter », « Ajouter de l'argent ») se place À CÔTÉ, dans
@@ -19,7 +20,7 @@ import { Animated, Pressable, View, useWindowDimensions, type StyleProp, type Te
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme, type TypographyVariant } from '@/theme';
 import { textStyle, toneColor, type TextTone } from './Text';
-import { TILE_FADE_MS, TILE_GAP, TILE_RADIUS, tileColors, tileColumns, tileRows } from './tileStyle';
+import { TILE_FADE_MS, TILE_GAP, TILE_RADIUS, gridColumns, tileColors, tileRows } from './tileStyle';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const AnimatedIonicons = Animated.createAnimatedComponent(Ionicons);
@@ -130,12 +131,13 @@ export function TileCell({ children }: { children: React.ReactNode }) {
   return <View style={{ flex: 1, minWidth: 0, gap: 6 }}>{children}</View>;
 }
 
-/** Grille de pavés : deux colonnes, une seule sous 340 px ou avec un texte agrandi. */
+/** Grille de pavés : deux colonnes, une seule sous 340 px, avec un texte agrandi ou pour un pavé seul. */
 export function TileGrid({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   const { width, fontScale } = useWindowDimensions();
-  const columns = tileColumns(width, fontScale);
   // `toArray` écarte déjà null, false et undefined (éléments conditionnels).
   const items = React.Children.toArray(children);
+  // Un pavé seul dans sa section : toute la largeur.
+  const columns = gridColumns(items.length, width, fontScale);
   if (!items.length) return null;
   return (
     <View style={[{ gap: TILE_GAP, marginBottom: 12 }, style]}>

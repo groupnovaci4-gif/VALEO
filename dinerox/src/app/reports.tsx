@@ -74,7 +74,7 @@ export default function Reports() {
             [t('rep.savingsRate'), report.savingsRate === null ? '—' : `${report.savingsRate} %`],
           ],
         },
-        { title: t('rep.byCategory'), rows: report.byCategory.map((c) => [cats.byId(c.categoryId), `${money(c.amount)} · ${c.percent} %`]) },
+        { title: t('rep.byCategory'), rows: report.byCategory.map((c) => [cats.byId(c.categoryId), `${money(c.amount)} · ${c.percent}\u00A0%`]) },
         { title: t('rep.budgets'), rows: envelopes.map((s) => [s.envelope.name, `${money(s.spent)} / ${money(s.budget)}`]) },
       ],
       t('rep.pdf.generated', { date: date(now, { year: true }) }),
@@ -137,7 +137,7 @@ export default function Reports() {
           <Card>
             {data.goals.filter((g) => g.status === 'active').map((g) => {
               const p = goalPlanFor(g, data.goalContributions, now);
-              return <Row key={g.id} title={`${g.icon} ${g.name}`} subtitle={`${money(p.saved)} / ${money(p.target)}`} right={<Text weight="700">{p.percent} %</Text>} />;
+              return <Row key={g.id} title={`${g.icon} ${g.name}`} subtitle={`${money(p.saved)} / ${money(p.target)}`} right={<Text weight="700">{`${p.percent}\u00A0%`}</Text>} />;
             })}
           </Card>
         </>

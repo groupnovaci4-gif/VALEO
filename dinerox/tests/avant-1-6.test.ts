@@ -7,7 +7,9 @@
 import { describe, expect, it } from 'vitest';
 import { positionOf, setAsideOutsideAccounts } from '../src/core/position';
 import { incomeSavingPrompt } from '../src/core/coachData';
-import { tileColumns, tileColors } from '../src/components/ui/tileStyle';
+import { gridColumns, tileColumns, tileColors } from '../src/components/ui/tileStyle';
+import { fr } from '../src/i18n/fr';
+import { en } from '../src/i18n/en';
 import { contrastRatio } from '../src/theme/contrast';
 import { darkColors, darkColorsV2, lightColors, lightColorsV2 } from '../src/theme/tokens';
 import { account, contribution, debt, goal, space, tentry, tontine, tx } from './helpers';
@@ -31,6 +33,12 @@ describe('pavés : grille et couleurs', () => {
       expect(contrastRatio(t.pressed.text, t.pressed.background)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(t.rest.text, t.rest.background)).toBeGreaterThanOrEqual(4.5);
     }
+  });
+
+  it('un pavé seul dans sa section prend toute la largeur', () => {
+    expect(gridColumns(1, 412, 1)).toBe(1);
+    expect(gridColumns(2, 412, 1)).toBe(2);
+    expect(gridColumns(3, 320, 1)).toBe(1);
   });
 
   it('en clair, le texte devient blanc au toucher', () => {
@@ -109,5 +117,23 @@ describe('§11.2 — revenus irréguliers : « Mettre X de côté maintenant ? �
     const past = [200_000, 20_000, 120_000].map((amount, i) => tx({ id: `p${i}`, type: 'income', amount, accountId: 'cash', date: months[i], categoryId: 'inc_business' }));
     const d = space({ accounts: [cash()], transactions: [...past, income()] });
     expect(incomeSavingPrompt(d, ['in'], 'XOF', TODAY, null)).toMatchObject({ suggestion: 2_500 });
+  });
+});
+
+describe('textes : jamais de coupure entre un nombre et son unité', () => {
+  // Espace normale entre un nombre (ou un paramètre) et « % », « / mois », « mois » : le retour à la
+  // ligne pourrait les séparer. Attendu : espace insécable (U+00A0), ou gluon (U+2060) après « / ».
+  const breakable = [/[0-9}] %/, /} \/ ?(mois|month)/, /\/(mois|month)/, /} (mois|months?)\b/];
+  for (const [lang, table] of [['fr', fr], ['en', en]] as const) {
+    it(`${lang} : « 33 % », « FCFA / mois », « 6 mois » insécables`, () => {
+      const bad = Object.entries(table).filter(([, v]) => breakable.some((r) => r.test(v as string)));
+      expect(bad.map(([k]) => k)).toEqual([]);
+    });
+  }
+
+  it('exemples : « 33 % » et « / mois » restent collés', () => {
+    expect(fr['env.consumed']).toContain('{percent}\u00A0%');
+    expect(fr['goal.perMonthChip']).toBe('{amount}\u00A0/\u00A0mois');
+    expect(en['goal.perMonthChip']).toBe('{amount}\u00A0/\u00A0month');
   });
 });

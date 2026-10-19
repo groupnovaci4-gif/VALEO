@@ -162,14 +162,17 @@ export default function Goals() {
                 {/* « Ajouter de l'argent » sous le pavé (hors de sa zone cliquable, pour rester joignable au
                     lecteur d'écran) : même écran de versement que la fiche, qui s'ouvre ensuite sur la progression. */}
                 {(canContribute || canEdit) && g.status === 'active' ? (
-                  <View style={{ gap: 4 }}>
+                  // « Ajouter » et ↑↓ sur une ligne quand la largeur le permet, sinon les flèches passent dessous.
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
                     {canContribute ? (
                       <Button
                         variant="secondary"
                         icon="add"
-                        label={t('goal.contribute')}
+                        label={t('goal.add')}
+                        // Lecteur d'écran : libellé inchangé, avec le nom de l'objectif.
                         accessibilityLabel={`${t('goal.contribute')}, ${g.name}`}
                         onPress={() => router.push(`/goals/contribute?id=${g.id}&from=goals`)}
+                        style={{ flexGrow: 1 }}
                       />
                     ) : null}
                     {canEdit && rankedIds.length > 1 ? (

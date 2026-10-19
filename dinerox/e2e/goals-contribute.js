@@ -72,9 +72,9 @@ const historyRows = (t) => (t.split('Historique des contributions')[1] || t.spli
   ok((await add.count()) === 1, 'onglet Objectifs : « Ajouter de l’argent » visible sur la carte (nom lu : « Ajouter de l’argent, Acheter ma voiture »)');
   const box = await add.first().boundingBox();
   ok(!!box && box.height >= 48, `bouton de 48 dp minimum (${box ? Math.round(box.height) : '?'} px)`);
-  // Texte visible (sans le glyphe de l'icône) : le texte existant, rien de nouveau.
+  // Texte visible (sans le glyphe de l'icône) : « Ajouter » (avant la 1.6) ; le nom lu reste complet.
   const shown = (await add.first().innerText()).split('\n').map((l) => l.trim()).filter((l) => /\p{L}/u.test(l)).join(' ');
-  ok(shown === 'Ajouter de l’argent', `texte visible : le texte existant « ${shown} »`);
+  ok(shown === 'Ajouter', `texte visible : « ${shown} »`);
 
   t = await addFromTab(h, 200000);
   ok(/\/goals\/[^/?]+$/.test(h.p.url()) && !h.p.url().includes('contribute'), `après l’enregistrement : la fiche de l’objectif s’ouvre (${h.p.url().replace(BASE, '')})`);

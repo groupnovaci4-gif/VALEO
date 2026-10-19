@@ -3,7 +3,6 @@
  * modification. Saisie en quelques secondes : montant en premier, compte et
  * catégorie pré-sélectionnés, date « aujourd'hui ».
  */
-import { offerIncomeSaving } from '@/store/incomeSavingOffer';
 import React, { useMemo, useState } from 'react';
 import { Alert, Image, View } from 'react-native';
 import { router } from 'expo-router';
@@ -16,6 +15,7 @@ import { useApp, useData } from '@/store/app';
 import { removalWouldOverdraw, type SourceChoice } from '@/core/writePlans';
 import { HandledError, useMoneyGuard } from '@/features/money/MoneyGuard';
 import { ActionError, useActions } from '@/store/actions';
+import { offerIncomeSaving } from '@/store/incomeSavingOffer';
 import { useCategoryLabels, useCurrency, useMoney } from '@/hooks/useFinance';
 import { AmountField, Banner, Button, ChipGroup, DateField, Field, Screen, Segmented, SwitchRow, Text, useToast } from '@/components/ui';
 import { CategoryPicker } from '@/features/categories/CategoryPicker';

@@ -119,7 +119,7 @@ export function GoalTile({ goal, plan, compact, rank }: { goal: Goal; plan: Goal
             {money(plan.saved)}
           </TileText>
           <TileText variant="small" tone="muted">
-            / {money(plan.target)} · {plan.percent} %
+            / {money(plan.target)} · {`${plan.percent}\u00A0%`}
           </TileText>
         </View>
       ) : (
@@ -137,7 +137,8 @@ export function GoalTile({ goal, plan, compact, rank }: { goal: Goal; plan: Goal
             </TileText>
           </View>
           {chip ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.infoBg, borderRadius: radius.md, paddingHorizontal: 10, paddingVertical: 6, alignSelf: 'flex-start', maxWidth: '100%' }}>
+            // « 80 000 FCFA / mois » est insécable : dans un pavé étroit, l'icône passe au-dessus du texte.
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, backgroundColor: colors.infoBg, borderRadius: radius.md, paddingHorizontal: 6, paddingVertical: 6, alignSelf: 'flex-start', maxWidth: '100%' }}>
               <Icon name="repeat" size={14} color={colors.info} />
               <Text variant="caption" weight="600" style={{ color: colors.info, flexShrink: 1 }}>
                 {chip}

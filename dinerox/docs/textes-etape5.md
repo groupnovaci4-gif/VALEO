@@ -29,7 +29,7 @@ l'écran admin (réservé aux administrateurs) et de la page web des liens.
 - `admin.origin.small` — FR : « Moins de 5 » — EN : « Fewer than 5 »
 - `admin.origin.others` — FR : « Autres (groupes de moins de 5) » — EN : « Others (groups of fewer than 5) »
 - `admin.origin.empty` — FR : « Aucune inscription sur cette période. » — EN : « No sign-ups in this period. »
-- `admin.origin.share` — FR : « {percent} % » — EN : « {percent}% »
+- `admin.origin.share` — FR : « {percent} % » — EN : « {percent}% »
 
 ### Noms des sources (`src`)
 

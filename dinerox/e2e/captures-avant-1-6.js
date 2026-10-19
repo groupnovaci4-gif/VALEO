@@ -7,6 +7,7 @@
  *  - un pavé au moment du toucher (vert) ;
  *  - inscription : mot de passe masqué, puis affiché ;
  *  - la carte des revenus irréguliers (§11.2).
+ *   SCREENS=accueil,budget,objectifs node e2e/captures-avant-1-6.js   (ces écrans seulement)
  * Pas dans run-all.sh : ce n'est pas un test, c'est une galerie.
  */
 const fs = require('fs');
@@ -106,6 +107,17 @@ async function run(size, screens, extras) {
 }
 
 (async () => {
+  // SCREENS=accueil,budget,objectifs : ne refait que ces écrans (412×915), les autres images restent.
+  const only = process.env.SCREENS ? process.env.SCREENS.split(',') : null;
+  if (only) {
+    const all = { accueil: ['/', '01-accueil-412'], budget: ['/budget', '02-budget-412'], objectifs: ['/goals', '03-objectifs-412'], plus: ['/more', '04-plus-412'] };
+    const screens = only.map((k) => all[k]);
+    for (const f of fs.readdirSync(OUT)) if (screens.some(([, n]) => f.startsWith(`${n}-`))) fs.unlinkSync(path.join(OUT, f));
+    await run({ width: 412, height: 915 }, screens, false);
+    console.log(log.join('\n'));
+    console.log(`${log.length} captures → ${OUT}`);
+    return;
+  }
   for (const f of fs.readdirSync(OUT)) if (f.endsWith('.png')) fs.unlinkSync(path.join(OUT, f));
   await run({ width: 412, height: 915 }, [['/', '01-accueil-412'], ['/budget', '02-budget-412'], ['/goals', '03-objectifs-412'], ['/more', '04-plus-412']], true);
   await run({ width: 360, height: 800 }, [['/more', '05-plus-360']], false);

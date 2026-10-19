@@ -41,3 +41,8 @@ export function tileRows<T>(items: T[], columns: number): T[][] {
   for (let i = 0; i < items.length; i += columns) rows.push(items.slice(i, i + columns));
   return rows;
 }
+
+/** Colonnes d'une section de `count` pavés : un pavé seul prend toute la largeur. */
+export function gridColumns(count: number, width: number, fontScale: number): 1 | 2 {
+  return count <= 1 ? 1 : tileColumns(width, fontScale);
+}

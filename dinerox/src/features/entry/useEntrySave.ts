@@ -3,7 +3,6 @@
  * (validation, droits, outbox hors ligne), puis message « Enregistré ✓ — il
  * vous reste X par jour » avec « Voir » et « Annuler » pendant 5 secondes.
  */
-import { offerIncomeSaving } from '@/store/incomeSavingOffer';
 import { learnableWord } from '@/core/entry/keywords';
 import { normalizeWord } from '@/core/categoryCatalog';
 import { useCallback } from 'react';
@@ -11,6 +10,7 @@ import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { ActionError, useActions, type Draft } from '@/store/actions';
+import { offerIncomeSaving } from '@/store/incomeSavingOffer';
 import type { Transaction } from '@/core/types';
 import { useMoney } from '@/hooks/useFinance';
 import { useToast } from '@/components/ui';

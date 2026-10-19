@@ -199,7 +199,9 @@ async function expense(h, amount) {
   await boss.fill('Code du parrain', code); await boss.fill('Plafond de mois offerts par mois', '8');
   await boss.btn('Activer').click(); await boss.p.waitForTimeout(3000);
   ok((await readDoc(`users/${awaUid}/referral/state`))?.ambassador?.maxRewardsPerMonth === 8, 'mode ambassadeur activé (plafond 8)');
-  ok((await boss.text()).includes('Ambassadeur (plafond 8 mois/mois)'), 'admin : ambassadeur affiché');
+  // « mois/mois » porte un gluon invisible (U+2060) après « / » : jamais coupé en fin de ligne.
+  const amb = (await boss.text()).replace(/\u2060/g, '').replace(/[\u00A0\u202F]/g, ' ');
+  ok(amb.includes('Ambassadeur (plafond 8 mois/mois)'), `admin : ambassadeur affiché (« ${(amb.match(/Ambassadeur[^\n]*/) ?? [''])[0]} »)`);
 
   // ── 5. Carte de l'accueil après la 5e saisie (Awa) ──
   await awa.go('/', 3000);

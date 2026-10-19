@@ -4,13 +4,13 @@
  * `toRegularize`, `dailyAllowanceV2`) ; toute écriture passe par `useActions` et, quand de
  * l'argent sort, par la feuille de complément (`useMoneyGuard`).
  */
-import { offerIncomeSaving } from '@/store/incomeSavingOffer';
 import React, { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
+import { offerIncomeSaving } from '@/store/incomeSavingOffer';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { useRunAction } from '@/hooks/useRunAction';
 import { AmountField, Button, Card, ChipGroup, DateField, Field, Text, useToast } from '@/components/ui';

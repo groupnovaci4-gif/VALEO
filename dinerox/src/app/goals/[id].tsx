@@ -89,7 +89,7 @@ function GoalDetail() {
         </Text>
         <ProgressBar value={plan.percent} tone={plan.reached ? 'success' : 'primary'} height={12} label={goal.name} />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-          <Text variant="small">{plan.percent} %</Text>
+          <Text variant="small">{`${plan.percent}\u00A0%`}</Text>
           <Text variant="small">{t('goal.left', { amount: money(plan.remaining) })}</Text>
         </View>
         {goal.targetDate ? (
