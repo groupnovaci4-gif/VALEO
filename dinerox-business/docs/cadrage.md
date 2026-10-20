@@ -41,7 +41,7 @@ Trois principes :
 |---|---|
 | **Mon commerce** | nom, activité, pays, devise ; informel ou formel (numéro de contribuable facultatif) |
 | **Caisse et comptes** | espèces, Mobile Money (Orange, MTN, Moov, Wave), banque ; solde du jour ; transferts |
-| **Ventes** | vente au comptant ou à crédit (« Koffi paiera vendredi ») ; reçu envoyé par WhatsApp ou en PDF ; facture et devis simples |
+| **Ventes** | vente au comptant ou à crédit (« Koffi paiera vendredi ») ; vente en gros ou au détail (§4.1) ; reçu **imprimé** (petite imprimante Bluetooth) **ou** envoyé par WhatsApp / en PDF, au choix ; facture et devis simples |
 | **Achats et charges** | achats de marchandises (comptant ou à crédit), fournisseurs ; charges : loyer de la boutique, électricité, transport, salaires |
 | **Stock simple** | articles avec prix d'achat et prix de vente ; une vente fait baisser le stock, un achat le fait monter ; alerte de rupture ; marge par article |
 | **Clients et fournisseurs** | qui me doit, qui je dois, depuis quand ; relance par WhatsApp |
@@ -49,7 +49,21 @@ Trois principes :
 | **Tableau de bord** | ventes du jour et du mois ; **bénéfice** (ventes − coût des marchandises vendues − charges) ; argent en caisse ; ce qu'on me doit ; ce que je dois ; valeur du stock |
 | **IA et voix** | « J'ai vendu 3 sacs de riz à 25 000 à Koffi, il paiera vendredi » → une carte « Valider », comme dans DineroX |
 | **Comptabilité en coulisses** | journal, grand livre et états de fin d'exercice simplifiés ; export pour un comptable |
-| **Rôles** | patron (tout) et vendeur (ventes et caisse seulement, sans voir le bénéfice) |
+| **Rôles** | patron (tout) et vendeur (ventes et caisse, sans voir le bénéfice) ; le vendeur **peut** changer un prix |
+| **Journal des actions** | chaque changement de prix et chaque mouvement de stock laisse une **trace** : qui, quand, avant, après, pourquoi (facultatif) ; impossible à effacer ou à modifier, même par le patron ; visible par le patron |
+
+### 4.1 Gros et détail, toutes les unités
+
+Décision du fondateur : dès la V1, car les commerces ciblés vendent au détail, en gros, au litre,
+au kilo.
+- Un article a une **unité de stock** (par exemple le kilo) et des **unités de vente** avec leur
+  conversion : « 1 sac = 50 kg », « 1 bidon = 20 L », « 1 carton = 24 pièces ».
+- Chaque unité de vente a **son propre prix** : prix du sac, prix du kilo, prix du demi-litre.
+- Le stock est toujours compté dans l'unité de stock, avec des **décimales** possibles
+  (12,5 kg ; 3,75 L) : vendre 1 sac retire 50 kg, vendre 2 kg retire 2 kg.
+- Le coût des marchandises vendues suit la même conversion, pour que la marge reste juste.
+- Exemple : un sac de riz de 50 kg acheté 25 000 FCFA (500 FCFA le kilo), vendu 600 FCFA le kilo
+  ou 28 000 FCFA le sac.
 
 **Référentiel comptable visé pour la V1** : le **Système minimal de trésorerie (SMT)** du
 SYSCOHADA révisé, prévu pour les très petites entités et fondé sur les encaissements et les
@@ -59,8 +73,7 @@ décaissements, ce qui correspond exactement aux commerçants. Seuils d'éligibi
 ## 5. Plus tard (pas dans la V1)
 
 - **V2 — l'organisation** : bons de commande fournisseurs ; plusieurs boutiques ou points de
-  vente ; rôle comptable (lecture et export) ; inventaire avec écarts ; impression de reçus sur
-  petite imprimante Bluetooth.
+  vente ; rôle comptable (lecture et export) ; inventaire avec écarts.
 - **V3 — la conformité** : comptabilité au système normal SYSCOHADA (bilan, compte de résultat
   complets) ; TVA et préparation des déclarations ; facturation électronique là où l'administration
   l'exige ; paie et cotisations sociales (CNPS). Chaque point validé par un expert.
@@ -86,10 +99,11 @@ méthode de tests et de déploiement (photo de la production, simulation, une co
 - **Le nom définitif** de l'application.
 - **Les pays de lancement** après la Côte d'Ivoire.
 
-## 9. Questions ouvertes pour le fondateur
+## 9. Décisions du fondateur (2026-10-20)
 
-1. Le vendeur peut-il faire une remise ou modifier un prix, ou seulement le patron ?
-2. Les commerçants impriment-ils des reçus, ou WhatsApp suffit-il au début ?
-3. Faut-il gérer la vente « au détail » d'un article acheté en gros (un sac de riz vendu au kilo) dès
-   la V1 ?
-4. Le patron veut-il voir dans DineroX (personnel) l'argent qu'il prélève dans son commerce ?
+1. **Le vendeur peut changer un prix**, mais chaque changement de prix et chaque action sur le
+   stock laisse une trace avec l'identité de la personne (journal des actions, §4).
+2. **Reçu imprimé ET reçu par WhatsApp** : les deux dès la V1, au choix du commerçant.
+3. **Vente au détail d'un article acheté en gros** : dès la V1, toutes unités (pièce, kilo, litre,
+   gros et détail, §4.1).
+4. **Aucun lien avec DineroX personnel** : les deux applications sont complètement séparées.
