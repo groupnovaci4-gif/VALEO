@@ -326,10 +326,15 @@ emplacement `bonbonne_gaz` provisoire). Teinte de peau **moyenne-foncée**. Fich
 
 **Comptes Mobile Money → logo de l'opérateur** (décision et responsabilité du fondateur ;
 sources : `docs/design-pro/logos/SOURCES.md`) : Orange Money, MTN MoMo, Moov Money, Wave, Airtel ;
-Free Money en **pastille** (initiales + couleur). Composant `AccountMark`. Un réglage PAR
+Free Money en **pastille** (initiales + couleur). Composant `AccountMark` : le logo ou la pastille
+de l'opérateur s'affiche sur TOUS les écrans (identité de l'opérateur, décision du fondateur) ;
+l'icône 3D des autres comptes (espèces, banque…) attend le passage de l'écran en v2. Un réglage PAR
 opérateur, dans une donnée : `src/config/operators.json` (`affichage: "logo" | "pastille"`),
 remplaçable sans nouvelle version par `config/operators/items/v1` (Firestore, écrit par
-l'administrateur ; `services/operatorsConfig.ts`). Fichiers non modifiés, coins arrondis à
+l'administrateur ; `services/operatorsConfig.ts`). **Jamais bloquant** : l'application démarre avec
+le réglage embarqué ; la version publiée s'applique en arrière-plan si elle arrive avant 5 s
+(`OPERATORS_REMOTE_TIMEOUT_MS`), sinon (erreur, hors ligne, réponse tardive) rien ne change
+(`tests/operators-config.test.ts`). Fichiers non modifiés, coins arrondis à
 l'affichage seulement. Google et WhatsApp : logos Ionicons, comme avant.
 
 **Navigation, actions, pavés de l'accueil et de Plus, cartes du coach → au trait.** Ionicons

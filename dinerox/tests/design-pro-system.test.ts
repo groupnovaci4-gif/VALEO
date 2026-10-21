@@ -104,6 +104,14 @@ describe('opérateurs : logo ou pastille, un réglage par opérateur (donnée)',
     expect(accountMark({ type: 'mobile_money', provider: 'free_money' }, d)).toMatchObject({ kind: 'pill' });
     expect(withOperatorOverrides(operators, null)).toBe(operators);
   });
+  it('le logo (ou la pastille) d’un opérateur s’affiche sur TOUS les écrans, même hors v2', () => {
+    // L'identité de l'opérateur est une décision du fondateur, pas un style d'écran : seule
+    // l'icône 3D des autres comptes attend le passage de l'écran en v2 (étape 4).
+    const src = read('src/components/ui/ContentIcon.tsx');
+    const fn = src.slice(src.indexOf('export function AccountMark'));
+    expect(fn).toMatch(/const mark = accountMark\(account, data\);/);
+    expect(fn).toMatch(/mark\?\.kind === '3d' && v2/);
+  });
   it('les autres comptes : icône 3D de leur type', () => {
     expect(accountMark({ type: 'bank', provider: 'bank' })).toEqual({ kind: '3d', slug: 'bank' });
     expect(accountMark({ type: 'savings', provider: 'none' })).toEqual({ kind: '3d', slug: 'pig-face' });

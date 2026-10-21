@@ -44,11 +44,13 @@ export function ContentIcon({ ids, emoji, fallbackEmoji, icon, color, size = 40 
  * Marque d'un compte : logo de l'opérateur (fichier non modifié, coins arrondis à l'affichage),
  * pastille aux couleurs de l'opérateur, ou icône 3D du type de compte. Réglage par opérateur :
  * `config/operators.json`, remplaçable à distance (`services/operatorsConfig`).
+ * Le logo / la pastille de l'opérateur s'affiche sur TOUS les écrans (identité de l'opérateur,
+ * décision du fondateur) ; l'icône 3D des autres comptes attend le passage de l'écran en v2.
  */
 export function AccountMark({ account, icon, color, size = 40 }: { account: { type: AccountType; provider: AccountProvider }; icon?: string; color: string; size?: number }) {
   const { v2 } = useTheme();
   const data = useOperators();
-  const mark = v2 ? accountMark(account, data) : null;
+  const mark = accountMark(account, data);
   const hidden = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' as const };
   if (mark?.kind === 'logo' && OPERATOR_ASSETS[mark.operator]) {
     return <Image {...hidden} source={OPERATOR_ASSETS[mark.operator]} style={{ width: size, height: size, borderRadius: size / 4 }} resizeMode="contain" />;
@@ -62,6 +64,6 @@ export function AccountMark({ account, icon, color, size = 40 }: { account: { ty
       </View>
     );
   }
-  if (mark?.kind === '3d' && ICON_ASSETS[mark.slug]) return <Icon3d slug={mark.slug} size={size} />;
+  if (mark?.kind === '3d' && v2 && ICON_ASSETS[mark.slug]) return <Icon3d slug={mark.slug} size={size} />;
   return <IconCircle icon={icon} color={color} size={size} />;
 }
