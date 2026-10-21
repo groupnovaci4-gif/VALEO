@@ -13,5 +13,8 @@ Fichiers : PNG 512 × 512, fond transparent, à convertir en WebP 1x/2x/3x comme
 | `tontine_one_3d.png` | variante (une seule pièce), non retenue | — |
 | `garba_3d.png` | Snacks (Garba / repas de rue) | Fork and knife with plate + riz (Cooked rice, partie blanche seulement) + Fish recoloré en doré (poisson frit) |
 | `plat_poisson_3d.png` | Restaurant | Fork and knife with plate + Fish recoloré en doré |
+| `moto_rouge_3d.png` | Toutes les motos (moto-taxi, objectif « Acheter une moto », Moto, etc.) | Motorcycle recolorée en rouge franc (pare-brise et roues inchangés) — demande du fondateur |
 
 Planches de référence (choix du fondateur) : `planches/`.
+
+Autres décisions du fondateur (2026-10-21) : **Canal+ / abonnement TV** = 📺 Television (Fluent, sans modification) ; en-tête de l'accueil : la cloche seule, sans le mot « Notifications ».

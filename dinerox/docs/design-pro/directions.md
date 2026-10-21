@@ -104,8 +104,15 @@ tel qu'il est en démonstration, sans ces cartes.
 Captures : `directions/android/accueil-complet-{light,dark}-NN.png` (avec les cartes selon la
 situation) et `accueil-demo-{light,dark}-NN.png` (tel qu'en démonstration).
 
-Textes : ceux de l'application, **inchangés** (les propositions ci-dessous ne sont pas appliquées
-dans l'accueil complet : « Bonjour 👋 », 🔴/⚠️ des alertes, montants avec « FCFA », dates en entier).
+Textes : ceux de l'application, inchangés, sauf deux changements **approuvés par le fondateur**
+(2026-10-21) : plus d'emoji qui double une icône dans les alertes (🔴, ⚠️…) et, dans l'en-tête,
+la cloche seule (« Notifications » reste le libellé lu par le lecteur d'écran). Les autres
+propositions ci-dessous ne sont pas appliquées (« Bonjour 👋 », montants avec « FCFA », dates en entier).
+
+Icônes (fondateur, 2026-10-21) : Canal+ = 📺 Television (sous-catégorie « Abonnements streaming »,
+`sub_leisure_subscriptions`) ; toutes les motos = `composees/moto_rouge_3d` ; enveloppe Famille =
+`composees/famille_3d_medium-dark`. Dans les listes d'opérations, l'icône est celle de la
+SOUS-catégorie quand l'opération en a une, sinon celle de la catégorie.
 
 ## Textes montrés autrement dans les maquettes (NON appliqués — à ton accord à l'étape 4)
 

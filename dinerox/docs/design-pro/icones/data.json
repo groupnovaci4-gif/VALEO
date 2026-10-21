@@ -991,12 +991,9 @@
     }
    ],
    "p": {
-    "kind": "emoji",
-    "glyph": "🏍️",
-    "dir": "Motorcycle",
-    "file": "assets/Motorcycle/3D/motorcycle_3d.png",
-    "toned": false,
-    "slug": "motorcycle"
+    "kind": "compo",
+    "slug": "moto_rouge_3d",
+    "src": "design-pro-icones-composees/moto_rouge_3d.png"
    }
   },
   {
@@ -3452,12 +3449,9 @@
     }
    ],
    "p": {
-    "kind": "emoji",
-    "glyph": "🏍️",
-    "dir": "Motorcycle",
-    "file": "assets/Motorcycle/3D/motorcycle_3d.png",
-    "toned": false,
-    "slug": "motorcycle"
+    "kind": "compo",
+    "slug": "moto_rouge_3d",
+    "src": "design-pro-icones-composees/moto_rouge_3d.png"
    }
   },
   {
