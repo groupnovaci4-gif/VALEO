@@ -30,7 +30,11 @@ export interface FinanceSummary {
   topCategories: { name: string; amount: number }[];
   envelopes: { name: string; budget: number; spent: number }[];
   goals: { name: string; target: number; saved: number; targetDate: string | null; monthlyNeeded: number | null }[];
-  position: { available: number; free: number; savings: number };
+  /**
+   * available : argent disponible de l'Accueil (`positionOf`, D) ; currentAccounts : total des
+   * comptes courants (avant les mises de côté) ; savings : comptes d'épargne.
+   */
+  position: { available: number; currentAccounts: number; savings: number };
   savingsCapacity: number | null;
   debts: { iOwe: number; owedToMe: number };
   /** Pays de la personne (code ISO), pour le texte système. */
@@ -80,7 +84,7 @@ export function buildFinanceSummary(
         const name = isReserve(g) ? labels.reserve : isSeason(g) ? labels.season : g.name.slice(0, 60);
         return { name, target: g.targetAmount, saved: plan.saved, targetDate: g.targetDate ?? null, monthlyNeeded: plan.requiredMonthly };
       }),
-    position: { available: pos.available, free: pos.free, savings: pos.savings },
+    position: { available: pos.free, currentAccounts: pos.available, savings: pos.savings },
     savingsCapacity: observedCapacity(data, currency, now),
     debts: (({ iOwe, owedToMe }) => ({ iOwe, owedToMe }))(debtTotals(data.debts, data.debtPayments, currency)),
     country: labels.country ?? null,
