@@ -10,13 +10,14 @@ npx --yes http-server docs/design-pro -p 8099   # ou : python3 -m http.server 80
 ```
 
 - planche complète : http://localhost:8099/icones/ (`?t=dark` en sombre, `?r=<n>` une rubrique) ;
-- mode sombre, proposition du rond clair : http://localhost:8099/icones/sombre.html ;
-- logos à valider : http://localhost:8099/logos-a-valider/ (sources : `logos-a-valider/SOURCES.md`) ;
-- exemples : `directions/?d=b&s=home|entry&t=light|dark&card=c&icons=3d`.
+- mode sombre, rond clair (avant/après) : http://localhost:8099/icones/sombre.html ;
+- logos des opérateurs : http://localhost:8099/logos/ (sources : `logos/SOURCES.md`) ;
+- exemples : `directions/?d=b&s=home|entry&t=light|dark&card=b&icons=3d` ; accueil complet : `directions/?d=b&s=homefull&t=light|dark`.
 
 Captures Android (Chrome de l'émulateur, page de 360 × 800 dp), dans `android/` :
 `planche-01.png` à `planche-39.png` dans l'ordre, `sombre-rond-01..02.png` (avant/après du rond
-clair), `exemple-{home,entry}-{light,dark}.png` ; logos : `../logos-a-valider/android-01..03.png`.
+clair), `planche-sombre-NN.png` (planche entière en sombre, avec les ronds),
+`exemple-{home,entry}-{light,dark}.png` ; logos : `../logos/android-NN.png`.
 
 ## Inventaire
 
@@ -25,8 +26,8 @@ clair), `exemple-{home,entry}-{light,dark}.png` ; logos : `../logos-a-valider/an
 
 - contenu en 3D : Fluent Emoji 3D, dont **12 lignes** sur une **icône composée** validée (`composees/`) ;
 - pavés de l'accueil et de Plus, cartes du coach, navigation et actions : **Ionicons au trait** ;
-- **6 opérateurs Mobile Money** : logo officiel (option A), réglage par opérateur dans
-  `operateurs.json` ; en attendant la validation des fichiers, pastille (initiales + couleur) ;
+- **6 opérateurs Mobile Money** : logo de l'opérateur (décision et responsabilité du fondateur),
+  réglage par opérateur dans `operateurs.json` (`logo` ou `pastille`) ; Free Money : pastille ;
 - Google (connexion) et WhatsApp (partage, chaîne) : logos Ionicons, comme aujourd'hui.
 
 ### Choix par ligne (fondateur)
@@ -58,14 +59,13 @@ Tout personnage ou toute main qui existe en plusieurs teintes est en **Medium-Da
 Fluent : aîné, enfant, mains ouvertes, bébé, enseignant, mains jointes, vieil homme ; les icônes
 composées famille et tontine le sont déjà). Les icônes sans variante (🫂, 🤝, 👥) restent telles quelles.
 
-## Mode sombre : léger rond clair (PROPOSITION, à valider)
+## Mode sombre : léger rond clair derrière TOUTES les icônes de contenu (décision)
 
-Mesure sur la surface sombre `#1D1B17` : part du contour de l'icône dont le contraste avec le
-fond est < 1,5:1. **12 images** dépassent 25 % : silhouettes 👥 (80 %), enfant (56 %), famille
-(45 %), lunettes, boîte-repas, famille + cœur, train, accolade, moto, tracteur, toque, tontine.
-Proposition : un rond `#3A362F` derrière ces icônes, **en mode sombre seulement**
-(`sombre.html`, captures `android/sombre-rond-*.png`). Alternative : un rond pour TOUTES les icônes
-en sombre, plus régulier visuellement. Rien n'est appliqué sans ton accord.
+En mode sombre seulement, chaque icône de contenu (Fluent 3D et icônes composées) est posée sur
+un rond `#3A362F` ; le mode clair ne change pas. Les icônes au trait (Ionicons) et les logos des
+opérateurs n'en ont pas. Origine : 12 images avaient plus d'un quart de leur contour presque
+invisible sur la surface sombre `#1D1B17` (silhouettes 👥 80 %, enfant 56 %, famille 45 %…) ;
+avant/après : `sombre.html`, `android/sombre-rond-*.png`.
 
 ## Poids dans l'APK (WebP qualité 80, encodeur de Chrome, mesuré)
 
@@ -73,13 +73,14 @@ en sombre, plus régulier visuellement. Rien n'est appliqué sans ton accord.
 
 | | 1x (48 px) | 2x (96 px) | 3x (144 px) | Total |
 |---|---|---|---|---|
-| Icônes retenues (134) | 188 Ko | 302 Ko | 464 Ko | **954 Ko** |
+| Icônes retenues (134) | 188 Ko | 302 Ko | 464 Ko | 954 Ko |
+| Logos des opérateurs (5) | 6 Ko | 11 Ko | 15 Ko | 32 Ko |
+| **Total** | | | | **986 Ko** |
 
-Dont icônes composées et gaz : 61 Ko. Les logos d'opérateurs, une fois validés, ajouteront
-environ 30 Ko (6 logos × 3 résolutions). **Total estimé ≈ 1 Mo, sous la limite de 1,5 Mo.**
+Dont icônes composées et gaz : 61 Ko. **Sous la limite de 1,5 Mo.**
 Les trois résolutions sont gardées (décision du fondateur).
 
 ## Licences
 
 `fluent/LICENSE-fluentui-emoji.txt` (MIT), à reprendre dans les mentions de l'application ;
-logos des opérateurs : `../licences.md`.
+logos des opérateurs : `../licences.md` et `../logos/SOURCES.md`.

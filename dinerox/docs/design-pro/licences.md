@@ -9,14 +9,16 @@
 
 ## Logos des opérateurs Mobile Money
 
-Orange Money, MTN Mobile Money, Wave, Moov Money, Airtel Money, Free Money :
-**logos utilisés sur décision du fondateur ; autorisation écrite des opérateurs à obtenir.**
+Orange Money, MTN MoMo, Wave, Moov Money, Airtel Money :
+**Logos utilisés sur décision et sous la responsabilité du fondateur (2026-10-21).**
+Autorisation écrite des opérateurs à obtenir.
 
-- Fichiers pris uniquement sur les sites officiels, sans modification : `logos-a-valider/`
-  (sources et défauts dans `logos-a-valider/SOURCES.md`) ; aucun n'est intégré avant validation.
-- Repli prévu : `icones/operateurs.json`, un réglage par opérateur (`affichage: "logo" | "pastille"`)
-  pour repasser à une pastille aux couleurs de l'opérateur (initiales + couleur) sans nouvelle
-  version de l'application, si un opérateur demande de retirer son logo.
+- Fichiers non modifiés, avec leur source (fiche Google Play publiée par l'opérateur, ou site
+  officiel pour Wave) et l'éditeur vérifié : `logos/SOURCES.md`.
+- Free Money : pastille (initiales + couleur), aucun fichier.
+- Repli : `icones/operateurs.json`, un réglage par opérateur (`affichage: "logo" | "pastille"`)
+  pour repasser à une pastille aux couleurs de l'opérateur sans nouvelle version de
+  l'application, si un opérateur demande de retirer son logo.
 
 ## Google et WhatsApp
 

@@ -68,12 +68,44 @@ d'accueil : version (b), vert profond UNI, fin filet clair de 1 dp, motif discre
 traits fins (inspiré des tissages, une seule opacité de 10 %, dans le coin), ombre de 1 dp.
 Références : Wave, Monzo, Nubank.
 
-## Carte d'accueil — trois versions
+## Carte d'accueil — décision : version (b) (fondateur, 2026-10-21)
 
-(a) chiffre posé sur le fond + carte neutre des détails ; (b) vert profond uni (filet, motif,
-ombre très légère — aucun dégradé) ; (c) carte claire avec un filet de marque à gauche. Chaque
-version est montrée dans les deux directions, en clair et en sombre
-(`android/carte-<version>-direction-<a|b>-<thème>.png`).
+**Retenue : (b)**, dans la direction B : panneau vert profond UNI (`#0F4A3A` en clair,
+`#123A2F` en sombre), motif discret de losanges au trait fin dans un coin (une seule opacité,
+10 %), filet clair de 1 dp, ombre légère (1 dp, en clair seulement). Aucun dégradé.
+La version (c) est **abandonnée** (maquettes, captures et documents) ; (a) reste montrée pour
+mémoire dans `?board=cards`.
+
+Rien ne disparaît dans la carte : Reste par jour, la phrase « Il vous reste … par jour jusqu'au … »,
+Argent disponible, Mis de côté avec « dont … hors de vos comptes », Total de vos comptes, la
+ligne par autre devise (selon la situation), « Masquer les montants » ; « Comment c'est
+calculé ? » reste juste sous la carte.
+
+**Contraste (AA, ≥ 4,5:1, calculé)** — textes sur le vert :
+
+| Texte | Couleur | Sur `#0F4A3A` (clair) | Sur `#123A2F` (sombre) |
+|---|---|---|---|
+| Chiffre, montants, phrase, « Masquer les montants » | `#FFFFFF` | 10,19:1 | 12,56:1 |
+| Libellés, « dont … hors de vos comptes », autre devise | `#C9DED6` | 7,23:1 | 8,91:1 |
+| « Comment c'est calculé ? » (sous la carte, sur le fond) | `#0F4A3A` / `#6CC4A4` | 9,03:1 sur `#F4F1EA` | 8,98:1 sur `#13120F` |
+
+Le filet et le motif sont décoratifs (pas de texte) : 1,5:1 voulu, discret.
+
+### Accueil complet
+
+`directions/?d=b&s=homefull&t=light|dark` : l'accueil ENTIER, avec le contenu réel de la
+démonstration (relevé sur l'export web le 2026-10-21), du haut jusqu'à « Rapports ». Les cartes
+qui n'apparaissent que selon la situation sont montrées toutes à la fois, dans un cadre en
+pointillé de maquette (« Selon la situation · … ») : « Votre argent disponible aujourd'hui » (à la
+place de la carte), solde négatif « Régulariser », salaire attendu, récurrence « payé ? »,
+« À régulariser », épargne à la source, cotisation de tontine, nouvelles catégories, semaine du
+filleul, « À venir ce mois », ligne par autre devise, « Inviter des amis ». `&sit=0` : l'accueil
+tel qu'il est en démonstration, sans ces cartes.
+Captures : `directions/android/accueil-complet-{light,dark}-NN.png` (avec les cartes selon la
+situation) et `accueil-demo-{light,dark}-NN.png` (tel qu'en démonstration).
+
+Textes : ceux de l'application, **inchangés** (les propositions ci-dessous ne sont pas appliquées
+dans l'accueil complet : « Bonjour 👋 », 🔴/⚠️ des alertes, montants avec « FCFA », dates en entier).
 
 ## Textes montrés autrement dans les maquettes (NON appliqués — à ton accord à l'étape 4)
 

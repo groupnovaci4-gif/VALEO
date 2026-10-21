@@ -47,12 +47,20 @@ h2 small { font: 500 13px/18px Inter; color: var(--text3); }
 .p32 .ic { font-size: 20px; color: var(--brand); }
 .dk { background: var(--dark); border-radius: 12px; width: 56px; height: 56px; }
 .dk img { width: 40px; height: 40px; }
+/* Mode sombre (décision du fondateur) : léger rond clair #3A362F derrière TOUTE icône de contenu. */
+.h { display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+.dk .h, body.dark .h { background: #3A362F; }
+.p48 .h { width: 52px; height: 52px; } .p48 .h img { width: 40px; height: 40px; }
+.p32 .h { width: 36px; height: 36px; } .p32 .h img { width: 26px; height: 26px; }
+.dk .h { width: 48px; height: 48px; } .dk .h img { width: 34px; height: 34px; }
+body:not(.dark) .p48 .h img { width: 48px; height: 48px; } body:not(.dark) .p32 .h img { width: 32px; height: 32px; }
 .dk .ic { font-size: 26px; color: var(--darkInk); }
 .none { color: var(--text3); font-size: 11px; }
 .tag { display: inline-block; font: 600 11px/16px Inter; border-radius: 6px; padding: 1px 6px; margin-top: 3px; }
 .tag.choose { background: var(--warnBg); color: var(--warn); }
 .tag.logo { background: var(--surface2); color: var(--text2); }
 .tag.slot { background: var(--warnBg); color: var(--warn); }
+img.logo { border-radius: 12px; } .p32 img.logo { border-radius: 8px; } .dk img.logo { border-radius: 10px; }
 .pill { display: flex; align-items: center; justify-content: center; border-radius: 12px; font: 700 13px/1 Inter; letter-spacing: -.2px; }
 .p48 .pill { width: 48px; height: 48px; } .p32 .pill { width: 32px; height: 32px; border-radius: 8px; font-size: 10px; } .dk .pill { width: 40px; height: 40px; border-radius: 10px; font-size: 12px; }
 .cands { grid-column: 1 / -1; display: flex; gap: 12px; padding: 4px 0 2px; flex-wrap: wrap; }
@@ -76,12 +84,12 @@ const LIB = 'Fluent Emoji 3D (Microsoft, licence MIT)';
   const ion = (code) => `<i class="ic">${String.fromCodePoint(code)}</i>`;
   const img = (a) => `<img src="${a.kind === 'compo' || a.kind === 'slot' ? 'composees' : 'fluent'}/${a.slug}.webp" alt="">`;
   // Opérateur : logo validé, sinon pastille (initiales + couleur), selon operateurs.json.
-  const pill = (a) => { const o = opOf(a.operator); return o.affichage === 'logo' && o.logo ? `<img src="${o.logo}" alt="">` : `<span class="pill" style="background:${o.pastille.fond};color:${o.pastille.texte}">${o.pastille.initiales}</span>`; };
-  const show = (a) => (!a ? '' : a.kind === 'ion' ? ion(a.code) : a.kind === 'logo' ? pill(a) : img(a));
+  const pill = (a) => { const o = opOf(a.operator); return o.affichage === 'logo' && o.logo ? `<img class="logo" src="../${o.logo}" alt="">` : `<span class="pill" style="background:${o.pastille.fond};color:${o.pastille.texte}">${o.pastille.initiales}</span>`; };
+  const show = (a) => (!a ? '' : a.kind === 'ion' ? ion(a.code) : a.kind === 'logo' ? pill(a) : `<span class="h">${img(a)}</span>`);
   const cur = (list) => (list.length ? list.map((a) => (a.kind === 'ion' ? ion(a.code) : `<span class="em">${a.glyph}</span>`)).join('') : '<span class="none">aucune</span>');
   const total = items.length, compo = items.filter((i) => i.p?.kind === 'compo').length, ops = items.filter((i) => i.logo === 'operator').length;
   let html = only ? '' : `<h1>Icônes de DineroX</h1>
-    <p class="lede"><b>${total} icônes</b> affichées par l'application, rangées en ${rubriques.length} rubriques, avec les choix du fondateur. Contenu : <b>${LIB}</b>, personnages et mains en teinte <b>moyenne-foncée</b> ; <b>${compo} lignes</b> utilisent une icône composée validée (famille, réserve, tontine, garba, restaurant). Pavés de l'accueil et de Plus, cartes du coach, navigation et actions : <b>Ionicons au trait</b>. <b>${ops} opérateurs Mobile Money</b> : logo officiel (option A) ; en attendant ta validation des fichiers, la pastille de repli (initiales + couleur) est montrée.</p>`;
+    <p class="lede"><b>${total} icônes</b> affichées par l'application, rangées en ${rubriques.length} rubriques, avec les choix du fondateur. Contenu : <b>${LIB}</b>, personnages et mains en teinte <b>moyenne-foncée</b> ; <b>${compo} lignes</b> utilisent une icône composée validée (famille, réserve, tontine, garba, restaurant). Pavés de l'accueil et de Plus, cartes du coach, navigation et actions : <b>Ionicons au trait</b>. <b>${ops} opérateurs Mobile Money</b> : logo de l'opérateur (décision du fondateur), sinon pastille (initiales + couleur), un réglage par opérateur. En sombre, un léger rond clair derrière chaque icône de contenu.</p>`;
   html += `<div class="legend"><span>Nom</span><span>Actuelle</span><span>48 dp</span><span>32 dp</span><span>Sombre</span></div>`;
   rubriques.forEach((r, ri) => {
     if (only != null && String(ri) !== only) return;
@@ -89,7 +97,7 @@ const LIB = 'Fluent Emoji 3D (Microsoft, licence MIT)';
     html += `<h2>${r}<small>${rows.length}</small></h2><div class="card">`;
     for (const i of rows) {
       const p = i.p;
-      html += `<div class="row"><div class="name">${i.n}${i.choose ? '<br><span class="tag choose">À CHOISIR</span>' : ''}${i.logo === 'operator' ? '<br><span class="tag logo">logo officiel : à valider</span>' : ''}${i.logo === 'brand' ? '<br><span class="tag logo">logo de marque, comme aujourd’hui</span>' : ''}${p?.kind === 'slot' ? '<br><span class="tag slot">provisoire</span>' : ''}</div>
+      html += `<div class="row"><div class="name">${i.n}${i.choose ? '<br><span class="tag choose">À CHOISIR</span>' : ''}${i.logo === 'operator' ? `<br><span class="tag logo">${opOf(p.operator).affichage === 'logo' ? 'logo de l’opérateur' : 'pastille (aucun logo)'}</span>` : ''}${i.logo === 'brand' ? '<br><span class="tag logo">logo de marque, comme aujourd’hui</span>' : ''}${p?.kind === 'slot' ? '<br><span class="tag slot">provisoire</span>' : ''}</div>
         <div class="cell cur">${cur(i.cur)}</div>
         <div class="cell p48">${p ? show(p) : '<span class="none">—</span>'}</div>
         <div class="cell p32">${p ? show(p) : '<span class="none">—</span>'}</div>

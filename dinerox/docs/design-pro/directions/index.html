@@ -12,7 +12,10 @@
     ?board=a | ?board=b      planche d'une direction (spécifications + 6 écrans)
     ?board=cards             les trois versions de la carte d'accueil
     ?d=a&s=home&t=light      un seul écran, à la taille de la fenêtre (téléphone)
-    &card=a|b|c              version de la carte d'accueil (par défaut : a pour A, b pour B)
+    &card=a|b                version de la carte d'accueil (par défaut : a pour A, b pour B ;
+                             la carte (c) est abandonnée, décision du fondateur du 2026-10-21)
+    ?d=b&s=homefull&t=…      accueil COMPLET (carte b), à faire défiler, avec la place des
+                             cartes qui n'apparaissent que selon la situation
 -->
 <style>
 @font-face { font-family: Inter; font-weight: 400; src: url(fonts/Inter_400Regular.ttf); }
@@ -140,7 +143,77 @@ body.single .sheet { top: 16px; }
 .hc-b .rows .r + .r { border-top-color: rgba(255,255,255,.14); }
 .hc-b .rows .r span:first-child { color: rgba(255,255,255,.82); font: 400 15px/22px var(--body); }
 .hc-b .rows .r .v { color: #fff; }
-.hc-c { border-left: 4px solid var(--brand); }
+/* Textes sur le vert : blanc 10,2:1 (clair) / 12,6:1 (sombre) ; secondaire #C9DED6 7,2:1 / 8,9:1 (AA). */
+.hc-b .t-caption, .hc-b .t-small { color: #C9DED6; }
+.hc-b .rows .r span:first-child { color: #C9DED6; }
+
+/* ── Accueil COMPLET (s=homefull) : page qui défile, barre d'onglets collée en bas ── */
+body.full .phone { height: auto; min-height: 100vh; overflow: visible; }
+body.full .scroll { overflow: visible; padding-bottom: 24px; }
+body.full .tabbar { position: sticky; bottom: 0; z-index: 5; }
+.hello { font: var(--titleW) 22px/28px var(--title); color: var(--text); margin: 4px 0 12px; }
+.banner { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--r-card); background: var(--surface2); margin-bottom: 12px; }
+.banner .ic { font-size: 22px; color: var(--text2); flex: none; }
+.hc-b.full .body { position: relative; padding: 20px 16px 8px; }
+.hc-b .sentence { font: 600 15px/22px var(--body); color: #fff; margin-top: 4px; }
+.hc-b .sep { height: 1px; background: rgba(255,255,255,.14); margin: 12px 0; }
+.hc-b .line { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-height: 28px; }
+.hc-b .line span:first-child { font: 400 14px/20px var(--body); color: #C9DED6; }
+.hc-b .line .v { font: 600 15px/22px var(--body); color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hc-b .line.main .v { font: 700 19px/26px var(--title); }
+.hc-b .cap { font: 400 13px/18px var(--body); color: #C9DED6; margin: -2px 0 4px; }
+.hc-b .hide { display: flex; align-items: center; gap: 8px; min-height: 48px; font: 600 15px/20px var(--body); color: #fff; margin-top: 4px; }
+.hc-b .hide .ic { font-size: 22px; }
+.how { display: flex; align-items: center; gap: 8px; min-height: 48px; font: 600 15px/20px var(--body); color: var(--brandInk); }
+.how .ic { font-size: 20px; }
+.shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 12px; }
+.shortcuts .sc { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; background: var(--surface); border-radius: var(--r-ctl); box-shadow: var(--card-shadow); font: 600 15px/20px var(--body); color: var(--text); }
+.shortcuts .sc .ic { font-size: 20px; color: var(--brandInk); }
+.shortcuts .sc.w { grid-column: 1 / -1; }
+.prompt { padding: 16px; }
+.prompt .row2 { display: flex; gap: 8px; margin-top: 12px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 16px; border-radius: var(--r-ctl); font: 600 15px/20px var(--body); }
+.btn.pri { background: var(--brand); color: var(--onBrand); }
+.btn.sec { background: var(--surface2); color: var(--text); }
+.btn.ter { color: var(--brandInk); padding: 0 8px; }
+.btn.sm { min-height: 44px; font-size: 14px; padding: 0 12px; }
+.btn .ic { font-size: 18px; }
+.ins { padding: 12px 16px 4px; }
+.ins + .ins { border-top: 1px solid var(--divider); }
+.ins .top { display: flex; gap: 10px; align-items: flex-start; }
+.ins .top .ic { font-size: 20px; margin-top: 1px; flex: none; }
+.ins .chev { margin-left: auto; color: var(--text3); }
+.listen { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font: 600 14px/20px var(--body); color: var(--brandInk); }
+.listen .ic { font-size: 18px; }
+.mrow { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; }
+.mrow + .mrow { border-top: 1px solid var(--divider); }
+.mrow .bub { width: 36px; height: 36px; border-radius: var(--r-icon); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--iconInk); flex: none; }
+.mrow .v { margin-left: auto; font: 600 15px/22px var(--body); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.note { font: 400 13px/18px var(--body); color: var(--text3); margin-top: 6px; }
+.src { display: inline-block; font: 500 12px/16px var(--body); color: var(--text3); margin-top: 6px; }
+.coach { padding: 16px; }
+.coach p { font: 400 14px/20px var(--body); color: var(--text); margin-top: 8px; }
+.envl { padding: 12px 16px; }
+.envl + .envl { border-top: 1px solid var(--divider); }
+.envl .top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.envl .bub, .goal .bub { width: 40px; height: 40px; flex: none; display: flex; align-items: center; justify-content: center; }
+.envl .st { margin-left: auto; font: 600 13px/18px var(--body); white-space: nowrap; }
+.goal { display: flex; gap: 12px; align-items: center; padding: 12px 16px; }
+.goal + .goal { border-top: 1px solid var(--divider); }
+.goal .mid { flex: 1; min-width: 0; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
+.tile { padding: 14px; display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+.tile .ic { font-size: 22px; color: var(--brandInk); }
+.tag { display: inline-block; font: 600 11px/16px var(--body); color: var(--text2); background: var(--surface2); border-radius: 6px; padding: 1px 6px; }
+.sit { border: 1.5px dashed var(--border); border-radius: calc(var(--r-card) + 4px); padding: 6px; margin-bottom: 12px; }
+.sit > .sit-l { font: 600 11px/16px Inter; color: var(--text3); letter-spacing: .2px; padding: 0 6px 6px; text-transform: uppercase; }
+.sit .card { padding: 14px 16px; }
+.sit .card .ttl { display: flex; gap: 10px; align-items: flex-start; font: 600 15px/22px var(--body); color: var(--text); }
+.sit .card .ttl .ic { font-size: 20px; margin-top: 1px; flex: none; color: var(--brandInk); }
+.sit .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sits-h { font: 700 13px/18px Inter; color: var(--text2); margin: 4px 0 8px; }
+body.full .tx { padding-top: 10px; padding-bottom: 10px; align-items: center; }
+body.full .tx .mid div { white-space: normal; }
 </style>
 </head>
 <body>
@@ -159,8 +232,8 @@ const T = {
     name: 'B — Chaleureuse et locale',
     fonts: { title: 'Jakarta', body: 'Inter', titleW: 700, numW: 700 },
     radius: { card: 16, ctl: 12, sheet: 20, icon: 12, hero: 16 },
-    light: { bg: '#F4F1EA', surface: '#FFFCF7', surface2: '#EDE7DC', sheet: '#FFFCF7', border: '#D9D0C0', divider: '#EAE3D7', text: '#1F1C17', text2: '#564E43', text3: '#6E6558', brand: '#0F4A3A', brandInk: '#0F4A3A', onBrand: '#FFFFFF', iconInk: '#0F4A3A', positive: '#1E7A45', alert: '#B3261E', warning: '#8A5A00', track: '#EAE3D7', tabbg: '#FFFCF7', keybg: '#F1EBE1', heroBg: '#0F4A3A', cardBorder: '0', cardShadow: '0 1px 2px rgba(60,45,20,.08)' },
-    dark: { bg: '#13120F', surface: '#1D1B17', surface2: '#29261F', sheet: '#1D1B17', border: '#3D382F', divider: '#2C2923', text: '#F3EFE7', text2: '#BDB4A4', text3: '#A0968A', brand: '#4FB08F', brandInk: '#6CC4A4', onBrand: '#0B2A21', iconInk: '#9ED3BE', positive: '#63C08A', alert: '#EF6B61', warning: '#D9A441', track: '#2C2923', tabbg: '#181613', keybg: '#25221D', heroBg: '#123A2F', cardBorder: '0', cardShadow: 'none' },
+    light: { bg: '#F4F1EA', surface: '#FFFCF7', surface2: '#EDE7DC', sheet: '#FFFCF7', border: '#D9D0C0', divider: '#EAE3D7', text: '#1F1C17', text2: '#564E43', text3: '#6E6558', brand: '#0F4A3A', brandInk: '#0F4A3A', onBrand: '#FFFFFF', iconInk: '#0F4A3A', positive: '#1E7A45', alert: '#B3261E', warning: '#8A5A00', track: '#EAE3D7', tabbg: '#FFFCF7', keybg: '#F1EBE1', heroBg: '#0F4A3A', halo: 'transparent', cardBorder: '0', cardShadow: '0 1px 2px rgba(60,45,20,.08)' },
+    dark: { bg: '#13120F', surface: '#1D1B17', surface2: '#29261F', sheet: '#1D1B17', border: '#3D382F', divider: '#2C2923', text: '#F3EFE7', text2: '#BDB4A4', text3: '#A0968A', brand: '#4FB08F', brandInk: '#6CC4A4', onBrand: '#0B2A21', iconInk: '#9ED3BE', positive: '#63C08A', alert: '#EF6B61', warning: '#D9A441', track: '#2C2923', tabbg: '#181613', keybg: '#25221D', heroBg: '#123A2F', halo: '#3A362F', cardBorder: '0', cardShadow: 'none' },
   },
 };
 
@@ -192,11 +265,13 @@ let G = {};
 let ICONS3D = false;
 // Icônes 3D proposées (planche ../icones) : sans pastille de fond, l'objet porte la couleur.
 const f3d = (slug, px) => `<img src="../icones/${slug.includes('/') ? slug : `fluent/${slug}`}.webp" width="${px}" height="${px}" alt="">`;
+// Icône de contenu 3D : sans pastille en clair ; en sombre, léger rond clair (#3A362F, décision du fondateur).
+const HALO = 'style="background:var(--halo);border-radius:50%"';
 const ic = (n, style = '') => `<i class="ic" style="${style}">${String.fromCodePoint(G[n] ?? 63)}</i>`;
 
 function vars(d, t) {
   const k = T[d], c = k[t], r = k.radius, f = k.fonts;
-  return `--bg:${c.bg};--surface:${c.surface};--surface2:${c.surface2};--sheet:${c.sheet};--border:${c.border};--divider:${c.divider};--text:${c.text};--text2:${c.text2};--text3:${c.text3};--brand:${c.brand};--brandInk:${c.brandInk};--onBrand:${c.onBrand};--iconInk:${c.iconInk};--positive:${c.positive};--alert:${c.alert};--warning:${c.warning};--track:${c.track};--tabbg:${c.tabbg};--keybg:${c.keybg};--heroBg:${c.heroBg};--card-border:${c.cardBorder};--card-shadow:${c.cardShadow};--r-card:${r.card}px;--r-ctl:${r.ctl}px;--r-sheet:${r.sheet}px;--r-icon:${r.icon}px;--r-hero:${r.hero}px;--title:${f.title},Inter,sans-serif;--body:${f.body},sans-serif;--titleW:${f.titleW};--numW:${f.numW};--key-gap:${d === 'a' ? 0 : 8}px`;
+  return `--bg:${c.bg};--surface:${c.surface};--surface2:${c.surface2};--sheet:${c.sheet};--border:${c.border};--divider:${c.divider};--text:${c.text};--text2:${c.text2};--text3:${c.text3};--brand:${c.brand};--brandInk:${c.brandInk};--onBrand:${c.onBrand};--iconInk:${c.iconInk};--positive:${c.positive};--alert:${c.alert};--warning:${c.warning};--track:${c.track};--tabbg:${c.tabbg};--keybg:${c.keybg};--heroBg:${c.heroBg};--halo:${c.halo || 'transparent'};--card-border:${c.cardBorder};--card-shadow:${c.cardShadow};--r-card:${r.card}px;--r-ctl:${r.ctl}px;--r-sheet:${r.sheet}px;--r-icon:${r.icon}px;--r-hero:${r.hero}px;--title:${f.title},Inter,sans-serif;--body:${f.body},sans-serif;--titleW:${f.titleW};--numW:${f.numW};--key-gap:${d === 'a' ? 0 : 8}px`;
 }
 
 // Motif discret (carte b) : losanges en traits fins, inspirés des tissages, une seule opacité.
@@ -206,8 +281,7 @@ function heroCard(v) {
   const head = `<div class="t-caption">Reste par jour</div><div class="hero-num num">${D.perDay}<small>FCFA</small></div><div class="t-small" style="margin-top:2px">${D.until}</div>`;
   const rows = `<div class="rows">${D.rows.map(([l, x], i) => `<div class="r"><span class="${i ? 't-body' : 't-strong'}">${l}</span><span class="v">${x}</span></div>`).join('')}</div>`;
   if (v === 'a') return `<div class="hc-a" style="padding:8px 0 16px">${head}</div><div class="card rows">${D.rows.map(([l, x], i) => `<div class="r"><span class="${i ? 't-body' : 't-strong'}">${l}</span><span class="v">${x}</span></div>`).join('')}</div>`;
-  if (v === 'b') return `<div class="hc-b"><div style="padding:20px 16px 8px; position:relative">${head}</div>${PATTERN}<div style="margin:0 0 4px; position:relative">${rows}</div></div>`;
-  return `<div class="card hc-c"><div style="padding:16px 16px 8px">${head}</div><div style="border-top:1px solid var(--divider)">${rows}</div></div>`;
+  return `<div class="hc-b"><div style="padding:20px 16px 8px; position:relative">${head}</div>${PATTERN}<div style="margin:0 0 4px; position:relative">${rows}</div></div>`;
 }
 
 const statusBar = () => `<div class="status"><span>9:41</span><span>${ic('flash-outline', 'font-size:12px')} 100 %</span></div>`;
@@ -219,7 +293,7 @@ function home(d, card) {
     ${heroCard(card)}
     <div class="actions" style="margin-top:12px">${[['Revenu', 'arrow-down'], ['Transfert', 'swap-horizontal'], ['Historique', 'time-outline']].map(([l, i]) => `<div class="act"><div class="bub">${ic(i)}</div>${l}</div>`).join('')}</div>
     <div class="sec-head"><div class="t-section">Dernières opérations</div><div class="link">Tout voir</div></div>
-    <div class="card">${D.tx.map((x) => `<div class="tx"><div class="bub" ${ICONS3D && x.f ? 'style="background:none"' : ''}>${ICONS3D && x.f ? f3d(x.f, 36) : ic(x.i)}</div><div class="mid"><div class="t-strong">${x.n}</div><div class="t-small">${x.s}</div></div><div class="amt ${x.k === 'in' ? 'in' : ''}">${x.a}</div></div>`).join('')}</div>
+    <div class="card">${D.tx.map((x) => `<div class="tx"><div class="bub" ${ICONS3D && x.f ? HALO : ''}>${ICONS3D && x.f ? f3d(x.f, 32) : ic(x.i)}</div><div class="mid"><div class="t-strong">${x.n}</div><div class="t-small">${x.s}</div></div><div class="amt ${x.k === 'in' ? 'in' : ''}">${x.a}</div></div>`).join('')}</div>
     <div class="sec-head"><div class="t-section">À retenir</div><div class="link">Tout voir</div></div>
     <div class="card">${D.alerts.slice(0, 1).map((a) => `<div class="alert-row">${ic('alert-circle-outline', 'color:var(--alert)')}<span class="t-body">${a}</span>${ic('chevron-forward', '').replace('class="ic"', 'class="ic chev"')}</div>`).join('')}</div>
   </div>${tabbar('home')}`;
@@ -235,7 +309,7 @@ function entry(d, card) {
     <div class="amount num">0 FCFA</div>
     <div class="keys">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫'].map((k) => `<div class="key">${k === '⌫' ? ic('backspace-outline', 'font-size:24px') : k}</div>`).join('')}</div>
     <div class="t-caption" style="margin-top:14px">Touchez une catégorie pour enregistrer</div>
-    <div class="cats">${D.cats.map(([l, i, f]) => `<div class="cat"><div class="bub" ${ICONS3D ? 'style="background:none"' : ''}>${ICONS3D ? f3d(f, 40) : ic(i)}</div>${l}</div>`).join('')}</div>
+    <div class="cats">${D.cats.map(([l, i, f]) => `<div class="cat"><div class="bub" ${ICONS3D ? HALO : ''}>${ICONS3D ? f3d(f, 38) : ic(i)}</div>${l}</div>`).join('')}</div>
   </div>`;
 }
 
@@ -256,10 +330,90 @@ function budget(d) {
   </div>${tabbar('budget')}`;
 }
 
+
+// ── Accueil COMPLET : contenu réel de la démonstration (export web, 2026-10-21), carte (b). ──
+// Textes : ceux de l'application, inchangés (les propositions de textes de l'étape 2 ne sont PAS
+// appliquées ici). Les cartes « selon la situation » sont entourées d'un pointillé de maquette.
+function heroFull() {
+  return `<div class="hc-b full">${PATTERN}<div class="body">
+    <div class="t-caption">Reste par jour</div>
+    <div class="hero-num num" style="color:#fff">38 681<small>FCFA</small></div>
+    <div class="sentence">Il vous reste 38 681 FCFA par jour jusqu'au 31 octobre</div>
+    <div class="sep"></div>
+    <div class="line main"><span>Argent disponible</span><span class="v">655 500 FCFA</span></div>
+    <div class="line"><span>Mis de côté</span><span class="v">880 000 FCFA</span></div>
+    <div class="cap">dont 380 000 FCFA hors de vos comptes</div>
+    <div class="line"><span>Total de vos comptes</span><span class="v">1 155 500 FCFA</span></div>
+    ${SIT ? `<div class="cap" style="margin-top:2px;border:1px dashed rgba(255,255,255,.35);border-radius:6px;padding:2px 6px">Selon la situation · autre devise : 120,00 € · 120,00 €</div>` : ''}
+    <div class="hide">${ic('eye-outline')} Masquer les montants</div>
+  </div></div>
+  <div class="how">${ic('chevron-down')} Comment c'est calculé ?</div>`;
+}
+const sit = (label, inner) => SIT ? `<div class="sit"><div class="sit-l">Selon la situation · ${label}</div>${inner}</div>` : '';
+const sitCard = (icon, color, title, btns = '', extra = '') => `<div class="card"><div class="ttl">${ic(icon, color ? `color:${color}` : '')}<span>${title}</span></div>${extra}${btns ? `<div class="btns">${btns}</div>` : ''}</div>`;
+const b = (k, label, icon) => `<span class="btn sm ${k}">${icon ? ic(icon) : ''}${label}</span>`;
+const bub3d = (slug, px = 34) => `<div class="bub" ${HALO}>${f3d(slug, px)}</div>`;
+
+function homefull() {
+  const tx = [
+    ['Moto', 'Compte bancaire → Compte épargne · 20 octobre', '50 000 FCFA', null, 'tr'],
+    ['Canal+', 'Loisirs & divertissement · Orange Money · 18 octobre', '−10 000 FCFA', 'party-popper'],
+    ['Restaurant', 'Alimentation & boissons · Cash · 15 octobre', '−51 000 FCFA', 'composees/plat_poisson_3d'],
+    ['Taxi', 'Transport · Cash · 12 octobre', '−33 000 FCFA', 'taxi'],
+    ['Maman', 'Famille · Orange Money · 10 octobre', '−50 000 FCFA', 'older-person-medium-dark'],
+  ];
+  const insights = [['alert-circle-outline', 'var(--alert)', '🔴 Budget Maison dépassé de 40 000 FCFA.'], ['alert-circle-outline', 'var(--alert)', '🔴 Budget Alimentation & boissons dépassé de 13 000 FCFA.'], ['warning-outline', 'var(--warning)', '⚠️ Budget Famille entièrement utilisé.']];
+  const month = [['arrow-down', 'Revenus', 'perçus ce mois', '450 000 FCFA', 'var(--positive)'], ['arrow-up', 'Dépenses', 'réglées ce mois', '326 000 FCFA'], ['wallet-outline', 'Épargne nette', 'ce mois-ci', '60 000 FCFA'], ['pie-chart-outline', 'Reste à répartir', '', '328 500 FCFA']];
+  const env = [['house', 'Maison', 'Dépassé de 40 000 FCFA', 'Dépassée', 'over', '140 000 FCFA sur 100 000 FCFA · 140 %', 140], ['curry-rice', 'Alimentation & boissons', 'Dépassé de 13 000 FCFA', 'Dépassée', 'over', '93 000 FCFA sur 80 000 FCFA · 116 %', 116], ['taxi', 'Transport', 'Reste 7 000 FCFA', 'Dans les limites', 'ok', '33 000 FCFA sur 40 000 FCFA · 83 %', 83], ['composees/famille_3d_medium-dark', 'Famille', 'Reste 0 FCFA', 'Épuisée', 'full', '50 000 FCFA sur 50 000 FCFA · 100 %', 100], ['pig-face', 'Épargne', 'Reste 0 FCFA', 'Épuisée', 'full', '50 000 FCFA sur 50 000 FCFA · 100 %', 100]];
+  const goals = [['motorcycle', 'Ma moto', 'Véhicule · août 2027', '450 000 FCFA', '/ 1 200 000 FCFA · 38 %', 38], ['shield', 'Mon fonds d\'urgence', 'Finance', '0 FCFA', '/ 1 000 000 FCFA · 0 %', 0], ['backpack', 'Rentrée scolaire', '', '0 FCFA', '/ 120 000 FCFA · 0 %', 0]];
+  return `<div class="scroll">${topbar()}
+    <div class="hello">Bonjour 👋</div>
+    <div class="banner">${ic('flask-outline')}<div><div class="t-body" style="font-size:14px;line-height:20px">Mode démonstration : données fictives, séparées de vos données. Créez votre profil pour gérer votre propre argent.</div><div class="link" style="margin-top:8px">Créer mon profil</div></div></div>
+    ${heroFull()}
+    ${SIT ? `<div class="sit"><div class="sit-l">Selon la situation · à la place de la carte ci-dessus, tant que l'argent n'est pas renseigné</div>${sitCard('wallet-outline', '', 'Votre argent disponible aujourd\'hui', b('pri', 'Enregistrer mon argent disponible'), `<div class="note">Ce qu'il y a aujourd'hui sur chaque compte. Ensuite, l'argent ne change que par vos opérations.</div>`)}</div>` : ''}
+    ${SIT ? `<div class="sits-h">Cartes qui apparaissent selon la situation (ici toutes à la fois)</div>` : ''}
+    ${sit('solde négatif', sitCard('alert-circle', 'var(--alert)', 'Orange Money est à −12 500 FCFA : il faudra régulariser.', b('pri', 'Régulariser')))}
+    ${sit('salaire attendu', sitCard('cash-outline', '', 'Salaire attendu depuis le 20 octobre : reçu ?', b('pri', 'Oui, l\'enregistrer', 'checkmark')))}
+    ${sit('récurrence à confirmer', sitCard('repeat', '', 'Loyer 100 000 FCFA : payé ?', b('pri', 'Oui, depuis Compte bancaire', 'checkmark') + b('sec', 'Autre montant') + b('ter', 'Pas encore')))}
+    ${sit('à régulariser', sitCard('time-outline', 'var(--warning)', 'À régulariser', b('pri', 'Payée') + b('sec', 'Je la dois encore') + b('ter', 'Pas due'), `<div class="t-body" style="margin-top:6px">Électricité — 15 octobre : 18 000 FCFA</div>`))}
+    ${sit('épargne à la source, après un revenu', sitCard('arrow-down-circle-outline', 'var(--positive)', 'Vous avez reçu 450 000 FCFA. Mettre 45 000 FCFA de côté maintenant ?', b('pri', 'Mettre de côté') + b('ter', 'Pas maintenant')))}
+    ${sit('cotisation de tontine proche', sitCard('people-outline', '', 'Tontine « Tontine du marché » : 10 000 FCFA à cotiser dans 3 j'))}
+    ${sit('nouvelles catégories', sitCard('pricetags-outline', '', 'Nouvelles catégories disponibles', b('pri', 'Voir') + b('ter', 'Plus tard')))}
+    ${sit('filleul', sitCard('calendar-outline', '', 'Votre semaine DineroX', '', `<div class="note">Votre semaine compte pour Awa, qui vous a invité.</div>`))}
+    <div class="shortcuts"><div class="sc w">${ic('time-outline')} Historique</div><div class="sc">${ic('arrow-down')} Revenu</div><div class="sc">${ic('swap-horizontal')} Transfert</div></div>
+    <div class="card prompt"><div class="t-strong">Dites-moi ce que vous avez dépensé ou reçu</div><div class="t-small" style="margin-top:2px">Par exemple : « Hier carburant 15 000 »</div><div class="row2">${b('pri', 'Parler', 'mic')}${b('ter', 'Saisir', 'keypad-outline')}</div></div>
+    <div class="sec-head"><div class="t-section">Dernières opérations</div><div class="link">Tout voir</div></div>
+    <div class="card">${tx.map(([n, s2, a, f, k]) => `<div class="tx"><div class="bub" ${f ? HALO : ''}>${f ? f3d(f, 32) : ic('swap-horizontal')}</div><div class="mid"><div class="t-strong">${n}</div><div class="t-small" style="white-space:normal">${s2}</div></div><div class="amt ${k === 'in' ? 'in' : ''}">${a}</div></div>`).join('')}</div>
+    <div class="sec-head"><div class="t-section">À retenir</div><div class="link">Tout voir</div></div>
+    <div class="card">${insights.map(([i, c, t]) => `<div class="ins"><div class="top">${ic(i, `color:${c}`)}<span class="t-body">${t}</span>${ic('chevron-forward', '').replace('class="ic"', 'class="ic chev"')}</div><span class="listen">${ic('volume-medium-outline')} Écouter</span></div>`).join('')}</div>
+    <div class="sec-head"><div class="t-section">Mois en cours</div><div class="link">octobre 2026</div></div>
+    <div class="card">${month.map(([i, l, sub, v, c]) => `<div class="mrow"><div class="bub">${ic(i)}</div><div><div class="t-strong">${l}</div>${sub ? `<div class="t-small">${sub}</div>` : ''}</div><div class="v" ${c ? `style="color:${c}"` : ''}>${v}</div></div>`).join('')}</div>
+    ${sit('opérations datées après aujourd\'hui', `<div class="note" style="margin:0 6px">À venir ce mois : revenus 0 FCFA, dépenses 25 000 FCFA</div>`)}
+    ${sit('compte dans une autre devise', `<div class="note" style="margin:0 6px">En euros ce mois : revenus 0,00 €, dépenses 45,00 € · comptes 120,00 € (non additionnés)</div>`)}
+    <div class="card coach" style="margin-top:24px"><div style="display:flex;justify-content:space-between;align-items:center"><div class="t-strong">Votre coach : 3 points à voir</div><span class="listen">${ic('volume-medium-outline')} Écouter</span></div>
+      <p>Attention, vous avez dépassé votre budget Maison de 40 000 FCFA. Vos dépenses sont au-dessus de la limite que vous vous étiez fixée.</p>
+      <p>Attention, vous avez dépassé votre budget Alimentation & boissons de 13 000 FCFA. Vos dépenses sont au-dessus de la limite que vous vous étiez fixée.</p>
+      <p>Échéance Tonton Yao : 50 000 FCFA le 28 octobre.</p>
+      <div class="note">Selon les opérations enregistrées dans DineroX.</div><div style="margin-top:4px">${b('ter', 'J\'ai compris')}</div></div>
+    <div class="card coach" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center"><div class="t-strong">Conseil du jour</div><span class="listen">${ic('volume-medium-outline')} Écouter</span></div>
+      <p>Vous avez dépensé 29 % de plus en Alimentation & boissons que votre moyenne habituelle (+21 000 FCFA).</p><span class="src">Vos données</span></div>
+    <div class="sec-head"><div class="t-section">Votre analyse</div><div class="link">Tout voir</div></div>
+    <div class="card coach"><p style="margin-top:0">Vos objectifs demandent 195 000 FCFA par mois ; il vous reste 55 750 FCFA par mois. Il manque 139 250 FCFA : allongez une échéance ou priorisez un objectif.</p><div style="display:flex;justify-content:space-between;align-items:center"><span class="src">Vos données</span><span class="listen">${ic('volume-medium-outline')} Écouter</span></div></div>
+    <div class="sec-head"><div class="t-section">Enveloppes actives</div><div class="link">Gérer (6)</div></div>
+    <div class="card">${env.map(([f, n, s2, l, st, d2, pc]) => `<div class="envl"><div class="top">${bub3d(f)}<div style="min-width:0"><div class="t-strong">${n}</div><div class="t-small">${s2}</div></div><div class="st ${st}">${l}</div></div><div class="bar"><i class="${st}" style="width:${Math.min(100, pc)}%"></i></div><div class="t-small num" style="margin-top:6px">${d2}</div></div>`).join('')}</div>
+    <div class="sec-head"><div class="t-section">Objectifs prioritaires</div><div class="link">Tout voir</div></div>
+    <div class="card">${goals.map(([f, n, s2, a, of, pc]) => `<div class="goal">${bub3d(f)}<div class="mid"><div class="t-strong">${n}</div>${s2 ? `<div class="t-small">${s2}</div>` : ''}<div style="margin-top:6px" class="bar"><i style="width:${pc}%"></i></div><div class="t-small num" style="margin-top:6px"><b style="color:var(--text);font-weight:600">${a}</b> ${of}</div></div></div>`).join('')}</div>
+    <div class="tiles"><div class="card tile">${ic('trophy-outline')}<div class="t-strong">Mes récompenses</div><div class="t-small">Obtenue 2 fois</div></div><div class="card tile">${ic('chatbubble-ellipses-outline')}<div class="t-strong">DineroX IA <span class="tag">Instantané</span></div><div class="t-small">« J’ai dépensé 5 000 au restaurant »</div></div></div>
+    ${sit('après la 5e saisie', `<div class="card" style="padding:14px 16px"><div class="t-strong">Inviter des amis</div><div class="note">5 personnes invitées actives pendant une semaine = 1 mois de Plus offert.</div><div class="btns">${b('pri', 'Inviter')}${b('ter', 'Masquer')}</div></div>`)}
+    <div style="display:flex;justify-content:center;margin-top:16px">${b('ter', 'Rapports', 'bar-chart-outline')}</div>
+  </div>${tabbar('home')}`;
+}
+let SIT = true;
+
 // Espaces insécables dans les montants (comme groupDigits dans l'application : U+00A0).
 const nb = (html) => html.replace(/(\d) (?=\d{3}\b)/g, '$1\u00A0').replace(/(\d) (FCFA|%)/g, '$1\u00A0$2');
 
-const SCREENS = { home: ['Accueil', home], entry: ['Saisie', entry], budget: ['Budget', budget] };
+const SCREENS = { home: ['Accueil', home], entry: ['Saisie', entry], budget: ['Budget', budget], homefull: ['Accueil complet', homefull] };
 const phone = (d, s, t, card) => `<div class="phone" style="${vars(d, t)}">${SCREENS[s][1](d, card)}</div>`;
 
 function spec(d) {
@@ -284,14 +438,14 @@ function spec(d) {
 
 function board(d) {
   if (d === 'cards') {
-    const labels = { a: '(a) Chiffre posé sur le fond, détails dans une carte neutre', b: '(b) Vert profond uni, fin filet, motif discret, ombre très légère', c: '(c) Carte claire, filet de marque à gauche' };
-    return `<div class="board"><h1>Carte d'accueil — trois versions</h1><p class="lede">Mêmes données, mêmes textes. Chaque version peut s'appliquer à l'une ou l'autre direction ; elles sont montrées ici dans la direction A (lignes 1-2) puis B (lignes 3-4). Aucun dégradé.</p>
-      ${['a', 'b'].map((dir) => ['light', 'dark'].map((t) => `<div class="row">${['a', 'b', 'c'].map((v) => `<div class="frame-wrap"><div class="frame-label">${T[dir].name} · ${labels[v]} · ${t === 'light' ? 'clair' : 'sombre'}</div><div class="phone" style="${vars(dir, t)}; height:auto; padding:16px">${heroCard(v)}</div></div>`).join('')}</div>`).join('')).join('')}</div>`;
+    const labels = { a: '(a) Chiffre posé sur le fond, détails dans une carte neutre', b: '(b) Vert profond uni, fin filet, motif discret, ombre très légère — RETENUE' };
+    return `<div class="board"><h1>Carte d'accueil</h1><p class="lede">Version retenue : (b), dans la direction B. La version (c) est abandonnée (décision du fondateur, 2026-10-21). Mêmes données, mêmes textes. Aucun dégradé.</p>
+      ${['a', 'b'].map((dir) => ['light', 'dark'].map((t) => `<div class="row">${['a', 'b'].map((v) => `<div class="frame-wrap"><div class="frame-label">${T[dir].name} · ${labels[v]} · ${t === 'light' ? 'clair' : 'sombre'}</div><div class="phone" style="${vars(dir, t)}; height:auto; padding:16px">${heroCard(v)}</div></div>`).join('')}</div>`).join('')).join('')}</div>`;
   }
   if (d === 'icons') {
     ICONS3D = true;
-    return `<div class="board"><h1>Icônes 3D en situation — direction B, carte (c)</h1><p class="lede">Accueil (Dernières opérations) et Saisie (catégories), clair et sombre. Icônes : Fluent Emoji 3D (MIT). Famille : candidate 1 de la ligne « À CHOISIR ».</p>
-      ${['light', 'dark'].map((t) => `<div class="row">${['home', 'entry'].map((s) => `<div class="frame-wrap"><div class="frame-label">${SCREENS[s][0]} · ${t === 'light' ? 'clair' : 'sombre'} · 360 × 800</div>${phone('b', s, t, 'c')}</div>`).join('')}</div>`).join('')}</div>`;
+    return `<div class="board"><h1>Icônes 3D en situation — direction B, carte (b)</h1><p class="lede">Accueil (Dernières opérations) et Saisie (catégories), clair et sombre. Icônes : Fluent Emoji 3D (MIT), teinte moyenne-foncée, icônes composées validées ; en sombre, léger rond clair derrière chaque icône de contenu.</p>
+      ${['light', 'dark'].map((t) => `<div class="row">${['home', 'entry'].map((s) => `<div class="frame-wrap"><div class="frame-label">${SCREENS[s][0]} · ${t === 'light' ? 'clair' : 'sombre'} · 360 × 800</div>${phone('b', s, t, 'b')}</div>`).join('')}</div>`).join('')}</div>`;
   }
   const card = d === 'a' ? 'a' : 'b';
   return `<div class="board"><h1>${T[d].name}</h1>${spec(d)}
@@ -306,8 +460,10 @@ function board(d) {
   if (q.get('board')) { root.innerHTML = board(q.get('board')); }
   else {
     const d = q.get('d') || 'a', t = q.get('t') || 'light';
-    ICONS3D = q.get('icons') === '3d';
+    ICONS3D = q.get('icons') === '3d' || q.get('s') === 'homefull';
+    SIT = q.get('sit') !== '0';
     document.body.classList.add('single');
+    if (q.get('s') === 'homefull') document.body.classList.add('full');
     document.documentElement.style.setProperty('--vh', innerHeight + 'px');
     document.body.setAttribute('style', vars(d, t));
     root.innerHTML = nb(phone(d, q.get('s') || 'home', t, q.get('card') || (d === 'a' ? 'a' : 'b')));
