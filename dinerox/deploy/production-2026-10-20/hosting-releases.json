@@ -1,0 +1,11 @@
+{
+ "dinerox-admin": [
+  {
+   "releaseTime": "2026-10-13T14:18:15.895Z",
+   "type": "DEPLOY",
+   "version": "00ca5487de0dda4b",
+   "fileCount": "80"
+  }
+ ],
+ "dinerox-app": []
+}

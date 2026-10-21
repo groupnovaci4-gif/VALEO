@@ -1,0 +1,2996 @@
+[
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/9a756539-6175-454e-947a-5eadf82ce19c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "respondInvite",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669608285811",
+     "object": "respondInvite/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669608285811",
+     "object": "respondInvite/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-10T21:42:44.730879279Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/respondInvite",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "respondinvite-00001-mog",
+   "service": "projects/dinerox-app/locations/europe-west1/services/respondinvite",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://respondinvite-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-10T22:00:18.355559350Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/respondInvite"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boViewInvite",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753395767",
+     "object": "boViewInvite/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753395767",
+     "object": "boViewInvite/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.628194560Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boViewInvite",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "boviewinvite-00002-vin",
+   "service": "projects/dinerox-app/locations/europe-west1/services/boviewinvite",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://boviewinvite-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:20.237308437Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boViewInvite"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/f43655f0-760b-4849-9b10-25ac99fedb78",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "referralOnTransaction",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069272051544",
+     "object": "referralOnTransaction/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069272051544",
+     "object": "referralOnTransaction/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-14T07:44:43.151058621Z",
+  "environment": "GEN_2",
+  "eventTrigger": {
+   "eventFilters": [
+    {
+     "attribute": "database",
+     "value": "(default)"
+    },
+    {
+     "attribute": "namespace",
+     "value": "(default)"
+    },
+    {
+     "attribute": "document",
+     "operator": "match-path-pattern",
+     "value": "spaces/{spaceId}/transactions/{docId}"
+    }
+   ],
+   "eventType": "google.cloud.firestore.document.v1.written",
+   "pubsubTopic": "projects/dinerox-app/topics/eventarc-europe-west1-referralontransaction-412545-734",
+   "retryPolicy": "RETRY_POLICY_DO_NOT_RETRY",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "trigger": "projects/dinerox-app/locations/europe-west1/triggers/referralontransaction-412545",
+   "triggerRegion": "europe-west1"
+  },
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "625e48d34ce4867f85b9cef5013040b452e76121"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/referralOnTransaction",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "referralontransaction-00002-yug",
+   "service": "projects/dinerox-app/locations/europe-west1/services/referralontransaction",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://referralontransaction-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-15T13:01:28.208427886Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/referralOnTransaction"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/f43655f0-760b-4849-9b10-25ac99fedb78",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "referralNightly",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069271338858",
+     "object": "referralNightly/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069271338858",
+     "object": "referralNightly/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-14T07:37:16.740150004Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-scheduled": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "625e48d34ce4867f85b9cef5013040b452e76121"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/referralNightly",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "referralnightly-00003-zav",
+   "service": "projects/dinerox-app/locations/europe-west1/services/referralnightly",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://referralnightly-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-15T13:01:27.759620738Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/referralNightly"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boResetStaffMfa",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753322412",
+     "object": "boResetStaffMfa/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753322412",
+     "object": "boResetStaffMfa/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.620983302Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boResetStaffMfa",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "boresetstaffmfa-00002-bet",
+   "service": "projects/dinerox-app/locations/europe-west1/services/boresetstaffmfa",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://boresetstaffmfa-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:16.257414845Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boResetStaffMfa"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/7f5ac8bf-3475-4eea-8c31-7215b115534f",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "parseVoiceEntry",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791668602591435",
+     "object": "parseVoiceEntry/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791668602591435",
+     "object": "parseVoiceEntry/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-10T21:43:22.980663789Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "0084be6bc5ada4872decae18de7c05423beb6ba2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/parseVoiceEntry",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "parsevoiceentry-00001-zup",
+   "service": "projects/dinerox-app/locations/europe-west1/services/parsevoiceentry",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 15,
+   "uri": "https://parsevoiceentry-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-10T21:44:50.122174208Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/parseVoiceEntry"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/9a756539-6175-454e-947a-5eadf82ce19c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "removeMember",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669609838155",
+     "object": "removeMember/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669609838155",
+     "object": "removeMember/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-10T21:42:43.710348824Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/removeMember",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "removemember-00001-juw",
+   "service": "projects/dinerox-app/locations/europe-west1/services/removemember",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://removemember-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-10T22:00:18.985809606Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/removeMember"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "adminStats",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753305098",
+     "object": "adminStats/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753305098",
+     "object": "adminStats/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-10T21:42:44.677970795Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/adminStats",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "adminstats-00003-bos",
+   "service": "projects/dinerox-app/locations/europe-west1/services/adminstats",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://adminstats-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:19.868624953Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/adminStats"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boUpdateUser",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753343018",
+     "object": "boUpdateUser/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753343018",
+     "object": "boUpdateUser/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.769293172Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boUpdateUser",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "boupdateuser-00002-nob",
+   "service": "projects/dinerox-app/locations/europe-west1/services/boupdateuser",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://boupdateuser-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:14.688702460Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boUpdateUser"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/0a37f7ac-f69a-4a20-af6e-d9245f222574",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "adminReferralStats",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791963882717210",
+     "object": "adminReferralStats/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791963882717210",
+     "object": "adminReferralStats/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-14T07:36:26.863781140Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/adminReferralStats",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "adminreferralstats-00002-fej",
+   "service": "projects/dinerox-app/locations/europe-west1/services/adminreferralstats",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://adminreferralstats-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-14T07:44:55.521233397Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/adminReferralStats"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boSetStaffRole",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753412972",
+     "object": "boSetStaffRole/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753412972",
+     "object": "boSetStaffRole/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.815934549Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boSetStaffRole",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bosetstaffrole-00002-tel",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bosetstaffrole",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bosetstaffrole-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:17.027716158Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boSetStaffRole"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boMe",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753248403",
+     "object": "boMe/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753248403",
+     "object": "boMe/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.256329781Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boMe",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bome-00002-mot",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bome",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bome-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:20.822143101Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boMe"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/0facef6c-1806-4a2c-95ef-d32f99f7d117",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "financeAssistant",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669558594839",
+     "object": "financeAssistant/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669558594839",
+     "object": "financeAssistant/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-10T21:59:19.068960276Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "e554091f34cf08aa39f763632b1dcf3fedc86e22"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/financeAssistant",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "512Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "financeassistant-00001-foz",
+   "service": "projects/dinerox-app/locations/europe-west1/services/financeassistant",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://financeassistant-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-10T22:00:14.929143251Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/financeAssistant"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/b26de544-a67e-4bf9-acb9-ffcd15b1e632",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "verifyPurchase",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791668563169049",
+     "object": "verifyPurchase/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791668563169049",
+     "object": "verifyPurchase/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-10T21:42:43.684390705Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "6414d94688469fa1257ce8326999ec41fdf4a338"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/verifyPurchase",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "verifypurchase-00001-moh",
+   "service": "projects/dinerox-app/locations/europe-west1/services/verifypurchase",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://verifypurchase-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-10T21:44:00.814814577Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/verifyPurchase"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boListRoles",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753333990",
+     "object": "boListRoles/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753333990",
+     "object": "boListRoles/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.649909109Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boListRoles",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bolistroles-00002-low",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bolistroles",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bolistroles-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:13.843098104Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boListRoles"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boGetUser",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753310479",
+     "object": "boGetUser/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753310479",
+     "object": "boGetUser/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.235437775Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boGetUser",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bogetuser-00002-vuy",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bogetuser",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bogetuser-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:22.496445123Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boGetUser"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boCreateUser",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753323221",
+     "object": "boCreateUser/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753323221",
+     "object": "boCreateUser/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.794161150Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boCreateUser",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bocreateuser-00002-lum",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bocreateuser",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bocreateuser-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:12.912247631Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boCreateUser"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boChangePassword",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753396012",
+     "object": "boChangePassword/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753396012",
+     "object": "boChangePassword/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.939517558Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boChangePassword",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bochangepassword-00002-kif",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bochangepassword",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bochangepassword-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:21.653951388Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boChangePassword"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/9a756539-6175-454e-947a-5eadf82ce19c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "revokeInvite",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669607875534",
+     "object": "revokeInvite/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669607875534",
+     "object": "revokeInvite/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-10T21:42:44.731382589Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/revokeInvite",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "revokeinvite-00001-jak",
+   "service": "projects/dinerox-app/locations/europe-west1/services/revokeinvite",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://revokeinvite-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-10T22:00:17.932747407Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/revokeInvite"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boSetSuspended",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753232449",
+     "object": "boSetSuspended/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753232449",
+     "object": "boSetSuspended/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:35.030759239Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boSetSuspended",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bosetsuspended-00002-rob",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bosetsuspended",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bosetsuspended-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:07.240230684Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boSetSuspended"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/0a37f7ac-f69a-4a20-af6e-d9245f222574",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "setAmbassador",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791963882703397",
+     "object": "setAmbassador/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791963882703397",
+     "object": "setAmbassador/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-14T07:37:16.734326980Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "20bb32f0a48c351bf466c5ff63ff097035249eb1"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/setAmbassador",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "setambassador-00002-tes",
+   "service": "projects/dinerox-app/locations/europe-west1/services/setambassador",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://setambassador-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-14T07:44:55.518113807Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/setAmbassador"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/efd9c2d6-c683-446f-85ae-96a0598f7f22",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "adminOriginStats",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792053403991269",
+     "object": "adminOriginStats/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792053403991269",
+     "object": "adminOriginStats/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-15T08:36:44.491840736Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "13b7c85f8e8ce938b60726255d18aff225fcd7e6"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/adminOriginStats",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "adminoriginstats-00001-bov",
+   "service": "projects/dinerox-app/locations/europe-west1/services/adminoriginstats",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://adminoriginstats-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-15T08:37:42.954758116Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/adminOriginStats"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boStats",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753437350",
+     "object": "boStats/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753437350",
+     "object": "boStats/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.928009934Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boStats",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bostats-00002-xed",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bostats",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bostats-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:06.316497468Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boStats"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boDeleteRole",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753307224",
+     "object": "boDeleteRole/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753307224",
+     "object": "boDeleteRole/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.930567271Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boDeleteRole",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bodeleterole-00002-mih",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bodeleterole",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bodeleterole-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:15.960420162Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boDeleteRole"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boOpenData",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753355868",
+     "object": "boOpenData/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753355868",
+     "object": "boOpenData/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.240986775Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boOpenData",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "boopendata-00002-rox",
+   "service": "projects/dinerox-app/locations/europe-west1/services/boopendata",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://boopendata-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:07.329133240Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boOpenData"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boSetPlan",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753327308",
+     "object": "boSetPlan/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753327308",
+     "object": "boSetPlan/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.294032288Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boSetPlan",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bosetplan-00002-gob",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bosetplan",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bosetplan-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:06.244717086Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boSetPlan"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/efd9c2d6-c683-446f-85ae-96a0598f7f22",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "recordSignupOrigin",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792053453748084",
+     "object": "recordSignupOrigin/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792053453748084",
+     "object": "recordSignupOrigin/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-15T08:37:34.211055519Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "13b7c85f8e8ce938b60726255d18aff225fcd7e6"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/recordSignupOrigin",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "recordsignuporigin-00001-kud",
+   "service": "projects/dinerox-app/locations/europe-west1/services/recordsignuporigin",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://recordsignuporigin-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-15T08:37:44.593646686Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/recordSignupOrigin"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boSaveRole",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753402618",
+     "object": "boSaveRole/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753402618",
+     "object": "boSaveRole/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.916334445Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boSaveRole",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bosaverole-00002-kah",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bosaverole",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bosaverole-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:10.421145762Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boSaveRole"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/f43655f0-760b-4849-9b10-25ac99fedb78",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "applyReferral",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069210565100",
+     "object": "applyReferral/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069210565100",
+     "object": "applyReferral/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-14T07:37:16.675401893Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "dabdeb738c6a3ff827e728e2a090e7cc36062e6c"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/applyReferral",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "applyreferral-00003-lug",
+   "service": "projects/dinerox-app/locations/europe-west1/services/applyreferral",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://applyreferral-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-15T13:01:32.491719359Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/applyReferral"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boNewRecoveryCodes",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753303421",
+     "object": "boNewRecoveryCodes/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753303421",
+     "object": "boNewRecoveryCodes/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.800929908Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boNewRecoveryCodes",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bonewrecoverycodes-00002-naw",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bonewrecoverycodes",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bonewrecoverycodes-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:12.711721173Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boNewRecoveryCodes"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boLoginVerify",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753375481",
+     "object": "boLoginVerify/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753375481",
+     "object": "boLoginVerify/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.733648918Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boLoginVerify",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bologinverify-00002-wug",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bologinverify",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bologinverify-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:10.403323811Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boLoginVerify"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boAcceptInvite",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753463232",
+     "object": "boAcceptInvite/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753463232",
+     "object": "boAcceptInvite/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.795782213Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boAcceptInvite",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "boacceptinvite-00002-ded",
+   "service": "projects/dinerox-app/locations/europe-west1/services/boacceptinvite",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://boacceptinvite-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:20.900101234Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boAcceptInvite"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/9a756539-6175-454e-947a-5eadf82ce19c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "setMemberRole",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669608171674",
+     "object": "setMemberRole/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669608171674",
+     "object": "setMemberRole/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-10T21:42:44.732797012Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/setMemberRole",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "setmemberrole-00001-bob",
+   "service": "projects/dinerox-app/locations/europe-west1/services/setmemberrole",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://setmemberrole-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-10T22:00:17.409310652Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/setMemberRole"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boListAudit",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753531087",
+     "object": "boListAudit/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753531087",
+     "object": "boListAudit/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.666026654Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boListAudit",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bolistaudit-00002-giv",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bolistaudit",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bolistaudit-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:20.809573936Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boListAudit"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boRemoveStaff",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753596133",
+     "object": "boRemoveStaff/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753596133",
+     "object": "boRemoveStaff/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.683944979Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boRemoveStaff",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "boremovestaff-00002-qeb",
+   "service": "projects/dinerox-app/locations/europe-west1/services/boremovestaff",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://boremovestaff-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:22.135394168Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boRemoveStaff"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/f43655f0-760b-4849-9b10-25ac99fedb78",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boDeleteUser",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069271332763",
+     "object": "boDeleteUser/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069271332763",
+     "object": "boDeleteUser/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.640627518Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "625e48d34ce4867f85b9cef5013040b452e76121"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boDeleteUser",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bodeleteuser-00004-rej",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bodeleteuser",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 300,
+   "uri": "https://bodeleteuser-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-15T13:01:31.217766056Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boDeleteUser"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boSetStaffSuspended",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753461171",
+     "object": "boSetStaffSuspended/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753461171",
+     "object": "boSetStaffSuspended/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.636724491Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boSetStaffSuspended",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bosetstaffsuspended-00002-vec",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bosetstaffsuspended",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bosetstaffsuspended-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:07.880616073Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boSetStaffSuspended"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/f43655f0-760b-4849-9b10-25ac99fedb78",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "referralOnGoal",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069271976598",
+     "object": "referralOnGoal/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069271976598",
+     "object": "referralOnGoal/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-14T07:43:21.187871149Z",
+  "environment": "GEN_2",
+  "eventTrigger": {
+   "eventFilters": [
+    {
+     "attribute": "document",
+     "operator": "match-path-pattern",
+     "value": "spaces/{spaceId}/goals/{docId}"
+    },
+    {
+     "attribute": "database",
+     "value": "(default)"
+    },
+    {
+     "attribute": "namespace",
+     "value": "(default)"
+    }
+   ],
+   "eventType": "google.cloud.firestore.document.v1.written",
+   "pubsubTopic": "projects/dinerox-app/topics/eventarc-europe-west1-referralongoal-414968-666",
+   "retryPolicy": "RETRY_POLICY_DO_NOT_RETRY",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "trigger": "projects/dinerox-app/locations/europe-west1/triggers/referralongoal-414968",
+   "triggerRegion": "europe-west1"
+  },
+  "labels": {
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "625e48d34ce4867f85b9cef5013040b452e76121"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/referralOnGoal",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "referralongoal-00002-luc",
+   "service": "projects/dinerox-app/locations/europe-west1/services/referralongoal",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://referralongoal-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-15T13:01:27.940382636Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/referralOnGoal"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/bcbdc6cd-37e2-4eb6-a386-8f63d55b6f9e",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "inviteMember",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791668602904744",
+     "object": "inviteMember/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791668602904744",
+     "object": "inviteMember/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-10T21:43:23.261301432Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "6414d94688469fa1257ce8326999ec41fdf4a338"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/inviteMember",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "invitemember-00001-giq",
+   "service": "projects/dinerox-app/locations/europe-west1/services/invitemember",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://invitemember-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-10T21:44:27.575499139Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/inviteMember"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boLoginStart",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753286844",
+     "object": "boLoginStart/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753286844",
+     "object": "boLoginStart/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:56:54.672016145Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boLoginStart",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bologinstart-00002-xum",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bologinstart",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bologinstart-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:16.509230531Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boLoginStart"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boSearchUsers",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753372954",
+     "object": "boSearchUsers/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753372954",
+     "object": "boSearchUsers/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.325741833Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boSearchUsers",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bosearchusers-00002-bap",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bosearchusers",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bosearchusers-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:23.344806430Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boSearchUsers"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boGetInviteLink",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753410115",
+     "object": "boGetInviteLink/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753410115",
+     "object": "boGetInviteLink/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:35.034209900Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boGetInviteLink",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bogetinvitelink-00002-qak",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bogetinvitelink",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bogetinvitelink-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:06.045137382Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boGetInviteLink"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boListStaff",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753433818",
+     "object": "boListStaff/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753433818",
+     "object": "boListStaff/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:35.034151772Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boListStaff",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "boliststaff-00002-lod",
+   "service": "projects/dinerox-app/locations/europe-west1/services/boliststaff",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://boliststaff-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:20.516133261Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boListStaff"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boStatsSnapshot",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753376883",
+     "object": "boStatsSnapshot/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753376883",
+     "object": "boStatsSnapshot/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.927982343Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-scheduled": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boStatsSnapshot",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bostatssnapshot-00002-cog",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bostatssnapshot",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bostatssnapshot-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:12.813800477Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boStatsSnapshot"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/f43655f0-760b-4849-9b10-25ac99fedb78",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "deleteAccount",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069271239678",
+     "object": "deleteAccount/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069271239678",
+     "object": "deleteAccount/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-10T21:42:43.699710468Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "625e48d34ce4867f85b9cef5013040b452e76121"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/deleteAccount",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "deleteaccount-00005-tiw",
+   "service": "projects/dinerox-app/locations/europe-west1/services/deleteaccount",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://deleteaccount-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-15T13:01:43.729449133Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/deleteAccount"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boRevokeInvite",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753309510",
+     "object": "boRevokeInvite/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753309510",
+     "object": "boRevokeInvite/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.864608430Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boRevokeInvite",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "borevokeinvite-00002-net",
+   "service": "projects/dinerox-app/locations/europe-west1/services/borevokeinvite",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://borevokeinvite-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:12.660968694Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boRevokeInvite"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boMyDataAccess",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753366936",
+     "object": "boMyDataAccess/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753366936",
+     "object": "boMyDataAccess/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:35.132695911Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boMyDataAccess",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bomydataaccess-00002-rof",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bomydataaccess",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bomydataaccess-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:20.186155474Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boMyDataAccess"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boListInvites",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753458111",
+     "object": "boListInvites/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753458111",
+     "object": "boListInvites/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.328680784Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boListInvites",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bolistinvites-00002-noc",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bolistinvites",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bolistinvites-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:12.798397140Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boListInvites"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/0a37f7ac-f69a-4a20-af6e-d9245f222574",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "myReferral",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791963882807455",
+     "object": "myReferral/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791963882807455",
+     "object": "myReferral/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-14T07:37:16.738641611Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "56f2d7f78d60f222499ef8d133995d9e639c164b"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/myReferral",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "myreferral-00002-seg",
+   "service": "projects/dinerox-app/locations/europe-west1/services/myreferral",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://myreferral-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-14T07:44:51.452298800Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/myReferral"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/f43655f0-760b-4849-9b10-25ac99fedb78",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "tontineGroup",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069271165946",
+     "object": "tontineGroup/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792069271165946",
+     "object": "tontineGroup/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-14T19:25:19.704020436Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "dabdeb738c6a3ff827e728e2a090e7cc36062e6c"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/tontineGroup",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "tontinegroup-00002-guy",
+   "service": "projects/dinerox-app/locations/europe-west1/services/tontinegroup",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://tontinegroup-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-15T13:01:23.943493383Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/tontineGroup"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boDeleteTransaction",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753331045",
+     "object": "boDeleteTransaction/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753331045",
+     "object": "boDeleteTransaction/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.978055583Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boDeleteTransaction",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bodeletetransaction-00002-rax",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bodeletetransaction",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bodeletetransaction-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:09.178971708Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boDeleteTransaction"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boPreviewDelete",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753310594",
+     "object": "boPreviewDelete/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753310594",
+     "object": "boPreviewDelete/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.286247103Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boPreviewDelete",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bopreviewdelete-00002-fig",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bopreviewdelete",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bopreviewdelete-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:16.387525853Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boPreviewDelete"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boListUsers",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753481058",
+     "object": "boListUsers/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753481058",
+     "object": "boListUsers/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.946057994Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boListUsers",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bolistusers-00002-zif",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bolistusers",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bolistusers-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:19.493189078Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boListUsers"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boListTransactions",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753303020",
+     "object": "boListTransactions/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753303020",
+     "object": "boListTransactions/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.893247453Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boListTransactions",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bolisttransactions-00002-kap",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bolisttransactions",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bolisttransactions-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:14.723013240Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boListTransactions"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/9a756539-6175-454e-947a-5eadf82ce19c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "weeklySummaryPush",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669558618699",
+     "object": "weeklySummaryPush/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791669558618699",
+     "object": "weeklySummaryPush/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-10T21:59:18.988562238Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-scheduled": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "5ebb349abda9cafe5d766ef1436db3886ba6be26"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/weeklySummaryPush",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "weeklysummarypush-00001-loc",
+   "service": "projects/dinerox-app/locations/europe-west1/services/weeklysummarypush",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://weeklysummarypush-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-10T22:00:10.757235604Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/weeklySummaryPush"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boInviteStaff",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753245472",
+     "object": "boInviteStaff/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753245472",
+     "object": "boInviteStaff/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:36.335771953Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boInviteStaff",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "boinvitestaff-00002-geg",
+   "service": "projects/dinerox-app/locations/europe-west1/services/boinvitestaff",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://boinvitestaff-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:22.523326485Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boInviteStaff"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/5ecbce0b-42f0-4691-b844-9368ca6433f6",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "adminTontineStats",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792005879783046",
+     "object": "adminTontineStats/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1792005879783046",
+     "object": "adminTontineStats/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-14T19:24:40.292222379Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "a75c562d7db2cc0907c61049fc2b1ae314703085"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/adminTontineStats",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 20,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "admintontinestats-00001-luk",
+   "service": "projects/dinerox-app/locations/europe-west1/services/admintontinestats",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://admintontinestats-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-14T19:25:24.681962977Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/adminTontineStats"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boLogout",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753213897",
+     "object": "boLogout/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753213897",
+     "object": "boLogout/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.782544847Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "f7a0436ea37ff9252e53d9706970ad22a142fbc2"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boLogout",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "bologout-00002-jes",
+   "service": "projects/dinerox-app/locations/europe-west1/services/bologout",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://bologout-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:16.224476217Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boLogout"
+ },
+ {
+  "buildConfig": {
+   "automaticUpdatePolicy": {},
+   "build": "projects/653588987819/locations/europe-west1/builds/a931454a-901f-43d6-8c43-def7e0619b5c",
+   "dockerRegistry": "ARTIFACT_REGISTRY",
+   "dockerRepository": "projects/dinerox-app/locations/europe-west1/repositories/gcf-artifacts",
+   "entryPoint": "boResendInvite",
+   "runtime": "nodejs22",
+   "serviceAccount": "projects/dinerox-app/serviceAccounts/653588987819-compute@developer.gserviceaccount.com",
+   "source": {
+    "storageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753365949",
+     "object": "boResendInvite/function-source.zip"
+    }
+   },
+   "sourceProvenance": {
+    "resolvedStorageSource": {
+     "bucket": "gcf-v2-sources-653588987819-europe-west1",
+     "generation": "1791896753365949",
+     "object": "boResendInvite/function-source.zip"
+    }
+   }
+  },
+  "createTime": "2026-10-13T12:57:34.991160471Z",
+  "environment": "GEN_2",
+  "labels": {
+   "deployment-callable": "true",
+   "deployment-tool": "cli-firebase",
+   "firebase-functions-hash": "b35201c2cdee0d4e9c5a101357440141e6cd93ee"
+  },
+  "name": "projects/dinerox-app/locations/europe-west1/functions/boResendInvite",
+  "satisfiesPzi": true,
+  "serviceConfig": {
+   "allTrafficOnLatestRevision": true,
+   "availableCpu": "1",
+   "availableMemory": "256Mi",
+   "ingressSettings": "ALLOW_ALL",
+   "maxInstanceCount": 5,
+   "maxInstanceRequestConcurrency": 80,
+   "revision": "boresendinvite-00002-qok",
+   "service": "projects/dinerox-app/locations/europe-west1/services/boresendinvite",
+   "serviceAccountEmail": "653588987819-compute@developer.gserviceaccount.com",
+   "timeoutSeconds": 60,
+   "uri": "https://boresendinvite-iqmzjvjswa-ew.a.run.app"
+  },
+  "state": "ACTIVE",
+  "updateTime": "2026-10-13T13:06:07.715594457Z",
+  "url": "https://europe-west1-dinerox-app.cloudfunctions.net/boResendInvite"
+ }
+]
