@@ -77,7 +77,8 @@ let b;
   t = await text();
   const iHist = t.indexOf('Historique des opérations');
   ok(iHist >= 0 && iHist < t.indexOf('Comptes'), '« Historique des opérations » en tête de « Plus »');
-  ok(t.includes('Questions et saisie en langage courant'), 'assistant accessible depuis « Plus »');
+  // Étape 4.3 : les ronds de « Plus » n'affichent que le nom ; la description reste dans le libellé.
+  ok((await p.getByRole('button', { name: /Questions et saisie en langage courant/ }).count()) > 0, 'assistant accessible depuis « Plus »');
   await p.getByText('Historique des opérations').click(); await p.waitForTimeout(1200);
   ok(p.url().includes('/transactions'), '« Plus » → Historique');
 

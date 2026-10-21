@@ -104,6 +104,12 @@ describe('carte compacte de l’accueil (DailyAllowanceCard)', () => {
     expect(eye).toMatch(/width: 48, height: 48/);
     expect(eye).not.toMatch(/<Text/);
   });
+  it('œil posé en absolu : rendu APRÈS le contenu de la carte, sinon le titre le recouvre (toucher impossible)', () => {
+    // Chaque carte verte : `{eye}` est le dernier enfant avant </GradientCard>.
+    const cards = src.split('<GradientCard float').slice(1).map((c) => c.slice(0, c.indexOf('</GradientCard>')));
+    expect(cards.length).toBe(2);
+    for (const c of cards) expect(c.trimEnd().endsWith('{eye}')).toBe(true);
+  });
   it('étiquette du mois en cours à droite du montant', () => {
     expect(src).toMatch(/monthYear\(now\)/);
   });

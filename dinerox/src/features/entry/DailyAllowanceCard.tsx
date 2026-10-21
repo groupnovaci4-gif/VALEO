@@ -168,6 +168,7 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
     </View>
   );
   // Carte flottante (CSS f4) : marges 8 dp autour, rayon 22 ; contenu resserré (≈ 200 dp).
+  // L'œil, posé en absolu, est rendu EN DERNIER : sinon le titre, rendu après, le recouvre.
   const cardStyle = { marginTop: 6, marginBottom: 14, paddingTop: 14, paddingHorizontal: 16, paddingBottom: 10, gap: 0 } as const;
   const eye = (
     <View style={{ position: 'absolute', top: 2, right: 4 }}>
@@ -181,7 +182,6 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
   if (role === 'child') {
     return (
       <GradientCard float style={cardStyle}>
-        {eye}
         <Text variant="caption" tone="heroMuted" style={{ paddingRight: 48, paddingTop: 2 }}>
           {t('daily.limitLabel')}
         </Text>
@@ -193,6 +193,7 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
         </Text>
         {separator}
         {availableRow(true)}
+        {eye}
       </GradientCard>
     );
   }
@@ -222,7 +223,6 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
   return (
     <>
       <GradientCard float style={cardStyle}>
-        {eye}
         <Text variant="caption" tone="heroMuted" style={{ paddingRight: 48, paddingTop: 2 }}>
           {t('daily.limitLabel')}
         </Text>
@@ -236,6 +236,7 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
         </View>
         {separator}
         {availableRow(true)}
+        {eye}
       </GradientCard>
       {below}
     </>
