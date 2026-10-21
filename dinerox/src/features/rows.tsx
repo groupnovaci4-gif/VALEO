@@ -250,6 +250,46 @@ export function InsightTile({ insight }: { insight: Insight }) {
   );
 }
 
+/**
+ * Alertes en UNE carte (Budget, étape 4) : une ligne par alerte — icône, texte, chevron — et
+ * « Écouter » à côté de la zone touchable (jamais un bouton dans un bouton, règle 17).
+ */
+export function AlertsCard({ insights }: { insights: Insight[] }) {
+  const { colors } = useTheme();
+  const render = useInsightText();
+  return (
+    <Card padded={false} style={{ marginTop: 12, overflow: 'hidden' }}>
+      {insights.map((insight, i) => {
+        const fg = { info: colors.info, positive: colors.success, warning: colors.warning, danger: colors.danger }[insight.severity];
+        const icon = { info: 'information-circle-outline', positive: 'sparkles-outline', warning: 'warning-outline', danger: 'alert-circle-outline' }[insight.severity];
+        const r = insight.ref;
+        const path = r ? (r.type === 'envelope' ? `/envelopes/${r.id}` : r.type === 'goal' ? `/goals/${r.id}` : r.type === 'debt' ? `/debts/${r.id}` : r.type === 'transaction' ? `/transaction/${r.id}` : null) : null;
+        const text = render(insight);
+        return (
+          <View key={insight.id}>
+            {i ? <View style={{ height: 1, backgroundColor: colors.border, marginHorizontal: 16 }} /> : null}
+            <Pressable
+              accessibilityRole={path ? 'button' : 'text'}
+              accessibilityLabel={text}
+              onPress={path ? () => router.push(path as never) : undefined}
+              style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8, paddingHorizontal: 16, backgroundColor: pressed && path ? colors.surfaceAlt : 'transparent' })}
+            >
+              <Icon name={icon} size={22} color={fg} />
+              <Text variant="small" style={{ flex: 1 }}>
+                {text}
+              </Text>
+              {path ? <Icon name="chevron-forward" size={18} color={colors.textSubtle} /> : null}
+            </Pressable>
+            <View style={{ alignItems: 'flex-start', paddingLeft: 50, marginTop: -8 }}>
+              <ListenButton text={text} />
+            </View>
+          </View>
+        );
+      })}
+    </Card>
+  );
+}
+
 export function InsightCard({ insight }: { insight: Insight }) {
   const { colors, radius, v2 } = useTheme();
   const render = useInsightText();

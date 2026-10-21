@@ -27,6 +27,15 @@ export function iconSlugFor({ ids = [], emoji }: { ids?: (string | null | undefi
   return null;
 }
 
+/**
+ * Icône d'une enveloppe (étape 4) : celle de sa première catégorie ; une enveloppe « fourre-tout »
+ * qui regroupe « Autres » (`cat_other`, comme « Libre ») prend l'icône de « Autres » (sacs de
+ * courses) plutôt que celle des loisirs. Par IDENTIFIANT, jamais par libellé.
+ */
+export function envelopeIconIds(categoryIds: string[]): string[] {
+  return categoryIds.length > 1 && categoryIds.includes('cat_other') ? ['cat_other'] : categoryIds.slice(0, 1);
+}
+
 /** Listes d'opérations : la SOUS-catégorie quand l'opération en a une, sinon la catégorie. */
 export function transactionIconIds(tx: { subcategoryId?: string | null; categoryId?: string | null }): string[] {
   return [tx.subcategoryId, tx.categoryId].filter((x): x is string => !!x);

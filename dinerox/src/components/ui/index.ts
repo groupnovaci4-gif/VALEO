@@ -18,7 +18,7 @@ export * from './Stepper';
 export * from './Amount';
 export * from './Tile';
 export * from './ContentIcon';
-export { iconSlugFor, transactionIconIds, accountMark } from './contentIconMap';
+export { iconSlugFor, transactionIconIds, accountMark, envelopeIconIds } from './contentIconMap';
 export * from './Circles';
 export * from './ListCard';
 export { CIRCLE_PALETTE, circleColors, circleColumns, type CircleFamily } from './circlePalette';

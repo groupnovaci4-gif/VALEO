@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import { useTheme } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
 import { useMoney } from '@/hooks/useFinance';
-import { ContentIcon, ProgressBar, Text, Tile, TileIcon, TileText, levelTone } from '@/components/ui';
+import { ContentIcon, ProgressBar, Text, Tile, TileIcon, TileText, envelopeIconIds, levelTone } from '@/components/ui';
 import type { EnvelopeStatus } from '@/core/budget';
 
 /** Icône de chaque état d'enveloppe (accompagne toujours le mot). */
@@ -31,8 +31,8 @@ export function EnvelopeTile({ s, hidden = false, declaredShare = null, upcoming
   const stateColor = s.level === 'critical' ? colors.danger : s.level === 'ok' ? colors.success : colors.warning;
   return (
     <Tile onPress={() => router.push(`/envelopes/${s.envelope.id}`)} accessibilityLabel={`${s.envelope.name}, ${remaining}, ${state}`}>
-      {/* Icône de contenu : celle de la première catégorie de l'enveloppe (Famille → famille). */}
-      <ContentIcon ids={s.envelope.categoryIds.slice(0, 1)} icon={s.envelope.icon} color={s.envelope.color} size={36} />
+      {/* Icône de contenu : première catégorie (Famille → famille) ; « Libre » → sacs de courses. */}
+      <ContentIcon ids={envelopeIconIds(s.envelope.categoryIds)} icon={s.envelope.icon} color={s.envelope.color} size={36} />
       <TileText variant="bodyStrong">{s.envelope.name}</TileText>
       <TileText variant="label" tone={s.remaining < 0 ? 'danger' : 'default'}>
         {remaining}
@@ -87,8 +87,8 @@ export function EnvelopeRow({ s, hidden = false, declaredShare = null, upcoming 
       style={({ pressed }) => ({ paddingHorizontal: 16, paddingVertical: 12, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-        {/* Icône de contenu : celle de la première catégorie de l'enveloppe (Famille → famille). */}
-        <ContentIcon ids={s.envelope.categoryIds.slice(0, 1)} icon={s.envelope.icon} color={s.envelope.color} size={40} />
+        {/* Icône de contenu : première catégorie (Famille → famille) ; « Libre » → sacs de courses. */}
+        <ContentIcon ids={envelopeIconIds(s.envelope.categoryIds)} icon={s.envelope.icon} color={s.envelope.color} size={40} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text variant="bodyStrong">{s.envelope.name}</Text>
           <Text variant="small" tone="muted" style={SMALL}>
