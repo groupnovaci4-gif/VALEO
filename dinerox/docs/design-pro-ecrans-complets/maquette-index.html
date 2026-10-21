@@ -255,6 +255,15 @@ body.g1 .tabbar, body.g2 .tabbar { background: var(--tabbg); }
 body.g1 .banner, body.g2 .banner { background: rgba(255,255,255,.55); }
 body.g1.dark .banner, body.g2.dark .banner { background: rgba(255,255,255,.07); }
 
+
+.hc-b .eye { position: absolute; top: 10px; right: 8px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; z-index: 2; }
+body.f1 .hc-b.full { margin: 0 6px 8px; border-radius: 22px; box-shadow: 0 16px 36px rgba(15,74,58,.40), 0 4px 10px rgba(15,74,58,.18); }
+body.f1.dark .hc-b.full { box-shadow: 0 16px 36px rgba(0,0,0,.70), 0 4px 10px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.12); }
+body.f2 .hc-b.full { margin: 0 2px 16px; border-radius: 22px; box-shadow: 0 10px 0 -4px #3E8F72, 0 26px 30px -12px rgba(15,74,58,.55); }
+body.f2.dark .hc-b.full { box-shadow: 0 10px 0 -4px #1F5C49, 0 26px 30px -12px rgba(0,0,0,.80); }
+body.f3 .hc-b.full { margin: 0 10px 14px; border-radius: 22px; box-shadow: 0 34px 28px -24px rgba(15,74,58,.85), 0 2px 6px rgba(15,74,58,.15); }
+body.f3.dark .hc-b.full { box-shadow: 0 34px 28px -22px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.06), inset 0 1px 0 rgba(255,255,255,.12); }
+
 body.full .tx { padding-top: 10px; padding-bottom: 10px; align-items: center; }
 body.full .tx .mid div { white-space: normal; }
 </style>
@@ -379,7 +388,20 @@ function budget(d) {
 // (2026-10-21) : plus d'emoji qui double une icône dans les alertes (🔴, ⚠️…), et la cloche seule
 // dans l'en-tête (« Notifications » reste le libellé d'accessibilité). Les autres propositions de
 // l'étape 2 ne sont PAS appliquées. Les cartes « selon la situation » sont entourées d'un pointillé de maquette.
+let HEROV2 = false;
 function heroFull() {
+  if (HEROV2) return `<div class="hc-b full">${PATTERN}<div class="body">
+    <div class="eye" aria-label="Masquer les montants">${ic('eye-outline')}</div>
+    <div class="t-caption">Votre plafond de dépenses par jour</div>
+    <div class="hero-num num" style="color:#fff">38 681<small>FCFA</small></div>
+    <div class="sep"></div>
+    <div class="line main"><span>Argent disponible</span><span class="v">655 500 FCFA</span></div>
+    <div class="line"><span>Mis de côté</span><span class="v">880 000 FCFA</span></div>
+    <div class="cap">dont 380 000 FCFA hors de vos comptes</div>
+    <div class="line" style="margin-bottom:8px"><span>Total de vos comptes</span><span class="v">1 155 500 FCFA</span></div>
+  </div></div>
+  <div class="how">${ic('chevron-down')} Comment c'est calculé ?</div>`;
+
   return `<div class="hc-b full">${PATTERN}<div class="body">
     <div class="t-caption">Reste par jour</div>
     <div class="hero-num num" style="color:#fff">38 681<small>FCFA</small></div>
@@ -567,6 +589,8 @@ function board(d) {
     if ((q.get('s') || '').endsWith('full')) document.body.classList.add('full');
     document.body.classList.add(t);
     if (q.get('float') === '1') document.body.classList.add('float');
+    if (q.get('f')) document.body.classList.add(q.get('f'));
+    HEROV2 = q.get('hero') === '2';
     if (q.get('bg')) document.body.classList.add(q.get('bg'));
     document.documentElement.style.setProperty('--vh', innerHeight + 'px');
     document.body.setAttribute('style', vars(d, t));

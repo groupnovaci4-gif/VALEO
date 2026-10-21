@@ -22,3 +22,11 @@ Chiffres de « Répartir ce qui me reste » : approximatifs (maquette).
   légèrement décollée), sur fond sable, vert léger (s'efface vers le sable) ou vert dégradé partout.
 - `6-fond-vert-plus.png` : écran Plus sur fond sable ou vert dégradé.
 Paramètres de maquette : `&float=1` et `&bg=g1|g2`.
+
+## Décisions du 2026-10-21 (soir)
+- Fond : vert dégradé en CLAIR (`bg=g2`), fond sombre actuel en SOMBRE (le dégradé vert y est refusé).
+- Carte d'accueil raccourcie (demande du fondateur) : titre « Votre plafond de dépenses par jour »
+  (remplace « Reste par jour »), suppression de la phrase « Il vous reste … par jour jusqu'au … »,
+  « Masquer les montants » devient l'œil seul en haut à droite (libellé d'accessibilité inchangé).
+- `7-carte-flottante-v2.png` : trois façons de faire flotter la carte (A ombre tout autour,
+  B effet « pile », C lévitation) — choix du fondateur à venir. Paramètres : `&hero=2&f=f1|f2|f3`.
