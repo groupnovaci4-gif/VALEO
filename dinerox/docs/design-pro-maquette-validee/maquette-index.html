@@ -296,6 +296,11 @@ body.f4.dark .hc-b.full { box-shadow: 0 0 0 1px rgba(255,255,255,.09), 0 26px 44
 body.f4 .hc-b:not(.full) { margin: 0 8px 22px; border-radius: 22px; box-shadow: 0 26px 44px -14px rgba(15,74,58,.62), 0 12px 22px -8px rgba(15,74,58,.34), 0 2px 5px rgba(15,74,58,.18); }
 body.f4.dark .hc-b:not(.full) { box-shadow: 0 0 0 1px rgba(255,255,255,.09), 0 26px 44px -10px rgba(0,0,0,.95), 0 0 36px rgba(79,176,143,.16); }
 
+.demo2 { display: flex; align-items: center; justify-content: space-between; min-height: 44px; margin: -4px 0 12px; }
+.demo2 .dchip { display: inline-flex; align-items: center; gap: 6px; font: 600 13px/18px var(--body); color: var(--text2); background: var(--surface2); border-radius: 999px; padding: 5px 12px; }
+.demo2 .dchip .ic { font-size: 15px; }
+.demo2 .dlink { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; font: 600 14px/20px var(--body); color: var(--brandInk); }
+.demo2 .dlink .ic { font-size: 15px; }
 body.full .tx { padding-top: 10px; padding-bottom: 10px; align-items: center; }
 body.full .tx .mid div { white-space: normal; }
 </style>
@@ -421,6 +426,7 @@ function budget(d) {
 // dans l'en-tête (« Notifications » reste le libellé d'accessibilité). Les autres propositions de
 // l'étape 2 ne sont PAS appliquées. Les cartes « selon la situation » sont entourées d'un pointillé de maquette.
 let HEROV2 = false;
+let DEMO2 = false;
 let MONTH = null;
 function heroFull() {
   if (HEROV2 && MONTH === '4') return `<div class="hc-b full c4">${PATTERN}<div class="body">
@@ -488,7 +494,7 @@ function homefull() {
   const goals = [['composees/moto_rouge_3d', 'Ma moto', 'Véhicule · août 2027', '450 000 FCFA', '/ 1 200 000 FCFA · 38 %', 38], ['shield', 'Mon fonds d\'urgence', 'Finance', '0 FCFA', '/ 1 000 000 FCFA · 0 %', 0], ['backpack', 'Rentrée scolaire', '', '0 FCFA', '/ 120 000 FCFA · 0 %', 0]];
   return `<div class="scroll">${topbar()}
     <div class="hello">Bonjour 👋</div>
-    <div class="banner">${ic('flask-outline')}<div><div class="t-body" style="font-size:14px;line-height:20px">Mode démonstration : données fictives, séparées de vos données. Créez votre profil pour gérer votre propre argent.</div><div class="link" style="margin-top:8px">Créer mon profil</div></div></div>
+    ${DEMO2 ? `<div class="demo2" aria-label="Mode démonstration : données fictives, séparées de vos données. Créez votre profil pour gérer votre propre argent."><span class="dchip">${ic('flask-outline')} Démo</span><span class="dlink">Créer mon profil ${ic('chevron-forward')}</span></div>` : `<div class="banner">${ic('flask-outline')}<div><div class="t-body" style="font-size:14px;line-height:20px">Mode démonstration : données fictives, séparées de vos données. Créez votre profil pour gérer votre propre argent.</div><div class="link" style="margin-top:8px">Créer mon profil</div></div></div>`}
     ${heroFull()}
     ${SIT ? `<div class="sit"><div class="sit-l">Selon la situation · à la place de la carte ci-dessus, tant que l'argent n'est pas renseigné</div>${sitCard('wallet-outline', '', 'Votre argent disponible aujourd\'hui', b('pri', 'Enregistrer mon argent disponible'), `<div class="note">Ce qu'il y a aujourd'hui sur chaque compte. Ensuite, l'argent ne change que par vos opérations.</div>`)}</div>` : ''}
     ${SIT ? `<div class="sits-h">Cartes qui apparaissent selon la situation (ici toutes à la fois)</div>` : ''}
@@ -645,6 +651,7 @@ function board(d) {
     if (q.get('f')) document.body.classList.add(q.get('f'));
     HEROV2 = q.get('hero') === '2';
     MONTH = q.get('m');
+    DEMO2 = q.get('demo') === '2';
     if (q.get('bg')) document.body.classList.add(q.get('bg'));
     document.documentElement.style.setProperty('--vh', innerHeight + 'px');
     document.body.setAttribute('style', vars(d, t));

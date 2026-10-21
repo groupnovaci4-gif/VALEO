@@ -6,7 +6,7 @@ flottantes A/B/C, mois dans la phrase…) sont abandonnés.
 - `MAQUETTE-1-accueil.png`, `MAQUETTE-2-budget.png`, `MAQUETTE-3-objectifs.png`, `MAQUETTE-4-plus.png` :
   chaque écran du haut jusqu'en bas, en clair et en sombre (360 dp).
 - `ecrans/` : les mêmes écrans en une seule image longue chacun (720 px = 360 dp × 2).
-- `maquette-index.html` : `?d=b&s=homefull|budgetfull|goalsfull&t=light|dark&sit=0&hero=2&m=4&f=f4`
+- `maquette-index.html` : `?d=b&s=homefull|budgetfull|goalsfull&t=light|dark&sit=0&hero=2&m=4&f=f4&demo=2`
   (à servir depuis `dinerox/docs/design-pro/` ; polices et icônes : `directions/fonts`, `icones/`).
 - `maquette-plus-clair.html` / `maquette-plus-sombre.html` : écran Plus.
 - Palette exacte des ronds de couleur : `../design-pro-paves-plus/README.md`.
@@ -23,3 +23,6 @@ Décisions :
 5. Contenus (enveloppes, objectifs, réserves, moments forts) : en LISTE, icônes 3D validées ;
    « Libre » : sacs de courses.
 6. Logos des opérateurs Mobile Money sur tous les écrans.
+7. Mode démonstration : le grand encadré explicatif est SUPPRIMÉ de l'accueil. À la place, une ligne
+   discrète : pastille « Démo » (icône fiole) à gauche, lien « Créer mon profil › » à droite (même
+   action qu'avant). Le texte explicatif reste en libellé d'accessibilité (lecteur d'écran).
