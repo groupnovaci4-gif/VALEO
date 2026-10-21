@@ -241,6 +241,20 @@ body.dark .cc.vert { background: #7FD1B0; } body.dark .cc.or { background: #E8B8
 .gh .foot b { color: #fff; font-weight: 600; }
 .mini { font: 400 13px/18px var(--body); color: var(--text3); }
 
+
+/* ── Essais du 2026-10-21 : carte flottante et fond vert dégradé ── */
+body.float .hc-b { box-shadow: 0 28px 44px -16px rgba(15,74,58,.70), 0 12px 20px -8px rgba(15,74,58,.40), 0 2px 4px rgba(15,74,58,.20); }
+body.float .hc-b.full { margin: 0 4px 6px; }
+body.float.dark .hc-b { box-shadow: 0 24px 36px -12px rgba(0,0,0,.75), 0 8px 16px -6px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.10); }
+body.float .hc-b.full { margin: 0 2px; }
+body.g1 .phone { background: linear-gradient(180deg, #CFE6DA 0px, #E3EFE8 420px, #F4F1EA 1200px); }
+body.g2 .phone { background: linear-gradient(180deg, #A8D2BE 0px, #CDE5D8 360px, #E2F0E8 900px, #EAF4EE 100%); }
+body.g1.dark .phone { background: linear-gradient(180deg, #17483A 0px, #142A23 420px, #13120F 1200px); }
+body.g2.dark .phone { background: linear-gradient(180deg, #1F5A48 0px, #163A2F 360px, #10241D 900px, #0E1D18 100%); }
+body.g1 .tabbar, body.g2 .tabbar { background: var(--tabbg); }
+body.g1 .banner, body.g2 .banner { background: rgba(255,255,255,.55); }
+body.g1.dark .banner, body.g2.dark .banner { background: rgba(255,255,255,.07); }
+
 body.full .tx { padding-top: 10px; padding-bottom: 10px; align-items: center; }
 body.full .tx .mid div { white-space: normal; }
 </style>
@@ -552,6 +566,8 @@ function board(d) {
     document.body.classList.add('single');
     if ((q.get('s') || '').endsWith('full')) document.body.classList.add('full');
     document.body.classList.add(t);
+    if (q.get('float') === '1') document.body.classList.add('float');
+    if (q.get('bg')) document.body.classList.add(q.get('bg'));
     document.documentElement.style.setProperty('--vh', innerHeight + 'px');
     document.body.setAttribute('style', vars(d, t));
     root.innerHTML = nb(phone(d, q.get('s') || 'home', t, q.get('card') || (d === 'a' ? 'a' : 'b')));

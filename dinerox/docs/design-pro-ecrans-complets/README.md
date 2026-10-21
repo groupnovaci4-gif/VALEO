@@ -16,3 +16,9 @@ Chiffres de « Répartir ce qui me reste » : approximatifs (maquette).
 
 `maquette-index.html` : page de maquettes (copie de directions/index.html complétée :
 `?d=b&s=homefull|budgetfull|goalsfull&t=light|dark&sit=0`), à servir depuis docs/design-pro/.
+
+## Essais du 2026-10-21 (soir) — à valider par le fondateur
+- `5-carte-flottante-accueil.png` : carte « Reste par jour » flottante (ombre douce teintée de vert,
+  légèrement décollée), sur fond sable, vert léger (s'efface vers le sable) ou vert dégradé partout.
+- `6-fond-vert-plus.png` : écran Plus sur fond sable ou vert dégradé.
+Paramètres de maquette : `&float=1` et `&bg=g1|g2`.
