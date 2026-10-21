@@ -7,7 +7,7 @@ import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
-import { Amount, Badge, Button, Card, Icon, IconCircle, ProgressBar, Row, Sheet, Text, Tile, TileCell, TileIcon, TileText } from '@/components/ui';
+import { AccountMark, Amount, Badge, Button, Card, ContentIcon, Icon, IconCircle, ProgressBar, Row, Sheet, Text, Tile, TileCell, TileIcon, TileText, transactionIconIds } from '@/components/ui';
 import { useAccountLabel, useCategoryLabels, useMoney } from '@/hooks/useFinance';
 import { useInsightText } from '@/hooks/useInsightText';
 import { useApp } from '@/store/app';
@@ -46,14 +46,17 @@ export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx
         : money(tx.amount, { currency: tx.currency });
   const tone = tx.type === 'expense' ? 'expense' : tx.type === 'income' ? 'income' : 'muted';
   if (v2) {
-    // v2 : emoji de la catégorie conservé ; le montant (signe + couleur) est lu avec la ligne.
+    // v2 : icône de contenu 3D (design-pro) — celle de la SOUS-catégorie quand l'opération en a
+    // une, sinon de la catégorie ; à défaut, l'emoji de la catégorie. Le montant (signe + couleur)
+    // est lu avec la ligne.
     const subtitle = `${sub} · ${date(tx.date)}`;
+    const byCategory = tx.type !== 'transfer' && tx.type !== 'adjustment' && !financing;
     return (
       <Row
         title={title}
         subtitle={subtitle}
         accessibilityLabel={`${title}, ${amount}, ${subtitle}`}
-        left={<IconCircle icon={meta.icon} emoji={'emoji' in meta ? meta.emoji : undefined} color={meta.color} />}
+        left={<ContentIcon ids={byCategory ? transactionIconIds(tx) : []} fallbackEmoji={'emoji' in meta ? meta.emoji : undefined} icon={meta.icon} color={meta.color} />}
         right={<Amount text={amount} size="S" tone={tone} align="right" />}
         onPress={onPress ?? (() => router.push(`/transaction/${tx.id}`))}
         onLongPress={onLongPress}
@@ -103,7 +106,7 @@ export function GoalTile({ goal, plan, compact, rank }: { goal: Goal; plan: Goal
       accessibilityLabel={v2 && goal.targetAmount > 0 ? `${goal.name}, ${money(plan.saved)} / ${money(plan.target)}, ${plan.percent} %` : goal.name}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-        <IconCircle emoji={goal.icon} color={colors.primary} size={40} />
+        <ContentIcon emoji={goal.icon} ids={[goal.templateId, `goal.${goal.categoryId}`]} color={colors.primary} size={40} />
         {rank ? (v2 ? <Badge tone={rank === 1 ? 'info' : 'neutral'} label={t('goal.rank', { rank })} /> : <Badge tone={rank === 1 ? 'danger' : 'neutral'} label={t('goal.rank', { rank }).toUpperCase()} />) : null}
       </View>
       <TileText variant="bodyStrong">{goal.name}</TileText>
@@ -158,7 +161,7 @@ export function AccountRow({ account, balance, onPress }: { account: Account; ba
     <Row
       title={account.name}
       subtitle={`${t(`acc.type.${account.type}`)}${account.active ? '' : ` · ${t('common.inactive')}`}`}
-      left={<IconCircle icon={account.icon} color={account.color} />}
+      left={<AccountMark account={account} icon={account.icon} color={account.color} />}
       right={
         <Text variant="numeric" weight="600" tone={balance < 0 ? 'danger' : 'default'}>
           {money(balance, { currency: account.currency })}

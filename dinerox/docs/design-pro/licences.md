@@ -3,7 +3,9 @@
 ## Icônes : Fluent Emoji 3D (Microsoft)
 
 - Licence **MIT** : usage commercial autorisé ; obligation : garder la mention de licence
-  (`icones/fluent/LICENSE-fluentui-emoji.txt`), à reprendre dans les mentions de l'application.
+  (`icones/fluent/LICENSE-fluentui-emoji.txt`), à reprendre dans les mentions de l'application
+  (à faire avant la publication : écran « À propos » / mentions légales).
+- Dans l'application : `assets/icons3d/` (WebP 1x/@2x/@3x).
 - Icônes composées (`icones/composees/`, sources dans `../design-pro-icones-composees/`) :
   assemblages d'images Fluent Emoji 3D, même licence MIT (voir le README de ce dossier).
 
@@ -13,7 +15,9 @@ Orange Money, MTN MoMo, Wave, Moov Money, Airtel Money :
 **Logos utilisés sur décision et sous la responsabilité du fondateur (2026-10-21).**
 Autorisation écrite des opérateurs à obtenir.
 
-- Fichiers non modifiés, avec leur source (fiche Google Play publiée par l'opérateur, ou site
+- Dans l'application : `assets/operators/` (WebP 1x/@2x/@3x, réduits depuis les fichiers
+  d'origine, sans autre modification).
+- Fichiers d'origine non modifiés, avec leur source (fiche Google Play publiée par l'opérateur, ou site
   officiel pour Wave) et l'éditeur vérifié : `logos/SOURCES.md`.
 - Free Money : pastille (initiales + couleur), aucun fichier.
 - Repli : `icones/operateurs.json`, un réglage par opérateur (`affichage: "logo" | "pastille"`)

@@ -1,19 +1,23 @@
-# Design system DineroX v2 (étape 2 — proposition)
+# Design system DineroX — design-pro, direction B (fait foi)
 
-> Proposition **sans modification de code**. Elle découle de `docs/ui-audit.md` (validé) et des
-> décisions du fondateur :
-> 1. barre à 5 emplacements, Historique en **un toucher** depuis l'accueil ;
-> 2. emoji retirés des états vides, **gardés sur les catégories** (et les objectifs/réserves) ;
-> 3. textes acceptés : « Saisir » sous le micro, clé « Montant masqué », badge « PRO » via `t()` ;
->    tout autre texte : proposé un par un (§11) ;
-> 4. messages d'erreur **dans la page** ;
-> 5. texte système suivi jusqu'à **160 %**, libellés d'onglets compris, mise en page tenue à 320 dp ;
-> 6. couleurs en dur et contrastes corrigés dans le design system.
+> **Design-pro, étape 3 (2026-10-21).** Direction **B — chaleureuse et locale**, choisie par le
+> fondateur (`docs/design-pro/directions.md`) : fond sable, **vert profond uni** (une seule couleur
+> de marque), encre chaude, Plus Jakarta Sans (titres, chiffre principal) + Inter (texte), chiffres
+> tabulaires, grille 4/8, coins mesurés, une ombre de 1 dp au plus, aucun dégradé, aucun halo,
+> aucun verre dépoli. Icônes : **contenu en 3D** (Fluent Emoji 3D, MIT, et icônes composées
+> validées), **navigation et actions au trait** (Ionicons). Clair et sombre aussi soignés.
 >
-> Règles de CLAUDE.md conservées : `Field`/`AmountField` seuls champs, règle 13 (aucune propriété
-> de « stacking context » qui varie autour d'un `TextInput`), `Screen`, `withSpaceReady`, `t()`,
-> `brand.ts`, aucune nouvelle dépendance native. Aucune modification de `src/core`,
-> `src/store/actions.ts`, `src/services`, `firebase/`.
+> Ce document reprend celui de la v2 (même numérotation, citée dans le code) : les sections
+> **1 (couleurs), 2.1 (familles), 4 (rayons), 5 (élévation), 6 (icônes) et 8.4 / 8.15 / 8.17
+> (carte, feuille, carte d'accueil)** sont celles de la direction B ; le reste (accessibilité,
+> texte agrandi, états, barre d'onglets…) est inchangé. Aperçu : `docs/design-system-preview.html`.
+>
+> Migration : le thème v2 (`<DesignV2>`) porte désormais la direction B ; les écrans encore hors v2
+> restent inchangés jusqu'à leur lot (étape 4). Règles de CLAUDE.md conservées : `Field` /
+> `AmountField` seuls champs, règle 13 (aucune propriété de « stacking context » qui varie autour
+> d'un `TextInput`), `Screen`, `Sheet`, `t()`, `brand.ts`, aucune nouvelle dépendance native.
+> `src/core` : inchangé, sauf UNE donnée de démonstration demandée par le fondateur (« Canal+ »
+> rangée dans « Abonnements streaming »).
 
 ---
 
@@ -27,10 +31,16 @@
    universelles), qui gardent un libellé pour le lecteur d'écran.
 4. **Lisible au soleil.** Thème clair = référence. Texte ≥ 4,5:1, contours de contrôles ≥ 3:1,
    aucune information portée par la couleur seule.
-5. **Calme et chaleureux.** Fonds clairs légèrement verts, vert profond de la marque, or réservé
-   aux moments de réussite. Pas de dégradés multiples, pas de halos colorés, pas de verre dépoli.
-6. **Léger pour les petits téléphones.** Deux familles de police, une seule carte en dégradé par
-   écran, ombres neutres, aucune animation coûteuse.
+5. **Calme et chaleureux (direction B).** Fond sable, vert profond UNI de la marque, ocre pour
+   « épuisé », rouge pour l'alerte seulement, vert pour l'argent qui entre ; une dépense est à
+   l'encre (signe « − »). **Aucun dégradé**, aucun halo coloré, aucun verre dépoli, pas de violet.
+6. **Léger pour les petits téléphones** (Android d'entrée de gamme, 360 × 800). Deux familles de
+   police embarquées (hors ligne), une ombre de 1 dp au plus, aucune animation coûteuse.
+7. **Un seul chiffre principal par écran**, aligné à gauche ; le reste en lignes « libellé —
+   montant ». Des cartes de poids différent, jamais une grille de pavés tous pareils.
+8. **Pas de signes de produit « fait par une IA »** : ni ✨, ni emoji dans l'interface (hors
+   icônes de contenu), ni badges partout, ni coins trop ronds, ni pastels au hasard, ni « magique »
+   ou « intelligent » dans les textes.
 
 ---
 
@@ -38,107 +48,94 @@
 
 ### 1.1 Jetons sémantiques
 
-Les écrans n'utilisent **que** ces rôles. Aucune valeur hexadécimale ou `rgba()` hors de
-`src/theme/tokens.ts`.
+Les écrans n'utilisent **que** ces rôles (`src/theme/tokens.ts`, `lightV2Base` / `darkV2Base`).
+Aucune valeur hexadécimale ou `rgba()` hors de ce fichier (sauf les couleurs des opérateurs,
+qui sont des DONNÉES : `src/config/operators.json`).
 
 | Rôle | Clair | Sombre | Usage |
 |---|---|---|---|
-| `background` | `#F5F7F6` | `#0E1412` | fond d'écran |
-| `surface` | `#FFFFFF` | `#161D1A` | cartes, feuilles, barre d'onglets |
-| `surfaceAlt` | `#ECF0EE` | `#212A26` | fond pressé, zones groupées, segments |
-| `border` | `#DDE3E0` | `#2C3632` | **séparateurs décoratifs uniquement** |
-| `borderStrong` *(nouveau)* | `#7D8984` | `#75827C` | contours des champs, puces, cases (≥ 3:1) |
-| `text` | `#121A17` | `#EEF3F0` | texte principal, montants neutres |
-| `textMuted` | `#3F4A45` | `#BAC5BF` | texte secondaire |
-| `textSubtle` | `#56625C` | `#9AA6A0` | légendes, textes d'aide |
-| `primary` | `#00685F` | `#4FD1C0` | bouton principal, liens, onglet actif |
-| `primaryPressed` | `#004F48` | `#7FE0D3` | bouton principal pressé |
-| `onPrimary` | `#FFFFFF` | `#00201C` | texte sur `primary` |
-| `primaryContainer` | `#D3EFEA` | `#0F3D37` | bouton secondaire, puce choisie, pastille de marque |
-| `onPrimaryContainer` | `#00413B` | `#B6F1E8` | texte sur `primaryContainer` |
-| `accent` *(ex-`secondary`)* | `#8A5300` | `#FFC266` | or : réussites, récompenses (texte/icône) |
-| `accentContainer` | `#FFD9A8` | `#4A3000` | fond or (badge réussite) |
-| `onAccentContainer` | `#2B1700` | `#FFDDB0` | texte sur fond or |
-| `income` | `#1E6B3A` | `#5BD6A0` | montants entrants (rôle distinct de `primary`, audit A8) |
-| `expense` | `#B3261E` | `#FF8A80` | montants sortants |
-| `success` / `successBg` / `onSuccess` | `#1E6B3A` / `#D7F0DF` / `#FFFFFF` | `#5BD6A0` / `#123826` / `#00210F` | états réussis |
-| `warning` / `warningBg` | `#8A5300` / `#FFEBCF` | `#FFC266` / `#3A2A0E` | attention |
-| `danger` / `dangerBg` / `onDanger` *(nouveau)* | `#B3261E` / `#FDE2DE` / `#FFFFFF` | `#FF8A80` / `#3D1714` / `#3B0906` | erreurs, dépassements, suppression |
-| `info` / `infoBg` | `#3949AB` / `#E3E6FA` | `#A5B4FF` / `#1E2547` | information |
-| `heroFrom` → `heroTo` | `#0B6B61` → `#06504A` | `#0D5C53` → `#08413B` | **seule** carte en dégradé de l'écran |
+| `background` | `#F4F1EA` | `#13120F` | fond d'écran |
+| `surface` | `#FFFCF7` | `#1D1B17` | cartes, feuilles, barre d'onglets |
+| `surfaceAlt` | `#EDE7DC` | `#29261F` | fond pressé, zones groupées, segments |
+| `border` | `#EAE3D7` | `#2C2923` | **séparateurs décoratifs uniquement** |
+| `borderStrong` | `#8A8072` | `#827869` | contours des champs, puces, cases (≥ 3:1) |
+| `text` | `#1F1C17` | `#F3EFE7` | texte principal, montants neutres |
+| `textMuted` | `#564E43` | `#BDB4A4` | texte secondaire |
+| `textSubtle` | `#6E6558` | `#A0968A` | légendes, textes d'aide |
+| `primary` | `#0F4A3A` | `#4FB08F` | une seule couleur de marque : bouton principal, lien, onglet actif |
+| `primaryPressed` | `#0A3529` | `#6CC4A4` | bouton principal pressé |
+| `onPrimary` | `#FFFFFF` | `#0B2A21` | texte sur `primary` |
+| `primaryContainer` | `#DCEBE3` | `#183A30` | bouton secondaire, puce choisie, pastille de marque |
+| `onPrimaryContainer` | `#0B3329` | `#BFE6D6` | texte sur `primaryContainer` |
+| `accent` | `#8A5A00` | `#D9A441` | or : réussites, récompenses (texte/icône) |
+| `accentContainer` | `#F6EBD3` | `#3A2E16` | fond or (badge réussite) |
+| `onAccentContainer` | `#3A2700` | `#F3DDB0` | texte sur fond or |
+| `income` | `#1E7A45` | `#63C08A` | entrée d’argent (+) |
+| `expense` | `#1F1C17` | `#F3EFE7` | dépense : signe « − » à l’encre (pas de rouge) |
+| `success` | `#1E7A45` | `#63C08A` | états réussis |
+| `successBg` | `#E1EFE4` | `#16301F` |  |
+| `onSuccess` | `#FFFFFF` | `#0B2014` |  |
+| `warning` | `#8A5A00` | `#D9A441` | « épuisé », à régulariser (ocre) |
+| `warningBg` | `#F6EBD3` | `#3A2E16` |  |
+| `danger` | `#B3261E` | `#EF6B61` | alerte (dépassement, solde négatif) |
+| `dangerBg` | `#F8E3DF` | `#3D1A16` |  |
+| `onDanger` | `#FFFFFF` | `#2B0805` |  |
+| `info` | `#2F5373` | `#9DB7D3` | information (rare) |
+| `infoBg` | `#E3EAF0` | `#1E2A36` |  |
+| `heroFrom` | `#0F4A3A` | `#123A2F` | carte (b) : vert UNI (= heroTo) |
+| `heroTo` | `#0F4A3A` | `#123A2F` | = heroFrom (aucun dégradé) |
 | `onHero` | `#FFFFFF` | `#FFFFFF` | montant sur la carte héros |
-| `onHeroMuted` | blanc 88 % | blanc 86 % | texte secondaire sur la carte héros |
-| `heroTrack` *(nouveau)* | blanc 28 % | blanc 24 % | fond de barre dans la carte héros |
-| `track` | `#DDE3E0` | `#2C3632` | fond des barres de progression |
-| `disabledBg` / `onDisabled` *(nouveaux)* | `#E3E7E5` / `#5E6A64` | `#28322E` / `#97A39D` | contrôles désactivés (sans opacité) |
-| `chartIncome` / `chartExpense` | `#1E6B3A` / `#C2570C` | `#5BD6A0` / `#FFA45C` | séries de graphiques |
-| `medalGold` / `medalSilver` / `medalBronze` *(nouveaux)* | `#F5B301` / `#C3CCD3` / `#C27C46` | identiques | pastilles de récompense (glyphe `onMedal`) |
-| `onMedal` *(nouveau)* | `#2B1700` | `#2B1700` | glyphe sur une médaille |
-| `overlay` | encre 50 % | noir 70 % | fond des feuilles modales |
-| `inverseSurface` / `onInverse` | `#1F2724` / `#F2F6F4` | `#E3EAE6` / `#17201C` | toasts |
+| `onHeroMuted` | `#C9DED6` | `#C9DED6` | libellés sur la carte (b) |
+| `heroTrack` | `rgba(255,255,255,0.24)` | `rgba(255,255,255,0.20)` | fond de barre dans la carte héros |
+| `heroLine` | `rgba(255,255,255,0.10)` | `rgba(255,255,255,0.10)` | filet de 1 dp de la carte (b) |
+| `heroPattern` | `rgba(255,255,255,0.10)` | `rgba(255,255,255,0.10)` | motif de losanges de la carte (b) |
+| `track` | `#EAE3D7` | `#2C2923` | fond des barres de progression |
+| `disabledBg` | `#E6E0D5` | `#29261F` | contrôles désactivés (sans opacité) |
+| `onDisabled` | `#655C50` | `#9A907F` |  |
+| `inverseSurface` | `#2A2620` | `#EDE7DC` | toasts |
+| `onInverse` | `#F4F1EA` | `#1F1C17` |  |
+| `overlay` | `rgba(31,28,23,0.5)` | `rgba(0,0,0,0.7)` | fond des feuilles modales |
+| `chartIncome` | `#1E7A45` | `#63C08A` | séries de graphiques |
+| `chartExpense` | `#B4561C` | `#E08A4F` |  |
+| `iconHalo` | `transparent` | `#3A362F` | rond derrière les icônes de contenu (sombre seulement) |
 
-**Retirés** : `hero`, `heroMuted`, `heroGradient`, `secondaryContainer`, `onSecondaryContainer`,
-`ai`, `aiBg`, `grid`, `tabBar`, `primaryLight`, `primaryBorder`, `primaryDark`. Ils deviennent des
-alias le temps de la migration (aucun écran cassé entre deux lots), puis sont supprimés au dernier
-lot. `ai`/`aiBg` → `accent`/`accentContainer` (l'IA reste repérée par son icône et son texte).
+Anciens rôles (`hero`, `secondary`, `primaryLight`…) : alias des rôles ci-dessus (`withAliases`).
 
 ### 1.2 Contrastes vérifiés
 
-Calcul WCAG 2.1 sur les valeurs ci-dessus (les couleurs transparentes sont mélangées à leur fond
-réel). **0 échec.** Texte : ≥ 4,5:1 ; éléments graphiques et contours : ≥ 3:1.
+Calcul WCAG 2.1 sur les jetons réels (`tests/design-tokens.test.ts` vérifie 48 paires dans chaque
+thème, `tests/design-pro-system.test.ts` la carte (b)). **0 échec.** Texte ≥ 4,5:1 ; contours et
+graphiques ≥ 3:1. Extrait :
 
 | Paire | Usage | Clair | Sombre | Min |
 |---|---|---|---|---|
-| `text` / `background` | texte principal | 16.46 | 16.60 | 4.5 |
-| `text` / `surface` | texte sur carte | 17.71 | 15.28 | 4.5 |
-| `textMuted` / `surface` | texte secondaire | 9.22 | 9.66 | 4.5 |
-| `textMuted` / `surfaceAlt` | secondaire sur fond gris | 8.02 | 8.31 | 4.5 |
-| `textSubtle` / `surface` | légende | 6.37 | 6.81 | 4.5 |
-| `textSubtle` / `surfaceAlt` | légende sur fond gris | 5.54 | 5.85 | 4.5 |
-| `textSubtle` / `background` | légende sur fond | 5.92 | 7.39 | 4.5 |
-| `borderStrong` / `surface` | contour de champ/puce | 3.63 | 4.28 | 3 |
-| `borderStrong` / `background` | contour sur fond | 3.37 | 4.65 | 3 |
-| `primary` / `surface` | lien/texte vert | 6.68 | 9.16 | 4.5 |
-| `primary` / `background` | texte vert sur fond | 6.21 | 9.95 | 4.5 |
-| `onPrimary` / `primary` | bouton principal | 6.68 | 9.17 | 4.5 |
-| `onPrimary` / `primaryPressed` | bouton pressé | 9.49 | 11.04 | 4.5 |
-| `onPrimaryContainer` / `primaryContainer` | bouton secondaire / puce choisie | 9.51 | 9.60 | 4.5 |
-| `primary` / `primaryContainer` | icône verte sur conteneur | 5.50 | 6.43 | 4.5 |
-| `accent` / `surface` | texte or | 6.33 | 10.75 | 4.5 |
-| `onAccentContainer` / `accentContainer` | badge or | 12.85 | 9.46 | 4.5 |
-| `income` / `surface` | montant entrant | 6.52 | 9.45 | 4.5 |
-| `expense` / `surface` | montant sortant | 6.54 | 7.51 | 4.5 |
-| `expense` / `surfaceAlt` | montant sortant sur gris | 5.69 | 6.46 | 4.5 |
-| `success` / `successBg` | message succès | 5.41 | 7.15 | 4.5 |
-| `warning` / `warningBg` | message attention | 5.44 | 8.67 | 4.5 |
-| `danger` / `dangerBg` | message erreur | 5.33 | 6.91 | 4.5 |
-| `info` / `infoBg` | message info | 6.25 | 7.49 | 4.5 |
-| `onDanger` / `danger` | bouton destructif | 6.54 | 7.49 | 4.5 |
-| `onSuccess` / `success` | bouton succès | 6.52 | 9.45 | 4.5 |
-| `onHero` / `heroFrom` | montant héros (début) | 6.38 | 7.86 | 4.5 |
-| `onHero` / `heroTo` | montant héros (fin) | 9.32 | 11.48 | 4.5 |
-| `onHeroMuted` / `heroFrom` | texte secondaire héros (début) | 5.34 | 6.27 | 4.5 |
-| `onHeroMuted` / `heroTo` | texte secondaire héros (fin) | 7.61 | 8.89 | 4.5 |
-| `onDisabled` / `disabledBg` | bouton désactivé | 4.52 | 5.07 | 3 |
-| `chartIncome` / `surface` | série graphique | 6.52 | 9.45 | 3 |
-| `chartExpense` / `surface` | série graphique | 4.50 | 8.75 | 3 |
-| `primary` / `track` | barre de progression | 5.13 | 6.67 | 3 |
-| `danger` / `track` | barre dépassée | 5.02 | 5.47 | 3 |
-| `warning` / `track` | barre « attention » | 4.86 | 7.83 | 3 |
-| `onMedal` / `medalGold` · `medalSilver` · `medalBronze` | glyphe de médaille | ≈ 9,5 · 10 · 5,2 | idem | 3 |
+| `text` / `background` | texte principal | 15.05 | 16.33 | 4.5 |
+| `text` / `surface` | texte sur carte | 16.59 | 14.99 | 4.5 |
+| `textMuted` / `surface` | texte secondaire | 8.00 | 8.37 | 4.5 |
+| `textMuted` / `surfaceAlt` | secondaire sur fond pressé | 6.65 | 7.35 | 4.5 |
+| `textSubtle` / `surface` | légende | 5.60 | 5.91 | 4.5 |
+| `textSubtle` / `background` | légende sur fond | 5.08 | 6.44 | 4.5 |
+| `borderStrong` / `surface` | contour de champ/puce | 3.79 | 3.96 | 3 |
+| `borderStrong` / `background` | contour sur fond | 3.44 | 4.32 | 3 |
+| `primary` / `surface` | lien, onglet actif | 9.96 | 6.50 | 4.5 |
+| `primary` / `background` | lien sur fond | 9.03 | 7.08 | 4.5 |
+| `onPrimary` / `primary` | texte du bouton principal | 10.19 | 5.81 | 4.5 |
+| `onPrimaryContainer` / `primaryContainer` | bouton secondaire | 11.21 | 9.19 | 4.5 |
+| `income` / `surface` | entrée d’argent (+) | 5.23 | 7.73 | 4.5 |
+| `expense` / `surface` | dépense (−, à l’encre) | 16.59 | 14.99 | 4.5 |
+| `danger` / `dangerBg` | alerte | 5.31 | 5.12 | 4.5 |
+| `warning` / `warningBg` | épuisé (ocre) | 5.01 | 5.90 | 4.5 |
+| `success` / `successBg` | réussite | 4.50 | 6.39 | 4.5 |
+| `info` / `infoBg` | information | 6.64 | 7.05 | 4.5 |
+| `accent` / `surface` | récompense | 5.79 | 7.64 | 4.5 |
+| `onHero` / `heroFrom` | chiffre et textes sur la carte (b) | 10.19 | 12.56 | 4.5 |
+| `onHeroMuted` / `heroFrom` | libellés sur la carte (b) | 7.23 | 8.91 | 4.5 |
+| `onInverse` / `inverseSurface` | message flottant | 13.33 | 13.80 | 4.5 |
+| `chartIncome` / `surface` | graphique : entrées | 5.23 | 7.73 | 3 |
+| `chartExpense` / `surface` | graphique : dépenses | 4.78 | 6.48 | 3 |
+| `primary` / `track` | barre de progression | 7.99 | 5.48 | 3 |
 
-Avant/après sur les échecs de l'audit :
-
-| Problème (audit) | Avant | Après |
-|---|---|---|
-| T1 texte secondaire sur carte en dégradé (sombre) | 1,89 | 6,27 |
-| T1 idem (clair) | 3,94 | 5,34 |
-| T2 bouton « succès » (sombre) | 2,42 | 9,45 |
-| T2 bouton « danger » (sombre) | 3,51 | 7,49 |
-| T3 contour de champ (clair / sombre) | 1,27 / 1,22 | 3,63 / 4,28 |
-| T6 légende sur fond gris (sombre) | 4,22 | 5,85 |
-| `danger` / `dangerBg` (sombre) | 4,47 | 6,91 |
-| Trophée or sur carte en dégradé | 2,70 | glyphe encre sur médaille or : ≈ 9,5 |
+Filet et motif de la carte (b) : décoratifs (≈ 1,5:1 voulu, aucun texte).
 
 ### 1.3 Couleurs choisies par l'utilisateur (comptes, enveloppes, catégories)
 
@@ -181,8 +178,11 @@ aujourd'hui ; les écrans n'y puisent plus.
 
 | Famille | Graisses | Rôle |
 |---|---|---|
-| **Plus Jakarta Sans** | 700, 800 | titres, montants héros |
+| **Plus Jakarta Sans** | 700 (800 pour le chiffre de la carte d'accueil) | titres, chiffre principal |
 | **Inter** | 400, 500, 600, 700 | texte courant, libellés, montants en liste (chiffres alignés) |
+
+Les deux familles sont **embarquées** (fonctionnent hors ligne). Montants : chiffres tabulaires
+(`fontVariant: ['tabular-nums']`), jamais de police à chasse fixe.
 
 JetBrains Mono est retiré (police de code, peu chaleureuse, 2 fichiers de moins au démarrage). Les
 montants en liste utilisent Inter avec `fontVariant: ['tabular-nums']`.
@@ -270,26 +270,33 @@ Marge latérale fixe : **16 dp**. Largeur utile minimale de référence : **288 
 
 ## 4. Rayons
 
+Direction B (`radiusV2`) :
+
 | Jeton | Valeur | Usage |
 |---|---|---|
-| `sm` | 8 | badges, touches du pavé |
-| `md` | 12 | champs, boutons, puces, messages |
-| `lg` | 16 | cartes, lignes groupées |
-| `xl` | 24 | carte héros, haut des feuilles |
-| `pill` | 999 | pastilles d'icône rondes, interrupteurs |
+| `card` | 16 | cartes, lignes groupées |
+| `control` | 12 | champs, boutons, puces, messages, touches du pavé |
+| `sheet` | 20 | haut des feuilles |
+| `icon` | 12 | pastilles carrées d'icône au trait |
+| `hero` | 16 | carte d'accueil (b) |
+| `sm` / `pill` | 8 / 999 | badges ; ronds (icônes de contenu en sombre, interrupteurs) |
+
+Plus aucun rayon de 24 en v2 : des coins mesurés, pas « trop ronds ».
 
 Les boutons passent de « pilule » à **12** : plus de place pour le texte sur 320 dp, et une
 forme distincte des puces de filtre.
 
 ## 5. Élévation
 
-Deux niveaux, ombres **neutres** (jamais colorées) :
+Direction B : **une seule ombre, de 1 dp**, neutre (`shadowB` : encre chaude 8 %, rayon 2,
+décalage 1, `elevation: 1`), **en clair seulement**. En sombre, aucune ombre : la surface
+(`#1D1B17`) se distingue du fond (`#13120F`). Les cartes n'ont plus de contour.
 
 | Niveau | Clair | Sombre | Usage |
 |---|---|---|---|
-| 0 | filet `border` | filet `border` | listes, cartes groupées |
-| 1 | filet `border` + ombre légère (encre 6 %, rayon 8, `elevation: 1`) | filet `border`, `surface` | cartes isolées, carte héros |
-| 2 | ombre (encre 12 %, rayon 16, `elevation: 6`) | `surfaceAlt` + filet | feuilles, bouton central |
+| 0 | rien (filets `border` entre les lignes) | rien | listes, lignes groupées |
+| 1 | `surface` + `shadowB` | `surface` | cartes, carte d'accueil (b) (+ filet clair de 1 dp) |
+| 2 | ombre `raised` (inchangée) | `surfaceAlt` | feuilles, bouton central |
 
 Supprimés : `glowGreen`, `fab` coloré. **Règle 13** : aucune ombre, opacité, transformation ni
 `zIndex` ne varie selon un état sur un conteneur qui englobe un `TextInput` ; le halo de focus
@@ -297,20 +304,49 @@ actuel (`fieldStyle.ts`, seule l'opacité d'ombre varie) est conservé tel quel.
 
 ## 6. Icônes
 
-- **Ionicons uniquement** (`@expo/vector-icons`, déjà installé). Contour (`-outline`) au repos,
-  plein quand actif/choisi.
+Deux familles, deux rôles (planche validée : `docs/design-pro/icones/`, 381 icônes) :
+
+**Contenu → 3D.** Catégories et sous-catégories, comptes, objectifs, réserve, tontines, dettes,
+écrans vides, récompenses, score : **Fluent Emoji 3D** (Microsoft, MIT — mention de licence à
+garder : `docs/design-pro/icones/fluent/LICENSE-fluentui-emoji.txt`) et **icônes composées**
+validées par le fondateur (famille, famille + cœur, tontine, garba, restaurant, moto rouge ;
+emplacement `bonbonne_gaz` provisoire). Teinte de peau **moyenne-foncée**. Fichiers WebP
+1x / @2x / @3x dans `assets/icons3d/` (134 icônes, ≈ 954 Ko).
+
+- Composant : `ContentIcon` (`src/components/ui/ContentIcon.tsx`) ; choix PUR et testé :
+  `iconSlugFor` / `transactionIconIds` (`contentIconMap.ts`), registre généré par
+  `node scripts/content-icons.mjs` depuis la planche (`contentIcons.generated.ts`).
+- Ordre de recherche : l'**emoji choisi par la personne** (objectif, réserve), puis les
+  **identifiants** — dans une liste d'opérations, la **sous-catégorie** quand l'opération en a
+  une, sinon la catégorie (Canal+ → « Abonnements streaming » → 📺) — puis l'emoji de la
+  catégorie. Inconnue (catégorie ou emoji créés par la personne) : rendu actuel, rien n'est perdu.
+- Clair : l'icône seule, sans pastille. **Sombre : léger rond clair `iconHalo` (#3A362F)** derrière
+  chaque icône de contenu (l'icône y occupe 78 %).
+- Décorative : masquée au lecteur d'écran, le texte voisin porte le sens.
+
+**Comptes Mobile Money → logo de l'opérateur** (décision et responsabilité du fondateur ;
+sources : `docs/design-pro/logos/SOURCES.md`) : Orange Money, MTN MoMo, Moov Money, Wave, Airtel ;
+Free Money en **pastille** (initiales + couleur). Composant `AccountMark`. Un réglage PAR
+opérateur, dans une donnée : `src/config/operators.json` (`affichage: "logo" | "pastille"`),
+remplaçable sans nouvelle version par `config/operators/items/v1` (Firestore, écrit par
+l'administrateur ; `services/operatorsConfig.ts`). Fichiers non modifiés, coins arrondis à
+l'affichage seulement. Google et WhatsApp : logos Ionicons, comme avant.
+
+**Navigation, actions, pavés de l'accueil et de Plus, cartes du coach → au trait.** Ionicons
+uniquement, un seul trait. Contour (`-outline`) au repos, plein quand actif.
+
 - Tailles : **20** dans une ligne de texte, **24** dans un bouton, une ligne ou un onglet,
-  **28** pour le bouton central.
-- **Toujours accompagnée d'un texte visible**, sauf « Retour » et « Fermer » (libellé lecteur
-  d'écran obligatoire).
-- Icône décorative à côté d'un texte : masquée au lecteur d'écran.
-- **Pas d'emoji dans l'interface** : états vides, sélecteur d'espace (🧪, 👨‍👩‍👧), titres
-  d'écran. Les emoji restent là où ce sont des **données** choisies par l'utilisateur ou le
-  catalogue : catégories, objectifs, réserves.
+  **28** pour le bouton central ; icônes de contenu : **40** (listes), **36** (enveloppes),
+  **48** (saisie).
+- **Toujours accompagnée d'un texte visible**, sauf « Retour », « Fermer » et la **cloche** de
+  l'accueil (décision du fondateur, 2026-10-21) : libellé lecteur d'écran obligatoire, zone 48 dp.
+- **Pas d'emoji dans l'interface** : ni dans les textes d'alerte (🔴, ⚠️, 💡, 🎯, 🎉 retirés des
+  `ins.*`, décision du 2026-10-21), ni dans les états vides, ni dans les titres. Les emoji restent
+  des DONNÉES (catégories, objectifs, réserves) et s'affichent en 3D quand l'icône existe.
 - Correspondances fixes (une icône = un sens) : `arrow-down` revenu, `arrow-up` dépense,
   `swap-horizontal` transfert, `time` historique, `mic` saisir, `wallet` comptes,
-  `trophy` récompenses, `sparkles` **assistant uniquement**, `grid` onglet « Plus »,
-  `warning` attention, `alert-circle` erreur, `checkmark-circle` succès.
+  `trophy` récompenses, `chatbubble-ellipses` assistant (plus de `sparkles`), `grid` onglet
+  « Plus », `warning` attention, `alert-circle` erreur, `checkmark-circle` succès.
 
 ## 7. Mouvement
 
@@ -371,9 +407,9 @@ Affiche **tous** les montants. Entrées : valeur en unités mineures, devise, ta
 
 | Variante | Apparence |
 |---|---|
-| `default` | `surface`, rayon 16, padding 16, élévation 1 |
+| `default` | `surface`, rayon 16, padding 16, sans contour, `shadowB` en clair |
 | `interactive` | idem + fond `surfaceAlt` au toucher + chevron si elle ouvre un écran |
-| `hero` | dégradé `heroFrom→heroTo`, rayon 24, padding 24 — **une seule par écran** |
+| `hero` | carte (b), voir §8.17 — **une seule par écran** |
 | `tone` (`warning`/`danger`/`success`/`info`) | fond `…Bg`, filet gauche 4 dp de la couleur, icône + texte |
 
 - Libellé d'accessibilité **composé** quand la carte est cliquable : nom + montant + état
@@ -481,7 +517,8 @@ signalé.
 ### 8.14 En-tête d'écran
 
 - **Onglets** : titre d'écran `titleM` à gauche (lisible, plus de sur-titre de 11 px), à droite
-  « Alertes » (cloche) et l'avatar. Logo + nom de marque (`brand.name`) **sur l'accueil
+  la **cloche seule** (zone 48 dp, libellé « Notifications » lu par le lecteur d'écran, plus
+  écrit — décision du fondateur, 2026-10-21) et l'avatar. Logo + nom de marque (`brand.name`) **sur l'accueil
   seulement**.
 - **Écrans empilés** : bouton retour = **flèche seule** (`chevron-back`), zone de 48 dp, libellé
   « Retour » (`common.back`) lu par le lecteur d'écran mais pas écrit (décision du 2026-10-12) ;
@@ -492,14 +529,30 @@ signalé.
 
 ### 8.15 `Sheet`
 
-Inchangée sur le fond (clavier, `inline`, retour Android). Poignée en `borderStrong`, titre
-`titleM`, bouton « Fermer » 48. Le contenu au-dessus de la ligne de flottaison = l'action
+Inchangée sur le fond (clavier, `inline`, retour Android). **Rayon 20** en haut. Poignée en
+`borderStrong`, titre `titleM`, bouton « Fermer » 48. Le contenu au-dessus de la ligne de flottaison = l'action
 principale de la feuille.
 
 ### 8.16 `ProgressBar`
 
 Hauteur 8 (10 dans une carte héros), fond `track` ; couleur de remplissage selon l'état **et**
 toujours un mot ou un pourcentage à côté (« 82 % · Attention »).
+
+### 8.17 Carte d'accueil (b) — `GradientCard` en v2
+
+Retenue par le fondateur (2026-10-21) ; la version (c) est abandonnée.
+
+- Fond **vert profond UNI** (`heroFrom` = `heroTo` : `#0F4A3A` clair, `#123A2F` sombre), rayon 16,
+  padding 20, **filet clair de 1 dp** (`heroLine`), **motif discret** de losanges au trait fin dans
+  le coin haut droit (`heroPattern`, 10 %, décoratif, masqué au lecteur d'écran), ombre `shadowB`
+  en clair seulement. Aucun dégradé.
+- Textes : `onHero` blanc (10,19:1 / 12,56:1), `onHeroMuted` `#C9DED6` (7,23:1 / 8,91:1) — AA.
+- Rien ne disparaît : Reste par jour, phrase, Argent disponible, Mis de côté (« dont … hors de vos
+  comptes »), Total de vos comptes, ligne par autre devise, « Masquer les montants » ;
+  « Comment c'est calculé ? » sous la carte. Les cartes qui dépendent de la situation (solde
+  négatif, salaire attendu, « payé ? », « À régulariser », épargne à la source, tontine, coach,
+  « À venir ce mois », autre devise…) gardent leur place : maquette `docs/design-pro/directions/`
+  `?d=b&s=homefull`.
 
 ---
 
@@ -685,3 +738,20 @@ T-2 accepté le 2026-10-11 : « Autres façons de saisir » / « Other ways to e
 **Contrôle à chaque lot** : `npm run check` vert (types, lint à zéro, tests) ; `npm run e2e`
 (textes et libellés d'accessibilité) ; vérification visuelle à 320 dp, texte à 100 % et 160 %,
 thème clair et sombre ; règle 13 relue sur chaque conteneur de `TextInput` modifié.
+
+### 12.1 Design-pro — étape 3 (2026-10-21) : fait
+
+- **Jetons** : `lightV2Base` / `darkV2Base` = direction B ; `radiusV2` (cartes 16, contrôles 12,
+  feuilles 20, icônes 12) ; `shadowB` (1 dp, clair seulement) ; rôles `heroLine`, `heroPattern`,
+  `iconHalo`. Vérifiés par `tests/design-tokens.test.ts` et `tests/design-pro-system.test.ts`.
+- **Composants partagés (en v2 seulement — les écrans hors v2 ne changent pas)** : `GradientCard`
+  = carte (b) ; `Card` sans contour, ombre 1 dp ; `Sheet` rayon 20 ; `ContentIcon` et
+  `AccountMark` (icônes 3D, logos d'opérateurs) utilisés par `TransactionRow`, `GoalTile`,
+  `AccountRow`, `EnvelopeTile` ; en-tête de l'accueil avec la cloche seule.
+- **Textes** : emojis retirés des alertes `ins.*` (fr et en), décision du fondateur.
+- **Donnée de démonstration** : « Canal+ » dans « Abonnements streaming » (`src/core/demo.ts`,
+  seule modification de `src/core`, demandée par le fondateur).
+- **Réglage à distance des opérateurs** : `config/operators/items/v1` (`{ affichage: { orange:
+  'pastille', … } }`), lu comme le catalogue (`services/operatorsConfig.ts`), règles existantes.
+- Écrans déjà en v2 (accueil, budget, saisie, enveloppes…) : ils prennent la direction B dès
+  maintenant ; leur MISE EN PAGE (pavés → listes, etc.) est l'objet des lots de l'étape 4.

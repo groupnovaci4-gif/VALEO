@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native';
-import { useTheme } from '@/theme';
+import { radiusV2, shadowB, useTheme } from '@/theme';
 
 /** Message d'état d'une carte v2 : fond teinté + filet gauche + (icône et texte fournis par l'écran). */
 export type CardTone = 'warning' | 'danger' | 'success' | 'info';
@@ -24,17 +24,17 @@ export function Card({
   tone?: CardTone;
 }) {
   const { colors, radius, shadow, dark, v2 } = useTheme();
+  // v2 — direction B : sans contour, ombre de 1 dp en clair, rien en sombre (la surface se
+  // distingue du fond) ; rayon 16.
   const toneBg = tone ? { warning: colors.warningBg, danger: colors.dangerBg, success: colors.successBg, info: colors.infoBg }[tone] : null;
   const toneFg = tone ? { warning: colors.warning, danger: colors.danger, success: colors.success, info: colors.info }[tone] : null;
   const base: ViewStyle = v2
     ? {
         backgroundColor: toneBg ?? colors.surface,
-        borderRadius: radius.lg,
-        borderWidth: 1,
-        borderColor: toneBg ? 'transparent' : colors.border,
+        borderRadius: radiusV2.card,
         ...(toneFg ? { borderLeftWidth: 4, borderLeftColor: toneFg } : null),
         padding: padded ? 16 : 0,
-        ...(dark || tone ? {} : shadow.card),
+        ...(dark || tone ? {} : shadowB),
       }
     : {
         backgroundColor: colors.surface,

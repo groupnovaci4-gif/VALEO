@@ -20,6 +20,7 @@ import { asPersonalEntries, asPersonalView } from '@/core/tontineGroup';
 import { useMyGroups } from '@/features/tontineGroup/useMyGroups';
 import { readJSON, storageKey, writeJSON } from '@/services/storage';
 import { loadCategoryCatalog } from '@/services/categoryCatalog';
+import { loadOperatorsConfig } from '@/services/operatorsConfig';
 import { usesCatalog } from '@/core/categoryCatalog';
 import type { CollectionName, SyncedDoc } from '@/core/types';
 import type { TKey } from '@/i18n';
@@ -98,6 +99,8 @@ export function Bootstrap() {
   useEffect(() => {
     if (!user) return;
     void loadCategoryCatalog(mode === 'firebase');
+    // Opérateurs Mobile Money : logo ou pastille (réglage publié, sinon celui embarqué).
+    void loadOperatorsConfig(mode === 'firebase');
   }, [user, mode]);
 
   // Consentement analytique.

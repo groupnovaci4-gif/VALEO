@@ -48,7 +48,11 @@ let b;
   const after = ((await text()).match(/Période affichée : (\d+)/) || [])[1];
   ok(Number(after) <= Number(before) && Number(after) > 0, `filtre par mois : ${after} opération(s) sur ${before}`);
   // Toucher une ligne : modification (écran de l'opération).
-  const firstRow = p.locator('[aria-label*=" · "]').filter({ hasText: /FCFA/ }).first();
+  // Une DÉPENSE ou un REVENU, jamais un transfert (« A → B ») : « Période affichée » ne compte que
+  // les revenus et les dépenses (core/history.ts › periodTotals). À partir du 20 du mois, la
+  // première ligne de la démonstration est le transfert « Moto » : sa suppression ne change pas le
+  // compte, et le contrôle ci-dessous échouait selon la date du jour.
+  const firstRow = p.locator('[aria-label*=" · "]:not([aria-label*="→"])').filter({ hasText: /FCFA/ }).first();
   const rowLabel = await firstRow.getAttribute('aria-label');
   await firstRow.click(); await p.waitForTimeout(1200);
   ok(/\/transaction\//.test(p.url()), 'toucher une opération ouvre sa fiche (modification)');

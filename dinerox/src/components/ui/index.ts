@@ -17,3 +17,5 @@ export * from './GradientCard';
 export * from './Stepper';
 export * from './Amount';
 export * from './Tile';
+export * from './ContentIcon';
+export { iconSlugFor, transactionIconIds, accountMark } from './contentIconMap';

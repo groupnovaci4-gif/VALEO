@@ -54,7 +54,8 @@ export function buildDemoData(meta: { now: number; uid: string; today: ISODate; 
     if (ok(10)) t(d(10), 'expense', 50_000, 'demo_om', 'cat_family', 'Maman');
     if (ok(12)) t(d(12), 'expense', 28_000 + i * 2_500, 'demo_cash', 'cat_transport', 'Taxi');
     if (ok(15)) t(d(15), 'expense', 35_000 + i * 8_000, 'demo_cash', 'cat_food', 'Restaurant');
-    if (ok(18)) t(d(18), 'expense', 10_000, 'demo_om', 'cat_leisure', 'Canal+');
+    // Canal+ : sous-catégorie « Abonnements streaming » (icône 📺 dans les listes ; fondateur, 2026-10-21).
+    if (ok(18)) t(d(18), 'expense', 10_000, 'demo_om', 'cat_leisure', 'Canal+', { subcategoryId: 'sub_leisure_subscriptions' });
     if (ok(20)) t(d(20), 'transfer', 50_000, 'demo_bank', null, 'Moto', { toAccountId: 'demo_sav', goalId: 'demo_goal_moto' });
     if (ok(22)) t(d(22), 'expense', 8_000, 'demo_cash', 'cat_communication', 'Crédit');
     // Tontine du bureau : cotisation du 5, liée à l'entrée de tontine (plus bas).

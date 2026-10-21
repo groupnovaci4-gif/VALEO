@@ -26,10 +26,10 @@ export function AppHeader({ section }: { section: string }) {
   const { fontScale, width } = useWindowDimensions();
   const ini = initials(profile?.firstName, profile?.lastName);
   if (v2) {
-    // v2 (accueil) : la marque, puis « Notifications » ÉCRIT à côté de la cloche et
-    // l'avatar (réglages). Texte agrandi : les actions passent sous la marque plutôt
-    // que de perdre leur texte. Écran étroit (< 360 dp) : le logo seul porte la marque
-    // (il a le nom pour libellé), pour ne jamais tronquer « Notifications ».
+    // v2 (accueil) : la marque, la cloche SEULE (décision du fondateur, 2026-10-21 : le mot
+    // « Notifications » n'est plus écrit, il reste le libellé lu par le lecteur d'écran) et
+    // l'avatar (réglages). Écran étroit (< 360 dp) : le logo seul porte la marque (il a le nom
+    // pour libellé).
     const big = fontScale >= BIG_TEXT;
     const showName = big || width >= 360;
     const avatar = (
@@ -53,10 +53,9 @@ export function AppHeader({ section }: { section: string }) {
         accessibilityRole="button"
         accessibilityLabel={t('notif.title')}
         onPress={() => router.push('/notifications')}
-        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 48, paddingHorizontal: 8, borderRadius: 12, backgroundColor: pressed ? colors.surfaceAlt : 'transparent', alignSelf: big ? 'flex-start' : 'auto' })}
+        style={({ pressed }) => ({ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
       >
         <Icon name="notifications-outline" size={24} color={colors.text} />
-        <Text variant="label">{t('notif.title')}</Text>
       </Pressable>
     );
     return (
@@ -70,10 +69,9 @@ export function AppHeader({ section }: { section: string }) {
           ) : (
             <View style={{ flex: 1 }} />
           )}
-          {big ? null : notifications}
+          {notifications}
           {avatar}
         </View>
-        {big ? notifications : null}
       </View>
     );
   }

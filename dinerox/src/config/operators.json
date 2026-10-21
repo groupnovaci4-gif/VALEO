@@ -1,0 +1,77 @@
+{
+  "_doc": "Opérateurs Mobile Money : un réglage par opérateur, affichage = \"logo\" | \"pastille\" (décision et responsabilité du fondateur, 2026-10-21 ; sources : docs/design-pro/logos/SOURCES.md). Passer un opérateur à \"pastille\" retire son logo sans toucher aux écrans. logo = identifiant du fichier assets/operators/<id>.webp, ou null. provider = valeur de Account.provider. Généré depuis docs/design-pro/icones/operateurs.json.",
+  "operateurs": [
+    {
+      "id": "orange",
+      "provider": "orange_money",
+      "nom": "Orange Money",
+      "affichage": "logo",
+      "logo": "orange",
+      "pastille": {
+        "initiales": "OM",
+        "fond": "#FF7900",
+        "texte": "#000000"
+      }
+    },
+    {
+      "id": "mtn",
+      "provider": "mtn_momo",
+      "nom": "MTN Money",
+      "affichage": "logo",
+      "logo": "mtn",
+      "pastille": {
+        "initiales": "MTN",
+        "fond": "#FFCB05",
+        "texte": "#000000"
+      }
+    },
+    {
+      "id": "moov",
+      "provider": "moov_money",
+      "nom": "Moov Money",
+      "affichage": "logo",
+      "logo": "moov",
+      "pastille": {
+        "initiales": "MV",
+        "fond": "#005BA4",
+        "texte": "#FFFFFF"
+      }
+    },
+    {
+      "id": "wave",
+      "provider": "wave",
+      "nom": "Wave",
+      "affichage": "logo",
+      "logo": "wave",
+      "pastille": {
+        "initiales": "W",
+        "fond": "#1DC4FF",
+        "texte": "#000000"
+      }
+    },
+    {
+      "id": "free",
+      "provider": "free_money",
+      "nom": "Free Money",
+      "affichage": "pastille",
+      "logo": null,
+      "pastille": {
+        "initiales": "FM",
+        "fond": "#564E43",
+        "texte": "#FFFFFF"
+      }
+    },
+    {
+      "id": "airtel",
+      "provider": "airtel_money",
+      "nom": "Airtel Money",
+      "affichage": "logo",
+      "logo": "airtel",
+      "pastille": {
+        "initiales": "AM",
+        "fond": "#EC1B24",
+        "texte": "#000000"
+      }
+    }
+  ]
+}

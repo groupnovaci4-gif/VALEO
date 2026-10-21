@@ -264,6 +264,11 @@ export interface ColorSchemeV2 extends ColorScheme {
   onHeroMuted: string;
   /** Fond des barres et pastilles posées sur la carte héros. */
   heroTrack: string;
+  /** Carte (b) : filet de 1 dp et motif discret (décoratifs). */
+  heroLine: string;
+  heroPattern: string;
+  /** Rond derrière les icônes de contenu 3D (transparent en clair). */
+  iconHalo: string;
   disabledBg: string;
   onDisabled: string;
   medalGold: string;
@@ -272,92 +277,107 @@ export interface ColorSchemeV2 extends ColorScheme {
   onMedal: string;
 }
 
+/*
+ * Direction B « chaleureuse et locale » (design-pro, choisie par le fondateur le 2026-10-21) :
+ * fond sable, vert profond UNI (une seule couleur de marque), encre chaude ; rouge = alerte,
+ * ocre = « épuisé », vert = entrée d'argent. Une dépense n'est PAS rouge : signe « − » à l'encre.
+ * Carte d'accueil (b) : vert uni (heroFrom = heroTo), textes AA sur le vert.
+ */
 const lightV2Base = {
-  background: '#F5F7F6',
-  surface: '#FFFFFF',
-  surfaceAlt: '#ECF0EE',
-  border: '#DDE3E0',
-  borderStrong: '#7D8984',
-  text: '#121A17',
-  textMuted: '#3F4A45',
-  textSubtle: '#56625C',
-  primary: '#00685F',
-  primaryPressed: '#004F48',
+  background: '#F4F1EA',
+  surface: '#FFFCF7',
+  surfaceAlt: '#EDE7DC',
+  border: '#EAE3D7',
+  borderStrong: '#8A8072',
+  text: '#1F1C17',
+  textMuted: '#564E43',
+  textSubtle: '#6E6558',
+  primary: '#0F4A3A',
+  primaryPressed: '#0A3529',
   onPrimary: '#FFFFFF',
-  primaryContainer: '#D3EFEA',
-  onPrimaryContainer: '#00413B',
-  accent: '#8A5300',
-  accentContainer: '#FFD9A8',
-  onAccentContainer: '#2B1700',
-  income: '#1E6B3A',
-  expense: '#B3261E',
-  success: '#1E6B3A',
-  successBg: '#D7F0DF',
+  primaryContainer: '#DCEBE3',
+  onPrimaryContainer: '#0B3329',
+  accent: '#8A5A00',
+  accentContainer: '#F6EBD3',
+  onAccentContainer: '#3A2700',
+  income: '#1E7A45',
+  expense: '#1F1C17',
+  success: '#1E7A45',
+  successBg: '#E1EFE4',
   onSuccess: '#FFFFFF',
-  warning: '#8A5300',
-  warningBg: '#FFEBCF',
+  warning: '#8A5A00',
+  warningBg: '#F6EBD3',
   danger: '#B3261E',
-  dangerBg: '#FDE2DE',
+  dangerBg: '#F8E3DF',
   onDanger: '#FFFFFF',
-  info: '#3949AB',
-  infoBg: '#E3E6FA',
-  heroFrom: '#0B6B61',
-  heroTo: '#06504A',
+  info: '#2F5373',
+  infoBg: '#E3EAF0',
+  heroFrom: '#0F4A3A',
+  heroTo: '#0F4A3A',
   onHero: '#FFFFFF',
-  onHeroMuted: 'rgba(255,255,255,0.88)',
-  heroTrack: 'rgba(255,255,255,0.28)',
-  track: '#DDE3E0',
-  disabledBg: '#E3E7E5',
-  onDisabled: '#5E6A64',
-  inverseSurface: '#1F2724',
-  onInverse: '#F2F6F4',
-  overlay: 'rgba(18,26,23,0.5)',
-  chartIncome: '#1E6B3A',
-  chartExpense: '#C2570C',
+  onHeroMuted: '#C9DED6',
+  heroTrack: 'rgba(255,255,255,0.24)',
+  /** Filet clair de 1 dp et motif de losanges de la carte (b) (décoratifs). */
+  heroLine: 'rgba(255,255,255,0.10)',
+  heroPattern: 'rgba(255,255,255,0.10)',
+  track: '#EAE3D7',
+  disabledBg: '#E6E0D5',
+  onDisabled: '#655C50',
+  inverseSurface: '#2A2620',
+  onInverse: '#F4F1EA',
+  overlay: 'rgba(31,28,23,0.5)',
+  chartIncome: '#1E7A45',
+  chartExpense: '#B4561C',
+  /** Rond derrière les icônes de contenu 3D : aucun en clair. */
+  iconHalo: 'transparent',
 };
 
-const darkV2Base = {
-  background: '#0E1412',
-  surface: '#161D1A',
-  surfaceAlt: '#212A26',
-  border: '#2C3632',
-  borderStrong: '#75827C',
-  text: '#EEF3F0',
-  textMuted: '#BAC5BF',
-  textSubtle: '#9AA6A0',
-  primary: '#4FD1C0',
-  primaryPressed: '#7FE0D3',
-  onPrimary: '#00201C',
-  primaryContainer: '#0F3D37',
-  onPrimaryContainer: '#B6F1E8',
-  accent: '#FFC266',
-  accentContainer: '#4A3000',
-  onAccentContainer: '#FFDDB0',
-  income: '#5BD6A0',
-  expense: '#FF8A80',
-  success: '#5BD6A0',
-  successBg: '#123826',
-  onSuccess: '#00210F',
-  warning: '#FFC266',
-  warningBg: '#3A2A0E',
-  danger: '#FF8A80',
-  dangerBg: '#3D1714',
-  onDanger: '#3B0906',
-  info: '#A5B4FF',
-  infoBg: '#1E2547',
-  heroFrom: '#0D5C53',
-  heroTo: '#08413B',
+const darkV2Base: typeof lightV2Base = {
+  background: '#13120F',
+  surface: '#1D1B17',
+  surfaceAlt: '#29261F',
+  border: '#2C2923',
+  borderStrong: '#827869',
+  text: '#F3EFE7',
+  textMuted: '#BDB4A4',
+  textSubtle: '#A0968A',
+  primary: '#4FB08F',
+  primaryPressed: '#6CC4A4',
+  onPrimary: '#0B2A21',
+  primaryContainer: '#183A30',
+  onPrimaryContainer: '#BFE6D6',
+  accent: '#D9A441',
+  accentContainer: '#3A2E16',
+  onAccentContainer: '#F3DDB0',
+  income: '#63C08A',
+  expense: '#F3EFE7',
+  success: '#63C08A',
+  successBg: '#16301F',
+  onSuccess: '#0B2014',
+  warning: '#D9A441',
+  warningBg: '#3A2E16',
+  danger: '#EF6B61',
+  dangerBg: '#3D1A16',
+  onDanger: '#2B0805',
+  info: '#9DB7D3',
+  infoBg: '#1E2A36',
+  heroFrom: '#123A2F',
+  heroTo: '#123A2F',
   onHero: '#FFFFFF',
-  onHeroMuted: 'rgba(255,255,255,0.86)',
-  heroTrack: 'rgba(255,255,255,0.24)',
-  track: '#2C3632',
-  disabledBg: '#28322E',
-  onDisabled: '#97A39D',
-  inverseSurface: '#E3EAE6',
-  onInverse: '#17201C',
+  onHeroMuted: '#C9DED6',
+  heroTrack: 'rgba(255,255,255,0.20)',
+  heroLine: 'rgba(255,255,255,0.10)',
+  heroPattern: 'rgba(255,255,255,0.10)',
+  track: '#2C2923',
+  disabledBg: '#29261F',
+  onDisabled: '#9A907F',
+  inverseSurface: '#EDE7DC',
+  onInverse: '#1F1C17',
   overlay: 'rgba(0,0,0,0.7)',
-  chartIncome: '#5BD6A0',
-  chartExpense: '#FFA45C',
+  chartIncome: '#63C08A',
+  chartExpense: '#E08A4F',
+  /** Rond clair derrière les icônes de contenu 3D (décision du fondateur, 2026-10-21). */
+  iconHalo: '#3A362F',
 };
 
 /** Métaux des récompenses : pastille pleine + glyphe `onMedal` (identiques dans les deux thèmes). */
@@ -390,7 +410,11 @@ export const darkColorsV2: ColorSchemeV2 = withAliases(darkV2Base);
 
 /** Échelle d'espacements v2 (pas de 4). */
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 } as const;
-export const radiusV2 = { sm: 8, md: 12, lg: 16, xl: 24, pill: 999 } as const;
+/** Rayons v2 — direction B : cartes 16, contrôles 12, feuilles 20, icônes 12 (+ échelle générique). */
+export const radiusV2 = { sm: 8, md: 12, lg: 16, xl: 24, pill: 999, card: 16, control: 12, sheet: 20, icon: 12, hero: 16 } as const;
+
+/** Ombre de 1 dp (direction B) : cartes en clair seulement, jamais en sombre. */
+export const shadowB = { shadowColor: '#3C2D14', shadowOpacity: 0.08, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 } as const;
 
 /**
  * Typographie v2. Les anciens noms (`display`, `h1`…) sont redirigés vers la nouvelle

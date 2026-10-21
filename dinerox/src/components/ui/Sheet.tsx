@@ -5,7 +5,7 @@ import {
   KeyboardAwareScrollView,
 } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useTheme } from "@/theme";
+import { radiusV2, useTheme } from "@/theme";
 import { Text } from "./Text";
 import { IconButton } from "./Button";
 import { useI18n } from "@/i18n";
@@ -54,8 +54,9 @@ export function Sheet({
     <View
       style={{
         backgroundColor: colors.surface,
-        borderTopLeftRadius: radius.xl,
-        borderTopRightRadius: radius.xl,
+        // v2 — direction B : feuilles au rayon 20.
+        borderTopLeftRadius: v2 ? radiusV2.sheet : radius.xl,
+        borderTopRightRadius: v2 ? radiusV2.sheet : radius.xl,
         paddingBottom: insets.bottom + 12,
         maxHeight: "90%",
       }}

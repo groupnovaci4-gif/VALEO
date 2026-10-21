@@ -9,7 +9,7 @@ import { router } from 'expo-router';
 import { useTheme } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
 import { useMoney } from '@/hooks/useFinance';
-import { IconCircle, ProgressBar, Tile, TileIcon, TileText, levelTone } from '@/components/ui';
+import { ContentIcon, ProgressBar, Tile, TileIcon, TileText, levelTone } from '@/components/ui';
 import type { EnvelopeStatus } from '@/core/budget';
 
 /** Icône de chaque état d'enveloppe (accompagne toujours le mot). */
@@ -31,7 +31,8 @@ export function EnvelopeTile({ s, hidden = false, declaredShare = null, upcoming
   const stateColor = s.level === 'critical' ? colors.danger : s.level === 'ok' ? colors.success : colors.warning;
   return (
     <Tile onPress={() => router.push(`/envelopes/${s.envelope.id}`)} accessibilityLabel={`${s.envelope.name}, ${remaining}, ${state}`}>
-      <IconCircle icon={s.envelope.icon} color={s.envelope.color} size={36} />
+      {/* Icône de contenu : celle de la première catégorie de l'enveloppe (Famille → famille). */}
+      <ContentIcon ids={s.envelope.categoryIds.slice(0, 1)} icon={s.envelope.icon} color={s.envelope.color} size={36} />
       <TileText variant="bodyStrong">{s.envelope.name}</TileText>
       <TileText variant="label" tone={s.remaining < 0 ? 'danger' : 'default'}>
         {remaining}

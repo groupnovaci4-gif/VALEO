@@ -1,6 +1,12 @@
 # Planche des icônes (design-pro, direction B) — 2026-10-21
 
-Choix définitifs du fondateur appliqués. Rien n'est intégré dans l'application (étape 3).
+Choix définitifs du fondateur appliqués. **Intégré à l'étape 3** : `assets/icons3d/`, registre généré
+par `node scripts/content-icons.mjs` (relancer après toute modification de la planche), composant
+`ContentIcon` (docs/design-system.md §6).
+
+Corrections du fondateur (2026-10-21) : **moto rouge** (`composees/moto_rouge_3d`) pour toutes les
+motos (Moto-taxi, « Acheter une moto », objectif moto, emoji 🏍️) ; « Livraison » garde 🛵 (scooter) ;
+**Canal+ / abonnement TV** = 📺 (`sub_leisure_subscriptions`).
 
 ## Ouvrir la planche
 
@@ -73,9 +79,9 @@ avant/après : `sombre.html`, `android/sombre-rond-*.png`.
 
 | | 1x (48 px) | 2x (96 px) | 3x (144 px) | Total |
 |---|---|---|---|---|
-| Icônes retenues (134) | 188 Ko | 302 Ko | 464 Ko | 954 Ko |
+| Icônes retenues (134) | 189 Ko | 302 Ko | 464 Ko | 955 Ko |
 | Logos des opérateurs (5) | 6 Ko | 11 Ko | 15 Ko | 32 Ko |
-| **Total** | | | | **986 Ko** |
+| **Total** (mesuré dans `assets/`, après la moto rouge) | | | | **987 Ko** |
 
 Dont icônes composées et gaz : 61 Ko. **Sous la limite de 1,5 Mo.**
 Les trois résolutions sont gardées (décision du fondateur).
