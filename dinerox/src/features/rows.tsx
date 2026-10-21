@@ -160,10 +160,11 @@ const SMALL = { fontSize: 13, lineHeight: 18 } as const;
 /**
  * Objectif en LIGNE (étape 4, maquette validée, point 5 : accueil et onglet Objectifs, dans une
  * `ListCard`) : icône de contenu à gauche ; nom, catégorie · date, barre de 6 dp, montant mis de
- * côté / cible · %. `footer` : actions sous la ligne (onglet Objectifs : « Ajouter », ↑↓).
+ * côté / cible · %. `chips` (onglet Objectifs) : étiquettes « Priorité N » et rythme à la place de
+ * « catégorie · date ». `footer` : actions sous la ligne (« Ajouter », ↑↓).
  * Même phrase pour le lecteur d'écran que le pavé.
  */
-export function GoalRow({ goal, plan, footer }: { goal: Goal; plan: GoalPlan; footer?: React.ReactNode }) {
+export function GoalRow({ goal, plan, footer, chips }: { goal: Goal; plan: GoalPlan; footer?: React.ReactNode; chips?: { label: string; primary?: boolean }[] }) {
   const { t, lang, monthYear } = useI18n();
   const money = useMoney();
   const { colors } = useTheme();
@@ -181,7 +182,19 @@ export function GoalRow({ goal, plan, footer }: { goal: Goal; plan: GoalPlan; fo
         <ContentIcon emoji={goal.icon} ids={[goal.templateId, `goal.${goal.categoryId}`]} color={colors.primary} size={40} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text variant="bodyStrong">{goal.name}</Text>
-          {sub ? (
+          {chips ? (
+            chips.length ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                {chips.map((c) => (
+                  <View key={c.label} style={{ backgroundColor: colors.surfaceAlt, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
+                    <Text variant="caption" weight="600" tone={c.primary ? 'primary' : 'muted'} style={{ fontSize: 12, lineHeight: 16 }}>
+                      {c.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null
+          ) : sub ? (
             <Text variant="small" tone="muted" style={SMALL}>
               {sub}
             </Text>

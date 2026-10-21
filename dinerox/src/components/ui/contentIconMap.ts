@@ -27,6 +27,18 @@ export function iconSlugFor({ ids = [], emoji }: { ids?: (string | null | undefi
   return null;
 }
 
+/** Emoji donné par défaut à une réserve (démo, création rapide, catalogue). */
+const DEFAULT_RESERVE_EMOJI = '🤝';
+
+/**
+ * Icône d'une réserve (étape 4) : l'icône validée de la réserve (famille + cœur) ; un emoji
+ * CHOISI par la personne (autre que celui par défaut) reste prioritaire.
+ */
+export function reserveIcon(r: { icon?: string | null; templateId?: string | null }): { emoji: string | null; ids: (string | null | undefined)[] } {
+  const chosen = r.icon && r.icon !== DEFAULT_RESERVE_EMOJI ? r.icon : null;
+  return { emoji: chosen, ids: ['reserve', r.templateId] };
+}
+
 /**
  * Icône d'une enveloppe (étape 4) : celle de sa première catégorie ; une enveloppe « fourre-tout »
  * qui regroupe « Autres » (`cat_other`, comme « Libre ») prend l'icône de « Autres » (sacs de

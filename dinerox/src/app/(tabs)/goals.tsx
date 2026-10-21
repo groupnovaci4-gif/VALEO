@@ -1,7 +1,7 @@
 /**
  * Objectifs : projets de vie, triés par priorité (réordonnables), aide à la
  * répartition de ce qui reste chaque mois (Marge), suggestions, objectifs terminés.
- * Objectifs, réserves et moments forts en PAVÉS (grille de deux colonnes).
+ * Étape 4 (maquette validée) : carte globale flottante ; réserves, moment fort et projets en LISTE.
  */
 import { useRunAction } from '@/hooks/useRunAction';
 import React, { useMemo, useState } from 'react';
@@ -11,10 +11,10 @@ import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useActions } from '@/store/actions';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { AmountField, Badge, Button, Card, EmptyState, GradientCard, Icon, IconButton, Row, Screen, SectionHeader, Text, TileCell, TileGrid } from '@/components/ui';
-import { useTheme } from '@/theme';
+import { Amount, AmountField, Badge, Button, Card, EmptyState, GradientCard, Icon, IconButton, ListCard, Row, Screen, SectionHeader, Text } from '@/components/ui';
+import { DesignV2, useTheme } from '@/theme';
 import { useInsightText } from '@/hooks/useInsightText';
-import { GoalTile, SpaceSwitcher } from '@/features/rows';
+import { GoalRow, SpaceSwitcher } from '@/features/rows';
 import { allocateCapacity, goalPlanFor, sortGoals } from '@/core/goals';
 import { observedCapacity } from '@/core/intelligence';
 import { can } from '@/core/permissions';
@@ -23,7 +23,18 @@ import { ReserveSection } from '@/features/reserve/ReserveSection';
 import { SeasonSection } from '@/features/seasons/SeasonSection';
 
 export default function Goals() {
-  const { t } = useI18n();
+  return (
+    <DesignV2>
+      <GoalsScreen />
+    </DesignV2>
+  );
+}
+
+/** Barre de la carte globale (maquette : or sur la carte verte). */
+const GLOBAL_BAR = '#E8B85A';
+
+function GoalsScreen() {
+  const { t, monthYear } = useI18n();
   const { colors, radius } = useTheme();
   const renderInsight = useInsightText();
   const { role } = useApp();
@@ -91,33 +102,34 @@ export default function Goals() {
       </Text>
 
       {totals.target > 0 ? (
-        <GradientCard>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        // Carte globale flottante (étape 4, CSS f4).
+        <GradientCard float style={{ marginTop: 6, paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
+          {/* Maquette : surtitre 12/600 (espacement 0,6) et étiquette « N % global » sur la même ligne. */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Icon name="star-outline" size={16} color={colors.onHero} />
-            <Text variant="overline" tone="onHero" style={{ flexShrink: 1 }}>
+            <Text variant="caption" weight="600" tone="heroMuted" style={{ flex: 1, fontSize: 12, lineHeight: 16, letterSpacing: 0.6 }}>
               {t('goal.global.title').toUpperCase()}
             </Text>
-            <View style={{ flex: 1 }} />
-            <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3 }}>
-              <Text variant="caption" weight="700" tone="onHero">
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3 }}>
+              <Text variant="caption" weight="700" tone="onHero" style={{ fontSize: 12, lineHeight: 16 }}>
                 {t('goal.global.pct', { pct: totals.pct })}
               </Text>
             </View>
           </View>
-          <Text variant="display" tone="onHero" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ marginTop: 8 }}>
-            {money(totals.saved)}
-          </Text>
-          <Text variant="small" tone="heroMuted">
+          <View style={{ marginTop: 8 }}>
+            <Amount text={money(totals.saved)} size="hero" tone="onHero" style={{ fontSize: 40, lineHeight: 46 }} />
+          </View>
+          <Text variant="small" tone="heroMuted" style={{ fontSize: 13, lineHeight: 18 }}>
             {t('goal.global.of', { amount: money(totals.target) })}
           </Text>
-          <View style={{ height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.22)', marginTop: 14, overflow: 'hidden' }}>
-            <View style={{ width: `${Math.min(100, totals.pct)}%`, height: '100%', backgroundColor: colors.secondaryContainer, borderRadius: 5 }} />
+          <View style={{ height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.22)', marginTop: 14, overflow: 'hidden' }}>
+            <View style={{ width: `${Math.min(100, totals.pct)}%`, height: '100%', backgroundColor: GLOBAL_BAR, borderRadius: 4 }} />
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-            <Text variant="caption" weight="600" tone="onHero">
+            <Text variant="caption" weight="600" tone="onHero" style={{ fontSize: 12, lineHeight: 16 }}>
               ● {t(totals.count === 1 ? 'goal.global.count.one' : 'goal.global.count', { count: totals.count })}
             </Text>
-            <Text variant="caption" tone="heroMuted">
+            <Text variant="caption" weight="500" tone="heroMuted" style={{ fontSize: 12, lineHeight: 16 }}>
               {t('goal.left', { amount: money(Math.max(0, totals.target - totals.saved)) })}
             </Text>
           </View>
@@ -150,42 +162,51 @@ export default function Goals() {
       ) : (
         <>
           <SectionHeader title={t('goal.running')} action={t('goal.byPriority')} />
-          <TileGrid>
-            {plans.map(({ g, plan }) => (
-              <TileCell key={g.id}>
-                {g.status !== 'active' ? (
-                  <Text variant="caption" tone="subtle">
-                    {t('goal.status.paused')}
-                  </Text>
-                ) : null}
-                <GoalTile goal={g} plan={plan} rank={g.status === 'active' ? rankedIds.indexOf(g.id) + 1 : undefined} />
-                {/* « Ajouter de l'argent » sous le pavé (hors de sa zone cliquable, pour rester joignable au
-                    lecteur d'écran) : même écran de versement que la fiche, qui s'ouvre ensuite sur la progression. */}
-                {(canContribute || canEdit) && g.status === 'active' ? (
-                  // « Ajouter » et ↑↓ sur une ligne quand la largeur le permet, sinon les flèches passent dessous.
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                    {canContribute ? (
-                      <Button
-                        variant="secondary"
-                        icon="add"
-                        label={t('goal.add')}
-                        // Lecteur d'écran : libellé inchangé, avec le nom de l'objectif.
-                        accessibilityLabel={`${t('goal.contribute')}, ${g.name}`}
-                        onPress={() => router.push(`/goals/contribute?id=${g.id}&from=goals`)}
-                        style={{ flexGrow: 1 }}
-                      />
-                    ) : null}
-                    {canEdit && rankedIds.length > 1 ? (
-                      <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 4 }}>
-                        <IconButton icon="chevron-up" label={t('goal.moveUp')} onPress={() => move(g.id, -1)} size={18} />
-                        <IconButton icon="chevron-down" label={t('goal.moveDown')} onPress={() => move(g.id, 1)} size={18} />
+          {/* Projets en LISTE (étape 4) : « Priorité N » et rythme en étiquettes ; « Ajouter » et ↑↓ sous
+              chaque projet (hors de sa zone touchable, joignables au lecteur d'écran). */}
+          <ListCard>
+            {plans.map(({ g, plan }) => {
+              const rank = g.status === 'active' ? rankedIds.indexOf(g.id) + 1 : 0;
+              const pace = plan.reached ? null : plan.requiredMonthly ? t('goal.perMonthChip', { amount: money(plan.requiredMonthly) }) : plan.estimatedDate ? t('goal.atPaceChip', { date: monthYear(plan.estimatedDate) }) : null;
+              const chips = [
+                ...(g.status !== 'active' ? [{ label: t('goal.status.paused') }] : []),
+                ...(rank ? [{ label: t('goal.rank', { rank }), primary: true }] : []),
+                ...(pace ? [{ label: pace }] : []),
+              ];
+              return (
+                <GoalRow
+                  key={g.id}
+                  goal={g}
+                  plan={plan}
+                  chips={chips}
+                  footer={
+                    (canContribute || canEdit) && g.status === 'active' ? (
+                      // « Ajouter » et ↑↓ sur une ligne quand la largeur le permet, sinon les flèches passent dessous.
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingLeft: 68, paddingRight: 16, paddingBottom: 12, marginTop: -4 }}>
+                        {canContribute ? (
+                          <Button
+                            variant="secondary"
+                            icon="add"
+                            label={t('goal.add')}
+                            // Lecteur d'écran : libellé inchangé, avec le nom de l'objectif.
+                            accessibilityLabel={`${t('goal.contribute')}, ${g.name}`}
+                            onPress={() => router.push(`/goals/contribute?id=${g.id}&from=goals`)}
+                            style={{ flexGrow: 1 }}
+                          />
+                        ) : null}
+                        {canEdit && rankedIds.length > 1 ? (
+                          <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <IconButton icon="chevron-up" label={t('goal.moveUp')} onPress={() => move(g.id, -1)} size={18} />
+                            <IconButton icon="chevron-down" label={t('goal.moveDown')} onPress={() => move(g.id, 1)} size={18} />
+                          </View>
+                        ) : null}
                       </View>
-                    ) : null}
-                  </View>
-                ) : null}
-              </TileCell>
-            ))}
-          </TileGrid>
+                    ) : null
+                  }
+                />
+              );
+            })}
+          </ListCard>
         </>
       )}
 

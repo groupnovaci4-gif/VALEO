@@ -1,18 +1,20 @@
 /**
- * Section « Moments forts de l'année » de l'écran Objectifs, en PAVÉ : le prochain
- * moment et son rythme par semaine, ou l'accès à la préparation.
+ * Section « Moments forts de l'année » de l'écran Objectifs — étape 4, en LIGNE : icône de
+ * contenu, le prochain moment (date) et son rythme par semaine, chevron ; ou l'accès à la préparation.
  */
 import React from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
+import { useTheme } from '@/theme';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { SectionHeader, Tile, TileText } from '@/components/ui';
+import { ContentIcon, Icon, ListCard, SectionHeader, Text } from '@/components/ui';
 import { activeSeasons, seasonPlanFor } from '@/core/seasons';
 
 export function SeasonSection() {
   const { t, date } = useI18n();
   const money = useMoney();
+  const { colors } = useTheme();
   const { data, now } = useFinance();
   const seasons = activeSeasons(data.goals);
   const next = seasons[0];
@@ -27,13 +29,23 @@ export function SeasonSection() {
   return (
     <View style={{ marginBottom: 8 }}>
       <SectionHeader title={t('season.section')} />
-      {/* Un seul pavé : toute la largeur. */}
-      <Tile accessibilityLabel={`${t('season.section')} · ${line}`} onPress={() => router.push('/seasons')}>
-        <TileText variant="bodyStrong">{next ? `${next.icon} ${next.name}${next.targetDate ? ` · ${date(next.targetDate)}` : ''}` : `📅 ${t('season.add')}`}</TileText>
-        <TileText variant="small" tone="muted">
-          {line}
-        </TileText>
-      </Tile>
+      <ListCard>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${t('season.section')} · ${line}`}
+          onPress={() => router.push('/seasons')}
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
+        >
+          {next ? <ContentIcon emoji={next.icon} ids={[next.templateId, `goal.${next.categoryId}`]} color={colors.primary} size={40} /> : <Icon name="calendar-outline" size={28} color={colors.primary} />}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="bodyStrong">{next ? `${next.name}${next.targetDate ? ` · ${date(next.targetDate)}` : ''}` : t('season.add')}</Text>
+            <Text variant="small" tone="muted" style={{ fontSize: 13, lineHeight: 18 }}>
+              {line}
+            </Text>
+          </View>
+          <Icon name="chevron-forward" size={20} color={colors.textSubtle} />
+        </Pressable>
+      </ListCard>
     </View>
   );
 }
