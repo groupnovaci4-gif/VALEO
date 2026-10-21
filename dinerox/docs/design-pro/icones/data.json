@@ -1,0 +1,7343 @@
+{
+ "rubriques": [
+  "Dépenses — catégories principales",
+  "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+  "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+  "Dépenses — anciennes catégories système",
+  "Revenus",
+  "Comptes",
+  "Objectifs — familles",
+  "Objectifs — modèles",
+  "Réserve et moments forts",
+  "Tontines",
+  "Dettes et prêts",
+  "Écrans vides",
+  "Récompenses",
+  "Score",
+  "Pavés de l’accueil",
+  "Pavés de Plus",
+  "Coach, assistant et cartes",
+  "Navigation et actions"
+ ],
+ "items": [
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_family",
+   "n": "Famille",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "heart",
+     "code": 62314
+    },
+    {
+     "kind": "system",
+     "glyph": "👨‍👩‍👧"
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🫂",
+     "dir": "People hugging",
+     "file": "assets/People hugging/3D/people_hugging_3d.png",
+     "slug": "people-hugging"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🏡",
+     "dir": "House with garden",
+     "file": "assets/House with garden/3D/house_with_garden_3d.png",
+     "slug": "house-with-garden"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "👥",
+     "dir": "Busts in silhouette",
+     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+     "slug": "busts-in-silhouette"
+    }
+   ],
+   "note": "Pas de famille en 3D dans Fluent."
+  },
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_housing",
+   "n": "Maison & logement",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    },
+    {
+     "kind": "system",
+     "glyph": "🏠"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏠",
+    "dir": "House",
+    "file": "assets/House/3D/house_3d.png",
+    "slug": "house"
+   }
+  },
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_food",
+   "n": "Alimentation & boissons",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    },
+    {
+     "kind": "system",
+     "glyph": "🍛"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🍛",
+    "dir": "Curry rice",
+    "file": "assets/Curry rice/3D/curry_rice_3d.png",
+    "slug": "curry-rice"
+   }
+  },
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_health",
+   "n": "Santé",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "medkit",
+     "code": 62539
+    },
+    {
+     "kind": "system",
+     "glyph": "🏥"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🩺",
+    "dir": "Stethoscope",
+    "file": "assets/Stethoscope/3D/stethoscope_3d.png",
+    "slug": "stethoscope"
+   }
+  },
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_transport",
+   "n": "Transport",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    },
+    {
+     "kind": "system",
+     "glyph": "🚕"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚕",
+    "dir": "Taxi",
+    "file": "assets/Taxi/3D/taxi_3d.png",
+    "slug": "taxi"
+   }
+  },
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_social",
+   "n": "Finance sociale & obligations",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-circle",
+     "code": 62624
+    },
+    {
+     "kind": "system",
+     "glyph": "🤝"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🤝",
+    "dir": "Handshake",
+    "file": "assets/Handshake/3D/handshake_3d.png",
+    "slug": "handshake"
+   }
+  },
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_education",
+   "n": "Éducation & formation",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "school",
+     "code": 62812
+    },
+    {
+     "kind": "system",
+     "glyph": "🎓"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎓",
+    "dir": "Graduation cap",
+    "file": "assets/Graduation cap/3D/graduation_cap_3d.png",
+    "slug": "graduation-cap"
+   }
+  },
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_communication",
+   "n": "Communication & numérique",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "call",
+     "code": 61912
+    },
+    {
+     "kind": "system",
+     "glyph": "📱"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📱",
+    "dir": "Mobile phone",
+    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "slug": "mobile-phone"
+   }
+  },
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_leisure",
+   "n": "Loisirs & divertissement",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "game-controller",
+     "code": 62260
+    },
+    {
+     "kind": "system",
+     "glyph": "🎉"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎉",
+    "dir": "Party popper",
+    "file": "assets/Party popper/3D/party_popper_3d.png",
+    "slug": "party-popper"
+   }
+  },
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_clothing",
+   "n": "Personnel",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shirt",
+     "code": 62848
+    },
+    {
+     "kind": "system",
+     "glyph": "👔"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👕",
+    "dir": "T-shirt",
+    "file": "assets/T-shirt/3D/t-shirt_3d.png",
+    "slug": "t-shirt"
+   }
+  },
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_debts",
+   "n": "Dettes & remboursements",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "receipt",
+     "code": 62734
+    },
+    {
+     "kind": "system",
+     "glyph": "💳"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧾",
+    "dir": "Receipt",
+    "file": "assets/Receipt/3D/receipt_3d.png",
+    "slug": "receipt"
+   }
+  },
+  {
+   "r": "Dépenses — catégories principales",
+   "id": "cat_other",
+   "n": "Autres dépenses",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "ellipsis-horizontal",
+     "code": 62158
+    },
+    {
+     "kind": "system",
+     "glyph": "🛍️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛍️",
+    "dir": "Shopping bags",
+    "file": "assets/Shopping bags/3D/shopping_bags_3d.png",
+    "slug": "shopping-bags"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_family_parents",
+   "n": "Aide aux parents",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "heart",
+     "code": 62314
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧓",
+    "dir": "Older person",
+    "file": "assets/Older person/Default/3D/older_person_3d_default.png",
+    "slug": "older-person"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_family_siblings",
+   "n": "Aide aux frères/sœurs",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "heart",
+     "code": 62314
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🫂",
+    "dir": "People hugging",
+    "file": "assets/People hugging/3D/people_hugging_3d.png",
+    "slug": "people-hugging"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_family_children",
+   "n": "Enfants",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "heart",
+     "code": 62314
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧒",
+    "dir": "Child",
+    "file": "assets/Child/Default/3D/child_3d_default.png",
+    "slug": "child"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_family_transfers",
+   "n": "Soutien familial",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "heart",
+     "code": 62314
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🤲",
+    "dir": "Palms up together",
+    "file": "assets/Palms up together/Default/3D/palms_up_together_3d_default.png",
+    "slug": "palms-up-together"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_family_other",
+   "n": "Autres dépenses familiales",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "heart",
+     "code": 62314
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🫂",
+     "dir": "People hugging",
+     "file": "assets/People hugging/3D/people_hugging_3d.png",
+     "slug": "people-hugging"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🏡",
+     "dir": "House with garden",
+     "file": "assets/House with garden/3D/house_with_garden_3d.png",
+     "slug": "house-with-garden"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "👥",
+     "dir": "Busts in silhouette",
+     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+     "slug": "busts-in-silhouette"
+    }
+   ],
+   "note": "Pas de famille en 3D dans Fluent."
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_housing_rent",
+   "n": "Loyer",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🔑",
+    "dir": "Key",
+    "file": "assets/Key/3D/key_3d.png",
+    "slug": "key"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_housing_electricity",
+   "n": "Électricité",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💡",
+    "dir": "Light bulb",
+    "file": "assets/Light bulb/3D/light_bulb_3d.png",
+    "slug": "light-bulb"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_housing_water",
+   "n": "Eau",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚰",
+    "dir": "Potable water",
+    "file": "assets/Potable water/3D/potable_water_3d.png",
+    "slug": "potable-water"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_housing_gas",
+   "n": "Gaz",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🔥",
+     "dir": "Fire",
+     "file": "assets/Fire/3D/fire_3d.png",
+     "slug": "fire"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🍳",
+     "dir": "Cooking",
+     "file": "assets/Cooking/3D/cooking_3d.png",
+     "slug": "cooking"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🛢️",
+     "dir": "Oil drum",
+     "file": "assets/Oil drum/3D/oil_drum_3d.png",
+     "slug": "oil-drum"
+    }
+   ],
+   "note": "Pas de bouteille de gaz dans la bibliothèque."
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_housing_charcoal",
+   "n": "Charbon",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🔥",
+     "dir": "Fire",
+     "file": "assets/Fire/3D/fire_3d.png",
+     "slug": "fire"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🪵",
+     "dir": "Wood",
+     "file": "assets/Wood/3D/wood_3d.png",
+     "slug": "wood"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🪨",
+     "dir": "Rock",
+     "file": "assets/Rock/3D/rock_3d.png",
+     "slug": "rock"
+    }
+   ],
+   "note": "Pas de sac de charbon ni de fourneau."
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_housing_maintenance",
+   "n": "Entretien / réparations",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛠️",
+    "dir": "Hammer and wrench",
+    "file": "assets/Hammer and wrench/3D/hammer_and_wrench_3d.png",
+    "slug": "hammer-and-wrench"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_housing_furniture",
+   "n": "Ameublement",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛋️",
+    "dir": "Couch and lamp",
+    "file": "assets/Couch and lamp/3D/couch_and_lamp_3d.png",
+    "slug": "couch-and-lamp"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_housing_other",
+   "n": "Autres (logement)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏠",
+    "dir": "House",
+    "file": "assets/House/3D/house_3d.png",
+    "slug": "house"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_food_market",
+   "n": "Marché",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧺",
+    "dir": "Basket",
+    "file": "assets/Basket/3D/basket_3d.png",
+    "slug": "basket"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_food_supermarket",
+   "n": "Supermarché",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛒",
+    "dir": "Shopping cart",
+    "file": "assets/Shopping cart/3D/shopping_cart_3d.png",
+    "slug": "shopping-cart"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_food_restaurant",
+   "n": "Restaurant",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🍽️",
+    "dir": "Fork and knife with plate",
+    "file": "assets/Fork and knife with plate/3D/fork_and_knife_with_plate_3d.png",
+    "slug": "fork-and-knife-with-plate"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_food_maquis",
+   "n": "Maquis",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🍗",
+     "dir": "Poultry leg",
+     "file": "assets/Poultry leg/3D/poultry_leg_3d.png",
+     "slug": "poultry-leg"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🍲",
+     "dir": "Pot of food",
+     "file": "assets/Pot of food/3D/pot_of_food_3d.png",
+     "slug": "pot-of-food"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🐟",
+     "dir": "Fish",
+     "file": "assets/Fish/3D/fish_3d.png",
+     "slug": "fish"
+    }
+   ],
+   "note": "Pas de « maquis » : poulet braisé, plat mijoté ou poisson ?"
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_food_delivery",
+   "n": "Livraison",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛵",
+    "dir": "Motor scooter",
+    "file": "assets/Motor scooter/3D/motor_scooter_3d.png",
+    "slug": "motor-scooter"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_food_streetfood",
+   "n": "Snacks (Garba / repas de rue)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🥪",
+     "dir": "Sandwich",
+     "file": "assets/Sandwich/3D/sandwich_3d.png",
+     "slug": "sandwich"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🍢",
+     "dir": "Oden",
+     "file": "assets/Oden/3D/oden_3d.png",
+     "slug": "oden"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🍟",
+     "dir": "French fries",
+     "file": "assets/French fries/3D/french_fries_3d.png",
+     "slug": "french-fries"
+    }
+   ],
+   "note": "Pas de garba ni d’alloco."
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_food_drinks",
+   "n": "Boissons",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🥤",
+    "dir": "Cup with straw",
+    "file": "assets/Cup with straw/3D/cup_with_straw_3d.png",
+    "slug": "cup-with-straw"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_food_water",
+   "n": "Eau (potable)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💧",
+    "dir": "Droplet",
+    "file": "assets/Droplet/3D/droplet_3d.png",
+    "slug": "droplet"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_food_other",
+   "n": "Autres (alimentation)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🍽️",
+    "dir": "Fork and knife with plate",
+    "file": "assets/Fork and knife with plate/3D/fork_and_knife_with_plate_3d.png",
+    "slug": "fork-and-knife-with-plate"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_health_consultation",
+   "n": "Consultation",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "medkit",
+     "code": 62539
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🩺",
+    "dir": "Stethoscope",
+    "file": "assets/Stethoscope/3D/stethoscope_3d.png",
+    "slug": "stethoscope"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_health_pharmacy",
+   "n": "Médicaments / pharmacie",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "medkit",
+     "code": 62539
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💊",
+    "dir": "Pill",
+    "file": "assets/Pill/3D/pill_3d.png",
+    "slug": "pill"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_health_lab",
+   "n": "Analyses médicales",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "medkit",
+     "code": 62539
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧪",
+    "dir": "Test tube",
+    "file": "assets/Test tube/3D/test_tube_3d.png",
+    "slug": "test-tube"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_health_hospital",
+   "n": "Hospitalisation",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "medkit",
+     "code": 62539
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏥",
+    "dir": "Hospital",
+    "file": "assets/Hospital/3D/hospital_3d.png",
+    "slug": "hospital"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_health_dental",
+   "n": "Soins dentaires",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "medkit",
+     "code": 62539
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🦷",
+    "dir": "Tooth",
+    "file": "assets/Tooth/3D/tooth_3d.png",
+    "slug": "tooth"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_health_optical",
+   "n": "Lunettes / optique",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "medkit",
+     "code": 62539
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👓",
+    "dir": "Glasses",
+    "file": "assets/Glasses/3D/glasses_3d.png",
+    "slug": "glasses"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_health_mutual",
+   "n": "Assurance / mutuelle santé",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "medkit",
+     "code": 62539
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛡️",
+    "dir": "Shield",
+    "file": "assets/Shield/3D/shield_3d.png",
+    "slug": "shield"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_health_children",
+   "n": "Santé des enfants",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "medkit",
+     "code": 62539
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧸",
+    "dir": "Teddy bear",
+    "file": "assets/Teddy bear/3D/teddy_bear_3d.png",
+    "slug": "teddy-bear"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_health_family",
+   "n": "Santé familiale",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "medkit",
+     "code": 62539
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "❤️‍🩹",
+    "dir": "Mending heart",
+    "file": "assets/Mending heart/3D/mending_heart_3d.png",
+    "slug": "mending-heart"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_health_other",
+   "n": "Autres (santé)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "medkit",
+     "code": 62539
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🩹",
+    "dir": "Adhesive bandage",
+    "file": "assets/Adhesive bandage/3D/adhesive_bandage_3d.png",
+    "slug": "adhesive-bandage"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_transport_taxi",
+   "n": "Taxi",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚕",
+    "dir": "Taxi",
+    "file": "assets/Taxi/3D/taxi_3d.png",
+    "slug": "taxi"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_transport_vtc",
+   "n": "Yango / VTC",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚗",
+    "dir": "Automobile",
+    "file": "assets/Automobile/3D/automobile_3d.png",
+    "slug": "automobile"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_transport_mototaxi",
+   "n": "Moto-taxi",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏍️",
+    "dir": "Motorcycle",
+    "file": "assets/Motorcycle/3D/motorcycle_3d.png",
+    "slug": "motorcycle"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_transport_bus",
+   "n": "Bus",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚌",
+    "dir": "Bus",
+    "file": "assets/Bus/3D/bus_3d.png",
+    "slug": "bus"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_transport_fuel",
+   "n": "Carburant",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "⛽",
+    "dir": "Fuel pump",
+    "file": "assets/Fuel pump/3D/fuel_pump_3d.png",
+    "slug": "fuel-pump"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_transport_maintenance",
+   "n": "Entretien / réparation (véhicule)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🔧",
+    "dir": "Wrench",
+    "file": "assets/Wrench/3D/wrench_3d.png",
+    "slug": "wrench"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_transport_insurance",
+   "n": "Assurance (véhicule)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛡️",
+    "dir": "Shield",
+    "file": "assets/Shield/3D/shield_3d.png",
+    "slug": "shield"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_transport_parking",
+   "n": "Parking",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🅿️",
+    "dir": "P button",
+    "file": "assets/P button/3D/p_button_3d.png",
+    "slug": "p-button"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_transport_tolls",
+   "n": "Péage",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚧",
+    "dir": "Construction",
+    "file": "assets/Construction/3D/construction_3d.png",
+    "slug": "construction"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_transport_other",
+   "n": "Autres (transport)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚗",
+    "dir": "Automobile",
+    "file": "assets/Automobile/3D/automobile_3d.png",
+    "slug": "automobile"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_informal_tontine",
+   "n": "Tontine",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-circle",
+     "code": 62624
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🪙",
+     "dir": "Coin",
+     "file": "assets/Coin/3D/coin_3d.png",
+     "slug": "coin"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🤝",
+     "dir": "Handshake",
+     "file": "assets/Handshake/3D/handshake_3d.png",
+     "slug": "handshake"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "👥",
+     "dir": "Busts in silhouette",
+     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+     "slug": "busts-in-silhouette"
+    }
+   ],
+   "note": "Pas de symbole de tontine : pièce, poignée de main ou groupe ?"
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_informal_dues",
+   "n": "Cotisation",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-circle",
+     "code": 62624
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🪙",
+    "dir": "Coin",
+    "file": "assets/Coin/3D/coin_3d.png",
+    "slug": "coin"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_social_weddings",
+   "n": "Contribution mariage",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-circle",
+     "code": 62624
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💍",
+    "dir": "Ring",
+    "file": "assets/Ring/3D/ring_3d.png",
+    "slug": "ring"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_social_baptisms",
+   "n": "Baptême",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-circle",
+     "code": 62624
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "👶",
+     "dir": "Baby",
+     "file": "assets/Baby/Default/3D/baby_3d_default.png",
+     "slug": "baby"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🕊️",
+     "dir": "Dove",
+     "file": "assets/Dove/3D/dove_3d.png",
+     "slug": "dove"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🍼",
+     "dir": "Baby bottle",
+     "file": "assets/Baby bottle/3D/baby_bottle_3d.png",
+     "slug": "baby-bottle"
+    }
+   ],
+   "note": "Sens religieux à respecter."
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_social_funerals",
+   "n": "Funérailles",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-circle",
+     "code": 62624
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🕯️",
+     "dir": "Candle",
+     "file": "assets/Candle/3D/candle_3d.png",
+     "slug": "candle"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🕊️",
+     "dir": "Dove",
+     "file": "assets/Dove/3D/dove_3d.png",
+     "slug": "dove"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🖤",
+     "dir": "Black heart",
+     "file": "assets/Black heart/3D/black_heart_3d.png",
+     "slug": "black-heart"
+    }
+   ],
+   "note": "Sujet sensible : à choisir par le fondateur."
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_social_ceremonies",
+   "n": "Cérémonies",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-circle",
+     "code": 62624
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎊",
+    "dir": "Confetti ball",
+    "file": "assets/Confetti ball/3D/confetti_ball_3d.png",
+    "slug": "confetti-ball"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_informal_association",
+   "n": "Association / communauté",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-circle",
+     "code": 62624
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👥",
+    "dir": "Busts in silhouette",
+    "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "slug": "busts-in-silhouette"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_social_other",
+   "n": "Autres (social)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-circle",
+     "code": 62624
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🤝",
+    "dir": "Handshake",
+    "file": "assets/Handshake/3D/handshake_3d.png",
+    "slug": "handshake"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_education_fees",
+   "n": "Scolarité",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "school",
+     "code": 62812
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏫",
+    "dir": "School",
+    "file": "assets/School/3D/school_3d.png",
+    "slug": "school"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_education_supplies",
+   "n": "Fournitures scolaires",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "school",
+     "code": 62812
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "✏️",
+    "dir": "Pencil",
+    "file": "assets/Pencil/3D/pencil_3d.png",
+    "slug": "pencil"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_education_books",
+   "n": "Livres",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "school",
+     "code": 62812
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📚",
+    "dir": "Books",
+    "file": "assets/Books/3D/books_3d.png",
+    "slug": "books"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_education_training",
+   "n": "Formation professionnelle",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "school",
+     "code": 62812
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧑‍🏫",
+    "dir": "Teacher",
+    "file": "assets/Teacher/Default/3D/teacher_3d_default.png",
+    "slug": "teacher"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_education_certifications",
+   "n": "Certifications",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "school",
+     "code": 62812
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📜",
+    "dir": "Scroll",
+    "file": "assets/Scroll/3D/scroll_3d.png",
+    "slug": "scroll"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_education_tutoring",
+   "n": "Cours particuliers",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "school",
+     "code": 62812
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📝",
+    "dir": "Memo",
+    "file": "assets/Memo/3D/memo_3d.png",
+    "slug": "memo"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_education_other",
+   "n": "Autres (éducation)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "school",
+     "code": 62812
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎒",
+    "dir": "Backpack",
+    "file": "assets/Backpack/3D/backpack_3d.png",
+    "slug": "backpack"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_comm_airtime",
+   "n": "Crédit téléphonique",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "call",
+     "code": 61912
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📞",
+    "dir": "Telephone receiver",
+    "file": "assets/Telephone receiver/3D/telephone_receiver_3d.png",
+    "slug": "telephone-receiver"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_comm_data",
+   "n": "Internet / data",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "call",
+     "code": 61912
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📶",
+    "dir": "Antenna bars",
+    "file": "assets/Antenna bars/3D/antenna_bars_3d.png",
+    "slug": "antenna-bars"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_internet_fiber",
+   "n": "Fibre",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "call",
+     "code": 61912
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🌐",
+    "dir": "Globe with meridians",
+    "file": "assets/Globe with meridians/3D/globe_with_meridians_3d.png",
+    "slug": "globe-with-meridians"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_comm_digital",
+   "n": "Abonnements numériques",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "call",
+     "code": 61912
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💻",
+    "dir": "Laptop",
+    "file": "assets/Laptop/3D/laptop_3d.png",
+    "slug": "laptop"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_comm_phone",
+   "n": "Téléphone / accessoires",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "call",
+     "code": 61912
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎧",
+    "dir": "Headphone",
+    "file": "assets/Headphone/3D/headphone_3d.png",
+    "slug": "headphone"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_comm_other",
+   "n": "Autres (communication)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "call",
+     "code": 61912
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📱",
+    "dir": "Mobile phone",
+    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "slug": "mobile-phone"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_leisure_outings",
+   "n": "Sorties",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "game-controller",
+     "code": 62260
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🥳",
+    "dir": "Partying face",
+    "file": "assets/Partying face/3D/partying_face_3d.png",
+    "slug": "partying-face"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_leisure_cinema",
+   "n": "Cinéma",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "game-controller",
+     "code": 62260
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎬",
+    "dir": "Clapper board",
+    "file": "assets/Clapper board/3D/clapper_board_3d.png",
+    "slug": "clapper-board"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_leisure_games",
+   "n": "Jeux",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "game-controller",
+     "code": 62260
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎮",
+    "dir": "Video game",
+    "file": "assets/Video game/3D/video_game_3d.png",
+    "slug": "video-game"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_leisure_travel",
+   "n": "Voyages",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "game-controller",
+     "code": 62260
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "✈️",
+    "dir": "Airplane",
+    "file": "assets/Airplane/3D/airplane_3d.png",
+    "slug": "airplane"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_leisure_sport",
+   "n": "Sports",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "game-controller",
+     "code": 62260
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "⚽",
+    "dir": "Soccer ball",
+    "file": "assets/Soccer ball/3D/soccer_ball_3d.png",
+    "slug": "soccer-ball"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_leisure_subscriptions",
+   "n": "Abonnements streaming",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "game-controller",
+     "code": 62260
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📺",
+    "dir": "Television",
+    "file": "assets/Television/3D/television_3d.png",
+    "slug": "television"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_leisure_other",
+   "n": "Autres (loisirs)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "game-controller",
+     "code": 62260
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎉",
+    "dir": "Party popper",
+    "file": "assets/Party popper/3D/party_popper_3d.png",
+    "slug": "party-popper"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_clothing_clothes",
+   "n": "Vêtements",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shirt",
+     "code": 62848
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👕",
+    "dir": "T-shirt",
+    "file": "assets/T-shirt/3D/t-shirt_3d.png",
+    "slug": "t-shirt"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_clothing_shoes",
+   "n": "Chaussures",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shirt",
+     "code": 62848
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👟",
+    "dir": "Running shoe",
+    "file": "assets/Running shoe/3D/running_shoe_3d.png",
+    "slug": "running-shoe"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_clothing_beauty",
+   "n": "Coiffure / beauté",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shirt",
+     "code": 62848
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💈",
+    "dir": "Barber pole",
+    "file": "assets/Barber pole/3D/barber_pole_3d.png",
+    "slug": "barber-pole"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_clothing_hygiene",
+   "n": "Hygiène",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shirt",
+     "code": 62848
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧼",
+    "dir": "Soap",
+    "file": "assets/Soap/3D/soap_3d.png",
+    "slug": "soap"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_clothing_accessories",
+   "n": "Accessoires",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shirt",
+     "code": 62848
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👜",
+    "dir": "Handbag",
+    "file": "assets/Handbag/3D/handbag_3d.png",
+    "slug": "handbag"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_clothing_other",
+   "n": "Autres (personnel)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shirt",
+     "code": 62848
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛍️",
+    "dir": "Shopping bags",
+    "file": "assets/Shopping bags/3D/shopping_bags_3d.png",
+    "slug": "shopping-bags"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_debts_loan",
+   "n": "Remboursement de prêt",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "receipt",
+     "code": 62734
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏦",
+    "dir": "Bank",
+    "file": "assets/Bank/3D/bank_3d.png",
+    "slug": "bank"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_debts_family",
+   "n": "Dette familiale",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "receipt",
+     "code": 62734
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🫂",
+     "dir": "People hugging",
+     "file": "assets/People hugging/3D/people_hugging_3d.png",
+     "slug": "people-hugging"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🏡",
+     "dir": "House with garden",
+     "file": "assets/House with garden/3D/house_with_garden_3d.png",
+     "slug": "house-with-garden"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "👥",
+     "dir": "Busts in silhouette",
+     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+     "slug": "busts-in-silhouette"
+    }
+   ],
+   "note": "Pas de famille en 3D dans Fluent."
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_debts_personal",
+   "n": "Dette personnelle",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "receipt",
+     "code": 62734
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧾",
+    "dir": "Receipt",
+    "file": "assets/Receipt/3D/receipt_3d.png",
+    "slug": "receipt"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_debts_card",
+   "n": "Crédit",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "receipt",
+     "code": 62734
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💳",
+    "dir": "Credit card",
+    "file": "assets/Credit card/3D/credit_card_3d.png",
+    "slug": "credit-card"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_debts_interest",
+   "n": "Intérêts",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "receipt",
+     "code": 62734
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📈",
+    "dir": "Chart increasing",
+    "file": "assets/Chart increasing/3D/chart_increasing_3d.png",
+    "slug": "chart-increasing"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_debts_other",
+   "n": "Autres (dettes)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "receipt",
+     "code": 62734
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧾",
+    "dir": "Receipt",
+    "file": "assets/Receipt/3D/receipt_3d.png",
+    "slug": "receipt"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
+   "id": "sub_other_fees",
+   "n": "Frais d’envoi et de retrait",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "ellipsis-horizontal",
+     "code": 62158
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💸",
+    "dir": "Money with wings",
+    "file": "assets/Money with wings/3D/money_with_wings_3d.png",
+    "slug": "money-with-wings"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_housing_deposit",
+   "n": "Caution",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🔐",
+    "dir": "Locked with key",
+    "file": "assets/Locked with key/3D/locked_with_key_3d.png",
+    "slug": "locked-with-key"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_housing_advance",
+   "n": "Avance de loyer",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🗓️",
+    "dir": "Spiral calendar",
+    "file": "assets/Spiral calendar/3D/spiral_calendar_3d.png",
+    "slug": "spiral-calendar"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_housing_charges",
+   "n": "Charges",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧾",
+    "dir": "Receipt",
+    "file": "assets/Receipt/3D/receipt_3d.png",
+    "slug": "receipt"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_housing_energy",
+   "n": "Énergie (électricité, gaz)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "⚡",
+    "dir": "High voltage",
+    "file": "assets/High voltage/3D/high_voltage_3d.png",
+    "slug": "high-voltage"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_housing_generator",
+   "n": "Groupe électrogène",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🔌",
+     "dir": "Electric plug",
+     "file": "assets/Electric plug/3D/electric_plug_3d.png",
+     "slug": "electric-plug"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "⚡",
+     "dir": "High voltage",
+     "file": "assets/High voltage/3D/high_voltage_3d.png",
+     "slug": "high-voltage"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🔋",
+     "dir": "Battery",
+     "file": "assets/Battery/3D/battery_3d.png",
+     "slug": "battery"
+    }
+   ],
+   "note": "Pas de groupe électrogène."
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_housing_heating",
+   "n": "Chauffage",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🌡️",
+    "dir": "Thermometer",
+    "file": "assets/Thermometer/3D/thermometer_3d.png",
+    "slug": "thermometer"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_housing_condo",
+   "n": "Copropriété",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏢",
+    "dir": "Office building",
+    "file": "assets/Office building/3D/office_building_3d.png",
+    "slug": "office-building"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_housing_repairs",
+   "n": "Réparations",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🔧",
+    "dir": "Wrench",
+    "file": "assets/Wrench/3D/wrench_3d.png",
+    "slug": "wrench"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_food_dibiterie",
+   "n": "Dibiterie",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🍖",
+    "dir": "Meat on bone",
+    "file": "assets/Meat on bone/3D/meat_on_bone_3d.png",
+    "slug": "meat-on-bone"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_food_canteen",
+   "n": "Cantine",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "restaurant",
+     "code": 62773
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🍱",
+    "dir": "Bento box",
+    "file": "assets/Bento box/3D/bento_box_3d.png",
+    "slug": "bento-box"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_transport_shared",
+   "n": "Taxi collectif",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚐",
+    "dir": "Minibus",
+    "file": "assets/Minibus/3D/minibus_3d.png",
+    "slug": "minibus"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_transport_pass",
+   "n": "Abonnement transport public",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎫",
+    "dir": "Ticket",
+    "file": "assets/Ticket/3D/ticket_3d.png",
+    "slug": "ticket"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_transport_train",
+   "n": "Train",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚆",
+    "dir": "Train",
+    "file": "assets/Train/3D/train_3d.png",
+    "slug": "train"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_transport_leasing",
+   "n": "Leasing",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📄",
+    "dir": "Page facing up",
+    "file": "assets/Page facing up/3D/page_facing_up_3d.png",
+    "slug": "page-facing-up"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_transport_carloan",
+   "n": "Crédit automobile",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "car",
+     "code": 61921
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚙",
+    "dir": "Sport utility vehicle",
+    "file": "assets/Sport utility vehicle/3D/sport_utility_vehicle_3d.png",
+    "slug": "sport-utility-vehicle"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_comm_plan",
+   "n": "Forfait mobile",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "call",
+     "code": 61912
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📶",
+    "dir": "Antenna bars",
+    "file": "assets/Antenna bars/3D/antenna_bars_3d.png",
+    "slug": "antenna-bars"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_internet_box",
+   "n": "Box internet",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "wifi",
+     "code": 63025
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📡",
+    "dir": "Satellite antenna",
+    "file": "assets/Satellite antenna/3D/satellite_antenna_3d.png",
+    "slug": "satellite-antenna"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_family_dependents",
+   "n": "Personnes à charge",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "heart",
+     "code": 62314
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🫂",
+     "dir": "People hugging",
+     "file": "assets/People hugging/3D/people_hugging_3d.png",
+     "slug": "people-hugging"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🏡",
+     "dir": "House with garden",
+     "file": "assets/House with garden/3D/house_with_garden_3d.png",
+     "slug": "house-with-garden"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "👥",
+     "dir": "Busts in silhouette",
+     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+     "slug": "busts-in-silhouette"
+    }
+   ],
+   "note": "Pas de famille en 3D dans Fluent."
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_family_medical",
+   "n": "Frais médicaux d’un proche",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "heart",
+     "code": 62314
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "❤️‍🩹",
+    "dir": "Mending heart",
+    "file": "assets/Mending heart/3D/mending_heart_3d.png",
+    "slug": "mending-heart"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_family_childcare",
+   "n": "Garde d’enfants",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "heart",
+     "code": 62314
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧸",
+    "dir": "Teddy bear",
+    "file": "assets/Teddy bear/3D/teddy_bear_3d.png",
+    "slug": "teddy-bear"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_family_alimony",
+   "n": "Pension alimentaire",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "heart",
+     "code": 62314
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📨",
+    "dir": "Incoming envelope",
+    "file": "assets/Incoming envelope/3D/incoming_envelope_3d.png",
+    "slug": "incoming-envelope"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_social_religious",
+   "n": "Dons et offrandes",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-circle",
+     "code": 62624
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🙏",
+    "dir": "Folded hands",
+    "file": "assets/Folded hands/Default/3D/folded_hands_3d_default.png",
+    "slug": "folded-hands"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_informal_community",
+   "n": "Épargne communautaire",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people",
+     "code": 62623
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👥",
+    "dir": "Busts in silhouette",
+    "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "slug": "busts-in-silhouette"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_informal_loan_given",
+   "n": "Prêt à un proche",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people",
+     "code": 62623
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🤲",
+    "dir": "Palms up together",
+    "file": "assets/Palms up together/Default/3D/palms_up_together_3d_default.png",
+    "slug": "palms-up-together"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_taxes_income",
+   "n": "Impôt sur le revenu",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "document-text",
+     "code": 62131
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏛️",
+    "dir": "Classical building",
+    "file": "assets/Classical building/3D/classical_building_3d.png",
+    "slug": "classical-building"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_taxes_local",
+   "n": "Taxes locales",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "document-text",
+     "code": 62131
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏘️",
+    "dir": "Houses",
+    "file": "assets/Houses/3D/houses_3d.png",
+    "slug": "houses"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_taxes_social",
+   "n": "Cotisations sociales",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "document-text",
+     "code": 62131
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📑",
+    "dir": "Bookmark tabs",
+    "file": "assets/Bookmark tabs/3D/bookmark_tabs_3d.png",
+    "slug": "bookmark-tabs"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_taxes_general",
+   "n": "Impôts et taxes",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "document-text",
+     "code": 62131
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏛️",
+    "dir": "Classical building",
+    "file": "assets/Classical building/3D/classical_building_3d.png",
+    "slug": "classical-building"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_insurance_home",
+   "n": "Assurance habitation",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shield-checkmark",
+     "code": 62840
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏡",
+    "dir": "House with garden",
+    "file": "assets/House with garden/3D/house_with_garden_3d.png",
+    "slug": "house-with-garden"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_insurance_life",
+   "n": "Assurance vie / prévoyance",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shield-checkmark",
+     "code": 62840
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "☂️",
+    "dir": "Umbrella",
+    "file": "assets/Umbrella/3D/umbrella_3d.png",
+    "slug": "umbrella"
+   }
+  },
+  {
+   "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
+   "id": "sub_insurance_health",
+   "n": "Assurance santé",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shield-checkmark",
+     "code": 62840
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛡️",
+    "dir": "Shield",
+    "file": "assets/Shield/3D/shield_3d.png",
+    "slug": "shield"
+   }
+  },
+  {
+   "r": "Dépenses — anciennes catégories système",
+   "id": "cat_internet",
+   "n": "Internet",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "wifi",
+     "code": 63025
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🌐",
+    "dir": "Globe with meridians",
+    "file": "assets/Globe with meridians/3D/globe_with_meridians_3d.png",
+    "slug": "globe-with-meridians"
+   }
+  },
+  {
+   "r": "Dépenses — anciennes catégories système",
+   "id": "cat_savings",
+   "n": "Épargne (ancienne catégorie)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "wallet",
+     "code": 63013
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🐷",
+    "dir": "Pig face",
+    "file": "assets/Pig face/3D/pig_face_3d.png",
+    "slug": "pig-face"
+   }
+  },
+  {
+   "r": "Dépenses — anciennes catégories système",
+   "id": "cat_investment",
+   "n": "Investissement",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "trending-up",
+     "code": 62971
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📈",
+    "dir": "Chart increasing",
+    "file": "assets/Chart increasing/3D/chart_increasing_3d.png",
+    "slug": "chart-increasing"
+   }
+  },
+  {
+   "r": "Dépenses — anciennes catégories système",
+   "id": "cat_informal",
+   "n": "Tontines et cotisations",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people",
+     "code": 62623
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👥",
+    "dir": "Busts in silhouette",
+    "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "slug": "busts-in-silhouette"
+   }
+  },
+  {
+   "r": "Dépenses — anciennes catégories système",
+   "id": "cat_taxes",
+   "n": "Impôts et cotisations",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "document-text",
+     "code": 62131
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏛️",
+    "dir": "Classical building",
+    "file": "assets/Classical building/3D/classical_building_3d.png",
+    "slug": "classical-building"
+   }
+  },
+  {
+   "r": "Dépenses — anciennes catégories système",
+   "id": "cat_insurance",
+   "n": "Assurances",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shield-checkmark",
+     "code": 62840
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛡️",
+    "dir": "Shield",
+    "file": "assets/Shield/3D/shield_3d.png",
+    "slug": "shield"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_salary",
+   "n": "Salaire",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "briefcase",
+     "code": 61873
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💼",
+    "dir": "Briefcase",
+    "file": "assets/Briefcase/3D/briefcase_3d.png",
+    "slug": "briefcase"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_business",
+   "n": "Activité commerciale",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "storefront",
+     "code": 62887
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏪",
+    "dir": "Convenience store",
+    "file": "assets/Convenience store/3D/convenience_store_3d.png",
+    "slug": "convenience-store"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_freelance",
+   "n": "Freelance",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "laptop",
+     "code": 62380
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💻",
+    "dir": "Laptop",
+    "file": "assets/Laptop/3D/laptop_3d.png",
+    "slug": "laptop"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_commission",
+   "n": "Commission",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "pricetag",
+     "code": 62698
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏷️",
+    "dir": "Label",
+    "file": "assets/Label/3D/label_3d.png",
+    "slug": "label"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_pension",
+   "n": "Pension",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "umbrella",
+     "code": 62983
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👴",
+    "dir": "Old man",
+    "file": "assets/Old man/Default/3D/old_man_3d_default.png",
+    "slug": "old-man"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_family",
+   "n": "Aide familiale",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people",
+     "code": 62623
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🤲",
+    "dir": "Palms up together",
+    "file": "assets/Palms up together/Default/3D/palms_up_together_3d_default.png",
+    "slug": "palms-up-together"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_rent",
+   "n": "Revenus locatifs",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "key",
+     "code": 62371
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏘️",
+    "dir": "Houses",
+    "file": "assets/Houses/3D/houses_3d.png",
+    "slug": "houses"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_agri",
+   "n": "Activité agricole",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "leaf",
+     "code": 62386
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🌾",
+    "dir": "Sheaf of rice",
+    "file": "assets/Sheaf of rice/3D/sheaf_of_rice_3d.png",
+    "slug": "sheaf-of-rice"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_allowance",
+   "n": "Allocations",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "gift",
+     "code": 62263
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📬",
+    "dir": "Open mailbox with raised flag",
+    "file": "assets/Open mailbox with raised flag/3D/open_mailbox_with_raised_flag_3d.png",
+    "slug": "open-mailbox-with-raised-flag"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_investment",
+   "n": "Revenus d’investissement",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "trending-up",
+     "code": 62971
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📈",
+    "dir": "Chart increasing",
+    "file": "assets/Chart increasing/3D/chart_increasing_3d.png",
+    "slug": "chart-increasing"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_sale",
+   "n": "Vente",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "pricetags",
+     "code": 62701
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏷️",
+    "dir": "Label",
+    "file": "assets/Label/3D/label_3d.png",
+    "slug": "label"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_side",
+   "n": "Activité secondaire",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "construct",
+     "code": 62086
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛠️",
+    "dir": "Hammer and wrench",
+    "file": "assets/Hammer and wrench/3D/hammer_and_wrench_3d.png",
+    "slug": "hammer-and-wrench"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_gift",
+   "n": "Cadeaux reçus",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "gift",
+     "code": 62263
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎁",
+    "dir": "Wrapped gift",
+    "file": "assets/Wrapped gift/3D/wrapped_gift_3d.png",
+    "slug": "wrapped-gift"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_tontine",
+   "n": "Tontine reçue",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people",
+     "code": 62623
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🪙",
+     "dir": "Coin",
+     "file": "assets/Coin/3D/coin_3d.png",
+     "slug": "coin"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "💰",
+     "dir": "Money bag",
+     "file": "assets/Money bag/3D/money_bag_3d.png",
+     "slug": "money-bag"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🤝",
+     "dir": "Handshake",
+     "file": "assets/Handshake/3D/handshake_3d.png",
+     "slug": "handshake"
+    }
+   ],
+   "note": "Même choix que la catégorie Tontine."
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_refund",
+   "n": "Remboursements reçus",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "return-down-back",
+     "code": 62776
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💵",
+    "dir": "Dollar banknote",
+    "file": "assets/Dollar banknote/3D/dollar_banknote_3d.png",
+    "slug": "dollar-banknote"
+   }
+  },
+  {
+   "r": "Revenus",
+   "id": "inc_other",
+   "n": "Autres revenus",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "add-circle",
+     "code": 61700
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💰",
+    "dir": "Money bag",
+    "file": "assets/Money bag/3D/money_bag_3d.png",
+    "slug": "money-bag"
+   }
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.cash",
+   "n": "Cash (espèces)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "cash",
+     "code": 61957
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💵",
+    "dir": "Dollar banknote",
+    "file": "assets/Dollar banknote/3D/dollar_banknote_3d.png",
+    "slug": "dollar-banknote"
+   }
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.orange",
+   "n": "Orange Money",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "phone-portrait",
+     "code": 62644
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📱",
+    "dir": "Mobile phone",
+    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "slug": "mobile-phone"
+   },
+   "logo": true
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.mtn",
+   "n": "MTN Money",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "phone-portrait",
+     "code": 62644
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📱",
+    "dir": "Mobile phone",
+    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "slug": "mobile-phone"
+   },
+   "logo": true
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.moov",
+   "n": "Moov Money",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "phone-portrait",
+     "code": 62644
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📱",
+    "dir": "Mobile phone",
+    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "slug": "mobile-phone"
+   },
+   "logo": true
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.wave",
+   "n": "Wave",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "water",
+     "code": 63022
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📱",
+    "dir": "Mobile phone",
+    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "slug": "mobile-phone"
+   },
+   "logo": true
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.free",
+   "n": "Free Money",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "phone-portrait",
+     "code": 62644
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📱",
+    "dir": "Mobile phone",
+    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "slug": "mobile-phone"
+   },
+   "logo": true
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.airtel",
+   "n": "Airtel Money",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "phone-portrait",
+     "code": 62644
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📱",
+    "dir": "Mobile phone",
+    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "slug": "mobile-phone"
+   },
+   "logo": true
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.mobile",
+   "n": "Autre Mobile Money",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "phone-portrait",
+     "code": 62644
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📱",
+    "dir": "Mobile phone",
+    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "slug": "mobile-phone"
+   }
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.bank",
+   "n": "Compte bancaire",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "business",
+     "code": 61894
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏦",
+    "dir": "Bank",
+    "file": "assets/Bank/3D/bank_3d.png",
+    "slug": "bank"
+   }
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.current",
+   "n": "Compte courant",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "business",
+     "code": 61894
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏦",
+    "dir": "Bank",
+    "file": "assets/Bank/3D/bank_3d.png",
+    "slug": "bank"
+   }
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.joint",
+   "n": "Compte joint",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people",
+     "code": 62623
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👥",
+    "dir": "Busts in silhouette",
+    "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "slug": "busts-in-silhouette"
+   }
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.savings",
+   "n": "Compte épargne",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "wallet",
+     "code": 63013
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🐷",
+    "dir": "Pig face",
+    "file": "assets/Pig face/3D/pig_face_3d.png",
+    "slug": "pig-face"
+   }
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.card",
+   "n": "Carte bancaire",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "card",
+     "code": 61927
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💳",
+    "dir": "Credit card",
+    "file": "assets/Credit card/3D/credit_card_3d.png",
+    "slug": "credit-card"
+   }
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.investment",
+   "n": "Compte d’investissement",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "trending-up",
+     "code": 62971
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📈",
+    "dir": "Chart increasing",
+    "file": "assets/Chart increasing/3D/chart_increasing_3d.png",
+    "slug": "chart-increasing"
+   }
+  },
+  {
+   "r": "Comptes",
+   "id": "acc.tontine",
+   "n": "Tontine (compte)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people",
+     "code": 62623
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🪙",
+     "dir": "Coin",
+     "file": "assets/Coin/3D/coin_3d.png",
+     "slug": "coin"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "💰",
+     "dir": "Money bag",
+     "file": "assets/Money bag/3D/money_bag_3d.png",
+     "slug": "money-bag"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🤝",
+     "dir": "Handshake",
+     "file": "assets/Handshake/3D/handshake_3d.png",
+     "slug": "handshake"
+    }
+   ],
+   "note": "Même choix que la catégorie Tontine."
+  },
+  {
+   "r": "Objectifs — familles",
+   "id": "goal.vehicle",
+   "n": "Véhicule",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🚗"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚗",
+    "dir": "Automobile",
+    "file": "assets/Automobile/3D/automobile_3d.png",
+    "slug": "automobile"
+   }
+  },
+  {
+   "r": "Objectifs — familles",
+   "id": "goal.real_estate",
+   "n": "Immobilier",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🏠"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏠",
+    "dir": "House",
+    "file": "assets/House/3D/house_3d.png",
+    "slug": "house"
+   }
+  },
+  {
+   "r": "Objectifs — familles",
+   "id": "goal.professional",
+   "n": "Projet professionnel",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "💼"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💼",
+    "dir": "Briefcase",
+    "file": "assets/Briefcase/3D/briefcase_3d.png",
+    "slug": "briefcase"
+   }
+  },
+  {
+   "r": "Objectifs — familles",
+   "id": "goal.education",
+   "n": "Éducation",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🎓"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎓",
+    "dir": "Graduation cap",
+    "file": "assets/Graduation cap/3D/graduation_cap_3d.png",
+    "slug": "graduation-cap"
+   }
+  },
+  {
+   "r": "Objectifs — familles",
+   "id": "goal.family",
+   "n": "Famille",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "👨‍👩‍👧"
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🫂",
+     "dir": "People hugging",
+     "file": "assets/People hugging/3D/people_hugging_3d.png",
+     "slug": "people-hugging"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🏡",
+     "dir": "House with garden",
+     "file": "assets/House with garden/3D/house_with_garden_3d.png",
+     "slug": "house-with-garden"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "👥",
+     "dir": "Busts in silhouette",
+     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+     "slug": "busts-in-silhouette"
+    }
+   ],
+   "note": "Pas de famille en 3D dans Fluent."
+  },
+  {
+   "r": "Objectifs — familles",
+   "id": "goal.personal",
+   "n": "Projet personnel",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "✈️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "✈️",
+    "dir": "Airplane",
+    "file": "assets/Airplane/3D/airplane_3d.png",
+    "slug": "airplane"
+   }
+  },
+  {
+   "r": "Objectifs — familles",
+   "id": "goal.finance",
+   "n": "Sécurité financière",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "💰"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💰",
+    "dir": "Money bag",
+    "file": "assets/Money bag/3D/money_bag_3d.png",
+    "slug": "money-bag"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "buy_car",
+   "n": "Acheter une voiture",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🚗"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚗",
+    "dir": "Automobile",
+    "file": "assets/Automobile/3D/automobile_3d.png",
+    "slug": "automobile"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "buy_moto",
+   "n": "Acheter une moto",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🏍️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏍️",
+    "dir": "Motorcycle",
+    "file": "assets/Motorcycle/3D/motorcycle_3d.png",
+    "slug": "motorcycle"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "buy_vehicle",
+   "n": "Acheter un autre véhicule",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🚐"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚐",
+    "dir": "Minibus",
+    "file": "assets/Minibus/3D/minibus_3d.png",
+    "slug": "minibus"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "buy_land",
+   "n": "Acheter un terrain",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🏞️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏞️",
+    "dir": "National park",
+    "file": "assets/National park/3D/national_park_3d.png",
+    "slug": "national-park"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "buy_house",
+   "n": "Acheter une maison",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🏡"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏡",
+    "dir": "House with garden",
+    "file": "assets/House with garden/3D/house_with_garden_3d.png",
+    "slug": "house-with-garden"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "build_house",
+   "n": "Construire une maison",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🏗️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏗️",
+    "dir": "Building construction",
+    "file": "assets/Building construction/3D/building_construction_3d.png",
+    "slug": "building-construction"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "renovate_house",
+   "n": "Rénover une maison",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🛠️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛠️",
+    "dir": "Hammer and wrench",
+    "file": "assets/Hammer and wrench/3D/hammer_and_wrench_3d.png",
+    "slug": "hammer-and-wrench"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "buy_machine",
+   "n": "Acheter une machine",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "⚙️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "⚙️",
+    "dir": "Gear",
+    "file": "assets/Gear/3D/gear_3d.png",
+    "slug": "gear"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "pro_equipment",
+   "n": "Matériel professionnel",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🧰"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧰",
+    "dir": "Toolbox",
+    "file": "assets/Toolbox/3D/toolbox_3d.png",
+    "slug": "toolbox"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "start_business",
+   "n": "Créer une entreprise",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🏪"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏪",
+    "dir": "Convenience store",
+    "file": "assets/Convenience store/3D/convenience_store_3d.png",
+    "slug": "convenience-store"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "grow_business",
+   "n": "Développer mon activité",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "📈"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📈",
+    "dir": "Chart increasing",
+    "file": "assets/Chart increasing/3D/chart_increasing_3d.png",
+    "slug": "chart-increasing"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "farm_equipment",
+   "n": "Matériel agricole",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🚜"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🚜",
+    "dir": "Tractor",
+    "file": "assets/Tractor/3D/tractor_3d.png",
+    "slug": "tractor"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "training",
+   "n": "Formation",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "📚"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📚",
+    "dir": "Books",
+    "file": "assets/Books/3D/books_3d.png",
+    "slug": "books"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "studies",
+   "n": "Études",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🎓"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎓",
+    "dir": "Graduation cap",
+    "file": "assets/Graduation cap/3D/graduation_cap_3d.png",
+    "slug": "graduation-cap"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "child_studies",
+   "n": "Études d’un enfant",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🎒"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎒",
+    "dir": "Backpack",
+    "file": "assets/Backpack/3D/backpack_3d.png",
+    "slug": "backpack"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "wedding",
+   "n": "Mariage",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "💍"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💍",
+    "dir": "Ring",
+    "file": "assets/Ring/3D/ring_3d.png",
+    "slug": "ring"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "family_project",
+   "n": "Projet familial",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "👨‍👩‍👧"
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🫂",
+     "dir": "People hugging",
+     "file": "assets/People hugging/3D/people_hugging_3d.png",
+     "slug": "people-hugging"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🏡",
+     "dir": "House with garden",
+     "file": "assets/House with garden/3D/house_with_garden_3d.png",
+     "slug": "house-with-garden"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "👥",
+     "dir": "Busts in silhouette",
+     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+     "slug": "busts-in-silhouette"
+    }
+   ],
+   "note": "Pas de famille en 3D dans Fluent."
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "family_expense",
+   "n": "Dépense importante pour la famille",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🏠"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏠",
+    "dir": "House",
+    "file": "assets/House/3D/house_3d.png",
+    "slug": "house"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "travel",
+   "n": "Voyage",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "✈️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "✈️",
+    "dir": "Airplane",
+    "file": "assets/Airplane/3D/airplane_3d.png",
+    "slug": "airplane"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "phone",
+   "n": "Téléphone",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "📱"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📱",
+    "dir": "Mobile phone",
+    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "slug": "mobile-phone"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "computer",
+   "n": "Ordinateur",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "💻"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💻",
+    "dir": "Laptop",
+    "file": "assets/Laptop/3D/laptop_3d.png",
+    "slug": "laptop"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "big_purchase",
+   "n": "Autre achat important",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🛍️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛍️",
+    "dir": "Shopping bags",
+    "file": "assets/Shopping bags/3D/shopping_bags_3d.png",
+    "slug": "shopping-bags"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "emergency_fund",
+   "n": "Fonds d’urgence",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🛡️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛡️",
+    "dir": "Shield",
+    "file": "assets/Shield/3D/shield_3d.png",
+    "slug": "shield"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "savings",
+   "n": "Épargne",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🐷"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🐷",
+    "dir": "Pig face",
+    "file": "assets/Pig face/3D/pig_face_3d.png",
+    "slug": "pig-face"
+   }
+  },
+  {
+   "r": "Objectifs — modèles",
+   "id": "goal.custom",
+   "n": "Créer mon propre objectif",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "✏️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "✏️",
+    "dir": "Pencil",
+    "file": "assets/Pencil/3D/pencil_3d.png",
+    "slug": "pencil"
+   }
+  },
+  {
+   "r": "Réserve et moments forts",
+   "id": "reserve",
+   "n": "Réserve famille et cérémonies",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🤝"
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🤝",
+     "dir": "Handshake",
+     "file": "assets/Handshake/3D/handshake_3d.png",
+     "slug": "handshake"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🤲",
+     "dir": "Palms up together",
+     "file": "assets/Palms up together/Default/3D/palms_up_together_3d_default.png",
+     "slug": "palms-up-together"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "👛",
+     "dir": "Purse",
+     "file": "assets/Purse/3D/purse_3d.png",
+     "slug": "purse"
+    }
+   ],
+   "note": "Poignée de main (actuelle), mains ouvertes ou porte-monnaie ?"
+  },
+  {
+   "r": "Réserve et moments forts",
+   "id": "season.school_start",
+   "n": "Rentrée scolaire",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🎒"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎒",
+    "dir": "Backpack",
+    "file": "assets/Backpack/3D/backpack_3d.png",
+    "slug": "backpack"
+   }
+  },
+  {
+   "r": "Réserve et moments forts",
+   "id": "season.tabaski",
+   "n": "Tabaski",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🐑"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🐑",
+    "dir": "Ewe",
+    "file": "assets/Ewe/3D/ewe_3d.png",
+    "slug": "ewe"
+   }
+  },
+  {
+   "r": "Réserve et moments forts",
+   "id": "season.ramadan_end",
+   "n": "Fin du Ramadan",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🌙"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🌙",
+    "dir": "Crescent moon",
+    "file": "assets/Crescent moon/3D/crescent_moon_3d.png",
+    "slug": "crescent-moon"
+   }
+  },
+  {
+   "r": "Réserve et moments forts",
+   "id": "season.christmas",
+   "n": "Noël et fin d’année",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🎄"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎄",
+    "dir": "Christmas tree",
+    "file": "assets/Christmas tree/3D/christmas_tree_3d.png",
+    "slug": "christmas-tree"
+   }
+  },
+  {
+   "r": "Réserve et moments forts",
+   "id": "season.easter",
+   "n": "Pâques",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🕊️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🕊️",
+    "dir": "Dove",
+    "file": "assets/Dove/3D/dove_3d.png",
+    "slug": "dove"
+   }
+  },
+  {
+   "r": "Réserve et moments forts",
+   "id": "season.custom",
+   "n": "Moment personnel",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "calendar-number",
+     "code": 61907
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🗓️",
+    "dir": "Spiral calendar",
+    "file": "assets/Spiral calendar/3D/spiral_calendar_3d.png",
+    "slug": "spiral-calendar"
+   }
+  },
+  {
+   "r": "Tontines",
+   "id": "tontine.type.rotating",
+   "n": "Tontine tournante",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "repeat",
+     "code": 62767
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🔄",
+     "dir": "Counterclockwise arrows button",
+     "file": "assets/Counterclockwise arrows button/3D/counterclockwise_arrows_button_3d.png",
+     "slug": "counterclockwise-arrows-button"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🪙",
+     "dir": "Coin",
+     "file": "assets/Coin/3D/coin_3d.png",
+     "slug": "coin"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🤝",
+     "dir": "Handshake",
+     "file": "assets/Handshake/3D/handshake_3d.png",
+     "slug": "handshake"
+    }
+   ],
+   "note": "Pas de « tour de cagnotte »."
+  },
+  {
+   "r": "Tontines",
+   "id": "tontine.type.collector",
+   "n": "Épargne avec un collecteur",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people",
+     "code": 62623
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👛",
+    "dir": "Purse",
+    "file": "assets/Purse/3D/purse_3d.png",
+    "slug": "purse"
+   }
+  },
+  {
+   "r": "Tontines",
+   "id": "tontine.type.fixed_contribution",
+   "n": "Cotisation sans tour",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people",
+     "code": 62623
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧾",
+    "dir": "Receipt",
+    "file": "assets/Receipt/3D/receipt_3d.png",
+    "slug": "receipt"
+   }
+  },
+  {
+   "r": "Tontines",
+   "id": "tontine.pot",
+   "n": "Cagnotte reçue",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "cash-outline",
+     "code": 61958
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💰",
+    "dir": "Money bag",
+    "file": "assets/Money bag/3D/money_bag_3d.png",
+    "slug": "money-bag"
+   }
+  },
+  {
+   "r": "Tontines",
+   "id": "tontine.group",
+   "n": "Tontine en groupe (inviter, rejoindre)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-outline",
+     "code": 62627
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👥",
+    "dir": "Busts in silhouette",
+    "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "slug": "busts-in-silhouette"
+   }
+  },
+  {
+   "r": "Tontines",
+   "id": "tontine.recurring",
+   "n": "Tontine saisie comme récurrence",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "repeat",
+     "code": 62767
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🔁",
+    "dir": "Repeat button",
+    "file": "assets/Repeat button/3D/repeat_button_3d.png",
+    "slug": "repeat-button"
+   }
+  },
+  {
+   "r": "Dettes et prêts",
+   "id": "debt.kind.personal",
+   "n": "Dette personnelle",
+   "cur": [],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧾",
+    "dir": "Receipt",
+    "file": "assets/Receipt/3D/receipt_3d.png",
+    "slug": "receipt"
+   }
+  },
+  {
+   "r": "Dettes et prêts",
+   "id": "debt.kind.bank",
+   "n": "Crédit bancaire",
+   "cur": [],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏦",
+    "dir": "Bank",
+    "file": "assets/Bank/3D/bank_3d.png",
+    "slug": "bank"
+   }
+  },
+  {
+   "r": "Dettes et prêts",
+   "id": "debt.kind.family",
+   "n": "Crédit familial",
+   "cur": [],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🫂",
+     "dir": "People hugging",
+     "file": "assets/People hugging/3D/people_hugging_3d.png",
+     "slug": "people-hugging"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🏡",
+     "dir": "House with garden",
+     "file": "assets/House with garden/3D/house_with_garden_3d.png",
+     "slug": "house-with-garden"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "👥",
+     "dir": "Busts in silhouette",
+     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+     "slug": "busts-in-silhouette"
+    }
+   ],
+   "note": "Pas de famille en 3D dans Fluent."
+  },
+  {
+   "r": "Dettes et prêts",
+   "id": "debt.kind.supplier",
+   "n": "Dette fournisseur",
+   "cur": [],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📦",
+    "dir": "Package",
+    "file": "assets/Package/3D/package_3d.png",
+    "slug": "package"
+   }
+  },
+  {
+   "r": "Dettes et prêts",
+   "id": "debt.kind.loan_given",
+   "n": "Prêt accordé à quelqu’un",
+   "cur": [],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🤲",
+    "dir": "Palms up together",
+    "file": "assets/Palms up together/Default/3D/palms_up_together_3d_default.png",
+    "slug": "palms-up-together"
+   }
+  },
+  {
+   "r": "Dettes et prêts",
+   "id": "debt.kind.loan_received",
+   "n": "Prêt reçu de quelqu’un",
+   "cur": [],
+   "p": {
+    "kind": "emoji",
+    "glyph": "💵",
+    "dir": "Dollar banknote",
+    "file": "assets/Dollar banknote/3D/dollar_banknote_3d.png",
+    "slug": "dollar-banknote"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "tx.empty",
+   "n": "Aucune opération",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🧾"
+    },
+    {
+     "kind": "ion",
+     "name": "receipt-outline",
+     "code": 62735
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧾",
+    "dir": "Receipt",
+    "file": "assets/Receipt/3D/receipt_3d.png",
+    "slug": "receipt"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "tx.empty.filtered",
+   "n": "Aucun résultat (recherche)",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🔎"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🔎",
+    "dir": "Magnifying glass tilted right",
+    "file": "assets/Magnifying glass tilted right/3D/magnifying_glass_tilted_right_3d.png",
+    "slug": "magnifying-glass-tilted-right"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "home.noAccount",
+   "n": "Aucun compte (accueil)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "wallet-outline",
+     "code": 63014
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👛",
+    "dir": "Purse",
+    "file": "assets/Purse/3D/purse_3d.png",
+    "slug": "purse"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "acc.empty",
+   "n": "Aucun compte",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "👛"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👛",
+    "dir": "Purse",
+    "file": "assets/Purse/3D/purse_3d.png",
+    "slug": "purse"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "env.empty",
+   "n": "Aucune enveloppe",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "pie-chart-outline",
+     "code": 62648
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📊",
+    "dir": "Bar chart",
+    "file": "assets/Bar chart/3D/bar_chart_3d.png",
+    "slug": "bar-chart"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "goal.empty",
+   "n": "Aucun objectif / objectif introuvable",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🎯"
+    },
+    {
+     "kind": "ion",
+     "name": "flag-outline",
+     "code": 62225
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎯",
+    "dir": "Bullseye",
+    "file": "assets/Bullseye/3D/bullseye_3d.png",
+    "slug": "bullseye"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "sav.empty",
+   "n": "Aucune épargne",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🐷"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🐷",
+    "dir": "Pig face",
+    "file": "assets/Pig face/3D/pig_face_3d.png",
+    "slug": "pig-face"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "tontine.empty",
+   "n": "Aucune tontine / introuvable",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🤝"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🤝",
+    "dir": "Handshake",
+    "file": "assets/Handshake/3D/handshake_3d.png",
+    "slug": "handshake"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "reserve.notFound",
+   "n": "Réserve introuvable",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🤝"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🤝",
+    "dir": "Handshake",
+    "file": "assets/Handshake/3D/handshake_3d.png",
+    "slug": "handshake"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "debt.empty",
+   "n": "Aucune dette",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🧾"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧾",
+    "dir": "Receipt",
+    "file": "assets/Receipt/3D/receipt_3d.png",
+    "slug": "receipt"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "rec.empty",
+   "n": "Aucune opération récurrente",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🔁"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🔁",
+    "dir": "Repeat button",
+    "file": "assets/Repeat button/3D/repeat_button_3d.png",
+    "slug": "repeat-button"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "nw.empty",
+   "n": "Aucun bien (patrimoine)",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🏡"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏡",
+    "dir": "House with garden",
+    "file": "assets/House with garden/3D/house_with_garden_3d.png",
+    "slug": "house-with-garden"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "fam.empty",
+   "n": "Aucun espace famille",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "👨‍👩‍👧"
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "🫂",
+     "dir": "People hugging",
+     "file": "assets/People hugging/3D/people_hugging_3d.png",
+     "slug": "people-hugging"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🏡",
+     "dir": "House with garden",
+     "file": "assets/House with garden/3D/house_with_garden_3d.png",
+     "slug": "house-with-garden"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "👥",
+     "dir": "Busts in silhouette",
+     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+     "slug": "busts-in-silhouette"
+    }
+   ],
+   "note": "Pas de famille en 3D dans Fluent."
+  },
+  {
+   "r": "Écrans vides",
+   "id": "cal.empty",
+   "n": "Calendrier vide",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🗓️"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🗓️",
+    "dir": "Spiral calendar",
+    "file": "assets/Spiral calendar/3D/spiral_calendar_3d.png",
+    "slug": "spiral-calendar"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "notif.empty",
+   "n": "Aucune notification",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🔔"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🔔",
+    "dir": "Bell",
+    "file": "assets/Bell/3D/bell_3d.png",
+    "slug": "bell"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "rep.empty",
+   "n": "Aucun rapport",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "📊"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📊",
+    "dir": "Bar chart",
+    "file": "assets/Bar chart/3D/bar_chart_3d.png",
+    "slug": "bar-chart"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "circle.withdraw",
+   "n": "Rien à retirer",
+   "cur": [
+    {
+     "kind": "system",
+     "glyph": "🪙"
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🪙",
+    "dir": "Coin",
+    "file": "assets/Coin/3D/coin_3d.png",
+    "slug": "coin"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "ref.list.empty",
+   "n": "Aucun filleul",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-outline",
+     "code": 62627
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👥",
+    "dir": "Busts in silhouette",
+    "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "slug": "busts-in-silhouette"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "tg.err.generic",
+   "n": "Tontine en groupe indisponible",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-outline",
+     "code": 62627
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "👥",
+    "dir": "Busts in silhouette",
+    "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "slug": "busts-in-silhouette"
+   }
+  },
+  {
+   "r": "Écrans vides",
+   "id": "reward.notYet",
+   "n": "Trophée pas encore obtenu",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "trophy-outline",
+     "code": 62978
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏆",
+    "dir": "Trophy",
+    "file": "assets/Trophy/3D/trophy_3d.png",
+    "slug": "trophy"
+   }
+  },
+  {
+   "r": "Récompenses",
+   "id": "reward.budget_master",
+   "n": "Maître du budget",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "ribbon",
+     "code": 62788
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎖️",
+    "dir": "Military medal",
+    "file": "assets/Military medal/3D/military_medal_3d.png",
+    "slug": "military-medal"
+   }
+  },
+  {
+   "r": "Récompenses",
+   "id": "reward.regular_saver",
+   "n": "Épargnant régulier",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "wallet",
+     "code": 63013
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🐷",
+    "dir": "Pig face",
+    "file": "assets/Pig face/3D/pig_face_3d.png",
+    "slug": "pig-face"
+   }
+  },
+  {
+   "r": "Récompenses",
+   "id": "reward.goal_achieved",
+   "n": "Objectif atteint",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "trophy",
+     "code": 62977
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏆",
+    "dir": "Trophy",
+    "file": "assets/Trophy/3D/trophy_3d.png",
+    "slug": "trophy"
+   }
+  },
+  {
+   "r": "Récompenses",
+   "id": "reward.emergency_fund",
+   "n": "Fonds d’urgence",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shield-checkmark",
+     "code": 62840
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛡️",
+    "dir": "Shield",
+    "file": "assets/Shield/3D/shield_3d.png",
+    "slug": "shield"
+   }
+  },
+  {
+   "r": "Récompenses",
+   "id": "reward.debt_master",
+   "n": "Dette maîtrisée",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "checkmark-done",
+     "code": 61985
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "✅",
+    "dir": "Check mark button",
+    "file": "assets/Check mark button/3D/check_mark_button_3d.png",
+    "slug": "check-mark-button"
+   }
+  },
+  {
+   "r": "Récompenses",
+   "id": "reward.discipline",
+   "n": "Discipline",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "flame",
+     "code": 62227
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🔥",
+    "dir": "Fire",
+    "file": "assets/Fire/3D/fire_3d.png",
+    "slug": "fire"
+   }
+  },
+  {
+   "r": "Récompenses",
+   "id": "reward.excellent",
+   "n": "Excellent comportement",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "star",
+     "code": 62869
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🌟",
+    "dir": "Glowing star",
+    "file": "assets/Glowing star/3D/glowing_star_3d.png",
+    "slug": "glowing-star"
+   }
+  },
+  {
+   "r": "Récompenses",
+   "id": "reward.regular_entry",
+   "n": "Saisie régulière",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "create",
+     "code": 62098
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📝",
+    "dir": "Memo",
+    "file": "assets/Memo/3D/memo_3d.png",
+    "slug": "memo"
+   }
+  },
+  {
+   "r": "Récompenses",
+   "id": "reward.trophy",
+   "n": "Trophée partagé",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "trophy-outline",
+     "code": 62978
+    }
+   ],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🏆",
+    "dir": "Trophy",
+    "file": "assets/Trophy/3D/trophy_3d.png",
+    "slug": "trophy"
+   }
+  },
+  {
+   "r": "Score",
+   "id": "score",
+   "n": "Score de comportement",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "speedometer",
+     "code": 62863
+    }
+   ],
+   "p": null,
+   "choose": [
+    {
+     "kind": "emoji",
+     "glyph": "📊",
+     "dir": "Bar chart",
+     "file": "assets/Bar chart/3D/bar_chart_3d.png",
+     "slug": "bar-chart"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🎯",
+     "dir": "Bullseye",
+     "file": "assets/Bullseye/3D/bullseye_3d.png",
+     "slug": "bullseye"
+    },
+    {
+     "kind": "emoji",
+     "glyph": "🧭",
+     "dir": "Compass",
+     "file": "assets/Compass/3D/compass_3d.png",
+     "slug": "compass"
+    }
+   ],
+   "note": "Pas de jauge dans la bibliothèque."
+  },
+  {
+   "r": "Score",
+   "id": "score.c.budgets",
+   "n": "Respect du budget",
+   "cur": [],
+   "p": {
+    "kind": "emoji",
+    "glyph": "📊",
+    "dir": "Bar chart",
+    "file": "assets/Bar chart/3D/bar_chart_3d.png",
+    "slug": "bar-chart"
+   }
+  },
+  {
+   "r": "Score",
+   "id": "score.c.savings",
+   "n": "Taux d’épargne",
+   "cur": [],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🐷",
+    "dir": "Pig face",
+    "file": "assets/Pig face/3D/pig_face_3d.png",
+    "slug": "pig-face"
+   }
+  },
+  {
+   "r": "Score",
+   "id": "score.c.goals",
+   "n": "Progression des objectifs",
+   "cur": [],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🎯",
+    "dir": "Bullseye",
+    "file": "assets/Bullseye/3D/bullseye_3d.png",
+    "slug": "bullseye"
+   }
+  },
+  {
+   "r": "Score",
+   "id": "score.c.debts",
+   "n": "Maîtrise des dettes et échéances",
+   "cur": [],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🧾",
+    "dir": "Receipt",
+    "file": "assets/Receipt/3D/receipt_3d.png",
+    "slug": "receipt"
+   }
+  },
+  {
+   "r": "Score",
+   "id": "score.c.emergency",
+   "n": "Épargne de précaution",
+   "cur": [],
+   "p": {
+    "kind": "emoji",
+    "glyph": "🛡️",
+    "dir": "Shield",
+    "file": "assets/Shield/3D/shield_3d.png",
+    "slug": "shield"
+   }
+  },
+  {
+   "r": "Score",
+   "id": "score.c.means",
+   "n": "Vivre selon ses moyens",
+   "cur": [],
+   "p": {
+    "kind": "emoji",
+    "glyph": "⚖️",
+    "dir": "Balance scale",
+    "file": "assets/Balance scale/3D/balance_scale_3d.png",
+    "slug": "balance-scale"
+   }
+  },
+  {
+   "r": "Pavés de l’accueil",
+   "id": "home.history",
+   "n": "Historique",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "time-outline",
+     "code": 62942
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "time-outline",
+    "code": 62942
+   }
+  },
+  {
+   "r": "Pavés de l’accueil",
+   "id": "home.income",
+   "n": "Revenu",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "arrow-down",
+     "code": 61741
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "arrow-down",
+    "code": 61741
+   }
+  },
+  {
+   "r": "Pavés de l’accueil",
+   "id": "home.transfer",
+   "n": "Transfert",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "swap-horizontal",
+     "code": 62896
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "swap-horizontal",
+    "code": 62896
+   }
+  },
+  {
+   "r": "Pavés de l’accueil",
+   "id": "home.reports",
+   "n": "Rapports",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "bar-chart-outline",
+     "code": 61808
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "bar-chart-outline",
+    "code": 61808
+   }
+  },
+  {
+   "r": "Pavés de l’accueil",
+   "id": "home.demo",
+   "n": "Mode démonstration",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "flask-outline",
+     "code": 62240
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "flask-outline",
+    "code": 62240
+   }
+  },
+  {
+   "r": "Pavés de l’accueil",
+   "id": "home.verify",
+   "n": "Vérifier l’adresse e-mail",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "mail-unread-outline",
+     "code": 62519
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "mail-unread-outline",
+    "code": 62519
+   }
+  },
+  {
+   "r": "Pavés de l’accueil",
+   "id": "home.feed.income",
+   "n": "Fil : revenu",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "arrow-down",
+     "code": 61741
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "arrow-down",
+    "code": 61741
+   }
+  },
+  {
+   "r": "Pavés de l’accueil",
+   "id": "home.feed.expense",
+   "n": "Fil : dépense",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "arrow-up",
+     "code": 61765
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "arrow-up",
+    "code": 61765
+   }
+  },
+  {
+   "r": "Pavés de l’accueil",
+   "id": "home.feed.savings",
+   "n": "Fil : épargne",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "wallet",
+     "code": 63013
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "wallet-outline",
+    "code": 63014
+   }
+  },
+  {
+   "r": "Pavés de l’accueil",
+   "id": "home.feed.budget",
+   "n": "Fil : budget",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "pie-chart",
+     "code": 62647
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "pie-chart-outline",
+    "code": 62648
+   }
+  },
+  {
+   "r": "Pavés de l’accueil",
+   "id": "home.goals",
+   "n": "Objectifs (carte)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "flag-outline",
+     "code": 62225
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "flag-outline",
+    "code": 62225
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "history.menu",
+   "n": "Historique des opérations",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "list",
+     "code": 62395
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "list-outline",
+    "code": 62399
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "acc.title",
+   "n": "Comptes",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "wallet",
+     "code": 63013
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "wallet-outline",
+    "code": 63014
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "sav.title",
+   "n": "Épargne",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "cash",
+     "code": 61957
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "cash-outline",
+    "code": 61958
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "tontine.title",
+   "n": "Mes tontines",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people",
+     "code": 62623
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "people-outline",
+    "code": 62627
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "obl.title",
+   "n": "Famille et obligations",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "heart",
+     "code": 62314
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "heart-outline",
+    "code": 62327
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "season.title",
+   "n": "Moments forts de l’année",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "calendar-number",
+     "code": 61907
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "calendar-number-outline",
+    "code": 61908
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "sim.title",
+   "n": "Puis-je contribuer ?",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "calculator",
+     "code": 61900
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "calculator-outline",
+    "code": 61901
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "debt.title",
+   "n": "Dettes et crédits",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "receipt",
+     "code": 62734
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "receipt-outline",
+    "code": 62735
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "nw.title",
+   "n": "Patrimoine",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "business",
+     "code": 61894
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "business-outline",
+    "code": 61895
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "rec.title",
+   "n": "Opérations récurrentes",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "repeat",
+     "code": 62767
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "repeat-outline",
+    "code": 62768
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "ai.title",
+   "n": "Assistant",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "chatbubble-ellipses",
+     "code": 61970
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "chatbubble-ellipses-outline",
+    "code": 61971
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "intel.title",
+   "n": "Analyse",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "analytics",
+     "code": 61723
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "analytics-outline",
+    "code": 61724
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "cal.title",
+   "n": "Calendrier",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "calendar",
+     "code": 61903
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "calendar-outline",
+    "code": 61910
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "fi.title",
+   "n": "Indépendance financière",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "trending-up",
+     "code": 62971
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "trending-up-outline",
+    "code": 62972
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "reward.title",
+   "n": "Récompenses",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "trophy",
+     "code": 62977
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "trophy-outline",
+    "code": 62978
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "score.cta",
+   "n": "Mon score",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "speedometer",
+     "code": 62863
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "speedometer-outline",
+    "code": 62864
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "fam.title",
+   "n": "Famille",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people",
+     "code": 62623
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "people-outline",
+    "code": 62627
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "rep.title",
+   "n": "Rapports",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "bar-chart",
+     "code": 61807
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "bar-chart-outline",
+    "code": 61808
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "notif.title",
+   "n": "Notifications",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "notifications",
+     "code": 62581
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "notifications-outline",
+    "code": 62591
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "cat.title",
+   "n": "Catégories",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "pricetags",
+     "code": 62701
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "pricetags-outline",
+    "code": 62702
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "ref.title",
+   "n": "Inviter",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "gift",
+     "code": 62263
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "gift-outline",
+    "code": 62264
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "more.review",
+   "n": "Donner mon avis",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "star",
+     "code": 62869
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "star-outline",
+    "code": 62873
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "sub.title",
+   "n": "Abonnement",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "sparkles",
+     "code": 62860
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "diamond-outline",
+    "code": 62114
+   },
+   "note": "Étincelles ✨ remplacées (signe « IA » à bannir)."
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "set.title",
+   "n": "Paramètres",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "settings",
+     "code": 62827
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "settings-outline",
+    "code": 62828
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "admin.title",
+   "n": "Administration",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shield-checkmark",
+     "code": 62840
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "shield-checkmark-outline",
+    "code": 62841
+   }
+  },
+  {
+   "r": "Pavés de Plus",
+   "id": "more.whatsappChannel",
+   "n": "Chaîne WhatsApp",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "logo-whatsapp",
+     "code": 62501
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "logo-whatsapp",
+    "code": 62501
+   },
+   "logo": true
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.listen",
+   "n": "Écouter",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "volume-high-outline",
+     "code": 62996
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "volume-high-outline",
+    "code": 62996
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.stop",
+   "n": "Arrêter la lecture",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "stop-circle-outline",
+     "code": 62880
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "stop-circle-outline",
+    "code": 62880
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.alert",
+   "n": "Alerte (budget dépassé)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "alert-circle",
+     "code": 61715
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "alert-circle-outline",
+    "code": 61716
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.warning",
+   "n": "Attention (budget épuisé)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "warning",
+     "code": 63016
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "warning-outline",
+    "code": 63017
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.info",
+   "n": "Information",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "information-circle-outline",
+     "code": 62361
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "information-circle-outline",
+    "code": 62361
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.tip",
+   "n": "Conseil",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "bulb-outline",
+     "code": 61889
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "bulb-outline",
+    "code": 61889
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.ai",
+   "n": "Assistant / budget automatique",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "sparkles",
+     "code": 62860
+    },
+    {
+     "kind": "ion",
+     "name": "sparkles-outline",
+     "code": 62861
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "chatbubble-ellipses-outline",
+    "code": 61971
+   },
+   "note": "Étincelles ✨ remplacées (signe « IA » à bannir)."
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.recommendation",
+   "n": "Recommandation",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "hand-left-outline",
+     "code": 62300
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "hand-left-outline",
+    "code": 62300
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.share",
+   "n": "Partager",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "share-social-outline",
+     "code": 62837
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "share-social-outline",
+    "code": 62837
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.whatsapp",
+   "n": "Partager sur WhatsApp",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "logo-whatsapp",
+     "code": 62501
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "logo-whatsapp",
+    "code": 62501
+   },
+   "logo": true
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.incomeSaving",
+   "n": "Revenu à mettre de côté",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "leaf-outline",
+     "code": 62387
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "leaf-outline",
+    "code": 62387
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.sync",
+   "n": "Synchronisation / hors ligne",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "sync-outline",
+     "code": 62906
+    },
+    {
+     "kind": "ion",
+     "name": "cloud-offline-outline",
+     "code": 62043
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "cloud-offline-outline",
+    "code": 62043
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.lock",
+   "n": "Réservé (formule)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "lock-closed",
+     "code": 62407
+    },
+    {
+     "kind": "ion",
+     "name": "lock-closed-outline",
+     "code": 62408
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "lock-closed-outline",
+    "code": 62408
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.week",
+   "n": "Semaine du parrainage (jour)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "ellipse-outline",
+     "code": 62156
+    },
+    {
+     "kind": "ion",
+     "name": "checkmark-circle",
+     "code": 61982
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "ellipse-outline",
+    "code": 62156
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.pending",
+   "n": "En attente",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "hourglass-outline",
+     "code": 62342
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "hourglass-outline",
+    "code": 62342
+   }
+  },
+  {
+   "r": "Coach, assistant et cartes",
+   "id": "coach.google",
+   "n": "Connexion Google",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "logo-google",
+     "code": 62453
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "logo-google",
+    "code": 62453
+   },
+   "logo": true
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.home.Onglet Accueil",
+   "n": "Onglet Accueil",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "home",
+     "code": 62338
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "home-outline",
+    "code": 62339
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.pie-chart.Onglet Budget",
+   "n": "Onglet Budget",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "pie-chart",
+     "code": 62647
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "pie-chart-outline",
+    "code": 62648
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.mic.Onglet Saisir (micro)",
+   "n": "Onglet Saisir (micro)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "mic",
+     "code": 62548
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "mic",
+    "code": 62548
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.flag.Onglet Objectifs",
+   "n": "Onglet Objectifs",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "flag",
+     "code": 62224
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "flag-outline",
+    "code": 62225
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.grid.Onglet Plus",
+   "n": "Onglet Plus",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "grid",
+     "code": 62293
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "grid-outline",
+    "code": 62294
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.chevron-back.Retour",
+   "n": "Retour",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "chevron-back",
+     "code": 61993
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "chevron-back",
+    "code": 61993
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.arrow-back.Retour (étape précédente)",
+   "n": "Retour (étape précédente)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "arrow-back",
+     "code": 61735
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "chevron-back",
+    "code": 61993
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.close.Fermer",
+   "n": "Fermer",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "close",
+     "code": 62026
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "close",
+    "code": 62026
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.chevron-forward.Ouvrir / suivant",
+   "n": "Ouvrir / suivant",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "chevron-forward",
+     "code": 62011
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "chevron-forward",
+    "code": 62011
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.chevron-down.Déplier",
+   "n": "Déplier",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "chevron-down",
+     "code": 62002
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "chevron-down",
+    "code": 62002
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.chevron-up.Replier",
+   "n": "Replier",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "chevron-up",
+     "code": 62017
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "chevron-up",
+    "code": 62017
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.add.Ajouter",
+   "n": "Ajouter",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "add",
+     "code": 61699
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "add",
+    "code": 61699
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.add-circle.Ajouter (cercle)",
+   "n": "Ajouter (cercle)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "add-circle",
+     "code": 61700
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "add",
+    "code": 61699
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.add-circle-outline.Ajouter (bouton)",
+   "n": "Ajouter (bouton)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "add-circle-outline",
+     "code": 61701
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "add",
+    "code": 61699
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.remove.Retirer / moins",
+   "n": "Retirer / moins",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "remove",
+     "code": 62752
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "remove",
+    "code": 62752
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.create-outline.Modifier",
+   "n": "Modifier",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "create-outline",
+     "code": 62099
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "create-outline",
+    "code": 62099
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.trash-outline.Supprimer",
+   "n": "Supprimer",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "trash-outline",
+     "code": 62966
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "trash-outline",
+    "code": 62966
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.archive-outline.Archiver",
+   "n": "Archiver",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "archive-outline",
+     "code": 61733
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "archive-outline",
+    "code": 61733
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.search.Rechercher",
+   "n": "Rechercher",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "search",
+     "code": 62815
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "search",
+    "code": 62815
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.options-outline.Filtrer / options",
+   "n": "Filtrer / options",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "options-outline",
+     "code": 62603
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "options-outline",
+    "code": 62603
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.reorder-three.Réordonner",
+   "n": "Réordonner",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "reorder-three",
+     "code": 62761
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "reorder-three",
+    "code": 62761
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.swap-vertical.Trier",
+   "n": "Trier",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "swap-vertical",
+     "code": 62899
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "swap-vertical",
+    "code": 62899
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.arrow-down.Revenu (entrée)",
+   "n": "Revenu (entrée)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "arrow-down",
+     "code": 61741
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "arrow-down",
+    "code": 61741
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.arrow-up.Dépense (sortie)",
+   "n": "Dépense (sortie)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "arrow-up",
+     "code": 61765
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "arrow-up",
+    "code": 61765
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.swap-horizontal.Transfert",
+   "n": "Transfert",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "swap-horizontal",
+     "code": 62896
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "swap-horizontal",
+    "code": 62896
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.time-outline.Historique",
+   "n": "Historique",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "time-outline",
+     "code": 62942
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "time-outline",
+    "code": 62942
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.list-outline.Liste",
+   "n": "Liste",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "list-outline",
+     "code": 62399
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "list-outline",
+    "code": 62399
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.mic-outline.Parler (micro)",
+   "n": "Parler (micro)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "mic-outline",
+     "code": 62558
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "mic-outline",
+    "code": 62558
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.keypad-outline.Clavier",
+   "n": "Clavier",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "keypad-outline",
+     "code": 62375
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "keypad-outline",
+    "code": 62375
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.stop.Arrêter l’enregistrement",
+   "n": "Arrêter l’enregistrement",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "stop",
+     "code": 62878
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "stop",
+    "code": 62878
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.send.Envoyer",
+   "n": "Envoyer",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "send",
+     "code": 62821
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "send",
+    "code": 62821
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.arrow-undo-outline.Annuler la saisie",
+   "n": "Annuler la saisie",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "arrow-undo-outline",
+     "code": 61763
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "arrow-undo-outline",
+    "code": 61763
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.arrow-forward.Continuer",
+   "n": "Continuer",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "arrow-forward",
+     "code": 61747
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "arrow-forward",
+    "code": 61747
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.refresh.Recommencer",
+   "n": "Recommencer",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "refresh",
+     "code": 62740
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "refresh",
+    "code": 62740
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.chatbubble-ellipses-outline.Conversation",
+   "n": "Conversation",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "chatbubble-ellipses-outline",
+     "code": 61971
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "chatbubble-ellipses-outline",
+    "code": 61971
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.help-circle-outline.Aide",
+   "n": "Aide",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "help-circle-outline",
+     "code": 62334
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "help-circle-outline",
+    "code": 62334
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.backspace-outline.Effacer (pavé)",
+   "n": "Effacer (pavé)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "backspace-outline",
+     "code": 61781
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "backspace-outline",
+    "code": 61781
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.calculator-outline.Calculer",
+   "n": "Calculer",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "calculator-outline",
+     "code": 61901
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "calculator-outline",
+    "code": 61901
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.checkmark.Valider",
+   "n": "Valider",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "checkmark",
+     "code": 61981
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "checkmark",
+    "code": 61981
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.checkmark-circle.Validé",
+   "n": "Validé",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "checkmark-circle",
+     "code": 61982
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "checkmark-circle",
+    "code": 61982
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.checkmark-circle-outline.Validé (contour)",
+   "n": "Validé (contour)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "checkmark-circle-outline",
+     "code": 61983
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "checkmark-circle-outline",
+    "code": 61983
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.checkmark-done-outline.Fait",
+   "n": "Fait",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "checkmark-done-outline",
+     "code": 61989
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "checkmark-done-outline",
+    "code": 61989
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.close-circle-outline.Refusé / annulé",
+   "n": "Refusé / annulé",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "close-circle-outline",
+     "code": 62028
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "close-circle-outline",
+    "code": 62028
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.pause.Pause",
+   "n": "Pause",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "pause",
+     "code": 62611
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "pause",
+    "code": 62611
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.play.Reprendre",
+   "n": "Reprendre",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "play",
+     "code": 62662
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "play",
+    "code": 62662
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.eye-outline.Afficher (montant / mot de passe)",
+   "n": "Afficher (montant / mot de passe)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "eye-outline",
+     "code": 62186
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "eye-outline",
+    "code": 62186
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.eye-off-outline.Masquer",
+   "n": "Masquer",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "eye-off-outline",
+     "code": 62184
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "eye-off-outline",
+    "code": 62184
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.notifications-outline.Notifications",
+   "n": "Notifications",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "notifications-outline",
+     "code": 62591
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "notifications-outline",
+    "code": 62591
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.notifications-off-outline.Notifications coupées",
+   "n": "Notifications coupées",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "notifications-off-outline",
+     "code": 62589
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "notifications-off-outline",
+    "code": 62589
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.person.Profil",
+   "n": "Profil",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "person",
+     "code": 62629
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "person-outline",
+    "code": 62636
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.person-outline.Profil (contour)",
+   "n": "Profil (contour)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "person-outline",
+     "code": 62636
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "person-outline",
+    "code": 62636
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.person-add-outline.Inviter une personne",
+   "n": "Inviter une personne",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "person-add-outline",
+     "code": 62631
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "person-add-outline",
+    "code": 62631
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.people-outline.Personnes",
+   "n": "Personnes",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "people-outline",
+     "code": 62627
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "people-outline",
+    "code": 62627
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.calendar-outline.Date",
+   "n": "Date",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "calendar-outline",
+     "code": 61910
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "calendar-outline",
+    "code": 61910
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.camera-outline.Photo du reçu",
+   "n": "Photo du reçu",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "camera-outline",
+     "code": 61916
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "camera-outline",
+    "code": 61916
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.copy-outline.Copier",
+   "n": "Copier",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "copy-outline",
+     "code": 62096
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "copy-outline",
+    "code": 62096
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.download-outline.Télécharger / exporter",
+   "n": "Télécharger / exporter",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "download-outline",
+     "code": 62138
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "download-outline",
+    "code": 62138
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.document-outline.Document",
+   "n": "Document",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "document-outline",
+     "code": 62129
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "document-outline",
+    "code": 62129
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.document-text-outline.Rapport (document)",
+   "n": "Rapport (document)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "document-text-outline",
+     "code": 62132
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "document-text-outline",
+    "code": 62132
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.open-outline.Ouvrir un lien",
+   "n": "Ouvrir un lien",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "open-outline",
+     "code": 62600
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "open-outline",
+    "code": 62600
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.mail-outline.E-mail",
+   "n": "E-mail",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "mail-outline",
+     "code": 62516
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "mail-outline",
+    "code": 62516
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.enter-outline.Rejoindre",
+   "n": "Rejoindre",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "enter-outline",
+     "code": 62171
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "enter-outline",
+    "code": 62171
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.exit-outline.Quitter",
+   "n": "Quitter",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "exit-outline",
+     "code": 62174
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "exit-outline",
+    "code": 62174
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.shuffle-outline.Tirer au sort l’ordre",
+   "n": "Tirer au sort l’ordre",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shuffle-outline",
+     "code": 62852
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "shuffle-outline",
+    "code": 62852
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.log-out-outline.Déconnexion",
+   "n": "Déconnexion",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "log-out-outline",
+     "code": 62417
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "log-out-outline",
+    "code": 62417
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.contrast-outline.Thème (apparence)",
+   "n": "Thème (apparence)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "contrast-outline",
+     "code": 62093
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "contrast-outline",
+    "code": 62093
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.flag-outline.Langue / localisation",
+   "n": "Langue / localisation",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "flag-outline",
+     "code": 62225
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "flag-outline",
+    "code": 62225
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.library-outline.Bibliothèque de catégories",
+   "n": "Bibliothèque de catégories",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "library-outline",
+     "code": 62390
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "library-outline",
+    "code": 62390
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.finger-print.Code PIN / empreinte",
+   "n": "Code PIN / empreinte",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "finger-print",
+     "code": 62215
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "finger-print",
+    "code": 62215
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.shield-checkmark-outline.Sécurité",
+   "n": "Sécurité",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "shield-checkmark-outline",
+     "code": 62841
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "shield-checkmark-outline",
+    "code": 62841
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.flash-outline.Mode rapide (onboarding)",
+   "n": "Mode rapide (onboarding)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "flash-outline",
+     "code": 62234
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "flash-outline",
+    "code": 62234
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.phone-portrait-outline.Utiliser sur ce téléphone",
+   "n": "Utiliser sur ce téléphone",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "phone-portrait-outline",
+     "code": 62645
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "phone-portrait-outline",
+    "code": 62645
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.ellipse.Point de couleur",
+   "n": "Point de couleur",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "ellipse",
+     "code": 62155
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "ellipse",
+    "code": 62155
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.file-tray-outline.Boîte vide",
+   "n": "Boîte vide",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "file-tray-outline",
+     "code": 62201
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "file-tray-outline",
+    "code": 62201
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.alert-circle-outline.Erreur",
+   "n": "Erreur",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "alert-circle-outline",
+     "code": 61716
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "alert-circle-outline",
+    "code": 61716
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.cash-outline.Aperçu (montant)",
+   "n": "Aperçu (montant)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "cash-outline",
+     "code": 61958
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "cash-outline",
+    "code": 61958
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.flag-outline.Échéance",
+   "n": "Échéance",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "flag-outline",
+     "code": 62225
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "flag-outline",
+    "code": 62225
+   }
+  },
+  {
+   "r": "Navigation et actions",
+   "id": "nav.star-outline.Étoile (épingler)",
+   "n": "Étoile (épingler)",
+   "cur": [
+    {
+     "kind": "ion",
+     "name": "star-outline",
+     "code": 62873
+    }
+   ],
+   "p": {
+    "kind": "ion",
+    "name": "star-outline",
+    "code": 62873
+   }
+  }
+ ]
+}

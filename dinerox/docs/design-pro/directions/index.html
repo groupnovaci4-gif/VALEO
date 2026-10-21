@@ -170,9 +170,10 @@ const D = {
   rows: [['Argent disponible', '655 500 FCFA'], ['Mis de côté', '880 000 FCFA'], ['Total de vos comptes', '1 155 500 FCFA']],
   tx: [
     { n: 'Moto', s: 'Compte bancaire → Compte épargne · 20 oct.', a: '50 000', k: 'tr', i: 'swap-horizontal' },
-    { n: 'Canal+', s: 'Loisirs & divertissement · Orange Money · 18 oct.', a: '−10 000', i: 'game-controller-outline' },
-    { n: 'Restaurant', s: 'Alimentation & boissons · Cash · 15 oct.', a: '−51 000', i: 'restaurant-outline' },
-    { n: 'Taxi', s: 'Transport · Cash · 12 oct.', a: '−33 000', i: 'car-outline' },
+    { n: 'Canal+', s: 'Loisirs & divertissement · Orange Money · 18 oct.', a: '−10 000', i: 'game-controller-outline', f: 'television' },
+    { n: 'Restaurant', s: 'Alimentation & boissons · Cash · 15 oct.', a: '−51 000', i: 'restaurant-outline', f: 'fork-and-knife-with-plate' },
+    { n: 'Taxi', s: 'Transport · Cash · 12 oct.', a: '−33 000', i: 'car-outline', f: 'taxi' },
+    { n: 'Maman', s: 'Famille · Orange Money · 10 oct.', a: '−50 000', i: 'heart-outline', f: 'older-person' },
   ],
   alerts: ['Budget Maison dépassé de 40 000 FCFA.', 'Budget Alimentation & boissons dépassé de 13 000 FCFA.'],
   budget: { left: '44 000', pct: 90, planned: '420 000 FCFA', spent: '376 000 FCFA', toAlloc: '328 500 FCFA' },
@@ -184,10 +185,13 @@ const D = {
     { n: 'Épargne', i: 'wallet-outline', s: '50 000 sur 50 000 FCFA', p: 100, st: 'full', l: 'Épuisée' },
     { n: 'Libre', i: 'ellipsis-horizontal', s: '10 000 sur 100 000 FCFA', p: 10, st: 'ok', l: 'Reste 90 000' },
   ],
-  cats: [['Famille', 'heart-outline'], ['Maison & logement', 'home-outline'], ['Alimentation', 'restaurant-outline'], ['Transport', 'car-outline'], ['Loisirs', 'game-controller-outline'], ['Santé', 'medkit-outline'], ['Éducation', 'school-outline'], ['Autres', 'ellipsis-horizontal']],
+  cats: [['Famille', 'heart-outline', 'people-hugging'], ['Maison & logement', 'home-outline', 'house'], ['Alimentation', 'restaurant-outline', 'curry-rice'], ['Transport', 'car-outline', 'taxi'], ['Loisirs', 'game-controller-outline', 'party-popper'], ['Santé', 'medkit-outline', 'stethoscope'], ['Éducation', 'school-outline', 'graduation-cap'], ['Autres', 'ellipsis-horizontal', 'shopping-bags']],
 };
 
 let G = {};
+let ICONS3D = false;
+// Icônes 3D proposées (planche ../icones) : sans pastille de fond, l'objet porte la couleur.
+const f3d = (slug, px) => `<img src="../icones/fluent/${slug}.webp" width="${px}" height="${px}" alt="">`;
 const ic = (n, style = '') => `<i class="ic" style="${style}">${String.fromCodePoint(G[n] ?? 63)}</i>`;
 
 function vars(d, t) {
@@ -215,7 +219,7 @@ function home(d, card) {
     ${heroCard(card)}
     <div class="actions" style="margin-top:12px">${[['Revenu', 'arrow-down'], ['Transfert', 'swap-horizontal'], ['Historique', 'time-outline']].map(([l, i]) => `<div class="act"><div class="bub">${ic(i)}</div>${l}</div>`).join('')}</div>
     <div class="sec-head"><div class="t-section">Dernières opérations</div><div class="link">Tout voir</div></div>
-    <div class="card">${D.tx.map((x) => `<div class="tx"><div class="bub">${ic(x.i)}</div><div class="mid"><div class="t-strong">${x.n}</div><div class="t-small">${x.s}</div></div><div class="amt ${x.k === 'in' ? 'in' : ''}">${x.a}</div></div>`).join('')}</div>
+    <div class="card">${D.tx.map((x) => `<div class="tx"><div class="bub" ${ICONS3D && x.f ? 'style="background:none"' : ''}>${ICONS3D && x.f ? f3d(x.f, 36) : ic(x.i)}</div><div class="mid"><div class="t-strong">${x.n}</div><div class="t-small">${x.s}</div></div><div class="amt ${x.k === 'in' ? 'in' : ''}">${x.a}</div></div>`).join('')}</div>
     <div class="sec-head"><div class="t-section">À retenir</div><div class="link">Tout voir</div></div>
     <div class="card">${D.alerts.slice(0, 1).map((a) => `<div class="alert-row">${ic('alert-circle-outline', 'color:var(--alert)')}<span class="t-body">${a}</span>${ic('chevron-forward', '').replace('class="ic"', 'class="ic chev"')}</div>`).join('')}</div>
   </div>${tabbar('home')}`;
@@ -231,7 +235,7 @@ function entry(d, card) {
     <div class="amount num">0 FCFA</div>
     <div class="keys">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫'].map((k) => `<div class="key">${k === '⌫' ? ic('backspace-outline', 'font-size:24px') : k}</div>`).join('')}</div>
     <div class="t-caption" style="margin-top:14px">Touchez une catégorie pour enregistrer</div>
-    <div class="cats">${D.cats.map(([l, i]) => `<div class="cat"><div class="bub">${ic(i)}</div>${l}</div>`).join('')}</div>
+    <div class="cats">${D.cats.map(([l, i, f]) => `<div class="cat"><div class="bub" ${ICONS3D ? 'style="background:none"' : ''}>${ICONS3D ? f3d(f, 40) : ic(i)}</div>${l}</div>`).join('')}</div>
   </div>`;
 }
 
@@ -284,6 +288,11 @@ function board(d) {
     return `<div class="board"><h1>Carte d'accueil — trois versions</h1><p class="lede">Mêmes données, mêmes textes. Chaque version peut s'appliquer à l'une ou l'autre direction ; elles sont montrées ici dans la direction A (lignes 1-2) puis B (lignes 3-4). Aucun dégradé.</p>
       ${['a', 'b'].map((dir) => ['light', 'dark'].map((t) => `<div class="row">${['a', 'b', 'c'].map((v) => `<div class="frame-wrap"><div class="frame-label">${T[dir].name} · ${labels[v]} · ${t === 'light' ? 'clair' : 'sombre'}</div><div class="phone" style="${vars(dir, t)}; height:auto; padding:16px">${heroCard(v)}</div></div>`).join('')}</div>`).join('')).join('')}</div>`;
   }
+  if (d === 'icons') {
+    ICONS3D = true;
+    return `<div class="board"><h1>Icônes 3D en situation — direction B, carte (c)</h1><p class="lede">Accueil (Dernières opérations) et Saisie (catégories), clair et sombre. Icônes : Fluent Emoji 3D (MIT). Famille : candidate 1 de la ligne « À CHOISIR ».</p>
+      ${['light', 'dark'].map((t) => `<div class="row">${['home', 'entry'].map((s) => `<div class="frame-wrap"><div class="frame-label">${SCREENS[s][0]} · ${t === 'light' ? 'clair' : 'sombre'} · 360 × 800</div>${phone('b', s, t, 'c')}</div>`).join('')}</div>`).join('')}</div>`;
+  }
   const card = d === 'a' ? 'a' : 'b';
   return `<div class="board"><h1>${T[d].name}</h1>${spec(d)}
     ${['light', 'dark'].map((t) => `<div class="row">${Object.keys(SCREENS).map((s) => `<div class="frame-wrap"><div class="frame-label">${SCREENS[s][0]} · ${t === 'light' ? 'clair' : 'sombre'} · 360 × 800</div>${phone(d, s, t, card)}</div>`).join('')}</div>`).join('')}</div>`;
@@ -297,6 +306,7 @@ function board(d) {
   if (q.get('board')) { root.innerHTML = board(q.get('board')); }
   else {
     const d = q.get('d') || 'a', t = q.get('t') || 'light';
+    ICONS3D = q.get('icons') === '3d';
     document.body.classList.add('single');
     document.documentElement.style.setProperty('--vh', innerHeight + 'px');
     document.body.setAttribute('style', vars(d, t));

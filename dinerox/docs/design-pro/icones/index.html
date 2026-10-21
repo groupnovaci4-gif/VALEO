@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DineroX — Icônes</title>
+<!--
+  Planche COMPLÈTE des icônes de DineroX (design-pro, direction B). Données : data.json
+  (généré par resolve.mjs depuis inventaire.mjs). Icônes proposées : Fluent Emoji 3D (Microsoft,
+  licence MIT) pour le contenu, Ionicons au trait pour la navigation et les actions.
+  ?r=<n> : une seule rubrique (pour les captures) ; ?t=dark : planche en sombre.
+-->
+<style>
+@font-face { font-family: Inter; font-weight: 400; src: url(../directions/fonts/Inter_400Regular.ttf); }
+@font-face { font-family: Inter; font-weight: 500; src: url(../directions/fonts/Inter_500Medium.ttf); }
+@font-face { font-family: Inter; font-weight: 600; src: url(../directions/fonts/Inter_600SemiBold.ttf); }
+@font-face { font-family: Jakarta; font-weight: 700; src: url(../directions/fonts/PlusJakartaSans_700Bold.ttf); }
+@font-face { font-family: Ionicons; src: url(../directions/fonts/Ionicons.ttf); }
+:root { --bg: #F4F1EA; --surface: #FFFCF7; --surface2: #EDE7DC; --divider: #EAE3D7; --text: #1F1C17; --text2: #564E43; --text3: #6E6558; --brand: #0F4A3A; --warn: #8A5A00; --warnBg: #F6EBD3; --dark: #1D1B17; --darkInk: #9ED3BE; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font: 400 15px/22px Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+h1 { font: 700 24px/30px Jakarta, Inter; margin-bottom: 4px; }
+.lede { color: var(--text2); font-size: 14px; line-height: 20px; margin-bottom: 12px; }
+.lede b { color: var(--text); }
+.legend, .row { display: grid; grid-template-columns: minmax(0, 1fr) 44px 56px 44px 56px; align-items: center; column-gap: 6px; }
+.legend { position: sticky; top: 0; z-index: 2; background: var(--bg); font: 600 11px/14px Inter; color: var(--text3); padding: 8px 0 6px; border-bottom: 1px solid var(--divider); text-align: center; }
+.legend span:first-child { text-align: left; }
+h2 { font: 700 17px/24px Jakarta, Inter; margin: 20px 0 6px; display: flex; justify-content: space-between; align-items: baseline; }
+h2 small { font: 500 13px/18px Inter; color: var(--text3); }
+.card { background: var(--surface); border-radius: 16px; box-shadow: 0 1px 2px rgba(60,45,20,.08); overflow: hidden; }
+.row { min-height: 64px; padding: 6px 8px 6px 12px; border-top: 1px solid var(--divider); }
+.row:first-child { border-top: 0; }
+.name { font: 500 14px/19px Inter; overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
+.name small { display: block; font: 400 11px/15px Inter; color: var(--text3); word-break: break-all; }
+.cell { display: flex; align-items: center; justify-content: center; }
+.cur { font-size: 26px; color: var(--text2); gap: 2px; flex-wrap: wrap; }
+.cur .ic { font-size: 22px; }
+.cur .em { font-size: 20px; line-height: 1; }
+.ic { font-family: Ionicons; font-style: normal; line-height: 1; }
+.p48 img { width: 48px; height: 48px; display: block; }
+.p32 img { width: 32px; height: 32px; display: block; }
+.p48 .ic { font-size: 28px; color: var(--brand); }
+.p32 .ic { font-size: 20px; color: var(--brand); }
+.dk { background: var(--dark); border-radius: 12px; width: 56px; height: 56px; }
+.dk img { width: 40px; height: 40px; }
+.dk .ic { font-size: 26px; color: var(--darkInk); }
+.none { color: var(--text3); font-size: 11px; }
+.tag { display: inline-block; font: 600 11px/16px Inter; border-radius: 6px; padding: 1px 6px; margin-top: 3px; }
+.tag.choose { background: var(--warnBg); color: var(--warn); }
+.tag.logo { background: var(--surface2); color: var(--text2); }
+.cands { grid-column: 1 / -1; display: flex; gap: 12px; padding: 4px 0 2px; flex-wrap: wrap; }
+.cand { display: flex; flex-direction: column; align-items: center; gap: 2px; font: 400 10px/12px Inter; color: var(--text3); width: 64px; text-align: center; }
+.cand img { width: 40px; height: 40px; }
+.note { grid-column: 1 / -1; font: 400 12px/16px Inter; color: var(--text3); padding-bottom: 2px; }
+body.dark { --bg: #13120F; --surface: #1D1B17; --surface2: #29261F; --divider: #2C2923; --text: #F3EFE7; --text2: #BDB4A4; --text3: #A0968A; --brand: #6CC4A4; --warn: #D9A441; --warnBg: #3A2E16; --dark: #0B0A08; }
+</style>
+</head>
+<body>
+<div class="wrap" id="root"></div>
+<script>
+const LIB = 'Fluent Emoji 3D (Microsoft, licence MIT)';
+(async () => {
+  const { rubriques, items } = await (await fetch('data.json')).json();
+  const q = new URLSearchParams(location.search);
+  if (q.get('t') === 'dark') document.body.classList.add('dark');
+  const only = q.get('r');
+  const ion = (code) => `<i class="ic">${String.fromCodePoint(code)}</i>`;
+  const img = (a) => `<img src="fluent/${a.slug}.webp" alt="">`;
+  const show = (a) => (!a ? '' : a.kind === 'ion' ? ion(a.code) : img(a));
+  const cur = (list) => (list.length ? list.map((a) => (a.kind === 'ion' ? ion(a.code) : `<span class="em">${a.glyph}</span>`)).join('') : '<span class="none">aucune</span>');
+  const total = items.length, toChoose = items.filter((i) => i.choose).length, logos = items.filter((i) => i.logo).length;
+  let html = only ? '' : `<h1>Icônes de DineroX</h1>
+    <p class="lede"><b>${total} icônes</b> affichées par l'application, rangées en ${rubriques.length} rubriques. Contenu (catégories, comptes, objectifs, tontines, dettes, écrans vides, récompenses, score) : <b>${LIB}</b>. Navigation et actions : <b>Ionicons au trait</b>. <b>${toChoose} lignes « À CHOISIR »</b> (pas de bon équivalent : candidates proposées, rien n'est inventé) et <b>${logos} lignes « logo officiel ? »</b> (opérateurs et marques : icône générique en attendant ta décision).</p>`;
+  html += `<div class="legend"><span>Nom</span><span>Actuelle</span><span>48 dp</span><span>32 dp</span><span>Sombre</span></div>`;
+  rubriques.forEach((r, ri) => {
+    if (only != null && String(ri) !== only) return;
+    const rows = items.filter((i) => i.r === r);
+    html += `<h2>${r}<small>${rows.length}</small></h2><div class="card">`;
+    for (const i of rows) {
+      const p = i.p;
+      html += `<div class="row"><div class="name">${i.n}${i.choose ? '<br><span class="tag choose">À CHOISIR</span>' : ''}${i.logo ? '<br><span class="tag logo">logo officiel ?</span>' : ''}</div>
+        <div class="cell cur">${cur(i.cur)}</div>
+        <div class="cell p48">${p ? show(p) : '<span class="none">—</span>'}</div>
+        <div class="cell p32">${p ? show(p) : '<span class="none">—</span>'}</div>
+        <div class="cell dk">${p ? show(p) : ''}</div>
+        ${i.choose ? `<div class="cands">${i.choose.map((a, k) => `<div class="cand">${show(a)}<span>${k + 1}. ${a.dir ?? ''}</span></div>`).join('')}</div>` : ''}
+        ${i.note ? `<div class="note">${i.note}</div>` : ''}</div>`;
+    }
+    html += `</div>`;
+  });
+  document.getElementById('root').innerHTML = html;
+  await Promise.all([...document.images].map((im) => (im.complete ? 0 : new Promise((ok) => { im.onload = im.onerror = ok; }))));
+  await document.fonts.ready;
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>
