@@ -26,11 +26,15 @@ Décisions :
 7. Mode démonstration : le grand encadré explicatif est SUPPRIMÉ de l'accueil. À la place, une ligne
    discrète : pastille « Démo » (icône fiole) à gauche, lien « Créer mon profil › » à droite (même
    action qu'avant). Le texte explicatif reste en libellé d'accessibilité (lecteur d'écran).
-8. Carte d'accueil, ligne sous « Mis de côté » (décision du fondateur, 2026-10-21) : « Mis de côté » est
-   gardé ; la ligne devient « dont {montant} gardés ailleurs (tontine, épargne déclarée) › »
-   (EN : « of which {amount} kept elsewhere (tontine, declared savings) › » ; les mots entre
-   parenthèses ne citent que les sources présentes). Elle est TOUCHABLE et se DÉPLIE sous la ligne :
-   une ligne par source — objectif ou réserve : « {nom} : {montant} déclarés au départ » ; tontine :
-   « {nom} : {montant} versés, à recevoir à votre tour ». La somme du détail = le montant affiché.
-   Aucun calcul changé : réutiliser `goalBacking` (part `outside`) et `tontineLedgerPositions`
-   (appelé tontine par tontine) depuis l'interface, sans modifier `src/core`.
+8. Carte d'accueil, « Mis de côté » (version du FONDATEUR, 2026-10-21 — remplace toute version antérieure) :
+   la petite ligne « dont {montant} hors de vos comptes » est SUPPRIMÉE de la carte. La ligne
+   « Mis de côté {montant} › » devient TOUCHABLE et se DÉPLIE sous elle avec tout le détail :
+     Dans vos comptes : une ligne par compte d'épargne / réserve posée sur un compte
+       (ex. « Compte épargne (Ma moto) 450 000 », « Réserve famille (sur Espèces) 50 000 ») ;
+     Gardé ailleurs : objectifs et réserves « déclaré au départ » (ex. « Ma moto, déclaré au départ
+       300 000 »), tontines « versé, à recevoir à votre tour » (ex. « Tontine du bureau, versé 30 000 »).
+   La somme du détail = le montant « Mis de côté » affiché. Aucun calcul changé : réutiliser les
+   fonctions existantes (`positionOf` / `accountPositions`, `goalBacking`, `tontineLedgerPositions`
+   appelé tontine par tontine) depuis l'interface, sans modifier `src/core`. Le texte de l'ancienne
+   ligne reste dans le libellé d'accessibilité. EN : « In your accounts » / « Kept elsewhere » /
+   « declared at the start » / « paid in, to receive on your turn ».
