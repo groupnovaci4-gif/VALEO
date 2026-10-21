@@ -35,31 +35,11 @@
      "glyph": "👨‍👩‍👧"
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🫂",
-     "dir": "People hugging",
-     "file": "assets/People hugging/3D/people_hugging_3d.png",
-     "slug": "people-hugging"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🏡",
-     "dir": "House with garden",
-     "file": "assets/House with garden/3D/house_with_garden_3d.png",
-     "slug": "house-with-garden"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "👥",
-     "dir": "Busts in silhouette",
-     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
-     "slug": "busts-in-silhouette"
-    }
-   ],
-   "note": "Pas de famille en 3D dans Fluent."
+   "p": {
+    "kind": "compo",
+    "slug": "famille_3d_medium-dark",
+    "src": "design-pro-icones-composees/famille_3d_medium-dark.png"
+   }
   },
   {
    "r": "Dépenses — catégories principales",
@@ -81,6 +61,7 @@
     "glyph": "🏠",
     "dir": "House",
     "file": "assets/House/3D/house_3d.png",
+    "toned": false,
     "slug": "house"
    }
   },
@@ -104,6 +85,7 @@
     "glyph": "🍛",
     "dir": "Curry rice",
     "file": "assets/Curry rice/3D/curry_rice_3d.png",
+    "toned": false,
     "slug": "curry-rice"
    }
   },
@@ -127,6 +109,7 @@
     "glyph": "🩺",
     "dir": "Stethoscope",
     "file": "assets/Stethoscope/3D/stethoscope_3d.png",
+    "toned": false,
     "slug": "stethoscope"
    }
   },
@@ -150,6 +133,7 @@
     "glyph": "🚕",
     "dir": "Taxi",
     "file": "assets/Taxi/3D/taxi_3d.png",
+    "toned": false,
     "slug": "taxi"
    }
   },
@@ -173,6 +157,7 @@
     "glyph": "🤝",
     "dir": "Handshake",
     "file": "assets/Handshake/3D/handshake_3d.png",
+    "toned": false,
     "slug": "handshake"
    }
   },
@@ -196,6 +181,7 @@
     "glyph": "🎓",
     "dir": "Graduation cap",
     "file": "assets/Graduation cap/3D/graduation_cap_3d.png",
+    "toned": false,
     "slug": "graduation-cap"
    }
   },
@@ -219,6 +205,7 @@
     "glyph": "📱",
     "dir": "Mobile phone",
     "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "toned": false,
     "slug": "mobile-phone"
    }
   },
@@ -242,6 +229,7 @@
     "glyph": "🎉",
     "dir": "Party popper",
     "file": "assets/Party popper/3D/party_popper_3d.png",
+    "toned": false,
     "slug": "party-popper"
    }
   },
@@ -265,6 +253,7 @@
     "glyph": "👕",
     "dir": "T-shirt",
     "file": "assets/T-shirt/3D/t-shirt_3d.png",
+    "toned": false,
     "slug": "t-shirt"
    }
   },
@@ -288,6 +277,7 @@
     "glyph": "🧾",
     "dir": "Receipt",
     "file": "assets/Receipt/3D/receipt_3d.png",
+    "toned": false,
     "slug": "receipt"
    }
   },
@@ -311,6 +301,7 @@
     "glyph": "🛍️",
     "dir": "Shopping bags",
     "file": "assets/Shopping bags/3D/shopping_bags_3d.png",
+    "toned": false,
     "slug": "shopping-bags"
    }
   },
@@ -329,8 +320,9 @@
     "kind": "emoji",
     "glyph": "🧓",
     "dir": "Older person",
-    "file": "assets/Older person/Default/3D/older_person_3d_default.png",
-    "slug": "older-person"
+    "file": "assets/Older person/Medium-Dark/3D/older_person_3d_medium-dark.png",
+    "toned": true,
+    "slug": "older-person-medium-dark"
    }
   },
   {
@@ -349,6 +341,7 @@
     "glyph": "🫂",
     "dir": "People hugging",
     "file": "assets/People hugging/3D/people_hugging_3d.png",
+    "toned": false,
     "slug": "people-hugging"
    }
   },
@@ -367,8 +360,9 @@
     "kind": "emoji",
     "glyph": "🧒",
     "dir": "Child",
-    "file": "assets/Child/Default/3D/child_3d_default.png",
-    "slug": "child"
+    "file": "assets/Child/Medium-Dark/3D/child_3d_medium-dark.png",
+    "toned": true,
+    "slug": "child-medium-dark"
    }
   },
   {
@@ -386,8 +380,9 @@
     "kind": "emoji",
     "glyph": "🤲",
     "dir": "Palms up together",
-    "file": "assets/Palms up together/Default/3D/palms_up_together_3d_default.png",
-    "slug": "palms-up-together"
+    "file": "assets/Palms up together/Medium-Dark/3D/palms_up_together_3d_medium-dark.png",
+    "toned": true,
+    "slug": "palms-up-together-medium-dark"
    }
   },
   {
@@ -401,31 +396,11 @@
      "code": 62314
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🫂",
-     "dir": "People hugging",
-     "file": "assets/People hugging/3D/people_hugging_3d.png",
-     "slug": "people-hugging"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🏡",
-     "dir": "House with garden",
-     "file": "assets/House with garden/3D/house_with_garden_3d.png",
-     "slug": "house-with-garden"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "👥",
-     "dir": "Busts in silhouette",
-     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
-     "slug": "busts-in-silhouette"
-    }
-   ],
-   "note": "Pas de famille en 3D dans Fluent."
+   "p": {
+    "kind": "compo",
+    "slug": "famille_3d_medium-dark",
+    "src": "design-pro-icones-composees/famille_3d_medium-dark.png"
+   }
   },
   {
    "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
@@ -443,6 +418,7 @@
     "glyph": "🔑",
     "dir": "Key",
     "file": "assets/Key/3D/key_3d.png",
+    "toned": false,
     "slug": "key"
    }
   },
@@ -462,6 +438,7 @@
     "glyph": "💡",
     "dir": "Light bulb",
     "file": "assets/Light bulb/3D/light_bulb_3d.png",
+    "toned": false,
     "slug": "light-bulb"
    }
   },
@@ -481,6 +458,7 @@
     "glyph": "🚰",
     "dir": "Potable water",
     "file": "assets/Potable water/3D/potable_water_3d.png",
+    "toned": false,
     "slug": "potable-water"
    }
   },
@@ -495,31 +473,16 @@
      "code": 62338
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🔥",
-     "dir": "Fire",
-     "file": "assets/Fire/3D/fire_3d.png",
-     "slug": "fire"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🍳",
-     "dir": "Cooking",
-     "file": "assets/Cooking/3D/cooking_3d.png",
-     "slug": "cooking"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🛢️",
-     "dir": "Oil drum",
-     "file": "assets/Oil drum/3D/oil_drum_3d.png",
-     "slug": "oil-drum"
-    }
-   ],
-   "note": "Pas de bouteille de gaz dans la bibliothèque."
+   "p": {
+    "kind": "slot",
+    "glyph": "🛢️",
+    "dir": "Oil drum",
+    "file": "assets/Oil drum/3D/oil_drum_3d.png",
+    "toned": false,
+    "slug": "bonbonne_gaz",
+    "placeholder": "🛢️"
+   },
+   "note": "Provisoire : fût (🛢️) en attendant une bonbonne de gaz dessinée, même nom de fichier (bonbonne_gaz)."
   },
   {
    "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
@@ -532,31 +495,14 @@
      "code": 62338
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🔥",
-     "dir": "Fire",
-     "file": "assets/Fire/3D/fire_3d.png",
-     "slug": "fire"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🪵",
-     "dir": "Wood",
-     "file": "assets/Wood/3D/wood_3d.png",
-     "slug": "wood"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🪨",
-     "dir": "Rock",
-     "file": "assets/Rock/3D/rock_3d.png",
-     "slug": "rock"
-    }
-   ],
-   "note": "Pas de sac de charbon ni de fourneau."
+   "p": {
+    "kind": "emoji",
+    "glyph": "🪵",
+    "dir": "Wood",
+    "file": "assets/Wood/3D/wood_3d.png",
+    "toned": false,
+    "slug": "wood"
+   }
   },
   {
    "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
@@ -574,6 +520,7 @@
     "glyph": "🛠️",
     "dir": "Hammer and wrench",
     "file": "assets/Hammer and wrench/3D/hammer_and_wrench_3d.png",
+    "toned": false,
     "slug": "hammer-and-wrench"
    }
   },
@@ -593,6 +540,7 @@
     "glyph": "🛋️",
     "dir": "Couch and lamp",
     "file": "assets/Couch and lamp/3D/couch_and_lamp_3d.png",
+    "toned": false,
     "slug": "couch-and-lamp"
    }
   },
@@ -612,6 +560,7 @@
     "glyph": "🏠",
     "dir": "House",
     "file": "assets/House/3D/house_3d.png",
+    "toned": false,
     "slug": "house"
    }
   },
@@ -631,6 +580,7 @@
     "glyph": "🧺",
     "dir": "Basket",
     "file": "assets/Basket/3D/basket_3d.png",
+    "toned": false,
     "slug": "basket"
    }
   },
@@ -650,6 +600,7 @@
     "glyph": "🛒",
     "dir": "Shopping cart",
     "file": "assets/Shopping cart/3D/shopping_cart_3d.png",
+    "toned": false,
     "slug": "shopping-cart"
    }
   },
@@ -665,11 +616,9 @@
     }
    ],
    "p": {
-    "kind": "emoji",
-    "glyph": "🍽️",
-    "dir": "Fork and knife with plate",
-    "file": "assets/Fork and knife with plate/3D/fork_and_knife_with_plate_3d.png",
-    "slug": "fork-and-knife-with-plate"
+    "kind": "compo",
+    "slug": "plat_poisson_3d",
+    "src": "design-pro-icones-composees/plat_poisson_3d.png"
    }
   },
   {
@@ -683,31 +632,15 @@
      "code": 62773
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🍗",
-     "dir": "Poultry leg",
-     "file": "assets/Poultry leg/3D/poultry_leg_3d.png",
-     "slug": "poultry-leg"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🍲",
-     "dir": "Pot of food",
-     "file": "assets/Pot of food/3D/pot_of_food_3d.png",
-     "slug": "pot-of-food"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🐟",
-     "dir": "Fish",
-     "file": "assets/Fish/3D/fish_3d.png",
-     "slug": "fish"
-    }
-   ],
-   "note": "Pas de « maquis » : poulet braisé, plat mijoté ou poisson ?"
+   "p": {
+    "kind": "emoji",
+    "glyph": "🍻",
+    "dir": "Clinking beer mugs",
+    "file": "assets/Clinking beer mugs/3D/clinking_beer_mugs_3d.png",
+    "toned": false,
+    "slug": "clinking-beer-mugs"
+   },
+   "note": "Lieu où l’on boit en groupe (choix du fondateur)."
   },
   {
    "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
@@ -725,6 +658,7 @@
     "glyph": "🛵",
     "dir": "Motor scooter",
     "file": "assets/Motor scooter/3D/motor_scooter_3d.png",
+    "toned": false,
     "slug": "motor-scooter"
    }
   },
@@ -739,31 +673,11 @@
      "code": 62773
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🥪",
-     "dir": "Sandwich",
-     "file": "assets/Sandwich/3D/sandwich_3d.png",
-     "slug": "sandwich"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🍢",
-     "dir": "Oden",
-     "file": "assets/Oden/3D/oden_3d.png",
-     "slug": "oden"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🍟",
-     "dir": "French fries",
-     "file": "assets/French fries/3D/french_fries_3d.png",
-     "slug": "french-fries"
-    }
-   ],
-   "note": "Pas de garba ni d’alloco."
+   "p": {
+    "kind": "compo",
+    "slug": "garba_3d",
+    "src": "design-pro-icones-composees/garba_3d.png"
+   }
   },
   {
    "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
@@ -781,6 +695,7 @@
     "glyph": "🥤",
     "dir": "Cup with straw",
     "file": "assets/Cup with straw/3D/cup_with_straw_3d.png",
+    "toned": false,
     "slug": "cup-with-straw"
    }
   },
@@ -800,6 +715,7 @@
     "glyph": "💧",
     "dir": "Droplet",
     "file": "assets/Droplet/3D/droplet_3d.png",
+    "toned": false,
     "slug": "droplet"
    }
   },
@@ -819,6 +735,7 @@
     "glyph": "🍽️",
     "dir": "Fork and knife with plate",
     "file": "assets/Fork and knife with plate/3D/fork_and_knife_with_plate_3d.png",
+    "toned": false,
     "slug": "fork-and-knife-with-plate"
    }
   },
@@ -838,6 +755,7 @@
     "glyph": "🩺",
     "dir": "Stethoscope",
     "file": "assets/Stethoscope/3D/stethoscope_3d.png",
+    "toned": false,
     "slug": "stethoscope"
    }
   },
@@ -857,6 +775,7 @@
     "glyph": "💊",
     "dir": "Pill",
     "file": "assets/Pill/3D/pill_3d.png",
+    "toned": false,
     "slug": "pill"
    }
   },
@@ -876,6 +795,7 @@
     "glyph": "🧪",
     "dir": "Test tube",
     "file": "assets/Test tube/3D/test_tube_3d.png",
+    "toned": false,
     "slug": "test-tube"
    }
   },
@@ -895,6 +815,7 @@
     "glyph": "🏥",
     "dir": "Hospital",
     "file": "assets/Hospital/3D/hospital_3d.png",
+    "toned": false,
     "slug": "hospital"
    }
   },
@@ -914,6 +835,7 @@
     "glyph": "🦷",
     "dir": "Tooth",
     "file": "assets/Tooth/3D/tooth_3d.png",
+    "toned": false,
     "slug": "tooth"
    }
   },
@@ -933,6 +855,7 @@
     "glyph": "👓",
     "dir": "Glasses",
     "file": "assets/Glasses/3D/glasses_3d.png",
+    "toned": false,
     "slug": "glasses"
    }
   },
@@ -952,6 +875,7 @@
     "glyph": "🛡️",
     "dir": "Shield",
     "file": "assets/Shield/3D/shield_3d.png",
+    "toned": false,
     "slug": "shield"
    }
   },
@@ -971,6 +895,7 @@
     "glyph": "🧸",
     "dir": "Teddy bear",
     "file": "assets/Teddy bear/3D/teddy_bear_3d.png",
+    "toned": false,
     "slug": "teddy-bear"
    }
   },
@@ -990,6 +915,7 @@
     "glyph": "❤️‍🩹",
     "dir": "Mending heart",
     "file": "assets/Mending heart/3D/mending_heart_3d.png",
+    "toned": false,
     "slug": "mending-heart"
    }
   },
@@ -1009,6 +935,7 @@
     "glyph": "🩹",
     "dir": "Adhesive bandage",
     "file": "assets/Adhesive bandage/3D/adhesive_bandage_3d.png",
+    "toned": false,
     "slug": "adhesive-bandage"
    }
   },
@@ -1028,6 +955,7 @@
     "glyph": "🚕",
     "dir": "Taxi",
     "file": "assets/Taxi/3D/taxi_3d.png",
+    "toned": false,
     "slug": "taxi"
    }
   },
@@ -1047,6 +975,7 @@
     "glyph": "🚗",
     "dir": "Automobile",
     "file": "assets/Automobile/3D/automobile_3d.png",
+    "toned": false,
     "slug": "automobile"
    }
   },
@@ -1066,6 +995,7 @@
     "glyph": "🏍️",
     "dir": "Motorcycle",
     "file": "assets/Motorcycle/3D/motorcycle_3d.png",
+    "toned": false,
     "slug": "motorcycle"
    }
   },
@@ -1085,6 +1015,7 @@
     "glyph": "🚌",
     "dir": "Bus",
     "file": "assets/Bus/3D/bus_3d.png",
+    "toned": false,
     "slug": "bus"
    }
   },
@@ -1104,6 +1035,7 @@
     "glyph": "⛽",
     "dir": "Fuel pump",
     "file": "assets/Fuel pump/3D/fuel_pump_3d.png",
+    "toned": false,
     "slug": "fuel-pump"
    }
   },
@@ -1123,6 +1055,7 @@
     "glyph": "🔧",
     "dir": "Wrench",
     "file": "assets/Wrench/3D/wrench_3d.png",
+    "toned": false,
     "slug": "wrench"
    }
   },
@@ -1142,6 +1075,7 @@
     "glyph": "🛡️",
     "dir": "Shield",
     "file": "assets/Shield/3D/shield_3d.png",
+    "toned": false,
     "slug": "shield"
    }
   },
@@ -1161,6 +1095,7 @@
     "glyph": "🅿️",
     "dir": "P button",
     "file": "assets/P button/3D/p_button_3d.png",
+    "toned": false,
     "slug": "p-button"
    }
   },
@@ -1180,6 +1115,7 @@
     "glyph": "🚧",
     "dir": "Construction",
     "file": "assets/Construction/3D/construction_3d.png",
+    "toned": false,
     "slug": "construction"
    }
   },
@@ -1199,6 +1135,7 @@
     "glyph": "🚗",
     "dir": "Automobile",
     "file": "assets/Automobile/3D/automobile_3d.png",
+    "toned": false,
     "slug": "automobile"
    }
   },
@@ -1213,31 +1150,11 @@
      "code": 62624
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🪙",
-     "dir": "Coin",
-     "file": "assets/Coin/3D/coin_3d.png",
-     "slug": "coin"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🤝",
-     "dir": "Handshake",
-     "file": "assets/Handshake/3D/handshake_3d.png",
-     "slug": "handshake"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "👥",
-     "dir": "Busts in silhouette",
-     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
-     "slug": "busts-in-silhouette"
-    }
-   ],
-   "note": "Pas de symbole de tontine : pièce, poignée de main ou groupe ?"
+   "p": {
+    "kind": "compo",
+    "slug": "tontine_all_3d",
+    "src": "design-pro-icones-composees/tontine_all_3d.png"
+   }
   },
   {
    "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
@@ -1255,6 +1172,7 @@
     "glyph": "🪙",
     "dir": "Coin",
     "file": "assets/Coin/3D/coin_3d.png",
+    "toned": false,
     "slug": "coin"
    }
   },
@@ -1274,6 +1192,7 @@
     "glyph": "💍",
     "dir": "Ring",
     "file": "assets/Ring/3D/ring_3d.png",
+    "toned": false,
     "slug": "ring"
    }
   },
@@ -1288,31 +1207,14 @@
      "code": 62624
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "👶",
-     "dir": "Baby",
-     "file": "assets/Baby/Default/3D/baby_3d_default.png",
-     "slug": "baby"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🕊️",
-     "dir": "Dove",
-     "file": "assets/Dove/3D/dove_3d.png",
-     "slug": "dove"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🍼",
-     "dir": "Baby bottle",
-     "file": "assets/Baby bottle/3D/baby_bottle_3d.png",
-     "slug": "baby-bottle"
-    }
-   ],
-   "note": "Sens religieux à respecter."
+   "p": {
+    "kind": "emoji",
+    "glyph": "👶",
+    "dir": "Baby",
+    "file": "assets/Baby/Medium-Dark/3D/baby_3d_medium-dark.png",
+    "toned": true,
+    "slug": "baby-medium-dark"
+   }
   },
   {
    "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
@@ -1325,31 +1227,14 @@
      "code": 62624
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🕯️",
-     "dir": "Candle",
-     "file": "assets/Candle/3D/candle_3d.png",
-     "slug": "candle"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🕊️",
-     "dir": "Dove",
-     "file": "assets/Dove/3D/dove_3d.png",
-     "slug": "dove"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🖤",
-     "dir": "Black heart",
-     "file": "assets/Black heart/3D/black_heart_3d.png",
-     "slug": "black-heart"
-    }
-   ],
-   "note": "Sujet sensible : à choisir par le fondateur."
+   "p": {
+    "kind": "emoji",
+    "glyph": "🕊️",
+    "dir": "Dove",
+    "file": "assets/Dove/3D/dove_3d.png",
+    "toned": false,
+    "slug": "dove"
+   }
   },
   {
    "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
@@ -1367,6 +1252,7 @@
     "glyph": "🎊",
     "dir": "Confetti ball",
     "file": "assets/Confetti ball/3D/confetti_ball_3d.png",
+    "toned": false,
     "slug": "confetti-ball"
    }
   },
@@ -1386,6 +1272,7 @@
     "glyph": "👥",
     "dir": "Busts in silhouette",
     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "toned": false,
     "slug": "busts-in-silhouette"
    }
   },
@@ -1405,6 +1292,7 @@
     "glyph": "🤝",
     "dir": "Handshake",
     "file": "assets/Handshake/3D/handshake_3d.png",
+    "toned": false,
     "slug": "handshake"
    }
   },
@@ -1424,6 +1312,7 @@
     "glyph": "🏫",
     "dir": "School",
     "file": "assets/School/3D/school_3d.png",
+    "toned": false,
     "slug": "school"
    }
   },
@@ -1443,6 +1332,7 @@
     "glyph": "✏️",
     "dir": "Pencil",
     "file": "assets/Pencil/3D/pencil_3d.png",
+    "toned": false,
     "slug": "pencil"
    }
   },
@@ -1462,6 +1352,7 @@
     "glyph": "📚",
     "dir": "Books",
     "file": "assets/Books/3D/books_3d.png",
+    "toned": false,
     "slug": "books"
    }
   },
@@ -1480,8 +1371,9 @@
     "kind": "emoji",
     "glyph": "🧑‍🏫",
     "dir": "Teacher",
-    "file": "assets/Teacher/Default/3D/teacher_3d_default.png",
-    "slug": "teacher"
+    "file": "assets/Teacher/Medium-Dark/3D/teacher_3d_medium-dark.png",
+    "toned": true,
+    "slug": "teacher-medium-dark"
    }
   },
   {
@@ -1500,6 +1392,7 @@
     "glyph": "📜",
     "dir": "Scroll",
     "file": "assets/Scroll/3D/scroll_3d.png",
+    "toned": false,
     "slug": "scroll"
    }
   },
@@ -1519,6 +1412,7 @@
     "glyph": "📝",
     "dir": "Memo",
     "file": "assets/Memo/3D/memo_3d.png",
+    "toned": false,
     "slug": "memo"
    }
   },
@@ -1538,6 +1432,7 @@
     "glyph": "🎒",
     "dir": "Backpack",
     "file": "assets/Backpack/3D/backpack_3d.png",
+    "toned": false,
     "slug": "backpack"
    }
   },
@@ -1557,6 +1452,7 @@
     "glyph": "📞",
     "dir": "Telephone receiver",
     "file": "assets/Telephone receiver/3D/telephone_receiver_3d.png",
+    "toned": false,
     "slug": "telephone-receiver"
    }
   },
@@ -1576,6 +1472,7 @@
     "glyph": "📶",
     "dir": "Antenna bars",
     "file": "assets/Antenna bars/3D/antenna_bars_3d.png",
+    "toned": false,
     "slug": "antenna-bars"
    }
   },
@@ -1595,6 +1492,7 @@
     "glyph": "🌐",
     "dir": "Globe with meridians",
     "file": "assets/Globe with meridians/3D/globe_with_meridians_3d.png",
+    "toned": false,
     "slug": "globe-with-meridians"
    }
   },
@@ -1614,6 +1512,7 @@
     "glyph": "💻",
     "dir": "Laptop",
     "file": "assets/Laptop/3D/laptop_3d.png",
+    "toned": false,
     "slug": "laptop"
    }
   },
@@ -1633,6 +1532,7 @@
     "glyph": "🎧",
     "dir": "Headphone",
     "file": "assets/Headphone/3D/headphone_3d.png",
+    "toned": false,
     "slug": "headphone"
    }
   },
@@ -1652,6 +1552,7 @@
     "glyph": "📱",
     "dir": "Mobile phone",
     "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "toned": false,
     "slug": "mobile-phone"
    }
   },
@@ -1671,6 +1572,7 @@
     "glyph": "🥳",
     "dir": "Partying face",
     "file": "assets/Partying face/3D/partying_face_3d.png",
+    "toned": false,
     "slug": "partying-face"
    }
   },
@@ -1690,6 +1592,7 @@
     "glyph": "🎬",
     "dir": "Clapper board",
     "file": "assets/Clapper board/3D/clapper_board_3d.png",
+    "toned": false,
     "slug": "clapper-board"
    }
   },
@@ -1709,6 +1612,7 @@
     "glyph": "🎮",
     "dir": "Video game",
     "file": "assets/Video game/3D/video_game_3d.png",
+    "toned": false,
     "slug": "video-game"
    }
   },
@@ -1728,6 +1632,7 @@
     "glyph": "✈️",
     "dir": "Airplane",
     "file": "assets/Airplane/3D/airplane_3d.png",
+    "toned": false,
     "slug": "airplane"
    }
   },
@@ -1747,6 +1652,7 @@
     "glyph": "⚽",
     "dir": "Soccer ball",
     "file": "assets/Soccer ball/3D/soccer_ball_3d.png",
+    "toned": false,
     "slug": "soccer-ball"
    }
   },
@@ -1766,6 +1672,7 @@
     "glyph": "📺",
     "dir": "Television",
     "file": "assets/Television/3D/television_3d.png",
+    "toned": false,
     "slug": "television"
    }
   },
@@ -1785,6 +1692,7 @@
     "glyph": "🎉",
     "dir": "Party popper",
     "file": "assets/Party popper/3D/party_popper_3d.png",
+    "toned": false,
     "slug": "party-popper"
    }
   },
@@ -1804,6 +1712,7 @@
     "glyph": "👕",
     "dir": "T-shirt",
     "file": "assets/T-shirt/3D/t-shirt_3d.png",
+    "toned": false,
     "slug": "t-shirt"
    }
   },
@@ -1823,6 +1732,7 @@
     "glyph": "👟",
     "dir": "Running shoe",
     "file": "assets/Running shoe/3D/running_shoe_3d.png",
+    "toned": false,
     "slug": "running-shoe"
    }
   },
@@ -1842,6 +1752,7 @@
     "glyph": "💈",
     "dir": "Barber pole",
     "file": "assets/Barber pole/3D/barber_pole_3d.png",
+    "toned": false,
     "slug": "barber-pole"
    }
   },
@@ -1861,6 +1772,7 @@
     "glyph": "🧼",
     "dir": "Soap",
     "file": "assets/Soap/3D/soap_3d.png",
+    "toned": false,
     "slug": "soap"
    }
   },
@@ -1880,6 +1792,7 @@
     "glyph": "👜",
     "dir": "Handbag",
     "file": "assets/Handbag/3D/handbag_3d.png",
+    "toned": false,
     "slug": "handbag"
    }
   },
@@ -1899,6 +1812,7 @@
     "glyph": "🛍️",
     "dir": "Shopping bags",
     "file": "assets/Shopping bags/3D/shopping_bags_3d.png",
+    "toned": false,
     "slug": "shopping-bags"
    }
   },
@@ -1918,6 +1832,7 @@
     "glyph": "🏦",
     "dir": "Bank",
     "file": "assets/Bank/3D/bank_3d.png",
+    "toned": false,
     "slug": "bank"
    }
   },
@@ -1932,31 +1847,14 @@
      "code": 62734
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🫂",
-     "dir": "People hugging",
-     "file": "assets/People hugging/3D/people_hugging_3d.png",
-     "slug": "people-hugging"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🏡",
-     "dir": "House with garden",
-     "file": "assets/House with garden/3D/house_with_garden_3d.png",
-     "slug": "house-with-garden"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "👥",
-     "dir": "Busts in silhouette",
-     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
-     "slug": "busts-in-silhouette"
-    }
-   ],
-   "note": "Pas de famille en 3D dans Fluent."
+   "p": {
+    "kind": "emoji",
+    "glyph": "👥",
+    "dir": "Busts in silhouette",
+    "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "toned": false,
+    "slug": "busts-in-silhouette"
+   }
   },
   {
    "r": "Dépenses — sous-catégories (catalogue v2, Côte d’Ivoire et Afrique de l’Ouest)",
@@ -1974,6 +1872,7 @@
     "glyph": "🧾",
     "dir": "Receipt",
     "file": "assets/Receipt/3D/receipt_3d.png",
+    "toned": false,
     "slug": "receipt"
    }
   },
@@ -1993,6 +1892,7 @@
     "glyph": "💳",
     "dir": "Credit card",
     "file": "assets/Credit card/3D/credit_card_3d.png",
+    "toned": false,
     "slug": "credit-card"
    }
   },
@@ -2012,6 +1912,7 @@
     "glyph": "📈",
     "dir": "Chart increasing",
     "file": "assets/Chart increasing/3D/chart_increasing_3d.png",
+    "toned": false,
     "slug": "chart-increasing"
    }
   },
@@ -2031,6 +1932,7 @@
     "glyph": "🧾",
     "dir": "Receipt",
     "file": "assets/Receipt/3D/receipt_3d.png",
+    "toned": false,
     "slug": "receipt"
    }
   },
@@ -2050,6 +1952,7 @@
     "glyph": "💸",
     "dir": "Money with wings",
     "file": "assets/Money with wings/3D/money_with_wings_3d.png",
+    "toned": false,
     "slug": "money-with-wings"
    }
   },
@@ -2069,6 +1972,7 @@
     "glyph": "🔐",
     "dir": "Locked with key",
     "file": "assets/Locked with key/3D/locked_with_key_3d.png",
+    "toned": false,
     "slug": "locked-with-key"
    }
   },
@@ -2088,6 +1992,7 @@
     "glyph": "🗓️",
     "dir": "Spiral calendar",
     "file": "assets/Spiral calendar/3D/spiral_calendar_3d.png",
+    "toned": false,
     "slug": "spiral-calendar"
    }
   },
@@ -2107,6 +2012,7 @@
     "glyph": "🧾",
     "dir": "Receipt",
     "file": "assets/Receipt/3D/receipt_3d.png",
+    "toned": false,
     "slug": "receipt"
    }
   },
@@ -2126,6 +2032,7 @@
     "glyph": "⚡",
     "dir": "High voltage",
     "file": "assets/High voltage/3D/high_voltage_3d.png",
+    "toned": false,
     "slug": "high-voltage"
    }
   },
@@ -2140,31 +2047,14 @@
      "code": 62338
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🔌",
-     "dir": "Electric plug",
-     "file": "assets/Electric plug/3D/electric_plug_3d.png",
-     "slug": "electric-plug"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "⚡",
-     "dir": "High voltage",
-     "file": "assets/High voltage/3D/high_voltage_3d.png",
-     "slug": "high-voltage"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🔋",
-     "dir": "Battery",
-     "file": "assets/Battery/3D/battery_3d.png",
-     "slug": "battery"
-    }
-   ],
-   "note": "Pas de groupe électrogène."
+   "p": {
+    "kind": "emoji",
+    "glyph": "🔌",
+    "dir": "Electric plug",
+    "file": "assets/Electric plug/3D/electric_plug_3d.png",
+    "toned": false,
+    "slug": "electric-plug"
+   }
   },
   {
    "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
@@ -2182,6 +2072,7 @@
     "glyph": "🌡️",
     "dir": "Thermometer",
     "file": "assets/Thermometer/3D/thermometer_3d.png",
+    "toned": false,
     "slug": "thermometer"
    }
   },
@@ -2201,6 +2092,7 @@
     "glyph": "🏢",
     "dir": "Office building",
     "file": "assets/Office building/3D/office_building_3d.png",
+    "toned": false,
     "slug": "office-building"
    }
   },
@@ -2220,6 +2112,7 @@
     "glyph": "🔧",
     "dir": "Wrench",
     "file": "assets/Wrench/3D/wrench_3d.png",
+    "toned": false,
     "slug": "wrench"
    }
   },
@@ -2239,6 +2132,7 @@
     "glyph": "🍖",
     "dir": "Meat on bone",
     "file": "assets/Meat on bone/3D/meat_on_bone_3d.png",
+    "toned": false,
     "slug": "meat-on-bone"
    }
   },
@@ -2258,6 +2152,7 @@
     "glyph": "🍱",
     "dir": "Bento box",
     "file": "assets/Bento box/3D/bento_box_3d.png",
+    "toned": false,
     "slug": "bento-box"
    }
   },
@@ -2277,6 +2172,7 @@
     "glyph": "🚐",
     "dir": "Minibus",
     "file": "assets/Minibus/3D/minibus_3d.png",
+    "toned": false,
     "slug": "minibus"
    }
   },
@@ -2296,6 +2192,7 @@
     "glyph": "🎫",
     "dir": "Ticket",
     "file": "assets/Ticket/3D/ticket_3d.png",
+    "toned": false,
     "slug": "ticket"
    }
   },
@@ -2315,6 +2212,7 @@
     "glyph": "🚆",
     "dir": "Train",
     "file": "assets/Train/3D/train_3d.png",
+    "toned": false,
     "slug": "train"
    }
   },
@@ -2334,6 +2232,7 @@
     "glyph": "📄",
     "dir": "Page facing up",
     "file": "assets/Page facing up/3D/page_facing_up_3d.png",
+    "toned": false,
     "slug": "page-facing-up"
    }
   },
@@ -2353,6 +2252,7 @@
     "glyph": "🚙",
     "dir": "Sport utility vehicle",
     "file": "assets/Sport utility vehicle/3D/sport_utility_vehicle_3d.png",
+    "toned": false,
     "slug": "sport-utility-vehicle"
    }
   },
@@ -2372,6 +2272,7 @@
     "glyph": "📶",
     "dir": "Antenna bars",
     "file": "assets/Antenna bars/3D/antenna_bars_3d.png",
+    "toned": false,
     "slug": "antenna-bars"
    }
   },
@@ -2391,6 +2292,7 @@
     "glyph": "📡",
     "dir": "Satellite antenna",
     "file": "assets/Satellite antenna/3D/satellite_antenna_3d.png",
+    "toned": false,
     "slug": "satellite-antenna"
    }
   },
@@ -2405,31 +2307,11 @@
      "code": 62314
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🫂",
-     "dir": "People hugging",
-     "file": "assets/People hugging/3D/people_hugging_3d.png",
-     "slug": "people-hugging"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🏡",
-     "dir": "House with garden",
-     "file": "assets/House with garden/3D/house_with_garden_3d.png",
-     "slug": "house-with-garden"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "👥",
-     "dir": "Busts in silhouette",
-     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
-     "slug": "busts-in-silhouette"
-    }
-   ],
-   "note": "Pas de famille en 3D dans Fluent."
+   "p": {
+    "kind": "compo",
+    "slug": "famille_3d_medium-dark",
+    "src": "design-pro-icones-composees/famille_3d_medium-dark.png"
+   }
   },
   {
    "r": "Dépenses — sous-catégories des autres pays (catalogue des zones)",
@@ -2447,6 +2329,7 @@
     "glyph": "❤️‍🩹",
     "dir": "Mending heart",
     "file": "assets/Mending heart/3D/mending_heart_3d.png",
+    "toned": false,
     "slug": "mending-heart"
    }
   },
@@ -2466,6 +2349,7 @@
     "glyph": "🧸",
     "dir": "Teddy bear",
     "file": "assets/Teddy bear/3D/teddy_bear_3d.png",
+    "toned": false,
     "slug": "teddy-bear"
    }
   },
@@ -2485,6 +2369,7 @@
     "glyph": "📨",
     "dir": "Incoming envelope",
     "file": "assets/Incoming envelope/3D/incoming_envelope_3d.png",
+    "toned": false,
     "slug": "incoming-envelope"
    }
   },
@@ -2503,8 +2388,9 @@
     "kind": "emoji",
     "glyph": "🙏",
     "dir": "Folded hands",
-    "file": "assets/Folded hands/Default/3D/folded_hands_3d_default.png",
-    "slug": "folded-hands"
+    "file": "assets/Folded hands/Medium-Dark/3D/folded_hands_3d_medium-dark.png",
+    "toned": true,
+    "slug": "folded-hands-medium-dark"
    }
   },
   {
@@ -2523,6 +2409,7 @@
     "glyph": "👥",
     "dir": "Busts in silhouette",
     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "toned": false,
     "slug": "busts-in-silhouette"
    }
   },
@@ -2541,8 +2428,9 @@
     "kind": "emoji",
     "glyph": "🤲",
     "dir": "Palms up together",
-    "file": "assets/Palms up together/Default/3D/palms_up_together_3d_default.png",
-    "slug": "palms-up-together"
+    "file": "assets/Palms up together/Medium-Dark/3D/palms_up_together_3d_medium-dark.png",
+    "toned": true,
+    "slug": "palms-up-together-medium-dark"
    }
   },
   {
@@ -2561,6 +2449,7 @@
     "glyph": "🏛️",
     "dir": "Classical building",
     "file": "assets/Classical building/3D/classical_building_3d.png",
+    "toned": false,
     "slug": "classical-building"
    }
   },
@@ -2580,6 +2469,7 @@
     "glyph": "🏘️",
     "dir": "Houses",
     "file": "assets/Houses/3D/houses_3d.png",
+    "toned": false,
     "slug": "houses"
    }
   },
@@ -2599,6 +2489,7 @@
     "glyph": "📑",
     "dir": "Bookmark tabs",
     "file": "assets/Bookmark tabs/3D/bookmark_tabs_3d.png",
+    "toned": false,
     "slug": "bookmark-tabs"
    }
   },
@@ -2618,6 +2509,7 @@
     "glyph": "🏛️",
     "dir": "Classical building",
     "file": "assets/Classical building/3D/classical_building_3d.png",
+    "toned": false,
     "slug": "classical-building"
    }
   },
@@ -2637,6 +2529,7 @@
     "glyph": "🏡",
     "dir": "House with garden",
     "file": "assets/House with garden/3D/house_with_garden_3d.png",
+    "toned": false,
     "slug": "house-with-garden"
    }
   },
@@ -2656,6 +2549,7 @@
     "glyph": "☂️",
     "dir": "Umbrella",
     "file": "assets/Umbrella/3D/umbrella_3d.png",
+    "toned": false,
     "slug": "umbrella"
    }
   },
@@ -2675,6 +2569,7 @@
     "glyph": "🛡️",
     "dir": "Shield",
     "file": "assets/Shield/3D/shield_3d.png",
+    "toned": false,
     "slug": "shield"
    }
   },
@@ -2694,6 +2589,7 @@
     "glyph": "🌐",
     "dir": "Globe with meridians",
     "file": "assets/Globe with meridians/3D/globe_with_meridians_3d.png",
+    "toned": false,
     "slug": "globe-with-meridians"
    }
   },
@@ -2713,6 +2609,7 @@
     "glyph": "🐷",
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
+    "toned": false,
     "slug": "pig-face"
    }
   },
@@ -2732,6 +2629,7 @@
     "glyph": "📈",
     "dir": "Chart increasing",
     "file": "assets/Chart increasing/3D/chart_increasing_3d.png",
+    "toned": false,
     "slug": "chart-increasing"
    }
   },
@@ -2751,6 +2649,7 @@
     "glyph": "👥",
     "dir": "Busts in silhouette",
     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "toned": false,
     "slug": "busts-in-silhouette"
    }
   },
@@ -2770,6 +2669,7 @@
     "glyph": "🏛️",
     "dir": "Classical building",
     "file": "assets/Classical building/3D/classical_building_3d.png",
+    "toned": false,
     "slug": "classical-building"
    }
   },
@@ -2789,6 +2689,7 @@
     "glyph": "🛡️",
     "dir": "Shield",
     "file": "assets/Shield/3D/shield_3d.png",
+    "toned": false,
     "slug": "shield"
    }
   },
@@ -2808,6 +2709,7 @@
     "glyph": "💼",
     "dir": "Briefcase",
     "file": "assets/Briefcase/3D/briefcase_3d.png",
+    "toned": false,
     "slug": "briefcase"
    }
   },
@@ -2827,6 +2729,7 @@
     "glyph": "🏪",
     "dir": "Convenience store",
     "file": "assets/Convenience store/3D/convenience_store_3d.png",
+    "toned": false,
     "slug": "convenience-store"
    }
   },
@@ -2846,6 +2749,7 @@
     "glyph": "💻",
     "dir": "Laptop",
     "file": "assets/Laptop/3D/laptop_3d.png",
+    "toned": false,
     "slug": "laptop"
    }
   },
@@ -2865,6 +2769,7 @@
     "glyph": "🏷️",
     "dir": "Label",
     "file": "assets/Label/3D/label_3d.png",
+    "toned": false,
     "slug": "label"
    }
   },
@@ -2883,8 +2788,9 @@
     "kind": "emoji",
     "glyph": "👴",
     "dir": "Old man",
-    "file": "assets/Old man/Default/3D/old_man_3d_default.png",
-    "slug": "old-man"
+    "file": "assets/Old man/Medium-Dark/3D/old_man_3d_medium-dark.png",
+    "toned": true,
+    "slug": "old-man-medium-dark"
    }
   },
   {
@@ -2902,8 +2808,9 @@
     "kind": "emoji",
     "glyph": "🤲",
     "dir": "Palms up together",
-    "file": "assets/Palms up together/Default/3D/palms_up_together_3d_default.png",
-    "slug": "palms-up-together"
+    "file": "assets/Palms up together/Medium-Dark/3D/palms_up_together_3d_medium-dark.png",
+    "toned": true,
+    "slug": "palms-up-together-medium-dark"
    }
   },
   {
@@ -2922,6 +2829,7 @@
     "glyph": "🏘️",
     "dir": "Houses",
     "file": "assets/Houses/3D/houses_3d.png",
+    "toned": false,
     "slug": "houses"
    }
   },
@@ -2941,6 +2849,7 @@
     "glyph": "🌾",
     "dir": "Sheaf of rice",
     "file": "assets/Sheaf of rice/3D/sheaf_of_rice_3d.png",
+    "toned": false,
     "slug": "sheaf-of-rice"
    }
   },
@@ -2960,6 +2869,7 @@
     "glyph": "📬",
     "dir": "Open mailbox with raised flag",
     "file": "assets/Open mailbox with raised flag/3D/open_mailbox_with_raised_flag_3d.png",
+    "toned": false,
     "slug": "open-mailbox-with-raised-flag"
    }
   },
@@ -2979,6 +2889,7 @@
     "glyph": "📈",
     "dir": "Chart increasing",
     "file": "assets/Chart increasing/3D/chart_increasing_3d.png",
+    "toned": false,
     "slug": "chart-increasing"
    }
   },
@@ -2998,6 +2909,7 @@
     "glyph": "🏷️",
     "dir": "Label",
     "file": "assets/Label/3D/label_3d.png",
+    "toned": false,
     "slug": "label"
    }
   },
@@ -3017,6 +2929,7 @@
     "glyph": "🛠️",
     "dir": "Hammer and wrench",
     "file": "assets/Hammer and wrench/3D/hammer_and_wrench_3d.png",
+    "toned": false,
     "slug": "hammer-and-wrench"
    }
   },
@@ -3036,6 +2949,7 @@
     "glyph": "🎁",
     "dir": "Wrapped gift",
     "file": "assets/Wrapped gift/3D/wrapped_gift_3d.png",
+    "toned": false,
     "slug": "wrapped-gift"
    }
   },
@@ -3050,31 +2964,14 @@
      "code": 62623
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🪙",
-     "dir": "Coin",
-     "file": "assets/Coin/3D/coin_3d.png",
-     "slug": "coin"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "💰",
-     "dir": "Money bag",
-     "file": "assets/Money bag/3D/money_bag_3d.png",
-     "slug": "money-bag"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🤝",
-     "dir": "Handshake",
-     "file": "assets/Handshake/3D/handshake_3d.png",
-     "slug": "handshake"
-    }
-   ],
-   "note": "Même choix que la catégorie Tontine."
+   "p": {
+    "kind": "emoji",
+    "glyph": "💰",
+    "dir": "Money bag",
+    "file": "assets/Money bag/3D/money_bag_3d.png",
+    "toned": false,
+    "slug": "money-bag"
+   }
   },
   {
    "r": "Revenus",
@@ -3092,6 +2989,7 @@
     "glyph": "💵",
     "dir": "Dollar banknote",
     "file": "assets/Dollar banknote/3D/dollar_banknote_3d.png",
+    "toned": false,
     "slug": "dollar-banknote"
    }
   },
@@ -3111,6 +3009,7 @@
     "glyph": "💰",
     "dir": "Money bag",
     "file": "assets/Money bag/3D/money_bag_3d.png",
+    "toned": false,
     "slug": "money-bag"
    }
   },
@@ -3130,6 +3029,7 @@
     "glyph": "💵",
     "dir": "Dollar banknote",
     "file": "assets/Dollar banknote/3D/dollar_banknote_3d.png",
+    "toned": false,
     "slug": "dollar-banknote"
    }
   },
@@ -3145,13 +3045,10 @@
     }
    ],
    "p": {
-    "kind": "emoji",
-    "glyph": "📱",
-    "dir": "Mobile phone",
-    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
-    "slug": "mobile-phone"
+    "kind": "logo",
+    "operator": "orange"
    },
-   "logo": true
+   "logo": "operator"
   },
   {
    "r": "Comptes",
@@ -3165,13 +3062,10 @@
     }
    ],
    "p": {
-    "kind": "emoji",
-    "glyph": "📱",
-    "dir": "Mobile phone",
-    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
-    "slug": "mobile-phone"
+    "kind": "logo",
+    "operator": "mtn"
    },
-   "logo": true
+   "logo": "operator"
   },
   {
    "r": "Comptes",
@@ -3185,13 +3079,10 @@
     }
    ],
    "p": {
-    "kind": "emoji",
-    "glyph": "📱",
-    "dir": "Mobile phone",
-    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
-    "slug": "mobile-phone"
+    "kind": "logo",
+    "operator": "moov"
    },
-   "logo": true
+   "logo": "operator"
   },
   {
    "r": "Comptes",
@@ -3205,13 +3096,10 @@
     }
    ],
    "p": {
-    "kind": "emoji",
-    "glyph": "📱",
-    "dir": "Mobile phone",
-    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
-    "slug": "mobile-phone"
+    "kind": "logo",
+    "operator": "wave"
    },
-   "logo": true
+   "logo": "operator"
   },
   {
    "r": "Comptes",
@@ -3225,13 +3113,10 @@
     }
    ],
    "p": {
-    "kind": "emoji",
-    "glyph": "📱",
-    "dir": "Mobile phone",
-    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
-    "slug": "mobile-phone"
+    "kind": "logo",
+    "operator": "free"
    },
-   "logo": true
+   "logo": "operator"
   },
   {
    "r": "Comptes",
@@ -3245,13 +3130,10 @@
     }
    ],
    "p": {
-    "kind": "emoji",
-    "glyph": "📱",
-    "dir": "Mobile phone",
-    "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
-    "slug": "mobile-phone"
+    "kind": "logo",
+    "operator": "airtel"
    },
-   "logo": true
+   "logo": "operator"
   },
   {
    "r": "Comptes",
@@ -3269,6 +3151,7 @@
     "glyph": "📱",
     "dir": "Mobile phone",
     "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "toned": false,
     "slug": "mobile-phone"
    }
   },
@@ -3288,6 +3171,7 @@
     "glyph": "🏦",
     "dir": "Bank",
     "file": "assets/Bank/3D/bank_3d.png",
+    "toned": false,
     "slug": "bank"
    }
   },
@@ -3307,6 +3191,7 @@
     "glyph": "🏦",
     "dir": "Bank",
     "file": "assets/Bank/3D/bank_3d.png",
+    "toned": false,
     "slug": "bank"
    }
   },
@@ -3326,6 +3211,7 @@
     "glyph": "👥",
     "dir": "Busts in silhouette",
     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "toned": false,
     "slug": "busts-in-silhouette"
    }
   },
@@ -3345,6 +3231,7 @@
     "glyph": "🐷",
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
+    "toned": false,
     "slug": "pig-face"
    }
   },
@@ -3364,6 +3251,7 @@
     "glyph": "💳",
     "dir": "Credit card",
     "file": "assets/Credit card/3D/credit_card_3d.png",
+    "toned": false,
     "slug": "credit-card"
    }
   },
@@ -3383,6 +3271,7 @@
     "glyph": "📈",
     "dir": "Chart increasing",
     "file": "assets/Chart increasing/3D/chart_increasing_3d.png",
+    "toned": false,
     "slug": "chart-increasing"
    }
   },
@@ -3397,31 +3286,11 @@
      "code": 62623
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🪙",
-     "dir": "Coin",
-     "file": "assets/Coin/3D/coin_3d.png",
-     "slug": "coin"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "💰",
-     "dir": "Money bag",
-     "file": "assets/Money bag/3D/money_bag_3d.png",
-     "slug": "money-bag"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🤝",
-     "dir": "Handshake",
-     "file": "assets/Handshake/3D/handshake_3d.png",
-     "slug": "handshake"
-    }
-   ],
-   "note": "Même choix que la catégorie Tontine."
+   "p": {
+    "kind": "compo",
+    "slug": "tontine_all_3d",
+    "src": "design-pro-icones-composees/tontine_all_3d.png"
+   }
   },
   {
    "r": "Objectifs — familles",
@@ -3438,6 +3307,7 @@
     "glyph": "🚗",
     "dir": "Automobile",
     "file": "assets/Automobile/3D/automobile_3d.png",
+    "toned": false,
     "slug": "automobile"
    }
   },
@@ -3456,6 +3326,7 @@
     "glyph": "🏠",
     "dir": "House",
     "file": "assets/House/3D/house_3d.png",
+    "toned": false,
     "slug": "house"
    }
   },
@@ -3474,6 +3345,7 @@
     "glyph": "💼",
     "dir": "Briefcase",
     "file": "assets/Briefcase/3D/briefcase_3d.png",
+    "toned": false,
     "slug": "briefcase"
    }
   },
@@ -3492,6 +3364,7 @@
     "glyph": "🎓",
     "dir": "Graduation cap",
     "file": "assets/Graduation cap/3D/graduation_cap_3d.png",
+    "toned": false,
     "slug": "graduation-cap"
    }
   },
@@ -3505,31 +3378,11 @@
      "glyph": "👨‍👩‍👧"
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🫂",
-     "dir": "People hugging",
-     "file": "assets/People hugging/3D/people_hugging_3d.png",
-     "slug": "people-hugging"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🏡",
-     "dir": "House with garden",
-     "file": "assets/House with garden/3D/house_with_garden_3d.png",
-     "slug": "house-with-garden"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "👥",
-     "dir": "Busts in silhouette",
-     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
-     "slug": "busts-in-silhouette"
-    }
-   ],
-   "note": "Pas de famille en 3D dans Fluent."
+   "p": {
+    "kind": "compo",
+    "slug": "famille_3d_medium-dark",
+    "src": "design-pro-icones-composees/famille_3d_medium-dark.png"
+   }
   },
   {
    "r": "Objectifs — familles",
@@ -3546,6 +3399,7 @@
     "glyph": "✈️",
     "dir": "Airplane",
     "file": "assets/Airplane/3D/airplane_3d.png",
+    "toned": false,
     "slug": "airplane"
    }
   },
@@ -3564,6 +3418,7 @@
     "glyph": "💰",
     "dir": "Money bag",
     "file": "assets/Money bag/3D/money_bag_3d.png",
+    "toned": false,
     "slug": "money-bag"
    }
   },
@@ -3582,6 +3437,7 @@
     "glyph": "🚗",
     "dir": "Automobile",
     "file": "assets/Automobile/3D/automobile_3d.png",
+    "toned": false,
     "slug": "automobile"
    }
   },
@@ -3600,6 +3456,7 @@
     "glyph": "🏍️",
     "dir": "Motorcycle",
     "file": "assets/Motorcycle/3D/motorcycle_3d.png",
+    "toned": false,
     "slug": "motorcycle"
    }
   },
@@ -3618,6 +3475,7 @@
     "glyph": "🚐",
     "dir": "Minibus",
     "file": "assets/Minibus/3D/minibus_3d.png",
+    "toned": false,
     "slug": "minibus"
    }
   },
@@ -3636,6 +3494,7 @@
     "glyph": "🏞️",
     "dir": "National park",
     "file": "assets/National park/3D/national_park_3d.png",
+    "toned": false,
     "slug": "national-park"
    }
   },
@@ -3654,6 +3513,7 @@
     "glyph": "🏡",
     "dir": "House with garden",
     "file": "assets/House with garden/3D/house_with_garden_3d.png",
+    "toned": false,
     "slug": "house-with-garden"
    }
   },
@@ -3672,6 +3532,7 @@
     "glyph": "🏗️",
     "dir": "Building construction",
     "file": "assets/Building construction/3D/building_construction_3d.png",
+    "toned": false,
     "slug": "building-construction"
    }
   },
@@ -3690,6 +3551,7 @@
     "glyph": "🛠️",
     "dir": "Hammer and wrench",
     "file": "assets/Hammer and wrench/3D/hammer_and_wrench_3d.png",
+    "toned": false,
     "slug": "hammer-and-wrench"
    }
   },
@@ -3708,6 +3570,7 @@
     "glyph": "⚙️",
     "dir": "Gear",
     "file": "assets/Gear/3D/gear_3d.png",
+    "toned": false,
     "slug": "gear"
    }
   },
@@ -3726,6 +3589,7 @@
     "glyph": "🧰",
     "dir": "Toolbox",
     "file": "assets/Toolbox/3D/toolbox_3d.png",
+    "toned": false,
     "slug": "toolbox"
    }
   },
@@ -3744,6 +3608,7 @@
     "glyph": "🏪",
     "dir": "Convenience store",
     "file": "assets/Convenience store/3D/convenience_store_3d.png",
+    "toned": false,
     "slug": "convenience-store"
    }
   },
@@ -3762,6 +3627,7 @@
     "glyph": "📈",
     "dir": "Chart increasing",
     "file": "assets/Chart increasing/3D/chart_increasing_3d.png",
+    "toned": false,
     "slug": "chart-increasing"
    }
   },
@@ -3780,6 +3646,7 @@
     "glyph": "🚜",
     "dir": "Tractor",
     "file": "assets/Tractor/3D/tractor_3d.png",
+    "toned": false,
     "slug": "tractor"
    }
   },
@@ -3798,6 +3665,7 @@
     "glyph": "📚",
     "dir": "Books",
     "file": "assets/Books/3D/books_3d.png",
+    "toned": false,
     "slug": "books"
    }
   },
@@ -3816,6 +3684,7 @@
     "glyph": "🎓",
     "dir": "Graduation cap",
     "file": "assets/Graduation cap/3D/graduation_cap_3d.png",
+    "toned": false,
     "slug": "graduation-cap"
    }
   },
@@ -3834,6 +3703,7 @@
     "glyph": "🎒",
     "dir": "Backpack",
     "file": "assets/Backpack/3D/backpack_3d.png",
+    "toned": false,
     "slug": "backpack"
    }
   },
@@ -3852,6 +3722,7 @@
     "glyph": "💍",
     "dir": "Ring",
     "file": "assets/Ring/3D/ring_3d.png",
+    "toned": false,
     "slug": "ring"
    }
   },
@@ -3865,31 +3736,11 @@
      "glyph": "👨‍👩‍👧"
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🫂",
-     "dir": "People hugging",
-     "file": "assets/People hugging/3D/people_hugging_3d.png",
-     "slug": "people-hugging"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🏡",
-     "dir": "House with garden",
-     "file": "assets/House with garden/3D/house_with_garden_3d.png",
-     "slug": "house-with-garden"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "👥",
-     "dir": "Busts in silhouette",
-     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
-     "slug": "busts-in-silhouette"
-    }
-   ],
-   "note": "Pas de famille en 3D dans Fluent."
+   "p": {
+    "kind": "compo",
+    "slug": "famille_3d_medium-dark",
+    "src": "design-pro-icones-composees/famille_3d_medium-dark.png"
+   }
   },
   {
    "r": "Objectifs — modèles",
@@ -3906,6 +3757,7 @@
     "glyph": "🏠",
     "dir": "House",
     "file": "assets/House/3D/house_3d.png",
+    "toned": false,
     "slug": "house"
    }
   },
@@ -3924,6 +3776,7 @@
     "glyph": "✈️",
     "dir": "Airplane",
     "file": "assets/Airplane/3D/airplane_3d.png",
+    "toned": false,
     "slug": "airplane"
    }
   },
@@ -3942,6 +3795,7 @@
     "glyph": "📱",
     "dir": "Mobile phone",
     "file": "assets/Mobile phone/3D/mobile_phone_3d.png",
+    "toned": false,
     "slug": "mobile-phone"
    }
   },
@@ -3960,6 +3814,7 @@
     "glyph": "💻",
     "dir": "Laptop",
     "file": "assets/Laptop/3D/laptop_3d.png",
+    "toned": false,
     "slug": "laptop"
    }
   },
@@ -3978,6 +3833,7 @@
     "glyph": "🛍️",
     "dir": "Shopping bags",
     "file": "assets/Shopping bags/3D/shopping_bags_3d.png",
+    "toned": false,
     "slug": "shopping-bags"
    }
   },
@@ -3996,6 +3852,7 @@
     "glyph": "🛡️",
     "dir": "Shield",
     "file": "assets/Shield/3D/shield_3d.png",
+    "toned": false,
     "slug": "shield"
    }
   },
@@ -4014,6 +3871,7 @@
     "glyph": "🐷",
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
+    "toned": false,
     "slug": "pig-face"
    }
   },
@@ -4032,6 +3890,7 @@
     "glyph": "✏️",
     "dir": "Pencil",
     "file": "assets/Pencil/3D/pencil_3d.png",
+    "toned": false,
     "slug": "pencil"
    }
   },
@@ -4045,31 +3904,11 @@
      "glyph": "🤝"
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🤝",
-     "dir": "Handshake",
-     "file": "assets/Handshake/3D/handshake_3d.png",
-     "slug": "handshake"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🤲",
-     "dir": "Palms up together",
-     "file": "assets/Palms up together/Default/3D/palms_up_together_3d_default.png",
-     "slug": "palms-up-together"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "👛",
-     "dir": "Purse",
-     "file": "assets/Purse/3D/purse_3d.png",
-     "slug": "purse"
-    }
-   ],
-   "note": "Poignée de main (actuelle), mains ouvertes ou porte-monnaie ?"
+   "p": {
+    "kind": "compo",
+    "slug": "famille_coeur_3d_medium-dark",
+    "src": "design-pro-icones-composees/famille_coeur_3d_medium-dark.png"
+   }
   },
   {
    "r": "Réserve et moments forts",
@@ -4086,6 +3925,7 @@
     "glyph": "🎒",
     "dir": "Backpack",
     "file": "assets/Backpack/3D/backpack_3d.png",
+    "toned": false,
     "slug": "backpack"
    }
   },
@@ -4104,6 +3944,7 @@
     "glyph": "🐑",
     "dir": "Ewe",
     "file": "assets/Ewe/3D/ewe_3d.png",
+    "toned": false,
     "slug": "ewe"
    }
   },
@@ -4122,6 +3963,7 @@
     "glyph": "🌙",
     "dir": "Crescent moon",
     "file": "assets/Crescent moon/3D/crescent_moon_3d.png",
+    "toned": false,
     "slug": "crescent-moon"
    }
   },
@@ -4140,6 +3982,7 @@
     "glyph": "🎄",
     "dir": "Christmas tree",
     "file": "assets/Christmas tree/3D/christmas_tree_3d.png",
+    "toned": false,
     "slug": "christmas-tree"
    }
   },
@@ -4158,6 +4001,7 @@
     "glyph": "🕊️",
     "dir": "Dove",
     "file": "assets/Dove/3D/dove_3d.png",
+    "toned": false,
     "slug": "dove"
    }
   },
@@ -4177,6 +4021,7 @@
     "glyph": "🗓️",
     "dir": "Spiral calendar",
     "file": "assets/Spiral calendar/3D/spiral_calendar_3d.png",
+    "toned": false,
     "slug": "spiral-calendar"
    }
   },
@@ -4191,31 +4036,11 @@
      "code": 62767
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🔄",
-     "dir": "Counterclockwise arrows button",
-     "file": "assets/Counterclockwise arrows button/3D/counterclockwise_arrows_button_3d.png",
-     "slug": "counterclockwise-arrows-button"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🪙",
-     "dir": "Coin",
-     "file": "assets/Coin/3D/coin_3d.png",
-     "slug": "coin"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🤝",
-     "dir": "Handshake",
-     "file": "assets/Handshake/3D/handshake_3d.png",
-     "slug": "handshake"
-    }
-   ],
-   "note": "Pas de « tour de cagnotte »."
+   "p": {
+    "kind": "compo",
+    "slug": "tontine_all_3d",
+    "src": "design-pro-icones-composees/tontine_all_3d.png"
+   }
   },
   {
    "r": "Tontines",
@@ -4233,6 +4058,7 @@
     "glyph": "👛",
     "dir": "Purse",
     "file": "assets/Purse/3D/purse_3d.png",
+    "toned": false,
     "slug": "purse"
    }
   },
@@ -4252,6 +4078,7 @@
     "glyph": "🧾",
     "dir": "Receipt",
     "file": "assets/Receipt/3D/receipt_3d.png",
+    "toned": false,
     "slug": "receipt"
    }
   },
@@ -4271,6 +4098,7 @@
     "glyph": "💰",
     "dir": "Money bag",
     "file": "assets/Money bag/3D/money_bag_3d.png",
+    "toned": false,
     "slug": "money-bag"
    }
   },
@@ -4290,6 +4118,7 @@
     "glyph": "👥",
     "dir": "Busts in silhouette",
     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "toned": false,
     "slug": "busts-in-silhouette"
    }
   },
@@ -4309,6 +4138,7 @@
     "glyph": "🔁",
     "dir": "Repeat button",
     "file": "assets/Repeat button/3D/repeat_button_3d.png",
+    "toned": false,
     "slug": "repeat-button"
    }
   },
@@ -4322,6 +4152,7 @@
     "glyph": "🧾",
     "dir": "Receipt",
     "file": "assets/Receipt/3D/receipt_3d.png",
+    "toned": false,
     "slug": "receipt"
    }
   },
@@ -4335,6 +4166,7 @@
     "glyph": "🏦",
     "dir": "Bank",
     "file": "assets/Bank/3D/bank_3d.png",
+    "toned": false,
     "slug": "bank"
    }
   },
@@ -4343,31 +4175,14 @@
    "id": "debt.kind.family",
    "n": "Crédit familial",
    "cur": [],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🫂",
-     "dir": "People hugging",
-     "file": "assets/People hugging/3D/people_hugging_3d.png",
-     "slug": "people-hugging"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🏡",
-     "dir": "House with garden",
-     "file": "assets/House with garden/3D/house_with_garden_3d.png",
-     "slug": "house-with-garden"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "👥",
-     "dir": "Busts in silhouette",
-     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
-     "slug": "busts-in-silhouette"
-    }
-   ],
-   "note": "Pas de famille en 3D dans Fluent."
+   "p": {
+    "kind": "emoji",
+    "glyph": "👥",
+    "dir": "Busts in silhouette",
+    "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "toned": false,
+    "slug": "busts-in-silhouette"
+   }
   },
   {
    "r": "Dettes et prêts",
@@ -4379,6 +4194,7 @@
     "glyph": "📦",
     "dir": "Package",
     "file": "assets/Package/3D/package_3d.png",
+    "toned": false,
     "slug": "package"
    }
   },
@@ -4391,8 +4207,9 @@
     "kind": "emoji",
     "glyph": "🤲",
     "dir": "Palms up together",
-    "file": "assets/Palms up together/Default/3D/palms_up_together_3d_default.png",
-    "slug": "palms-up-together"
+    "file": "assets/Palms up together/Medium-Dark/3D/palms_up_together_3d_medium-dark.png",
+    "toned": true,
+    "slug": "palms-up-together-medium-dark"
    }
   },
   {
@@ -4405,6 +4222,7 @@
     "glyph": "💵",
     "dir": "Dollar banknote",
     "file": "assets/Dollar banknote/3D/dollar_banknote_3d.png",
+    "toned": false,
     "slug": "dollar-banknote"
    }
   },
@@ -4428,6 +4246,7 @@
     "glyph": "🧾",
     "dir": "Receipt",
     "file": "assets/Receipt/3D/receipt_3d.png",
+    "toned": false,
     "slug": "receipt"
    }
   },
@@ -4446,6 +4265,7 @@
     "glyph": "🔎",
     "dir": "Magnifying glass tilted right",
     "file": "assets/Magnifying glass tilted right/3D/magnifying_glass_tilted_right_3d.png",
+    "toned": false,
     "slug": "magnifying-glass-tilted-right"
    }
   },
@@ -4465,6 +4285,7 @@
     "glyph": "👛",
     "dir": "Purse",
     "file": "assets/Purse/3D/purse_3d.png",
+    "toned": false,
     "slug": "purse"
    }
   },
@@ -4483,6 +4304,7 @@
     "glyph": "👛",
     "dir": "Purse",
     "file": "assets/Purse/3D/purse_3d.png",
+    "toned": false,
     "slug": "purse"
    }
   },
@@ -4502,6 +4324,7 @@
     "glyph": "📊",
     "dir": "Bar chart",
     "file": "assets/Bar chart/3D/bar_chart_3d.png",
+    "toned": false,
     "slug": "bar-chart"
    }
   },
@@ -4525,6 +4348,7 @@
     "glyph": "🎯",
     "dir": "Bullseye",
     "file": "assets/Bullseye/3D/bullseye_3d.png",
+    "toned": false,
     "slug": "bullseye"
    }
   },
@@ -4543,6 +4367,7 @@
     "glyph": "🐷",
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
+    "toned": false,
     "slug": "pig-face"
    }
   },
@@ -4561,6 +4386,7 @@
     "glyph": "🤝",
     "dir": "Handshake",
     "file": "assets/Handshake/3D/handshake_3d.png",
+    "toned": false,
     "slug": "handshake"
    }
   },
@@ -4579,6 +4405,7 @@
     "glyph": "🤝",
     "dir": "Handshake",
     "file": "assets/Handshake/3D/handshake_3d.png",
+    "toned": false,
     "slug": "handshake"
    }
   },
@@ -4597,6 +4424,7 @@
     "glyph": "🧾",
     "dir": "Receipt",
     "file": "assets/Receipt/3D/receipt_3d.png",
+    "toned": false,
     "slug": "receipt"
    }
   },
@@ -4615,6 +4443,7 @@
     "glyph": "🔁",
     "dir": "Repeat button",
     "file": "assets/Repeat button/3D/repeat_button_3d.png",
+    "toned": false,
     "slug": "repeat-button"
    }
   },
@@ -4633,6 +4462,7 @@
     "glyph": "🏡",
     "dir": "House with garden",
     "file": "assets/House with garden/3D/house_with_garden_3d.png",
+    "toned": false,
     "slug": "house-with-garden"
    }
   },
@@ -4646,31 +4476,11 @@
      "glyph": "👨‍👩‍👧"
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "🫂",
-     "dir": "People hugging",
-     "file": "assets/People hugging/3D/people_hugging_3d.png",
-     "slug": "people-hugging"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🏡",
-     "dir": "House with garden",
-     "file": "assets/House with garden/3D/house_with_garden_3d.png",
-     "slug": "house-with-garden"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "👥",
-     "dir": "Busts in silhouette",
-     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
-     "slug": "busts-in-silhouette"
-    }
-   ],
-   "note": "Pas de famille en 3D dans Fluent."
+   "p": {
+    "kind": "compo",
+    "slug": "famille_3d_medium-dark",
+    "src": "design-pro-icones-composees/famille_3d_medium-dark.png"
+   }
   },
   {
    "r": "Écrans vides",
@@ -4687,6 +4497,7 @@
     "glyph": "🗓️",
     "dir": "Spiral calendar",
     "file": "assets/Spiral calendar/3D/spiral_calendar_3d.png",
+    "toned": false,
     "slug": "spiral-calendar"
    }
   },
@@ -4705,6 +4516,7 @@
     "glyph": "🔔",
     "dir": "Bell",
     "file": "assets/Bell/3D/bell_3d.png",
+    "toned": false,
     "slug": "bell"
    }
   },
@@ -4723,6 +4535,7 @@
     "glyph": "📊",
     "dir": "Bar chart",
     "file": "assets/Bar chart/3D/bar_chart_3d.png",
+    "toned": false,
     "slug": "bar-chart"
    }
   },
@@ -4741,6 +4554,7 @@
     "glyph": "🪙",
     "dir": "Coin",
     "file": "assets/Coin/3D/coin_3d.png",
+    "toned": false,
     "slug": "coin"
    }
   },
@@ -4760,6 +4574,7 @@
     "glyph": "👥",
     "dir": "Busts in silhouette",
     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "toned": false,
     "slug": "busts-in-silhouette"
    }
   },
@@ -4779,6 +4594,7 @@
     "glyph": "👥",
     "dir": "Busts in silhouette",
     "file": "assets/Busts in silhouette/3D/busts_in_silhouette_3d.png",
+    "toned": false,
     "slug": "busts-in-silhouette"
    }
   },
@@ -4798,6 +4614,7 @@
     "glyph": "🏆",
     "dir": "Trophy",
     "file": "assets/Trophy/3D/trophy_3d.png",
+    "toned": false,
     "slug": "trophy"
    }
   },
@@ -4817,6 +4634,7 @@
     "glyph": "🎖️",
     "dir": "Military medal",
     "file": "assets/Military medal/3D/military_medal_3d.png",
+    "toned": false,
     "slug": "military-medal"
    }
   },
@@ -4836,6 +4654,7 @@
     "glyph": "🐷",
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
+    "toned": false,
     "slug": "pig-face"
    }
   },
@@ -4855,6 +4674,7 @@
     "glyph": "🏆",
     "dir": "Trophy",
     "file": "assets/Trophy/3D/trophy_3d.png",
+    "toned": false,
     "slug": "trophy"
    }
   },
@@ -4874,6 +4694,7 @@
     "glyph": "🛡️",
     "dir": "Shield",
     "file": "assets/Shield/3D/shield_3d.png",
+    "toned": false,
     "slug": "shield"
    }
   },
@@ -4893,6 +4714,7 @@
     "glyph": "✅",
     "dir": "Check mark button",
     "file": "assets/Check mark button/3D/check_mark_button_3d.png",
+    "toned": false,
     "slug": "check-mark-button"
    }
   },
@@ -4912,6 +4734,7 @@
     "glyph": "🔥",
     "dir": "Fire",
     "file": "assets/Fire/3D/fire_3d.png",
+    "toned": false,
     "slug": "fire"
    }
   },
@@ -4931,6 +4754,7 @@
     "glyph": "🌟",
     "dir": "Glowing star",
     "file": "assets/Glowing star/3D/glowing_star_3d.png",
+    "toned": false,
     "slug": "glowing-star"
    }
   },
@@ -4950,6 +4774,7 @@
     "glyph": "📝",
     "dir": "Memo",
     "file": "assets/Memo/3D/memo_3d.png",
+    "toned": false,
     "slug": "memo"
    }
   },
@@ -4969,6 +4794,7 @@
     "glyph": "🏆",
     "dir": "Trophy",
     "file": "assets/Trophy/3D/trophy_3d.png",
+    "toned": false,
     "slug": "trophy"
    }
   },
@@ -4983,31 +4809,14 @@
      "code": 62863
     }
    ],
-   "p": null,
-   "choose": [
-    {
-     "kind": "emoji",
-     "glyph": "📊",
-     "dir": "Bar chart",
-     "file": "assets/Bar chart/3D/bar_chart_3d.png",
-     "slug": "bar-chart"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🎯",
-     "dir": "Bullseye",
-     "file": "assets/Bullseye/3D/bullseye_3d.png",
-     "slug": "bullseye"
-    },
-    {
-     "kind": "emoji",
-     "glyph": "🧭",
-     "dir": "Compass",
-     "file": "assets/Compass/3D/compass_3d.png",
-     "slug": "compass"
-    }
-   ],
-   "note": "Pas de jauge dans la bibliothèque."
+   "p": {
+    "kind": "emoji",
+    "glyph": "📊",
+    "dir": "Bar chart",
+    "file": "assets/Bar chart/3D/bar_chart_3d.png",
+    "toned": false,
+    "slug": "bar-chart"
+   }
   },
   {
    "r": "Score",
@@ -5019,6 +4828,7 @@
     "glyph": "📊",
     "dir": "Bar chart",
     "file": "assets/Bar chart/3D/bar_chart_3d.png",
+    "toned": false,
     "slug": "bar-chart"
    }
   },
@@ -5032,6 +4842,7 @@
     "glyph": "🐷",
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
+    "toned": false,
     "slug": "pig-face"
    }
   },
@@ -5045,6 +4856,7 @@
     "glyph": "🎯",
     "dir": "Bullseye",
     "file": "assets/Bullseye/3D/bullseye_3d.png",
+    "toned": false,
     "slug": "bullseye"
    }
   },
@@ -5058,6 +4870,7 @@
     "glyph": "🧾",
     "dir": "Receipt",
     "file": "assets/Receipt/3D/receipt_3d.png",
+    "toned": false,
     "slug": "receipt"
    }
   },
@@ -5071,6 +4884,7 @@
     "glyph": "🛡️",
     "dir": "Shield",
     "file": "assets/Shield/3D/shield_3d.png",
+    "toned": false,
     "slug": "shield"
    }
   },
@@ -5084,6 +4898,7 @@
     "glyph": "⚖️",
     "dir": "Balance scale",
     "file": "assets/Balance scale/3D/balance_scale_3d.png",
+    "toned": false,
     "slug": "balance-scale"
    }
   },
@@ -5716,7 +5531,7 @@
     "name": "logo-whatsapp",
     "code": 62501
    },
-   "logo": true
+   "logo": "brand"
   },
   {
    "r": "Coach, assistant et cartes",
@@ -5893,7 +5708,7 @@
     "name": "logo-whatsapp",
     "code": 62501
    },
-   "logo": true
+   "logo": "brand"
   },
   {
    "r": "Coach, assistant et cartes",
@@ -6011,7 +5826,7 @@
     "name": "logo-google",
     "code": 62453
    },
-   "logo": true
+   "logo": "brand"
   },
   {
    "r": "Navigation et actions",

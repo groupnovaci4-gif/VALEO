@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DineroX — Icônes en sombre</title>
+<!--
+  Proposition (mode SOMBRE seulement) : un léger rond clair derrière les icônes dont le contour se
+  fond dans le fond sombre. Mesure (contrast.js) : part du contour de l'icône dont le contraste avec
+  la surface sombre #1D1B17 est inférieur à 1,5:1. Seuil retenu : 25 % du contour.
+-->
+<style>
+@font-face { font-family: Inter; font-weight: 400; src: url(../directions/fonts/Inter_400Regular.ttf); }
+@font-face { font-family: Inter; font-weight: 500; src: url(../directions/fonts/Inter_500Medium.ttf); }
+@font-face { font-family: Inter; font-weight: 600; src: url(../directions/fonts/Inter_600SemiBold.ttf); }
+@font-face { font-family: Jakarta; font-weight: 700; src: url(../directions/fonts/PlusJakartaSans_700Bold.ttf); }
+:root { --bg: #13120F; --surface: #1D1B17; --divider: #2C2923; --text: #F3EFE7; --text2: #BDB4A4; --text3: #A0968A; --halo: #3A362F; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font: 400 15px/22px Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+h1 { font: 700 22px/28px Jakarta, Inter; margin-bottom: 4px; }
+.lede { color: var(--text2); font-size: 14px; line-height: 20px; margin-bottom: 12px; }
+.lede b { color: var(--text); }
+.legend, .row { display: grid; grid-template-columns: minmax(0, 1fr) 56px 56px 44px 44px; align-items: center; column-gap: 6px; }
+.legend { font: 600 11px/14px Inter; color: var(--text3); padding: 8px 0 6px; text-align: center; }
+.legend span:first-child { text-align: left; }
+.card { background: var(--surface); border-radius: 16px; overflow: hidden; }
+.row { min-height: 64px; padding: 6px 8px 6px 12px; border-top: 1px solid var(--divider); }
+.row:first-child { border-top: 0; }
+.name { font: 500 14px/19px Inter; overflow-wrap: break-word; }
+.name small { display: block; font: 400 11px/15px Inter; color: var(--text3); }
+.cell { display: flex; align-items: center; justify-content: center; }
+.i48 { width: 48px; height: 48px; } .i32 { width: 32px; height: 32px; }
+.halo { border-radius: 50%; background: var(--halo); display: flex; align-items: center; justify-content: center; }
+.h48 { width: 56px; height: 56px; } .h32 { width: 40px; height: 40px; }
+.h48 img { width: 44px; height: 44px; } .h32 img { width: 30px; height: 30px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Icônes en mode sombre</h1>
+  <p class="lede">Toutes les icônes ont été mesurées sur la surface sombre (<b>#1D1B17</b>). <b>12 images</b> ont plus d'un quart de leur contour presque invisible (cheveux noirs, silhouettes grises, pneus) : les voici sans rond, puis avec un <b>léger rond clair</b> (<b>#3A362F</b>), en mode sombre seulement. Le mode clair ne change pas.</p>
+  <div class="legend"><span>Icône (contour fondu)</span><span>Sans</span><span>Avec</span><span>Sans</span><span>Avec</span></div>
+  <div class="card" id="rows"></div>
+</div>
+<script>
+const LIST = [
+  ['fluent/busts-in-silhouette.webp', 80, 'Silhouettes', 'Association, Dette familiale, Crédit familial, Compte joint, Tontine en groupe…'],
+  ['fluent/child-medium-dark.webp', 56, 'Enfant', 'Enfants'],
+  ['composees/famille_3d_medium-dark.webp', 45, 'Famille', 'Famille, Personnes à charge, Projet familial…'],
+  ['fluent/glasses.webp', 42, 'Lunettes', 'Lunettes / optique'],
+  ['fluent/bento-box.webp', 40, 'Boîte-repas', 'Cantine'],
+  ['composees/famille_coeur_3d_medium-dark.webp', 40, 'Famille + cœur', 'Réserve famille et cérémonies'],
+  ['fluent/train.webp', 37, 'Train', 'Train'],
+  ['fluent/people-hugging.webp', 37, 'Accolade', 'Aide aux frères/sœurs'],
+  ['fluent/motorcycle.webp', 35, 'Moto', 'Moto-taxi, Acheter une moto'],
+  ['fluent/tractor.webp', 30, 'Tracteur', 'Matériel agricole'],
+  ['fluent/graduation-cap.webp', 26, 'Toque', 'Éducation & formation, Études'],
+  ['composees/tontine_all_3d.webp', 25, 'Tontine', 'Tontine, compte Tontine, Tontine tournante'],
+];
+document.getElementById('rows').innerHTML = LIST.map(([src, pct, n, use]) => `<div class="row">
+  <div class="name">${n} <small>${pct} % du contour · ${use}</small></div>
+  <div class="cell"><img class="i48" src="${src}" alt=""></div>
+  <div class="cell"><span class="halo h48"><img src="${src}" alt=""></span></div>
+  <div class="cell"><img class="i32" src="${src}" alt=""></div>
+  <div class="cell"><span class="halo h32"><img src="${src}" alt=""></span></div></div>`).join('');
+Promise.all([...document.images].map((im) => (im.complete ? 0 : new Promise((ok) => { im.onload = im.onerror = ok; })))).then(() => document.fonts.ready).then(() => { document.body.dataset.ready = '1'; });
+</script>
+</body>
+</html>

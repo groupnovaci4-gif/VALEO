@@ -6,8 +6,10 @@
  *
  * Champs : r = rubrique, id, n = nom affiché (fr), cur = icône(s) actuelle(s)
  * ('ion:<nom>' Ionicons, sinon emoji), p = proposition : emoji Fluent 3D (contenu) ou
- * 'ion:<nom>' (navigation et actions, au trait) ; choose = candidates quand aucun équivalent n'est
- * bon (« À CHOISIR ») ; logo = ligne « logo officiel ? » ; note.
+ * 'ion:<nom>' (navigation et actions, au trait), 'compo:<fichier>' (icône composée validée),
+ * 'slot:<nom>=<emoji>' (emplacement d'une icône à dessiner, emoji provisoire) ou 'logo:<opérateur>'
+ * (operateurs.json) ; choose = candidates (« À CHOISIR », plus aucune depuis les choix du fondateur
+ * du 2026-10-21) ; logo = 'operator' (logo officiel, option A) ou 'brand' (Ionicons) ; note.
  */
 const E = (r, id, n, cur, p, extra = {}) => ({ r, id, n, cur, p, ...extra });
 const CH = (r, id, n, cur, choose, note) => ({ r, id, n, cur, p: null, choose, note });
@@ -36,7 +38,7 @@ const [CAT, SUB, SUBZ, OLD, INC, ACC, GFAM, GOAL, RES, TON, DEBT, EMPTY, REW, SC
 
 export const ITEMS = [
   // ── Dépenses — catégories principales (catalogue v2 : icône des listes + emoji de l'accueil) ──
-  CH(CAT, 'cat_family', 'Famille', ['ion:heart', '👨‍👩‍👧'], ['🫂', '🏡', '👥'], 'Pas de famille en 3D dans Fluent.'),
+  E(CAT, 'cat_family', 'Famille', ['ion:heart', '👨‍👩‍👧'], 'compo:famille_3d_medium-dark'),
   E(CAT, 'cat_housing', 'Maison & logement', ['ion:home', '🏠'], '🏠'),
   E(CAT, 'cat_food', 'Alimentation & boissons', ['ion:restaurant', '🍛'], '🍛'),
   E(CAT, 'cat_health', 'Santé', ['ion:medkit', '🏥'], '🩺'),
@@ -54,21 +56,21 @@ export const ITEMS = [
   E(SUB, 'sub_family_siblings', 'Aide aux frères/sœurs', ['ion:heart'], '🫂'),
   E(SUB, 'sub_family_children', 'Enfants', ['ion:heart'], '🧒'),
   E(SUB, 'sub_family_transfers', 'Soutien familial', ['ion:heart'], '🤲'),
-  CH(SUB, 'sub_family_other', 'Autres dépenses familiales', ['ion:heart'], ['🫂', '🏡', '👥'], 'Pas de famille en 3D dans Fluent.'),
+  E(SUB, 'sub_family_other', 'Autres dépenses familiales', ['ion:heart'], 'compo:famille_3d_medium-dark'),
   E(SUB, 'sub_housing_rent', 'Loyer', ['ion:home'], '🔑'),
   E(SUB, 'sub_housing_electricity', 'Électricité', ['ion:home'], '💡'),
   E(SUB, 'sub_housing_water', 'Eau', ['ion:home'], '🚰'),
-  CH(SUB, 'sub_housing_gas', 'Gaz', ['ion:home'], ['🔥', '🍳', '🛢️'], 'Pas de bouteille de gaz dans la bibliothèque.'),
-  CH(SUB, 'sub_housing_charcoal', 'Charbon', ['ion:home'], ['🔥', '🪵', '🪨'], 'Pas de sac de charbon ni de fourneau.'),
+  E(SUB, 'sub_housing_gas', 'Gaz', ['ion:home'], 'slot:bonbonne_gaz=🛢️', { note: 'Provisoire : fût (🛢️) en attendant une bonbonne de gaz dessinée, même nom de fichier (bonbonne_gaz).' }),
+  E(SUB, 'sub_housing_charcoal', 'Charbon', ['ion:home'], '🪵'),
   E(SUB, 'sub_housing_maintenance', 'Entretien / réparations', ['ion:home'], '🛠️'),
   E(SUB, 'sub_housing_furniture', 'Ameublement', ['ion:home'], '🛋️'),
   E(SUB, 'sub_housing_other', 'Autres (logement)', ['ion:home'], '🏠'),
   E(SUB, 'sub_food_market', 'Marché', ['ion:restaurant'], '🧺'),
   E(SUB, 'sub_food_supermarket', 'Supermarché', ['ion:restaurant'], '🛒'),
-  E(SUB, 'sub_food_restaurant', 'Restaurant', ['ion:restaurant'], '🍽️'),
-  CH(SUB, 'sub_food_maquis', 'Maquis', ['ion:restaurant'], ['🍗', '🍲', '🐟'], 'Pas de « maquis » : poulet braisé, plat mijoté ou poisson ?'),
+  E(SUB, 'sub_food_restaurant', 'Restaurant', ['ion:restaurant'], 'compo:plat_poisson_3d'),
+  E(SUB, 'sub_food_maquis', 'Maquis', ['ion:restaurant'], '🍻', { note: 'Lieu où l’on boit en groupe (choix du fondateur).' }),
   E(SUB, 'sub_food_delivery', 'Livraison', ['ion:restaurant'], '🛵'),
-  CH(SUB, 'sub_food_streetfood', 'Snacks (Garba / repas de rue)', ['ion:restaurant'], ['🥪', '🍢', '🍟'], 'Pas de garba ni d’alloco.'),
+  E(SUB, 'sub_food_streetfood', 'Snacks (Garba / repas de rue)', ['ion:restaurant'], 'compo:garba_3d'),
   E(SUB, 'sub_food_drinks', 'Boissons', ['ion:restaurant'], '🥤'),
   E(SUB, 'sub_food_water', 'Eau (potable)', ['ion:restaurant'], '💧'),
   E(SUB, 'sub_food_other', 'Autres (alimentation)', ['ion:restaurant'], '🍽️'),
@@ -92,11 +94,11 @@ export const ITEMS = [
   E(SUB, 'sub_transport_parking', 'Parking', ['ion:car'], '🅿️'),
   E(SUB, 'sub_transport_tolls', 'Péage', ['ion:car'], '🚧'),
   E(SUB, 'sub_transport_other', 'Autres (transport)', ['ion:car'], '🚗'),
-  CH(SUB, 'sub_informal_tontine', 'Tontine', ['ion:people-circle'], ['🪙', '🤝', '👥'], 'Pas de symbole de tontine : pièce, poignée de main ou groupe ?'),
+  E(SUB, 'sub_informal_tontine', 'Tontine', ['ion:people-circle'], 'compo:tontine_all_3d'),
   E(SUB, 'sub_informal_dues', 'Cotisation', ['ion:people-circle'], '🪙'),
   E(SUB, 'sub_social_weddings', 'Contribution mariage', ['ion:people-circle'], '💍'),
-  CH(SUB, 'sub_social_baptisms', 'Baptême', ['ion:people-circle'], ['👶', '🕊️', '🍼'], 'Sens religieux à respecter.'),
-  CH(SUB, 'sub_social_funerals', 'Funérailles', ['ion:people-circle'], ['🕯️', '🕊️', '🖤'], 'Sujet sensible : à choisir par le fondateur.'),
+  E(SUB, 'sub_social_baptisms', 'Baptême', ['ion:people-circle'], '👶'),
+  E(SUB, 'sub_social_funerals', 'Funérailles', ['ion:people-circle'], '🕊️'),
   E(SUB, 'sub_social_ceremonies', 'Cérémonies', ['ion:people-circle'], '🎊'),
   E(SUB, 'sub_informal_association', 'Association / communauté', ['ion:people-circle'], '👥'),
   E(SUB, 'sub_social_other', 'Autres (social)', ['ion:people-circle'], '🤝'),
@@ -127,7 +129,7 @@ export const ITEMS = [
   E(SUB, 'sub_clothing_accessories', 'Accessoires', ['ion:shirt'], '👜'),
   E(SUB, 'sub_clothing_other', 'Autres (personnel)', ['ion:shirt'], '🛍️'),
   E(SUB, 'sub_debts_loan', 'Remboursement de prêt', ['ion:receipt'], '🏦'),
-  CH(SUB, 'sub_debts_family', 'Dette familiale', ['ion:receipt'], ['🫂', '🏡', '👥'], 'Pas de famille en 3D dans Fluent.'),
+  E(SUB, 'sub_debts_family', 'Dette familiale', ['ion:receipt'], '👥'),
   E(SUB, 'sub_debts_personal', 'Dette personnelle', ['ion:receipt'], '🧾'),
   E(SUB, 'sub_debts_card', 'Crédit', ['ion:receipt'], '💳'),
   E(SUB, 'sub_debts_interest', 'Intérêts', ['ion:receipt'], '📈'),
@@ -139,7 +141,7 @@ export const ITEMS = [
   E(SUBZ, 'sub_housing_advance', 'Avance de loyer', ['ion:home'], '🗓️'),
   E(SUBZ, 'sub_housing_charges', 'Charges', ['ion:home'], '🧾'),
   E(SUBZ, 'sub_housing_energy', 'Énergie (électricité, gaz)', ['ion:home'], '⚡'),
-  CH(SUBZ, 'sub_housing_generator', 'Groupe électrogène', ['ion:home'], ['🔌', '⚡', '🔋'], 'Pas de groupe électrogène.'),
+  E(SUBZ, 'sub_housing_generator', 'Groupe électrogène', ['ion:home'], '🔌'),
   E(SUBZ, 'sub_housing_heating', 'Chauffage', ['ion:home'], '🌡️'),
   E(SUBZ, 'sub_housing_condo', 'Copropriété', ['ion:home'], '🏢'),
   E(SUBZ, 'sub_housing_repairs', 'Réparations', ['ion:home'], '🔧'),
@@ -152,7 +154,7 @@ export const ITEMS = [
   E(SUBZ, 'sub_transport_carloan', 'Crédit automobile', ['ion:car'], '🚙'),
   E(SUBZ, 'sub_comm_plan', 'Forfait mobile', ['ion:call'], '📶'),
   E(SUBZ, 'sub_internet_box', 'Box internet', ['ion:wifi'], '📡'),
-  CH(SUBZ, 'sub_family_dependents', 'Personnes à charge', ['ion:heart'], ['🫂', '🏡', '👥'], 'Pas de famille en 3D dans Fluent.'),
+  E(SUBZ, 'sub_family_dependents', 'Personnes à charge', ['ion:heart'], 'compo:famille_3d_medium-dark'),
   E(SUBZ, 'sub_family_medical', 'Frais médicaux d’un proche', ['ion:heart'], '❤️‍🩹'),
   E(SUBZ, 'sub_family_childcare', 'Garde d’enfants', ['ion:heart'], '🧸'),
   E(SUBZ, 'sub_family_alimony', 'Pension alimentaire', ['ion:heart'], '📨'),
@@ -189,18 +191,18 @@ export const ITEMS = [
   E(INC, 'inc_sale', 'Vente', ['ion:pricetags'], '🏷️'),
   E(INC, 'inc_side', 'Activité secondaire', ['ion:construct'], '🛠️'),
   E(INC, 'inc_gift', 'Cadeaux reçus', ['ion:gift'], '🎁'),
-  CH(INC, 'inc_tontine', 'Tontine reçue', ['ion:people'], ['🪙', '💰', '🤝'], 'Même choix que la catégorie Tontine.'),
+  E(INC, 'inc_tontine', 'Tontine reçue', ['ion:people'], '💰'),
   E(INC, 'inc_refund', 'Remboursements reçus', ['ion:return-down-back'], '💵'),
   E(INC, 'inc_other', 'Autres revenus', ['ion:add-circle'], '💰'),
 
   // ── Comptes (modèles de création, gestion manuelle) ──
   E(ACC, 'acc.cash', 'Cash (espèces)', ['ion:cash'], '💵'),
-  E(ACC, 'acc.orange', 'Orange Money', ['ion:phone-portrait'], '📱', { logo: true }),
-  E(ACC, 'acc.mtn', 'MTN Money', ['ion:phone-portrait'], '📱', { logo: true }),
-  E(ACC, 'acc.moov', 'Moov Money', ['ion:phone-portrait'], '📱', { logo: true }),
-  E(ACC, 'acc.wave', 'Wave', ['ion:water'], '📱', { logo: true }),
-  E(ACC, 'acc.free', 'Free Money', ['ion:phone-portrait'], '📱', { logo: true }),
-  E(ACC, 'acc.airtel', 'Airtel Money', ['ion:phone-portrait'], '📱', { logo: true }),
+  E(ACC, 'acc.orange', 'Orange Money', ['ion:phone-portrait'], 'logo:orange', { logo: 'operator' }),
+  E(ACC, 'acc.mtn', 'MTN Money', ['ion:phone-portrait'], 'logo:mtn', { logo: 'operator' }),
+  E(ACC, 'acc.moov', 'Moov Money', ['ion:phone-portrait'], 'logo:moov', { logo: 'operator' }),
+  E(ACC, 'acc.wave', 'Wave', ['ion:water'], 'logo:wave', { logo: 'operator' }),
+  E(ACC, 'acc.free', 'Free Money', ['ion:phone-portrait'], 'logo:free', { logo: 'operator' }),
+  E(ACC, 'acc.airtel', 'Airtel Money', ['ion:phone-portrait'], 'logo:airtel', { logo: 'operator' }),
   E(ACC, 'acc.mobile', 'Autre Mobile Money', ['ion:phone-portrait'], '📱'),
   E(ACC, 'acc.bank', 'Compte bancaire', ['ion:business'], '🏦'),
   E(ACC, 'acc.current', 'Compte courant', ['ion:business'], '🏦'),
@@ -208,14 +210,14 @@ export const ITEMS = [
   E(ACC, 'acc.savings', 'Compte épargne', ['ion:wallet'], '🐷'),
   E(ACC, 'acc.card', 'Carte bancaire', ['ion:card'], '💳'),
   E(ACC, 'acc.investment', 'Compte d’investissement', ['ion:trending-up'], '📈'),
-  CH(ACC, 'acc.tontine', 'Tontine (compte)', ['ion:people'], ['🪙', '💰', '🤝'], 'Même choix que la catégorie Tontine.'),
+  E(ACC, 'acc.tontine', 'Tontine (compte)', ['ion:people'], 'compo:tontine_all_3d'),
 
   // ── Objectifs ──
   E(GFAM, 'goal.vehicle', 'Véhicule', ['🚗'], '🚗'),
   E(GFAM, 'goal.real_estate', 'Immobilier', ['🏠'], '🏠'),
   E(GFAM, 'goal.professional', 'Projet professionnel', ['💼'], '💼'),
   E(GFAM, 'goal.education', 'Éducation', ['🎓'], '🎓'),
-  CH(GFAM, 'goal.family', 'Famille', ['👨‍👩‍👧'], ['🫂', '🏡', '👥'], 'Pas de famille en 3D dans Fluent.'),
+  E(GFAM, 'goal.family', 'Famille', ['👨‍👩‍👧'], 'compo:famille_3d_medium-dark'),
   E(GFAM, 'goal.personal', 'Projet personnel', ['✈️'], '✈️'),
   E(GFAM, 'goal.finance', 'Sécurité financière', ['💰'], '💰'),
   E(GOAL, 'buy_car', 'Acheter une voiture', ['🚗'], '🚗'),
@@ -234,7 +236,7 @@ export const ITEMS = [
   E(GOAL, 'studies', 'Études', ['🎓'], '🎓'),
   E(GOAL, 'child_studies', 'Études d’un enfant', ['🎒'], '🎒'),
   E(GOAL, 'wedding', 'Mariage', ['💍'], '💍'),
-  CH(GOAL, 'family_project', 'Projet familial', ['👨‍👩‍👧'], ['🫂', '🏡', '👥'], 'Pas de famille en 3D dans Fluent.'),
+  E(GOAL, 'family_project', 'Projet familial', ['👨‍👩‍👧'], 'compo:famille_3d_medium-dark'),
   E(GOAL, 'family_expense', 'Dépense importante pour la famille', ['🏠'], '🏠'),
   E(GOAL, 'travel', 'Voyage', ['✈️'], '✈️'),
   E(GOAL, 'phone', 'Téléphone', ['📱'], '📱'),
@@ -245,7 +247,7 @@ export const ITEMS = [
   E(GOAL, 'goal.custom', 'Créer mon propre objectif', ['✏️'], '✏️'),
 
   // ── Réserve et moments forts ──
-  CH(RES, 'reserve', 'Réserve famille et cérémonies', ['🤝'], ['🤝', '🤲', '👛'], 'Poignée de main (actuelle), mains ouvertes ou porte-monnaie ?'),
+  E(RES, 'reserve', 'Réserve famille et cérémonies', ['🤝'], 'compo:famille_coeur_3d_medium-dark'),
   E(RES, 'season.school_start', 'Rentrée scolaire', ['🎒'], '🎒'),
   E(RES, 'season.tabaski', 'Tabaski', ['🐑'], '🐑'),
   E(RES, 'season.ramadan_end', 'Fin du Ramadan', ['🌙'], '🌙'),
@@ -254,7 +256,7 @@ export const ITEMS = [
   E(RES, 'season.custom', 'Moment personnel', ['ion:calendar-number'], '🗓️'),
 
   // ── Tontines ──
-  CH(TON, 'tontine.type.rotating', 'Tontine tournante', ['ion:repeat'], ['🔄', '🪙', '🤝'], 'Pas de « tour de cagnotte ».'),
+  E(TON, 'tontine.type.rotating', 'Tontine tournante', ['ion:repeat'], 'compo:tontine_all_3d'),
   E(TON, 'tontine.type.collector', 'Épargne avec un collecteur', ['ion:people'], '👛'),
   E(TON, 'tontine.type.fixed_contribution', 'Cotisation sans tour', ['ion:people'], '🧾'),
   E(TON, 'tontine.pot', 'Cagnotte reçue', ['ion:cash-outline'], '💰'),
@@ -264,7 +266,7 @@ export const ITEMS = [
   // ── Dettes et prêts (aujourd'hui : aucune icône par type) ──
   E(DEBT, 'debt.kind.personal', 'Dette personnelle', [], '🧾'),
   E(DEBT, 'debt.kind.bank', 'Crédit bancaire', [], '🏦'),
-  CH(DEBT, 'debt.kind.family', 'Crédit familial', [], ['🫂', '🏡', '👥'], 'Pas de famille en 3D dans Fluent.'),
+  E(DEBT, 'debt.kind.family', 'Crédit familial', [], '👥'),
   E(DEBT, 'debt.kind.supplier', 'Dette fournisseur', [], '📦'),
   E(DEBT, 'debt.kind.loan_given', 'Prêt accordé à quelqu’un', [], '🤲'),
   E(DEBT, 'debt.kind.loan_received', 'Prêt reçu de quelqu’un', [], '💵'),
@@ -282,7 +284,7 @@ export const ITEMS = [
   E(EMPTY, 'debt.empty', 'Aucune dette', ['🧾'], '🧾'),
   E(EMPTY, 'rec.empty', 'Aucune opération récurrente', ['🔁'], '🔁'),
   E(EMPTY, 'nw.empty', 'Aucun bien (patrimoine)', ['🏡'], '🏡'),
-  CH(EMPTY, 'fam.empty', 'Aucun espace famille', ['👨‍👩‍👧'], ['🫂', '🏡', '👥'], 'Pas de famille en 3D dans Fluent.'),
+  E(EMPTY, 'fam.empty', 'Aucun espace famille', ['👨‍👩‍👧'], 'compo:famille_3d_medium-dark'),
   E(EMPTY, 'cal.empty', 'Calendrier vide', ['🗓️'], '🗓️'),
   E(EMPTY, 'notif.empty', 'Aucune notification', ['🔔'], '🔔'),
   E(EMPTY, 'rep.empty', 'Aucun rapport', ['📊'], '📊'),
@@ -303,7 +305,7 @@ export const ITEMS = [
   E(REW, 'reward.trophy', 'Trophée partagé', ['ion:trophy-outline'], '🏆'),
 
   // ── Score (aujourd'hui : pas d'icône par composante) ──
-  CH(SCORE, 'score', 'Score de comportement', ['ion:speedometer'], ['📊', '🎯', '🧭'], 'Pas de jauge dans la bibliothèque.'),
+  E(SCORE, 'score', 'Score de comportement', ['ion:speedometer'], '📊'),
   E(SCORE, 'score.c.budgets', 'Respect du budget', [], '📊'),
   E(SCORE, 'score.c.savings', 'Taux d’épargne', [], '🐷'),
   E(SCORE, 'score.c.goals', 'Progression des objectifs', [], '🎯'),
@@ -352,7 +354,7 @@ export const ITEMS = [
     ['set.title', 'Paramètres', 'settings', 'settings-outline'],
     ['admin.title', 'Administration', 'shield-checkmark', 'shield-checkmark-outline'],
   ].map(([id, n, a, b]) => E(MORE, id, n, [`ion:${a}`], `ion:${b}`, id === 'sub.title' ? { note: 'Étincelles ✨ remplacées (signe « IA » à bannir).' } : {})),
-  E(MORE, 'more.whatsappChannel', 'Chaîne WhatsApp', ['ion:logo-whatsapp'], 'ion:logo-whatsapp', { logo: true }),
+  E(MORE, 'more.whatsappChannel', 'Chaîne WhatsApp', ['ion:logo-whatsapp'], 'ion:logo-whatsapp', { logo: 'brand' }),
 
   // ── Coach, assistant et cartes ──
   E(COACH, 'coach.listen', 'Écouter', ['ion:volume-high-outline'], 'ion:volume-high-outline'),
@@ -364,13 +366,13 @@ export const ITEMS = [
   E(COACH, 'coach.ai', 'Assistant / budget automatique', ['ion:sparkles', 'ion:sparkles-outline'], 'ion:chatbubble-ellipses-outline', { note: 'Étincelles ✨ remplacées (signe « IA » à bannir).' }),
   E(COACH, 'coach.recommendation', 'Recommandation', ['ion:hand-left-outline'], 'ion:hand-left-outline'),
   E(COACH, 'coach.share', 'Partager', ['ion:share-social-outline'], 'ion:share-social-outline'),
-  E(COACH, 'coach.whatsapp', 'Partager sur WhatsApp', ['ion:logo-whatsapp'], 'ion:logo-whatsapp', { logo: true }),
+  E(COACH, 'coach.whatsapp', 'Partager sur WhatsApp', ['ion:logo-whatsapp'], 'ion:logo-whatsapp', { logo: 'brand' }),
   E(COACH, 'coach.incomeSaving', 'Revenu à mettre de côté', ['ion:leaf-outline'], 'ion:leaf-outline'),
   E(COACH, 'coach.sync', 'Synchronisation / hors ligne', ['ion:sync-outline', 'ion:cloud-offline-outline'], 'ion:cloud-offline-outline'),
   E(COACH, 'coach.lock', 'Réservé (formule)', ['ion:lock-closed', 'ion:lock-closed-outline'], 'ion:lock-closed-outline'),
   E(COACH, 'coach.week', 'Semaine du parrainage (jour)', ['ion:ellipse-outline', 'ion:checkmark-circle'], 'ion:ellipse-outline'),
   E(COACH, 'coach.pending', 'En attente', ['ion:hourglass-outline'], 'ion:hourglass-outline'),
-  E(COACH, 'coach.google', 'Connexion Google', ['ion:logo-google'], 'ion:logo-google', { logo: true }),
+  E(COACH, 'coach.google', 'Connexion Google', ['ion:logo-google'], 'ion:logo-google', { logo: 'brand' }),
 ];
 
 /** Navigation et actions (au trait, Ionicons) : nom, icônes actuelles, proposée. */
