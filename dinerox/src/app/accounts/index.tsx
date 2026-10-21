@@ -11,7 +11,7 @@ export default function Accounts() {
   const { t } = useI18n();
   const { role } = useApp();
   const money = useMoney();
-  const { data, balances, position } = useFinance();
+  const { data, balances, money: current } = useFinance();
   const sorted = [...data.accounts].sort((a, b) => Number(b.active) - Number(a.active) || a.order - b.order);
   const spending = sorted.filter((a) => !a.isSavings);
   const savings = sorted.filter((a) => a.isSavings);
@@ -28,7 +28,7 @@ export default function Accounts() {
             <Text variant="caption" tone="muted">
               {t('home.available')}
             </Text>
-            <Text variant="h1">{money(position.available)}</Text>
+            <Text variant="h1">{money(current.available)}</Text>
           </Card>
           <SectionHeader title={t('acc.title')} />
           <Card>{spending.map((a) => <AccountRow key={a.id} account={a} balance={balances[a.id] ?? 0} />)}</Card>
