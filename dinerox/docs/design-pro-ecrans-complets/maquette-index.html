@@ -264,6 +264,7 @@ body.f2.dark .hc-b.full { box-shadow: 0 10px 0 -4px #1F5C49, 0 26px 30px -12px r
 body.f3 .hc-b.full { margin: 0 10px 14px; border-radius: 22px; box-shadow: 0 34px 28px -24px rgba(15,74,58,.85), 0 2px 6px rgba(15,74,58,.15); }
 body.f3.dark .hc-b.full { box-shadow: 0 34px 28px -22px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.06), inset 0 1px 0 rgba(255,255,255,.12); }
 
+.hc-b .mpill { display: inline-block; font: 600 12px/16px var(--body); color: #fff; background: rgba(255,255,255,.16); border-radius: 999px; padding: 3px 10px; margin-bottom: 8px; }
 body.full .tx { padding-top: 10px; padding-bottom: 10px; align-items: center; }
 body.full .tx .mid div { white-space: normal; }
 </style>
@@ -389,10 +390,11 @@ function budget(d) {
 // dans l'en-tête (« Notifications » reste le libellé d'accessibilité). Les autres propositions de
 // l'étape 2 ne sont PAS appliquées. Les cartes « selon la situation » sont entourées d'un pointillé de maquette.
 let HEROV2 = false;
+let MONTH = null;
 function heroFull() {
   if (HEROV2) return `<div class="hc-b full">${PATTERN}<div class="body">
     <div class="eye" aria-label="Masquer les montants">${ic('eye-outline')}</div>
-    <div class="t-caption">Votre plafond de dépenses par jour</div>
+    ${MONTH === '1' ? `<div class="t-caption" style="padding-right:44px">Votre plafond de dépenses par jour en octobre</div>` : MONTH === '2' ? `<div class="mpill">Octobre 2026</div><div class="t-caption">Votre plafond de dépenses par jour</div>` : `<div class="t-caption">Votre plafond de dépenses par jour</div>`}
     <div class="hero-num num" style="color:#fff">38 681<small>FCFA</small></div>
     <div class="sep"></div>
     <div class="line main"><span>Argent disponible</span><span class="v">655 500 FCFA</span></div>
@@ -591,6 +593,7 @@ function board(d) {
     if (q.get('float') === '1') document.body.classList.add('float');
     if (q.get('f')) document.body.classList.add(q.get('f'));
     HEROV2 = q.get('hero') === '2';
+    MONTH = q.get('m');
     if (q.get('bg')) document.body.classList.add(q.get('bg'));
     document.documentElement.style.setProperty('--vh', innerHeight + 'px');
     document.body.setAttribute('style', vars(d, t));

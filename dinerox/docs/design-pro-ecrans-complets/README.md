@@ -30,3 +30,4 @@ Paramètres de maquette : `&float=1` et `&bg=g1|g2`.
   « Masquer les montants » devient l'œil seul en haut à droite (libellé d'accessibilité inchangé).
 - `7-carte-flottante-v2.png` : trois façons de faire flotter la carte (A ombre tout autour,
   B effet « pile », C lévitation) — choix du fondateur à venir. Paramètres : `&hero=2&f=f1|f2|f3`.
+- `8-carte-mois.png` : le mois sur la carte, 1 dans la phrase (« … par jour en octobre ») ou 2 en étiquette (« Octobre 2026 »). Paramètre : `&m=1|2`.
