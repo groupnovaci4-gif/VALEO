@@ -26,3 +26,11 @@ Décisions :
 7. Mode démonstration : le grand encadré explicatif est SUPPRIMÉ de l'accueil. À la place, une ligne
    discrète : pastille « Démo » (icône fiole) à gauche, lien « Créer mon profil › » à droite (même
    action qu'avant). Le texte explicatif reste en libellé d'accessibilité (lecteur d'écran).
+8. Carte d'accueil, ligne sous « Mis de côté » (décision du fondateur, 2026-10-21) : « Mis de côté » est
+   gardé ; la ligne devient « dont {montant} gardés ailleurs (tontine, épargne déclarée) › »
+   (EN : « of which {amount} kept elsewhere (tontine, declared savings) › » ; les mots entre
+   parenthèses ne citent que les sources présentes). Elle est TOUCHABLE et se DÉPLIE sous la ligne :
+   une ligne par source — objectif ou réserve : « {nom} : {montant} déclarés au départ » ; tontine :
+   « {nom} : {montant} versés, à recevoir à votre tour ». La somme du détail = le montant affiché.
+   Aucun calcul changé : réutiliser `goalBacking` (part `outside`) et `tontineLedgerPositions`
+   (appelé tontine par tontine) depuis l'interface, sans modifier `src/core`.
