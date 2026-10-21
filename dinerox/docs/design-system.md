@@ -159,7 +159,7 @@ la catégorie est toujours écrit à côté.
 | `app/rewards.tsx` (`TIER`) | `#F5B301`, `#9AA5B1`, `#C27C46` | `medalGold`, `medalSilver`, `medalBronze` |
 | `app/rewards.tsx` | `#FFFFFF` (glyphe) | `onMedal` |
 | `features/coach/RewardCelebration.tsx` | mêmes trois métaux | mêmes jetons |
-| `features/coach/RewardsTile.tsx` | `#F5B301`, `#FFFFFF` | `medalGold` + `onMedal`, `onHero` |
+| `features/coach/RewardsCircle.tsx` (étape 4) | rond or `#9A6400` / `#E8B85A`, icône `#FFFFFF` / `#13120F` | `circlePalette` (`components/ui/circlePalette.ts`, palette du fondateur) |
 | `app/(tabs)/goals.tsx` | `rgba(255,255,255,0.18)` (pastille %) et `0.22` (barre) | `onHeroMuted` en texte sur pastille `heroTrack` ; barre sur `heroTrack` |
 | `app/independence.tsx` | `rgba(255,255,255,0.22)` | `heroTrack` |
 | `app/(tabs)/more.tsx` | `rgba(255,255,255,0.16)` | `heroTrack` |

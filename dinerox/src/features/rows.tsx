@@ -154,6 +154,60 @@ export function GoalTile({ goal, plan, compact, rank }: { goal: Goal; plan: Goal
   );
 }
 
+/** Texte secondaire des lignes de liste : 13/18 comme la maquette (`.t-small`). */
+const SMALL = { fontSize: 13, lineHeight: 18 } as const;
+
+/**
+ * Objectif en LIGNE (étape 4, maquette validée, point 5 : accueil et onglet Objectifs, dans une
+ * `ListCard`) : icône de contenu à gauche ; nom, catégorie · date, barre de 6 dp, montant mis de
+ * côté / cible · %. `footer` : actions sous la ligne (onglet Objectifs : « Ajouter », ↑↓).
+ * Même phrase pour le lecteur d'écran que le pavé.
+ */
+export function GoalRow({ goal, plan, footer }: { goal: Goal; plan: GoalPlan; footer?: React.ReactNode }) {
+  const { t, lang, monthYear } = useI18n();
+  const money = useMoney();
+  const { colors } = useTheme();
+  const tone = plan.reached ? 'success' : plan.overdue ? 'danger' : 'primary';
+  const category = findGoalCategory(goal.categoryId)?.label[lang];
+  const sub = [category, goal.targetDate ? monthYear(goal.targetDate) : null].filter(Boolean).join(' · ');
+  return (
+    <View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={goal.targetAmount > 0 ? `${goal.name}, ${money(plan.saved)} / ${money(plan.target)}, ${plan.percent} %` : goal.name}
+        onPress={() => router.push(`/goals/${goal.id}`)}
+        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
+      >
+        <ContentIcon emoji={goal.icon} ids={[goal.templateId, `goal.${goal.categoryId}`]} color={colors.primary} size={40} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="bodyStrong">{goal.name}</Text>
+          {sub ? (
+            <Text variant="small" tone="muted" style={SMALL}>
+              {sub}
+            </Text>
+          ) : null}
+          <View style={{ marginTop: 6 }}>
+            <ProgressBar value={plan.percent} tone={tone} height={6} label={goal.name} />
+          </View>
+          <Text variant="small" tone="muted" style={[SMALL, { marginTop: 6 }]}>
+            {goal.targetAmount > 0 ? (
+              <>
+                <Text variant="small" weight="600" style={SMALL}>
+                  {money(plan.saved)}
+                </Text>
+                {` / ${money(plan.target)} · ${plan.percent}\u00A0%`}
+              </>
+            ) : (
+              t('goal.setAmount')
+            )}
+          </Text>
+        </View>
+      </Pressable>
+      {footer}
+    </View>
+  );
+}
+
 export function AccountRow({ account, balance, onPress }: { account: Account; balance: number; onPress?: () => void }) {
   const { t } = useI18n();
   const money = useMoney();

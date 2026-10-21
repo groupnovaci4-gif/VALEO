@@ -4,8 +4,8 @@
  *  1. carte principale — reste par jour + solde disponible (masquables) ;
  *  2. échéance de tontine, raccourcis (Historique en un toucher, Revenu, Transfert) ;
  *  3. saisie (bulle) et dernières opérations ;
- *  4. alertes, mois en cours, coach, conseil, analyse ; enveloppes, objectifs,
- *     récompenses et assistant en PAVÉS (grille de deux colonnes) ; rapports.
+ *  4. alertes, mois en cours, coach, conseil, analyse ; enveloppes et objectifs en LISTE,
+ *     récompenses et assistant en RONDS de couleur (étape 4, maquette validée) ; rapports.
  * Aucune formule ici : tous les chiffres viennent de `useFinance` / `core`.
  */
 import React, { useMemo, useState } from 'react';
@@ -15,14 +15,14 @@ import { BIG_TEXT, DesignV2, useTheme } from '@/theme';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { Amount, Badge, Banner, Button, Card, EmptyState, Icon, Row, Screen, SectionHeader, Text, Tile, TileGrid, TileText, useToast } from '@/components/ui';
-import { GoalTile, InsightCard, SpaceSwitcher, TransactionRow } from '@/features/rows';
-import { EnvelopeTile } from '@/features/budget/EnvelopeCard';
+import { Amount, Banner, Button, Card, CircleGrid, CircleTile, EmptyState, Icon, ListCard, Row, Screen, SectionHeader, Text, useToast } from '@/components/ui';
+import { GoalRow, InsightCard, SpaceSwitcher, TransactionRow } from '@/features/rows';
+import { EnvelopeRow } from '@/features/budget/EnvelopeCard';
 import { useIntelligence } from '@/hooks/useIntelligence';
 import { RecommendationCard } from '@/features/Recommendation';
 import { CoachSummaryCard } from '@/features/coach/CoachSummaryCard';
 import { AdviceOfDay } from '@/features/coach/AdviceOfDay';
-import { RewardsTile } from '@/features/coach/RewardsTile';
+import { RewardsCircle } from '@/features/coach/RewardsCircle';
 import { goalPlanFor, sortGoals } from '@/core/goals';
 import { isReserve } from '@/core/reserve';
 import { sortTransactions } from '@/core/transactions';
@@ -48,7 +48,6 @@ export default function Home() {
 }
 
 function HomeScreen() {
-  const { colors } = useTheme();
   const { t, lang, monthYear } = useI18n();
   const { profile, user, mode, activeSpace, signOutLocal, role } = useApp();
   const money = useMoney();
@@ -204,11 +203,11 @@ function HomeScreen() {
 
       <SectionHeader title={t('home.envelopesActive')} action={t('common.manageCount', { count: envelopes.length })} onAction={() => router.push('/budget')} />
       {envelopes.length ? (
-        <TileGrid>
+        <ListCard>
           {envelopes.slice(0, 5).map((s) => (
-            <EnvelopeTile key={s.envelope.id} s={s} hidden={hidden} upcoming={envelopeSoon[s.envelope.id] ?? 0} />
+            <EnvelopeRow key={s.envelope.id} s={s} hidden={hidden} upcoming={envelopeSoon[s.envelope.id] ?? 0} />
           ))}
-        </TileGrid>
+        </ListCard>
       ) : (
         <Card>
           <EmptyState icon="pie-chart-outline" title={t('env.empty.title')} body={t('env.empty.body', {})} action={t('env.empty.cta')} onAction={() => router.push('/budget/auto')} />
@@ -217,33 +216,24 @@ function HomeScreen() {
 
       <SectionHeader title={t('home.goals')} action={t('common.seeAll')} onAction={() => router.push('/goals')} />
       {goals.length ? (
-        <TileGrid>
+        <ListCard>
           {goals.map(({ g, plan }) => (
-            <GoalTile key={g.id} goal={g} plan={plan} compact />
+            <GoalRow key={g.id} goal={g} plan={plan} />
           ))}
-        </TileGrid>
+        </ListCard>
       ) : (
         <Card>
           <EmptyState icon="flag-outline" title={t('goal.empty.title')} body={t('goal.empty.body')} action={t('goal.empty.cta')} onAction={() => router.push('/goals/new')} />
         </Card>
       )}
 
-      {/* Récompenses et assistant : deux pavés côte à côte. */}
-      <TileGrid style={{ marginTop: 24 }}>
-        <RewardsTile />
-        <Tile onPress={() => router.push('/assistant')} accessibilityLabel={t('home.ai.title')}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentContainer, alignItems: 'center', justifyContent: 'center' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <Icon name="sparkles" size={22} color={colors.onAccentContainer} />
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <TileText variant="bodyStrong">{t('home.ai.title')}</TileText>
-            <Badge tone="ai" label={t('home.ai.badge')} />
-          </View>
-          <TileText variant="small" tone="muted">
-            {t('home.askAssistantHint')}
-          </TileText>
-        </Tile>
-      </TileGrid>
+      {/* Récompenses et assistant : une carte, deux ronds de couleur pleine (or / violet). */}
+      <View style={{ marginTop: 24 }}>
+        <CircleGrid columns={2}>
+          <RewardsCircle />
+          <CircleTile family="violet" icon="chatbubble-ellipses" label={t('home.ai.title')} badge={t('home.ai.badge')} sub={t('home.askAssistantHint')} accessibilityLabel={t('home.ai.title')} onPress={() => router.push('/assistant')} />
+        </CircleGrid>
+      </View>
 
       {/* Parrainage : carte discrète après la 5e saisie réussie. */}
       <InviteCard entries={myEntries} />
