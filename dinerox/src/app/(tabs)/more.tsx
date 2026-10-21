@@ -3,13 +3,14 @@ import { Linking, Platform, View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
-import { Badge, GradientCard, Icon, IconCircle, Screen, SectionHeader, Text, Tile, TileGrid, TileText } from '@/components/ui';
+import { Amount, CircleGrid, CircleTile, GradientCard, ListCard, MenuRow, Screen, SectionHeader, Text } from '@/components/ui';
 import { can } from '@/core/permissions';
 import { hasFeature } from '@/core/subscription';
 import { today } from '@/core/dates';
 import { netWorth } from '@/core/networth';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { useTheme } from '@/theme';
+import { DesignV2, useTheme } from '@/theme';
+import { MORE_FAMILY } from '@/features/more/menuFamilies';
 import { loadAppLinks } from '@/services/appLinks';
 import { loadStoreConfig, openStorePage, readReviewState, writeReviewState } from '@/services/storeReview';
 import { storePageUrls, withMenuUsed } from '@/core/storeReview';
@@ -31,11 +32,22 @@ interface Item {
 }
 
 export default function More() {
+  return (
+    <DesignV2>
+      <MoreScreen />
+    </DesignV2>
+  );
+}
+
+/** Rayon des cartes de rubriques (maquette de Plus : 20). */
+const GROUP_RADIUS = 20;
+
+function MoreScreen() {
   const { t } = useI18n();
   const { role, plan, user, mode, online } = useApp();
   const money = useMoney();
   const { data, position, currency, activeAccounts } = useFinance();
-  // Icônes à la couleur de la marque : vert pour l'argent, or pour les temps forts.
+  // Couleur des ronds : `MORE_FAMILY` (palette du fondateur) ; `color` reste la couleur de marque d'origine.
   const { colors, radius } = useTheme();
   const [channelUrl, setChannelUrl] = useState<string | null>(null);
   // Étape 4 : pages du store pour « Donner mon avis » (vide = ligne cachée, tant que config/app/items/store ne l'active pas).
@@ -134,51 +146,52 @@ export default function More() {
         </View>
       </View>
 
-      <GradientCard>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text variant="small" tone="heroMuted">
-              {showNetWorth ? t('more.netWorth') : t('more.totalAccounts')}
-            </Text>
-            <Text variant="display" tone="onHero" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ marginTop: 4 }}>
-              {money(headline)}
-            </Text>
-          </View>
-          <View style={{ width: 48, height: 48, borderRadius: radius.md, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="business-outline" size={24} color={colors.onHero} />
-          </View>
+      {/* Carte verte flottante (étape 4, CSS f4). */}
+      <GradientCard float style={{ marginTop: 6, marginBottom: 8, paddingTop: 18, paddingHorizontal: 18, paddingBottom: 16 }}>
+        <Text variant="small" tone="heroMuted" style={{ fontSize: 13, lineHeight: 18, paddingRight: 64 }}>
+          {showNetWorth ? t('more.netWorth') : t('more.totalAccounts')}
+        </Text>
+        <View style={{ marginTop: 4 }}>
+          <Amount text={money(headline)} size="L" tone="onHero" style={{ fontSize: 30, lineHeight: 36 }} />
         </View>
-        <Text variant="caption" tone="heroMuted" style={{ marginTop: 10 }}>
+        <Text variant="caption" tone="heroMuted" style={{ fontSize: 12, lineHeight: 16, marginTop: 6 }}>
           {t(activeAccounts.length === 1 ? 'more.accountsCount.one' : 'more.accountsCount', { count: activeAccounts.length })}
         </Text>
       </GradientCard>
 
-      {groups.map((g) => (
-        <React.Fragment key={g.title}>
-          <SectionHeader title={t(g.title).toUpperCase()} action={g.aside || undefined} />
-          {/* Rubriques en pavés : icône, titre, sous-titre court (grille de deux colonnes). */}
-          <TileGrid>
-            {g.items
-              .filter((i) => i.show !== false)
-              .map((i) => (
-                <Tile
-                  key={i.key}
-                  accessibilityLabel={`${t(i.key)}, ${t(i.sub)}`}
-                  onPress={() => (i.onPress ? i.onPress() : i.url ? void Linking.openURL(i.url).catch(() => undefined) : router.push(i.path as never))}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                    <IconCircle icon={i.icon} color={i.color} size={40} />
-                    {i.locked ? <Badge tone="ai" label="PRO" /> : null}
-                  </View>
-                  <TileText variant="bodyStrong">{t(i.key)}</TileText>
-                  <TileText variant="small" tone="muted">
-                    {t(i.sub)}
-                  </TileText>
-                </Tile>
-              ))}
-          </TileGrid>
-        </React.Fragment>
-      ))}
+      {groups.map((g) => {
+        const items = g.items.filter((i) => i.show !== false);
+        const open = (i: Item) => (i.onPress ? i.onPress() : i.url ? void Linking.openURL(i.url).catch(() => undefined) : router.push(i.path as never));
+        return (
+          <React.Fragment key={g.title}>
+            <SectionHeader overline title={t(g.title).toUpperCase()} action={g.aside || undefined} />
+            {g.title === 'more.app' ? (
+              // « Application » en liste : rond, titre, description (2 lignes au plus), chevron.
+              <ListCard radius={GROUP_RADIUS}>
+                {items.map((i) => (
+                  <MenuRow key={i.key} family={MORE_FAMILY[i.key] ?? 'vert'} icon={i.icon} title={t(i.key)} sub={t(i.sub)} badge={i.locked ? 'PRO' : undefined} accessibilityLabel={`${t(i.key)}, ${t(i.sub)}`} onPress={() => open(i)} />
+                ))}
+              </ListCard>
+            ) : (
+              // Rubriques en ronds de couleur pleine dans une carte ; description pour le lecteur d'écran.
+              <CircleGrid radius={GROUP_RADIUS}>
+                {items.map((i) => (
+                  <CircleTile
+                    key={i.key}
+                    dense
+                    family={MORE_FAMILY[i.key] ?? 'vert'}
+                    icon={i.icon}
+                    label={t(i.key)}
+                    badge={i.locked ? 'PRO' : undefined}
+                    accessibilityLabel={`${t(i.key)}, ${t(i.sub)}`}
+                    onPress={() => open(i)}
+                  />
+                ))}
+              </CircleGrid>
+            )}
+          </React.Fragment>
+        );
+      })}
     </Screen>
   );
 }

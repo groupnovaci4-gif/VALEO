@@ -144,8 +144,23 @@ export function Divider() {
   return <View style={{ height: 1, backgroundColor: colors.border }} />;
 }
 
-export function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+export function SectionHeader({ title, action, onAction, overline }: { title: string; action?: string; onAction?: () => void; overline?: boolean }) {
   const { colors, v2 } = useTheme();
+  if (v2 && overline) {
+    // Surtitre de rubrique (écran Plus, étape 4) : petites capitales espacées, information à droite.
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', columnGap: 8, marginTop: 22, marginBottom: 10, marginHorizontal: 2 }}>
+        <Text variant="caption" weight="600" accessibilityRole="header" style={{ fontSize: 12, lineHeight: 16, letterSpacing: 0.8, color: colors.textMuted, flexShrink: 1 }}>
+          {title}
+        </Text>
+        {action ? (
+          <Text variant="caption" tone="subtle" weight="400" style={{ fontSize: 12, lineHeight: 16 }}>
+            {action}
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
   if (v2) {
     // Titre de section v2 : titleS ; action = bouton texte de 48 dp (plus de petit lien).
     return (
