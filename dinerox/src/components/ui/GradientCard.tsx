@@ -2,6 +2,7 @@ import React, { useId } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { radiusV2, shadowB, useTheme } from '@/theme';
+import { heroFloat } from './heroFloat';
 
 /** Motif discret de la carte (b) : losanges au trait fin (inspirés des tissages), dans un coin. */
 const PATTERN = Array.from({ length: 25 }, (_, i) => {
@@ -14,21 +15,23 @@ const PATTERN = Array.from({ length: 25 }, (_, i) => {
  * Carte principale (reste par jour, objectifs, patrimoine).
  * v2 — design-pro, carte (b) : vert profond UNI (aucun dégradé), fin filet clair de 1 dp, motif
  * de losanges à 10 % dans le coin, ombre de 1 dp en clair seulement.
+ * `float` (étape 4, maquette validée, CSS `f4`) : carte qui flotte — marges 8 dp, rayon 22, ombre
+ * verte en clair ; liseré clair + ombre noire + halo vert en sombre (`heroFloat`).
  * Ancien style : dégradé vert dessiné en SVG.
  */
-export function GradientCard({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+export function GradientCard({ children, style, float }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; float?: boolean }) {
   const { colors, radius, shadow, v2, dark } = useTheme();
   const id = `g${useId().replace(/[^A-Za-z0-9]/g, '')}`;
   if (v2) {
     return (
       <View
         style={[
-          { borderRadius: radiusV2.hero, padding: 20, marginBottom: 14, backgroundColor: colors.heroFrom, borderWidth: 1, borderColor: colors.heroLine, ...(dark ? null : shadowB) },
+          { borderRadius: radiusV2.hero, padding: 20, marginBottom: 14, backgroundColor: colors.heroFrom, borderWidth: 1, borderColor: colors.heroLine, ...(float ? heroFloat(dark) : dark ? null : shadowB) },
           style,
         ]}
       >
         {/* Motif décoratif : dans son propre calque rogné, la carte elle-même ne rogne rien. */}
-        <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, width: 118, height: 118, borderTopRightRadius: radiusV2.hero - 1, overflow: 'hidden' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, width: 118, height: 118, borderTopRightRadius: (float ? heroFloat(dark).borderRadius : radiusV2.hero) - 1, overflow: 'hidden' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <Svg width={124} height={124} viewBox="0 0 150 150" style={{ position: 'absolute', top: -6, right: -6 }}>
             <Path d={PATTERN} fill="none" stroke={colors.heroPattern} strokeWidth={1.2} />
           </Svg>

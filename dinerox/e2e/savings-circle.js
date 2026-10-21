@@ -9,7 +9,7 @@
  *     retrait prérempli → la carte disparaît ;
  *  4. personne qui n'a jamais renseigné son argent : ni message ni carte.
  */
-const { BASE, launch, phraseField } = require('./env.js');
+const { BASE, launch, phraseField, PER_DAY } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -48,7 +48,7 @@ let b;
     const how = btn("Comment c'est calculé ?"); if (await how.count()) { await how.first().click(); await p.waitForTimeout(300); }
     const t = await text();
     const d = t.match(/Argent disponible ([\d ]+) FCFA − engagements ([\d ]+) FCFA, sur (\d+) jour/) || [];
-    return { t, perDay: num((t.match(/Il vous reste ([\d ]+) FCFA par jour/) || [])[1]), available: num(d[1]), commitments: num(d[2]), days: Number(d[3]) };
+    return { t, perDay: num((t.match(PER_DAY) || [])[1]), available: num(d[1]), commitments: num(d[2]), days: Number(d[3]) };
   };
 
   // ── 1. Revenu 100 000 + épargne 60 000 ──

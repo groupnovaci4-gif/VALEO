@@ -1,6 +1,9 @@
 /* Configuration commune des tests de bout en bout (web + émulateurs Firebase). */
 const { chromium } = require('playwright');
 module.exports.BASE = process.env.E2E_BASE_URL || 'http://localhost:8098';
+// Étape 4 (maquette validée) : le reste par jour se lit sur la carte compacte de l'accueil,
+// « Votre plafond de dépenses par jour » suivi du montant (la phrase « Il vous reste … » n'y est plus).
+module.exports.PER_DAY = /Votre plafond de dépenses par jour\s+([\d  ]+) FCFA/;
 
 /**
  * Date de référence d'un parcours : le jour `day` du mois en cours, à 10 h.

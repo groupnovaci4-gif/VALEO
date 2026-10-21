@@ -1,5 +1,5 @@
 /* Lot A, phase 1 — « reste par jour », accueil réordonné, démarrage rapide (compte réel sur émulateurs). */
-const { BASE, launch, dayOfMonth } = require('./env.js');
+const { BASE, launch, dayOfMonth, PER_DAY } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -26,12 +26,12 @@ let b;
   ok((await how.count()) > 0, 'accueil : repli « Comment c’est calculé ? »');
   await how.first().click(); await p.waitForTimeout(300);
   let t = await text();
-  const iDaily = t.indexOf('Reste par jour'), iBubble = t.indexOf('Dites-moi ce que vous avez dépensé ou reçu'), iRecent = t.indexOf('Dernières opérations'), iCoach = t.indexOf('Votre coach');
+  const iDaily = t.indexOf('Votre plafond de dépenses par jour'), iBubble = t.indexOf('Dites-moi ce que vous avez dépensé ou reçu'), iRecent = t.indexOf('Dernières opérations'), iCoach = t.indexOf('Votre coach');
   ok(iDaily >= 0 && iDaily < iBubble && iBubble < iRecent && iRecent < iCoach, `ordre : reste par jour → bulle → dernières opérations → autres blocs (${[iDaily, iBubble, iRecent, iCoach].join(' < ')})`);
-  const sentence = (t.match(/Il vous reste ([\d ]+) FCFA par jour jusqu'au (\d+) (\w+)/) || []);
+  const sentence = (t.match(PER_DAY) || []);
   // Argent disponible v2 (§7.3) : (argent disponible − engagements jusqu'au prochain revenu) / jours.
   const detail = (t.match(/Argent disponible ([\d ]+) FCFA − engagements ([\d ]+) FCFA, sur (\d+) jour/) || []);
-  ok(!!sentence[0] && !!detail[0], `phrase : « ${sentence[0] ?? '—'} »`);
+  ok(!!sentence[0] && !!detail[0], `carte : « ${sentence[0] ?? '—'} »`);
   if (sentence[0] && detail[0]) {
     const expected = Math.floor((num(detail[1]) - num(detail[2])) / Number(detail[3]));
     ok(num(sentence[1]) === expected, `calcul affiché cohérent : (${detail[1]} − ${detail[2]}) / ${detail[3]} j = ${expected}`);
@@ -46,7 +46,7 @@ let b;
   ok(recentRows > 0 && recentRows <= 5, `dernières opérations : ${recentRows} ligne(s) (≤ 5)`);
   // Montants masqués : le reste par jour aussi.
   await p.getByRole('button', { name: 'Masquer les montants' }).click(); await p.waitForTimeout(300);
-  ok(/Il vous reste •+ par jour/.test(await text()), 'montants masqués : le reste par jour est masqué aussi');
+  ok(/Votre plafond de dépenses par jour\s+•+/.test(await text()), 'montants masqués : le reste par jour est masqué aussi');
   // Après 10 saisies réussies, la bulle se réduit à une ligne (compteur local du compte).
   await p.evaluate(() => {
     const k = Object.keys(localStorage).find((x) => x.endsWith(':entryStats')) ?? 'dinerox:v1:local:entryStats';
@@ -87,18 +87,18 @@ let b;
   await btn('Continuer').click(); await p.waitForTimeout(600);
   t = await text();
   // v2 (§2, §7.3) : le revenu déclaré n'est pas de l'argent disponible ; aucun reste par jour inventé.
-  ok(t.includes('Votre argent disponible aujourd\'hui') && !/Il vous reste [\d ]+ FCFA par jour/.test(t), 'aperçu : demande l’argent disponible, aucun reste par jour tiré du revenu déclaré');
+  ok(t.includes('Votre argent disponible aujourd\'hui') && !PER_DAY.test(t) && !/Il vous reste [\d ]+ FCFA par jour/.test(t), 'aperçu : demande l’argent disponible, aucun reste par jour tiré du revenu déclaré');
   await p.screenshot({ path: `${S}/lot-a-quick-result.png` });
   await btn('Commencer').click();
   await p.getByText('Bonjour Awa').first().waitFor({ timeout: 15000 }); await p.waitForTimeout(2500);
   t = await text();
-  ok(!/Il vous reste [\d ]+ FCFA par jour/.test(t) && (await btn('Enregistrer mon argent disponible').count()) > 0, 'accueil : carte « argent disponible » à remplir, pas de reste par jour');
+  ok(!PER_DAY.test(t) && (await btn('Enregistrer mon argent disponible').count()) > 0, 'accueil : carte « argent disponible » à remplir, pas de reste par jour');
   // L'utilisateur indique l'argent présent : le reste par jour apparaît, cohérent avec son détail.
   await p.getByLabel('Cash', { exact: true }).first().fill('300000');
   await btn('Enregistrer mon argent disponible').click(); await p.waitForTimeout(2500);
   await p.getByRole('button', { name: "Comment c'est calculé ?", exact: true }).first().click(); await p.waitForTimeout(300);
   t = await text();
-  const home = (t.match(/Il vous reste ([\d ]+) FCFA par jour/) || [])[1];
+  const home = (t.match(PER_DAY) || [])[1];
   const d2 = (t.match(/Argent disponible ([\d ]+) FCFA − engagements ([\d ]+) FCFA, sur (\d+) jour/) || []);
   ok(num(d2[1]) === 300000 && num(home) === Math.floor((num(d2[1]) - num(d2[2])) / Number(d2[3])), `accueil : reste par jour sur l’argent déclaré (${home} = (${d2[1]} − ${d2[2]}) / ${d2[3]} j)`);
   await p.goto(BASE + '/recurring', { waitUntil: 'load' }); await p.waitForTimeout(3000);

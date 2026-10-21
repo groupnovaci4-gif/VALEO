@@ -7,7 +7,7 @@
  *  2. Compte réel (gratuit) : date publiée dans le catalogue distant (émulateur),
  *     limite d'un moment fort, limite de 3 simulations par mois.
  */
-const { BASE, launch, phraseField, declareMoney } = require('./env.js');
+const { BASE, launch, phraseField, declareMoney, PER_DAY } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -33,7 +33,7 @@ let b;
   const btn = (name) => p.getByRole('button', { name, exact: true });
   const go = async (path, w = 3000) => { await p.goto(BASE + path, { waitUntil: 'load' }); await p.waitForTimeout(w); };
   const closeCelebration = async () => { const c = btn('Continuer'); if (await c.count()) { await c.first().click(); await p.waitForTimeout(300); } };
-  const perDay = async () => { await go('/'); await closeCelebration(); return num(((await text()).match(/Il vous reste ([\d ]+) FCFA par jour/) || [])[1]); };
+  const perDay = async () => { await go('/'); await closeCelebration(); return num(((await text()).match(PER_DAY) || [])[1]); };
   const balance = async () => { await go('/reserve/demo_reserve'); return num(((await text()).match(/Solde de la réserve\s*\n\s*([\d ]+) FCFA/) || [])[1]); };
   const openKeyboard = async () => { const mic = btn('Dicter une opération'); const box = await mic.boundingBox(); await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up(); await p.waitForTimeout(600); };
 

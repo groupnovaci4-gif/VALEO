@@ -22,7 +22,8 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   // ── 1. Démonstration (local) : résumé à l'ouverture ──
   const d = await mk();
   await go(d.p, '/'); await d.p.getByText('Tester sans données (démonstration)').click();
-  await d.p.getByText('Mode démonstration').first().waitFor({ timeout: 8000 }); await d.p.waitForTimeout(4500);
+  // Étape 4 : l'encadré du mode démo est devenu une ligne discrète (pastille « Démo » + « Créer mon profil »).
+  await d.p.getByText('Créer mon profil').first().waitFor({ timeout: 8000 }); await d.p.waitForTimeout(4500);
   // Une éventuelle célébration de récompense (phase 4) s'affiche d'abord : on la ferme.
   const closeCelebration = async (p) => { const c = p.getByRole('button', { name: 'Continuer' }); if (await c.count()) { await c.first().click({ timeout: 5000 }); await p.waitForTimeout(400); } };
   await closeCelebration(d.p);

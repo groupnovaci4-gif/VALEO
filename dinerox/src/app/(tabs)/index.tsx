@@ -89,15 +89,8 @@ function HomeScreen() {
         {profile?.firstName ? t('home.hello', { name: profile.firstName }) : t('home.helloAnon')}
       </Text>
 
-      {activeSpace?.id.startsWith('demo_') ? (
-        <Banner
-          tone="info"
-          icon="flask-outline"
-          text={t('home.demoBanner')}
-          action={mode === 'local' ? t('home.demoCta') : undefined}
-          onAction={() => void signOutLocal().then(() => router.replace('/sign-up'))}
-        />
-      ) : null}
+      {/* Mode démonstration : une ligne discrète (maquette validée, point 7), plus de grand encadré. */}
+      {activeSpace?.id.startsWith('demo_') ? <DemoLine onCreate={mode === 'local' ? () => void signOutLocal().then(() => router.replace('/sign-up')) : undefined} /> : null}
       {mode === 'firebase' && user && !user.emailVerified ? (
         <>
           <Banner
@@ -257,6 +250,34 @@ function HomeScreen() {
 
       {recent.length ? <Button variant="tertiary" label={t('rep.title')} icon="bar-chart-outline" onPress={() => router.push('/reports')} style={{ marginTop: 16, alignSelf: 'center' }} /> : null}
     </Screen>
+  );
+}
+
+/**
+ * Mode démonstration (étape 4, point 7) : pastille « Démo » (fiole) à gauche, lien
+ * « Créer mon profil › » à droite (même action qu'avant). Le texte explicatif de l'ancien
+ * encadré est le libellé d'accessibilité de la pastille (lecteur d'écran).
+ */
+function DemoLine({ onCreate }: { onCreate?: () => void }) {
+  const { colors } = useTheme();
+  const { t } = useI18n();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 48, marginTop: -4, marginBottom: 12 }}>
+      <View accessible accessibilityLabel={t('home.demoBanner')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.surfaceAlt, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}>
+        <Icon name="flask-outline" size={15} color={colors.textMuted} />
+        <Text variant="caption" weight="600" tone="muted">
+          {t('home.demoPill')}
+        </Text>
+      </View>
+      {onCreate ? (
+        <Pressable accessibilityRole="link" accessibilityLabel={t('home.demoCta')} onPress={onCreate} hitSlop={{ top: 4, bottom: 4 }} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 48, paddingLeft: 8, opacity: pressed ? 0.6 : 1 })}>
+          <Text variant="label" tone="primary" style={{ fontSize: 14 }}>
+            {t('home.demoCta')}
+          </Text>
+          <Icon name="chevron-forward" size={15} color={colors.primary} />
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 

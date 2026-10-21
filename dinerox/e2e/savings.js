@@ -10,7 +10,7 @@
  *  7. limite de la formule gratuite (3 comptes) : message clair, aucune limite changée ;
  *  8. versement HORS LIGNE : enregistré tout de suite, synchronisé au retour du réseau (vu d'un 2e appareil).
  */
-const { BASE, launch, phraseField } = require('./env.js');
+const { BASE, launch, phraseField, PER_DAY } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -35,7 +35,7 @@ const email = `sav${Date.now()}@ex.com`;
     const label = await p.getByRole('button', { name: new RegExp(`^${name} · `) }).first().getAttribute('aria-label').catch(() => null);
     return label ? num(label.split('·')[1]) : NaN;
   };
-  const perDay = async () => { await go('/'); return num(((await text()).match(/Il vous reste ([\d ]+) FCFA par jour/) || [])[1]); };
+  const perDay = async () => { await go('/'); return num(((await text()).match(PER_DAY) || [])[1]); };
   const monthExpenses = async () => { await go('/transactions'); return (await text()).split('\n').filter((l) => /^-[\d ]+ FCFA$/.test(l.trim())).map(num).reduce((a, x) => a + x, 0); };
 
   await go('/');
