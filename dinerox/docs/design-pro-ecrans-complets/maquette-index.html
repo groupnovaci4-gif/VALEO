@@ -265,6 +265,33 @@ body.f3 .hc-b.full { margin: 0 10px 14px; border-radius: 22px; box-shadow: 0 34p
 body.f3.dark .hc-b.full { box-shadow: 0 34px 28px -22px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.06), inset 0 1px 0 rgba(255,255,255,.12); }
 
 .hc-b .mpill { display: inline-block; font: 600 12px/16px var(--body); color: #fff; background: rgba(255,255,255,.16); border-radius: 999px; padding: 3px 10px; margin-bottom: 8px; }
+
+.hc-b.compact .body { padding: 14px 16px 12px; }
+.hc-b.compact .toprow { display: flex; justify-content: space-between; align-items: center; height: 28px; margin-bottom: 6px; }
+.hc-b.compact .toprow .mpill { margin: 0; }
+.hc-b.compact .eye2 { width: 44px; height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; }
+.hc-b.compact .hero-num { font-size: 36px; line-height: 42px; }
+.hc-b.compact .sep { margin: 10px 0; }
+.hc-b.compact .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hc-b.compact .duo div { display: flex; flex-direction: column; }
+.hc-b.compact .duo .k { font: 400 13px/18px var(--body); color: #C9DED6; }
+.hc-b.compact .duo .v { font: 700 17px/24px var(--title); color: #fff; font-variant-numeric: tabular-nums; }
+.hc-b.compact .duo .c { font: 400 12px/16px var(--body); color: #C9DED6; margin-top: 2px; }
+.hc-b.compact .line.tot { margin-top: 8px; border-top: 1px solid rgba(255,255,255,.14); padding-top: 8px; min-height: 0; }
+body.f4 .hc-b.full { margin: 6px 8px 22px; border-radius: 22px; box-shadow: 0 26px 44px -14px rgba(15,74,58,.62), 0 12px 22px -8px rgba(15,74,58,.34), 0 2px 5px rgba(15,74,58,.18); }
+body.f4.dark .hc-b.full { box-shadow: 0 0 0 1px rgba(255,255,255,.09), 0 26px 44px -10px rgba(0,0,0,.95), 0 0 36px rgba(79,176,143,.16); }
+
+
+.hc-b.c4 .body { padding: 14px 16px 10px; }
+.hc-b.c4 .eye { top: 2px; right: 4px; }
+.hc-b.c4 .numrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; }
+.hc-b.c4 .numrow .mpill { margin: 0; white-space: nowrap; }
+.hc-b.c4 .hero-num { font-size: 36px; line-height: 42px; }
+.hc-b.c4 .sep { margin: 8px 0; }
+.hc-b.c4 .line { min-height: 27px; }
+.hc-b.c4 .line.main { min-height: 26px; }
+.hc-b.c4 .cap { margin: -3px 0 3px; }
+
 body.full .tx { padding-top: 10px; padding-bottom: 10px; align-items: center; }
 body.full .tx .mid div { white-space: normal; }
 </style>
@@ -392,6 +419,26 @@ function budget(d) {
 let HEROV2 = false;
 let MONTH = null;
 function heroFull() {
+  if (HEROV2 && MONTH === '4') return `<div class="hc-b full c4">${PATTERN}<div class="body">
+    <div class="eye" aria-label="Masquer les montants">${ic('eye-outline')}</div>
+    <div class="t-caption">Votre plafond de dépenses par jour</div>
+    <div class="numrow"><div class="hero-num num" style="color:#fff">38 681<small>FCFA</small></div><span class="mpill">Octobre 2026</span></div>
+    <div class="sep"></div>
+    <div class="line main"><span>Argent disponible</span><span class="v">655 500 FCFA</span></div>
+    <div class="line"><span>Mis de côté</span><span class="v">880 000 FCFA</span></div>
+    <div class="cap">dont 380 000 FCFA hors de vos comptes</div>
+    <div class="line"><span>Total de vos comptes</span><span class="v">1 155 500 FCFA</span></div>
+  </div></div>
+  <div class="how">${ic('chevron-down')} Comment c'est calculé ?</div>`;
+  if (HEROV2 && MONTH === '3') return `<div class="hc-b full compact">${PATTERN}<div class="body">
+    <div class="toprow"><span class="mpill">Octobre 2026</span><span class="eye2" aria-label="Masquer les montants">${ic('eye-outline')}</span></div>
+    <div class="t-caption">Votre plafond de dépenses par jour</div>
+    <div class="hero-num num" style="color:#fff">38 681<small>FCFA</small></div>
+    <div class="sep"></div>
+    <div class="duo"><div><span class="k">Argent disponible</span><span class="v">655 500 FCFA</span></div><div><span class="k">Mis de côté</span><span class="v">880 000 FCFA</span><span class="c">dont 380 000 FCFA hors de vos comptes</span></div></div>
+    <div class="line tot"><span>Total de vos comptes</span><span class="v">1 155 500 FCFA</span></div>
+  </div></div>
+  <div class="how">${ic('chevron-down')} Comment c'est calculé ?</div>`;
   if (HEROV2) return `<div class="hc-b full">${PATTERN}<div class="body">
     <div class="eye" aria-label="Masquer les montants">${ic('eye-outline')}</div>
     ${MONTH === '1' ? `<div class="t-caption" style="padding-right:44px">Votre plafond de dépenses par jour en octobre</div>` : MONTH === '2' ? `<div class="mpill">Octobre 2026</div><div class="t-caption">Votre plafond de dépenses par jour</div>` : `<div class="t-caption">Votre plafond de dépenses par jour</div>`}
@@ -601,6 +648,7 @@ function board(d) {
   }
   await document.fonts.ready;
   document.body.dataset.ready = '1';
+  const hc = document.querySelector('.hc-b.full'); if (hc) document.body.dataset.heroH = Math.round(hc.getBoundingClientRect().height);
 })();
 </script>
 </body>
