@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="fr" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DineroX — Directions</title>
+<!--
+  Maquettes de l'étape 2 (design-pro). Polices et icônes = fichiers embarqués de l'application
+  (Inter, Plus Jakarta Sans, Ionicons). Chiffres = démonstration de l'application au 2026-10-21.
+  Paramètres :
+    ?board=a | ?board=b      planche d'une direction (spécifications + 6 écrans)
+    ?board=cards             les trois versions de la carte d'accueil
+    ?d=a&s=home&t=light      un seul écran, à la taille de la fenêtre (téléphone)
+    &card=a|b                version de la carte d'accueil (par défaut : a pour A, b pour B ;
+                             la carte (c) est abandonnée, décision du fondateur du 2026-10-21)
+    ?d=b&s=homefull&t=…      accueil COMPLET (carte b), à faire défiler, avec la place des
+                             cartes qui n'apparaissent que selon la situation
+-->
+<style>
+@font-face { font-family: Inter; font-weight: 400; src: url(fonts/Inter_400Regular.ttf); }
+@font-face { font-family: Inter; font-weight: 500; src: url(fonts/Inter_500Medium.ttf); }
+@font-face { font-family: Inter; font-weight: 600; src: url(fonts/Inter_600SemiBold.ttf); }
+@font-face { font-family: Inter; font-weight: 700; src: url(fonts/Inter_700Bold.ttf); }
+@font-face { font-family: Jakarta; font-weight: 600; src: url(fonts/PlusJakartaSans_600SemiBold.ttf); }
+@font-face { font-family: Jakarta; font-weight: 700; src: url(fonts/PlusJakartaSans_700Bold.ttf); }
+@font-face { font-family: Jakarta; font-weight: 800; src: url(fonts/PlusJakartaSans_800ExtraBold.ttf); }
+@font-face { font-family: Ionicons; src: url(fonts/Ionicons.ttf); }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #DADCDF; font-family: Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+body.single { background: var(--bg); }
+.ic { font-family: Ionicons; font-style: normal; line-height: 1; display: inline-block; }
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+
+/* ── Planche ─────────────────────────────────────────────────────────── */
+.board { padding: 48px; display: flex; flex-direction: column; gap: 40px; width: max-content; }
+.board h1 { font: 700 32px/40px Inter; color: #111; }
+.board h2 { font: 600 18px/24px Inter; color: #333; margin-bottom: 12px; }
+.board .lede { font: 400 15px/22px Inter; color: #444; max-width: 900px; }
+.row { display: flex; gap: 32px; align-items: flex-start; }
+.frame-wrap { display: flex; flex-direction: column; gap: 8px; }
+.frame-label { font: 500 13px/18px Inter; color: #444; }
+.spec { background: #fff; border-radius: 12px; padding: 24px; display: flex; gap: 40px; }
+.spec section { min-width: 220px; }
+.swatches { display: grid; grid-template-columns: repeat(2, auto); gap: 8px 16px; }
+.sw { display: flex; align-items: center; gap: 8px; font: 400 12px/16px Inter; color: #333; }
+.sw i { width: 28px; height: 28px; border-radius: 6px; border: 1px solid rgba(0,0,0,.12); display: block; }
+.spec p { font: 400 13px/20px Inter; color: #333; }
+.spec .type-sample { margin: 4px 0; color: #111; }
+.icons-row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 24px; color: #222; max-width: 260px; }
+
+/* ── Écran (360 × 800) ────────────────────────────────────────────────── */
+.phone { width: 360px; height: 800px; background: var(--bg); color: var(--text); position: relative; overflow: hidden; display: flex; flex-direction: column; font-family: var(--body); }
+body.single .phone { height: var(--vh, 100vh); width: 360px; }
+.status { height: 24px; flex: none; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; font: 500 12px/16px Inter; color: var(--text); }
+body.single .status { display: none; }
+.scroll { flex: 1; overflow: hidden; padding: 0 16px; }
+.t-caption { font: 500 13px/18px var(--body); color: var(--text2); }
+.t-small { font: 400 13px/18px var(--body); color: var(--text3); }
+.t-body { font: 400 15px/22px var(--body); color: var(--text); }
+.t-strong { font: 600 15px/22px var(--body); color: var(--text); }
+.t-title { font: var(--titleW) 22px/28px var(--title); color: var(--text); letter-spacing: -0.2px; }
+.t-section { font: 600 17px/24px var(--title); color: var(--text); }
+.hero-num { font: var(--numW) 40px/44px var(--title); letter-spacing: -0.8px; }
+.hero-num small { font: 600 18px/22px var(--body); letter-spacing: 0; margin-left: 4px; }
+
+.topbar { height: 56px; display: flex; align-items: center; justify-content: space-between; }
+.space-btn { display: flex; align-items: center; gap: 4px; font: 600 15px/20px var(--body); color: var(--text); height: 48px; }
+.space-btn .ic { font-size: 16px; color: var(--text2); }
+.top-actions { display: flex; align-items: center; gap: 4px; }
+.icon-btn { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text); }
+.avatar { width: 32px; height: 32px; border-radius: 16px; background: var(--surface2); color: var(--text); font: 600 14px/32px var(--body); text-align: center; }
+
+.card { background: var(--surface); border-radius: var(--r-card); border: var(--card-border); box-shadow: var(--card-shadow); }
+.rows .r { display: flex; justify-content: space-between; align-items: center; min-height: 48px; padding: 0 16px; }
+.rows .r + .r { border-top: 1px solid var(--divider); }
+.rows .r .v { font: 600 15px/22px var(--body); font-variant-numeric: tabular-nums; }
+
+.actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.act { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0 8px; font: 500 13px/18px var(--body); color: var(--text); }
+.act .bub { width: 44px; height: 44px; border-radius: 22px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--brandInk); }
+
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; margin: 24px 0 8px; }
+.link { font: 600 15px/20px var(--body); color: var(--brandInk); }
+
+.tx { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 16px; }
+.tx + .tx { border-top: 1px solid var(--divider); }
+.tx .bub { flex: none; width: 40px; height: 40px; border-radius: var(--r-icon); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--iconInk); }
+.tx .mid { flex: 1; min-width: 0; }
+.tx .mid div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx .amt { font: 600 15px/22px var(--body); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.amt.in { color: var(--positive); }
+
+.alert-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 16px; }
+.alert-row .ic { font-size: 22px; }
+.alert-row .chev { margin-left: auto; color: var(--text3); font-size: 18px; }
+
+.tabbar { flex: none; height: 64px; background: var(--tabbg); border-top: 1px solid var(--divider); display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font: 500 12px/16px var(--body); color: var(--text3); }
+.tab .ic { font-size: 24px; }
+.tab.on { color: var(--brandInk); font-weight: 600; }
+.tab.mic .ic { width: 48px; height: 36px; border-radius: 18px; background: var(--brand); color: var(--onBrand); font-size: 22px; display: flex; align-items: center; justify-content: center; }
+.tab.mic { color: var(--text); }
+
+.bar { height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 3px; background: var(--brand); }
+.bar i.over { background: var(--alert); }
+.bar i.full { background: var(--warning); }
+
+/* Feuille de saisie */
+.sheet-dim { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 40px; background: var(--sheet); border-radius: var(--r-sheet) var(--r-sheet) 0 0; padding: 8px 16px 0; display: flex; flex-direction: column; }
+body.single .sheet { top: 16px; }
+.handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto 8px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface2); border-radius: var(--r-ctl); padding: 3px; }
+.seg div { height: 40px; display: flex; align-items: center; justify-content: center; gap: 6px; font: 500 14px/20px var(--body); color: var(--text2); border-radius: calc(var(--r-ctl) - 3px); }
+.seg .on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.underline-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--divider); }
+.underline-tabs div { height: 44px; display: flex; align-items: center; gap: 6px; font: 600 15px/20px var(--body); color: var(--text3); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.underline-tabs .on { color: var(--text); border-color: var(--text); }
+.amount { text-align: center; font: var(--numW) 44px/52px var(--title); color: var(--text3); letter-spacing: -0.8px; margin: 16px 0 12px; }
+.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--key-gap); }
+.key { height: 52px; border-radius: var(--r-ctl); background: var(--keybg); display: flex; align-items: center; justify-content: center; font: 500 24px/28px var(--title); color: var(--text); }
+.cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 4px; margin-top: 8px; }
+.cat { display: flex; flex-direction: column; align-items: center; gap: 4px; font: 500 12px/16px var(--body); color: var(--text); text-align: center; }
+.cat .bub { width: 48px; height: 48px; border-radius: var(--r-icon); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--iconInk); }
+
+/* Enveloppes */
+.env { padding: 12px 16px; }
+.env + .env { border-top: 1px solid var(--divider); }
+.env .top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.env .bub { width: 36px; height: 36px; border-radius: var(--r-icon); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--iconInk); flex: none; }
+.env .st { margin-left: auto; font: 600 13px/18px var(--body); white-space: nowrap; }
+.st.over { color: var(--alert); } .st.full { color: var(--warning); } .st.ok { color: var(--text3); font-weight: 500; }
+
+/* Carte d'accueil : trois versions */
+.hc-a .hero-num { color: var(--text); }
+.hc-b { background: var(--heroBg); color: #fff; border-radius: var(--r-hero); position: relative; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.10); }
+.hc-b::after { content: ""; position: absolute; inset: 0; border-radius: inherit; border: 1px solid rgba(255,255,255,.10); pointer-events: none; }
+.hc-b .pattern { position: absolute; right: -6px; top: -6px; width: 118px; height: 118px; opacity: .10; }
+.hc-b .t-caption, .hc-b .t-small { color: rgba(255,255,255,.78); }
+.hc-b .rows .r + .r { border-top-color: rgba(255,255,255,.14); }
+.hc-b .rows .r span:first-child { color: rgba(255,255,255,.82); font: 400 15px/22px var(--body); }
+.hc-b .rows .r .v { color: #fff; }
+/* Textes sur le vert : blanc 10,2:1 (clair) / 12,6:1 (sombre) ; secondaire #C9DED6 7,2:1 / 8,9:1 (AA). */
+.hc-b .t-caption, .hc-b .t-small { color: #C9DED6; }
+.hc-b .rows .r span:first-child { color: #C9DED6; }
+
+/* ── Accueil COMPLET (s=homefull) : page qui défile, barre d'onglets collée en bas ── */
+body.full .phone { height: auto; min-height: 0; overflow: visible; }
+body.full .scroll { overflow: visible; padding-bottom: 24px; }
+body.full .tabbar { position: sticky; bottom: 0; z-index: 5; }
+.hello { font: var(--titleW) 22px/28px var(--title); color: var(--text); margin: 4px 0 12px; }
+.banner { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--r-card); background: var(--surface2); margin-bottom: 12px; }
+.banner .ic { font-size: 22px; color: var(--text2); flex: none; }
+.hc-b.full .body { position: relative; padding: 20px 16px 8px; }
+.hc-b .sentence { font: 600 15px/22px var(--body); color: #fff; margin-top: 4px; }
+.hc-b .sep { height: 1px; background: rgba(255,255,255,.14); margin: 12px 0; }
+.hc-b .line { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-height: 28px; }
+.hc-b .line span:first-child { font: 400 14px/20px var(--body); color: #C9DED6; }
+.hc-b .line .v { font: 600 15px/22px var(--body); color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hc-b .line.main .v { font: 700 19px/26px var(--title); }
+.hc-b .cap { font: 400 13px/18px var(--body); color: #C9DED6; margin: -2px 0 4px; }
+.hc-b .hide { display: flex; align-items: center; gap: 8px; min-height: 48px; font: 600 15px/20px var(--body); color: #fff; margin-top: 4px; }
+.hc-b .hide .ic { font-size: 22px; }
+.how { display: flex; align-items: center; gap: 8px; min-height: 48px; font: 600 15px/20px var(--body); color: var(--brandInk); }
+.how .ic { font-size: 20px; }
+.shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 12px; }
+.shortcuts .sc { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; background: var(--surface); border-radius: var(--r-ctl); box-shadow: var(--card-shadow); font: 600 15px/20px var(--body); color: var(--text); }
+.shortcuts .sc .ic { font-size: 20px; color: var(--brandInk); }
+.shortcuts .sc.w { grid-column: 1 / -1; }
+.prompt { padding: 16px; }
+.prompt .row2 { display: flex; gap: 8px; margin-top: 12px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 16px; border-radius: var(--r-ctl); font: 600 15px/20px var(--body); }
+.btn.pri { background: var(--brand); color: var(--onBrand); }
+.btn.sec { background: var(--surface2); color: var(--text); }
+.btn.ter { color: var(--brandInk); padding: 0 8px; }
+.btn.sm { min-height: 44px; font-size: 14px; padding: 0 12px; }
+.btn .ic { font-size: 18px; }
+.ins { padding: 12px 16px 4px; }
+.ins + .ins { border-top: 1px solid var(--divider); }
+.ins .top { display: flex; gap: 10px; align-items: flex-start; }
+.ins .top .ic { font-size: 20px; margin-top: 1px; flex: none; }
+.ins .chev { margin-left: auto; color: var(--text3); }
+.listen { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font: 600 14px/20px var(--body); color: var(--brandInk); }
+.listen .ic { font-size: 18px; }
+.mrow { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; }
+.mrow + .mrow { border-top: 1px solid var(--divider); }
+.mrow .bub { width: 36px; height: 36px; border-radius: var(--r-icon); background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--iconInk); flex: none; }
+.mrow .v { margin-left: auto; font: 600 15px/22px var(--body); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.note { font: 400 13px/18px var(--body); color: var(--text3); margin-top: 6px; }
+.src { display: inline-block; font: 500 12px/16px var(--body); color: var(--text3); margin-top: 6px; }
+.coach { padding: 16px; }
+.coach p { font: 400 14px/20px var(--body); color: var(--text); margin-top: 8px; }
+.envl { padding: 12px 16px; }
+.envl + .envl { border-top: 1px solid var(--divider); }
+.envl .top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.envl .bub, .goal .bub { width: 40px; height: 40px; flex: none; display: flex; align-items: center; justify-content: center; }
+.envl .st { margin-left: auto; font: 600 13px/18px var(--body); white-space: nowrap; }
+.goal { display: flex; gap: 12px; align-items: center; padding: 12px 16px; }
+.goal + .goal { border-top: 1px solid var(--divider); }
+.goal .mid { flex: 1; min-width: 0; }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; }
+.tile { padding: 14px; display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+.tile .ic { font-size: 22px; color: var(--brandInk); }
+.tag { display: inline-block; font: 600 11px/16px var(--body); color: var(--text2); background: var(--surface2); border-radius: 6px; padding: 1px 6px; }
+.sit { border: 1.5px dashed var(--border); border-radius: calc(var(--r-card) + 4px); padding: 6px; margin-bottom: 12px; }
+.sit > .sit-l { font: 600 11px/16px Inter; color: var(--text3); letter-spacing: .2px; padding: 0 6px 6px; text-transform: uppercase; }
+.sit .card { padding: 14px 16px; }
+.sit .card .ttl { display: flex; gap: 10px; align-items: flex-start; font: 600 15px/22px var(--body); color: var(--text); }
+.sit .card .ttl .ic { font-size: 20px; margin-top: 1px; flex: none; color: var(--brandInk); }
+.sit .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sits-h { font: 700 13px/18px Inter; color: var(--text2); margin: 4px 0 8px; }
+
+/* ── Décisions du 2026-10-21 : pavés regroupés, ronds de couleur pleine ── */
+.cc { width: 46px; height: 46px; border-radius: 23px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; flex: none; }
+body.dark .cc { color: #13120F; }
+.cc.vert { background: #1E6B52; } .cc.or { background: #9A6400; } .cc.violet { background: #7B3F70; } .cc.bleu { background: #2D5F8F; } .cc.terre { background: #B0502A; }
+body.dark .cc.vert { background: #7FD1B0; } body.dark .cc.or { background: #E8B85A; } body.dark .cc.violet { background: #D79CCB; } body.dark .cc.bleu { background: #8DB8E3; } body.dark .cc.terre { background: #F09A75; }
+.grp { display: grid; grid-template-columns: repeat(3, 1fr); padding: 14px 6px 4px; }
+.grp.two { grid-template-columns: repeat(2, 1fr); }
+.gc { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 0 4px 14px; }
+.gc .lab { font: 600 12.5px/16px var(--body); color: var(--text); }
+.gc .sub { font: 400 12px/16px var(--body); color: var(--text3); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip { font: 600 12px/16px var(--body); color: var(--text2); background: var(--surface2); border-radius: 6px; padding: 2px 8px; }
+.chip.p { color: var(--brandInk); }
+.gacts { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.gacts .btn { flex: 1; }
+.ib { width: 44px; height: 44px; border-radius: 12px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text); }
+.h1row { display: flex; align-items: center; gap: 10px; margin: 4px 0 2px; }
+.h1row .badge { font: 600 12px/16px var(--body); color: var(--positive); background: var(--surface2); border-radius: 999px; padding: 3px 10px; }
+.h1row .plus { margin-left: auto; width: 48px; height: 48px; border-radius: 14px; background: var(--brand); color: var(--onBrand); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+.gh { padding: 18px 16px 16px; position: relative; }
+.gh .top { display: flex; align-items: center; gap: 8px; font: 600 12px/16px var(--body); letter-spacing: .6px; color: #C9DED6; }
+.gh .pill { white-space: nowrap; margin-left: auto; background: rgba(255,255,255,.16); color: #fff; border-radius: 999px; padding: 3px 10px; font: 700 12px/16px var(--body); letter-spacing: 0; }
+.gh .wbar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.22); margin-top: 14px; overflow: hidden; }
+.gh .wbar i { display: block; height: 100%; background: #E8B85A; border-radius: 4px; }
+.gh .foot { display: flex; justify-content: space-between; margin-top: 10px; font: 500 12px/16px var(--body); color: #C9DED6; }
+.gh .foot b { color: #fff; font-weight: 600; }
+.mini { font: 400 13px/18px var(--body); color: var(--text3); }
+
+body.full .tx { padding-top: 10px; padding-bottom: 10px; align-items: center; }
+body.full .tx .mid div { white-space: normal; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// ── Jetons ────────────────────────────────────────────────────────────────
+const T = {
+  a: {
+    name: 'A — Sobre et bancaire',
+    fonts: { title: 'Inter', body: 'Inter', titleW: 600, numW: 600 },
+    radius: { card: 12, ctl: 10, sheet: 16, icon: 20, hero: 12 },
+    light: { bg: '#F5F6F8', surface: '#FFFFFF', surface2: '#EEF0F3', sheet: '#FFFFFF', border: '#D5DAE0', divider: '#E6E9ED', text: '#0F1419', text2: '#4B5560', text3: '#646D78', brand: '#0B5D4B', brandInk: '#0B5D4B', onBrand: '#FFFFFF', iconInk: '#2B333B', positive: '#137A47', alert: '#C0262D', warning: '#975A00', track: '#E6E9ED', tabbg: '#FFFFFF', keybg: 'transparent', heroBg: '#0B5D4B', cardBorder: '1px solid #E6E9ED', cardShadow: 'none' },
+    dark: { bg: '#0D1013', surface: '#161B1F', surface2: '#1F252A', sheet: '#161B1F', border: '#3A424A', divider: '#252C32', text: '#EDF0F2', text2: '#AEB6BE', text3: '#8E979F', brand: '#3DB394', brandInk: '#5CC7A9', onBrand: '#062A21', iconInk: '#D5DAE0', positive: '#4CC38A', alert: '#F0646B', warning: '#E3A445', track: '#252C32', tabbg: '#12171B', keybg: 'transparent', heroBg: '#0E4A3D', cardBorder: '1px solid #252C32', cardShadow: 'none' },
+  },
+  b: {
+    name: 'B — Chaleureuse et locale',
+    fonts: { title: 'Jakarta', body: 'Inter', titleW: 700, numW: 700 },
+    radius: { card: 16, ctl: 12, sheet: 20, icon: 12, hero: 16 },
+    light: { bg: '#F4F1EA', surface: '#FFFCF7', surface2: '#EDE7DC', sheet: '#FFFCF7', border: '#D9D0C0', divider: '#EAE3D7', text: '#1F1C17', text2: '#564E43', text3: '#6E6558', brand: '#0F4A3A', brandInk: '#0F4A3A', onBrand: '#FFFFFF', iconInk: '#0F4A3A', positive: '#1E7A45', alert: '#B3261E', warning: '#8A5A00', track: '#EAE3D7', tabbg: '#FFFCF7', keybg: '#F1EBE1', heroBg: '#0F4A3A', halo: 'transparent', cardBorder: '0', cardShadow: '0 1px 2px rgba(60,45,20,.08)' },
+    dark: { bg: '#13120F', surface: '#1D1B17', surface2: '#29261F', sheet: '#1D1B17', border: '#3D382F', divider: '#2C2923', text: '#F3EFE7', text2: '#BDB4A4', text3: '#A0968A', brand: '#4FB08F', brandInk: '#6CC4A4', onBrand: '#0B2A21', iconInk: '#9ED3BE', positive: '#63C08A', alert: '#EF6B61', warning: '#D9A441', track: '#2C2923', tabbg: '#181613', keybg: '#25221D', heroBg: '#123A2F', halo: '#3A362F', cardBorder: '0', cardShadow: 'none' },
+  },
+};
+
+// ── Données : démonstration de l'application, 2026-10-21 (captures de l'audit) ──
+const D = {
+  perDay: '38 681', until: 'jusqu’au 31 octobre',
+  rows: [['Argent disponible', '655 500 FCFA'], ['Mis de côté', '880 000 FCFA'], ['Total de vos comptes', '1 155 500 FCFA']],
+  tx: [
+    { n: 'Moto', s: 'Compte bancaire → Compte épargne · 20 oct.', a: '50 000', k: 'tr', i: 'swap-horizontal' },
+    { n: 'Canal+', s: 'Loisirs & divertissement · Orange Money · 18 oct.', a: '−10 000', i: 'game-controller-outline', f: 'television' },
+    { n: 'Restaurant', s: 'Alimentation & boissons · Cash · 15 oct.', a: '−51 000', i: 'restaurant-outline', f: 'composees/plat_poisson_3d' },
+    { n: 'Taxi', s: 'Transport · Cash · 12 oct.', a: '−33 000', i: 'car-outline', f: 'taxi' },
+    { n: 'Maman', s: 'Famille · Orange Money · 10 oct.', a: '−50 000', i: 'heart-outline', f: 'older-person-medium-dark' },
+  ],
+  alerts: ['Budget Maison dépassé de 40 000 FCFA.', 'Budget Alimentation & boissons dépassé de 13 000 FCFA.'],
+  budget: { left: '44 000', pct: 90, planned: '420 000 FCFA', spent: '376 000 FCFA', toAlloc: '328 500 FCFA' },
+  env: [
+    { n: 'Maison', i: 'home-outline', s: '140 000 sur 100 000 FCFA', p: 140, st: 'over', l: 'Dépassée' },
+    { n: 'Alimentation & boissons', i: 'restaurant-outline', s: '93 000 sur 80 000 FCFA', p: 116, st: 'over', l: 'Dépassée' },
+    { n: 'Transport', i: 'car-outline', s: '33 000 sur 40 000 FCFA', p: 83, st: 'ok', l: 'Reste 7 000' },
+    { n: 'Famille', i: 'heart-outline', s: '50 000 sur 50 000 FCFA', p: 100, st: 'full', l: 'Épuisée' },
+    { n: 'Épargne', i: 'wallet-outline', s: '50 000 sur 50 000 FCFA', p: 100, st: 'full', l: 'Épuisée' },
+    { n: 'Libre', i: 'ellipsis-horizontal', s: '10 000 sur 100 000 FCFA', p: 10, st: 'ok', l: 'Reste 90 000' },
+  ],
+  cats: [['Famille', 'heart-outline', 'composees/famille_3d_medium-dark'], ['Maison & logement', 'home-outline', 'house'], ['Alimentation', 'restaurant-outline', 'curry-rice'], ['Transport', 'car-outline', 'taxi'], ['Loisirs', 'game-controller-outline', 'party-popper'], ['Santé', 'medkit-outline', 'stethoscope'], ['Éducation', 'school-outline', 'graduation-cap'], ['Autres', 'ellipsis-horizontal', 'shopping-bags']],
+};
+
+let G = {};
+let ICONS3D = false;
+// Icônes 3D proposées (planche ../icones) : sans pastille de fond, l'objet porte la couleur.
+const f3d = (slug, px) => `<img src="../icones/${slug.includes('/') ? slug : `fluent/${slug}`}.webp" width="${px}" height="${px}" alt="">`;
+// Icône de contenu 3D : sans pastille en clair ; en sombre, léger rond clair (#3A362F, décision du fondateur).
+const HALO = 'style="background:var(--halo);border-radius:50%"';
+const ic = (n, style = '') => `<i class="ic" style="${style}">${String.fromCodePoint(G[n] ?? 63)}</i>`;
+
+function vars(d, t) {
+  const k = T[d], c = k[t], r = k.radius, f = k.fonts;
+  return `--bg:${c.bg};--surface:${c.surface};--surface2:${c.surface2};--sheet:${c.sheet};--border:${c.border};--divider:${c.divider};--text:${c.text};--text2:${c.text2};--text3:${c.text3};--brand:${c.brand};--brandInk:${c.brandInk};--onBrand:${c.onBrand};--iconInk:${c.iconInk};--positive:${c.positive};--alert:${c.alert};--warning:${c.warning};--track:${c.track};--tabbg:${c.tabbg};--keybg:${c.keybg};--heroBg:${c.heroBg};--halo:${c.halo || 'transparent'};--card-border:${c.cardBorder};--card-shadow:${c.cardShadow};--r-card:${r.card}px;--r-ctl:${r.ctl}px;--r-sheet:${r.sheet}px;--r-icon:${r.icon}px;--r-hero:${r.hero}px;--title:${f.title},Inter,sans-serif;--body:${f.body},sans-serif;--titleW:${f.titleW};--numW:${f.numW};--key-gap:${d === 'a' ? 0 : 8}px`;
+}
+
+// Motif discret (carte b) : losanges en traits fins, inspirés des tissages, une seule opacité.
+const PATTERN = `<svg class="pattern" viewBox="0 0 150 150" fill="none" stroke="#fff" stroke-width="1.2">${[0, 1, 2, 3, 4].map((y) => [0, 1, 2, 3, 4].map((x) => `<path d="M${x * 32 + 16} ${y * 32} l16 16 -16 16 -16 -16z"/>`).join('')).join('')}</svg>`;
+
+function heroCard(v) {
+  const head = `<div class="t-caption">Reste par jour</div><div class="hero-num num">${D.perDay}<small>FCFA</small></div><div class="t-small" style="margin-top:2px">${D.until}</div>`;
+  const rows = `<div class="rows">${D.rows.map(([l, x], i) => `<div class="r"><span class="${i ? 't-body' : 't-strong'}">${l}</span><span class="v">${x}</span></div>`).join('')}</div>`;
+  if (v === 'a') return `<div class="hc-a" style="padding:8px 0 16px">${head}</div><div class="card rows">${D.rows.map(([l, x], i) => `<div class="r"><span class="${i ? 't-body' : 't-strong'}">${l}</span><span class="v">${x}</span></div>`).join('')}</div>`;
+  return `<div class="hc-b"><div style="padding:20px 16px 8px; position:relative">${head}</div>${PATTERN}<div style="margin:0 0 4px; position:relative">${rows}</div></div>`;
+}
+
+const statusBar = () => `<div class="status"><span>9:41</span><span>${ic('flash-outline', 'font-size:12px')} 100 %</span></div>`;
+const tabbar = (on) => `<div class="tabbar">${[['home', 'Accueil', 'home-outline', 'home'], ['budget', 'Budget', 'pie-chart-outline', 'pie-chart'], ['mic', 'Saisir', 'mic', 'mic'], ['goals', 'Objectifs', 'flag-outline', 'flag-outline'], ['more', 'Plus', 'grid-outline', 'grid-outline']].map(([k, l, i, ia]) => `<div class="tab ${k === on ? 'on' : ''} ${k === 'mic' ? 'mic' : ''}">${ic(k === on ? ia : i)}<span>${l}</span></div>`).join('')}</div>`;
+const topbar = () => `<div class="topbar"><div class="space-btn">Démo ${ic('chevron-down')}</div><div class="top-actions"><div class="icon-btn" aria-label="Notifications">${ic('notifications-outline')}</div><div class="avatar">D</div></div></div>`;
+
+function home(d, card) {
+  return `${statusBar()}<div class="scroll">${topbar()}
+    ${heroCard(card)}
+    <div class="actions" style="margin-top:12px">${[['Revenu', 'arrow-down'], ['Transfert', 'swap-horizontal'], ['Historique', 'time-outline']].map(([l, i]) => `<div class="act"><div class="bub">${ic(i)}</div>${l}</div>`).join('')}</div>
+    <div class="sec-head"><div class="t-section">Dernières opérations</div><div class="link">Tout voir</div></div>
+    <div class="card">${D.tx.map((x) => `<div class="tx"><div class="bub" ${ICONS3D && x.f ? HALO : ''}>${ICONS3D && x.f ? f3d(x.f, 32) : ic(x.i)}</div><div class="mid"><div class="t-strong">${x.n}</div><div class="t-small">${x.s}</div></div><div class="amt ${x.k === 'in' ? 'in' : ''}">${x.a}</div></div>`).join('')}</div>
+    <div class="sec-head"><div class="t-section">À retenir</div><div class="link">Tout voir</div></div>
+    <div class="card">${D.alerts.slice(0, 1).map((a) => `<div class="alert-row">${ic('alert-circle-outline', 'color:var(--alert)')}<span class="t-body">${a}</span>${ic('chevron-forward', '').replace('class="ic"', 'class="ic chev"')}</div>`).join('')}</div>
+  </div>${tabbar('home')}`;
+}
+
+function entry(d, card) {
+  return `${statusBar()}<div class="scroll" style="opacity:.6">${topbar()}${heroCard(card)}</div>${tabbar('home')}
+  <div class="sheet-dim"></div>
+  <div class="sheet"><div class="handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;height:48px"><div class="t-title">Nouvelle opération</div><div class="icon-btn" style="margin-right:-12px">${ic('close')}</div></div>
+    <div class="seg" style="margin-top:4px"><div>${ic('mic-outline', 'font-size:18px')} Parler</div><div class="on">${ic('keypad-outline', 'font-size:18px')} Clavier</div></div>
+    <div class="underline-tabs" style="margin-top:12px"><div class="on">${ic('arrow-up', 'font-size:16px')} Sortie d'argent</div><div>${ic('arrow-down', 'font-size:16px')} Entrée d'argent</div></div>
+    <div class="amount num">0 FCFA</div>
+    <div class="keys">${['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫'].map((k) => `<div class="key">${k === '⌫' ? ic('backspace-outline', 'font-size:24px') : k}</div>`).join('')}</div>
+    <div class="t-caption" style="margin-top:14px">Touchez une catégorie pour enregistrer</div>
+    <div class="cats">${D.cats.map(([l, i, f]) => `<div class="cat"><div class="bub" ${ICONS3D ? HALO : ''}>${ICONS3D ? f3d(f, 38) : ic(i)}</div>${l}</div>`).join('')}</div>
+  </div>`;
+}
+
+function budget(d) {
+  const b = D.budget;
+  return `${statusBar()}<div class="scroll">${topbar()}
+    <div class="t-title">Budget</div><div class="t-small" style="margin-bottom:12px">octobre 2026</div>
+    <div class="card" style="padding:16px">
+      <div class="t-caption">Reste dans les enveloppes</div>
+      <div class="hero-num num" style="font-size:34px;line-height:40px;margin:2px 0 10px">${b.left}<small>FCFA</small></div>
+      <div class="bar"><i style="width:${b.pct}%"></i></div>
+      <div class="t-small" style="margin-top:6px">Consommé : ${b.pct} %</div>
+      <div class="rows" style="margin:8px -16px -16px; border-top:1px solid var(--divider)">${[['Prévu', b.planned], ['Dépensé', b.spent], ['Reste à répartir', b.toAlloc]].map(([l, v]) => `<div class="r" style="min-height:44px"><span class="t-body">${l}</span><span class="v">${v}</span></div>`).join('')}</div>
+    </div>
+    <div class="card" style="margin-top:12px">${D.alerts.map((a) => `<div class="alert-row" style="min-height:48px">${ic('alert-circle-outline', 'color:var(--alert)')}<span class="t-body" style="font-size:14px;line-height:20px">${a}</span></div>`).join('<div style="border-top:1px solid var(--divider);margin:0 16px"></div>')}</div>
+    <div class="sec-head" style="margin-top:20px"><div class="t-section">Enveloppes</div><div class="link">${ic('add', 'font-size:18px;vertical-align:-3px')} Nouvelle</div></div>
+    <div class="card">${D.env.map((e) => `<div class="env"><div class="top"><div class="bub">${ic(e.i)}</div><div style="min-width:0"><div class="t-strong">${e.n}</div><div class="t-small num">${e.s}</div></div><div class="st ${e.st}">${e.l}</div></div><div class="bar"><i class="${e.st}" style="width:${Math.min(100, e.p)}%"></i></div></div>`).join('')}</div>
+  </div>${tabbar('budget')}`;
+}
+
+
+// ── Accueil COMPLET : contenu réel de la démonstration (export web, 2026-10-21), carte (b). ──
+// Textes : ceux de l'application, inchangés, sauf deux changements approuvés par le fondateur
+// (2026-10-21) : plus d'emoji qui double une icône dans les alertes (🔴, ⚠️…), et la cloche seule
+// dans l'en-tête (« Notifications » reste le libellé d'accessibilité). Les autres propositions de
+// l'étape 2 ne sont PAS appliquées. Les cartes « selon la situation » sont entourées d'un pointillé de maquette.
+function heroFull() {
+  return `<div class="hc-b full">${PATTERN}<div class="body">
+    <div class="t-caption">Reste par jour</div>
+    <div class="hero-num num" style="color:#fff">38 681<small>FCFA</small></div>
+    <div class="sentence">Il vous reste 38 681 FCFA par jour jusqu'au 31 octobre</div>
+    <div class="sep"></div>
+    <div class="line main"><span>Argent disponible</span><span class="v">655 500 FCFA</span></div>
+    <div class="line"><span>Mis de côté</span><span class="v">880 000 FCFA</span></div>
+    <div class="cap">dont 380 000 FCFA hors de vos comptes</div>
+    <div class="line"><span>Total de vos comptes</span><span class="v">1 155 500 FCFA</span></div>
+    ${SIT ? `<div class="cap" style="margin-top:2px;border:1px dashed rgba(255,255,255,.35);border-radius:6px;padding:2px 6px">Selon la situation · autre devise : 120,00 € · 120,00 €</div>` : ''}
+    <div class="hide">${ic('eye-outline')} Masquer les montants</div>
+  </div></div>
+  <div class="how">${ic('chevron-down')} Comment c'est calculé ?</div>`;
+}
+const sit = (label, inner) => SIT ? `<div class="sit"><div class="sit-l">Selon la situation · ${label}</div>${inner}</div>` : '';
+const sitCard = (icon, color, title, btns = '', extra = '') => `<div class="card"><div class="ttl">${ic(icon, color ? `color:${color}` : '')}<span>${title}</span></div>${extra}${btns ? `<div class="btns">${btns}</div>` : ''}</div>`;
+const b = (k, label, icon) => `<span class="btn sm ${k}">${icon ? ic(icon) : ''}${label}</span>`;
+const bub3d = (slug, px = 34) => `<div class="bub" ${HALO}>${f3d(slug, px)}</div>`;
+
+function homefull() {
+  const tx = [
+    ['Moto', 'Compte bancaire → Compte épargne · 20 octobre', '50 000 FCFA', null, 'tr'],
+    ['Canal+', 'Loisirs & divertissement · Orange Money · 18 octobre', '−10 000 FCFA', 'television'],
+    ['Restaurant', 'Alimentation & boissons · Cash · 15 octobre', '−51 000 FCFA', 'composees/plat_poisson_3d'],
+    ['Taxi', 'Transport · Cash · 12 octobre', '−33 000 FCFA', 'taxi'],
+    ['Maman', 'Famille · Orange Money · 10 octobre', '−50 000 FCFA', 'older-person-medium-dark'],
+  ];
+  const insights = [['alert-circle-outline', 'var(--alert)', 'Budget Maison dépassé de 40 000 FCFA.'], ['alert-circle-outline', 'var(--alert)', 'Budget Alimentation & boissons dépassé de 13 000 FCFA.'], ['warning-outline', 'var(--warning)', 'Budget Famille entièrement utilisé.']];
+  const month = [['arrow-down', 'Revenus', 'perçus ce mois', '450 000 FCFA', 'var(--positive)'], ['arrow-up', 'Dépenses', 'réglées ce mois', '326 000 FCFA'], ['wallet-outline', 'Épargne nette', 'ce mois-ci', '60 000 FCFA'], ['pie-chart-outline', 'Reste à répartir', '', '328 500 FCFA']];
+  const env = [['house', 'Maison', 'Dépassé de 40 000 FCFA', 'Dépassée', 'over', '140 000 FCFA sur 100 000 FCFA · 140 %', 140], ['curry-rice', 'Alimentation & boissons', 'Dépassé de 13 000 FCFA', 'Dépassée', 'over', '93 000 FCFA sur 80 000 FCFA · 116 %', 116], ['taxi', 'Transport', 'Reste 7 000 FCFA', 'Dans les limites', 'ok', '33 000 FCFA sur 40 000 FCFA · 83 %', 83], ['composees/famille_3d_medium-dark', 'Famille', 'Reste 0 FCFA', 'Épuisée', 'full', '50 000 FCFA sur 50 000 FCFA · 100 %', 100], ['pig-face', 'Épargne', 'Reste 0 FCFA', 'Épuisée', 'full', '50 000 FCFA sur 50 000 FCFA · 100 %', 100]];
+  const goals = [['composees/moto_rouge_3d', 'Ma moto', 'Véhicule · août 2027', '450 000 FCFA', '/ 1 200 000 FCFA · 38 %', 38], ['shield', 'Mon fonds d\'urgence', 'Finance', '0 FCFA', '/ 1 000 000 FCFA · 0 %', 0], ['backpack', 'Rentrée scolaire', '', '0 FCFA', '/ 120 000 FCFA · 0 %', 0]];
+  return `<div class="scroll">${topbar()}
+    <div class="hello">Bonjour 👋</div>
+    <div class="banner">${ic('flask-outline')}<div><div class="t-body" style="font-size:14px;line-height:20px">Mode démonstration : données fictives, séparées de vos données. Créez votre profil pour gérer votre propre argent.</div><div class="link" style="margin-top:8px">Créer mon profil</div></div></div>
+    ${heroFull()}
+    ${SIT ? `<div class="sit"><div class="sit-l">Selon la situation · à la place de la carte ci-dessus, tant que l'argent n'est pas renseigné</div>${sitCard('wallet-outline', '', 'Votre argent disponible aujourd\'hui', b('pri', 'Enregistrer mon argent disponible'), `<div class="note">Ce qu'il y a aujourd'hui sur chaque compte. Ensuite, l'argent ne change que par vos opérations.</div>`)}</div>` : ''}
+    ${SIT ? `<div class="sits-h">Cartes qui apparaissent selon la situation (ici toutes à la fois)</div>` : ''}
+    ${sit('solde négatif', sitCard('alert-circle', 'var(--alert)', 'Orange Money est à −12 500 FCFA : il faudra régulariser.', b('pri', 'Régulariser')))}
+    ${sit('salaire attendu', sitCard('cash-outline', '', 'Salaire attendu depuis le 20 octobre : reçu ?', b('pri', 'Oui, l\'enregistrer', 'checkmark')))}
+    ${sit('récurrence à confirmer', sitCard('repeat', '', 'Loyer 100 000 FCFA : payé ?', b('pri', 'Oui, depuis Compte bancaire', 'checkmark') + b('sec', 'Autre montant') + b('ter', 'Pas encore')))}
+    ${sit('à régulariser', sitCard('time-outline', 'var(--warning)', 'À régulariser', b('pri', 'Payée') + b('sec', 'Je la dois encore') + b('ter', 'Pas due'), `<div class="t-body" style="margin-top:6px">Électricité — 15 octobre : 18 000 FCFA</div>`))}
+    ${sit('épargne à la source, après un revenu', sitCard('arrow-down-circle-outline', 'var(--positive)', 'Vous avez reçu 450 000 FCFA. Mettre 45 000 FCFA de côté maintenant ?', b('pri', 'Mettre de côté') + b('ter', 'Pas maintenant')))}
+    ${sit('cotisation de tontine proche', sitCard('people-outline', '', 'Tontine « Tontine du marché » : 10 000 FCFA à cotiser dans 3 j'))}
+    ${sit('nouvelles catégories', sitCard('pricetags-outline', '', 'Nouvelles catégories disponibles', b('pri', 'Voir') + b('ter', 'Plus tard')))}
+    ${sit('filleul', sitCard('calendar-outline', '', 'Votre semaine DineroX', '', `<div class="note">Votre semaine compte pour Awa, qui vous a invité.</div>`))}
+    <div class="shortcuts"><div class="sc w">${ic('time-outline')} Historique</div><div class="sc">${ic('arrow-down')} Revenu</div><div class="sc">${ic('swap-horizontal')} Transfert</div></div>
+    <div class="card prompt"><div class="t-strong">Dites-moi ce que vous avez dépensé ou reçu</div><div class="t-small" style="margin-top:2px">Par exemple : « Hier carburant 15 000 »</div><div class="row2">${b('pri', 'Parler', 'mic')}${b('ter', 'Saisir', 'keypad-outline')}</div></div>
+    <div class="sec-head"><div class="t-section">Dernières opérations</div><div class="link">Tout voir</div></div>
+    <div class="card">${tx.map(([n, s2, a, f, k]) => `<div class="tx"><div class="bub" ${f ? HALO : ''}>${f ? f3d(f, 32) : ic('swap-horizontal')}</div><div class="mid"><div class="t-strong">${n}</div><div class="t-small" style="white-space:normal">${s2}</div></div><div class="amt ${k === 'in' ? 'in' : ''}">${a}</div></div>`).join('')}</div>
+    <div class="sec-head"><div class="t-section">À retenir</div><div class="link">Tout voir</div></div>
+    <div class="card">${insights.map(([i, c, t]) => `<div class="ins"><div class="top">${ic(i, `color:${c}`)}<span class="t-body">${t}</span>${ic('chevron-forward', '').replace('class="ic"', 'class="ic chev"')}</div><span class="listen">${ic('volume-medium-outline')} Écouter</span></div>`).join('')}</div>
+    <div class="sec-head"><div class="t-section">Mois en cours</div><div class="link">octobre 2026</div></div>
+    <div class="card">${month.map(([i, l, sub, v, c]) => `<div class="mrow"><div class="bub">${ic(i)}</div><div><div class="t-strong">${l}</div>${sub ? `<div class="t-small">${sub}</div>` : ''}</div><div class="v" ${c ? `style="color:${c}"` : ''}>${v}</div></div>`).join('')}</div>
+    ${sit('opérations datées après aujourd\'hui', `<div class="note" style="margin:0 6px">À venir ce mois : revenus 0 FCFA, dépenses 25 000 FCFA</div>`)}
+    ${sit('compte dans une autre devise', `<div class="note" style="margin:0 6px">En euros ce mois : revenus 0,00 €, dépenses 45,00 € · comptes 120,00 € (non additionnés)</div>`)}
+    <div class="card coach" style="margin-top:24px"><div style="display:flex;justify-content:space-between;align-items:center"><div class="t-strong">Votre coach : 3 points à voir</div><span class="listen">${ic('volume-medium-outline')} Écouter</span></div>
+      <p>Attention, vous avez dépassé votre budget Maison de 40 000 FCFA. Vos dépenses sont au-dessus de la limite que vous vous étiez fixée.</p>
+      <p>Attention, vous avez dépassé votre budget Alimentation & boissons de 13 000 FCFA. Vos dépenses sont au-dessus de la limite que vous vous étiez fixée.</p>
+      <p>Échéance Tonton Yao : 50 000 FCFA le 28 octobre.</p>
+      <div class="note">Selon les opérations enregistrées dans DineroX.</div><div style="margin-top:4px">${b('ter', 'J\'ai compris')}</div></div>
+    <div class="card coach" style="margin-top:12px"><div style="display:flex;justify-content:space-between;align-items:center"><div class="t-strong">Conseil du jour</div><span class="listen">${ic('volume-medium-outline')} Écouter</span></div>
+      <p>Vous avez dépensé 29 % de plus en Alimentation & boissons que votre moyenne habituelle (+21 000 FCFA).</p><span class="src">Vos données</span></div>
+    <div class="sec-head"><div class="t-section">Votre analyse</div><div class="link">Tout voir</div></div>
+    <div class="card coach"><p style="margin-top:0">Vos objectifs demandent 195 000 FCFA par mois ; il vous reste 55 750 FCFA par mois. Il manque 139 250 FCFA : allongez une échéance ou priorisez un objectif.</p><div style="display:flex;justify-content:space-between;align-items:center"><span class="src">Vos données</span><span class="listen">${ic('volume-medium-outline')} Écouter</span></div></div>
+    <div class="sec-head"><div class="t-section">Enveloppes actives</div><div class="link">Gérer (6)</div></div>
+    <div class="card">${env.map(([f, n, s2, l, st, d2, pc]) => `<div class="envl"><div class="top">${bub3d(f)}<div style="min-width:0"><div class="t-strong">${n}</div><div class="t-small">${s2}</div></div><div class="st ${st}">${l}</div></div><div class="bar"><i class="${st}" style="width:${Math.min(100, pc)}%"></i></div><div class="t-small num" style="margin-top:6px">${d2}</div></div>`).join('')}</div>
+    <div class="sec-head"><div class="t-section">Objectifs prioritaires</div><div class="link">Tout voir</div></div>
+    <div class="card">${goals.map(([f, n, s2, a, of, pc]) => `<div class="goal">${bub3d(f)}<div class="mid"><div class="t-strong">${n}</div>${s2 ? `<div class="t-small">${s2}</div>` : ''}<div style="margin-top:6px" class="bar"><i style="width:${pc}%"></i></div><div class="t-small num" style="margin-top:6px"><b style="color:var(--text);font-weight:600">${a}</b> ${of}</div></div></div>`).join('')}</div>
+    <div class="card" style="margin-top:24px"><div class="grp two">
+      <div class="gc"><div class="cc or">${ic('trophy')}</div><div class="lab">Mes récompenses</div><div class="sub">Obtenue 2 fois</div></div>
+      <div class="gc"><div class="cc violet">${ic('chatbubble-ellipses')}</div><div class="lab">DineroX IA <span class="tag">Instantané</span></div><div class="sub">« J’ai dépensé 5 000 au restaurant »</div></div>
+    </div></div>
+    ${sit('après la 5e saisie', `<div class="card" style="padding:14px 16px"><div class="t-strong">Inviter des amis</div><div class="note">5 personnes invitées actives pendant une semaine = 1 mois de Plus offert.</div><div class="btns">${b('pri', 'Inviter')}${b('ter', 'Masquer')}</div></div>`)}
+    <div style="display:flex;justify-content:center;margin-top:16px">${b('ter', 'Rapports', 'bar-chart-outline')}</div>
+  </div>${tabbar('home')}`;
+}
+
+// ── Budget COMPLET (décisions du 2026-10-21 : plus de gros pavés ; résumé en une carte, enveloppes en liste). ──
+function budgetfull() {
+  const env = [['house', 'Maison', 'Dépassé de 40 000 FCFA', 'Dépassée', 'over', '140 000 FCFA sur 100 000 FCFA · 140 %', 140], ['curry-rice', 'Alimentation & boissons', 'Dépassé de 13 000 FCFA', 'Dépassée', 'over', '93 000 FCFA sur 80 000 FCFA · 116 %', 116], ['taxi', 'Transport', 'Reste 7 000 FCFA', 'Dans les limites', 'ok', '33 000 FCFA sur 40 000 FCFA · 83 %', 83], ['composees/famille_3d_medium-dark', 'Famille', 'Reste 0 FCFA', 'Épuisée', 'full', '50 000 FCFA sur 50 000 FCFA · 100 %', 100], ['pig-face', 'Épargne', 'Reste 0 FCFA', 'Épuisée', 'full', '50 000 FCFA sur 50 000 FCFA · 100 %', 100], ['shopping-bags', 'Libre', 'Reste 90 000 FCFA', 'Dans les limites', 'ok', '10 000 FCFA sur 100 000 FCFA · 10 %', 10]];
+  const insights = [['alert-circle-outline', 'var(--alert)', 'Budget Maison dépassé de 40 000 FCFA.'], ['alert-circle-outline', 'var(--alert)', 'Budget Alimentation & boissons dépassé de 13 000 FCFA.'], ['warning-outline', 'var(--warning)', 'Budget Famille entièrement utilisé.']];
+  return `<div class="scroll">${topbar()}
+    <div class="t-title">Budget</div><div class="t-small" style="margin-bottom:12px">octobre 2026</div>
+    <div class="card" style="padding:16px">
+      <div class="t-caption">Reste dans les enveloppes</div>
+      <div class="hero-num num" style="font-size:34px;line-height:40px;margin:2px 0 10px">44 000<small>FCFA</small></div>
+      <div class="bar" style="height:8px"><i style="width:90%"></i></div>
+      <div class="t-small" style="margin-top:6px">Consommé : 90 %</div>
+      <div class="rows" style="margin:8px -16px -16px;border-top:1px solid var(--divider)">${[['Prévu', '420 000 FCFA'], ['Dépensé', '376 000 FCFA'], ['Reste à répartir', '328 500 FCFA']].map(([l, v]) => `<div class="r"><span class="t-body">${l}</span><span class="v">${v}</span></div>`).join('')}</div>
+    </div>
+    <div class="card" style="margin-top:12px">${insights.map(([i, c, t2]) => `<div class="alert-row">${ic(i, `color:${c}`)}<span class="t-body" style="font-size:14px;line-height:20px">${t2}</span>${ic('chevron-forward').replace('class="ic"', 'class="ic chev"')}</div>`).join('<div style="border-top:1px solid var(--divider);margin:0 16px"></div>')}</div>
+    <div class="sec-head"><div class="t-section">Enveloppes</div><div class="link">6</div></div>
+    <div class="card">${env.map(([f, n, s2, l, st, d2, pc]) => `<div class="envl"><div class="top">${bub3d(f)}<div style="min-width:0"><div class="t-strong">${n}</div><div class="t-small">${s2}</div></div><div class="st ${st}">${l}</div></div><div class="bar"><i class="${st}" style="width:${Math.min(100, pc)}%"></i></div><div class="t-small num" style="margin-top:6px">${d2}</div></div>`).join('')}</div>
+    <div class="card" style="margin-top:12px"><div class="grp two">
+      <div class="gc"><div class="cc vert">${ic('add')}</div><div class="lab">Nouvelle enveloppe</div></div>
+      <div class="gc"><div class="cc violet">${ic('sparkles')}</div><div class="lab">Budget automatique</div></div>
+    </div></div>
+  </div>${tabbar('budget')}`;
+}
+
+// ── Objectifs COMPLET : carte globale (b), réserves, moments forts, projets en LISTE. ──
+function goalsfull() {
+  const goals = [['composees/moto_rouge_3d', 'Ma moto', ['Priorité 1', '75 000 FCFA / mois'], '450 000 FCFA', '/ 1 200 000 FCFA · 38 %', 38], ['shield', 'Mon fonds d\'urgence', ['Priorité 2', '25 000 FCFA / mois'], '0 FCFA', '/ 1 000 000 FCFA · 0 %', 0]];
+  return `<div class="scroll">${topbar()}
+    <div class="h1row"><div class="t-title">Objectifs</div><span class="badge">2 actifs</span><div class="plus">${ic('add')}</div></div>
+    <div class="t-small" style="margin-bottom:14px;font-size:14px;line-height:20px;color:var(--text2)">DineroX vous aide à transformer votre argent en projets concrets.</div>
+    <div class="hc-b">${PATTERN}<div class="gh">
+      <div class="top">${ic('star-outline', 'font-size:14px')} ÉPARGNE PROJETS GLOBALE<span class="pill">20 % global</span></div>
+      <div class="hero-num num" style="color:#fff;margin-top:8px">450 000<small>FCFA</small></div>
+      <div class="t-small">sur un total visé de 2 200 000 FCFA</div>
+      <div class="wbar"><i style="width:20%"></i></div>
+      <div class="foot"><b>● 2 objectifs en cours</b><span>Reste : 1 750 000 FCFA</span></div>
+    </div></div>
+    <div class="sec-head"><div class="t-section">Réserves</div><div class="link">Ajouter</div></div>
+    <div class="card"><div class="goal">${bub3d('composees/famille_coeur_3d_medium-dark')}<div class="mid"><div style="display:flex;justify-content:space-between;gap:8px"><div class="t-strong">Réserve famille et cérémonies</div><div class="t-strong num" style="white-space:nowrap">80 000 FCFA</div></div><div class="bar" style="margin-top:8px"><i style="width:27%"></i></div><div class="mini" style="margin-top:6px">sur un plafond de 300 000 FCFA · Mise de côté prévue : 25 000 FCFA par mois</div></div></div></div>
+    <div class="sec-head"><div class="t-section">Moments forts de l'année</div></div>
+    <div class="card"><div class="goal">${bub3d('backpack')}<div class="mid"><div class="t-strong">Rentrée scolaire · 16 déc. 2026</div><div class="mini" style="margin-top:2px">Rentrée scolaire dans 8 semaines : 120 000 FCFA prévus, soit 15 000 FCFA par semaine.</div></div>${ic('chevron-forward', 'color:var(--text3);font-size:18px')}</div></div>
+    <div style="margin-top:16px">${b('pri', 'Créer un nouvel objectif', 'add-circle-outline').replace('btn sm pri', 'btn pri').replace('class="btn', 'style="width:100%" class="btn')}</div>
+    <div class="sec-head"><div class="t-section">Vos projets en marche</div><div class="mini">Classés par priorité</div></div>
+    <div class="card">${goals.map(([f, n, chips, a, of, pc]) => `<div class="goal" style="align-items:flex-start;flex-wrap:wrap">${bub3d(f)}<div class="mid"><div class="t-strong">${n}</div><div class="chips">${chips.map((c, k) => `<span class="chip ${k ? '' : 'p'}">${c}</span>`).join('')}</div><div class="bar" style="margin-top:10px"><i style="width:${pc}%"></i></div><div class="t-small num" style="margin-top:6px"><b style="color:var(--text);font-weight:600">${a}</b> ${of}</div><div class="gacts">${b('sec', 'Ajouter', 'add').replace('btn sm sec', 'btn sm sec')}<div class="ib">${ic('chevron-up')}</div><div class="ib">${ic('chevron-down')}</div></div></div></div>`).join('')}</div>
+    <div class="sec-head"><div class="t-section">Répartir ce qui me reste chaque mois</div></div>
+    <div class="card" style="padding:16px"><div class="mini">Les objectifs prioritaires sont financés en premier.</div>
+      <div class="t-caption" style="margin-top:12px">Ce qui me reste chaque mois</div>
+      <div style="margin-top:6px;min-height:48px;border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;padding:0 14px;font:600 17px/22px var(--body)" class="num">55 750 FCFA</div>
+      <div class="rows" style="margin:12px -16px -16px;border-top:1px solid var(--divider)">${[['Ma moto', '75 000 FCFA / mois', '55 000 FCFA'], ['Mon fonds d\'urgence', '25 000 FCFA / mois', '0 FCFA']].map(([n, sub, v]) => `<div class="r" style="min-height:56px"><span><span class="t-strong" style="display:block">${n}</span><span class="mini">${sub}</span></span><span class="v">${v}</span></div>`).join('')}</div>
+    </div>
+  </div>${tabbar('goals')}`;
+}
+
+let SIT = true;
+
+// Espaces insécables dans les montants (comme groupDigits dans l'application : U+00A0).
+const nb = (html) => html.replace(/(\d) (?=\d{3}\b)/g, '$1\u00A0').replace(/(\d) (FCFA|%)/g, '$1\u00A0$2');
+
+const SCREENS = { home: ['Accueil', home], entry: ['Saisie', entry], budget: ['Budget', budget], homefull: ['Accueil complet', homefull], budgetfull: ['Budget complet', budgetfull], goalsfull: ['Objectifs complet', goalsfull] };
+const phone = (d, s, t, card) => `<div class="phone" style="${vars(d, t)}">${SCREENS[s][1](d, card)}</div>`;
+
+function spec(d) {
+  const k = T[d], L = k.light, Dk = k.dark;
+  const sw = (c, n) => `<div class="sw"><i style="background:${c}"></i>${n} <b>${c}</b></div>`;
+  const keys = [['bg', 'Fond'], ['surface', 'Surface'], ['surface2', 'Surface 2'], ['divider', 'Filet'], ['text', 'Texte'], ['text2', 'Texte 2'], ['text3', 'Texte 3'], ['brand', 'Marque'], ['positive', 'Entrée'], ['alert', 'Alerte'], ['warning', 'Attention']];
+  return `<div class="spec">
+    <section><h2>Palette — clair</h2><div class="swatches">${keys.map(([x, n]) => sw(L[x], n)).join('')}</div></section>
+    <section><h2>Palette — sombre</h2><div class="swatches">${keys.map(([x, n]) => sw(Dk[x], n)).join('')}</div></section>
+    <section><h2>Typographie</h2>
+      <p class="type-sample" style="font:${k.fonts.numW} 40px/44px ${k.fonts.title}; font-variant-numeric:tabular-nums">38 681</p>
+      <p class="type-sample" style="font:${k.fonts.titleW} 22px/28px ${k.fonts.title}">Titre d'écran 22</p>
+      <p class="type-sample" style="font:600 17px/24px ${k.fonts.title}">Titre de section 17</p>
+      <p class="type-sample" style="font:400 15px/22px Inter">Texte courant 15 — Inter</p>
+      <p class="type-sample" style="font:500 13px/18px Inter">Légende 13 — Inter</p>
+      <p style="margin-top:8px">${k.fonts.title === 'Inter' ? 'Une seule police : Inter (embarquée).' : 'Plus Jakarta Sans pour les titres et le chiffre principal, Inter pour le texte (toutes deux embarquées).'}<br>Montants en chiffres tabulaires (alignés).</p>
+    </section>
+    <section><h2>Grille et formes</h2><p>Grille de 4 / 8 dp. Marges latérales 16. Espacement entre blocs 12 / 24.<br>Rayons : cartes ${k.radius.card}, champs et touches ${k.radius.ctl}, feuilles ${k.radius.sheet}, icônes ${k.radius.icon === 20 ? 'cercles' : k.radius.icon}.<br>${d === 'a' ? 'Aucune ombre : des filets de 1 dp.' : 'Ombre très légère en clair (1 dp), aucune en sombre.'}<br>Zones de toucher ≥ 48 dp. Aucun dégradé.</p>
+      <h2 style="margin-top:16px">Icônes</h2><div class="icons-row">${['home-outline', 'pie-chart-outline', 'flag-outline', 'grid-outline', 'notifications-outline', 'swap-horizontal', 'time-outline', 'restaurant-outline', 'car-outline', 'heart-outline', 'wallet-outline', 'alert-circle-outline'].map((n) => ic(n)).join('')}</div><p style="margin-top:6px">Ionicons « outline », un seul trait, une seule couleur d'icône (${d === 'a' ? 'encre' : 'vert de marque'}), sur fond neutre.</p></section>
+  </div>`;
+}
+
+function board(d) {
+  if (d === 'cards') {
+    const labels = { a: '(a) Chiffre posé sur le fond, détails dans une carte neutre', b: '(b) Vert profond uni, fin filet, motif discret, ombre très légère — RETENUE' };
+    return `<div class="board"><h1>Carte d'accueil</h1><p class="lede">Version retenue : (b), dans la direction B. La version (c) est abandonnée (décision du fondateur, 2026-10-21). Mêmes données, mêmes textes. Aucun dégradé.</p>
+      ${['a', 'b'].map((dir) => ['light', 'dark'].map((t) => `<div class="row">${['a', 'b'].map((v) => `<div class="frame-wrap"><div class="frame-label">${T[dir].name} · ${labels[v]} · ${t === 'light' ? 'clair' : 'sombre'}</div><div class="phone" style="${vars(dir, t)}; height:auto; padding:16px">${heroCard(v)}</div></div>`).join('')}</div>`).join('')).join('')}</div>`;
+  }
+  if (d === 'icons') {
+    ICONS3D = true;
+    return `<div class="board"><h1>Icônes 3D en situation — direction B, carte (b)</h1><p class="lede">Accueil (Dernières opérations) et Saisie (catégories), clair et sombre. Icônes : Fluent Emoji 3D (MIT), teinte moyenne-foncée, icônes composées validées ; en sombre, léger rond clair derrière chaque icône de contenu.</p>
+      ${['light', 'dark'].map((t) => `<div class="row">${['home', 'entry'].map((s) => `<div class="frame-wrap"><div class="frame-label">${SCREENS[s][0]} · ${t === 'light' ? 'clair' : 'sombre'} · 360 × 800</div>${phone('b', s, t, 'b')}</div>`).join('')}</div>`).join('')}</div>`;
+  }
+  const card = d === 'a' ? 'a' : 'b';
+  return `<div class="board"><h1>${T[d].name}</h1>${spec(d)}
+    ${['light', 'dark'].map((t) => `<div class="row">${Object.keys(SCREENS).map((s) => `<div class="frame-wrap"><div class="frame-label">${SCREENS[s][0]} · ${t === 'light' ? 'clair' : 'sombre'} · 360 × 800</div>${phone(d, s, t, card)}</div>`).join('')}</div>`).join('')}</div>`;
+}
+
+(async () => {
+  G = await (await fetch('glyphs.json')).json();
+  await document.fonts.ready;
+  const q = new URLSearchParams(location.search);
+  const root = document.getElementById('root');
+  if (q.get('board')) { root.innerHTML = board(q.get('board')); }
+  else {
+    const d = q.get('d') || 'a', t = q.get('t') || 'light';
+    ICONS3D = q.get('icons') === '3d' || (q.get('s') || '').endsWith('full');
+    SIT = q.get('sit') !== '0';
+    document.body.classList.add('single');
+    if ((q.get('s') || '').endsWith('full')) document.body.classList.add('full');
+    document.body.classList.add(t);
+    document.documentElement.style.setProperty('--vh', innerHeight + 'px');
+    document.body.setAttribute('style', vars(d, t));
+    root.innerHTML = nb(phone(d, q.get('s') || 'home', t, q.get('card') || (d === 'a' ? 'a' : 'b')));
+  }
+  await document.fonts.ready;
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>
