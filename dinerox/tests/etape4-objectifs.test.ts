@@ -17,18 +17,18 @@ describe('écran Objectifs', () => {
     expect(src).toMatch(/backgroundColor: GLOBAL_BAR/);
     expect(src).toMatch(/const GLOBAL_BAR = '#E8B85A'/);
   });
-  it('projets en liste : GoalRow avec « Priorité N » et rythme en étiquettes, « Ajouter » et ↑↓ dessous', () => {
-    expect(src).not.toMatch(/<TileGrid|GoalTile|TileCell/);
-    expect(src).toMatch(/<ListCard>/);
-    expect(src).toMatch(/<GoalRow[\s\S]*chips=/);
+  // Refonte finale D2 / D3 (remplace la liste de l'étape 4.5) : vignettes avec anneau, + pour verser,
+  // ↑↓ dans « Ordre de priorité » (tests/etape5-objectifs.test.ts). Mêmes fonctions vérifiées ici.
+  it('projets en vignettes : « Priorité N », rythme, verser (+), ↑↓ dans le réglage de l’ordre', () => {
+    expect(src).not.toMatch(/<TileGrid|TileCell/);
+    expect(src).toMatch(/<GoalTileCard /);
     expect(src).toMatch(/t\('goal\.rank', \{ rank/);
-    expect(src).toMatch(/footer=/);
-    expect(src).toMatch(/accessibilityLabel=\{`\$\{t\('goal\.contribute'\)\}, \$\{g\.name\}`\}/);
-    expect(src).toMatch(/label=\{t\('goal\.moveUp'\)\}/);
-    expect(src).toMatch(/label=\{t\('goal\.moveDown'\)\}/);
+    expect(src).toMatch(/addLabel: `\$\{t\('goal\.contribute'\)\}, \$\{g\.name\}`/);
+    expect(src).toMatch(/label=\{`\$\{t\('goal\.moveUp'\)\}, \$\{g\.name\}`\}/);
+    expect(src).toMatch(/label=\{`\$\{t\('goal\.moveDown'\)\}, \$\{g\.name\}`\}/);
   });
   it('répartition et objectifs terminés gardés', () => {
-    expect(src).toMatch(/t\('goal\.distribute\.title'\)/);
+    expect(src).toMatch(/t\('goal\.distribute\.short'\)/);
     expect(src).toMatch(/<AmountField label=\{t\('goal\.distribute\.capacity'\)\}/);
     expect(src).toMatch(/t\('goal\.closed'\)/);
   });
