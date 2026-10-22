@@ -32,13 +32,14 @@ describe('écran Budget', () => {
   it('plus aucun pavé', () => {
     expect(src).not.toMatch(/<TileGrid|<Tile\b|InsightTile|EnvelopeTile/);
   });
-  it('résumé en une carte : restant 34, barre 8, « Consommé », puis Prévu / Dépensé / Reste à répartir en lignes', () => {
+  // Refonte finale C1 (remplace le résumé de l'étape 4.4) : carte VERTE flottante avec anneau
+  // (tests/etape5-budget.test.ts) ; les mêmes informations restent présentes.
+  it('résumé en une carte : restant, « consommé », Prévu / Dépensé / À répartir, et tout ce qui était écrit', () => {
     expect(src).toMatch(/function SummaryCard/);
     const card = src.slice(src.indexOf('function SummaryCard'));
-    for (const k of ["t('budget.leftInEnvelopes')", "t('env.consumed'", "t('budget.planned')", "t('budget.spent')", "t('budget.toAllocateLabel')", "t('budget.unassigned')", "t('budget.debtRepayments'", "t('env.over'", "t('budget.toAllocateOver'", "t('child.askParent')"])
+    for (const k of ["t('budget.leftInEnvelopes')", "t('env.consumed'", "t('budget.planned')", "t('budget.spent')", "t('budget.toAllocateShort')", "t('budget.unassigned')", "t('budget.debtRepayments'", "t('env.over'", "t('budget.toAllocateOver'", "t('child.askParent')"])
       expect(card).toContain(k);
-    expect(card).toMatch(/fontSize: 34, lineHeight: 40/);
-    expect(card).toMatch(/height=\{8\}/);
+    expect(card).toMatch(/<ProgressRing size=\{112\}/);
   });
   // Refonte finale C2 / E3 : les alertes du budget sont les notifications du Budget (mêmes règles
   // que « À lire ») — une carte, une ligne par message, « Écouter » à côté (tests/etape5-notifications.test.ts).
@@ -47,10 +48,10 @@ describe('écran Budget', () => {
     const list = read('src/features/notifications/ToReadList.tsx');
     expect(list).toMatch(/<ListenButton/);
   });
-  it('enveloppes en liste, ronds « Nouvelle enveloppe » (vert, +) et « Budget automatique » (violet)', () => {
-    expect(src).toMatch(/<ListCard>\s*\{envelopes\.map\(\(s\) => \(\s*<EnvelopeRow /);
-    expect(src).toMatch(/<CircleGrid columns=\{2\}>/);
-    expect(src).toMatch(/family="vert" icon="add" label=\{t\('env\.new'\)\}/);
-    expect(src).toMatch(/family="violet" icon="sparkles" label=\{t\('budget\.auto'\)\}/);
+  // Refonte finale C2 : enveloppes en BULLES, boutons « Nouvelle » et « Automatique » (mêmes actions).
+  it('enveloppes en bulles, boutons « Nouvelle » (enveloppe) et « Automatique »', () => {
+    expect(src).toMatch(/<EnvelopeBubbles items=\{envelopes\} large percent/);
+    expect(src).toMatch(/accessibilityLabel=\{t\('env\.new'\)\}/);
+    expect(src).toMatch(/accessibilityLabel=\{t\('budget\.auto'\)\}/);
   });
 });

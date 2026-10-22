@@ -10,31 +10,32 @@ import React from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
-import { BIG_TEXT, useTheme } from '@/theme';
+import { BIG_TEXT, shadowB, useTheme } from '@/theme';
 import { finalPalette } from '@/theme/finalPalette';
 import { useMoney } from '@/hooks/useFinance';
 import { ContentIcon, ProgressRing, Text, envelopeIconIds } from '@/components/ui';
 import type { EnvelopeStatus } from '@/core/budget';
-import { bubbleLook } from './envelopeBubble';
+import { BUBBLE_SIZES, bubbleLook } from './envelopeBubble';
 
 const NARROW_WIDTH = 340;
 
-export function EnvelopeBubbles({ items, hidden = false, percent = false, upcoming = {}, declaredShare }: { items: EnvelopeStatus[]; hidden?: boolean; percent?: boolean; upcoming?: Record<string, number>; declaredShare?: (s: EnvelopeStatus) => number | null }) {
-  const { colors } = useTheme();
+export function EnvelopeBubbles({ items, hidden = false, percent = false, large = false, upcoming = {}, declaredShare }: { items: EnvelopeStatus[]; hidden?: boolean; percent?: boolean; large?: boolean; upcoming?: Record<string, number>; declaredShare?: (s: EnvelopeStatus) => number | null }) {
+  const { colors, dark } = useTheme();
   const { width, fontScale } = useWindowDimensions();
   const columns = width < NARROW_WIDTH || fontScale >= BIG_TEXT ? 2 : 3;
+  const sz = BUBBLE_SIZES[large ? 'large' : 'normal'];
   return (
-    <View style={{ backgroundColor: colors.surface, borderRadius: 20, paddingVertical: 16, paddingHorizontal: 8, flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 }}>
+    <View style={{ backgroundColor: colors.surface, borderRadius: 20, paddingVertical: sz.padV, paddingHorizontal: 8, flexDirection: 'row', flexWrap: 'wrap', rowGap: sz.rowGap, ...(dark ? null : shadowB) }}>
       {items.map((s) => (
         <View key={s.envelope.id} style={{ width: `${100 / columns}%`, paddingHorizontal: 4 }}>
-          <EnvelopeBubble s={s} hidden={hidden} percent={percent} upcoming={upcoming[s.envelope.id] ?? 0} declaredShare={declaredShare ? declaredShare(s) : null} />
+          <EnvelopeBubble s={s} sz={sz} hidden={hidden} percent={percent} upcoming={upcoming[s.envelope.id] ?? 0} declaredShare={declaredShare ? declaredShare(s) : null} />
         </View>
       ))}
     </View>
   );
 }
 
-function EnvelopeBubble({ s, hidden, percent, upcoming, declaredShare }: { s: EnvelopeStatus; hidden: boolean; percent: boolean; upcoming: number; declaredShare: number | null }) {
+function EnvelopeBubble({ s, sz, hidden, percent, upcoming, declaredShare }: { s: EnvelopeStatus; sz: (typeof BUBBLE_SIZES)[keyof typeof BUBBLE_SIZES]; hidden: boolean; percent: boolean; upcoming: number; declaredShare: number | null }) {
   const { t, lang } = useI18n();
   const { colors, dark } = useTheme();
   const p = finalPalette(dark);
@@ -55,8 +56,8 @@ function EnvelopeBubble({ s, hidden, percent, upcoming, declaredShare }: { s: En
     .join(', ');
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={a11y} onPress={() => router.push(`/envelopes/${s.envelope.id}`)} style={({ pressed }) => ({ alignItems: 'center', gap: 6, borderRadius: 12, paddingVertical: 2, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}>
-      <ProgressRing size={76} stroke={6} percent={s.percent} color={color} track={p.ringTrack}>
-        <ContentIcon ids={envelopeIconIds(s.envelope.categoryIds)} icon={s.envelope.icon} color={s.envelope.color} size={34} />
+      <ProgressRing size={sz.ring} stroke={sz.stroke} percent={s.percent} color={color} track={p.ringTrack}>
+        <ContentIcon ids={envelopeIconIds(s.envelope.categoryIds)} icon={s.envelope.icon} color={s.envelope.color} size={sz.icon} />
       </ProgressRing>
       <Text variant="caption" weight="600" align="center" style={{ fontSize: 12, lineHeight: 16 }}>
         {s.envelope.name}

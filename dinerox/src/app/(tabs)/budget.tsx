@@ -1,25 +1,30 @@
 /**
- * Budget du mois — étape 4 (maquette validée du fondateur) :
- *  1. un seul titre (« Budget ») et le mois ;
- *  2. résumé en UNE carte : restant (barre et % écrit, dépassement écrit), puis en lignes : prévu,
- *     dépensé, reste à répartir, dépenses hors enveloppe, remboursements de dettes ;
- *  3. alertes d'enveloppes dans une carte (« Écouter » à côté de chaque ligne) ;
- *  4. enveloppes en LISTE : nom, reste, état écrit (jamais la couleur seule) ;
- *  5. accès en ronds de couleur : « Nouvelle enveloppe », « Budget automatique ».
+ * Budget du mois — refonte finale (docs/design-pro-maquette-finale, FINAL-budget.png,
+ * DECISIONS.md C1, C2 ; valeurs : ecrans/budget-*.html) :
+ *  1. « Budget » et le mois ;
+ *  2. C1 : carte principale VERTE et FLOTTANTE (même carte que l'accueil) — anneau doré « % consommé »,
+ *     Reste dans les enveloppes, Prévu, Dépensé, À répartir ; dépassement, reste à répartir négatif,
+ *     dépenses hors enveloppe et remboursements de dettes restent écrits quand ils existent ;
+ *  3. C2 : onglets Enveloppes / Notifications (N) ; enveloppes en bulles (% sous chacune) ;
+ *     notifications du budget (« Tout marquer comme lu », mêmes règles que « À lire ») ;
+ *  4. boutons « Nouvelle » (enveloppe) et « Automatique ».
  * Aucune formule ici : tous les chiffres viennent de `useFinance`.
  */
-import React from 'react';
-import { View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, View, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
-import { DesignV2, useTheme } from '@/theme';
+import { BIG_TEXT, DesignV2, shadowB, useTheme } from '@/theme';
+import { finalPalette } from '@/theme/finalPalette';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
-import { useFinance, useMoney } from '@/hooks/useFinance';
-import { Amount, Card, CircleGrid, CircleTile, EmptyState, Icon, ListCard, ProgressBar, Screen, SectionHeader, Text } from '@/components/ui';
+import { useCurrency, useFinance, useMoney } from '@/hooks/useFinance';
+import { Card, EmptyState, GradientCard, Icon, ProgressRing, Screen, Text } from '@/components/ui';
 import { SpaceSwitcher } from '@/features/rows';
 import { ToReadList } from '@/features/notifications/ToReadList';
-import { EnvelopeRow } from '@/features/budget/EnvelopeCard';
+import { useToRead } from '@/features/notifications/useToRead';
+import { EnvelopeBubbles } from '@/features/budget/EnvelopeBubbles';
 import { shareOfDeclared } from '@/core/allowance';
+import { currencyInfo, formatMoney } from '@/core/money';
 import { can } from '@/core/permissions';
 
 export default function Budget() {
@@ -32,10 +37,30 @@ export default function Budget() {
 
 function BudgetScreen() {
   const { t, monthYear } = useI18n();
+  const { colors, dark } = useTheme();
   const { profile, role } = useApp();
   const { envelopes, now, spaceKind, envelopeSoon } = useFinance();
+  const { items } = useToRead();
+  const notifCount = items.filter((x) => x.kind === 'budget').length;
   const declared = profile?.financial?.monthlyIncome ?? null;
   const editable = can(role, 'create', 'envelopes');
+  const [tab, setTab] = useState<'envelopes' | 'notifications'>('envelopes');
+  const segment = (key: 'envelopes' | 'notifications', label: string) => {
+    const on = tab === key;
+    return (
+      <Pressable
+        key={key}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: on }}
+        onPress={() => setTab(key)}
+        style={{ flex: 1, minHeight: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, backgroundColor: on ? colors.surface : 'transparent', ...(on && !dark ? shadowB : null) }}
+      >
+        <Text variant="caption" weight="600" align="center" style={{ fontSize: 13, lineHeight: 18, color: on ? colors.text : colors.textMuted }}>
+          {label}
+        </Text>
+      </Pressable>
+    );
+  };
   return (
     <Screen brandSection={t('tab.budget')}>
       <SpaceSwitcher />
@@ -43,120 +68,148 @@ function BudgetScreen() {
         <Text variant="titleL" accessibilityRole="header">
           {t('budget.title')}
         </Text>
-        <Text variant="small" tone="muted">
+        <Text variant="small" tone="subtle" style={{ fontSize: 13, lineHeight: 18 }}>
           {monthYear(now)}
         </Text>
       </View>
 
       {envelopes.length ? <SummaryCard /> : null}
 
-      {/* Refonte finale C2 / E3 : les messages du budget, mêmes règles que « À lire » (accueil). */}
-      <ToReadList budgetOnly />
+      {/* C2 : onglets Enveloppes / Notifications (N). */}
+      <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 3, marginTop: 16, marginBottom: 12 }}>
+        {segment('envelopes', t('budget.tab.envelopes'))}
+        {segment('notifications', t('budget.tab.notifications', { count: notifCount }))}
+      </View>
 
-      <SectionHeader title={t('env.title')} action={envelopes.length ? String(envelopes.length) : undefined} />
-      {envelopes.length ? (
-        <ListCard>
-          {envelopes.map((s) => (
-            <EnvelopeRow key={s.envelope.id} s={s} declaredShare={shareOfDeclared(s.budget, declared, spaceKind)} upcoming={envelopeSoon[s.envelope.id] ?? 0} />
-          ))}
-        </ListCard>
-      ) : (
+      {tab === 'envelopes' ? (
+        envelopes.length ? (
+          <EnvelopeBubbles items={envelopes} large percent upcoming={envelopeSoon} declaredShare={(s) => shareOfDeclared(s.budget, declared, spaceKind)} />
+        ) : (
+          <Card>
+            <EmptyState icon="pie-chart-outline" title={t('env.empty.title')} body={t('env.empty.body')} action={editable ? t('env.empty.cta') : undefined} onAction={() => router.push('/budget/auto')} />
+          </Card>
+        )
+      ) : notifCount ? null : (
         <Card>
-          <EmptyState icon="pie-chart-outline" title={t('env.empty.title')} body={t('env.empty.body')} action={editable ? t('env.empty.cta') : undefined} onAction={() => router.push('/budget/auto')} />
+          <EmptyState icon="notifications-outline" title={t('notif.empty')} body={t('ins.empty')} />
         </Card>
       )}
 
-      {/* Accès : créer une enveloppe, budget automatique (ronds de couleur pleine). */}
+      {/* Refonte finale C2 / E3 : les messages du budget, mêmes règles que « À lire » (accueil). */}
+      <ToReadList budgetOnly />
+
+      {/* C2 : « Nouvelle » (enveloppe) et « Automatique ». */}
       {editable ? (
-        <View style={{ marginTop: 12 }}>
-          <CircleGrid columns={2}>
-            <CircleTile family="vert" icon="add" label={t('env.new')} onPress={() => router.push('/envelopes/edit')} />
-            {envelopes.length ? <CircleTile family="violet" icon="sparkles" label={t('budget.auto')} onPress={() => router.push('/budget/auto')} /> : null}
-          </CircleGrid>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('env.new')}
+            onPress={() => router.push('/envelopes/edit')}
+            style={({ pressed }) => ({ flexGrow: 1, flexBasis: '45%', minHeight: 48, borderRadius: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: pressed ? colors.primaryPressed : colors.primary })}
+          >
+            <Icon name="add" size={18} color={colors.onPrimary} />
+            <Text variant="label" style={{ fontSize: 14, color: colors.onPrimary }}>
+              {t('budget.newShort')}
+            </Text>
+          </Pressable>
+          {envelopes.length ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('budget.auto')}
+              onPress={() => router.push('/budget/auto')}
+              style={({ pressed }) => ({ flexGrow: 1, flexBasis: '45%', minHeight: 48, borderRadius: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: pressed ? colors.border : colors.surfaceAlt })}
+            >
+              <Icon name="sparkles-outline" size={16} color={finalPalette(dark).violetFg} />
+              <Text variant="label" style={{ fontSize: 14 }}>
+                {t('budget.autoShort')}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
     </Screen>
   );
 }
 
+/** Valeur de la carte verte : sans devise (maquette), masquée au lecteur d'écran par la phrase complète. */
+const ON_HERO_MUTED = '#C9DED6';
+
 /**
- * Résumé du mois en UNE carte : « Reste dans les enveloppes » (34), barre, « Consommé : N % »,
- * puis une ligne par chiffre. Dépassement et reste négatif : écrits, avec une icône.
+ * C1 — carte principale verte et flottante : anneau doré 112 dp (trait 11) « N % consommé »,
+ * « Reste dans les enveloppes » (28/34), puis Prévu, Dépensé, À répartir (montants sans devise).
+ * Texte agrandi ou écran étroit (A8) : l'anneau passe au-dessus.
  */
 function SummaryCard() {
   const { t } = useI18n();
-  const { colors } = useTheme();
   const { role } = useApp();
   const money = useMoney();
+  const currency = useCurrency();
   const { budget, toAllocate } = useFinance();
+  const { width, fontScale } = useWindowDimensions();
+  const stacked = width < 340 || fontScale >= BIG_TEXT;
   const pct = budget.planned > 0 ? Math.round((budget.spent / budget.planned) * 100) : 0;
   const over = budget.remaining < 0;
-  const line = (label: string, value: React.ReactNode, key: string) => (
-    <View key={key} style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 8, minHeight: 48, paddingHorizontal: 16, paddingVertical: 6, borderTopWidth: 1, borderTopColor: colors.border }}>
-      <Text variant="body" style={{ flexShrink: 1 }}>
+  const bare = (n: number) => formatMoney(n, currency, { hideSymbol: true });
+  const child = role === 'child';
+  const line = (label: string, value: string, a11y: string, key: string) => (
+    <View key={key} accessible accessibilityLabel={`${label}, ${a11y}`} style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: 8, minHeight: 22 }}>
+      <Text variant="caption" weight="400" style={{ fontSize: 13, lineHeight: 18, color: ON_HERO_MUTED }}>
         {label}
       </Text>
-      {value}
+      <Text variant="caption" weight="600" numeric tone="onHero" style={{ fontSize: 14, lineHeight: 20 }}>
+        {value}
+      </Text>
     </View>
   );
-  const amount = (n: number, danger?: boolean) => <Amount text={money(n)} size="S" tone={danger ? 'danger' : 'default'} align="right" />;
+  const note = (text: string) => (
+    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 6 }}>
+      <Icon name="alert-circle" size={16} color="#FFFFFF" />
+      <Text variant="caption" weight="600" tone="onHero" style={{ flexShrink: 1, fontSize: 13, lineHeight: 18 }}>
+        {text}
+      </Text>
+    </View>
+  );
   return (
-    <Card padded={false}>
-      <View style={{ padding: 16, paddingBottom: 8 }}>
-        <Text variant="caption" tone="muted">
-          {t('budget.leftInEnvelopes')}
-        </Text>
-        <View style={{ marginTop: 2, marginBottom: 10 }}>
-          <Amount text={money(budget.remaining)} size="hero" tone={over ? 'danger' : 'default'} style={{ fontSize: 34, lineHeight: 40 }} />
-        </View>
-        {over ? (
-          // Dépassement : écrit, avec une icône (jamais la couleur seule).
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <Icon name="alert-circle" size={18} color={colors.danger} />
-            <Text variant="small" weight="600" tone="danger" style={{ flexShrink: 1 }}>
-              {t('env.over', { amount: money(-budget.remaining) })}
+    <GradientCard float style={{ marginTop: 6, marginBottom: 6, padding: 18 }}>
+      <View style={{ flexDirection: stacked ? 'column' : 'row', alignItems: stacked ? 'flex-start' : 'center', gap: 16 }}>
+        <ProgressRing size={112} stroke={11} percent={pct} color="#E8B85A" track="rgba(255,255,255,0.22)">
+          <View accessible accessibilityLabel={t('env.consumed', { percent: pct })} style={{ alignItems: 'center' }}>
+            <Text variant="titleM" numeric tone="onHero" weight="800" style={{ fontSize: 22, lineHeight: 28 }}>
+              {`${pct} %`}
+            </Text>
+            <Text variant="caption" weight="500" style={{ fontSize: 11, lineHeight: 14, color: ON_HERO_MUTED }}>
+              {t('budget.consumedShort')}
             </Text>
           </View>
-        ) : null}
-        <ProgressBar value={pct} height={8} label={t('budget.spent')} />
-        <Text variant="small" tone="muted" style={{ marginTop: 6, fontSize: 13, lineHeight: 18 }}>
-          {t('env.consumed', { percent: pct })}
-        </Text>
-      </View>
-      {line(t('budget.planned'), amount(budget.planned), 'planned')}
-      {line(t('budget.spent'), amount(budget.spent), 'spent')}
-      {/* Argent disponible v2 (§9) : reste à répartir = D − enveloppes restantes − engagements hors enveloppes. */}
-      {role === 'child'
-        ? // Audit B6 : masqué chez un enfant (dettes, tontines et charges gérées par les parents).
-          line(
-            t('budget.toAllocateLabel'),
-            <View style={{ flexShrink: 1 }}>
-              <Text variant="bodyStrong">{t('child.askParent')}</Text>
-              <Text variant="small" tone="muted">
-                {t('child.askParent.why')}
-              </Text>
-            </View>,
-            'allocate',
-          )
-        : line(t('budget.toAllocateLabel'), amount(toAllocate.amount, toAllocate.amount < 0), 'allocate')}
-      {role !== 'child' && toAllocate.amount < 0 ? (
-        // Négatif : écrit, avec une icône (jamais la couleur seule).
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, paddingHorizontal: 16, paddingBottom: 10 }}>
-          <Icon name="alert-circle" size={18} color={colors.danger} />
-          <Text variant="small" weight="600" tone="danger" style={{ flexShrink: 1 }}>
-            {t('budget.toAllocateOver', { amount: money(-toAllocate.amount) })}
+        </ProgressRing>
+        <View style={{ flex: stacked ? undefined : 1, alignSelf: stacked ? 'stretch' : 'auto', minWidth: 0 }}>
+          <Text variant="caption" weight="500" style={{ fontSize: 13, lineHeight: 18, color: ON_HERO_MUTED }}>
+            {t('budget.leftInEnvelopes')}
           </Text>
+          <View accessible accessibilityLabel={money(budget.remaining)} style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', marginTop: 2, marginBottom: 8 }}>
+            <Text variant="amountHero" numeric tone="onHero" style={{ fontSize: 28, lineHeight: 34 }}>
+              {bare(budget.remaining)}
+            </Text>
+            <Text variant="label" tone="onHero" style={{ fontSize: 14, marginLeft: 4 }}>
+              {currencyInfo(currency).symbol}
+            </Text>
+          </View>
+          {line(t('budget.planned'), bare(budget.planned), money(budget.planned), 'planned')}
+          {line(t('budget.spent'), bare(budget.spent), money(budget.spent), 'spent')}
+          {/* Argent disponible v2 (§9) : reste à répartir ; masqué chez un enfant (audit B6). */}
+          {child ? line(t('budget.toAllocateShort'), t('child.askParent'), t('child.askParent.why'), 'allocate') : line(t('budget.toAllocateShort'), bare(toAllocate.amount), money(toAllocate.amount), 'allocate')}
+          {budget.unassigned > 0 ? line(t('budget.unassigned'), bare(budget.unassigned), money(budget.unassigned), 'unassigned') : null}
         </View>
-      ) : null}
-      {budget.unassigned > 0 ? line(t('budget.unassigned'), amount(budget.unassigned), 'unassigned') : null}
+      </View>
+      {/* Dépassement et reste à répartir négatif : ÉCRITS, avec une icône (jamais la couleur seule). */}
+      {over ? note(t('env.over', { amount: money(-budget.remaining) })) : null}
+      {!child && toAllocate.amount < 0 ? note(t('budget.toAllocateOver', { amount: money(-toAllocate.amount) })) : null}
       {/* §9 (E44b) : le capital remboursé n'est pas une dépense — ligne à part, hors enveloppes. */}
       {budget.debtRepayments > 0 ? (
-        <View style={{ minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 6, borderTopWidth: 1, borderTopColor: colors.border }}>
-          <Text variant="small" tone="muted">
-            {t('budget.debtRepayments', { amount: money(budget.debtRepayments) })}
-          </Text>
-        </View>
+        <Text variant="caption" weight="400" style={{ marginTop: 6, fontSize: 13, lineHeight: 18, color: ON_HERO_MUTED }}>
+          {t('budget.debtRepayments', { amount: money(budget.debtRepayments) })}
+        </Text>
       ) : null}
-    </Card>
+    </GradientCard>
   );
 }

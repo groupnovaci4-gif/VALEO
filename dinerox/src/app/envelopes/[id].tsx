@@ -19,14 +19,15 @@ import { sortTransactions } from '@/core/transactions';
 import { can } from '@/core/permissions';
 import { withSpaceReady } from '@/components/SpaceReady';
 import { isTontineContribution } from '@/core/savingsFlows';
+import { shareOfDeclared } from '@/core/allowance';
 
 function EnvelopeDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, lang } = useI18n();
   const { colors } = useTheme();
-  const { role } = useApp();
+  const { role, profile } = useApp();
   const money = useMoney();
-  const { data, envelopes, currency, now, month } = useFinance();
+  const { data, envelopes, currency, now, month, envelopeSoon, spaceKind } = useFinance();
   const status = envelopes.find((s) => s.envelope.id === id);
   const history = useMemo(() => {
     if (!status) return [];
@@ -45,6 +46,8 @@ function EnvelopeDetail() {
     );
   }
   const short = (m: string) => monthName(lang, Number(m.slice(5)) - 1).slice(0, 4);
+  const upcoming = envelopeSoon[status.envelope.id] ?? 0;
+  const declaredShare = shareOfDeclared(status.budget, profile?.financial?.monthlyIncome ?? null, spaceKind);
   const over = status.remaining < 0;
   const state = t(`env.state.${status.level}` as TKey);
   const stateColor = status.level === 'critical' ? colors.danger : status.level === 'ok' ? colors.success : colors.warning;
@@ -75,6 +78,17 @@ function EnvelopeDetail() {
         <Text variant="small" tone="muted">
           {t('env.of', { spent: money(status.spent), budget: money(status.budget) })}
         </Text>
+        {/* Refonte finale C2 : la liste du Budget est en bulles ; ces deux précisions restent visibles ici. */}
+        {upcoming > 0 ? (
+          <Text variant="small" tone="muted">
+            {t('env.upcoming', { amount: money(upcoming) })}
+          </Text>
+        ) : null}
+        {declaredShare !== null ? (
+          <Text variant="caption" tone="subtle">
+            {t('env.shareOfDeclared', { percent: lang === 'en' ? declaredShare.toFixed(2) : declaredShare.toFixed(2).replace('.', ',') })}
+          </Text>
+        ) : null}
       </Card>
       <SectionHeader title={t('env.history')} />
       <Card>

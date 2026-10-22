@@ -141,10 +141,11 @@ describe('B6 — opérations : icône du dictionnaire + petit logo de l’opéra
 });
 
 describe('B7 / B8 / B9', () => {
-  it('enveloppes en bulles : anneau 76 dp (trait 6), icône 34, 3 colonnes', () => {
+  it('enveloppes en bulles : anneau 76 dp (trait 6), icône 34, 3 colonnes (tailles : envelopeBubble.ts › BUBBLE_SIZES.normal)', () => {
     const src = read('src/features/budget/EnvelopeBubbles.tsx');
-    expect(src).toMatch(/size=\{76\} stroke=\{6\}/);
-    expect(src).toMatch(/size=\{34\}/);
+    expect(src).toMatch(/size=\{sz\.ring\} stroke=\{sz\.stroke\}/);
+    expect(src).toMatch(/size=\{sz\.icon\}/);
+    expect(read('src/features/budget/envelopeBubble.ts')).toMatch(/normal: \{ ring: 76, stroke: 6, icon: 34/);
   });
   it('mois en cours : Revenus, Dépenses, Épargne nette (sans devise), puis Reste à répartir', () => {
     const src = read('src/features/home/MonthStats.tsx');

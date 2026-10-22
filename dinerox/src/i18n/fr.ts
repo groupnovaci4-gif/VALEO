@@ -2314,6 +2314,13 @@ export const fr = {
   'toRead.dismiss': 'Marquer comme lu',
   'toRead.markAllRead': 'Tout marquer comme lu',
   'toRead.reminder': 'Rappel',
+  // Refonte finale, Budget (C1, C2).
+  'budget.consumedShort': 'consommé',
+  'budget.toAllocateShort': 'À répartir',
+  'budget.tab.envelopes': 'Enveloppes',
+  'budget.tab.notifications': 'Notifications ({count})',
+  'budget.newShort': 'Nouvelle',
+  'budget.autoShort': 'Automatique',
   'incomeSave.title': 'Vous avez reçu {amount}. Mettre {suggestion} de côté maintenant ?',
   'incomeSave.yes': 'Mettre de côté',
   'incomeSave.no': 'Pas maintenant',
