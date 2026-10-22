@@ -45,6 +45,26 @@ validée et que les maquettes des écrans ci-dessous n'ont pas été approuvées
   l'application, dans Git ou dans la conversation.
 - Aucun déploiement sans son accord, commande par commande.
 
+## 5bis. Choix du fondateur sur l'étude (22/10, soir)
+
+1. **Fournisseur** : API WhatsApp Cloud de **Meta** (modèle « authentification ») + un
+   **fournisseur SMS local** en secours, qui doit couvrir Orange, MTN et Moov. Le prix Meta sera
+   confirmé dans le compte Meta du fondateur avant tout paiement.
+2. **Règles** : code reçu valable **10 minutes**, usage unique ; **5 essais** ; **5 envois par jour
+   et par numéro** (1 par minute) ; blocage 15 min puis 1 h puis 24 h ; plafond global de dépense
+   par jour ; App Check.
+3. **Code de verrouillage de l'application : SÉPARÉ** du code secret de connexion. Le verrou local
+   (`security.ts`) reste facultatif et inchangé ; l'empreinte digitale peut le remplacer si
+   l'appareil l'a. Le code secret de connexion n'est JAMAIS gardé sur le téléphone, même en empreinte.
+4. **Slogan de l'écran de bienvenue** : « **Mieux gérer, mieux prévoir, mieux vivre** »
+   (anglais proposé : « Manage better, plan better, live better », à valider). Les autres textes
+   de `maquettes/TEXTES.md` sont acceptés tels quels.
+5. **Protections ajoutées** (assistant, acceptées) :
+   - SMS envoyés **uniquement** vers les pays où l'application est proposée (liste blanche
+     d'indicatifs) — contre la fraude aux SMS ;
+   - **numéro recyclé** : quand un code secret est changé (code oublié), une alerte part vers les
+     appareils déjà connectés et vers l'e-mail du compte s'il existe.
+
 ## 6. Ordre des étapes
 
 1. Terminer la refonte du design (étape 10, images côte à côte, puis APK pour le
