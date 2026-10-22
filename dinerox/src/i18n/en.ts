@@ -2293,6 +2293,7 @@ export const en: Record<TKey, string> = {
   'goal.tile.reserve': 'Reserve',
   'more.tile.score': 'My score',
   'more.tile.review': 'Rate the app',
+  'more.group.intelligence': 'Intelligence',
   'goal.perWeekChip': '{amount} / wk',
   'goal.distribute.short': 'Split each month',
   'goal.distribute.edit': 'Change the amount',

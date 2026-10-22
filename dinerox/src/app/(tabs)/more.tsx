@@ -3,7 +3,8 @@ import { Linking, Platform, View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
-import { Amount, GradientCard, PastelGrid, Screen, Text } from '@/components/ui';
+import { GradientCard, PastelGrid, Screen, Text } from '@/components/ui';
+import { currencyInfo, formatMoney } from '@/core/money';
 import { can } from '@/core/permissions';
 import { hasFeature } from '@/core/subscription';
 import { today } from '@/core/dates';
@@ -46,6 +47,7 @@ function MoreScreen() {
   const { role, plan, user, mode, online } = useApp();
   const money = useMoney();
   const { data, position, currency, activeAccounts } = useFinance();
+  const bare = (n: number) => formatMoney(n, currency, { hideSymbol: true });
   // Couleur des ronds : `MORE_FAMILY` (palette du fondateur) ; `color` reste la couleur de marque d'origine.
   const { colors } = useTheme();
   const [channelUrl, setChannelUrl] = useState<string | null>(null);
@@ -73,7 +75,8 @@ function MoreScreen() {
     () => (showNetWorth ? netWorth(data, currency, today()).net : position.available + position.savings),
     [showNetWorth, data, currency, position.available, position.savings],
   );
-  const groups: { title: TKey; aside: string; items: Item[] }[] = [
+  // `shortTitle` : surtitre court de la maquette (F1) ; le titre complet reste lu par le lecteur d'écran.
+  const groups: { title: TKey; shortTitle?: TKey; aside: string; items: Item[] }[] = [
     {
       title: 'more.money',
       aside: '',
@@ -92,6 +95,7 @@ function MoreScreen() {
     },
     {
       title: 'more.intelligence',
+      shortTitle: 'more.group.intelligence',
       aside: '',
       items: [
         { key: 'ai.title', sub: 'more.sub.assistant', icon: 'chatbubble-ellipses', color: colors.secondary, path: '/assistant' },
@@ -148,8 +152,14 @@ function MoreScreen() {
         <Text variant="caption" weight="500" tone="heroMuted" style={{ fontSize: 13, lineHeight: 18 }}>
           {showNetWorth ? t('more.netWorth') : t('more.totalAccounts')}
         </Text>
-        <View style={{ marginTop: 2 }}>
-          <Amount text={money(headline)} size="L" tone="onHero" style={{ fontSize: 30, lineHeight: 36 }} />
+        {/* Maquette `.big` (30) puis `.big small` (devise 18, 600) ; le montant complet est lu. */}
+        <View accessible accessibilityLabel={money(headline)} style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', marginTop: 2 }}>
+          <Text variant="amountHero" numeric tone="onHero" style={{ fontSize: 30, lineHeight: 36 }}>
+            {bare(headline)}
+          </Text>
+          <Text variant="label" weight="600" tone="onHero" style={{ fontSize: 18, marginLeft: 4 }}>
+            {currencyInfo(currency).symbol}
+          </Text>
         </View>
         <Text variant="caption" weight="500" tone="heroMuted" style={{ fontSize: 13, lineHeight: 18 }}>
           {t(activeAccounts.length === 1 ? 'more.accountsCount.one' : 'more.accountsCount', { count: activeAccounts.length })}
@@ -164,7 +174,7 @@ function MoreScreen() {
           <React.Fragment key={g.title}>
             <View style={{ marginTop: 18, marginBottom: 10, marginHorizontal: 2 }}>
               <Text variant="caption" weight="600" tone="muted" accessibilityRole="header" accessibilityLabel={g.aside ? `${t(g.title)}, ${g.aside}` : t(g.title)} style={{ fontSize: 12, lineHeight: 16, letterSpacing: 0.6 }}>
-                {t(g.title).toUpperCase()}
+                {t(g.shortTitle ?? g.title).toUpperCase()}
               </Text>
             </View>
             <PastelGrid

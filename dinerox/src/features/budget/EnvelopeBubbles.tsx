@@ -14,6 +14,7 @@ import { BIG_TEXT, shadowB, useTheme } from '@/theme';
 import { finalPalette } from '@/theme/finalPalette';
 import { useMoney } from '@/hooks/useFinance';
 import { ContentIcon, ProgressRing, Text, envelopeIconIds } from '@/components/ui';
+import { envelopeIconSlug } from '@/components/ui/contentIconMap';
 import type { EnvelopeStatus } from '@/core/budget';
 import { BUBBLE_SIZES, bubbleLook } from './envelopeBubble';
 
@@ -57,7 +58,7 @@ function EnvelopeBubble({ s, sz, hidden, percent, upcoming, declaredShare }: { s
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={a11y} onPress={() => router.push(`/envelopes/${s.envelope.id}`)} style={({ pressed }) => ({ alignItems: 'center', gap: 6, borderRadius: 12, paddingVertical: 2, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}>
       <ProgressRing size={sz.ring} stroke={sz.stroke} percent={s.percent} color={color} track={p.ringTrack}>
-        <ContentIcon ids={envelopeIconIds(s.envelope.categoryIds)} icon={s.envelope.icon} color={s.envelope.color} size={sz.icon} />
+        <ContentIcon slug={envelopeIconSlug(s.envelope)} ids={envelopeIconIds(s.envelope.categoryIds)} icon={s.envelope.icon} color={s.envelope.color} size={sz.icon} />
       </ProgressRing>
       <Text variant="caption" weight="600" align="center" style={{ fontSize: 12, lineHeight: 16 }}>
         {s.envelope.name}

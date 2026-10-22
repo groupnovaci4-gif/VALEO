@@ -29,6 +29,10 @@ describe('A2 — en-tête identique sur les quatre onglets', () => {
     expect(v2).toMatch(/useToReadCount\(\)|toRead/);
     expect(v2).toMatch(/width: 32, height: 32, borderRadius: 16/);
   });
+  it('sous l’en-tête des onglets (56 dp), le contenu commence sans marge en plus (maquette `.page{padding:0 16px}`)', () => {
+    const s = read('src/components/ui/Screen.tsx');
+    expect(s).toMatch(/padding: 16, paddingTop: brandSection && v2 \? 0 : 16, paddingBottom: 120/);
+  });
   it('plus de bandeau « DineroX » ni de bouton encadré', () => {
     expect(v2).not.toMatch(/<Logo /);
     expect(v2).not.toMatch(/brand\.name/);
@@ -70,6 +74,12 @@ describe('Étape 10 — audit de mise en page (layout-audit, toutes tailles)', (
   it('cloche : icône et pastille décoratives (aria-hidden) ; le bouton porte « Notifications, À lire · N »', () => {
     const h = read('src/components/AppHeader.tsx');
     expect(h).toMatch(/<View aria-hidden[^>]*>\s*<Icon name="notifications-outline"/);
+  });
+  it('« Mes récompenses » : « récompenses » (14 px, ≈ 92 dp) tient sans être coupé sur Android (texte 95 dp à 360 dp)', () => {
+    const r = read('src/features/home/RewardsCard.tsx');
+    expect(r).toMatch(/gap: 8, padding: 12/);
+    expect(r).toMatch(/slug="trophy" icon="trophy" color=\{colors\.accent\} size=\{32\}/);
+    expect(r).toMatch(/width: 32, height: 32, borderRadius: 16/);
   });
   it('« Écouter » de « À lire » : pas plus large que sa carte (conteneur à la taille du bouton)', () => {
     const l = read('src/features/notifications/ToReadList.tsx');

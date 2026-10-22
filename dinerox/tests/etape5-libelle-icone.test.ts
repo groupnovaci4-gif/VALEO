@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CONTENT_ICON_SLUGS, labelIconSlug, transactionIconSlug } from '../src/components/ui/contentIconMap';
+import { CONTENT_ICON_SLUGS, envelopeIconIds, envelopeIconSlug, iconSlugFor, labelIconSlug, transactionIconSlug } from '../src/components/ui/contentIconMap';
 import dictionary from '../src/config/dictionnaire-icones.json';
 
 const root = path.join(__dirname, '..');
@@ -91,5 +91,17 @@ describe('ordre : libellé → objectif lié → sous-catégorie → catégorie 
   it('la ligne d’opération passe par cet ordre', () => {
     const src = fs.readFileSync(path.join(root, 'src/features/rows.tsx'), 'utf8');
     expect(src).toMatch(/transactionIconSlug\(/);
+  });
+});
+
+describe('A4 aussi pour les ENVELOPPES (comparaison de l’étape 10 : « Alimentation & boissons » = panier)', () => {
+  it('le nom de l’enveloppe décide, sinon sa catégorie (rien ne change pour les autres enveloppes de la démo)', () => {
+    expect(envelopeIconSlug({ name: 'Alimentation & boissons', categoryIds: ['cat_food'] })).toBe('basket');
+    expect(envelopeIconSlug({ name: 'Moto', categoryIds: ['cat_transport'] })).toBe(labelIconSlug('Moto'));
+    for (const [name, ids] of [['Maison', ['cat_housing', 'cat_internet']], ['Transport', ['cat_transport']], ['Famille', ['cat_family', 'cat_health', 'cat_education']], ['Épargne', ['cat_savings']], ['Libre', ['cat_leisure', 'cat_clothing', 'cat_communication', 'cat_other']]] as const)
+      expect(envelopeIconSlug({ name, categoryIds: [...ids] }), name).toBe(labelIconSlug(name) ?? iconSlugFor({ ids: envelopeIconIds([...ids]) }));
+  });
+  it('les bulles d’enveloppe passent par cette règle', () => {
+    expect(fs.readFileSync(path.join(root, 'src/features/budget/EnvelopeBubbles.tsx'), 'utf8')).toMatch(/slug=\{envelopeIconSlug\(s\.envelope\)\}/);
   });
 });

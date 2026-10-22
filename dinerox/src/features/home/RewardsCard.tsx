@@ -3,6 +3,8 @@
  * « Mes récompenses » (trophée 3D, nombre de récompenses obtenues) et « DineroX IA » (rond violet,
  * « Instantané »). Mêmes destinations qu'avant ; l'invitation de l'assistant reste lue par le
  * lecteur d'écran. Texte agrandi ou écran étroit (A8) : une carte par ligne.
+ * Marge 12, espace 8, icône 32 (maquette 14 / 10 / 36) : « récompenses » (14 px, ≈ 92 dp) dépassait
+ * les 85 dp offerts et Android coupait le mot (comparaison de l'étape 10) ; 95 dp désormais.
  */
 import React from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
@@ -22,11 +24,11 @@ export function RewardsCard() {
   const { width, fontScale } = useWindowDimensions();
   const narrow = width < NARROW_WIDTH || fontScale >= BIG_TEXT;
   const rewardsSub = rewards.length ? t('reward.earned', { count: rewards.length }) : t('reward.subtitle');
-  const card = (pressed: boolean) => ({ flexBasis: narrow ? ('100%' as const) : ('45%' as const), flexGrow: 1, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 10, padding: 14, borderRadius: 20, backgroundColor: pressed ? colors.surfaceAlt : colors.surface, ...(dark ? null : shadowB) });
+  const card = (pressed: boolean) => ({ flexBasis: narrow ? ('100%' as const) : ('45%' as const), flexGrow: 1, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, padding: 12, borderRadius: 20, backgroundColor: pressed ? colors.surfaceAlt : colors.surface, ...(dark ? null : shadowB) });
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 22 }}>
       <Pressable accessibilityRole="button" accessibilityLabel={`${t('reward.title')}, ${rewardsSub}`} onPress={() => router.push('/rewards')} style={({ pressed }) => card(pressed)}>
-        <ContentIcon slug="trophy" icon="trophy" color={colors.accent} size={36} />
+        <ContentIcon slug="trophy" icon="trophy" color={colors.accent} size={32} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text variant="label" style={{ fontSize: 14 }}>
             {t('reward.title')}
@@ -37,8 +39,8 @@ export function RewardsCard() {
         </View>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={`${t('home.ai.title')}, ${t('home.ai.badge')}, ${t('home.askAssistantHint')}`} onPress={() => router.push('/assistant')} style={({ pressed }) => card(pressed)}>
-        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: finalPalette(dark).aiCircle, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="chatbubble-ellipses" size={19} color="#FFFFFF" />
+        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: finalPalette(dark).aiCircle, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="chatbubble-ellipses" size={17} color="#FFFFFF" />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text variant="label" style={{ fontSize: 14 }}>

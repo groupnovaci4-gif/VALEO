@@ -57,6 +57,10 @@ describe('D2 — vignettes en 2 colonnes, ANNEAU autour de l’icône', () => {
     expect(src).toMatch(/t\('goal\.status\.paused'\)/);
     expect(src).toMatch(/t\('season\.add'\)/);
   });
+  it('carte verte : « 450 000 » en grand puis « FCFA » en petit (maquette D1, comme la carte du Budget)', () => {
+    expect(src).toMatch(/fontSize: 36, lineHeight: 42 \}\}>\s*\{bare\(totals\.saved\)\}/);
+    expect(src).toMatch(/\{currencyInfo\(currency\)\.symbol\}/);
+  });
   it('bouton + : rond de 32 dp (maquette) dans une zone de toucher de 48 dp (aussi sur le web)', () => {
     const tile = read('src/features/goals/GoalTileCard.tsx');
     const add = tile.slice(tile.indexOf('{onAdd ? ('));

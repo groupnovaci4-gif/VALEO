@@ -27,6 +27,7 @@ import { observedCapacity } from '@/core/intelligence';
 import { can } from '@/core/permissions';
 import { isClassicGoal, isReserve, reserveState } from '@/core/reserve';
 import { activeSeasons, seasonPlanFor } from '@/core/seasons';
+import { currencyInfo, formatMoney } from '@/core/money';
 
 export default function Goals() {
   return (
@@ -48,6 +49,7 @@ function GoalsScreen() {
   const actions = useActions();
   const run = useRunAction();
   const { data, now, currency } = useFinance();
+  const bare = (n: number) => formatMoney(n, currency, { hideSymbol: true });
   const { width, fontScale } = useWindowDimensions();
   const columns = width < 340 || fontScale >= BIG_TEXT ? 1 : 2;
   // Objectifs classiques (hors réserves et moments forts) : totaux, ordre et répartition.
@@ -200,9 +202,15 @@ function GoalsScreen() {
                 </Text>
               </View>
             </View>
-            <Text variant="amountHero" numeric tone="onHero" style={{ marginTop: 4, fontSize: 36, lineHeight: 42 }}>
-              {money(totals.saved)}
-            </Text>
+            {/* Maquette `.big` : chiffre 36/42, devise 18 (600) à côté. */}
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', marginTop: 4 }}>
+              <Text variant="amountHero" numeric tone="onHero" style={{ fontSize: 36, lineHeight: 42 }}>
+                {bare(totals.saved)}
+              </Text>
+              <Text variant="label" weight="600" tone="onHero" style={{ fontSize: 18, marginLeft: 4 }}>
+                {currencyInfo(currency).symbol}
+              </Text>
+            </View>
             <Text variant="caption" weight="500" style={{ fontSize: 13, lineHeight: 18, color: ON_HERO_MUTED }}>
               {t('goal.hero.of', { target: money(totals.target), left: money(Math.max(0, totals.target - totals.saved)) })}
             </Text>

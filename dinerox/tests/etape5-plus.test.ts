@@ -34,12 +34,14 @@ describe('F1 — grille d’icônes pastel, 4 par ligne', () => {
     expect(pastelColumns(339, 1)).toBe(3);
     expect(pastelColumns(412, 1.3)).toBe(3);
   });
-  it('carré 52 dp, rayon 16, icône 24, nom 11/14 ; carte 16/8, 16 dp entre les lignes', () => {
+  it('carré 52 dp, rayon 16, icône 24, nom 11/14 ; carte 16/4, 16 dp entre les lignes', () => {
     const g = read('src/components/ui/PastelGrid.tsx');
     expect(g).toMatch(/width: 52, height: 52, borderRadius: 16/);
     expect(g).toMatch(/size=\{24\}/);
     expect(g).toMatch(/fontSize: 11, lineHeight: 14/);
-    expect(g).toMatch(/paddingVertical: 16, paddingHorizontal: 8/);
+    // Étape 10 (comparaison Android, A8) : « Indépendance » (Inter 600, 11) mesure 76,1 dp ; avec une
+    // marge de 8 la colonne fait 76 dp et Android coupait le mot. Marge 4 : colonnes de 78 dp.
+    expect(g).toMatch(/paddingVertical: 16, paddingHorizontal: 4/);
     expect(g).toMatch(/rowGap: 16/);
   });
 });
@@ -67,6 +69,12 @@ describe('F1 — écran Plus', () => {
     expect(e['more.tile.score']).toBe('My score');
     expect(k['more.tile.review']).toBe('Donner mon avis');
     expect(e['more.tile.review']).toBe('Rate the app');
+    // Carte verte : chiffre 30/36 puis devise 18 (maquette `.big small`).
+    expect(src).toMatch(/fontSize: 30, lineHeight: 36 \}\}>\s*\{bare\(headline\)\}/);
+    expect(src).toMatch(/fontSize: 18, marginLeft: 4 \}\}>\s*\{currencyInfo\(currency\)\.symbol\}/);
+    expect(k['more.group.intelligence']).toBe('Intelligence');
+    expect(e['more.group.intelligence']).toBe('Intelligence');
+    expect(src).toMatch(/shortTitle: 'more\.group\.intelligence'/);
     expect(src).toMatch(/short: 'more\.tile\.score'/);
     expect(src).toMatch(/short: 'more\.tile\.review'/);
     expect(src).toMatch(/accessibilityLabel: `\$\{t\(i\.key\)\}, \$\{t\(i\.sub\)\}`/);

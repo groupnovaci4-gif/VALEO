@@ -49,6 +49,14 @@ export function envelopeIconIds(categoryIds: string[]): string[] {
   return categoryIds.length > 1 && categoryIds.includes('cat_other') ? ['cat_other'] : categoryIds.slice(0, 1);
 }
 
+/**
+ * Enveloppe (refonte finale A4) : son NOM décide de l'icône (« Alimentation & boissons » = panier),
+ * sinon sa catégorie (comme avant), sinon son emoji.
+ */
+export function envelopeIconSlug(envelope: { name: string; categoryIds: string[]; icon?: string | null }): string | null {
+  return labelIconSlug(envelope.name) ?? iconSlugFor({ ids: envelopeIconIds(envelope.categoryIds), emoji: envelope.icon });
+}
+
 /** Listes d'opérations : la SOUS-catégorie quand l'opération en a une, sinon la catégorie. */
 export function transactionIconIds(tx: { subcategoryId?: string | null; categoryId?: string | null }): string[] {
   return [tx.subcategoryId, tx.categoryId].filter((x): x is string => !!x);

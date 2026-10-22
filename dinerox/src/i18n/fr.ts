@@ -2331,6 +2331,7 @@ export const fr = {
   'goal.tile.reserve': 'Réserve',
   'more.tile.score': 'Mon score',
   'more.tile.review': 'Donner mon avis',
+  'more.group.intelligence': 'Intelligence',
   'goal.perWeekChip': '{amount} / sem.',
   'goal.distribute.short': 'Répartir chaque mois',
   'goal.distribute.edit': 'Modifier le montant',

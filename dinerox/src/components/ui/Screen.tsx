@@ -89,7 +89,8 @@ export function Screen({ title, subtitle, back, right, leading, brandSection, ch
     <KeyboardAwareScrollView
       keyboardShouldPersistTaps="handled"
       bottomOffset={footer ? (footerHeight === null ? 110 : footerHeight - footerPad + KEYBOARD_GAP) : KEYBOARD_GAP}
-      contentContainerStyle={[{ padding: 16, paddingBottom: 120 }, contentStyle]}
+      // Onglets (refonte finale A2) : le contenu suit l'en-tête de 56 dp sans marge en plus (maquette `.page`).
+      contentContainerStyle={[{ padding: 16, paddingTop: brandSection && v2 ? 0 : 16, paddingBottom: 120 }, contentStyle]}
       refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.textMuted} /> : undefined}
     >
       {/* Largeur de lecture bornée : sur tablette, le contenu reste centré et lisible. */}

@@ -1,5 +1,5 @@
 /**
- * Grille d'icônes PASTEL (refonte finale F1 ; ecrans/plus-*.html) : une carte (16 / 8, rayon 20),
+ * Grille d'icônes PASTEL (refonte finale F1 ; ecrans/plus-*.html) : une carte (16 / 4, rayon 20),
  * 4 colonnes (3 si texte agrandi ou écran étroit, A8), 16 dp entre les lignes ; chaque rubrique :
  * carré de 52 dp (rayon 16) au fond doux, icône 24 de la couleur de sa famille, nom 11/14 centré
  * (jamais coupé : il passe à la ligne). Badge « PRO » gardé. Description lue par le lecteur d'écran.
@@ -26,7 +26,9 @@ export function PastelGrid({ items }: { items: PastelItem[] }) {
   const { width, fontScale } = useWindowDimensions();
   const columns = pastelColumns(width, fontScale);
   return (
-    <View style={{ backgroundColor: colors.surface, borderRadius: 20, paddingVertical: 16, paddingHorizontal: 8, flexDirection: 'row', flexWrap: 'wrap', rowGap: 16, ...(dark ? null : shadowB) }}>
+    // Marge latérale 4 (maquette 8) : avec 8, « Indépendance » (76,1 dp) ne tenait pas dans une colonne de 76 dp
+    // et Android coupait le mot (A8, comparaison de l'étape 10).
+    <View style={{ backgroundColor: colors.surface, borderRadius: 20, paddingVertical: 16, paddingHorizontal: 4, flexDirection: 'row', flexWrap: 'wrap', rowGap: 16, ...(dark ? null : shadowB) }}>
       {items.map((i) => {
         const c = pastelColors(i.family, dark);
         return (
