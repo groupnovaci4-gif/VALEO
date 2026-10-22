@@ -148,7 +148,7 @@ def home_B():
     for f, n, sub, sv, tg, pr, rate in GOALS:
         pct = round(sv * 100 / tg)
         goals += f'<div class="card" style="padding:14px;flex:1"><div style="display:flex;justify-content:space-between;align-items:flex-start">{i3d(f,40)}<span style="font:700 18px Jakarta;color:var(--brand)">{pct} %</span></div><div class="strong" style="margin-top:10px">{n}</div><div class="small">{fm(sv)}<br>sur {fm(tg)}</div></div>'
-    body = (topbar(3) + hello() + hero() + f'<div class="qb">{qb}</div>' +
+    body = (topbar(5) + hello() + hero() + f'<div class="qb">{qb}</div>' +
             f'<div class="sh"><span class="h2">À lire</span><span class="small">Touchez × quand c’est lu</span></div>' + bans +
             f'<div class="sh"><span class="h2">Dernières opérations</span><span class="link">Tout voir</span></div>' + tx_rows('B') +
             f'<div class="sh"><span class="h2">Enveloppes</span><span class="link">Gérer (6)</span></div><div class="g3">{jars}</div>' +
