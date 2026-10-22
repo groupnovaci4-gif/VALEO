@@ -19,3 +19,7 @@ Planches : `FINAL-accueil.png`, `FINAL-budget.png`, `FINAL-objectifs.png`, `FINA
 - Enveloppe « Alimentation & boissons » : panier (basket) ; « Restaurant » : plat avec poisson.
 - Gaz : `bonbonne_gaz` reste provisoire (dessin à faire faire par un designer, même nom de fichier).
 - Toutes les icônes sont EMBARQUÉES dans l'application (aucun téléchargement).
+- Gaz et coiffure : images FOURNIES PAR LE FONDATEUR (2026-10-22), utilisées sur sa décision et sous sa
+  responsabilité ; fond blanc retiré, recadrées au carré : `icones-a-ajouter/bonbonne_gaz*.webp` (REMPLACE
+  le provisoire) et `coiffure*.webp` (nouvelle). En sombre, le rond clair #3A362F derrière les icônes de
+  contenu s'applique aussi à elles.
