@@ -107,11 +107,12 @@ export function useToRead() {
     },
     [uid],
   );
-  // `all` : TOUS les messages, lus ou non (écran Notifications, B5bis) ; `unread` : vrai nombre de non-lus.
-  return { items, all, unread: visible.length, dismiss, dismissAll, advice, topRec };
+  // `all` : TOUS les messages, lus ou non (écran Notifications, B5bis) ; `unread` : le même nombre
+  // que « À lire · N » (décision du fondateur, 22/10 : un message regroupé compte pour 1).
+  return { items, all, unread: items.length, dismiss, dismissAll, advice, topRec };
 }
 
-/** Cloche : le vrai nombre de messages non lus (avant regroupement, B5bis). */
+/** Cloche : le même nombre que « À lire · N » (messages non lus, après regroupement). */
 export function useToReadCount(): number {
   return useToRead().unread;
 }

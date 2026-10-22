@@ -82,7 +82,8 @@ describe('B5bis — 3 messages à l’Accueil, alertes et échéances d’abord,
   it('mention « Selon les opérations enregistrées… » (règle 17) dès qu’un message du coach est à lire, même non affiché', () => {
     expect(read('src/features/notifications/ToReadList.tsx')).toMatch(/\{items\.some\(\(x\) => x\.kind === 'coach'\) \? \(\s*<Text[^>]*>\s*\{t\('coach\.disclaimer'\)\}/);
   });
-  it('la cloche : le vrai nombre de non-lus (avant regroupement)', () => {
+  // Décision du fondateur (22/10) : la cloche = « À lire · N » (tests/cloche.test.ts).
+  it('la cloche : le nombre de « À lire · N » (useToRead().unread)', () => {
     expect(read('src/features/notifications/useToRead.ts')).toMatch(/export function useToReadCount\(\): number \{\s*return useToRead\(\)\.unread;/);
   });
   it('l’écran Notifications garde TOUS les messages : constats + conseil, coach, analyse', () => {
@@ -96,9 +97,11 @@ describe('B5bis — 3 messages à l’Accueil, alertes et échéances d’abord,
 describe('J4 — barre du bas et icône de « Votre analyse »', () => {
   const tabs = read('src/app/(tabs)/_layout.tsx');
   const mic = tabs.slice(tabs.indexOf('function MicTabButton'));
-  it('« Saisir » : pilule 48 × 36 (rayon 18) vert foncé des cartes, DANS la barre, libellé dessous', () => {
+  // Décision du fondateur (22/10) : pilule de la couleur de la marque, comme la maquette
+  // (#0F4A3A en clair, #4FB08F en sombre) — voir tests/barre-du-bas.test.ts.
+  it('« Saisir » : pilule 48 × 36 (rayon 18) de la couleur de la marque, DANS la barre, libellé dessous', () => {
     expect(mic).toMatch(/width: 48, height: 36, borderRadius: 18/);
-    expect(mic).toMatch(/heroFrom/);
+    expect(mic).toMatch(/backgroundColor: bar\.pill/);
     expect(mic).not.toMatch(/MIC_LIFT/);
     expect(mic).toMatch(/<TabLabel text=\{t\("entry\.mic"\)\}/);
   });
