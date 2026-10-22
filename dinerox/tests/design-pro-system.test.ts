@@ -132,7 +132,8 @@ describe('corrections du fondateur (2026-10-21)', () => {
   it('en-tête de l’accueil : la cloche seule (48 dp), « Notifications » lu par le lecteur d’écran', () => {
     const src = read('src/components/AppHeader.tsx');
     const v2 = src.slice(src.indexOf('if (v2)'), src.indexOf('return (\n    <View style={{ flexDirection'));
-    expect(v2).toContain("accessibilityLabel={t('notif.title')}");
+    // Refonte finale : « Notifications » + nombre de messages à lire, toujours lus par le lecteur d'écran.
+    expect(v2).toMatch(/accessibilityLabel=\{[^\n]*t\('notif\.title'\)/);
     expect(v2).not.toMatch(/<Text[^>]*>\{t\('notif\.title'\)\}<\/Text>/);
     expect(v2).toMatch(/minWidth: 48/);
   });

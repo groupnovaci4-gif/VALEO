@@ -9,6 +9,8 @@ import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { Logo } from './Logo';
+import { finalPalette } from '@/theme/finalPalette';
+import { useToReadCount } from '@/features/notifications/useToRead';
 
 /** Initiales pour l'avatar (« Awa Koffi » → « AK »). */
 export function initials(first?: string, last?: string): string {
@@ -20,9 +22,10 @@ export function initials(first?: string, last?: string): string {
  * l'écran, cloche des notifications et avatar (accès au profil / réglages).
  */
 export function AppHeader({ section }: { section: string }) {
-  const { colors, v2 } = useTheme();
+  const { colors, v2, dark } = useTheme();
   const { t } = useI18n();
   const { profile } = useApp();
+  const toRead = useToReadCount();
   const { fontScale, width } = useWindowDimensions();
   const ini = initials(profile?.firstName, profile?.lastName);
   if (v2) {
@@ -48,14 +51,22 @@ export function AppHeader({ section }: { section: string }) {
         )}
       </Pressable>
     );
+    // Refonte finale A2 / E : pastille du nombre de messages « À lire » sur la cloche.
     const notifications = (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={t('notif.title')}
+        accessibilityLabel={toRead ? `${t('notif.title')}, ${t('toRead.title', { count: toRead })}` : t('notif.title')}
         onPress={() => router.push('/notifications')}
         style={({ pressed }) => ({ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
       >
         <Icon name="notifications-outline" size={24} color={colors.text} />
+        {toRead ? (
+          <View style={{ position: 'absolute', top: 9, right: 10, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: finalPalette(dark).alertFg, alignItems: 'center', justifyContent: 'center' }}>
+            <Text variant="caption" weight="700" maxFontSizeMultiplier={1} style={{ fontSize: 10, lineHeight: 16, color: '#FFFFFF' }}>
+              {toRead > 9 ? '9+' : String(toRead)}
+            </Text>
+          </View>
+        ) : null}
       </Pressable>
     );
     return (

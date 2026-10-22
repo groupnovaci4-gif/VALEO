@@ -16,7 +16,8 @@ import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { Amount, Card, CircleGrid, CircleTile, EmptyState, Icon, ListCard, ProgressBar, Screen, SectionHeader, Text } from '@/components/ui';
-import { AlertsCard, SpaceSwitcher } from '@/features/rows';
+import { SpaceSwitcher } from '@/features/rows';
+import { ToReadList } from '@/features/notifications/ToReadList';
 import { EnvelopeRow } from '@/features/budget/EnvelopeCard';
 import { shareOfDeclared } from '@/core/allowance';
 import { can } from '@/core/permissions';
@@ -32,9 +33,8 @@ export default function Budget() {
 function BudgetScreen() {
   const { t, monthYear } = useI18n();
   const { profile, role } = useApp();
-  const { envelopes, insights, now, spaceKind, envelopeSoon } = useFinance();
+  const { envelopes, now, spaceKind, envelopeSoon } = useFinance();
   const declared = profile?.financial?.monthlyIncome ?? null;
-  const alerts = insights.filter((i) => i.kind === 'envelope_threshold' || i.kind === 'envelope_over_streak');
   const editable = can(role, 'create', 'envelopes');
   return (
     <Screen brandSection={t('tab.budget')}>
@@ -50,7 +50,8 @@ function BudgetScreen() {
 
       {envelopes.length ? <SummaryCard /> : null}
 
-      {alerts.length ? <AlertsCard insights={alerts.slice(0, 4)} /> : null}
+      {/* Refonte finale C2 / E3 : les messages du budget, mêmes règles que « À lire » (accueil). */}
+      <ToReadList budgetOnly />
 
       <SectionHeader title={t('env.title')} action={envelopes.length ? String(envelopes.length) : undefined} />
       {envelopes.length ? (

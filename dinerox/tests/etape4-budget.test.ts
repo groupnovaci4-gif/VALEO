@@ -40,12 +40,12 @@ describe('écran Budget', () => {
     expect(card).toMatch(/fontSize: 34, lineHeight: 40/);
     expect(card).toMatch(/height=\{8\}/);
   });
-  it('alertes : une carte, une ligne par alerte (icône, texte, chevron), « Écouter » gardé à côté', () => {
-    expect(src).toMatch(/<AlertsCard insights=\{alerts\.slice\(0, 4\)\} \/>/);
-    const rows = read('src/features/rows.tsx');
-    const a = rows.slice(rows.indexOf('export function AlertsCard'));
-    expect(a).toMatch(/chevron-forward/);
-    expect(a).toMatch(/<ListenButton/);
+  // Refonte finale C2 / E3 : les alertes du budget sont les notifications du Budget (mêmes règles
+  // que « À lire ») — une carte, une ligne par message, « Écouter » à côté (tests/etape5-notifications.test.ts).
+  it('alertes : une carte, une ligne par message (icône, texte), « Écouter » gardé à côté', () => {
+    expect(src).toMatch(/<ToReadList budgetOnly \/>/);
+    const list = read('src/features/notifications/ToReadList.tsx');
+    expect(list).toMatch(/<ListenButton/);
   });
   it('enveloppes en liste, ronds « Nouvelle enveloppe » (vert, +) et « Budget automatique » (violet)', () => {
     expect(src).toMatch(/<ListCard>\s*\{envelopes\.map\(\(s\) => \(\s*<EnvelopeRow /);

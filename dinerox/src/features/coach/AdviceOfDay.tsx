@@ -19,32 +19,13 @@ import { ListenButton } from './ListenButton';
 
 /** `excludeId` : recommandation déjà affichée ailleurs sur l'écran (jamais deux fois la même). */
 export function AdviceOfDay({ excludeId }: { excludeId?: string }) {
-  const { t, lang } = useI18n();
-  const { profile, plan, mode } = useApp();
-  const { data, currency, now } = useFinance();
-  const cats = useCategoryLabels();
+  const { t } = useI18n();
+  const { now } = useFinance();
   const { recommendations } = useIntelligence();
   const render = useRecommendationText();
   const advice = useMemo(() => adviceOfDay(recommendations.filter((r) => r.id !== excludeId), now), [recommendations, now, excludeId]);
-  const [ai, setAi] = useState<{ for: string; text: string | null } | null>(null);
-  const [busy, setBusy] = useState(false);
   if (!advice) return null;
   const text = render(advice);
-  // Reformulation IA : uniquement avec consentement explicite, formule et compte en ligne.
-  const aiAllowed = mode === 'firebase' && !!profile?.preferences.aiConsent && hasFeature(plan, 'ai_assistant');
-  const explanation = ai && ai.for === advice.id ? ai.text : null;
-  const explain = async () => {
-    setBusy(true);
-    try {
-      const summary = buildFinanceSummary(data, currency, now, cats.byId, { reserve: t('ai.summary.reserve'), season: t('ai.summary.season'), country: profile?.country ?? null });
-      const answer = await askRemoteAssistant(reformulationQuestion(text, lang === 'en' ? 'en' : 'fr'), summary, lang);
-      setAi({ for: advice.id, text: answer });
-    } catch {
-      setAi({ for: advice.id, text: null });
-    } finally {
-      setBusy(false);
-    }
-  };
   return (
     <Card style={{ marginBottom: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -59,24 +40,52 @@ export function AdviceOfDay({ excludeId }: { excludeId?: string }) {
       <View style={{ marginTop: 6 }}>
         <SourceTag source={advice.source} />
       </View>
-      {aiAllowed ? (
-        explanation ? (
-          <View style={{ marginTop: 10, gap: 4 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text variant="caption" weight="700" tone="ai">
-                {t('coach.advice.aiTitle')}
-              </Text>
-              <ListenButton text={explanation} />
-            </View>
-            <Text variant="small">{explanation}</Text>
-            <Text variant="caption" tone="subtle">
-              {t('coach.advice.aiDisclaimer')}
-            </Text>
-          </View>
-        ) : (
-          <Button small variant="ghost" icon="sparkles" label={ai && ai.for === advice.id ? t('ai.remoteUnavailable') : t('coach.advice.explain')} loading={busy} onPress={() => void explain()} style={{ marginTop: 8 }} />
-        )
-      ) : null}
+      <AdviceAi adviceId={advice.id} text={text} />
     </Card>
+  );
+}
+
+/**
+ * Explication du conseil par l'IA (« conseils IA ») : uniquement avec consentement explicite,
+ * formule et compte en ligne ; l'IA reformule un texte déjà calculé, jamais un chiffre nouveau.
+ * Partagée par la carte du conseil et par « À lire » (refonte finale B5).
+ */
+export function AdviceAi({ adviceId, text }: { adviceId: string; text: string }) {
+  const { t, lang } = useI18n();
+  const { profile, plan, mode } = useApp();
+  const { data, currency, now } = useFinance();
+  const cats = useCategoryLabels();
+  const [ai, setAi] = useState<{ for: string; text: string | null } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const aiAllowed = mode === 'firebase' && !!profile?.preferences.aiConsent && hasFeature(plan, 'ai_assistant');
+  if (!aiAllowed) return null;
+  const explanation = ai && ai.for === adviceId ? ai.text : null;
+  const explain = async () => {
+    setBusy(true);
+    try {
+      const summary = buildFinanceSummary(data, currency, now, cats.byId, { reserve: t('ai.summary.reserve'), season: t('ai.summary.season'), country: profile?.country ?? null });
+      const answer = await askRemoteAssistant(reformulationQuestion(text, lang === 'en' ? 'en' : 'fr'), summary, lang);
+      setAi({ for: adviceId, text: answer });
+    } catch {
+      setAi({ for: adviceId, text: null });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return explanation ? (
+    <View style={{ marginTop: 10, gap: 4 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text variant="caption" weight="700" tone="ai">
+          {t('coach.advice.aiTitle')}
+        </Text>
+        <ListenButton text={explanation} />
+      </View>
+      <Text variant="small">{explanation}</Text>
+      <Text variant="caption" tone="subtle">
+        {t('coach.advice.aiDisclaimer')}
+      </Text>
+    </View>
+  ) : (
+    <Button small variant="ghost" icon="sparkles" label={ai && ai.for === adviceId ? t('ai.remoteUnavailable') : t('coach.advice.explain')} loading={busy} onPress={() => void explain()} style={{ marginTop: 8, alignSelf: 'flex-start' }} />
   );
 }
