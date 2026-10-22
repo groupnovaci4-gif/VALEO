@@ -13,7 +13,7 @@ retenues) sont ABANDONNÉS.
 6. `FINAL-comptes.png` — Comptes (logos du fondateur)
 7. `dictionnaire-icones.png` + `dictionnaire-icones.json` — libellé → icône
 8. `FINAL-icones-gaz-coiffure-cochon.png` — nouvelles icônes
-HTML exacts : `ecrans/` (et `../design-pro-maquette-validee/v2-complete/maquette-index.html` pour Comptes).
+HTML exacts : `ecrans/` (Comptes : `ecrans/maquette-comptes-index.html?d=b&s=accountsfull&t=light&sit=0&hero=2&m=4&f=f4&demo=2`).
 
 ## A. Partout
 - A1. Couleurs, polices (Plus Jakarta Sans + Inter), coins arrondis de la direction B. AUCUN dégradé.
