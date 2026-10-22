@@ -268,6 +268,35 @@ export function GoalRingRow({ goal, plan }: { goal: Goal; plan: GoalPlan }) {
 export function AccountRow({ account, balance, onPress }: { account: Account; balance: number; onPress?: () => void }) {
   const { t } = useI18n();
   const money = useMoney();
+  const { colors, v2 } = useTheme();
+  const sub = `${t(`acc.type.${account.type}`)}${account.active ? '' : ` · ${t('common.inactive')}`}`;
+  if (v2) {
+    // Refonte finale G1 (FINAL-comptes.png) : ligne de 64 dp — logo du fondateur ou icône 3D, nom,
+    // type, solde, chevron. Le nom passe à la ligne, jamais coupé (A8).
+    const amount = money(balance, { currency: account.currency });
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${account.name}, ${sub}, ${amount}`}
+        onPress={onPress ?? (() => router.push(`/accounts/${account.id}`))}
+        style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
+      >
+        <AccountMark account={account} icon={account.icon} color={account.color} size={40} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="label" style={{ fontSize: 15 }}>
+            {account.name}
+          </Text>
+          <Text variant="small" tone="subtle" style={SMALL}>
+            {sub}
+          </Text>
+        </View>
+        <Text variant="label" numeric tone={balance < 0 ? 'danger' : 'default'} style={{ fontSize: 15 }}>
+          {amount}
+        </Text>
+        <Icon name="chevron-forward" size={18} color={colors.textSubtle} />
+      </Pressable>
+    );
+  }
   return (
     <Row
       title={account.name}
