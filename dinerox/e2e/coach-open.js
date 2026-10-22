@@ -39,7 +39,10 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   // identifiant) n'est pas répété ; dans la démo, les 3 points (dépassements Maison / Alimentation…) sont ces alertes.
   const toReadCount = Number(((await d.p.locator('body').innerText()).match(/À lire · (\d+)/) || [])[1] || 0);
   ok((first === null || first.length <= 3) && toReadCount > 0 && (await d.p.getByText('Alerte budget', { exact: false }).count()) > 0, `ouverture : résumé dans « À lire » (${first ? first.length : 0} point(s) propre(s) ≤ 3, ${toReadCount} message(s), alertes budget présentes) — ${JSON.stringify(first)}`);
-  ok((await d.p.locator('body').innerText()).includes('Selon les opérations enregistrées dans'), 'mention : selon les opérations enregistrées (pas de suivi bancaire en temps réel)');
+  // Décision du fondateur (22/10) : la cloche affiche le MÊME nombre que « À lire · N ».
+  const bell = await d.p.locator('[role=button][aria-label^="Notifications, À lire · "]').first().getAttribute('aria-label').catch(() => null);
+  ok(bell === `Notifications, À lire · ${toReadCount}`, `cloche = « À lire · ${toReadCount} » (${bell})`);
+  ok((await d.p.locator('body').innerText()).includes('Selon les opérations enregistrées dans'),'mention : selon les opérations enregistrées (pas de suivi bancaire en temps réel)');
   await d.p.screenshot({ path: `${S}/coach-open-1.png` });
   await readAll(d.p);
   ok((await card(d.p)) === null, '× (marquer comme lu) : les points du résumé disparaissent');

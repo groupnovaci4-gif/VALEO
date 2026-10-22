@@ -5,8 +5,7 @@ import { Tabs, router, useIsFocused } from "expo-router";
 import { useApp } from "@/store/app";
 import { useTheme } from "@/theme";
 import { fontFor } from "@/theme/fonts";
-import { TAB_CAP, tabBarHeight, tabLabelScale, tabLayout } from "@/theme/layout";
-import { darkColorsV2, lightColorsV2 } from "@/theme/tokens";
+import { TAB_CAP, tabBarColors, tabBarHeight, tabLabelScale, tabLayout } from "@/theme/layout";
 import { useI18n } from "@/i18n";
 import { Icon, InTabsContext, useToastAboveTabBar } from "@/components/ui";
 import { useEntry } from "@/features/entry/EntryProvider";
@@ -19,7 +18,8 @@ import { entryPrefs } from "@/core/entry/prefs";
  * écrans à part entière, ouverts depuis l'accueil, « Plus » et le micro.
  */
 export default function TabsLayout() {
-  const { colors } = useTheme();
+  const { dark } = useTheme();
+  const bar = tabBarColors(dark);
   const { t } = useI18n();
   const { profile, activeSpace } = useApp();
   const insets = useSafeAreaInsets();
@@ -90,12 +90,12 @@ export default function TabsLayout() {
         <Tabs
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: colors.primary,
+            tabBarActiveTintColor: bar.active,
             tabBarItemStyle: { paddingTop: 6, paddingHorizontal: 2 },
-            tabBarInactiveTintColor: colors.textSubtle,
+            tabBarInactiveTintColor: bar.inactive,
             tabBarStyle: {
-              backgroundColor: colors.tabBar,
-              borderTopColor: colors.border,
+              backgroundColor: bar.background,
+              borderTopColor: bar.border,
               height: barHeight,
             },
             // Libellé : texte système suivi jusqu'à 160 %, jamais tronqué en silence.
@@ -148,19 +148,19 @@ function TabLabel({ text, color, focused, scale }: { text: string; color: string
 }
 
 /**
- * Bouton central « Saisir » (refonte finale J4, maquette `.tab .mic`) : pilule vert foncé
- * (couleur des cartes, 48 × 36, rayon 18) posée DANS la barre, micro blanc 22, libellé « Saisir »
- * dessous (jamais une icône seule). Un appui = voix, un appui long = clavier (inchangé) ; zone de
- * toucher d'au moins 48 dp.
+ * Bouton central « Saisir » (refonte finale J4, maquette `.tab .mic`) : pilule de la couleur de
+ * la marque (#0F4A3A en clair, #4FB08F en sombre ; 48 × 36, rayon 18) posée DANS la barre, micro 22
+ * (blanc en clair, foncé en sombre), libellé « Saisir » dessous (jamais une icône seule). Un appui
+ * = voix, un appui long = clavier (inchangé) ; zone de toucher d'au moins 48 dp.
  */
 function MicTabButton({ scale }: { scale: number }) {
-  const { colors, dark } = useTheme();
+  const { dark } = useTheme();
+  const bar = tabBarColors(dark);
   const { t } = useI18n();
   const entry = useEntry();
   const { profile } = useApp();
   // Méthode par défaut (réglages) : voix, ou saisie au clavier ; l'appui long ouvre l'autre.
   const keyboardFirst = entryPrefs(profile?.preferences).defaultMethod === 'quick_manual';
-  const pill = (dark ? darkColorsV2 : lightColorsV2).heroFrom;
   return (
     <View style={{ flex: 1, alignItems: "center", paddingTop: 6 }}>
       <Pressable
@@ -174,10 +174,10 @@ function MicTabButton({ scale }: { scale: number }) {
       >
         {({ pressed }) => (
           <>
-            <View style={{ width: 48, height: 36, borderRadius: 18, backgroundColor: pill, opacity: pressed ? 0.85 : 1, alignItems: "center", justifyContent: "center" }}>
-              <Icon name="mic" size={22} color="#FFFFFF" />
+            <View style={{ width: 48, height: 36, borderRadius: 18, backgroundColor: bar.pill, opacity: pressed ? 0.85 : 1, alignItems: "center", justifyContent: "center" }}>
+              <Icon name="mic" size={22} color={bar.mic} />
             </View>
-            <TabLabel text={t("entry.mic")} color={colors.textSubtle} focused={false} scale={scale} />
+            <TabLabel text={t("entry.mic")} color={bar.inactive} focused={false} scale={scale} />
           </>
         )}
       </Pressable>

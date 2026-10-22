@@ -2,6 +2,18 @@
  * Règles de mise en page liées au texte système agrandi — module pur (testé).
  * Voir docs/design-system.md §2.3 et §8.13.
  */
+import { darkColorsV2, lightColorsV2 } from './tokens';
+
+/**
+ * Couleurs de la barre du bas, EXACTEMENT celles de la maquette finale (`.tab`) : fond = surface,
+ * bordure = séparateur, onglet actif et pilule « Saisir » = couleur de la marque, inactif = texte
+ * tertiaire, micro = texte posé sur la marque (blanc en clair, foncé en sombre). La barre est hors
+ * de `DesignV2` : elle lit donc la palette v2 directement, jamais les anciennes couleurs du thème.
+ */
+export function tabBarColors(dark: boolean) {
+  const c = dark ? darkColorsV2 : lightColorsV2;
+  return { background: c.surface, border: c.border, active: c.primary, inactive: c.textSubtle, pill: c.primary, mic: c.onPrimary };
+}
 
 /** Plafond d'agrandissement des libellés d'onglets. */
 export const TAB_CAP = 1.6;
