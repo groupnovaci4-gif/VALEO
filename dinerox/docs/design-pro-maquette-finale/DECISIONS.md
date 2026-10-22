@@ -103,6 +103,17 @@ HTML exacts : `ecrans/` (Comptes : `ecrans/maquette-comptes-index.html?d=b&s=acc
 - G1. Comme `FINAL-comptes.png` : « Argent disponible », comptes et épargne en liste ; logos du fondateur ;
   icônes 3D pour Cash, banque, épargne (cochon de profil).
 
+## J. Validations du fondateur sur l'étape 10 (22/10)
+- J1. Tuile « Parler » : taille fixe et exemple gardés, rien à réduire après 10 saisies.
+- J2. Le cadre « Logos des opérateurs (fichiers du fondateur) » de `FINAL-comptes.png` est une planche de
+  PRÉSENTATION de la maquette : il n'apparaît JAMAIS dans l'application. Les logos s'affichent seuls, sur
+  les comptes et les opérations, sans aucun texte explicatif.
+- J3. Écarts validés : marges de la grille de Plus (4 dp), carte « Mes récompenses » resserrée,
+  « Modifier le montant » gardé (Objectifs), icône « Famille » actuelle (Plus), textes déplacés sans
+  disparaître.
+- J4. À corriger pour coller à la maquette : bouton « Saisir » de la barre du bas (rond vert foncé, plus
+  petit, posé dans la barre) ; icône de l'étiquette « Votre analyse » (graphique bleu).
+
 ## H. À faire avant toute publication publique (pas pour le test du fondateur)
 - H1. Écran « À propos » : « Icônes 3D : Fluent Emoji de Microsoft, licence MIT. » (texte à valider).
 
