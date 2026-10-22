@@ -1747,10 +1747,10 @@
    "p": {
     "kind": "emoji",
     "glyph": "💈",
-    "dir": "Barber pole",
-    "file": "assets/Barber pole/3D/barber_pole_3d.png",
+    "dir": "Coiffure (dessin du fondateur, 2026-10-22)",
+    "file": "docs/design-pro-maquette-finale/icones-a-ajouter/coiffure_source.png",
     "toned": false,
-    "slug": "barber-pole"
+    "slug": "coiffure"
    }
   },
   {
@@ -2607,7 +2607,7 @@
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
     "toned": false,
-    "slug": "pig-face"
+    "slug": "pig"
    }
   },
   {
@@ -3229,7 +3229,7 @@
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
     "toned": false,
-    "slug": "pig-face"
+    "slug": "pig"
    }
   },
   {
@@ -3866,7 +3866,7 @@
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
     "toned": false,
-    "slug": "pig-face"
+    "slug": "pig"
    }
   },
   {
@@ -4362,7 +4362,7 @@
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
     "toned": false,
-    "slug": "pig-face"
+    "slug": "pig"
    }
   },
   {
@@ -4649,7 +4649,7 @@
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
     "toned": false,
-    "slug": "pig-face"
+    "slug": "pig"
    }
   },
   {
@@ -4837,7 +4837,7 @@
     "dir": "Pig face",
     "file": "assets/Pig face/3D/pig_face_3d.png",
     "toned": false,
-    "slug": "pig-face"
+    "slug": "pig"
    }
   },
   {

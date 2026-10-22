@@ -80,7 +80,8 @@ describe('icônes de contenu', () => {
     }
     for (const o of operators.operateurs) {
       if (!o.logo) continue;
-      for (const s of ['', '@2x', '@3x']) total += fs.statSync(path.join(root, 'assets/operators', `${o.id}${s}.webp`)).size;
+      // Refonte finale A6 : un seul fichier PNG par opérateur, celui du fondateur.
+      total += fs.statSync(path.join(root, 'assets/operators', `${o.logo}.png`)).size;
     }
     expect(total).toBeLessThanOrEqual(1.5 * 1024 * 1024);
   });
@@ -114,7 +115,8 @@ describe('opérateurs : logo ou pastille, un réglage par opérateur (donnée)',
   });
   it('les autres comptes : icône 3D de leur type', () => {
     expect(accountMark({ type: 'bank', provider: 'bank' })).toEqual({ kind: '3d', slug: 'bank' });
-    expect(accountMark({ type: 'savings', provider: 'none' })).toEqual({ kind: '3d', slug: 'pig-face' });
+    // Refonte finale A5 : cochon DE PROFIL (tests/etape5-icones-logos.test.ts).
+    expect(accountMark({ type: 'savings', provider: 'none' })).toEqual({ kind: '3d', slug: 'pig' });
     expect(accountMark({ type: 'savings', provider: 'tontine' })).toEqual({ kind: '3d', slug: 'tontine_all_3d' });
   });
 });

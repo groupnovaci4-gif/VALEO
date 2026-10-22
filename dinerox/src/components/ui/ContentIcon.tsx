@@ -53,7 +53,13 @@ export function AccountMark({ account, icon, color, size = 40 }: { account: { ty
   const mark = accountMark(account, data);
   const hidden = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' as const };
   if (mark?.kind === 'logo' && OPERATOR_ASSETS[mark.operator]) {
-    return <Image {...hidden} source={OPERATOR_ASSETS[mark.operator]} style={{ width: size, height: size, borderRadius: size / 4 }} resizeMode="contain" />;
+    // Refonte finale A6 : fichier du fondateur, ENTIER, dans une tuile blanche arrondie (clair et sombre).
+    const pad = Math.max(2, Math.round(size * 0.1));
+    return (
+      <View {...hidden} style={{ width: size, height: size, borderRadius: size / 4, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E7E1D6', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <Image source={OPERATOR_ASSETS[mark.operator]} style={{ width: size - pad * 2, height: size - pad * 2 }} resizeMode="contain" />
+      </View>
+    );
   }
   if (mark?.kind === 'pill') {
     return (

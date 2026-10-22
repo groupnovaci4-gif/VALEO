@@ -1,0 +1,506 @@
+{
+ "regle": "L'icône suit le LIBELLÉ de l'opération (payee/nom), puis l'objectif lié (goalId), puis la sous-catégorie, puis la catégorie ; recherche insensible à la casse et aux accents, mot entier.",
+ "entrees": [
+  {
+   "icone": "moto_rouge_3d",
+   "titre": "Moto",
+   "motsCles": [
+    "moto",
+    "motocyclette",
+    "scooter",
+    "objectif « Ma moto »"
+   ]
+  },
+  {
+   "icone": "house",
+   "titre": "Loyer / logement",
+   "motsCles": [
+    "loyer",
+    "location",
+    "maison",
+    "logement",
+    "propriétaire",
+    "caution"
+   ]
+  },
+  {
+   "icone": "plat_poisson_3d",
+   "titre": "Restaurant",
+   "motsCles": [
+    "restaurant",
+    "resto",
+    "plat",
+    "poisson braisé",
+    "repas",
+    "déjeuner"
+   ]
+  },
+  {
+   "icone": "garba_3d",
+   "titre": "Garba",
+   "motsCles": [
+    "garba",
+    "attiéké",
+    "alloco"
+   ]
+  },
+  {
+   "icone": "basket",
+   "titre": "Alimentation",
+   "motsCles": [
+    "alimentation",
+    "nourriture",
+    "marché",
+    "courses",
+    "provisions",
+    "riz",
+    "vivres"
+   ]
+  },
+  {
+   "icone": "clinking-beer-mugs",
+   "titre": "Boissons / maquis",
+   "motsCles": [
+    "boisson",
+    "bière",
+    "maquis",
+    "bar",
+    "sucrerie",
+    "jus"
+   ]
+  },
+  {
+   "icone": "cooking",
+   "titre": "Cuisine",
+   "motsCles": [
+    "cuisine",
+    "ustensiles",
+    "marmite",
+    "condiments"
+   ]
+  },
+  {
+   "icone": "bonbonne_gaz",
+   "titre": "Gaz",
+   "motsCles": [
+    "gaz",
+    "bonbonne",
+    "recharge gaz"
+   ]
+  },
+  {
+   "icone": "books",
+   "titre": "Formation",
+   "motsCles": [
+    "formation",
+    "cours",
+    "apprentissage",
+    "séminaire",
+    "livres"
+   ]
+  },
+  {
+   "icone": "school",
+   "titre": "École",
+   "motsCles": [
+    "école",
+    "scolarité",
+    "frais scolaires",
+    "inscription",
+    "cantine"
+   ]
+  },
+  {
+   "icone": "backpack",
+   "titre": "Rentrée scolaire",
+   "motsCles": [
+    "rentrée",
+    "fournitures",
+    "cartable",
+    "uniformes"
+   ]
+  },
+  {
+   "icone": "graduation-cap",
+   "titre": "Études",
+   "motsCles": [
+    "université",
+    "études",
+    "diplôme",
+    "examen",
+    "concours"
+   ]
+  },
+  {
+   "icone": "taxi",
+   "titre": "Transport / taxi",
+   "motsCles": [
+    "transport",
+    "taxi",
+    "woro-woro",
+    "course",
+    "trajet"
+   ]
+  },
+  {
+   "icone": "minibus",
+   "titre": "Gbaka / car",
+   "motsCles": [
+    "gbaka",
+    "car",
+    "minibus",
+    "massa"
+   ]
+  },
+  {
+   "icone": "bus",
+   "titre": "Bus",
+   "motsCles": [
+    "bus",
+    "SOTRA",
+    "autobus"
+   ]
+  },
+  {
+   "icone": "fuel-pump",
+   "titre": "Carburant",
+   "motsCles": [
+    "carburant",
+    "essence",
+    "gasoil",
+    "super"
+   ]
+  },
+  {
+   "icone": "automobile",
+   "titre": "Voiture",
+   "motsCles": [
+    "voiture",
+    "véhicule",
+    "auto",
+    "vignette"
+   ]
+  },
+  {
+   "icone": "wrench",
+   "titre": "Réparation",
+   "motsCles": [
+    "réparation",
+    "garage",
+    "mécanicien",
+    "vidange",
+    "pneu"
+   ]
+  },
+  {
+   "icone": "high-voltage",
+   "titre": "Électricité",
+   "motsCles": [
+    "électricité",
+    "courant",
+    "CIE",
+    "compteur",
+    "facture CIE"
+   ]
+  },
+  {
+   "icone": "potable-water",
+   "titre": "Eau",
+   "motsCles": [
+    "eau",
+    "SODECI",
+    "facture d’eau"
+   ]
+  },
+  {
+   "icone": "globe-with-meridians",
+   "titre": "Internet",
+   "motsCles": [
+    "internet",
+    "wifi",
+    "fibre",
+    "box",
+    "data"
+   ]
+  },
+  {
+   "icone": "mobile-phone",
+   "titre": "Crédit / téléphone",
+   "motsCles": [
+    "crédit",
+    "recharge",
+    "unités",
+    "téléphone",
+    "forfait"
+   ]
+  },
+  {
+   "icone": "television",
+   "titre": "Télévision",
+   "motsCles": [
+    "Canal+",
+    "télé",
+    "abonnement TV",
+    "StarTimes"
+   ]
+  },
+  {
+   "icone": "stethoscope",
+   "titre": "Santé",
+   "motsCles": [
+    "santé",
+    "médecin",
+    "consultation",
+    "analyses",
+    "clinique"
+   ]
+  },
+  {
+   "icone": "pill",
+   "titre": "Pharmacie",
+   "motsCles": [
+    "pharmacie",
+    "médicament",
+    "ordonnance"
+   ]
+  },
+  {
+   "icone": "hospital",
+   "titre": "Hôpital",
+   "motsCles": [
+    "hôpital",
+    "hospitalisation",
+    "urgences"
+   ]
+  },
+  {
+   "icone": "t-shirt",
+   "titre": "Vêtements",
+   "motsCles": [
+    "vêtements",
+    "habits",
+    "pagne",
+    "couture",
+    "tailleur"
+   ]
+  },
+  {
+   "icone": "running-shoe",
+   "titre": "Chaussures",
+   "motsCles": [
+    "chaussures",
+    "baskets",
+    "sandales"
+   ]
+  },
+  {
+   "icone": "coiffure",
+   "titre": "Coiffure",
+   "motsCles": [
+    "coiffure",
+    "salon",
+    "tresses",
+    "barbier"
+   ]
+  },
+  {
+   "icone": "tontine_all_3d",
+   "titre": "Tontine",
+   "motsCles": [
+    "tontine",
+    "cotisation",
+    "part de tontine"
+   ]
+  },
+  {
+   "icone": "famille_3d_medium-dark",
+   "titre": "Famille",
+   "motsCles": [
+    "famille",
+    "enfants",
+    "aide familiale"
+   ]
+  },
+  {
+   "icone": "older-person-medium-dark",
+   "titre": "Parents",
+   "motsCles": [
+    "maman",
+    "papa",
+    "parents",
+    "grand-mère",
+    "grand-père"
+   ]
+  },
+  {
+   "icone": "famille_coeur_3d_medium-dark",
+   "titre": "Réserve famille",
+   "motsCles": [
+    "réserve",
+    "cérémonies",
+    "soutien famille"
+   ]
+  },
+  {
+   "icone": "ring",
+   "titre": "Mariage",
+   "motsCles": [
+    "mariage",
+    "dot",
+    "fiançailles"
+   ]
+  },
+  {
+   "icone": "party-popper",
+   "titre": "Fête / cérémonie",
+   "motsCles": [
+    "fête",
+    "cérémonie",
+    "baptême",
+    "anniversaire"
+   ]
+  },
+  {
+   "icone": "dove",
+   "titre": "Funérailles",
+   "motsCles": [
+    "funérailles",
+    "décès",
+    "obsèques",
+    "veillée"
+   ]
+  },
+  {
+   "icone": "folded-hands-medium-dark",
+   "titre": "Religion",
+   "motsCles": [
+    "église",
+    "mosquée",
+    "offrande",
+    "dîme",
+    "quête"
+   ]
+  },
+  {
+   "icone": "wrapped-gift",
+   "titre": "Cadeau",
+   "motsCles": [
+    "cadeau",
+    "présent"
+   ]
+  },
+  {
+   "icone": "money-bag",
+   "titre": "Salaire",
+   "motsCles": [
+    "salaire",
+    "paie",
+    "prime"
+   ]
+  },
+  {
+   "icone": "dollar-banknote",
+   "titre": "Vente / revenu",
+   "motsCles": [
+    "vente",
+    "recette",
+    "revenu",
+    "commerce"
+   ]
+  },
+  {
+   "icone": "pig",
+   "titre": "Épargne",
+   "motsCles": [
+    "épargne",
+    "mettre de côté",
+    "compte épargne"
+   ]
+  },
+  {
+   "icone": "bank",
+   "titre": "Banque",
+   "motsCles": [
+    "banque",
+    "frais bancaires",
+    "agios"
+   ]
+  },
+  {
+   "icone": "handshake",
+   "titre": "Dette / prêt",
+   "motsCles": [
+    "dette",
+    "prêt",
+    "remboursement",
+    "emprunt"
+   ]
+  },
+  {
+   "icone": "shield",
+   "titre": "Fonds d’urgence",
+   "motsCles": [
+    "fonds d’urgence",
+    "imprévu",
+    "sécurité"
+   ]
+  },
+  {
+   "icone": "clapper-board",
+   "titre": "Loisirs / cinéma",
+   "motsCles": [
+    "loisirs",
+    "sortie",
+    "cinéma",
+    "concert"
+   ]
+  },
+  {
+   "icone": "soccer-ball",
+   "titre": "Sport",
+   "motsCles": [
+    "sport",
+    "foot",
+    "salle de sport",
+    "match"
+   ]
+  },
+  {
+   "icone": "building-construction",
+   "titre": "Travaux",
+   "motsCles": [
+    "travaux",
+    "construction",
+    "ciment",
+    "maçon"
+   ]
+  },
+  {
+   "icone": "couch-and-lamp",
+   "titre": "Maison / meubles",
+   "motsCles": [
+    "meubles",
+    "équipement",
+    "électroménager"
+   ]
+  },
+  {
+   "icone": "umbrella",
+   "titre": "Assurance",
+   "motsCles": [
+    "assurance",
+    "mutuelle"
+   ]
+  },
+  {
+   "icone": "classical-building",
+   "titre": "Impôts / taxes",
+   "motsCles": [
+    "impôts",
+    "taxes",
+    "mairie",
+    "timbre"
+   ]
+  }
+ ]
+}

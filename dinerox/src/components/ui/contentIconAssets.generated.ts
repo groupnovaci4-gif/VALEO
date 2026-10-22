@@ -10,7 +10,6 @@ export const ICON_ASSETS: Record<string, number> = {
   "balance-scale": require('../../../assets/icons3d/balance-scale.webp'),
   "bank": require('../../../assets/icons3d/bank.webp'),
   "bar-chart": require('../../../assets/icons3d/bar-chart.webp'),
-  "barber-pole": require('../../../assets/icons3d/barber-pole.webp'),
   "basket": require('../../../assets/icons3d/basket.webp'),
   "bell": require('../../../assets/icons3d/bell.webp'),
   "bento-box": require('../../../assets/icons3d/bento-box.webp'),
@@ -29,10 +28,12 @@ export const ICON_ASSETS: Record<string, number> = {
   "clapper-board": require('../../../assets/icons3d/clapper-board.webp'),
   "classical-building": require('../../../assets/icons3d/classical-building.webp'),
   "clinking-beer-mugs": require('../../../assets/icons3d/clinking-beer-mugs.webp'),
+  "coiffure": require('../../../assets/icons3d/coiffure.webp'),
   "coin": require('../../../assets/icons3d/coin.webp'),
   "confetti-ball": require('../../../assets/icons3d/confetti-ball.webp'),
   "construction": require('../../../assets/icons3d/construction.webp'),
   "convenience-store": require('../../../assets/icons3d/convenience-store.webp'),
+  "cooking": require('../../../assets/icons3d/cooking.webp'),
   "couch-and-lamp": require('../../../assets/icons3d/couch-and-lamp.webp'),
   "credit-card": require('../../../assets/icons3d/credit-card.webp'),
   "crescent-moon": require('../../../assets/icons3d/crescent-moon.webp'),
@@ -94,7 +95,7 @@ export const ICON_ASSETS: Record<string, number> = {
   "partying-face": require('../../../assets/icons3d/partying-face.webp'),
   "pencil": require('../../../assets/icons3d/pencil.webp'),
   "people-hugging": require('../../../assets/icons3d/people-hugging.webp'),
-  "pig-face": require('../../../assets/icons3d/pig-face.webp'),
+  "pig": require('../../../assets/icons3d/pig.webp'),
   "pill": require('../../../assets/icons3d/pill.webp'),
   "plat_poisson_3d": require('../../../assets/icons3d/plat_poisson_3d.webp'),
   "potable-water": require('../../../assets/icons3d/potable-water.webp'),
@@ -137,11 +138,11 @@ export const ICON_ASSETS: Record<string, number> = {
   "wrench": require('../../../assets/icons3d/wrench.webp'),
 };
 
-/** Logos des opérateurs (assets/operators, sources : docs/design-pro/logos/SOURCES.md). */
+/** Logos des opérateurs : fichiers du fondateur, sans retouche (assets/operators, refonte finale A6). */
 export const OPERATOR_ASSETS: Record<string, number> = {
-  "orange": require('../../../assets/operators/orange.webp'),
-  "mtn": require('../../../assets/operators/mtn.webp'),
-  "moov": require('../../../assets/operators/moov.webp'),
-  "wave": require('../../../assets/operators/wave.webp'),
-  "airtel": require('../../../assets/operators/airtel.webp'),
+  "orange": require('../../../assets/operators/orange.png'),
+  "mtn": require('../../../assets/operators/mtn.png'),
+  "moov": require('../../../assets/operators/moov.png'),
+  "wave": require('../../../assets/operators/wave.png'),
+  "airtel": require('../../../assets/operators/airtel.png'),
 };
