@@ -403,7 +403,7 @@ let b;
   if (!ONLY || ONLY.test('en ligne')) {
     const O = await mk();
     const og = async (route, w = 3000) => { await O.p.goto(BASE + route, { waitUntil: 'load' }); await O.p.waitForTimeout(w); };
-    await og('/'); await O.p.getByText('Créer mon compte', { exact: false }).first().click(); await O.p.waitForTimeout(800);
+    await og('/sign-up'); // inscription e-mail inchangée (la bienvenue propose le numéro)
     await O.p.getByLabel('Nom', { exact: true }).fill('Mise'); await O.p.getByLabel('Prénom').fill('Page'); await O.p.getByLabel('Adresse e-mail').fill(`layout${Date.now()}@ex.com`);
     await O.p.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123'); await O.p.getByLabel('Confirmer le mot de passe').fill('motdepasse123');
     await O.p.getByRole('switch').first().click(); await btn(O.p, 'Créer mon compte').click();

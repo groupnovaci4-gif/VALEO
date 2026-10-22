@@ -49,7 +49,7 @@ async function person(opts = {}) {
 }
 
 async function signUp(h, first, email) {
-  await h.go('/'); await h.p.getByText('Créer mon compte', { exact: false }).first().click(); await h.p.waitForTimeout(800);
+  await h.go('/sign-up'); // inscription e-mail inchangée (la bienvenue propose le numéro)
   await h.fill('Nom', 'Test', true); await h.fill('Prénom', first); await h.fill('Adresse e-mail', email);
   await h.fill('Mot de passe', 'motdepasse123', true); await h.fill('Confirmer le mot de passe', 'motdepasse123');
   await h.p.getByRole('switch').first().click(); await h.btn('Créer mon compte').click();

@@ -23,15 +23,16 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   const step = async (name, fn) => { try { await fn(); } catch (e) { ok(false, `${name} : ${e.message.split('\n')[0]}`); await shot(name.replace(/\W+/g, '_')); } };
 
   // ── 1. Hors connexion : inscription, connexion, mot de passe oublié ──
-  await go('/');
-  await tap('Créer mon compte', { exact: false });
+  // Connexion par téléphone : l'accueil mène au numéro ; l'inscription e-mail reste sur /sign-up.
+  await go('/phone'); await step('téléphone : numéro (champs)', () => checkAllInputs(p, 'Téléphone (numéro)', ok, { expectInputs: true }));
+  await go('/sign-up');
   await step('inscription (champs)', () => checkAllInputs(p, 'Inscription', ok, { expectInputs: true }));
   await go('/sign-in'); await step('connexion (champs)', () => checkAllInputs(p, 'Connexion', ok, { expectInputs: true }));
   await go('/forgot-password'); await step('mot de passe oublié (champs)', () => checkAllInputs(p, 'Mot de passe oublié', ok, { expectInputs: true }));
 
   // ── 2. Inscription réelle → onboarding ──
   await step('inscription', async () => {
-    await go('/'); await tap('Créer mon compte', { exact: false });
+    await go('/sign-up');
     await fill('Nom', 'Audit', true); await fill('Prénom', 'Fatou'); await fill('Adresse e-mail', email);
     await fill('Téléphone (facultatif)', '+225 07 08 09 10 11');
     await fill('Mot de passe', 'motdepasse123', true); await fill('Confirmer le mot de passe', 'motdepasse123');
@@ -52,6 +53,7 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
     ['/reserve/new', 'Réserve famille'], ['/simulate', 'Puis-je contribuer'], ['/seasons/new?event=tabaski', 'Moment fort'],
     ['/invite-code', 'Code d’invitation'],
     ['/tontines/join', 'Rejoindre une tontine'],
+    ['/settings/add-phone', 'Ajouter mon numéro'],
   ];
   // AUDIT_FAST=1 : saute le contrôle champ par champ (mise au point des enregistrements réels).
   const fast = !!process.env.AUDIT_FAST;
@@ -229,7 +231,7 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   await p.close(); p = await ctx.newPage(); watch(p);
   await step('réouverture', () => verifyAll('réouverture'));
   await step('reconnexion', async () => {
-    await go('/settings'); await p.getByText('Se déconnecter').last().click(); await p.getByText('Créer mon compte').first().waitFor({ timeout: 10000 });
+    await go('/settings'); await p.getByText('Se déconnecter').last().click(); await p.getByText('Continuer avec mon numéro').first().waitFor({ timeout: 10000 });
     await go('/sign-in'); await fill('Adresse e-mail', email); await fill('Mot de passe', 'nouveaumdp456', true);
     await p.getByRole('button', { name: 'Se connecter' }).click(); await p.getByText('Bonjour Fatou').first().waitFor({ timeout: 12000 }); await p.waitForTimeout(3000);
     ok(true, 'reconnexion avec le nouveau mot de passe');

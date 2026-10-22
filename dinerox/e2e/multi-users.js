@@ -18,7 +18,8 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   const signUp = async (p, u) => {
     const h = H(p);
     await h.go('/');
-    await p.getByText('Créer mon compte').first().click(); await p.waitForTimeout(600);
+    // Connexion par téléphone : la bienvenue propose le numéro ; l'inscription e-mail (inchangée) est /sign-up.
+    await p.goto(new URL('/sign-up', p.url()).href, { waitUntil: 'load' }); await p.waitForTimeout(1500);
     await p.getByLabel('Nom', { exact: true }).fill(u.last); await p.getByLabel('Prénom').fill(u.first); await p.getByLabel('Adresse e-mail').fill(u.email);
     await p.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123'); await p.getByLabel('Confirmer le mot de passe').fill('motdepasse123');
     await p.getByRole('switch').first().click();
@@ -31,7 +32,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   const signIn = async (p, u) => {
     const h = H(p);
     await h.go('/');
-    await p.getByText("J'ai déjà un compte").first().click(); await p.waitForTimeout(600);
+    await p.getByText('J’ai un compte e-mail').first().click(); await p.waitForTimeout(600);
     await p.getByLabel('Adresse e-mail').fill(u.email); await p.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123');
     await p.getByRole('button', { name: 'Se connecter' }).click();
     await p.getByText(`Bonjour ${u.first}`).first().waitFor({ timeout: 12000 });
@@ -41,7 +42,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
     const h = H(p);
     await h.go('/settings');
     await p.getByText('Se déconnecter').last().click(); await p.waitForTimeout(2500);
-    await p.getByText('Créer mon compte').first().waitFor({ timeout: 10000 });
+    await p.getByText('Continuer avec mon numéro').first().waitFor({ timeout: 10000 });
   };
   const addData = async (p, u) => {
     const h = H(p);

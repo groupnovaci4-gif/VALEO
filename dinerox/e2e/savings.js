@@ -39,7 +39,7 @@ const email = `sav${Date.now()}@ex.com`;
   const monthExpenses = async () => { await go('/transactions'); return (await text()).split('\n').filter((l) => /^-[\d ]+ FCFA$/.test(l.trim())).map(num).reduce((a, x) => a + x, 0); };
 
   await go('/');
-  await p.getByText('Créer mon compte', { exact: false }).first().click(); await p.waitForTimeout(800);
+  await p.goto(new URL('/sign-up', p.url()).href, { waitUntil: 'load' }); await p.waitForTimeout(1500);
   await fill('Nom', 'Test', true); await fill('Prénom', 'Awa'); await fill('Adresse e-mail', email);
   await fill('Mot de passe', 'motdepasse123', true); await fill('Confirmer le mot de passe', 'motdepasse123');
   await p.getByRole('switch').first().click();

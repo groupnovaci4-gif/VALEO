@@ -49,7 +49,7 @@ const historyRows = (t) => (t.split('Historique des contributions')[1] || t.spli
   b = await launch({ date: d15 });
   let h = await page(b);
   await h.go('/');
-  await h.p.getByText('Créer mon compte', { exact: false }).first().click(); await h.p.waitForTimeout(800);
+  await h.p.goto(new URL('/sign-up', h.p.url()).href, { waitUntil: 'load' }); await h.p.waitForTimeout(1500);
   await h.fill('Nom', 'Test', true); await h.fill('Prénom', 'Awa'); await h.fill('Adresse e-mail', email);
   await h.fill('Mot de passe', 'motdepasse123', true); await h.fill('Confirmer le mot de passe', 'motdepasse123');
   await h.p.getByRole('switch').first().click();

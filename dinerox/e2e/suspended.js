@@ -38,7 +38,7 @@ async function setDisabled(email, disabled) {
   try {
     // 1. Inscription + une dépense (donnée à retrouver après réactivation).
     await go('/');
-    await p.getByText('Créer mon compte').first().click(); await p.waitForTimeout(600);
+    await p.goto(new URL('/sign-up', p.url()).href, { waitUntil: 'load' }); await p.waitForTimeout(1500);
     await p.getByLabel('Nom', { exact: true }).fill(U.last); await p.getByLabel('Prénom').fill(U.first); await p.getByLabel('Adresse e-mail').fill(U.email);
     await p.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123'); await p.getByLabel('Confirmer le mot de passe').fill('motdepasse123');
     await p.getByRole('switch').first().click();
@@ -59,16 +59,16 @@ async function setDisabled(email, disabled) {
     // 3. Coupure puis retour du réseau → l'app renouvelle le jeton → message + déconnexion.
     await ctx.setOffline(true); await p.waitForTimeout(1500);
     await ctx.setOffline(false);
-    await p.getByText('Créer mon compte').first().waitFor({ timeout: 15000 });
+    await p.getByText('Continuer avec mon numéro').first().waitFor({ timeout: 15000 });
     const msg = dialogs.find((d) => d.startsWith('Compte suspendu')) || '';
     ok(msg.includes('Compte suspendu'), 'message affiché : titre « Compte suspendu »');
     ok(msg.includes('Votre compte DineroX est suspendu : vous ne pouvez plus vous connecter pour le moment. Vos données sont conservées.'), 'message affiché : texte validé (D16)');
     ok(msg.includes(SUPPORT), `message affiché : adresse ${SUPPORT}`);
     ok(dialogs.filter((d) => d.startsWith('Compte suspendu')).length === 1, 'message affiché une seule fois');
-    ok((await text()).includes('Créer mon compte'), 'déconnecté : écran d’accueil');
+    ok((await text()).includes('Continuer avec mon numéro'), 'déconnecté : écran d’accueil');
 
     // 4. Nouvelle connexion pendant la suspension : refus avec le message validé.
-    await p.getByText("J'ai déjà un compte").first().click(); await p.waitForTimeout(600);
+    await p.getByText('J’ai un compte e-mail').first().click(); await p.waitForTimeout(600);
     await p.getByLabel('Adresse e-mail').fill(U.email); await p.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123');
     await p.getByRole('button', { name: 'Se connecter' }).click(); await p.waitForTimeout(2500);
     ok((await text()).includes(`Ce compte est suspendu. Écrivez-nous à ${SUPPORT} pour en savoir plus.`), 'connexion refusée : « Ce compte est suspendu… »');
@@ -81,7 +81,7 @@ async function setDisabled(email, disabled) {
     ok((await text()).includes(U.payee), 'réactivé : la dépense est toujours là');
     // 6. Un compte actif n'est jamais déconnecté par la vérification.
     await ctx.setOffline(true); await p.waitForTimeout(1000); await ctx.setOffline(false); await p.waitForTimeout(4000);
-    ok(!(await text()).includes('Créer mon compte') && dialogs.filter((d) => d.startsWith('Compte suspendu')).length === 1, 'compte actif : aucune déconnexion au retour du réseau');
+    ok(!(await text()).includes('Continuer avec mon numéro') && dialogs.filter((d) => d.startsWith('Compte suspendu')).length === 1, 'compte actif : aucune déconnexion au retour du réseau');
     ok(errs.length === 0, `aucune erreur de page (${errs.length})`);
   } catch (e) {
     fails++;

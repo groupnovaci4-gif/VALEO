@@ -383,6 +383,17 @@ service cloud.firestore {
     match /boInvites/{id} { allow read, write: if false; }
     match /accountStatus/{uid} { allow read, write: if false; }
 
+    // ─── Connexion par téléphone (docs/connexion-telephone) ──────────
+    // Serveur seul (Cloud Functions `phone…`) : empreintes des codes reçus, empreintes des
+    // codes secrets, limites et blocages par numéro, appareils vérifiés, index des numéros,
+    // messages du fournisseur SIMULÉ (émulateurs). AUCUN accès client, même administrateur.
+    match /phoneAuth/{id} { allow read, write: if false; }
+    match /phoneSecrets/{uid} { allow read, write: if false; }
+    match /phoneGuard/{id} { allow read, write: if false; }
+    match /phoneDevices/{uid} { allow read, write: if false; }
+    match /phoneIndex/{id} { allow read, write: if false; }
+    match /phoneOutbox/{id} { allow read, write: if false; }
+
     // Tout le reste est refusé par défaut.
   }
 }

@@ -57,7 +57,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   // ── 2. Deux appareils, même compte : pas de répétition entre appareils ──
   const email = `open${Date.now()}@ex.com`;
   const a = await mk();
-  await go(a.p, '/'); await a.p.getByText('Créer mon compte').first().click(); await a.p.waitForTimeout(500);
+  await go(a.p, '/sign-up', 1500); // inscription e-mail inchangée (la bienvenue propose le numéro)
   await a.p.getByLabel('Nom', { exact: true }).fill('Open'); await a.p.getByLabel('Prénom').fill('Awa'); await a.p.getByLabel('Adresse e-mail').fill(email);
   await a.p.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123'); await a.p.getByLabel('Confirmer le mot de passe').fill('motdepasse123');
   await a.p.getByRole('switch').first().click(); await a.p.getByRole('button', { name: 'Créer mon compte' }).click();

@@ -104,6 +104,8 @@ export default function Settings() {
         {/* Parrainage : inviter (toujours), saisir un code (7 jours après l'inscription, sans parrain). */}
         {mode === 'firebase' ? row('ref.title', 'more.sub.invite', 'gift', colors.primary, '/invite') : null}
         {codeOpen ? row('ref.code.title', 'ref.code.sub', 'key', colors.secondary, '/invite-code') : null}
+        {/* Connexion par téléphone : un compte e-mail ajoute son numéro (même compte, maquette 8). */}
+        {mode === 'firebase' && user?.email ? row('phone.link.title', 'phone.link.how', 'call', colors.primary, '/settings/add-phone') : null}
         {row('set.security', 'set.sub.security', 'lock-closed', colors.primary, '/settings/security')}
         {row('set.notifications', 'set.sub.notifications', 'notifications', colors.secondary, '/settings/notifications')}
         {/* Mêmes droits que l'onglet « Plus » (miroir des règles Firestore). */}

@@ -481,6 +481,23 @@ describe('back-office : aucune donnée d’administration accessible à un clien
   });
 });
 
+describe('connexion par téléphone : aucune donnée accessible à un client', () => {
+  const cols = ['phoneAuth', 'phoneSecrets', 'phoneGuard', 'phoneDevices', 'phoneIndex', 'phoneOutbox'];
+  it('lecture et écriture refusées, même pour soi-même, même administrateur, même sans compte', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore() as unknown as Firestore;
+      for (const c of cols) await setDoc(doc(fs, `${c}/u1`), { x: 1 });
+    });
+    for (const c of cols) {
+      for (const who of [db('u1'), db('u1', { admin: true }), db(null)]) {
+        await assertFails(getDoc(doc(who, `${c}/u1`)));
+        await assertFails(setDoc(doc(who, `${c}/u1`), { x: 2 }));
+        await assertFails(deleteDoc(doc(who, `${c}/u1`)));
+      }
+    }
+  });
+});
+
 describe('opération supprimée par le back-office (adminDeleted)', () => {
   async function seed() {
     await env.withSecurityRulesDisabled(async (ctx) => {

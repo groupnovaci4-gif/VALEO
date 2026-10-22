@@ -206,7 +206,7 @@ let b;
   const qbtn = (name) => q.getByRole('button', { name, exact: true });
   const fill = (label, v, exact = false) => q.getByLabel(label, { exact }).first().fill(v);
   await q.goto(BASE + '/', { waitUntil: 'load' }); await q.waitForTimeout(3000);
-  await q.getByText('Créer mon compte', { exact: false }).first().click(); await q.waitForTimeout(800);
+  await q.goto(new URL('/sign-up', q.url()).href, { waitUntil: 'load' }); await q.waitForTimeout(1500);
   await fill('Nom', 'Gratuit', true); await fill('Prénom', 'Koffi'); await fill('Adresse e-mail', `gratuit${Date.now()}@ex.com`);
   await fill('Mot de passe', 'motdepasse123', true); await fill('Confirmer le mot de passe', 'motdepasse123');
   await q.getByRole('switch').first().click();

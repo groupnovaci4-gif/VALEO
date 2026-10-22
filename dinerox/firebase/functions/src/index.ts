@@ -29,6 +29,8 @@ export { adminReferralStats, applyReferral, link, myReferral, referralNightly, r
 // Tontine partagée (croissance, étape 3).
 export { adminTontineStats, tontineGroup } from './tontineGroupApi';
 export { adminOriginStats, recordSignupOrigin } from './installOriginApi';
+// Connexion par téléphone (docs/connexion-telephone) : fournisseurs SIMULÉS seulement (émulateurs).
+export { phoneSetSecret, phoneSignIn, phoneStart, phoneVerify } from './phoneAuthApi';
 
 initializeApp();
 const db = getFirestore();

@@ -30,7 +30,7 @@ const SPY = () => {
     await p.getByLabel('Montant').first().fill(String(amount)); await p.getByText('Alimentation & boissons', { exact: true }).first().click();
     await p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click(); await p.waitForTimeout(1800);
   };
-  await go('/'); await p.getByText('Créer mon compte').first().click(); await p.waitForTimeout(500);
+  await go('/sign-up', 1500); // inscription e-mail inchangée (la bienvenue propose le numéro)
   await p.getByLabel('Nom', { exact: true }).fill('Voix'); await p.getByLabel('Prénom').fill('Awa'); await p.getByLabel('Adresse e-mail').fill(`voice${Date.now()}@ex.com`);
   await p.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123'); await p.getByLabel('Confirmer le mot de passe').fill('motdepasse123');
   await p.getByRole('switch').first().click(); await p.getByRole('button', { name: 'Créer mon compte' }).click();

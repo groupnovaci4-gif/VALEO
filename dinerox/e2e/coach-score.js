@@ -30,7 +30,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   const a = await mk();
   const sent = [];
   a.p.on('request', (r) => { if (/127\.0\.0\.1:(8080|5001)/.test(r.url()) && r.method() !== 'GET') sent.push((r.postData() || '') + r.url()); });
-  await go(a.p, '/'); await a.p.getByText('Créer mon compte').first().click(); await a.p.waitForTimeout(500);
+  await go(a.p, '/sign-up', 1500); // inscription e-mail inchangée (la bienvenue propose le numéro)
   await a.p.getByLabel('Nom', { exact: true }).fill('Kone'); await a.p.getByLabel('Prénom').fill('Awa'); await a.p.getByLabel('Adresse e-mail').fill(`kone${Date.now()}@ex.com`);
   await a.p.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123'); await a.p.getByLabel('Confirmer le mot de passe').fill('motdepasse123');
   await a.p.getByRole('switch').first().click(); await a.p.getByRole('button', { name: 'Créer mon compte' }).click();

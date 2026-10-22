@@ -45,7 +45,7 @@ const page = async (opts = {}) => {
 
 /** Inscription par le formulaire (champ code facultatif) jusqu'au tableau de bord. */
 async function signUp(h, first, email, code) {
-  if (!h.p.url().includes('sign-up')) { await h.go('/'); await h.p.getByText('Créer mon compte', { exact: false }).first().click(); await h.p.waitForTimeout(800); }
+  if (!h.p.url().includes('sign-up')) await h.go('/sign-up'); // inscription e-mail inchangée (la bienvenue propose le numéro)
   await h.fill('Nom', 'Test', true); await h.fill('Prénom', first); await h.fill('Adresse e-mail', email);
   await h.fill('Mot de passe', 'motdepasse123', true); await h.fill('Confirmer le mot de passe', 'motdepasse123');
   if (code !== undefined) await h.fill("Vous avez un code d'invitation ?", code);

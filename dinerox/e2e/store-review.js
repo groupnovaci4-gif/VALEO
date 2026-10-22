@@ -49,7 +49,7 @@ const uidOf = async (email) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   const state = (uid) => p.evaluate((k) => JSON.parse(localStorage.getItem(k) || 'null'), `dinerox:v1:${uid}:storeReview`);
 
   const email = `review${Date.now()}@ex.com`;
-  await go('/'); await p.getByText('Créer mon compte', { exact: false }).first().click(); await p.waitForTimeout(800);
+  await go('/sign-up'); // inscription e-mail inchangée (la bienvenue propose le numéro)
   await fill('Nom', 'Koné', true); await fill('Prénom', 'Awa'); await fill('Adresse e-mail', email);
   await fill('Mot de passe', 'motdepasse123', true); await fill('Confirmer le mot de passe', 'motdepasse123');
   await p.getByRole('switch').first().click(); await btn('Créer mon compte').click();

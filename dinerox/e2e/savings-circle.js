@@ -28,7 +28,7 @@ let b;
     const fill = (label, v, exact = false) => p.getByLabel(label, { exact }).first().fill(v);
     const tap = async (t, w = 300) => { await p.getByText(t, { exact: true }).first().click(); await p.waitForTimeout(w); };
     const signUp = async (first) => {
-      await go('/'); await p.getByText('Créer mon compte', { exact: false }).first().click(); await p.waitForTimeout(800);
+      await go('/sign-up'); // inscription e-mail inchangée (la bienvenue propose le numéro)
       await fill('Nom', 'Test', true); await fill('Prénom', first); await fill('Adresse e-mail', `circle-${first.toLowerCase()}${Date.now()}@ex.com`);
       await fill('Mot de passe', 'motdepasse123', true); await fill('Confirmer le mot de passe', 'motdepasse123');
       await p.getByRole('switch').first().click(); await btn('Créer mon compte').click();

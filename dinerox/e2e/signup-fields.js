@@ -5,7 +5,8 @@ const { BASE, launch } = require('./env.js');
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   let fails = 0; const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
   await p.goto(BASE + '/', { waitUntil: 'load' }); await p.waitForTimeout(3000);
-  await p.getByText('Créer mon compte').first().click(); await p.waitForTimeout(800);
+  // Connexion par téléphone : la bienvenue propose le numéro ; l'inscription e-mail (inchangée) est /sign-up.
+  await p.goto(new URL('/sign-up', p.url()).href, { waitUntil: 'load' }); await p.waitForTimeout(1500);
   // Marqueur sur chaque champ : un remontage le ferait disparaître.
   const total = await p.evaluate(() => { const l = document.querySelectorAll('input'); l.forEach((el, i) => (el.dataset.mark = 'm' + i)); return l.length; });
   const fields = [

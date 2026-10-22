@@ -18,7 +18,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
     await btn('Enregistrer', 100);
     return toastAfter();
   };
-  await go('/'); await p.getByText('Créer mon compte').first().click(); await p.waitForTimeout(500);
+  await go('/sign-up', 1500); // inscription e-mail inchangée (la bienvenue propose le numéro)
   await p.getByLabel('Nom', { exact: true }).fill('Coach'); await p.getByLabel('Prénom').fill('Awa'); await p.getByLabel('Adresse e-mail').fill(`coach${Date.now()}@ex.com`);
   await p.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123'); await p.getByLabel('Confirmer le mot de passe').fill('motdepasse123');
   await p.getByRole('switch').first().click(); await p.getByRole('button', { name: 'Créer mon compte' }).click();
