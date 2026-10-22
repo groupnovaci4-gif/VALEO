@@ -92,8 +92,25 @@ touchés ; les noms exacts des données de démonstration (« Réserve famille e
    d'objectifs et conseil d'épargne des Objectifs → lecteur d'écran et « À lire » ; « J'ai compris »
    du résumé du coach → × de chaque message.
 
+## Décisions du fondateur sur l'étape 10 (DECISIONS.md B5bis, E5, A6, J1 à J4) — faites
+
+| N° | Décision | État | Preuve |
+|---|---|---|---|
+| B5bis | Accueil : les 3 messages les plus importants (alertes, puis échéances), puis « Voir les N › » vers Notifications, où TOUS restent consultables ; la cloche affiche le vrai nombre de non-lus ; E1 à E4 inchangés | **fait** | `tests/etape5-j.test.ts` (`homeToRead`, « Voir les N › », cloche = non-lus avant regroupement, écran Notifications = constats + conseil + coach + analyse) ; `comparaison/accueil-*.png`. La mention « Selon les opérations enregistrées… » (règle 17) reste dès qu'un message du coach est à lire, même derrière « Voir les N » (e2e `coach-open`) |
+| E5 | Messages du même type regroupés : 7 « paiement régulier détecté » → « 7 paiements réguliers détectés », qui ouvre la liste détaillée | **fait** | `tests/etape5-j.test.ts` (`groupToRead`, lu à la fin d'« Écouter » ou au × = chacun de ses messages lu). Regroupés : paiements réguliers, rythmes d'objectif, objectifs presque atteints / atteints, dépenses inhabituelles, catégories en hausse / en baisse. **Jamais** les alertes du budget ni les échéances (une par une, comme la maquette). Textes NOUVEAUX `toRead.group.*` (FR + EN, à valider), aucune clé supprimée |
+| A6 | Logos validés définitivement : ne plus modifier | **respecté** | aucun fichier de `assets/operators/` ni leur rendu modifié depuis l'étape 1 |
+| J1 | Tuile « Parler » : taille fixe et exemple gardés | **fait** (rien à changer) | `accueil-*.png` |
+| J2 | Planche « Logos des opérateurs » : jamais dans l'application | **respecté** | `comptes-*.png` (aucun cadre de logos) |
+| J3 | 5 écarts validés | **gardés tels quels** | — |
+| J4 a | « Saisir » : pilule vert foncé (couleur des cartes), 48 × 36, posée DANS la barre, libellé dessous ; même action, même accessibilité, toucher ≥ 48 dp | **fait** | `tests/etape5-j.test.ts` ; barre du bas visible sur `accueil-*.png` et `budget-*.png`. Note : la maquette SOMBRE peint cette pilule en vert clair (#4FB08F) ; la consigne dit « vert foncé, couleur des cartes » : appliquée dans les deux thèmes (#0F4A3A en clair, #123A2F en sombre) — à confirmer |
+| J4 b | « Votre analyse » : graphique bleu | **fait** | `tests/etape5-j.test.ts` (icône `analytics`, bleu, quel que soit le ton) |
+
 ## Contrôles
 
-- `npm run check` : 1739 tests, lint à zéro.
-- e2e d'un seul tenant sur le code final : 33/33 parcours, 979 vérifications, code de sortie 0.
+- Étape 10 : `npm run check` 1739 tests ; e2e d'un seul tenant 33/33, 979 vérifications.
+- Décisions B5bis / E5 / J4 : `npm run check` **1754 tests**, lint à zéro ; e2e d'un seul tenant
+  sur ce code : **33/33**, 979 vérifications, code de sortie 0 ; images de l'Accueil et du Budget
+  refaites (clair et sombre, barre du bas visible). Sur la démonstration : « À lire · 11 » (les
+  7 paiements réguliers regroupés en un), 3 alertes affichées puis « Voir les 11 › », cloche « 9+ »
+  (17 non-lus).
 - Aucune APK fabriquée, H1 (« À propos ») non touché, aucun déploiement.

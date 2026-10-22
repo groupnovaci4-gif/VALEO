@@ -20,16 +20,17 @@ import { ListenButton } from '@/features/coach/ListenButton';
 import { AdviceAi } from '@/features/coach/AdviceOfDay';
 import { SourceTag } from '@/features/Recommendation';
 import { useToRead } from './useToRead';
-import type { ToReadItem } from './toRead';
+import { homeToRead, type ToReadItem } from './toRead';
 
 type Shown = ToReadItem & { reminder: boolean };
 
 /** Pastille : fond, couleur (icône et étiquette), icône — selon le ton et la sorte du message. */
 function look(x: ToReadItem, p: FinalPalette): { bg: string; fg: string; icon: string } {
+  // J4 : « Votre analyse » = graphique bleu de la maquette, quel que soit le ton.
+  if (x.kind === 'analysis') return { bg: p.blueBg, fg: p.blueFg, icon: 'analytics' };
   if (x.tone === 'danger') return { bg: p.alertBg, fg: p.alertFg, icon: 'alert-circle' };
   if (x.tone === 'warning') return { bg: p.goldBg, fg: p.goldFg, icon: 'warning' };
   if (x.kind === 'advice' || x.tone === 'advice') return { bg: p.violetBg, fg: p.violetFg, icon: 'bulb' };
-  if (x.kind === 'analysis') return { bg: p.blueBg, fg: p.blueFg, icon: 'analytics' };
   return { bg: p.blueBg, fg: p.blueFg, icon: 'calendar' };
 }
 
@@ -80,10 +81,12 @@ export function ToReadList({ budgetOnly }: { budgetOnly?: boolean }) {
     );
   }
 
+  // B5bis : les 3 messages les plus importants (alertes et échéances d'abord), puis « Voir les N › ».
+  const { shown, total } = homeToRead(items, 3);
   return (
     <View>
-      <SectionHeader title={t('toRead.title', { count: items.length })} action={t('toRead.hint')} />
-      {items.map((x) => {
+      <SectionHeader title={t('toRead.title', { count: total })} action={t('toRead.hint')} />
+      {shown.map((x) => {
         const l = look(x, p);
         const go = open(x);
         const label = t(`toRead.label.${x.kind}` as TKey);
@@ -118,6 +121,15 @@ export function ToReadList({ budgetOnly }: { budgetOnly?: boolean }) {
           </View>
         );
       })}
+      {/* Tous les messages restent consultables dans l'écran Notifications (B5bis). */}
+      {total > shown.length ? (
+        <Pressable accessibilityRole="link" accessibilityLabel={t('toRead.seeAll', { count: total })} onPress={() => router.push('/notifications')} style={({ pressed }) => ({ alignSelf: 'flex-end', minHeight: 48, justifyContent: 'center', paddingHorizontal: 8, borderRadius: 12, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}>
+          <Text variant="label" tone="primary" style={{ fontSize: 14 }}>
+            {t('toRead.seeAll', { count: total })}
+          </Text>
+        </Pressable>
+      ) : null}
+      {/* Mention de la règle 17 : dès qu'un message du coach est à lire (affiché ou derrière « Voir les N »). */}
       {items.some((x) => x.kind === 'coach') ? (
         <Text variant="caption" tone="subtle" style={{ marginTop: 2, marginBottom: 4 }}>
           {t('coach.disclaimer')}

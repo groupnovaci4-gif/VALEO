@@ -5,7 +5,8 @@ import { Tabs, router, useIsFocused } from "expo-router";
 import { useApp } from "@/store/app";
 import { useTheme } from "@/theme";
 import { fontFor } from "@/theme/fonts";
-import { MIC_LIFT, TAB_CAP, tabBarHeight, tabLabelScale, tabLayout } from "@/theme/layout";
+import { TAB_CAP, tabBarHeight, tabLabelScale, tabLayout } from "@/theme/layout";
+import { darkColorsV2, lightColorsV2 } from "@/theme/tokens";
 import { useI18n } from "@/i18n";
 import { Icon, InTabsContext, useToastAboveTabBar } from "@/components/ui";
 import { useEntry } from "@/features/entry/EntryProvider";
@@ -147,18 +148,21 @@ function TabLabel({ text, color, focused, scale }: { text: string; color: string
 }
 
 /**
- * Gros bouton central surélevé : un appui = voix, un appui long = clavier.
- * Libellé « Saisir » écrit dessous (jamais une icône seule).
+ * Bouton central « Saisir » (refonte finale J4, maquette `.tab .mic`) : pilule vert foncé
+ * (couleur des cartes, 48 × 36, rayon 18) posée DANS la barre, micro blanc 22, libellé « Saisir »
+ * dessous (jamais une icône seule). Un appui = voix, un appui long = clavier (inchangé) ; zone de
+ * toucher d'au moins 48 dp.
  */
 function MicTabButton({ scale }: { scale: number }) {
-  const { colors, shadow } = useTheme();
+  const { colors, dark } = useTheme();
   const { t } = useI18n();
   const entry = useEntry();
   const { profile } = useApp();
   // Méthode par défaut (réglages) : voix, ou saisie au clavier ; l'appui long ouvre l'autre.
   const keyboardFirst = entryPrefs(profile?.preferences).defaultMethod === 'quick_manual';
+  const pill = (dark ? darkColorsV2 : lightColorsV2).heroFrom;
   return (
-    <View style={{ flex: 1, alignItems: "center" }}>
+    <View style={{ flex: 1, alignItems: "center", paddingTop: 6 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={keyboardFirst ? t("entry.mic.labelKeyboard") : t("entry.mic.label")}
@@ -166,28 +170,14 @@ function MicTabButton({ scale }: { scale: number }) {
         onPress={() => entry.open(keyboardFirst ? "keyboard" : "voice")}
         onLongPress={() => entry.open(keyboardFirst ? "voice" : "keyboard")}
         delayLongPress={350}
-        style={{ alignItems: "center" }}
+        style={{ alignItems: "center", minWidth: 48, minHeight: 48 }}
       >
         {({ pressed }) => (
           <>
-            <View
-              style={{
-                width: 56,
-                height: 56,
-                marginTop: -MIC_LIFT,
-                borderRadius: 28,
-                borderWidth: 4,
-                borderColor: colors.tabBar,
-                backgroundColor: pressed ? colors.primaryDark : colors.primary,
-                alignItems: "center",
-                justifyContent: "center",
-                // Ombre neutre (plus de halo coloré).
-                ...shadow.raised,
-              }}
-            >
-              <Icon name="mic" size={28} color={colors.onPrimary} />
+            <View style={{ width: 48, height: 36, borderRadius: 18, backgroundColor: pill, opacity: pressed ? 0.85 : 1, alignItems: "center", justifyContent: "center" }}>
+              <Icon name="mic" size={22} color="#FFFFFF" />
             </View>
-            <TabLabel text={t("entry.mic")} color={colors.text} focused scale={scale} />
+            <TabLabel text={t("entry.mic")} color={colors.textSubtle} focused={false} scale={scale} />
           </>
         )}
       </Pressable>

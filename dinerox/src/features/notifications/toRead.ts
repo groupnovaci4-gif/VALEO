@@ -27,6 +27,61 @@ export interface ToReadItem {
   keys: string[];
   /** Moteur d'origine (identifiant de test `toread-<origine>` ; l'étiquette affichée suit `kind`). */
   origin?: 'insight' | 'summary' | 'advice' | 'analysis';
+  /** Sorte du constat (`Insight.kind`) : sert au regroupement (E5). */
+  insightKind?: string;
+  /** Message regroupé (E5) : les messages qu'il représente (lus ensemble). */
+  members?: { id: string; reminder: boolean }[];
+}
+
+/**
+ * E5 (fondateur, 22/10) : sortes de messages d'INFORMATION regroupées quand elles se répètent.
+ * Jamais les alertes du budget ni les échéances : la maquette les montre une par une.
+ */
+export const GROUPABLE_KINDS = ['recurring_payment', 'goal_eta', 'goal_near', 'goal_reached', 'unusual_expense', 'category_increase', 'category_decrease'] as const;
+
+/**
+ * Regroupe les messages du même type (au moins 2) en UN message « N … » qui ouvre la liste
+ * détaillée (écran Notifications) ; il prend la place du premier. Le texte vient de `groupText`
+ * (clé `toRead.group.<sorte>`, FR + EN). À appliquer APRÈS `visibleToRead` (messages non lus).
+ */
+export function groupToRead<T extends ToReadItem & { reminder?: boolean }>(items: T[], groupText: (kind: string, count: number) => string): T[] {
+  const byKind = new Map<string, T[]>();
+  for (const x of items) {
+    const k = x.insightKind;
+    if (k && (GROUPABLE_KINDS as readonly string[]).includes(k)) byKind.set(k, [...(byKind.get(k) ?? []), x]);
+  }
+  const out: T[] = [];
+  const done = new Set<string>();
+  for (const x of items) {
+    const k = x.insightKind;
+    const group = k ? byKind.get(k) : undefined;
+    if (!k || !group || group.length < 2) {
+      out.push(x);
+      continue;
+    }
+    if (done.has(k)) continue;
+    done.add(k);
+    out.push({ ...x, id: `grp_${k}`, text: groupText(k, group.length), link: '/notifications', dueDate: null, keys: [], reminder: group.every((g) => g.reminder), members: group.map((g) => ({ id: g.id, reminder: !!g.reminder })) });
+  }
+  return out;
+}
+
+/** Ce que « lu » marque : chaque message d'un groupe, sinon le message lui-même (E1). */
+export function readTargets(x: { id: string; reminder: boolean; members?: { id: string; reminder: boolean }[] }): { id: string; reminder: boolean }[] {
+  return x.members?.length ? x.members : [{ id: x.id, reminder: x.reminder }];
+}
+
+/** Importance pour l'Accueil (B5bis) : alertes (danger, puis attention), puis échéances, puis le reste. */
+const rank = (x: ToReadItem) => (x.tone === 'danger' ? 0 : x.tone === 'warning' ? 1 : x.dueDate ? 2 : 3);
+
+/** B5bis : les `max` messages les plus importants (ordre stable à importance égale) et le total. */
+export function homeToRead<T extends ToReadItem>(items: T[], max = 3): { shown: T[]; total: number } {
+  const shown = items
+    .map((x, i) => ({ x, i }))
+    .sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i)
+    .slice(0, max)
+    .map((e) => e.x);
+  return { shown, total: items.length };
 }
 
 export interface ReadRecord {

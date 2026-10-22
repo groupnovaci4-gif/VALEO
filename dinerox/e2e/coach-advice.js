@@ -62,12 +62,19 @@ let b;
   /** La lecture demandée est la DERNIÈRE de la file (après une éventuelle voix proactive). */
   const reads = (card, spoken) => readsOne(card, spoken);
 
+  // Refonte finale B5bis : l'Accueil ne montre que les 3 messages les plus importants (alertes d'abord) ;
+  // TOUS restent consultables (et écoutables) dans l'écran Notifications.
+  const listenAnywhere = async (marker) => {
+    let r = await listenNear(marker);
+    if (!r[0]) { await go('/notifications'); await closeCelebration(); r = await listenNear(marker); await go('/'); await closeCelebration(); }
+    return r;
+  };
   // Résumé du coach (« À lire », refonte finale E1 : la fin de la lecture le marque comme lu).
-  let [card, spoken] = await listenNear('Votre coach');
+  let [card, spoken] = await listenAnywhere('Votre coach');
   ok(reads(card, spoken), `résumé du coach lu (« ${spoken.slice(0, 70)}… »)`);
 
   // Conseil du jour : présent, lu tel qu'affiché, sans proposition d'IA sans compte en ligne ni consentement.
-  [card, spoken] = await listenNear('Conseil du jour');
+  [card, spoken] = await listenAnywhere('Conseil du jour');
   ok(reads(card, spoken), `conseil du jour lu tel qu'affiché (« ${spoken.slice(0, 80)}… »)`);
   ok(!(await p.getByText("M'expliquer ce conseil (IA)").count()), 'sans compte en ligne ni consentement : aucun appel à l’IA proposé');
   // Recommandation de l'accueil (carte cliquable) : « Écouter » ne navigue pas.
@@ -78,6 +85,8 @@ let b;
   if (!card) [card, spoken] = await listenNear('Vos données');
   // Refonte finale E : la recommandation de l'accueil est le message « Votre analyse » de « À lire » (ouvre l'analyse).
   if (!card) [card, spoken] = await listenNear('Votre analyse');
+  // B5bis : les 3 messages de l'accueil sont souvent des alertes budget — elles aussi touchables (enveloppe).
+  if (!card) [card, spoken] = await listenNear('Alerte budget');
   ok(p.url() === url, 'appui sur « Écouter » dans une carte cliquable : aucune navigation, aucune action');
   ok(reads(card, spoken), `recommandation lue (« ${spoken.slice(0, 70)}… »)`);
 

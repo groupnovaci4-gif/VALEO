@@ -2314,6 +2314,15 @@ export const fr = {
   'toRead.dismiss': 'Marquer comme lu',
   'toRead.markAllRead': 'Tout marquer comme lu',
   'toRead.reminder': 'Rappel',
+  // Étape 10, décisions du fondateur : 3 messages à l'accueil (B5bis), regroupement (E5).
+  'toRead.seeAll': 'Voir les {count} ›',
+  'toRead.group.recurring_payment': '{count} paiements réguliers détectés',
+  'toRead.group.goal_eta': '{count} objectifs : date d’arrivée estimée',
+  'toRead.group.goal_near': '{count} objectifs presque atteints',
+  'toRead.group.goal_reached': '{count} objectifs atteints !',
+  'toRead.group.unusual_expense': '{count} dépenses inhabituelles',
+  'toRead.group.category_increase': '{count} catégories en hausse par rapport au mois dernier',
+  'toRead.group.category_decrease': '{count} catégories en baisse par rapport au mois dernier',
   // Refonte finale, Budget (C1, C2).
   'budget.consumedShort': 'consommé',
   'budget.toAllocateShort': 'À répartir',

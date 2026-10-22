@@ -17,7 +17,8 @@ import type { Insight } from '@/core/insights';
 import type { Recommendation } from '@/core/intelligence';
 import type { CoachEvent } from '@/core/coach/events';
 import { loadReadState, readNow, readStateSnapshot, setReadState, subscribeReadState } from '@/services/readState';
-import { markRead, mergeToRead, visibleToRead, type ToReadItem, type ToReadTone } from './toRead';
+import { groupToRead, markRead, mergeToRead, readTargets, visibleToRead, type ToReadItem, type ToReadTone } from './toRead';
+import { useI18n, type TKey } from '@/i18n';
 
 /** Alertes du BUDGET (onglet Budget et étiquette « Alerte budget »). */
 const BUDGET_INSIGHTS = new Set<Insight['kind']>(['envelope_threshold', 'envelope_over_streak', 'negative_month']);
@@ -35,6 +36,7 @@ const recTone = (s: Recommendation['severity']): ToReadTone => (s === 'danger' ?
 
 export function useToRead() {
   const { user } = useApp();
+  const { t } = useI18n();
   const uid = user?.uid ?? null;
   const { insights, now } = useFinance();
   const renderInsight = useInsightText();
@@ -60,6 +62,7 @@ export function useToRead() {
       // Seuil d'une enveloppe : le même fait que l'alerte d'enveloppe du coach.
       keys: i.kind === 'envelope_threshold' && i.ref ? [`envelope:${i.ref.id}`] : [],
       origin: 'insight',
+      insightKind: i.kind,
     }));
     const adviceItems: ToReadItem[] = advice ? [{ id: advice.id, kind: 'advice', tone: 'advice', text: renderRec(advice), link: advice.link ?? null, keys: [`rec:${advice.kind}`], origin: 'advice' }] : [];
     const coachItems: ToReadItem[] = summary
@@ -81,28 +84,34 @@ export function useToRead() {
   }, [insights, renderInsight, advice, renderRec, summary, coachText, topRec]);
 
   const ready = snap.loaded && snap.uid === uid;
-  const items = useMemo(() => (ready ? visibleToRead(all, snap.store, snap.checkedAt, snap.checkedDay) : []), [ready, all, snap.store, snap.checkedAt, snap.checkedDay]);
+  const visible = useMemo(() => (ready ? visibleToRead(all, snap.store, snap.checkedAt, snap.checkedDay) : []), [ready, all, snap.store, snap.checkedAt, snap.checkedDay]);
+  // E5 : les messages du même type deviennent UN message (« 7 paiements réguliers détectés »).
+  const items = useMemo(() => groupToRead(visible, (kind, count) => t(`toRead.group.${kind}` as TKey, { count })), [visible, t]);
 
+  // Lire un message regroupé = lire chacun de ses messages (E1).
   const dismiss = useCallback(
-    (x: { id: string; reminder: boolean }) => {
-      const { now: at, day } = readNow();
-      setReadState(uid, markRead(readStateSnapshot().store, x, at, day));
-    },
-    [uid],
-  );
-  const dismissAll = useCallback(
-    (xs: { id: string; reminder: boolean }[]) => {
+    (x: { id: string; reminder: boolean; members?: { id: string; reminder: boolean }[] }) => {
       const { now: at, day } = readNow();
       let store = readStateSnapshot().store;
-      for (const x of xs) store = markRead(store, x, at, day);
+      for (const target of readTargets(x)) store = markRead(store, target, at, day);
       setReadState(uid, store);
     },
     [uid],
   );
-  return { items, dismiss, dismissAll, advice, topRec };
+  const dismissAll = useCallback(
+    (xs: { id: string; reminder: boolean; members?: { id: string; reminder: boolean }[] }[]) => {
+      const { now: at, day } = readNow();
+      let store = readStateSnapshot().store;
+      for (const x of xs) for (const target of readTargets(x)) store = markRead(store, target, at, day);
+      setReadState(uid, store);
+    },
+    [uid],
+  );
+  // `all` : TOUS les messages, lus ou non (écran Notifications, B5bis) ; `unread` : vrai nombre de non-lus.
+  return { items, all, unread: visible.length, dismiss, dismissAll, advice, topRec };
 }
 
-/** Cloche : le nombre de messages à lire. */
+/** Cloche : le vrai nombre de messages non lus (avant regroupement, B5bis). */
 export function useToReadCount(): number {
-  return useToRead().items.length;
+  return useToRead().unread;
 }
