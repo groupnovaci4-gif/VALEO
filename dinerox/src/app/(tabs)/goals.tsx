@@ -124,7 +124,16 @@ function GoalsScreen() {
               pace,
               percent: p.plan.percent,
               icon: { emoji: season.icon, ids: [season.templateId, `goal.${season.categoryId}`] },
-              a11y: [t('season.section'), season.name, amounts, pace, `${p.plan.percent} %`].join(', '),
+              // La phrase de l'ancienne section « Moments forts » (« … dans N semaines : … prévus, soit … par semaine »)
+              // reste lue ici ; la vignette affiche le rythme court de la maquette (« 15 000 FCFA / sem. »).
+              a11y: [
+                t('season.section'),
+                `${p.plan.percent} %`,
+                season.targetDate && p.weeksLeft !== null && p.weekly !== null
+                  ? t('season.planFull', { name: season.name, weeks: p.weeksLeft, target: money(season.targetAmount), weekly: money(p.weekly) })
+                  : t('season.noDatePlan', { target: money(season.targetAmount) }),
+                amounts,
+              ].join(', '),
               onPress: () => router.push('/seasons'),
               onAdd: season.status === 'active' ? contribute(season.id) : null,
               addLabel: `${t('goal.contribute')}, ${season.name}`,

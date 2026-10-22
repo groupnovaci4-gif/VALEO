@@ -26,8 +26,9 @@ let b;
   ok((await how.count()) > 0, 'accueil : repli « Comment c’est calculé ? »');
   await how.first().click(); await p.waitForTimeout(300);
   let t = await text();
-  const iDaily = t.indexOf('Votre plafond de dépenses par jour'), iBubble = t.indexOf('Dites-moi ce que vous avez dépensé ou reçu'), iRecent = t.indexOf('Dernières opérations'), iCoach = t.indexOf('Votre coach');
-  ok(iDaily >= 0 && iDaily < iBubble && iBubble < iRecent && iRecent < iCoach, `ordre : reste par jour → bulle → dernières opérations → autres blocs (${[iDaily, iBubble, iRecent, iCoach].join(' < ')})`);
+  // Refonte finale (FINAL-accueil.png, B2 à B7) : carte → 4 tuiles (dont « Parler ») → « À lire » → dernières opérations → enveloppes.
+  const iDaily = t.indexOf('Votre plafond de dépenses par jour'), iTiles = t.indexOf('Historique'), iToRead = t.indexOf('À lire'), iRecent = t.indexOf('Dernières opérations'), iEnv = t.indexOf('Enveloppes');
+  ok(iDaily >= 0 && iDaily < iTiles && iTiles < iToRead && iToRead < iRecent && iRecent < iEnv, `ordre : reste par jour → tuiles → À lire → dernières opérations → enveloppes (${[iDaily, iTiles, iToRead, iRecent, iEnv].join(' < ')})`);
   const sentence = (t.match(PER_DAY) || []);
   // Argent disponible v2 (§7.3) : (argent disponible − engagements jusqu'au prochain revenu) / jours.
   const detail = (t.match(/Argent disponible ([\d ]+) FCFA − engagements ([\d ]+) FCFA, sur (\d+) jour/) || []);
@@ -37,12 +38,12 @@ let b;
     ok(num(sentence[1]) === expected, `calcul affiché cohérent : (${detail[1]} − ${detail[2]}) / ${detail[3]} j = ${expected}`);
     ok(Number(detail[3]) >= 1 && Number(detail[3]) <= 31, `période jusqu’au prochain revenu (${detail[3]} jour(s))`);
   }
-  ok(/Par exemple : « .+ »/.test(t) && (await btn('Parler').count()) > 0 && (await btn('Saisir').count()) > 0, 'bulle : exemple + « Parler » + « Saisir »');
-  // Recent : 5 dernières opérations au plus, juste sous la bulle.
-  // Lignes d'opération situées (à l'écran) entre le titre « Dernières opérations » et la carte du coach.
+  // B4 : la tuile « Parler » remplace la bulle (même action, exemple gardé) ; le clavier reste au centre (« Saisir »).
+  ok((await p.getByRole('button', { name: /^Parler, « .+ »$/ }).count()) > 0 && (await p.getByText('Saisir', { exact: true }).count()) > 0, 'tuile « Parler » avec exemple + « Saisir »');
+  // Recent : 5 dernières opérations au plus (B6 : groupées par jour), entre leur titre et « Enveloppes ».
   const yFrom = (await p.getByText('Dernières opérations', { exact: true }).first().boundingBox()).y;
-  const yTo = (await p.getByText(/^Votre coach/).first().boundingBox()).y;
-  const recentRows = await p.evaluate(([a, z]) => [...document.querySelectorAll('[role=button][aria-label*=" · "]')].filter((e) => { const y = e.getBoundingClientRect().y + window.scrollY; return y > a && y < z; }).length, [yFrom, yTo]);
+  const yTo = (await p.getByText('Enveloppes', { exact: true }).first().boundingBox()).y;
+  const recentRows = await p.evaluate(([a, z]) => [...document.querySelectorAll('[role=button][aria-label*="FCFA"]')].filter((e) => { const y = e.getBoundingClientRect().y + window.scrollY; return y > a + 20 && y < z; }).length, [yFrom, yTo]);
   ok(recentRows > 0 && recentRows <= 5, `dernières opérations : ${recentRows} ligne(s) (≤ 5)`);
   // Montants masqués : le reste par jour aussi.
   await p.getByRole('button', { name: 'Masquer les montants' }).click(); await p.waitForTimeout(300);
@@ -55,7 +56,9 @@ let b;
   });
   await p.reload({ waitUntil: 'load' }); await p.waitForTimeout(3500); await closeCelebration();
   t = await text();
-  ok(/Dites « .+ »/.test(t) && !t.includes('Par exemple :') && (await btn('Parler').count()) === 0, 'après 10 saisies : bulle réduite à une ligne discrète');
+  // Refonte finale B4 : la bulle est devenue une tuile de taille fixe (maquette) ; il n'y a plus rien à
+  // réduire après 10 saisies (écart signalé au fondateur, docs/design-pro/etape-5/DECISIONS-PREUVES.md).
+  ok((await p.getByRole('button', { name: /^Parler, « .+ »$/ }).count()) === 1, 'après 10 saisies : la tuile « Parler » reste telle que la maquette (écart B4 signalé)');
   await p.screenshot({ path: `${S}/lot-a-home.png` });
   ok(errs.length === 0, 'démo : aucune erreur JS ' + errs.slice(0, 2).join(' | '));
   await ctx.close();

@@ -349,7 +349,8 @@ let b;
     await A.p.getByRole('button', { name: "Créer l'objectif" }).or(A.p.getByRole('button', { name: 'Créer l’objectif' })).first().click(); await A.p.waitForTimeout(1500);
     await go('/goals');
     await btn(A.p, 'Ajouter de l’argent, Audit atteint').first().click(); await A.p.waitForTimeout(1200);
-    await A.p.getByLabel('Montant').first().fill('1000');
+    // Nom exact et visible : l'onglet Objectifs (monté dessous) a un bouton « Modifier le montant » (D3).
+    await A.p.getByLabel('Montant', { exact: true }).filter({ visible: true }).first().fill('1000');
     await btn(A.p, 'Enregistrer').last().click(); await A.p.waitForTimeout(2500);
     if (!(await text(A.p)).includes('Félicitations')) throw new Error('« Objectif atteint » non affiché');
   });
@@ -361,7 +362,7 @@ let b;
       await go('/goals');
       await setEnv(A.p, A.cdp, [360, 640], prof);
       await btn(A.p, 'Ajouter de l’argent, Ma moto').first().click(); await A.p.waitForTimeout(1200);
-      await A.p.getByLabel('Montant').first().fill('100');
+      await A.p.getByLabel('Montant', { exact: true }).filter({ visible: true }).first().fill('100');
       await btn(A.p, 'Enregistrer').last().click(); await A.p.waitForTimeout(700);
       // L'enregistrement ouvre la fiche de l'objectif : retour à l'onglet, message encore affiché (4 s).
       await btn(A.p, 'Retour').first().click(); await A.p.waitForTimeout(700);

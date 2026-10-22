@@ -88,7 +88,7 @@ export function ToReadList({ budgetOnly }: { budgetOnly?: boolean }) {
         const go = open(x);
         const label = t(`toRead.label.${x.kind}` as TKey);
         return (
-          <View key={x.id} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingTop: 12, paddingBottom: 8, paddingLeft: 14, paddingRight: 8, borderRadius: 16, backgroundColor: colors.surface, marginBottom: 8, ...(dark ? null : shadowB) }}>
+          <View key={x.id} testID={`toread-${x.origin ?? x.kind}`} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingTop: 12, paddingBottom: 8, paddingLeft: 14, paddingRight: 8, borderRadius: 16, backgroundColor: colors.surface, marginBottom: 8, ...(dark ? null : shadowB) }}>
             <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: l.bg, alignItems: 'center', justifyContent: 'center' }}>
               <Icon name={l.icon} size={18} color={l.fg} />
             </View>
@@ -107,11 +107,12 @@ export function ToReadList({ budgetOnly }: { budgetOnly?: boolean }) {
                   <AdviceAi adviceId={advice.id} text={x.text} />
                 </View>
               ) : null}
-              <View style={{ alignItems: 'flex-start', marginLeft: -8 }}>
+              {/* À la taille du bouton : une View étirée avec une marge négative dépasserait la carte. */}
+              <View style={{ alignSelf: 'flex-start', marginLeft: -8 }}>
                 <ListenButton text={x.text} onEnd={() => dismiss(x)} />
               </View>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('toRead.dismiss')} onPress={() => dismiss(x)} hitSlop={8} style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginTop: -6, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('toRead.dismiss')} onPress={() => dismiss(x)} style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginTop: -10, marginRight: -4, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}>
               <Icon name="close" size={18} color={colors.textSubtle} />
             </Pressable>
           </View>

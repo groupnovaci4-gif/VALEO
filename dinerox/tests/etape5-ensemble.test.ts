@@ -65,3 +65,24 @@ describe('A8 — aucun texte coupé, texte agrandi ou petit écran : moins de co
     expect(read('src/components/ui/PastelGrid.tsx')).toMatch(/pastelColumns\(width, fontScale\)/);
   });
 });
+
+describe('Étape 10 — audit de mise en page (layout-audit, toutes tailles)', () => {
+  it('cloche : icône et pastille décoratives (aria-hidden) ; le bouton porte « Notifications, À lire · N »', () => {
+    const h = read('src/components/AppHeader.tsx');
+    expect(h).toMatch(/<View aria-hidden[^>]*>\s*<Icon name="notifications-outline"/);
+  });
+  it('« Écouter » de « À lire » : pas plus large que sa carte (conteneur à la taille du bouton)', () => {
+    const l = read('src/features/notifications/ToReadList.tsx');
+    expect(l).toMatch(/alignSelf: 'flex-start', marginLeft: -8 \}\}>\s*<ListenButton text=\{x\.text\} onEnd/);
+  });
+});
+
+describe('Étape 10 — anneau de progression : aucune propriété native transmise au <svg> du web', () => {
+  // e2e (forms-audit, coach-budget) : `importantForAccessibility` posé sur <Svg> arrivait au DOM ;
+  // React affichait un avertissement dont la bulle recouvrait le bouton « Enregistrer ».
+  it('le masquage pour le lecteur d’écran est porté par la View qui entoure le dessin', () => {
+    const src = read('src/components/ui/ProgressRing.tsx');
+    expect(src).not.toMatch(/<Svg[^>]*(importantForAccessibility|accessibilityElementsHidden)/);
+    expect(src).toMatch(/<View[^>]*importantForAccessibility="no-hide-descendants"[^>]*>\s*<Svg/);
+  });
+});

@@ -59,8 +59,9 @@ export function useToRead() {
       dueDate: typeof i.params?.date === 'string' && DAY_RE.test(i.params.date) ? i.params.date : null,
       // Seuil d'une enveloppe : le même fait que l'alerte d'enveloppe du coach.
       keys: i.kind === 'envelope_threshold' && i.ref ? [`envelope:${i.ref.id}`] : [],
+      origin: 'insight',
     }));
-    const adviceItems: ToReadItem[] = advice ? [{ id: advice.id, kind: 'advice', tone: 'advice', text: renderRec(advice), link: advice.link ?? null, keys: [`rec:${advice.kind}`] }] : [];
+    const adviceItems: ToReadItem[] = advice ? [{ id: advice.id, kind: 'advice', tone: 'advice', text: renderRec(advice), link: advice.link ?? null, keys: [`rec:${advice.kind}`], origin: 'advice' }] : [];
     const coachItems: ToReadItem[] = summary
       .map((e) => ({
         id: e.id,
@@ -70,9 +71,11 @@ export function useToRead() {
         link: refPath(e.ref),
         dueDate: DAY_RE.test(e.period) ? e.period : null,
         keys: [e.ref?.type === 'envelope' ? `envelope:${e.ref.id}` : null, e.kind.startsWith('rec_') ? `rec:${e.kind.slice(4)}` : null].filter((k): k is string => !!k),
+        // Résumé d'ouverture du coach (1 à 3 points, `planDelivery`).
+        origin: 'summary' as const,
       }))
       .filter((x) => x.text);
-    const analysisItems: ToReadItem[] = topRec ? [{ id: topRec.id, kind: 'analysis', tone: recTone(topRec.severity), text: renderRec(topRec), link: topRec.link ?? '/analysis', keys: [`rec:${topRec.kind}`] }] : [];
+    const analysisItems: ToReadItem[] = topRec ? [{ id: topRec.id, kind: 'analysis', tone: recTone(topRec.severity), text: renderRec(topRec), link: topRec.link ?? '/analysis', keys: [`rec:${topRec.kind}`], origin: 'analysis' }] : [];
     // Ordre de la maquette : alertes, conseil du jour, votre coach, votre analyse.
     return mergeToRead([alerts.filter((x) => x.kind === 'budget'), adviceItems, alerts.filter((x) => x.kind !== 'budget'), coachItems, analysisItems]);
   }, [insights, renderInsight, advice, renderRec, summary, coachText, topRec]);

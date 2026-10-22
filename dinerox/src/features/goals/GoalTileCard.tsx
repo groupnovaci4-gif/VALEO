@@ -62,8 +62,14 @@ export function GoalTileCard({ kind, label, name, amounts, pace, percent, icon, 
           {`${percent} %`}
         </Text>
         {onAdd ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={addLabel} onPress={onAdd} hitSlop={8} style={({ pressed }) => ({ width: 32, height: 32, borderRadius: 16, backgroundColor: pressed ? colors.primaryPressed : colors.primary, alignItems: 'center', justifyContent: 'center' })}>
-            <Icon name="add" size={18} color={colors.onPrimary} />
+          // Zone de toucher de 48 dp (aussi sur le web, où hitSlop ne compte pas) autour du rond de 32 dp de la
+          // maquette ; marges négatives : la vignette garde la hauteur de la maquette.
+          <Pressable accessibilityRole="button" accessibilityLabel={addLabel} onPress={onAdd} style={{ width: 48, height: 48, margin: -8, alignItems: 'center', justifyContent: 'center' }}>
+            {({ pressed }) => (
+              <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: pressed ? colors.primaryPressed : colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="add" size={18} color={colors.onPrimary} />
+              </View>
+            )}
           </Pressable>
         ) : null}
       </View>

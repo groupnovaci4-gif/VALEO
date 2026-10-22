@@ -2329,6 +2329,8 @@ export const fr = {
   'goal.priorityOrder': 'Ordre de priorité',
   'goal.tile.season': 'Moment fort',
   'goal.tile.reserve': 'Réserve',
+  'more.tile.score': 'Mon score',
+  'more.tile.review': 'Donner mon avis',
   'goal.perWeekChip': '{amount} / sem.',
   'goal.distribute.short': 'Répartir chaque mois',
   'goal.distribute.edit': 'Modifier le montant',

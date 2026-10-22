@@ -57,6 +57,17 @@ describe('D2 — vignettes en 2 colonnes, ANNEAU autour de l’icône', () => {
     expect(src).toMatch(/t\('goal\.status\.paused'\)/);
     expect(src).toMatch(/t\('season\.add'\)/);
   });
+  it('bouton + : rond de 32 dp (maquette) dans une zone de toucher de 48 dp (aussi sur le web)', () => {
+    const tile = read('src/features/goals/GoalTileCard.tsx');
+    const add = tile.slice(tile.indexOf('{onAdd ? ('));
+    expect(add).toMatch(/width: 48, height: 48/);
+    expect(add).toMatch(/width: 32, height: 32, borderRadius: 16/);
+  });
+  it('moment fort : la phrase « … dans N semaines : … prévus, soit … par semaine » reste lue sur la vignette', () => {
+    const tile = src.slice(src.indexOf("kind: 'season' as const"), src.indexOf("kind: 'reserve' as const"));
+    expect(tile).toMatch(/t\('season\.planFull'/);
+    expect(tile).toMatch(/t\('season\.noDatePlan'/);
+  });
 });
 
 describe('D3 — « Ordre de priorité », aide de la réserve, « Répartir chaque mois »', () => {

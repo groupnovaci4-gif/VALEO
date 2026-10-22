@@ -45,4 +45,5 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   process.exitCode = fails ? 1 : 0;
   console.log(fails ? `ÉCHECS ${fails}` : 'COACH SCORE : TOUT EST OK');
   await b.close();
-})().catch((e) => { console.log('ARRÊT', e.message.slice(0, 300)); process.exitCode = 1; });
+// process.exit : le navigateur resté ouvert empêcherait le processus de finir (suite e2e figée).
+})().catch((e) => { console.log('ARRÊT', e.message.slice(0, 300)); process.exit(1); });

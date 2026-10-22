@@ -14,10 +14,13 @@ export function ProgressRing({ size, stroke, percent, color, track, children }: 
   const dash = ringDash(r, percent);
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size} style={{ position: 'absolute', top: 0, left: 0 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Circle cx={c} cy={c} r={r} stroke={track} strokeWidth={stroke} fill="none" />
-        {dash ? <Circle cx={c} cy={c} r={r} stroke={color} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={dash} transform={`rotate(-90 ${c} ${c})`} /> : null}
-      </Svg>
+      {/* Masquage du dessin pour le lecteur d'écran sur la View (sur le web, <Svg> transmettrait ces propriétés natives au DOM). */}
+      <View style={{ position: 'absolute', top: 0, left: 0, width: size, height: size }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Svg width={size} height={size}>
+          <Circle cx={c} cy={c} r={r} stroke={track} strokeWidth={stroke} fill="none" />
+          {dash ? <Circle cx={c} cy={c} r={r} stroke={color} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={dash} transform={`rotate(-90 ${c} ${c})`} /> : null}
+        </Svg>
+      </View>
       {children}
     </View>
   );

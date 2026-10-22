@@ -118,6 +118,12 @@ describe('E4 / B5 — affichage', () => {
     expect(b).toMatch(/<ToReadList [^>]*budgetOnly/);
     expect(read('src/features/notifications/ToReadList.tsx')).toContain("'toRead.markAllRead'");
   });
+  it('origine de chaque message repérable (résumé d’ouverture du coach compté seul : 1 à 3 points)', () => {
+    const u = read('src/features/notifications/useToRead.ts');
+    expect(u).toMatch(/origin: 'summary'/);
+    expect(u).toMatch(/origin: 'insight'/);
+    expect(read('src/features/notifications/ToReadList.tsx')).toMatch(/testID=\{`toread-\$\{x\.origin/);
+  });
   it('mémorisation LOCALE par identifiant, par compte', () => {
     const s = read('src/services/readState.ts');
     expect(s).toMatch(/storageKey\(uid, 'toRead'\)/);

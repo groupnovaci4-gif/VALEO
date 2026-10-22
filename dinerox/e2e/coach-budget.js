@@ -45,10 +45,12 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   ok(t.includes('Attention Awa, vous avez dépassé votre budget Alimentation & boissons de 20 000 FCFA.'), `120 000 : « ${t} »`);
   await go('/budget'); const bt = await text();
   ok(bt.includes('Dépassé de 20 000 FCFA') && bt.includes('Budget Alimentation & boissons dépassé de 20 000 FCFA'), 'écran Budget : « Dépassé de 20 000 FCFA » + constat');
-  await go('/'); ok((await text()).includes('Dépassée'), 'accueil : carte d’enveloppe « Dépassée »');
+  // Refonte finale B7 : l'enveloppe de l'accueil est une bulle dont l'état est écrit « Dépassé de … » (maquette).
+  await go('/'); ok((await text()).includes('Dépassé de 20 000 FCFA'), 'accueil : bulle d’enveloppe « Dépassé de 20 000 FCFA »');
   await p.screenshot({ path: `${S}/coach-budget.png` });
   ok(errs.length === 0, 'aucune erreur JS ' + errs.slice(0, 2).join(' | '));
   process.exitCode = fails ? 1 : 0;
   console.log(fails ? `ÉCHECS ${fails}` : 'COACH BUDGET : TOUT EST OK');
   await b.close();
-})().catch((e) => { console.log('ARRÊT', e.message.slice(0, 300)); process.exitCode = 1; });
+// process.exit : le navigateur resté ouvert empêcherait le processus de finir (suite e2e figée).
+})().catch((e) => { console.log('ARRÊT', e.message.slice(0, 300)); process.exit(1); });

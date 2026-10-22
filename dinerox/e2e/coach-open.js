@@ -8,15 +8,22 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   const errs = [];
   const mk = async () => { const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, locale: 'fr-FR' }); const p = await ctx.newPage(); p.on('pageerror', (e) => errs.push(e.message)); p.on('dialog', (d) => d.accept()); return { ctx, p }; };
   const go = async (p, path, w = 3000) => { await p.goto(BASE + path, { waitUntil: 'load' }); await p.waitForTimeout(w); };
-  // Lignes de la carte « Votre coach » (null si absente). Design v2 : le bouton « Écouter » est
-  // écrit en toutes lettres dans l'en-tête de la carte ; c'est un bouton, pas un point du résumé.
+  // Points du résumé d'ouverture (null si aucun). Refonte finale E1 à E4 : ils sont dans « À lire »,
+  // un message par point (`toread-summary`) : étiquette, texte, « Écouter » (bouton, pas un point), ×.
   const LISTEN = ['Écouter', 'Arrêter la lecture'];
   const card = async (p) => {
-    const t = (await p.locator('body').innerText()).replace(/[  ]/g, ' ');
-    const i = t.indexOf('Votre coach');
-    if (i < 0) return null;
-    const j = t.indexOf('Selon les opérations enregistrées', i);
-    return t.slice(i, j).split('\n').slice(1).map((l) => l.trim()).filter((l) => /[A-Za-zÀ-ÿ]/.test(l) && !LISTEN.includes(l));
+    const items = await p.locator('[data-testid="toread-summary"]').filter({ visible: true }).allInnerTexts();
+    if (!items.length) return null;
+    // Par point : on retire l'étiquette (1re ligne) et « Écouter ».
+    return items.map((s) => s.split('\n').map((l) => l.trim()).filter((l) => /[A-Za-zÀ-ÿ]/.test(l) && !LISTEN.includes(l)).slice(1).join(' '));
+  };
+  // « J'ai compris » de l'ancienne carte = le × (« Marquer comme lu ») de chaque point.
+  const readAll = async (p) => {
+    for (let k = 0; k < 5; k++) {
+      const x = p.locator('[data-testid="toread-summary"]').filter({ visible: true }).first().getByRole('button', { name: 'Marquer comme lu', exact: true });
+      if (!(await x.count())) return;
+      await x.click({ timeout: 10000 }); await p.waitForTimeout(400);
+    }
   };
 
   // ── 1. Démonstration (local) : résumé à l'ouverture ──
@@ -28,11 +35,14 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   const closeCelebration = async (p) => { const c = p.getByRole('button', { name: 'Continuer' }); if (await c.count()) { await c.first().click({ timeout: 5000 }); await p.waitForTimeout(400); } };
   await closeCelebration(d.p);
   const first = await card(d.p);
-  ok(!!first && first.length >= 1 && first.length <= 3, `ouverture : un seul résumé de 1 à 3 points (${first ? first.length : 0}) — ${JSON.stringify(first)}`);
+  // Refonte finale E3 : un point du résumé qui est le MÊME fait qu'une alerte déjà listée (même enveloppe, même
+  // identifiant) n'est pas répété ; dans la démo, les 3 points (dépassements Maison / Alimentation…) sont ces alertes.
+  const toReadCount = Number(((await d.p.locator('body').innerText()).match(/À lire · (\d+)/) || [])[1] || 0);
+  ok((first === null || first.length <= 3) && toReadCount > 0 && (await d.p.getByText('Alerte budget', { exact: false }).count()) > 0, `ouverture : résumé dans « À lire » (${first ? first.length : 0} point(s) propre(s) ≤ 3, ${toReadCount} message(s), alertes budget présentes) — ${JSON.stringify(first)}`);
   ok((await d.p.locator('body').innerText()).includes('Selon les opérations enregistrées dans'), 'mention : selon les opérations enregistrées (pas de suivi bancaire en temps réel)');
   await d.p.screenshot({ path: `${S}/coach-open-1.png` });
-  await d.p.getByRole('button', { name: "J'ai compris" }).click({ timeout: 10000 }); await d.p.waitForTimeout(500);
-  ok((await card(d.p)) === null, '« J’ai compris » : la carte disparaît');
+  await readAll(d.p);
+  ok((await card(d.p)) === null, '× (marquer comme lu) : les points du résumé disparaissent');
   const seen = new Set(first ?? []);
   let repeated = 0;
   for (let k = 0; k < 2; k++) {
@@ -79,4 +89,5 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   process.exitCode = fails ? 1 : 0;
   console.log(fails ? `ÉCHECS ${fails}` : 'COACH OUVERTURE : TOUT EST OK');
   await b.close();
-})().catch((e) => { console.log('ARRÊT', e.message.slice(0, 300)); process.exitCode = 1; });
+// process.exit : le navigateur resté ouvert empêcherait le processus de finir (suite e2e figée).
+})().catch((e) => { console.log('ARRÊT', e.message.slice(0, 300)); process.exit(1); });

@@ -98,7 +98,9 @@ let b;
   // ── Moments forts ──
   await go('/goals');
   t = await text();
-  ok(t.includes('Moments forts de l') && /Rentrée scolaire dans 8 semaines : 120 000 FCFA prévus, soit 15 000 FCFA par semaine\./.test(t), 'Objectifs : « Rentrée scolaire dans 8 semaines : 120 000 prévus, soit 15 000 par semaine »');
+  // Refonte finale D2 : vignette « Moment fort » (« 15 000 FCFA / sem. ») ; la phrase complète est dans son libellé.
+  const seasonTile = ((await p.locator('[role=button][aria-label^="Moments forts de l"]').first().getAttribute('aria-label')) || '').replace(/[  ]/g, ' ');
+  ok(/Rentrée scolaire dans 8 semaines : 120 000 FCFA prévus, soit 15 000 FCFA par semaine\./.test(seasonTile) && /15 000 FCFA \/ sem\./.test(t), 'Objectifs : « Rentrée scolaire dans 8 semaines : 120 000 prévus, soit 15 000 par semaine »');
   ok(!/Vos projets en marche[\s\S]*Rentrée scolaire/.test(t), 'le moment fort n’est pas dans la liste des projets');
   await go('/seasons');
   await btn('🐑 Tabaski').click(); await p.waitForTimeout(2500);

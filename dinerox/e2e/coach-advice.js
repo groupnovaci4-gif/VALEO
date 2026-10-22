@@ -40,7 +40,8 @@ let b;
       document.querySelectorAll('[data-e2e-listen]').forEach((e) => e.removeAttribute('data-e2e-listen'));
       [...document.querySelectorAll('[aria-label="Écouter"]')].forEach((e) => {
         let el = e.parentElement;
-        for (let k = 0; k < 6 && el; k++, el = el.parentElement) if ((el.innerText || '').includes(m)) {
+        // Sans tenir compte de la casse : les étiquettes de « À lire » sont en capitales (refonte finale E).
+        for (let k = 0; k < 6 && el; k++, el = el.parentElement) if ((el.innerText || '').toLowerCase().includes(m.toLowerCase())) {
           let box = el;
           for (let j = 0; j < 3 && box.parentElement && (box.innerText || '').trim().length < m.length + 40; j++) box = box.parentElement;
           hits.push({ e, text: box.innerText }); return;
@@ -61,10 +62,9 @@ let b;
   /** La lecture demandée est la DERNIÈRE de la file (après une éventuelle voix proactive). */
   const reads = (card, spoken) => readsOne(card, spoken);
 
-  // Résumé du coach (lu avant de le fermer avec « J'ai compris »).
+  // Résumé du coach (« À lire », refonte finale E1 : la fin de la lecture le marque comme lu).
   let [card, spoken] = await listenNear('Votre coach');
   ok(reads(card, spoken), `résumé du coach lu (« ${spoken.slice(0, 70)}… »)`);
-  const dismiss = p.getByRole('button', { name: "J'ai compris" }); if (await dismiss.count()) await dismiss.first().click();
 
   // Conseil du jour : présent, lu tel qu'affiché, sans proposition d'IA sans compte en ligne ni consentement.
   [card, spoken] = await listenNear('Conseil du jour');
@@ -76,6 +76,8 @@ let b;
   if (!card) [card, spoken] = await listenNear('Selon vos opérations');
   // v2 (§11.6) : recommandations tirées de vos opérations, marquées « Vos données ».
   if (!card) [card, spoken] = await listenNear('Vos données');
+  // Refonte finale E : la recommandation de l'accueil est le message « Votre analyse » de « À lire » (ouvre l'analyse).
+  if (!card) [card, spoken] = await listenNear('Votre analyse');
   ok(p.url() === url, 'appui sur « Écouter » dans une carte cliquable : aucune navigation, aucune action');
   ok(reads(card, spoken), `recommandation lue (« ${spoken.slice(0, 70)}… »)`);
 
@@ -110,7 +112,8 @@ let b;
 
   // Plan d'objectif.
   await go('/goals'); await closeCelebration();
-  await p.locator('[role=button]').filter({ hasText: /%/ }).first().click(); await p.waitForTimeout(1500);
+  // Vignette d'objectif (refonte finale D2) : le % est écrit sous la zone touchable, il est dans son libellé.
+  await p.locator('[role=button][aria-label*="%"]').filter({ visible: true }).first().click(); await p.waitForTimeout(1500);
   [card, spoken] = await listenNear('Montant restant');
   ok(spoken.startsWith('Montant restant'), `plan d'objectif lu (« ${spoken.slice(0, 70)}… »)`);
 

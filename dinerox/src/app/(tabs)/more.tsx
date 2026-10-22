@@ -19,6 +19,8 @@ import { brand } from '@/config/brand';
 
 interface Item {
   key: TKey;
+  /** Nom court de la maquette sous l'icône (F1) ; le nom complet reste lu par le lecteur d'écran. */
+  short?: TKey;
   sub: TKey;
   icon: string;
   color: string;
@@ -97,7 +99,7 @@ function MoreScreen() {
         { key: 'cal.title', sub: 'cal.sub', icon: 'calendar', color: colors.info, path: '/calendar' },
         { key: 'fi.title', sub: 'fi.sub', icon: 'trending-up', color: colors.secondary, path: '/independence' },
         { key: 'reward.title', sub: 'reward.subtitle', icon: 'trophy', color: colors.warning, path: '/rewards' },
-        { key: 'score.cta', sub: 'score.ctaSub', icon: 'speedometer', color: colors.primary, path: '/score' },
+        { key: 'score.cta', short: 'more.tile.score', sub: 'score.ctaSub', icon: 'speedometer', color: colors.primary, path: '/score' },
       ],
     },
     {
@@ -117,7 +119,7 @@ function MoreScreen() {
         { key: 'ref.title', sub: 'more.sub.invite', icon: 'gift', color: colors.primary, path: '/invite', show: mode === 'firebase' },
         // Étape 2 : chaîne WhatsApp DineroX — cachée tant que l'admin n'a pas publié d'adresse valide.
         { key: 'more.whatsappChannel', sub: 'more.sub.whatsappChannel', icon: 'logo-whatsapp', color: colors.primary, path: '', url: channelUrl ?? undefined, show: !!channelUrl },
-        { key: 'more.review', sub: 'more.sub.review', icon: 'star', color: colors.secondary, path: '', onPress: openReview, show: storeUrls.length > 0 },
+        { key: 'more.review', short: 'more.tile.review', sub: 'more.sub.review', icon: 'star', color: colors.secondary, path: '', onPress: openReview, show: storeUrls.length > 0 },
         { key: 'sub.title', sub: 'more.sub.subscription', icon: 'sparkles', color: colors.secondary, path: '/subscription' },
         { key: 'set.title', sub: 'more.sub.settings', icon: 'settings', color: colors.info, path: '/settings' },
         { key: 'admin.title', sub: 'more.sub.admin', icon: 'shield-checkmark', color: colors.textMuted, path: '/admin', show: !!user?.isAdmin },
@@ -166,7 +168,7 @@ function MoreScreen() {
               </Text>
             </View>
             <PastelGrid
-              items={items.map((i) => ({ key: i.key, family: MORE_FAMILY[i.key] ?? 'vert', icon: i.icon, label: t(i.key), badge: i.locked ? 'PRO' : undefined, accessibilityLabel: `${t(i.key)}, ${t(i.sub)}`, onPress: () => open(i) }))}
+              items={items.map((i) => ({ key: i.key, family: MORE_FAMILY[i.key] ?? 'vert', icon: i.icon, label: t(i.short ?? i.key), badge: i.locked ? 'PRO' : undefined, accessibilityLabel: `${t(i.key)}, ${t(i.sub)}`, onPress: () => open(i) }))}
             />
           </React.Fragment>
         );

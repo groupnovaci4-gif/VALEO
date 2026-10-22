@@ -60,7 +60,8 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   await go(a.p, '/goals'); await a.p.getByText('Moto', { exact: false }).first().click(); await a.p.waitForTimeout(1200);
   // Bouton de la FICHE (nom exact, visible) : l'onglet Objectifs, resté monté sous la fiche, a aussi le sien (« …, Moto »).
   await a.p.getByRole('button', { name: 'Ajouter de l’argent', exact: true }).filter({ visible: true }).first().click(); await a.p.waitForTimeout(1200);
-  await a.p.getByLabel('Montant').first().fill('100000'); await a.p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click(); await a.p.waitForTimeout(2500);
+  // Nom exact et visible : l'onglet Objectifs (monté dessous) a un bouton « Modifier le montant » (D3).
+  await a.p.getByLabel('Montant', { exact: true }).filter({ visible: true }).first().fill('100000'); await a.p.getByRole('button', { name: 'Enregistrer', exact: true }).last().click(); await a.p.waitForTimeout(2500);
   const tg = await text(a.p);
   ok(tg.includes('🏆 Objectif atteint'), 'objectif atteint : la célébration de l’objectif mentionne la récompense');
   await a.p.screenshot({ path: `${S}/rw-2.png` });
@@ -76,4 +77,5 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   process.exitCode = fails ? 1 : 0;
   console.log(fails ? `ÉCHECS ${fails}` : 'COACH RÉCOMPENSES : TOUT EST OK');
   await b.close();
-})().catch((e) => { console.log('ARRÊT', e.message.slice(0, 300)); process.exitCode = 1; });
+// process.exit : le navigateur resté ouvert empêcherait le processus de finir (suite e2e figée).
+})().catch((e) => { console.log('ARRÊT', e.message.slice(0, 300)); process.exit(1); });

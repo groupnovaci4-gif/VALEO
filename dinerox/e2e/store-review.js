@@ -86,14 +86,16 @@ const uidOf = async (email) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
 
   // ── 3. Ligne du menu ──
   await go('/more', 4000);
-  ok(!(await text()).includes('Donner mon avis sur DineroX'), 'Plus : ligne cachée tant que le réglage est faux');
+  ok(!(await p.locator('[role=button][aria-label^="Donner mon avis sur DineroX"]').count()), 'Plus : ligne cachée tant que le réglage est faux');
   await writeDoc('config/app/items/store', { reviewMenu: 'true' });
   await go('/more', 4000);
-  ok(!(await text()).includes('Donner mon avis sur DineroX'), 'réglage invalide (texte « true ») : ligne cachée');
+  ok(!(await p.locator('[role=button][aria-label^="Donner mon avis sur DineroX"]').count()), 'réglage invalide (texte « true ») : ligne cachée');
   await writeDoc('config/app/items/store', { reviewMenu: true });
   await go('/more', 4000);
-  const row = p.getByText('Donner mon avis sur DineroX', { exact: true }).filter({ visible: true });
-  ok((await row.count()) === 1 && (await text()).includes('Votre note et votre commentaire sur le store'), 'réglage activé : ligne visible, textes validés');
+  // Refonte finale F1 : nom court de la maquette sous l'icône (« Donner mon avis »), nom complet lu.
+  const row = p.locator('[role=button][aria-label^="Donner mon avis sur DineroX"]').filter({ visible: true });
+  // Refonte finale F1 : grille pastel, le nom est écrit, la description est lue par le lecteur d'écran.
+  ok((await row.count()) === 1 && (await p.locator('[role=button][aria-label*="Votre note et votre commentaire sur le store"]').count()) === 1, 'réglage activé : ligne visible, textes validés');
   await row.first().scrollIntoViewIfNeeded(); await p.waitForTimeout(300); await p.screenshot({ path: `${S}/store-review-menu.png` });
   await row.first().click(); await p.waitForTimeout(1200);
   const opened = await p.evaluate(() => window.__opened.slice());
@@ -104,7 +106,7 @@ const uidOf = async (email) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   ok(ev.length === 1 && ev[0] === JSON.stringify({ event: 'review_requested', props: { context: 'manual' } }) && !/Awa|Koné|@|1000|FCFA/.test(ev[0]), `événement : contexte « manual » seulement (${ev[0] || 'absent'})`);
   await writeDoc('config/app/items/store', { reviewMenu: false });
   await go('/more', 4000);
-  ok(!(await text()).includes('Donner mon avis sur DineroX'), 'réglage retiré : ligne cachée de nouveau');
+  ok(!(await p.locator('[role=button][aria-label^="Donner mon avis sur DineroX"]').count()), 'réglage retiré : ligne cachée de nouveau');
 
   ok(errs.length === 0, 'aucune erreur JS ' + errs.join(' | '));
   console.log(fails ? `AVIS : ${fails} ÉCHEC(S)` : 'AVIS : TOUT EST OK');

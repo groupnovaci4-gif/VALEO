@@ -25,6 +25,8 @@ export interface ToReadItem {
   dueDate?: string | null;
   /** Clés de dédoublonnage : identifiant, « envelope:<id> », « rec:<sorte> »… */
   keys: string[];
+  /** Moteur d'origine (identifiant de test `toread-<origine>` ; l'étiquette affichée suit `kind`). */
+  origin?: 'insight' | 'summary' | 'advice' | 'analysis';
 }
 
 export interface ReadRecord {

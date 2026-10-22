@@ -118,4 +118,5 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   process.exitCode = fails ? 1 : 0;
   console.log(fails ? `ÉCHECS : ${fails}` : 'MULTI-UTILISATEURS : TOUT EST OK');
   await b.close();
-})().catch(async (e) => { console.log('ÉCHEC', e.message.slice(0, 400)); process.exitCode = 1; });
+// process.exit : le navigateur resté ouvert empêcherait le processus de finir (suite e2e figée).
+})().catch(async (e) => { console.log('ÉCHEC', e.message.slice(0, 400)); process.exit(1); });

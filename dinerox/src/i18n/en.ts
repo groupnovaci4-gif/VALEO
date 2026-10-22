@@ -2291,6 +2291,8 @@ export const en: Record<TKey, string> = {
   'goal.priorityOrder': 'Priority order',
   'goal.tile.season': 'Key moment',
   'goal.tile.reserve': 'Reserve',
+  'more.tile.score': 'My score',
+  'more.tile.review': 'Rate the app',
   'goal.perWeekChip': '{amount} / wk',
   'goal.distribute.short': 'Split each month',
   'goal.distribute.edit': 'Change the amount',

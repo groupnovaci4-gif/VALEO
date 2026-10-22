@@ -106,15 +106,18 @@ export function AppHeader({ section }: { section: string }) {
         onPress={() => router.push('/notifications')}
         style={({ pressed }) => ({ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
       >
-        <Icon name="notifications-outline" size={24} color={colors.text} />
-        {/* Pastille rouge du nombre de messages « À lire » (maquette `.dot`). */}
-        {toRead ? (
-          <View style={{ position: 'absolute', top: 9, right: 10, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: finalPalette(dark).alertFg, alignItems: 'center', justifyContent: 'center' }}>
-            <Text variant="caption" weight="700" maxFontSizeMultiplier={1} style={{ fontSize: 10, lineHeight: 16, color: '#FFFFFF' }}>
-              {toRead > 9 ? '9+' : String(toRead)}
-            </Text>
-          </View>
-        ) : null}
+        {/* Dessin décoratif (cloche + pastille) : le bouton porte déjà « Notifications, À lire · N ». */}
+        <View aria-hidden style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="notifications-outline" size={24} color={colors.text} />
+          {/* Pastille rouge du nombre de messages « À lire » (maquette `.dot`). */}
+          {toRead ? (
+            <View style={{ position: 'absolute', top: 9, right: 10, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: finalPalette(dark).alertFg, alignItems: 'center', justifyContent: 'center' }}>
+              <Text variant="caption" weight="700" maxFontSizeMultiplier={1} style={{ fontSize: 10, lineHeight: 16, color: '#FFFFFF' }}>
+                {toRead > 9 ? '9+' : String(toRead)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </Pressable>
     );
     return (

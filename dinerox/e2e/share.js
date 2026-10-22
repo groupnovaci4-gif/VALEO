@@ -95,7 +95,8 @@ const uidOf = async (email) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   await writeDoc('config/app/items/links', { whatsappChannelUrl: CHANNEL });
   await go('/more', 4000);
   const row = p.getByText('Suivre DineroX sur WhatsApp', { exact: true }).filter({ visible: true });
-  ok((await row.count()) === 1 && (await text()).includes('Conseils et nouveautés, sur notre chaîne'), 'adresse publiée : ligne visible');
+  // Refonte finale F1 : grille pastel, le nom est écrit, la description est lue par le lecteur d'écran.
+  ok((await row.count()) === 1 && (await p.locator('[role=button][aria-label*="Conseils et nouveautés, sur notre chaîne"]').count()) === 1, 'adresse publiée : ligne visible');
   await row.first().click(); await p.waitForTimeout(800);
   ok((await p.evaluate(() => window.__opened.slice())).includes(CHANNEL), 'la ligne ouvre la chaîne publiée');
   await writeDoc('config/app/items/links', { whatsappChannelUrl: 'https://evil.example/channel/0029VaTestChannel01' });

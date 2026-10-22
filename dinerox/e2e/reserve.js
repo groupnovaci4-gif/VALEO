@@ -39,9 +39,11 @@ let b;
   // ── Section « Réserves » et fiche ──
   await go('/goals');
   let t = await text();
-  const iRes = t.indexOf('Réserves'), iGoals = t.indexOf('Vos projets en marche');
-  ok(iRes >= 0 && iRes < iGoals && t.includes('Réserve famille et cérémonies'), 'Objectifs : section « Réserves » au-dessus des objectifs');
-  ok(!/Vos projets en marche[\s\S]*Réserve famille et cérémonies/.test(t), 'la réserve n’est pas listée parmi les objectifs');
+  // Refonte finale D2 (objectifs-*.html) : la réserve est une VIGNETTE de « Vos projets », étiquetée « Réserve ».
+  const resTile = p.getByRole('button', { name: /^Réserve famille et cérémonies,/ }).filter({ visible: true }).first();
+  const resText = (await resTile.count()) ? await resTile.innerText() : '';
+  ok(t.includes('Vos projets') && resText.includes('Réserve famille et cérémonies'), 'Objectifs : vignette de la réserve dans « Vos projets »');
+  ok(/^Réserve$/m.test(resText) && !/Priorité \d/.test(resText), 'la réserve n’est pas un objectif classique (étiquette « Réserve », jamais « Priorité N »)');
   const b0 = await balance();
   t = await text();
   ok(b0 === 80_000, `fiche : solde = 50 000 + 2 × 25 000 − 20 000 = ${b0}`);
@@ -165,7 +167,8 @@ let b;
   ok(/Mise de côté prévue : Réserve famille et cérémonies — 31 000 FCFA/.test(await text()), 'reste par jour : mise de côté de la réserve (31 000) dans les engagements');
   await go('/goals');
   t = await text();
-  ok(t.includes('Réserve famille et cérémonies') && t.includes('sur un plafond de 372 000 FCFA'), 'compte réel : réserve créée par le démarrage rapide');
+  // Refonte finale D2 : la vignette écrit « solde / plafond » (maquette : « 80 000 FCFA / 300 000 FCFA »).
+  ok(t.includes('Réserve famille et cérémonies') && /\/ 372 000 FCFA/.test(t), 'compte réel : réserve créée par le démarrage rapide (plafond 372 000)');
   await go('/reserve/new');
   ok((await text()).includes('Plusieurs réserves sont incluses dans la formule Plus.'), 'formule gratuite : une seule réserve (offre Plus pour en ajouter)');
   ok(errs2.length === 0, 'compte réel : aucune erreur JS ' + errs2.slice(0, 2).join(' | '));

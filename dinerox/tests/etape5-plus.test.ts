@@ -59,4 +59,16 @@ describe('F1 — écran Plus', () => {
       expect(src).toContain(`key: '${k}'`);
     for (const c of ["show: can(role, 'read', 'tontines')", "show: !!channelUrl", 'show: storeUrls.length > 0', 'show: !!user?.isAdmin', "locked: !hasFeature(plan, 'net_worth')"]) expect(src).toContain(c);
   });
+  it('noms courts de la maquette (« Mon score », « Donner mon avis ») ; le nom complet reste lu', async () => {
+    const { fr } = await import('../src/i18n/fr');
+    const { en } = await import('../src/i18n/en');
+    const k = fr as Record<string, string>, e = en as Record<string, string>;
+    expect(k['more.tile.score']).toBe('Mon score');
+    expect(e['more.tile.score']).toBe('My score');
+    expect(k['more.tile.review']).toBe('Donner mon avis');
+    expect(e['more.tile.review']).toBe('Rate the app');
+    expect(src).toMatch(/short: 'more\.tile\.score'/);
+    expect(src).toMatch(/short: 'more\.tile\.review'/);
+    expect(src).toMatch(/accessibilityLabel: `\$\{t\(i\.key\)\}, \$\{t\(i\.sub\)\}`/);
+  });
 });

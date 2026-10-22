@@ -55,7 +55,8 @@ let b;
   ok((await p.getByRole('tab', { name: 'Parler', exact: true }).count()) === 0, 'feuille de saisie : l’onglet « Parler » n’est plus proposé');
   await p.keyboard.press('Escape'); await go('/'); await closeCelebration();
   ok((await btn('Saisir une opération').count()) === 1 && (await btn('Dicter une opération').count()) === 0, 'accueil : le clavier devient la méthode par défaut (« Saisir une opération »)');
-  ok((await btn('Parler').count()) === 0 && (await btn('Saisir').count()) > 0, 'bulle de l’accueil : « Parler » n’est plus proposé, « Saisir » reste');
+  // Refonte finale B4 : la tuile « Parler » devient « Saisir » (clavier), nom lu « Saisir, <petite phrase> ».
+  ok((await p.getByRole('button', { name: /^Parler,/ }).count()) === 0 && (await p.getByRole('button', { name: /^Saisir,/ }).count()) > 0, 'tuile de l’accueil : « Parler » n’est plus proposé, « Saisir » reste');
   await go('/assistant');
   ok((await btn('Dicter un message').count()) === 0, 'assistant : le micro n’est plus proposé');
   await go('/settings/notifications');

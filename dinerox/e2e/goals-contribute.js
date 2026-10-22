@@ -72,9 +72,9 @@ const historyRows = (t) => (t.split('Historique des contributions')[1] || t.spli
   ok((await add.count()) === 1, 'onglet Objectifs : « Ajouter de l’argent » visible sur la carte (nom lu : « Ajouter de l’argent, Acheter ma voiture »)');
   const box = await add.first().boundingBox();
   ok(!!box && box.height >= 48, `bouton de 48 dp minimum (${box ? Math.round(box.height) : '?'} px)`);
-  // Texte visible (sans le glyphe de l'icône) : « Ajouter » (avant la 1.6) ; le nom lu reste complet.
+  // Refonte finale D2 : bouton « + » sans texte (maquette) ; le nom lu reste complet.
   const shown = (await add.first().innerText()).split('\n').map((l) => l.trim()).filter((l) => /\p{L}/u.test(l)).join(' ');
-  ok(shown === 'Ajouter', `texte visible : « ${shown} »`);
+  ok(shown === '', `texte visible : aucun, bouton « + » (« ${shown} »)`);
 
   t = await addFromTab(h, 200000);
   ok(/\/goals\/[^/?]+$/.test(h.p.url()) && !h.p.url().includes('contribute'), `après l’enregistrement : la fiche de l’objectif s’ouvre (${h.p.url().replace(BASE, '')})`);
@@ -108,7 +108,9 @@ const historyRows = (t) => (t.split('Historique des contributions')[1] || t.spli
   // L'onglet montre la même progression.
   await h.go('/goals');
   t = await h.text();
-  ok(t.includes('900 000 FCFA') && t.includes('90 %') && (await barValue(h)) === 90, 'onglet Objectifs : 900 000 / 1 000 000, 90 %');
+  // Refonte finale D2 : la vignette a un ANNEAU (dessin) ; son libellé porte les montants et le %.
+  const tileLabel = ((await h.p.locator(`[role=button][aria-label^="${GOAL},"]`).first().getAttribute('aria-label')) || '').replace(/[  ]/g, ' ');
+  ok(t.includes('900 000 FCFA') && t.includes('90 %') && tileLabel.includes('900 000 FCFA / 1 000 000 FCFA') && tileLabel.endsWith('90 %'), `onglet Objectifs : 900 000 / 1 000 000, 90 % (« ${tileLabel} »)`);
   await h.p.screenshot({ path: `${S}/goals-contribute-tab.png` });
 
   // Depuis la fiche, le bouton existant ramène toujours à la fiche (comportement inchangé).
