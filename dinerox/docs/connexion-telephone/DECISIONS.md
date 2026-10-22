@@ -49,6 +49,9 @@ validée et que les maquettes des écrans ci-dessous n'ont pas été approuvées
 
 1. Terminer la refonte du design (étape 10, images côte à côte, puis APK pour le
    téléphone du fondateur).
+   EN PARALLÈLE (décision du 22/10) : Claude Code prépare déjà l'étude technique et les maquettes
+   ci-dessous, sur une branche à part `connexion-telephone`, SANS code dans l'application, sans
+   compte payant, sans clé, sans déploiement.
 2. Maquettes des écrans : inscription (numéro), création du code secret, saisie du
    code WhatsApp, connexion, code oublié, nouveau téléphone. Validation du fondateur.
 3. En parallèle : démarches Meta / WhatsApp Business (vérification de l'entreprise,
