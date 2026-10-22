@@ -3,7 +3,7 @@ import { Linking, Platform, View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { useApp } from '@/store/app';
-import { Amount, CircleGrid, CircleTile, GradientCard, ListCard, MenuRow, Screen, SectionHeader, Text } from '@/components/ui';
+import { Amount, GradientCard, PastelGrid, Screen, Text } from '@/components/ui';
 import { can } from '@/core/permissions';
 import { hasFeature } from '@/core/subscription';
 import { today } from '@/core/dates';
@@ -39,16 +39,13 @@ export default function More() {
   );
 }
 
-/** Rayon des cartes de rubriques (maquette de Plus : 20). */
-const GROUP_RADIUS = 20;
-
 function MoreScreen() {
   const { t } = useI18n();
   const { role, plan, user, mode, online } = useApp();
   const money = useMoney();
   const { data, position, currency, activeAccounts } = useFinance();
   // Couleur des ronds : `MORE_FAMILY` (palette du fondateur) ; `color` reste la couleur de marque d'origine.
-  const { colors, radius } = useTheme();
+  const { colors } = useTheme();
   const [channelUrl, setChannelUrl] = useState<string | null>(null);
   // Étape 4 : pages du store pour « Donner mon avis » (vide = ligne cachée, tant que config/app/items/store ne l'active pas).
   const [storeUrls, setStoreUrls] = useState<string[]>([]);
@@ -131,64 +128,46 @@ function MoreScreen() {
   const status = mode === 'local' ? t('home.status.local') : online ? t('home.status.synced') : t('home.status.offline');
   return (
     <Screen brandSection={t('tab.more')}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginBottom: 14 }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="overline" style={{ color: colors.primary }}>
-            {t('more.overview').toUpperCase()}
-          </Text>
-          <Text variant="h1">{t('more.title')}</Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.infoBg, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4, marginBottom: 6 }}>
+      {/* F1 : « Plus » + pastille d'état (« Local »). */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginTop: 4, marginBottom: 6 }}>
+        <Text variant="titleL" accessibilityRole="header">
+          {t('more.title')}
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.surfaceAlt, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 }}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: mode === 'local' || online ? colors.primary : colors.warning }} />
-          <Text variant="caption" weight="600">
+          <Text variant="caption" weight="600" tone="muted" style={{ fontSize: 12, lineHeight: 16 }}>
             {status}
           </Text>
         </View>
       </View>
 
-      {/* Carte verte flottante (étape 4, CSS f4). */}
-      <GradientCard float style={{ marginTop: 6, marginBottom: 8, paddingTop: 18, paddingHorizontal: 18, paddingBottom: 16 }}>
-        <Text variant="small" tone="heroMuted" style={{ fontSize: 13, lineHeight: 18, paddingRight: 64 }}>
+      {/* F1 : carte verte flottante (A7). */}
+      <GradientCard float style={{ marginTop: 8, marginBottom: 4, padding: 16 }}>
+        <Text variant="caption" weight="500" tone="heroMuted" style={{ fontSize: 13, lineHeight: 18 }}>
           {showNetWorth ? t('more.netWorth') : t('more.totalAccounts')}
         </Text>
-        <View style={{ marginTop: 4 }}>
+        <View style={{ marginTop: 2 }}>
           <Amount text={money(headline)} size="L" tone="onHero" style={{ fontSize: 30, lineHeight: 36 }} />
         </View>
-        <Text variant="caption" tone="heroMuted" style={{ fontSize: 12, lineHeight: 16, marginTop: 6 }}>
+        <Text variant="caption" weight="500" tone="heroMuted" style={{ fontSize: 13, lineHeight: 18 }}>
           {t(activeAccounts.length === 1 ? 'more.accountsCount.one' : 'more.accountsCount', { count: activeAccounts.length })}
         </Text>
       </GradientCard>
 
+      {/* F1 : quatre thèmes, chacun en grille d'icônes pastel (4 par ligne) ; mêmes rubriques, même ordre, mêmes conditions. */}
       {groups.map((g) => {
         const items = g.items.filter((i) => i.show !== false);
         const open = (i: Item) => (i.onPress ? i.onPress() : i.url ? void Linking.openURL(i.url).catch(() => undefined) : router.push(i.path as never));
         return (
           <React.Fragment key={g.title}>
-            <SectionHeader overline title={t(g.title).toUpperCase()} action={g.aside || undefined} />
-            {g.title === 'more.app' ? (
-              // « Application » en liste : rond, titre, description (2 lignes au plus), chevron.
-              <ListCard radius={GROUP_RADIUS}>
-                {items.map((i) => (
-                  <MenuRow key={i.key} family={MORE_FAMILY[i.key] ?? 'vert'} icon={i.icon} title={t(i.key)} sub={t(i.sub)} badge={i.locked ? 'PRO' : undefined} accessibilityLabel={`${t(i.key)}, ${t(i.sub)}`} onPress={() => open(i)} />
-                ))}
-              </ListCard>
-            ) : (
-              // Rubriques en ronds de couleur pleine dans une carte ; description pour le lecteur d'écran.
-              <CircleGrid radius={GROUP_RADIUS}>
-                {items.map((i) => (
-                  <CircleTile
-                    key={i.key}
-                    dense
-                    family={MORE_FAMILY[i.key] ?? 'vert'}
-                    icon={i.icon}
-                    label={t(i.key)}
-                    badge={i.locked ? 'PRO' : undefined}
-                    accessibilityLabel={`${t(i.key)}, ${t(i.sub)}`}
-                    onPress={() => open(i)}
-                  />
-                ))}
-              </CircleGrid>
-            )}
+            <View style={{ marginTop: 18, marginBottom: 10, marginHorizontal: 2 }}>
+              <Text variant="caption" weight="600" tone="muted" accessibilityRole="header" accessibilityLabel={g.aside ? `${t(g.title)}, ${g.aside}` : t(g.title)} style={{ fontSize: 12, lineHeight: 16, letterSpacing: 0.6 }}>
+                {t(g.title).toUpperCase()}
+              </Text>
+            </View>
+            <PastelGrid
+              items={items.map((i) => ({ key: i.key, family: MORE_FAMILY[i.key] ?? 'vert', icon: i.icon, label: t(i.key), badge: i.locked ? 'PRO' : undefined, accessibilityLabel: `${t(i.key)}, ${t(i.sub)}`, onPress: () => open(i) }))}
+            />
           </React.Fragment>
         );
       })}

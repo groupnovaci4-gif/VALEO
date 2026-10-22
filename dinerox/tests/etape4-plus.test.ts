@@ -50,24 +50,21 @@ describe('écran Plus', () => {
     expect(src).toMatch(/<DesignV2>/);
     expect(src).toMatch(/<GradientCard float/);
   });
-  it('plus aucun pavé : rubriques en ronds dans des cartes, « Application » en liste', () => {
+  // Refonte finale F1 (remplace les ronds pleins et la liste « Application » de l'étape 4.3) :
+  // grille d'icônes PASTEL pour les quatre thèmes (tests/etape5-plus.test.ts). Mêmes informations.
+  it('plus aucun pavé : rubriques en grille pastel dans des cartes, même famille de couleur', () => {
     expect(src).not.toMatch(/<TileGrid|<Tile\b/);
-    expect(src).toMatch(/<CircleGrid[ >]/);
-    expect(src).toMatch(/<CircleTile[\s\S]*family=\{MORE_FAMILY\[i\.key\]/);
-    expect(src).toMatch(/<ListCard[ >]/);
-    expect(src).toMatch(/<MenuRow/);
+    expect(src).toMatch(/<PastelGrid/);
+    expect(src).toMatch(/family: MORE_FAMILY\[i\.key\] \?\? 'vert'/);
   });
   it('description gardée pour le lecteur d’écran : même libellé qu’avant (« titre, description »)', () => {
-    const n = src.match(/accessibilityLabel=\{`\$\{t\(i\.key\)\}, \$\{t\(i\.sub\)\}`\}/g) ?? [];
-    expect(n.length).toBeGreaterThanOrEqual(2);
+    expect(src).toMatch(/accessibilityLabel: `\$\{t\(i\.key\)\}, \$\{t\(i\.sub\)\}`/);
   });
-  it('titres de rubrique en surtitre (12, 600, espacement 0,8 ; à droite 12)', () => {
-    expect(src).toMatch(/<SectionHeader overline /);
-    const row = read('src/components/ui/Row.tsx');
-    expect(row).toMatch(/weight="600" accessibilityRole="header" style=\{\{ fontSize: 12, lineHeight: 16, letterSpacing: 0\.8/);
+  it('titres de rubrique en surtitre (12, 600, espacement 0,6 ; l’ancienne information de droite lue par le lecteur d’écran)', () => {
+    expect(src).toMatch(/weight="600" tone="muted" accessibilityRole="header"[^>]*style=\{\{ fontSize: 12, lineHeight: 16, letterSpacing: 0\.6 \}\}/);
   });
   it('rubriques verrouillées : l’étiquette « PRO » reste visible', () => {
-    expect(src).toMatch(/badge=\{i\.locked \? 'PRO' : undefined\}/);
+    expect(src).toMatch(/badge: i\.locked \? 'PRO' : undefined/);
   });
 });
 
