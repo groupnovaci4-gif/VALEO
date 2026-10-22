@@ -49,13 +49,15 @@ HTML exacts : `ecrans/` (Comptes : `ecrans/maquette-comptes-index.html?d=b&s=acc
   tour ») ; somme du détail = montant affiché.
 - B4. 4 grandes tuiles : Historique (bleu pâle), Revenu (vert pâle), Transfert (or pâle), Parler (vert
   plein) avec leur petite phrase.
-- B5. « À lire · N » : alertes budget, conseil du jour ET points de « Votre coach », chacun avec son
-  étiquette ; « Écouter » dans chacun ; voir E (notifications).
+- B5. « À lire · N » regroupe TOUS les messages du coach : alertes (budget, seuils 85 % / 100 % /
+  dépassement…), conseils (conseil du jour, conseils IA), points de « Votre coach » (échéances, rappels)
+  ET « Votre analyse » ; chacun avec son étiquette (« Alerte budget », « Conseil du jour », « Votre
+  coach », « Votre analyse ») et « Écouter » ; voir E (notifications).
 - B6. Dernières opérations groupées par jour, icône du dictionnaire, petit logo de l'opérateur, montant.
 - B7. Enveloppes en bulles (anneau de progression autour de l'icône) dans une carte, « Gérer (N) ».
 - B8. Octobre / Mois en cours : Revenus, Dépenses, Épargne nette, puis Reste à répartir.
-- B9. Objectifs en liste avec anneaux ; Votre analyse (avec Écouter) ; Mes récompenses + DineroX IA ;
-  Rapports.
+- B9. Objectifs en liste avec anneaux ; Mes récompenses + DineroX IA ; Rapports. (« Votre analyse »
+  n'est plus une carte à part : elle est dans « À lire », B5.)
 
 ## C. Budget
 - C1. Carte principale VERTE et FLOTTANTE : anneau doré « % consommé », Reste dans les enveloppes,
@@ -76,7 +78,10 @@ HTML exacts : `ecrans/` (Comptes : `ecrans/maquette-comptes-index.html?d=b&s=acc
 - E1. Un message disparaît quand on touche × OU quand « Écouter » arrive à la fin.
 - E2. S'il est toujours d'actualité, il peut revenir UNE fois en rappel après 3 jours (ou la veille d'une
   échéance), jamais en permanence ; une situation nouvelle crée un nouveau message.
-- E3. Le coach n'est jamais supprimé : ses points sont dans « À lire » (sans doublon avec une alerte).
+- E3. Aucun message du coach n'est supprimé de l'application : alertes, conseils, analyses et points du
+  coach arrivent TOUS dans « À lire » (Accueil) ; ceux qui concernent le budget aussi dans les
+  notifications de l'onglet Budget. Sans doublon : un même message n'apparaît qu'une fois par liste.
+  Un message lu peut toujours être retrouvé dans l'écran de l'assistant / historique existant.
 - E4. Mémorisation locale par identifiant ; aucun calcul changé.
 
 ## F. Plus

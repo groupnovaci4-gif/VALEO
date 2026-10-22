@@ -18,7 +18,8 @@ def home_final():
     return h[:i] + part + h[j:]
 
 
-TAGS = ['Alerte budget', 'Alerte budget', 'Alerte budget', 'Conseil du jour', 'Votre coach']
+TAGS = ['Alerte budget', 'Alerte budget', 'Alerte budget', 'Conseil du jour', 'Votre coach', 'Votre analyse']
+ALERTS6 = ALERTS + [('analytics', BLEU, 'Vos objectifs demandent 195 000 FCFA par mois ; il vous reste 55 750 FCFA par mois. Il manque 139 250 FCFA : allongez une échéance ou priorisez un objectif.')]
 def notif_list(items):
     h = ''
     for (i, c, t), tag in items:
@@ -31,9 +32,14 @@ def home_final2():
     h = home_final()
     i = h.index('<div class="sh"><span class="h2">À lire</span>')
     j = h.index('<div class="sh"><span class="h2">Dernières opérations</span>')
-    part = (f'<div class="sh"><span class="h2">À lire · 5</span><span class="small">Disparaît une fois lu ou écouté</span></div>'
-            + notif_list(list(zip(ALERTS, TAGS))))
-    return h[:i] + part + h[j:]
+    part = (f'<div class="sh"><span class="h2">À lire · 6</span><span class="small">Disparaît une fois lu ou écouté</span></div>'
+            + notif_list(list(zip(ALERTS6, TAGS))))
+    h = h[:i] + part + h[j:]
+    # « Votre analyse » n'est plus une carte à part : elle est dans « À lire »
+    a = h.index('<div class="sh"><span class="h2">Analyse</span>')
+    b = h.index('<div class="g2" style="margin-top:22px">', a)
+    h = h[:a] + h[b:]
+    return h.replace('<span class="dot">5</span>', '<span class="dot">6</span>')
 
 def budget_final():
     h = budget_C()
