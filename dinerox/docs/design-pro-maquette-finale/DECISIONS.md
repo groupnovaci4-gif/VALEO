@@ -81,7 +81,8 @@ HTML exacts : `ecrans/` (Comptes : `ecrans/maquette-comptes-index.html?d=b&s=acc
 - E3. Aucun message du coach n'est supprimé de l'application : alertes, conseils, analyses et points du
   coach arrivent TOUS dans « À lire » (Accueil) ; ceux qui concernent le budget aussi dans les
   notifications de l'onglet Budget. Sans doublon : un même message n'apparaît qu'une fois par liste.
-  Un message lu peut toujours être retrouvé dans l'écran de l'assistant / historique existant.
+  Si l'application a déjà un écran qui liste ces messages (ex. « Notifications »), un message lu y reste
+  consultable ; sinon, ne rien créer de nouveau sans accord du fondateur.
 - E4. Mémorisation locale par identifiant ; aucun calcul changé.
 
 ## F. Plus
