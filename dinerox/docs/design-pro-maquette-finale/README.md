@@ -23,3 +23,15 @@ Planches : `FINAL-accueil.png`, `FINAL-budget.png`, `FINAL-objectifs.png`, `FINA
   responsabilité ; fond blanc retiré, recadrées au carré : `icones-a-ajouter/bonbonne_gaz*.webp` (REMPLACE
   le provisoire) et `coiffure*.webp` (nouvelle). En sombre, le rond clair #3A362F derrière les icônes de
   contenu s'applique aussi à elles.
+
+## Notifications « À lire » (fondateur, 2026-10-22)
+- Contiennent : alertes budget, conseil du jour ET les points de VOTRE COACH (échéances, rappels…),
+  chacun avec son étiquette (« Alerte budget », « Conseil du jour », « Votre coach »). Le coach n'est
+  pas supprimé : ses messages sont ici. Un point du coach qui répète une alerte déjà affichée n'est
+  pas montré deux fois. « Votre analyse » reste une carte à part.
+- Une notification DISPARAÎT : quand on touche ×, OU quand la lecture « Écouter » arrive à la fin.
+- RAPPEL : si la situation n'a pas changé (budget toujours dépassé, échéance pas réglée), elle peut
+  revenir UNE fois en rappel après 3 jours (ou la veille d'une échéance) ; elle ne reste jamais affichée
+  en permanence. Une situation NOUVELLE crée une nouvelle notification. Mémorisation locale par
+  identifiant ; aucun calcul changé.
+- Même comportement pour les notifications de l'onglet Budget.

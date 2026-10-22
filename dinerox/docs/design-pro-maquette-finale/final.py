@@ -17,6 +17,24 @@ def home_final():
             f'<div class="sh"><span class="h2">Objectifs</span><span class="link">Tout voir</span></div>' + goals_compact())
     return h[:i] + part + h[j:]
 
+
+TAGS = ['Alerte budget', 'Alerte budget', 'Alerte budget', 'Conseil du jour', 'Votre coach']
+def notif_list(items):
+    h = ''
+    for (i, c, t), tag in items:
+        h += (f'<div class="ban"><span class="sq" style="background:{PASTEL[c]}">{ico(i,18,c)}</span><div style="flex:1;font:500 14px/20px Inter">'
+              f'<div style="font:600 11px Inter;letter-spacing:.4px;text-transform:uppercase;color:{c};margin-bottom:2px">{tag}</div>{t}'
+              f'<div style="margin-top:4px"><span class="link" style="font-size:13px;display:inline-flex;gap:4px;align-items:center">{ico("volume-medium-outline",15,"#0F4A3A")} Écouter</span></div></div>'
+              f'<span class="x">{ico("close",18)}</span></div>')
+    return h
+def home_final2():
+    h = home_final()
+    i = h.index('<div class="sh"><span class="h2">À lire</span>')
+    j = h.index('<div class="sh"><span class="h2">Dernières opérations</span>')
+    part = (f'<div class="sh"><span class="h2">À lire · 5</span><span class="small">Disparaît une fois lu ou écouté</span></div>'
+            + notif_list(list(zip(ALERTS, TAGS))))
+    return h[:i] + part + h[j:]
+
 def budget_final():
     h = budget_C()
     inner = '<div style="text-align:center;color:#fff"><div style="font:800 22px Jakarta">90 %</div><div style="font:500 11px Inter;color:#C9DED6">consommé</div></div>'
@@ -66,6 +84,6 @@ def dark(h):
 if __name__ == '__main__':
     out = '/tmp/claude-0/-home-user-VALEO/af71d198-0678-55f7-8b4f-1b972a15d4fd/scratchpad/abc/final/'
     import os; os.makedirs(out, exist_ok=True)
-    for k, fn in [('accueil', home_final), ('budget', budget_final), ('objectifs', goals_final), ('plus', plus_final)]:
+    for k, fn in [('accueil', home_final2), ('budget', budget_final), ('objectifs', goals_final), ('plus', plus_final)]:
         h = fn(); open(out + f'{k}-clair.html', 'w').write(h); open(out + f'{k}-sombre.html', 'w').write(dark(h))
     print('ok')
