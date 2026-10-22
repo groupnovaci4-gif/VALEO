@@ -1,28 +1,29 @@
 /**
  * Tableau de bord : « je comprends immédiatement ma situation ».
- * Design system v2 (docs/design-system.md §10.1), premier écran migré :
- *  1. carte principale — reste par jour + solde disponible (masquables) ;
- *  2. échéance de tontine, raccourcis (Historique en un toucher, Revenu, Transfert) ;
- *  3. saisie (bulle) et dernières opérations ;
- *  4. alertes, mois en cours, coach, conseil, analyse ; enveloppes et objectifs en LISTE,
- *     récompenses et assistant en RONDS de couleur (étape 4, maquette validée) ; rapports.
- * Aucune formule ici : tous les chiffres viennent de `useFinance` / `core`.
+ * Refonte finale (docs/design-pro-maquette-finale, FINAL-accueil.png, DECISIONS.md B1 à B9) :
+ *  1. « Bonjour 👋 », ligne Démo, carte compacte (plafond par jour, « Mis de côté » qui se déplie) ;
+ *  2. quatre grandes tuiles (Historique, Revenu, Transfert, Parler) ;
+ *  3. « À lire » : tous les messages du coach ;
+ *  4. dernières opérations groupées par jour ; enveloppes en bulles ; le mois en cours ;
+ *     objectifs avec anneaux ; Mes récompenses + DineroX IA ; Rapports.
+ * Les cartes qui n'apparaissent que si besoin (solde négatif, « payé ? », tontine…) restent sous
+ * la carte d'accueil. Aucune formule ici : tous les chiffres viennent de `useFinance` / `core`.
  */
 import React, { useMemo, useState } from 'react';
-import { Pressable, View, useWindowDimensions } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
-import { BIG_TEXT, DesignV2, useTheme } from '@/theme';
+import { DesignV2, useTheme } from '@/theme';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
-import { Amount, Banner, Button, Card, CircleGrid, CircleTile, EmptyState, Icon, ListCard, Row, Screen, SectionHeader, Text, useToast } from '@/components/ui';
-import { GoalRow, InsightCard, SpaceSwitcher, TransactionRow } from '@/features/rows';
-import { EnvelopeRow } from '@/features/budget/EnvelopeCard';
-import { useIntelligence } from '@/hooks/useIntelligence';
-import { RecommendationCard } from '@/features/Recommendation';
-import { CoachSummaryCard } from '@/features/coach/CoachSummaryCard';
-import { AdviceOfDay } from '@/features/coach/AdviceOfDay';
-import { RewardsCircle } from '@/features/coach/RewardsCircle';
+import { Banner, Button, Card, EmptyState, Icon, ListCard, Screen, SectionHeader, Text, useToast } from '@/components/ui';
+import { GoalRingRow, SpaceSwitcher } from '@/features/rows';
+import { EnvelopeBubbles } from '@/features/budget/EnvelopeBubbles';
+import { QuickTiles } from '@/features/home/QuickTiles';
+import { ToRead } from '@/features/home/ToRead';
+import { RecentByDay } from '@/features/home/RecentByDay';
+import { MonthStats } from '@/features/home/MonthStats';
+import { RewardsCard } from '@/features/home/RewardsCard';
 import { goalPlanFor, sortGoals } from '@/core/goals';
 import { isReserve } from '@/core/reserve';
 import { sortTransactions } from '@/core/transactions';
@@ -32,7 +33,6 @@ import { DailyAllowanceCard } from '@/features/entry/DailyAllowanceCard';
 import { TontineDueCard } from '@/features/tontine/TontineDueCard';
 import { NegativeCard, RecurringCards, RegularizeList } from '@/features/money/HomeMoneyCards';
 import { CatalogUpdateCard } from '@/features/categories/CatalogUpdateCard';
-import { EntryPrompt } from '@/features/entry/EntryPrompt';
 import { InviteCard } from '@/features/referral/InviteCard';
 import { WeekCard } from '@/features/referral/WeekCard';
 import { IncomeSavingCard } from '@/features/money/IncomeSavingCard';
@@ -48,15 +48,13 @@ export default function Home() {
 }
 
 function HomeScreen() {
-  const { t, lang, monthYear } = useI18n();
+  const { t, lang } = useI18n();
   const { profile, user, mode, activeSpace, signOutLocal, role } = useApp();
   const money = useMoney();
   const toast = useToast();
   const entry = useEntry();
-  const { fontScale } = useWindowDimensions();
-  const big = fontScale >= BIG_TEXT;
   const f = useFinance();
-  const { data, money: pos, monthSum, envelopes, toAllocate, monthNetSavings, insights, now, envelopeSoon } = f;
+  const { data, money: pos, monthSum, envelopes, toAllocate, monthNetSavings, now, envelopeSoon } = f;
   // Étape 4 : demande d'avis possible au retour ici après un moment positif (règles : core/storeReview.ts).
   useStoreReviewPrompt(data.transactions);
 
@@ -76,15 +74,13 @@ function HomeScreen() {
   const [hidden, setHidden] = useState(false);
   // Erreur du renvoi de l'e-mail de vérification : gardée DANS la page (pas seulement un toast).
   const [verifyError, setVerifyError] = useState<string | null>(null);
-  const { recommendations } = useIntelligence();
-  const topRec = recommendations[0];
-  const monthLabel = monthYear(now);
   const show = (n: number) => (hidden ? '••••••' : money(n));
 
   return (
     <Screen brandSection={t('tab.home')}>
       <SpaceSwitcher />
-      <Text variant="titleL" style={{ marginTop: 4, marginBottom: 12 }}>
+      {/* B1 (`.hello`) : 22/28 Jakarta. */}
+      <Text variant="titleL" style={{ fontSize: 22, lineHeight: 28, marginTop: 4, marginBottom: 8 }}>
         {profile?.firstName ? t('home.hello', { name: profile.firstName }) : t('home.helloAnon')}
       </Text>
 
@@ -127,54 +123,40 @@ function HomeScreen() {
       {/* Filleul : « Votre semaine DineroX » (compteurs du serveur, aucun montant). */}
       <WeekCard />
 
-      {/* 2. Raccourcis : l'Historique en un toucher, puis Revenu et Transfert. */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-        <Shortcut icon="time-outline" label={t('history.title')} onPress={() => router.push('/transactions?from=home')} full />
-        <Shortcut icon="arrow-down" label={t('tx.income')} onPress={() => router.push('/transaction/new?type=income')} full={big} />
-        <Shortcut icon="swap-horizontal" label={t('tx.transfer')} onPress={() => router.push('/transaction/new?type=transfer')} full={big} />
-      </View>
+      {/* 2. B4 : quatre grandes tuiles (Historique, Revenu, Transfert, Parler). */}
+      <QuickTiles />
 
-      {/* 3. Saisir en parlant (ou au clavier), puis les dernières opérations. */}
-      <EntryPrompt />
+      {/* 3. B5 : « À lire », tous les messages du coach au même endroit. */}
+      <ToRead />
+
+      {/* 4. B6 : dernières opérations, groupées par jour. */}
       <SectionHeader title={t('home.recent')} action={recent.length ? t('common.seeAll') : undefined} onAction={() => router.push('/transactions?from=home')} />
-      <Card style={{ paddingVertical: recent.length ? 4 : 16 }}>
-        {recent.length ? (
-          recent.map((tx) => <TransactionRow key={tx.id} tx={tx} />)
-        ) : (
+      {recent.length ? (
+        <RecentByDay txs={recent} />
+      ) : (
+        <Card style={{ paddingVertical: 16 }}>
           <EmptyState icon="receipt-outline" title={t('tx.empty.title')} body={t('tx.empty.body')} action={t('quick.expense')} onAction={() => entry.open('keyboard')} />
-        )}
-      </Card>
+        </Card>
+      )}
       {data.accounts.length === 0 ? (
         <Card style={{ marginTop: 12 }}>
           <EmptyState icon="wallet-outline" title={t('home.noAccount.title')} body={t('home.noAccount.body')} action={t('home.noAccount.cta')} onAction={() => router.push('/accounts/edit')} />
         </Card>
       ) : null}
 
-      {/* 4. Alertes (budget qui déborde, échéances…). */}
-      {insights.length ? (
-        <>
-          <SectionHeader title={t('home.alerts')} action={insights.length > 3 ? t('common.seeAll') : undefined} onAction={() => router.push('/notifications')} />
-          {insights.slice(0, 3).map((i) => (
-            <InsightCard key={i.id} insight={i} />
-          ))}
-        </>
-      ) : null}
+      {/* 5. B7 : enveloppes en bulles. */}
+      <SectionHeader title={t('home.envelopes')} action={t('common.manageCount', { count: envelopes.length })} onAction={() => router.push('/budget')} />
+      {envelopes.length ? (
+        <EnvelopeBubbles items={envelopes.slice(0, 6)} hidden={hidden} upcoming={envelopeSoon} />
+      ) : (
+        <Card>
+          <EmptyState icon="pie-chart-outline" title={t('env.empty.title')} body={t('env.empty.body', {})} action={t('env.empty.cta')} onAction={() => router.push('/budget/auto')} />
+        </Card>
+      )}
 
-      {/* Mois en cours : une ligne par chiffre, montant à droite (deux étages si le texte est agrandi). */}
-      <SectionHeader title={t('home.month')} action={monthLabel} onAction={() => router.push('/reports')} />
-      <Card style={{ paddingVertical: 4 }}>
-        <MonthRow kind="income" label={t('home.stat.income')} sub={t('home.stat.income.sub')} value={show(monthSum.income)} hidden={hidden} onPress={() => router.push('/transactions?from=home')} />
-        <MonthRow kind="expense" label={t('home.stat.expense')} sub={t('home.stat.expense.sub')} value={show(monthSum.expense)} hidden={hidden} onPress={() => router.push('/transactions?from=home')} />
-        {/* Épargne nette du mois (grand livre, mêmes natures que les rapports). */}
-        <MonthRow kind="savings" label={t('home.stat.savings')} sub={t('home.stat.savings.sub')} value={show(monthNetSavings)} hidden={hidden} onPress={() => router.push('/savings')} />
-        {/* Reste à répartir : EXACTEMENT le chiffre de l'onglet Budget (`unallocated`, §9). */}
-        {/* Audit B6 : masqué chez un enfant (engagements de l'espace invisibles pour lui). */}
-        {role === 'child' ? (
-          <MonthRow kind="budget" label={t('home.stat.budget')} value={t('child.askParent')} hidden={false} onPress={() => router.push('/budget')} />
-        ) : (
-          <MonthRow kind={toAllocate.amount < 0 ? 'over' : 'budget'} label={t('home.stat.budget')} value={show(toAllocate.amount)} hidden={hidden} onPress={() => router.push('/budget')} />
-        )}
-      </Card>
+      {/* 6. B8 : le mois en cours (Revenus, Dépenses, Épargne nette, Reste à répartir). */}
+      {/* Reste à répartir : EXACTEMENT le chiffre de l'onglet Budget (`unallocated`, §9) ; masqué chez un enfant (audit B6). */}
+      <MonthStats now={now} income={monthSum.income} expense={monthSum.expense} savings={monthNetSavings} toAllocate={toAllocate.amount} child={role === 'child'} hidden={hidden} />
       {/* Audit I1 : les opérations datées après aujourd'hui, sous la carte (la carte ne change pas). */}
       {monthSum.upcoming.income || monthSum.upcoming.expense ? (
         <Text variant="small" tone="muted" style={{ marginTop: 4 }}>
@@ -187,38 +169,12 @@ function HomeScreen() {
         </Text>
       ))}
 
-      {/* Coach : ce qu'il faut savoir depuis la dernière ouverture (un seul résumé), puis le conseil du jour. */}
-      <View style={{ marginTop: 24 }}>
-        <CoachSummaryCard />
-        <AdviceOfDay excludeId={topRec?.id} />
-      </View>
-
-      {/* Intelligence financière : la recommandation la plus importante, à partir des données réelles. */}
-      {topRec ? (
-        <>
-          <SectionHeader title={t('home.analysis')} action={t('common.seeAll')} onAction={() => router.push('/analysis')} />
-          <RecommendationCard r={topRec} />
-        </>
-      ) : null}
-
-      <SectionHeader title={t('home.envelopesActive')} action={t('common.manageCount', { count: envelopes.length })} onAction={() => router.push('/budget')} />
-      {envelopes.length ? (
-        <ListCard>
-          {envelopes.slice(0, 5).map((s) => (
-            <EnvelopeRow key={s.envelope.id} s={s} hidden={hidden} upcoming={envelopeSoon[s.envelope.id] ?? 0} />
-          ))}
-        </ListCard>
-      ) : (
-        <Card>
-          <EmptyState icon="pie-chart-outline" title={t('env.empty.title')} body={t('env.empty.body', {})} action={t('env.empty.cta')} onAction={() => router.push('/budget/auto')} />
-        </Card>
-      )}
-
-      <SectionHeader title={t('home.goals')} action={t('common.seeAll')} onAction={() => router.push('/goals')} />
+      {/* 7. B9 : objectifs en liste avec anneaux. */}
+      <SectionHeader title={t('home.goalsTitle')} action={t('common.seeAll')} onAction={() => router.push('/goals')} />
       {goals.length ? (
-        <ListCard>
+        <ListCard radius={20}>
           {goals.map(({ g, plan }) => (
-            <GoalRow key={g.id} goal={g} plan={plan} />
+            <GoalRingRow key={g.id} goal={g} plan={plan} />
           ))}
         </ListCard>
       ) : (
@@ -227,18 +183,13 @@ function HomeScreen() {
         </Card>
       )}
 
-      {/* Récompenses et assistant : une carte, deux ronds de couleur pleine (or / violet). */}
-      <View style={{ marginTop: 24 }}>
-        <CircleGrid columns={2}>
-          <RewardsCircle />
-          <CircleTile family="violet" icon="chatbubble-ellipses" label={t('home.ai.title')} badge={t('home.ai.badge')} sub={t('home.askAssistantHint')} accessibilityLabel={t('home.ai.title')} onPress={() => router.push('/assistant')} />
-        </CircleGrid>
-      </View>
+      {/* 8. B9 : Mes récompenses + DineroX IA, côte à côte. */}
+      <RewardsCard />
 
       {/* Parrainage : carte discrète après la 5e saisie réussie. */}
       <InviteCard entries={myEntries} />
 
-      {recent.length ? <Button variant="tertiary" label={t('rep.title')} icon="bar-chart-outline" onPress={() => router.push('/reports')} style={{ marginTop: 16, alignSelf: 'center' }} /> : null}
+      {recent.length ? <Button variant="tertiary" label={t('rep.title')} icon="bar-chart-outline" onPress={() => router.push('/reports')} style={{ marginTop: 14, alignSelf: 'center' }} /> : null}
     </Screen>
   );
 }
@@ -252,7 +203,7 @@ function DemoLine({ onCreate }: { onCreate?: () => void }) {
   const { colors } = useTheme();
   const { t } = useI18n();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 48, marginTop: -4, marginBottom: 12 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 40, marginBottom: 8 }}>
       <View accessible accessibilityLabel={t('home.demoBanner')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.surfaceAlt, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 }}>
         <Icon name="flask-outline" size={15} color={colors.textMuted} />
         <Text variant="caption" weight="600" tone="muted">
@@ -271,62 +222,3 @@ function DemoLine({ onCreate }: { onCreate?: () => void }) {
   );
 }
 
-/** Raccourci : icône + texte, 48 dp, contour lisible. `full` : sur toute la largeur. */
-function Shortcut({ icon, label, onPress, full }: { icon: string; label: string; onPress: () => void; full?: boolean }) {
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexBasis: full ? '100%' : '40%',
-        flexGrow: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        minHeight: 48,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: colors.borderStrong,
-        backgroundColor: pressed ? colors.surfaceAlt : colors.surface,
-      })}
-    >
-      <Icon name={icon} size={22} color={colors.primary} />
-      <Text variant="label" style={{ flexShrink: 1 }}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-type MonthKind = 'income' | 'expense' | 'savings' | 'budget' | 'over';
-
-/** Ligne « Mois en cours » : pastille (icône + couleur de rôle), libellé, montant à droite. */
-function MonthRow({ kind, label, sub, value, hidden, onPress }: { kind: MonthKind; label: string; sub?: string; value: string; hidden: boolean; onPress: () => void }) {
-  const { colors } = useTheme();
-  const { t } = useI18n();
-  const look = {
-    income: { icon: 'arrow-down', bg: colors.successBg, fg: colors.income, tone: 'income' as const },
-    expense: { icon: 'arrow-up', bg: colors.dangerBg, fg: colors.expense, tone: 'expense' as const },
-    savings: { icon: 'wallet', bg: colors.accentContainer, fg: colors.onAccentContainer, tone: 'default' as const },
-    budget: { icon: 'pie-chart', bg: colors.primaryContainer, fg: colors.primary, tone: 'default' as const },
-    over: { icon: 'pie-chart', bg: colors.dangerBg, fg: colors.expense, tone: 'expense' as const },
-  }[kind];
-  return (
-    <Row
-      title={label}
-      subtitle={sub}
-      accessibilityLabel={[label, hidden ? t('common.amountHidden') : value, sub].filter(Boolean).join(', ')}
-      left={
-        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: look.bg, alignItems: 'center', justifyContent: 'center' }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Icon name={look.icon} size={20} color={look.fg} />
-        </View>
-      }
-      right={<Amount text={value} hidden={hidden} size="S" tone={look.tone} align="right" />}
-      onPress={onPress}
-    />
-  );
-}

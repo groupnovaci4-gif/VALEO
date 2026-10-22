@@ -48,26 +48,24 @@ describe('accueil : enveloppes et objectifs en liste, récompenses et IA en rond
     expect(home).not.toMatch(/<TileGrid/);
     expect(home).not.toMatch(/EnvelopeTile|GoalTile|RewardsTile/);
   });
-  it('enveloppes actives : une carte-liste de lignes EnvelopeRow (5 au plus, comme avant)', () => {
-    expect(home).toMatch(/<ListCard>\s*\{envelopes\.slice\(0, 5\)\.map\(\(s\) => \(\s*<EnvelopeRow /);
+  // Refonte finale (DECISIONS.md B7, B9 — remplace les points 4 et 5 de la maquette validée) :
+  // enveloppes en BULLES, objectifs avec ANNEAUX, récompenses + IA en deux cartes (tests/etape5-accueil.test.ts).
+  it('enveloppes : en bulles (6 au plus, comme la maquette), mêmes informations pour le lecteur d’écran', () => {
+    expect(home).toMatch(/<EnvelopeBubbles items=\{envelopes\.slice\(0, 6\)\}/);
+    const bub = read('src/features/budget/EnvelopeBubbles.tsx');
+    for (const k of ["t('env.ofPercent'", "t('env.upcoming'", "t('env.shareOfDeclared'", "t('env.over'", "t('env.left'"]) expect(bub).toContain(k);
   });
-  it('objectifs prioritaires : une carte-liste de lignes GoalRow', () => {
-    expect(home).toMatch(/<ListCard>\s*\{goals\.map\(\(\{ g, plan \}\) => \(\s*<GoalRow /);
+  it('objectifs : une carte-liste de lignes GoalRingRow', () => {
+    expect(home).toMatch(/<ListCard radius=\{20\}>\s*\{goals\.map\(\(\{ g, plan \}\) => \(\s*<GoalRingRow /);
   });
-  it('récompenses (or, trophée) et IA (violet, bulle) : une carte, deux ronds, informations gardées', () => {
-    expect(home).toMatch(/<CircleGrid columns=\{2\}>/);
-    expect(home).toMatch(/<RewardsCircle \/>/);
-    const ai = home.slice(home.indexOf('<RewardsCircle />'));
-    expect(ai).toMatch(/family="violet"/);
-    expect(ai).toMatch(/icon="chatbubble-ellipses"/);
-    expect(ai).toMatch(/t\('home\.ai\.title'\)/);
-    expect(ai).toMatch(/t\('home\.ai\.badge'\)/);
-    expect(ai).toMatch(/t\('home\.askAssistantHint'\)/);
-    const rewards = read('src/features/coach/RewardsCircle.tsx');
-    expect(rewards).toMatch(/export function RewardsCircle/);
-    expect(rewards).toMatch(/family="or"/);
-    expect(rewards).toMatch(/icon="trophy"/);
-    expect(rewards).toMatch(/t\('reward\.earned', \{ count: rewards\.length \}\)/);
+  it('récompenses (trophée) et IA (rond violet, bulle) : deux cartes, informations gardées', () => {
+    expect(home).toMatch(/<RewardsCard \/>/);
+    const card = read('src/features/home/RewardsCard.tsx');
+    expect(card).toMatch(/name="chatbubble-ellipses"/);
+    expect(card).toMatch(/t\('home\.ai\.title'\)/);
+    expect(card).toMatch(/t\('home\.ai\.badge'\)/);
+    expect(card).toMatch(/t\('home\.askAssistantHint'\)/);
+    expect(card).toMatch(/t\('reward\.earned', \{ count: rewards\.length \}\)/);
   });
 });
 

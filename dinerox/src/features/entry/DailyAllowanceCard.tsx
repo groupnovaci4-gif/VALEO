@@ -60,18 +60,21 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
     if (l.kind === 'declared') return t('home.setAside.declared', { goal: l.goal });
     return t('home.setAside.tontine', { name: l.name });
   };
+  // Refonte finale B3 (`.sadet`) : titres blancs 12/16, lignes 13/18, montants blancs en 600.
   const detailGroup = (onHero: boolean, title: string, lines: SetAsideLine[]) =>
     lines.length ? (
-      <View key={title} style={{ gap: 2 }}>
-        <Text variant="caption" tone={onHero ? 'heroMuted' : 'muted'} weight="700">
+      <View key={title}>
+        <Text variant="caption" tone={onHero ? 'onHero' : 'default'} weight="600" style={{ fontSize: 12, lineHeight: 16, marginTop: 4, marginBottom: 2 }}>
           {title}
         </Text>
         {lines.map((l) => (
-          <View key={l.id} style={{ flexDirection: big ? 'column' : 'row', alignItems: big ? 'flex-start' : 'center', justifyContent: 'space-between', gap: big ? 0 : 8 }}>
-            <Text variant="caption" tone={onHero ? 'heroMuted' : 'muted'} style={{ flexShrink: 1 }}>
+          <View key={l.id} style={{ flexDirection: big ? 'column' : 'row', alignItems: big ? 'flex-start' : 'flex-start', justifyContent: 'space-between', gap: big ? 0 : 10, paddingVertical: 3 }}>
+            <Text variant="caption" weight="400" tone={onHero ? 'heroMuted' : 'muted'} style={{ flexShrink: 1, fontSize: 13, lineHeight: 18 }}>
               {detailText(l)}
             </Text>
-            <Amount text={money(l.amount)} hidden={hidden} size="S" tone={onHero ? 'onHero' : 'default'} />
+            <Text variant="caption" weight="600" numeric tone={onHero ? 'onHero' : 'default'} style={{ fontSize: 13, lineHeight: 18 }}>
+              {hidden ? HIDDEN : money(l.amount)}
+            </Text>
           </View>
         ))}
       </View>
@@ -102,7 +105,7 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
         </View>
       </Pressable>
       {detailLines ? (
-        <View style={{ gap: 8, paddingBottom: 4 }}>
+        <View style={{ marginTop: 2, marginBottom: 6, paddingVertical: 8, paddingHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12 }}>
           {detailGroup(onHero, t('home.setAside.inAccounts'), detailLines.inAccounts)}
           {detailGroup(onHero, t('home.setAside.elsewhere'), detailLines.elsewhere)}
         </View>

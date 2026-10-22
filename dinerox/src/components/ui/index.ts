@@ -18,6 +18,7 @@ export * from './Stepper';
 export * from './Amount';
 export * from './Tile';
 export * from './ContentIcon';
+export { ProgressRing } from './ProgressRing';
 export { iconSlugFor, transactionIconIds, transactionIconSlug, labelIconSlug, accountMark, envelopeIconIds, reserveIcon } from './contentIconMap';
 export * from './Circles';
 export * from './ListCard';

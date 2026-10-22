@@ -7,7 +7,8 @@ import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
-import { AccountMark, Amount, Badge, Button, Card, ContentIcon, Icon, IconCircle, ProgressBar, Row, Sheet, Text, Tile, TileCell, TileIcon, TileText, transactionIconIds, transactionIconSlug } from '@/components/ui';
+import { AccountMark, Amount, Badge, Button, Card, ContentIcon, Icon, IconCircle, ProgressBar, ProgressRing, Row, Sheet, Text, Tile, TileCell, TileIcon, TileText, transactionIconIds, transactionIconSlug } from '@/components/ui';
+import { finalPalette } from '@/theme/finalPalette';
 import { useAccountLabel, useCategoryLabels, useMoney } from '@/hooks/useFinance';
 import { useInsightText } from '@/hooks/useInsightText';
 import { useApp, useData } from '@/store/app';
@@ -223,6 +224,44 @@ export function GoalRow({ goal, plan, footer, chips }: { goal: Goal; plan: GoalP
       </Pressable>
       {footer}
     </View>
+  );
+}
+
+/**
+ * Objectif en LIGNE avec ANNEAU (accueil, refonte finale B9 ; ecrans/accueil-*.html) : anneau de
+ * 48 dp (trait 5) autour de l'icône (24 dp), nom, « mis de côté sur cible », % à droite.
+ * Même phrase pour le lecteur d'écran que les autres vues de l'objectif.
+ */
+export function GoalRingRow({ goal, plan }: { goal: Goal; plan: GoalPlan }) {
+  const { t } = useI18n();
+  const money = useMoney();
+  const { colors, dark } = useTheme();
+  const p = finalPalette(dark);
+  const ring = plan.overdue ? p.ringOver : p.ringOk;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={goal.targetAmount > 0 ? `${goal.name}, ${money(plan.saved)} / ${money(plan.target)}, ${plan.percent} %` : goal.name}
+      onPress={() => router.push(`/goals/${goal.id}`)}
+      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
+    >
+      <ProgressRing size={48} stroke={5} percent={plan.percent} color={ring} track={p.ringTrack}>
+        <ContentIcon emoji={goal.icon} ids={[goal.templateId, `goal.${goal.categoryId}`]} color={colors.primary} size={24} />
+      </ProgressRing>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text variant="label" style={{ fontSize: 15 }}>
+          {goal.name}
+        </Text>
+        <Text variant="small" tone="subtle" style={SMALL}>
+          {goal.targetAmount > 0 ? t('home.goal.of', { saved: money(plan.saved), target: money(plan.target) }) : t('goal.setAmount')}
+        </Text>
+      </View>
+      {goal.targetAmount > 0 ? (
+        <Text variant="label" numeric tone="primary" style={{ fontSize: 15 }}>
+          {`${plan.percent} %`}
+        </Text>
+      ) : null}
+    </Pressable>
   );
 }
 

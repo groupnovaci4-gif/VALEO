@@ -162,10 +162,11 @@ export function SectionHeader({ title, action, onAction, overline }: { title: st
     );
   }
   if (v2) {
-    // Titre de section v2 : titleS ; action = bouton texte de 48 dp (plus de petit lien).
+    // Titre de section v2 (refonte finale, `.sh` / `.h2`) : 18/24 Jakarta ; action = bouton texte
+    // de 48 dp en 14 ; information sans action en 13, discrète.
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', columnGap: 8, marginTop: 24, marginBottom: 4 }}>
-        <Text variant="titleS" accessibilityRole="header" style={{ flexShrink: 1 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', columnGap: 8, marginTop: 22, marginBottom: 4 }}>
+        <Text variant="titleS" accessibilityRole="header" style={{ flexShrink: 1, fontSize: 18, lineHeight: 24 }}>
           {title}
         </Text>
         {action && onAction ? (
@@ -175,12 +176,12 @@ export function SectionHeader({ title, action, onAction, overline }: { title: st
             onPress={onAction}
             style={({ pressed }) => ({ minHeight: MIN_TOUCH, paddingHorizontal: 8, marginRight: -8, justifyContent: 'center', borderRadius: 12, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
           >
-            <Text variant="label" tone="primary">
+            <Text variant="label" tone="primary" style={{ fontSize: 14 }}>
               {action}
             </Text>
           </Pressable>
         ) : action ? (
-          <Text variant="small" tone="muted">
+          <Text variant="small" tone="subtle" style={{ fontSize: 13, lineHeight: 18 }}>
             {action}
           </Text>
         ) : null}
