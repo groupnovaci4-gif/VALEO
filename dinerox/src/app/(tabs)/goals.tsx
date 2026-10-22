@@ -21,7 +21,6 @@ import { useFinance, useMoney } from '@/hooks/useFinance';
 import { AmountField, Button, Card, EmptyState, GradientCard, Icon, IconButton, Row, Screen, SectionHeader, Sheet, Text, reserveIcon } from '@/components/ui';
 import { BIG_TEXT, DesignV2, shadowB, useTheme } from '@/theme';
 import { finalPalette } from '@/theme/finalPalette';
-import { SpaceSwitcher } from '@/features/rows';
 import { GoalTileCard, type GoalTileProps } from '@/features/goals/GoalTileCard';
 import { allocateCapacity, goalPlanFor, sortGoals } from '@/core/goals';
 import { observedCapacity } from '@/core/intelligence';
@@ -158,7 +157,6 @@ function GoalsScreen() {
 
   return (
     <Screen brandSection={t('tab.goals')}>
-      <SpaceSwitcher />
       {/* D1 : « Objectifs » + « Nouveau ». */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginTop: 4, marginBottom: 8 }}>
         <Text variant="titleL" accessibilityRole="header">

@@ -19,7 +19,6 @@ import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useCurrency, useFinance, useMoney } from '@/hooks/useFinance';
 import { Card, EmptyState, GradientCard, Icon, ProgressRing, Screen, Text } from '@/components/ui';
-import { SpaceSwitcher } from '@/features/rows';
 import { ToReadList } from '@/features/notifications/ToReadList';
 import { useToRead } from '@/features/notifications/useToRead';
 import { EnvelopeBubbles } from '@/features/budget/EnvelopeBubbles';
@@ -63,7 +62,6 @@ function BudgetScreen() {
   };
   return (
     <Screen brandSection={t('tab.budget')}>
-      <SpaceSwitcher />
       <View style={{ marginTop: 4, marginBottom: 12 }}>
         <Text variant="titleL" accessibilityRole="header">
           {t('budget.title')}

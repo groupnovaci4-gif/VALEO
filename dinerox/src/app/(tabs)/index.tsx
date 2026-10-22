@@ -17,7 +17,7 @@ import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { useFinance, useMoney } from '@/hooks/useFinance';
 import { Banner, Button, Card, EmptyState, Icon, ListCard, Screen, SectionHeader, Text, useToast } from '@/components/ui';
-import { GoalRingRow, SpaceSwitcher } from '@/features/rows';
+import { GoalRingRow } from '@/features/rows';
 import { EnvelopeBubbles } from '@/features/budget/EnvelopeBubbles';
 import { QuickTiles } from '@/features/home/QuickTiles';
 import { ToRead } from '@/features/home/ToRead';
@@ -78,7 +78,6 @@ function HomeScreen() {
 
   return (
     <Screen brandSection={t('tab.home')}>
-      <SpaceSwitcher />
       {/* B1 (`.hello`) : 22/28 Jakarta. */}
       <Text variant="titleL" style={{ fontSize: 22, lineHeight: 28, marginTop: 4, marginBottom: 8 }}>
         {profile?.firstName ? t('home.hello', { name: profile.firstName }) : t('home.helloAnon')}
