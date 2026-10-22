@@ -30,6 +30,8 @@ HTML exacts : `ecrans/` (Comptes : `ecrans/maquette-comptes-index.html?d=b&s=acc
   dessin du fondateur. Fichiers : `icones-a-ajouter/` (+ `cooking` pour cuisine).
 - A6. Logos des opérateurs = fichiers du fondateur (`logos-fondateur/`), tuile blanche arrondie, image
   entière ; sur tous les écrans (Comptes, petit badge sur les opérations).
+  **Validés définitivement par le fondateur (22/10, étape 10), qui en prend toute la responsabilité :
+  NE PLUS MODIFIER ces logos, ni leurs fichiers, ni leur rendu.**
 - A7. Cartes vertes flottantes (Accueil, Budget, Objectifs, Plus) : marges 8 dp, rayon 22, ombre verte
   marquée en clair ; en sombre liseré clair 1 dp + ombre noire + léger halo vert.
 - A8. Aucun texte coupé ni « … » sur un nom ; texte agrandi (≥ 1,3) ou écran < 340 dp : moins de colonnes.
@@ -53,6 +55,10 @@ HTML exacts : `ecrans/` (Comptes : `ecrans/maquette-comptes-index.html?d=b&s=acc
   dépassement…), conseils (conseil du jour, conseils IA), points de « Votre coach » (échéances, rappels)
   ET « Votre analyse » ; chacun avec son étiquette (« Alerte budget », « Conseil du jour », « Votre
   coach », « Votre analyse ») et « Écouter » ; voir E (notifications).
+- B5bis (22/10, étape 10). L'Accueil n'affiche que les **3 messages les plus importants** (alertes et
+  échéances d'abord), puis le lien « Voir les N › » vers l'écran Notifications, où TOUS les messages
+  restent consultables (rien n'est supprimé). La cloche affiche le vrai nombre de non-lus. E1–E4
+  s'appliquent toujours (un message lu ou écouté disparaît).
 - B6. Dernières opérations groupées par jour, icône du dictionnaire, petit logo de l'opérateur, montant.
 - B7. Enveloppes en bulles (anneau de progression autour de l'icône) dans une carte, « Gérer (N) ».
 - B8. Octobre / Mois en cours : Revenus, Dépenses, Épargne nette, puis Reste à répartir.
@@ -84,6 +90,9 @@ HTML exacts : `ecrans/` (Comptes : `ecrans/maquette-comptes-index.html?d=b&s=acc
   Si l'application a déjà un écran qui liste ces messages (ex. « Notifications »), un message lu y reste
   consultable ; sinon, ne rien créer de nouveau sans accord du fondateur.
 - E4. Mémorisation locale par identifiant ; aucun calcul changé.
+- E5 (22/10, étape 10). Les messages du même type sont **regroupés** en un seul : ex. 7 « paiement
+  régulier détecté » → un message « 7 paiements réguliers détectés » qui ouvre la liste détaillée.
+  Changement de texte accordé par le fondateur pour ce regroupement uniquement.
 
 ## F. Plus
 - F1. Même en-tête que les autres onglets ; « Plus » + pastille d'état (« Local ») ; carte verte flottante
