@@ -8,6 +8,7 @@
  */
 import type { AccountProvider, AccountType } from '@/core/types';
 import bundledOperators from '@/config/operators.json';
+import dictionary from '@/config/dictionnaire-icones.json';
 import { ICON_BY_EMOJI, ICON_BY_ID } from './contentIcons.generated';
 
 export { CONTENT_ICON_SLUGS } from './contentIcons.generated';
@@ -51,6 +52,67 @@ export function envelopeIconIds(categoryIds: string[]): string[] {
 /** Listes d'opérations : la SOUS-catégorie quand l'opération en a une, sinon la catégorie. */
 export function transactionIconIds(tx: { subcategoryId?: string | null; categoryId?: string | null }): string[] {
   return [tx.subcategoryId, tx.categoryId].filter((x): x is string => !!x);
+}
+
+/** Sans majuscules ni accents ; apostrophe typographique = apostrophe simple. */
+const fold = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[’‘]/g, "'")
+    .toLowerCase()
+    .trim();
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Mots-clés du dictionnaire, prêts à chercher (mot ENTIER : ni lettre ni chiffre autour).
+ * Les notes (« objectif « Ma moto » ») ne sont pas des mots-clés.
+ */
+const KEYWORDS = dictionary.entrees.flatMap((e, order) =>
+  e.motsCles
+    .filter((k) => !k.includes('«'))
+    .map((k) => {
+      const key = fold(k);
+      return { slug: e.icone, order, length: key.length, re: new RegExp(`(^|[^a-z0-9])${escapeRe(key)}(?=$|[^a-z0-9])`) };
+    }),
+);
+
+/**
+ * Refonte finale A4 : icône donnée par un LIBELLÉ (`src/config/dictionnaire-icones.json`, 50 entrées).
+ * Plusieurs mots-clés trouvés : le premier dans le libellé, puis le plus long (« recharge gaz » avant
+ * « recharge »), puis l'ordre du dictionnaire. `null` : aucun mot-clé.
+ */
+export function labelIconSlug(label: string | null | undefined): string | null {
+  if (!label) return null;
+  const text = fold(label);
+  let best: { slug: string; at: number; length: number; order: number } | null = null;
+  for (const k of KEYWORDS) {
+    const m = k.re.exec(text);
+    if (!m) continue;
+    const at = m.index + m[1].length;
+    if (!best || at < best.at || (at === best.at && (k.length > best.length || (k.length === best.length && k.order < best.order)))) best = { slug: k.slug, at, length: k.length, order: k.order };
+  }
+  return best?.slug ?? null;
+}
+
+/**
+ * Refonte finale A4 — icône d'une OPÉRATION, dans l'ordre : libellé → objectif lié (son nom, puis
+ * son icône) → sous-catégorie → catégorie → type. `null` : l'icône de type actuelle (virement,
+ * ajustement, financement…) reste affichée par l'écran. `categories` : faux pour un virement, un
+ * ajustement ou un financement (leur catégorie n'est pas leur sens).
+ */
+export function transactionIconSlug(
+  tx: { type: string; payee?: string | null; subcategoryId?: string | null; categoryId?: string | null },
+  goal?: { name?: string | null; icon?: string | null; templateId?: string | null; categoryId?: string | null } | null,
+  categories: boolean = tx.type === 'expense' || tx.type === 'income',
+): string | null {
+  const byLabel = labelIconSlug(tx.payee);
+  if (byLabel) return byLabel;
+  if (goal) {
+    const g = labelIconSlug(goal.name) ?? iconSlugFor({ emoji: goal.icon, ids: [goal.templateId, goal.categoryId ? `goal.${goal.categoryId}` : null] });
+    if (g) return g;
+  }
+  return categories ? iconSlugFor({ ids: transactionIconIds(tx) }) : null;
 }
 
 export interface OperatorData {

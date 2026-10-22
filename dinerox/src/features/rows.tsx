@@ -7,10 +7,10 @@ import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTheme } from '@/theme';
 import { useI18n, type TKey } from '@/i18n';
-import { AccountMark, Amount, Badge, Button, Card, ContentIcon, Icon, IconCircle, ProgressBar, Row, Sheet, Text, Tile, TileCell, TileIcon, TileText, transactionIconIds } from '@/components/ui';
+import { AccountMark, Amount, Badge, Button, Card, ContentIcon, Icon, IconCircle, ProgressBar, Row, Sheet, Text, Tile, TileCell, TileIcon, TileText, transactionIconIds, transactionIconSlug } from '@/components/ui';
 import { useAccountLabel, useCategoryLabels, useMoney } from '@/hooks/useFinance';
 import { useInsightText } from '@/hooks/useInsightText';
-import { useApp } from '@/store/app';
+import { useApp, useData } from '@/store/app';
 import type { Account, Goal, Transaction } from '@/core/types';
 import type { GoalPlan } from '@/core/goals';
 import type { Insight } from '@/core/insights';
@@ -25,6 +25,7 @@ export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx
   const money = useMoney();
   const cats = useCategoryLabels();
   const accountLabel = useAccountLabel();
+  const data = useData();
   // Ajustement de solde (1.8) : ni revenu ni dépense, signé selon son sens, en ton neutre.
   // Financement (emprunt, prêt, remboursements) : la nature, jamais « Autres revenus » (§2.3).
   const financing = financingNature(tx);
@@ -51,12 +52,16 @@ export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx
     // est lu avec la ligne.
     const subtitle = `${sub} · ${date(tx.date)}`;
     const byCategory = tx.type !== 'transfer' && tx.type !== 'adjustment' && !financing;
+    // Refonte finale A4 : le LIBELLÉ décide (dictionnaire), puis l'objectif lié, la sous-catégorie,
+    // la catégorie ; sinon l'icône de type actuelle.
+    const goal = tx.goalId ? data.goals.find((g) => g.id === tx.goalId) : null;
+    const slug = transactionIconSlug(tx, goal, byCategory);
     return (
       <Row
         title={title}
         subtitle={subtitle}
         accessibilityLabel={`${title}, ${amount}, ${subtitle}`}
-        left={<ContentIcon ids={byCategory ? transactionIconIds(tx) : []} fallbackEmoji={'emoji' in meta ? meta.emoji : undefined} icon={meta.icon} color={meta.color} />}
+        left={<ContentIcon slug={slug} ids={byCategory ? transactionIconIds(tx) : []} fallbackEmoji={'emoji' in meta ? meta.emoji : undefined} icon={meta.icon} color={meta.color} />}
         right={<Amount text={amount} size="S" tone={tone} align="right" />}
         onPress={onPress ?? (() => router.push(`/transaction/${tx.id}`))}
         onLongPress={onLongPress}

@@ -31,11 +31,12 @@ function Icon3d({ slug, size }: { slug: string; size: number }) {
  * ou hors design v2 : le rendu actuel (`IconCircle`). Décoratif : le texte voisin porte le sens.
  *  - `ids` : identifiants dans l'ordre (sous-catégorie avant catégorie, modèle avant famille) ;
  *  - `emoji` : emoji CHOISI par la personne (objectif, réserve) — passe avant les identifiants ;
- *  - `fallbackEmoji` : emoji affiché faute de mieux (catégorie), consulté après les identifiants.
+ *  - `fallbackEmoji` : emoji affiché faute de mieux (catégorie), consulté après les identifiants ;
+ *  - `slug` : icône déjà décidée (refonte finale A4 : libellé → objectif lié → …), passe avant tout.
  */
-export function ContentIcon({ ids, emoji, fallbackEmoji, icon, color, size = 40 }: { ids?: (string | null | undefined)[]; emoji?: string | null; fallbackEmoji?: string | null; icon?: string; color: string; size?: number }) {
+export function ContentIcon({ slug: decided, ids, emoji, fallbackEmoji, icon, color, size = 40 }: { slug?: string | null; ids?: (string | null | undefined)[]; emoji?: string | null; fallbackEmoji?: string | null; icon?: string; color: string; size?: number }) {
   const { v2 } = useTheme();
-  const slug = v2 ? (iconSlugFor({ ids, emoji }) ?? iconSlugFor({ emoji: fallbackEmoji })) : null;
+  const slug = v2 ? ((decided && ICON_ASSETS[decided] ? decided : null) ?? iconSlugFor({ ids, emoji }) ?? iconSlugFor({ emoji: fallbackEmoji })) : null;
   if (slug && ICON_ASSETS[slug]) return <Icon3d slug={slug} size={size} />;
   return <IconCircle icon={icon} emoji={emoji ?? fallbackEmoji ?? undefined} color={color} size={size} />;
 }
