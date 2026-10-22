@@ -114,7 +114,7 @@ def tabbar(on):
     return f'<div class="tab">{h}</div>'
 
 # Données de la démonstration
-TX = [('20 oct.', [('Moto', 'Virement · Compte bancaire → Compte épargne', '50 000 FCFA', None, 'swap')]),
+TX = [('20 oct.', [('Moto', 'Virement · Compte bancaire → Compte épargne', '50 000 FCFA', 'composees/moto_rouge_3d', None)]),
       ('18 oct.', [('Canal+', 'Loisirs · Orange Money', '−10 000 FCFA', 'television', 'orange')]),
       ('15 oct.', [('Restaurant', 'Alimentation · Cash', '−51 000 FCFA', 'composees/plat_poisson_3d', None)]),
       ('12 oct.', [('Taxi', 'Transport · Cash', '−33 000 FCFA', 'taxi', None)]),
@@ -124,8 +124,8 @@ ALERTS = [('alert-circle', ROUGE, 'Budget Maison dépassé de 40 000 FCFA.'),
           ('warning', OR, 'Budget Famille entièrement utilisé.'),
           ('bulb', VIOLET, 'Conseil du jour : vous avez dépensé 29 % de plus en Alimentation & boissons que d’habitude (+21 000 FCFA).'),
           ('calendar', BLEU, 'Échéance Tonton Yao : 50 000 FCFA le 28 octobre.')]
-ENV = [('house', 'Maison', 140000, 100000, 'over'), ('curry-rice', 'Alimentation & boissons', 93000, 80000, 'over'), ('taxi', 'Transport', 33000, 40000, 'ok'),
-       ('composees/famille_3d_medium-dark', 'Famille', 50000, 50000, 'full'), ('pig-face', 'Épargne', 50000, 50000, 'full'), ('shopping-bags', 'Libre', 10000, 100000, 'ok')]
+ENV = [('house', 'Maison', 140000, 100000, 'over'), ('basket', 'Alimentation & boissons', 93000, 80000, 'over'), ('taxi', 'Transport', 33000, 40000, 'ok'),
+       ('composees/famille_3d_medium-dark', 'Famille', 50000, 50000, 'full'), ('pig', 'Épargne', 50000, 50000, 'full'), ('shopping-bags', 'Libre', 10000, 100000, 'ok')]
 def fm(n): return f'{n:,}'.replace(',', ' ') + ' FCFA'
 def envstate(sp, bud, st):
     if st == 'over': return f'Dépassé de {fm(sp-bud)}', ROUGE
