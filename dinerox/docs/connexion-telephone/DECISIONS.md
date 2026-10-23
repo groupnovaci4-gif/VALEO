@@ -65,6 +65,22 @@ validée et que les maquettes des écrans ci-dessous n'ont pas été approuvées
    - **numéro recyclé** : quand un code secret est changé (code oublié), une alerte part vers les
      appareils déjà connectés et vers l'e-mail du compte s'il existe.
 
+## 5ter. Écran de bienvenue (fondateur, 23/10)
+
+1. **L'image et le style d'origine sont rétablis** : photo plein écran avec son fondu vert, logo,
+   « DineroX », « Mieux gérer. Mieux prévoir. Mieux vivre. », phrase d'accroche, panneau clair en
+   bas. Aucune carte verte flottante sur cet écran.
+2. **Libellés clairs** (on doit savoir tout de suite si on s'inscrit ou si on se connecte) :
+   - bouton principal : « **S'inscrire avec mon numéro** » ;
+   - bouton secondaire : « **Se connecter** » (numéro + code secret ; lien « Se connecter avec mon
+     e-mail » sur cet écran) ;
+   - petit lien : « **S'inscrire avec mon e-mail** » ;
+   - inchangés : « Tester sans données (démonstration) », « Utiliser sur ce téléphone uniquement »,
+     la mention « ni une banque ni un service de paiement ».
+3. Ailleurs dans le parcours : « J'ai déjà un compte » devient « Se connecter » ; « J'ai un compte
+   e-mail » devient « Se connecter avec mon e-mail ».
+   Maquette : `maquettes/01-bienvenue-v2-clair.png` (cadres pointillés = ce qui change).
+
 ## 6. Ordre des étapes
 
 1. Terminer la refonte du design (étape 10, images côte à côte, puis APK pour le
