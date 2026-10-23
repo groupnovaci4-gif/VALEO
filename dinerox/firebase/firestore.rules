@@ -284,6 +284,11 @@ service cloud.firestore {
       allow read: if signedIn();
       allow write: if isPlatformAdmin();
     }
+    // Interrupteur « connexion par numéro » (audit 23/10, C5) : lu par l'écran de bienvenue, AVANT
+    // toute connexion. Ce seul document est public (un booléen) ; l'écriture reste à l'administrateur.
+    match /config/app/items/phoneAuth {
+      allow read: if true;
+    }
 
     // ─── Parrainage : codes et empreintes d'appareils ───────────────
     // Serveur seul (Cloud Functions) : aucune lecture ni écriture client.

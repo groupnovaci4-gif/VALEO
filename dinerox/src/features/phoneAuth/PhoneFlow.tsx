@@ -7,6 +7,12 @@
  * Erreurs visibles : mauvais code, trop d'essais, code expiré, pas de réseau (9 à 12).
  * Tout le sensible est fait par le serveur (`services/phoneAuth`) ; le code secret ne fait que
  * passer en mémoire le temps de l'appel, jamais rangé sur le téléphone (§5bis.3).
+ * Audit du 23/10 (partie 2) :
+ *  - S9 : inscription avec un numéro déjà inscrit → « Ce numéro a déjà un compte » (se connecter /
+ *    code secret oublié) ; jamais de nouveau code secret par l'inscription ;
+ *  - S1 : « Ajouter mon numéro » sur un compte qui en a déjà un → code secret ACTUEL d'abord ;
+ *  - C4 : inscription avec code d'invitation, liens CGU / confidentialité et événement `sign_up` ;
+ *  - D2 : « Changer mon code secret » (Réglages › Sécurité) = parcours « code oublié », session gardée.
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -18,7 +24,11 @@ import { COUNTRY_PROFILES } from '@/core/countries';
 import { DEFAULT_DIAL, DIAL_CODES, dialCodeOf, formatLocal, maskPhone, normalizePhone, secretProblem, smsAllowed } from '@/core/phone';
 import { TERMS_VERSION } from '@/config/legal';
 import { ensureProfile, saveProfile } from '@/services/profile';
+import { analytics } from '@/services/analytics';
+import { isValidCode, normalizeCode, pendingForTypedCode } from '@/core/referral';
+import { readPending, writePending } from '@/services/referral';
 import {
+  currentPhoneNumber,
   lastPhone,
   openSession,
   phoneErrorOf,
@@ -33,7 +43,8 @@ import {
   type StartResult,
 } from '@/services/phoneAuth';
 
-export type PhoneStart = 'number' | 'signin' | 'forgot' | 'link';
+/** `change` : « Changer mon code secret » depuis Réglages › Sécurité (compte connecté, D2). */
+export type PhoneStart = 'number' | 'signin' | 'forgot' | 'link' | 'change';
 
 type Step =
   | { name: 'number'; mode: 'signup' | 'signin' | 'link' }
@@ -42,7 +53,10 @@ type Step =
   | { name: 'confirm'; purpose: PhonePurpose; ticket: string; first: string }
   | { name: 'signin' }
   | { name: 'forgot' }
-  | { name: 'device' };
+  | { name: 'device' }
+  // Audit 23/10 : code secret actuel avant d'ajouter un autre numéro (S1) ; numéro déjà inscrit (S9).
+  | { name: 'current' }
+  | { name: 'exists' };
 
 /** Heure courante, rafraîchie chaque seconde (comptes à rebours ; jamais lue pendant le rendu). */
 function useNow(active: boolean): number {
@@ -78,16 +92,29 @@ function Flow({ start }: { start: PhoneStart }) {
   const { t, lang } = useI18n();
   const toast = useToast();
   const l = lang === 'en' ? 'en' : 'fr';
-  const initial: Step = start === 'signin' ? { name: 'signin' } : start === 'forgot' ? { name: 'forgot' } : { name: 'number', mode: start === 'link' ? 'link' : 'signup' };
+  // Numéro du compte CONNECTÉ (D2 « changer mon code secret » ; S1 : le compte en a-t-il déjà un ?), lu une fois.
+  const [accountPhone] = useState(() => (start === 'change' || start === 'link' ? currentPhoneNumber() : null));
+  const initial: Step =
+    start === 'signin'
+      ? { name: 'signin' }
+      : start === 'forgot' || start === 'change'
+        ? { name: 'forgot' }
+        : start === 'link' && accountPhone
+          ? { name: 'current' }
+          : { name: 'number', mode: start === 'link' ? 'link' : 'signup' };
   const [history, setHistory] = useState<Step[]>([initial]);
   const step = history[history.length - 1];
   const go = (s: Step) => setHistory((h) => [...h, s]);
   const back = () => (history.length > 1 ? setHistory((h) => h.slice(0, -1)) : router.back());
   const replace = (s: Step) => setHistory((h) => [...h.slice(0, -1), s]);
 
-  const [dial, setDial] = useState(DEFAULT_DIAL);
+  const [dial, setDial] = useState(() => (start === 'change' && accountPhone ? (dialCodeOf(accountPhone) ?? DEFAULT_DIAL) : DEFAULT_DIAL));
   const [local, setLocal] = useState('');
-  const [e164, setE164] = useState<string | null>(null);
+  const [e164, setE164] = useState<string | null>(start === 'change' ? accountPhone : null);
+  // C4 : code d'invitation FACULTATIF (préremplit celui d'un lien ou du referrer Play, comme l'e-mail).
+  const [inviteCode, setInviteCode] = useState('');
+  // S1 : code secret ACTUEL du compte, en mémoire le temps de l'ajout du nouveau numéro (jamais rangé).
+  const currentSecret = useRef<string | null>(null);
   // Numéro retenu sur CE téléphone : « Bon retour ! » seulement pour lui, sinon « Se connecter » (§5ter).
   const [remembered, setRemembered] = useState<string | null>(null);
   const [error, setError] = useState<PhoneError | null>(null);
@@ -100,6 +127,12 @@ function Flow({ start }: { start: PhoneStart }) {
   // depuis l'inscription, il sert seulement à reconnaître ce numéro s'il est retapé.
   useEffect(() => {
     let alive = true;
+    if (start === 'number')
+      void readPending().then((p) => {
+        if (alive && p) setInviteCode((c) => c || p.code);
+      });
+    // D2 : le numéro est celui du compte connecté, jamais un numéro retenu sur le téléphone.
+    if (start === 'change') return;
     void lastPhone().then((p) => {
       if (!alive) return;
       if (p?.e164) setRemembered(p.e164);
@@ -133,7 +166,7 @@ function Flow({ start }: { start: PhoneStart }) {
   const send = (purpose: PhonePurpose, channel: PhoneChannel, phone = e164) =>
     run(async () => {
       if (!phone) return;
-      const req = await phoneStart({ phone, dial, purpose, channel, lang: l });
+      const req = await phoneStart({ phone, dial, purpose, channel, lang: l, currentSecret: purpose === 'link' ? (currentSecret.current ?? undefined) : undefined });
       reset();
       if (step.name === 'code') replace({ name: 'code', purpose, req });
       else go({ name: 'code', purpose, req });
@@ -150,6 +183,8 @@ function Flow({ start }: { start: PhoneStart }) {
   const submitNumber = (mode: 'signup' | 'signin' | 'link') => {
     const phone = normalizePhone(local, dial);
     if (!phone) return setError({ key: 'phone.err.invalidNumber', code: 'phone/invalid-number' });
+    // C4 : même contrôle que l'inscription e-mail, AVANT tout envoi.
+    if (mode === 'signup' && inviteCode.trim() && !isValidCode(normalizeCode(inviteCode))) return setError({ key: 'ref.err.invalid', code: 'invite' });
     setE164(phone);
     setError(null);
     if (mode === 'signin') return go({ name: 'signin' });
@@ -167,6 +202,11 @@ function Flow({ start }: { start: PhoneStart }) {
           const r = await phoneSignIn({ phone: e164 ?? '', dial, secret, ticket: v.ticket });
           pendingSecret.current = null;
           if (r.token) await opened(r.token, e164 ?? '');
+          return;
+        }
+        // S9 : ce numéro a déjà un compte → se connecter ou « code secret oublié », jamais un nouveau code secret.
+        if (step.purpose === 'signup' && v.existing) {
+          go({ name: 'exists' });
           return;
         }
         go({ name: 'secret', purpose: step.purpose, ticket: v.ticket });
@@ -196,13 +236,33 @@ function Flow({ start }: { start: PhoneStart }) {
         setError({ key: 'phone.secret.mismatch', code: 'mismatch' });
         return;
       }
-      const r = await phoneSetSecret({ ticket: step.ticket, secret: code, lang: l });
+      // C4 : code d'invitation posé AVANT l'ouverture de la session (elle l'applique aussitôt), remis comme avant en cas d'échec.
+      const signup = step.purpose === 'signup';
+      const previous = signup ? await readPending() : null;
+      const next = signup ? pendingForTypedCode(inviteCode, previous, Date.now()) : null;
+      if (next) await writePending(next);
+      let r: Awaited<ReturnType<typeof phoneSetSecret>>;
+      try {
+        r = await phoneSetSecret({ ticket: step.ticket, secret: code, lang: l, currentSecret: step.purpose === 'link' ? (currentSecret.current ?? undefined) : undefined });
+      } catch (e) {
+        if (next) await writePending(previous);
+        throw e;
+      }
       if (r.linked) {
+        currentSecret.current = null;
         toast.show(t('phone.link.done'), 'success');
         router.back();
         return;
       }
-      if (r.token) await opened(r.token, e164 ?? '');
+      if (!r.token) return;
+      await opened(r.token, e164 ?? '');
+      // C4 : même événement que l'inscription e-mail (méthode seulement, jamais le numéro).
+      if (signup && !r.existing) analytics.track('sign_up', { method: 'phone' });
+      // D2 : code secret changé depuis les Réglages : la session continue, retour à Sécurité.
+      if (start === 'change') {
+        toast.show(t('common.saved'), 'success');
+        router.back();
+      }
     });
 
   const signIn = (code: string) =>
@@ -220,7 +280,13 @@ function Flow({ start }: { start: PhoneStart }) {
   const onDigits = (v: string) => {
     setDigits(v);
     if (v.length < 6) return;
-    if (step.name === 'code') void verify(v);
+    if (step.name === 'current') {
+      // S1 : vérifié par le serveur avec l'envoi du code (aucun code envoyé s'il est faux).
+      currentSecret.current = v;
+      setDigits('');
+      setError(null);
+      go({ name: 'number', mode: 'link' });
+    } else if (step.name === 'code') void verify(v);
     else if (step.name === 'secret') chooseSecret(v);
     else if (step.name === 'confirm') void confirmSecret(v);
     else if (step.name === 'signin') void signIn(v);
@@ -229,7 +295,11 @@ function Flow({ start }: { start: PhoneStart }) {
   const shared = { t, back, error, busy };
   switch (step.name) {
     case 'number':
-      return <NumberStep {...shared} mode={step.mode} dial={dial} setDial={setDial} local={local} setLocal={setLocal} onSubmit={() => submitNumber(step.mode)} onSignIn={() => go({ name: 'number', mode: 'signin' })} />;
+      return <NumberStep {...shared} mode={step.mode} dial={dial} setDial={setDial} local={local} setLocal={setLocal} inviteCode={inviteCode} setInviteCode={setInviteCode} onSubmit={() => submitNumber(step.mode)} onSignIn={() => go({ name: 'number', mode: 'signin' })} />;
+    case 'current':
+      return <CurrentSecretStep {...shared} digits={digits} onDigits={onDigits} />;
+    case 'exists':
+      return <ExistsStep {...shared} e164={e164 ?? ''} onSignIn={() => (reset(), go({ name: 'signin' }))} onForgot={() => (reset(), go({ name: 'forgot' }))} />;
     case 'code':
       return <CodeStep {...shared} req={step.req} e164={e164 ?? ''} digits={digits} onDigits={onDigits} onEdit={() => setHistory((h) => h.slice(0, h.findIndex((s) => s.name === 'code')))} onResend={(c) => void send(step.purpose, c)} />;
     case 'secret':
@@ -374,7 +444,7 @@ function Dots({ n }: { n: number }) {
 
 // ─── 2 · 8 — Numéro ──────────────────────────────────────────────────
 
-function NumberStep({ t, back, error, busy, mode, dial, setDial, local, setLocal, onSubmit, onSignIn }: Shared & { mode: 'signup' | 'signin' | 'link'; dial: string; setDial: (d: string) => void; local: string; setLocal: (v: string) => void; onSubmit: () => void; onSignIn: () => void }) {
+function NumberStep({ t, back, error, busy, mode, dial, setDial, local, setLocal, inviteCode, setInviteCode, onSubmit, onSignIn }: Shared & { mode: 'signup' | 'signin' | 'link'; dial: string; setDial: (d: string) => void; local: string; setLocal: (v: string) => void; inviteCode: string; setInviteCode: (v: string) => void; onSubmit: () => void; onSignIn: () => void }) {
   const { colors } = useTheme();
   const { lang } = useI18n();
   const [choose, setChoose] = useState(false);
@@ -418,7 +488,8 @@ function NumberStep({ t, back, error, busy, mode, dial, setDial, local, setLocal
       <Text variant="caption" tone="subtle" style={{ marginTop: -6, marginBottom: 8 }}>
         {t('phone.number.hint')}
       </Text>
-      <ErrorNotice error={error} t={t} />
+      {/* Code d'invitation mal formé : message sous SON champ (comme l'e-mail), pas en bandeau. */}
+      <ErrorNotice error={error?.code === 'invite' ? null : error} t={t} />
       {mode === 'signup' ? (
         <Card sand>
           <Round icon="logo-whatsapp" tone="wa" />
@@ -434,10 +505,32 @@ function NumberStep({ t, back, error, busy, mode, dial, setDial, local, setLocal
       ) : null}
       {mode === 'signup' ? (
         <>
+          {/* C4 : code d'invitation facultatif et transparence, mêmes textes que l'inscription e-mail. */}
+          <Field
+            label={t('ref.code.question')}
+            hint={t('ref.code.hint')}
+            value={inviteCode}
+            onChangeText={setInviteCode}
+            error={error?.code === 'invite' && inviteCode.trim() && !isValidCode(normalizeCode(inviteCode)) ? t('ref.err.invalid') : null}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            autoComplete="off"
+            returnKeyType="done"
+            onSubmitEditing={onSubmit}
+            maxLength={12}
+          />
+          <Text variant="caption" tone="muted" style={{ marginTop: -4, marginBottom: 8 }}>
+            {t('ref.transparency')}
+          </Text>
           <Button variant="ghost" full label={t('phone.welcome.signin')} onPress={onSignIn} style={{ marginTop: 8 }} />
           <Text variant="caption" tone="subtle" align="center" style={{ marginTop: 8 }}>
             {t('phone.number.terms')}
           </Text>
+          {/* C4 : liens vers les CGU et la politique de confidentialité, comme l'inscription e-mail. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+            <Button small variant="ghost" label={t('set.terms')} onPress={() => router.push('/legal/terms')} />
+            <Button small variant="ghost" label={t('set.privacy')} onPress={() => router.push('/legal/privacy')} />
+          </View>
         </>
       ) : null}
       {/* Connexion (numéro pas encore connu sur ce téléphone) : la connexion e-mail reste à un toucher (§5ter). */}
@@ -572,6 +665,45 @@ function SignInStep({ t, back, error, busy, e164, known, digits, onDigits, onCha
         <TextLink label={t('phone.signin.withEmail')} onPress={() => router.push('/sign-in')} />
       </View>
       <Keypad value={digits} onChange={onDigits} disabled={busy || error?.code === 'phone/locked'} />
+    </Screen>
+  );
+}
+
+// ─── Audit 23/10 : code secret actuel (S1), numéro déjà inscrit (S9) ──
+
+/** « Ajouter mon numéro » sur un compte qui a déjà un numéro : son code secret actuel d'abord (S1). */
+function CurrentSecretStep({ t, back, error, busy, digits, onDigits }: Shared & { digits: string; onDigits: (v: string) => void }) {
+  return (
+    <Screen syncBanner={false}>
+      <Top back={back} t={t} title={t('phone.link.title')} />
+      <Title text={t('phone.signin.secret')} />
+      <Dots n={digits.length} />
+      <ErrorNotice error={error} t={t} />
+      <Keypad value={digits} onChange={onDigits} disabled={busy} />
+    </Screen>
+  );
+}
+
+/** Inscription avec un numéro déjà inscrit (S9) : se connecter, ou « code secret oublié ». */
+function ExistsStep({ t, back, e164, onSignIn, onForgot }: Shared & { e164: string; onSignIn: () => void; onForgot: () => void }) {
+  return (
+    <Screen syncBanner={false} footer={<Button full label={t('phone.welcome.signin')} onPress={onSignIn} />}>
+      <Top back={back} t={t} />
+      <Title text={t('phone.exists.title')} />
+      <Card>
+        <Round icon="phone-portrait-outline" tone="brand" />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="caption" tone="subtle">
+            {t('phone.signin.yourNumber')}
+          </Text>
+          <Text variant="label" style={{ fontSize: 15 }}>
+            {e164 ? oneLine(maskPhone(e164)) : ''}
+          </Text>
+        </View>
+      </Card>
+      <View style={{ alignItems: 'center' }}>
+        <TextLink label={t('phone.signin.forgot')} onPress={onForgot} />
+      </View>
     </Screen>
   );
 }

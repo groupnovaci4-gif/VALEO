@@ -117,7 +117,14 @@ describe('bienvenue d’origine rétablie, libellés clairs (fondateur, 23/10, D
   const cut = (s: string) => [s.slice(0, s.indexOf(OPEN)), s.slice(s.indexOf(CLOSE))];
   it('écran de design-pro À L’IDENTIQUE (photo, fondu FADE, logo, titre, slogan, accroche, panneau, mention, version) : seuls les boutons du panneau changent', () => {
     const origin = execFileSync('git', ['show', 'origin/design-pro:./src/app/(auth)/welcome.tsx'], { encoding: 'utf8' });
-    const w = read('src/app/(auth)/welcome.tsx');
+    // Audit 23/10, C5 : seule la lecture de l'interrupteur publié s'ajoute hors du panneau.
+    const SWITCH = [
+      "import { usePhoneAuthEnabled } from '@/services/phoneAuthSwitch';\n",
+      "  // Boutons « numéro » seulement si l'interrupteur publié est activé (C5) ; null le temps de la lecture.\n  const phoneOn = usePhoneAuthEnabled();\n",
+    ];
+    const w0 = read('src/app/(auth)/welcome.tsx');
+    for (const s of SWITCH) expect(w0).toContain(s);
+    const w = SWITCH.reduce((acc, s) => acc.replace(s, ''), w0);
     expect(w.indexOf(OPEN)).toBeGreaterThan(0);
     expect(cut(w)).toEqual(cut(origin));
     expect(w).not.toMatch(/heroFloat|DesignV2/);

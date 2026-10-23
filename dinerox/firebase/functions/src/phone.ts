@@ -20,6 +20,19 @@ export const PHONE_RULES = {
   ticketTtlMs: 10 * MIN,
 } as const;
 
+/**
+ * Règles propres au SERVEUR (audit du 23/10), hors parité avec l'application :
+ *  - « Ajouter mon numéro » exige une connexion de moins de 5 minutes (S1) ;
+ *  - plafonds du jour par canal et par préfixe, en plus du plafond global (S4) ;
+ *  - une demande de code porte sa date de suppression automatique (S5, règle TTL à venir).
+ */
+export const PHONE_LIMITS = {
+  recentLoginMs: 5 * MIN,
+  smsDailyCap: 500,
+  prefixDailyCap: 300,
+  requestTtlMs: 24 * 60 * MIN,
+} as const;
+
 export const DEFAULT_DIAL = '225';
 
 export const DIAL_CODES: Record<string, string> = {
@@ -46,6 +59,24 @@ export function smsAllowed(e164: string): boolean {
   const d = dialCodeOf(e164);
   return !!d && SMS_DIAL_CODES.includes(d);
 }
+
+/** S4 : WhatsApp suit la MÊME liste de pays que les SMS (pays proposés par l'application). */
+export const codeCountryAllowed = (e164: string): boolean => smsAllowed(e164);
+
+/** Préfixe d'un numéro pour son plafond du jour : indicatif + 2 premiers chiffres (« 22507 »). Jamais le numéro entier. */
+export function prefixOf(e164: string): string {
+  const d = dialCodeOf(e164) ?? '';
+  return e164.slice(1, 1 + d.length + 2);
+}
+
+/** S1 : connexion récente (`auth_time` du jeton, en secondes). */
+export function recentLogin(authTimeSec: unknown, now: number): boolean {
+  const t = Number(authTimeSec);
+  return Number.isFinite(t) && t > 0 && now - t * 1000 <= PHONE_LIMITS.recentLoginMs;
+}
+
+/** S4 : jeton App Check à usage unique déjà utilisé (rejeu) → refus. */
+export const appCheckReplayed = (app: { alreadyConsumed?: boolean } | undefined): boolean => app?.alreadyConsumed === true;
 
 export function normalizePhone(raw: string, dial: string = DEFAULT_DIAL): string | null {
   const s = String(raw ?? '').trim();

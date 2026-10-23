@@ -10,6 +10,7 @@ import { PHOTO_SOURCES } from '@/components/ui/photoSources';
 import { Logo } from '@/components/Logo';
 import { useApp } from '@/store/app';
 import { env, isFirebaseConfigured } from '@/config/env';
+import { usePhoneAuthEnabled } from '@/services/phoneAuthSwitch';
 
 /** Hauteur minimale de la zone verte (hors barre d'état) : la photo reste visible au-dessus du texte. */
 const HERO_MIN_HEIGHT = 420;
@@ -33,6 +34,8 @@ export default function Welcome() {
   const { t } = useI18n();
   const { enterLocalMode } = useApp();
   const insets = useSafeAreaInsets();
+  // Boutons « numéro » seulement si l'interrupteur publié est activé (C5) ; null le temps de la lecture.
+  const phoneOn = usePhoneAuthEnabled();
   const [busy, setBusy] = useState<'demo' | 'local' | null>(null);
   const start = (kind: 'demo' | 'local') => {
     setBusy(kind);
@@ -72,13 +75,21 @@ export default function Welcome() {
         </View>
         <View style={{ padding: 24, paddingBottom: 24 + insets.bottom, gap: 12, backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
           {isFirebaseConfigured ? (
-            <>
-              {/* Libellés clairs (fondateur, 23/10, DECISIONS.md §5ter) : s'inscrire OU se connecter, par numéro ; l'e-mail reste possible. */}
-              <Button full label={t('phone.welcome.signupNumber')} onPress={() => router.push('/phone')} />
-              <Button full variant="secondary" label={t('phone.welcome.signin')} onPress={() => router.push('/phone?start=signin')} />
-              {/* Lien VERT (fondateur, 23/10) : on voit qu'il se touche. */}
-              <Button variant="link" label={t('phone.welcome.signupEmail')} onPress={() => router.push('/sign-up')} style={{ alignSelf: 'center', maxWidth: '100%' }} />
-            </>
+            phoneOn ? (
+              <>
+                {/* Libellés clairs (fondateur, 23/10, DECISIONS.md §5ter) : s'inscrire OU se connecter, par numéro ; l'e-mail reste possible. */}
+                <Button full label={t('phone.welcome.signupNumber')} onPress={() => router.push('/phone')} />
+                <Button full variant="secondary" label={t('phone.welcome.signin')} onPress={() => router.push('/phone?start=signin')} />
+                {/* Lien VERT (fondateur, 23/10) : on voit qu'il se touche. */}
+                <Button variant="link" label={t('phone.welcome.signupEmail')} onPress={() => router.push('/sign-up')} style={{ alignSelf: 'center', maxWidth: '100%' }} />
+              </>
+            ) : phoneOn === false ? (
+              <>
+                {/* Interrupteur « numéro » désactivé (par défaut, audit 23/10 C5) : bienvenue d'origine, par e-mail. */}
+                <Button full label={t('auth.welcome.signup')} onPress={() => router.push('/sign-up')} />
+                <Button full variant="secondary" label={t('auth.welcome.signin')} onPress={() => router.push('/sign-in')} />
+              </>
+            ) : null
           ) : (
             <Button full label={t('fp.localOnly')} loading={busy === 'local'} onPress={() => start('local')} />
           )}

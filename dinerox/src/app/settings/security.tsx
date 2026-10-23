@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/store/app';
 import { Banner, Button, Card, ChipGroup, Field, Screen, SectionHeader, Sheet, SwitchRow, Text, useToast } from '@/components/ui';
 import { PinPad } from '@/components/PinPad';
 import { biometricAvailable, clearPin, hasPin, setPin } from '@/services/security';
 import { authErrorKey, changePassword, isPasswordStrong } from '@/services/auth';
+import { currentPhoneNumber } from '@/services/phoneAuth';
 
 export default function Security() {
   const { t } = useI18n();
   const toast = useToast();
   const { profile, updateProfile, mode, user } = useApp();
   const uid = user?.uid ?? '';
+  const phoneNumber = mode === 'firebase' ? currentPhoneNumber() : null;
   const [pinExists, setPinExists] = useState(false);
   const [bio, setBio] = useState(false);
   const [pinFlow, setPinFlow] = useState<'new' | 'confirm' | null>(null);
@@ -101,7 +104,14 @@ export default function Security() {
           </>
         ) : null}
       </Card>
-      {mode === 'firebase' ? (
+      {/* Compte avec un numéro (audit 23/10, C2 / décision D2) : le code secret se change par le parcours « code oublié ». */}
+      {mode === 'firebase' && phoneNumber ? (
+        <Card>
+          <Button variant="secondary" icon="keypad-outline" label={t('phone.secret.change')} onPress={() => router.push('/settings/change-secret')} />
+        </Card>
+      ) : null}
+      {/* Mot de passe : seulement pour un compte qui a un e-mail (inutile pour un compte créé par numéro). */}
+      {mode === 'firebase' && user?.email ? (
         <>
           <SectionHeader title={t('set.changePassword')} />
           <Card>

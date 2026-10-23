@@ -141,6 +141,25 @@ verts ; preuves refaites par `e2e/captures-phone.js` (toutes régénérées : se
 changent sur le fond, les autres ne diffèrent que par le numéro tiré au hasard). Parcours e2e
 adaptés : `phone-auth.js`, `captures-phone.js` (« Continuer avec mon numéro » → « Continuer »).
 
+## 8. Audit du 23/10, partie 2 (S1 à S11, C1, C2 = D2, C4, C5)
+
+Tableau constat → test → correctif : `docs/audits/CORRECTIFS-2026-10-23.md`, « Partie 2 ».
+En bref, pour ces écrans :
+
+| Changement | Preuve |
+|---|---|
+| Interrupteur publié `config/app/items/phoneAuth` : **désactivé par défaut** → bienvenue d'origine (« Créer mon compte » / « J'ai déjà un compte ») ; activé → panneau du §7 bis | règle (lecture sans compte, écriture administrateur) ; e2e `phone-auth.js` § 0 ; `preuves-2026-10-23/telephone-1.png` |
+| Inscription : code d'invitation, liens CGU et confidentialité, événement `sign_up` | e2e § 1 ; `telephone-1.png` |
+| Numéro déjà inscrit : « Ce numéro a déjà un compte » (se connecter / code secret oublié) | test serveur S9 ; e2e § 5c ; `telephone-1.png` |
+| Autre numéro sur un compte qui en a un : code secret actuel d'abord | test serveur S1 ; e2e § 6 ; `telephone-2.png` |
+| Compte sans e-mail : « Changer mon code secret » dans Sécurité, pas de mot de passe | e2e § 5b ; `telephone-2.png` |
+| Compte suspendu : « Ce compte est suspendu… » par numéro aussi | test serveur S8 ; e2e `suspended.js` § 7 ; `telephone-2.png` |
+| Déconnexion : le numéro n'est plus retenu (S7) | e2e § 2 |
+
+Conséquence de S7 sur les preuves : « Bon retour ! » (maquette 5) n'apparaît plus après
+« Se déconnecter ». `e2e/captures-phone.js` simule donc un numéro retenu (session terminée sans
+déconnexion) pour refaire cette preuve, et active l'interrupteur le temps des captures.
+
 ## 7. Branche design-pro (fusionnée ici)
 
 Barre du bas comme la maquette et cloche = « À lire · N » : voir

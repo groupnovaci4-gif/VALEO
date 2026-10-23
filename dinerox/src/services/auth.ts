@@ -19,6 +19,7 @@ import {
 } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { forgetDeviceNotifications } from './notifications';
+import { forgetPhone } from './phoneAuth';
 import { firebase } from './firebase';
 import type { TKey } from '@/i18n';
 import { hasKey } from '@/i18n';
@@ -49,6 +50,8 @@ export async function signOut(): Promise<void> {
   const { auth } = firebase();
   // Avant la déconnexion (droits encore valides) : plus aucune notification de ce compte ici.
   await forgetDeviceNotifications(auth.currentUser?.uid ?? null, true).catch(() => undefined);
+  // Téléphone partagé (audit 23/10, S7) : la personne suivante ne voit pas le numéro de ce compte.
+  await forgetPhone().catch(() => undefined);
   await fbSignOut(auth);
 }
 
@@ -76,6 +79,7 @@ export async function changePassword(current: string, next: string): Promise<voi
 export async function deleteAccount(): Promise<void> {
   const fn = httpsCallable(firebase().functions, 'deleteAccount');
   await fn({});
+  await forgetPhone().catch(() => undefined);
   await fbSignOut(firebase().auth).catch(() => undefined);
 }
 

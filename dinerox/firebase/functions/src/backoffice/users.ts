@@ -14,6 +14,14 @@ import { actorOf, bad, COL, db, deny, mirrorToLogging, openAudit, requireStaff, 
 import { validateReason } from './auditCore';
 import { serverDefaultProfile } from './profile';
 import { cleanEmail, cleanName, COUNTRY_CODES, CURRENCY_CODES } from './registry';
+import { dialCodeOf, normalizePhone } from '../phone';
+
+/** « +225 07 08 •• •• 11 » : deux premiers groupes et le dernier, le reste masqué. */
+function maskPhone(e164: string): string {
+  const cc = dialCodeOf(e164) ?? '';
+  const groups = (e164.slice(1 + cc.length).match(/.{1,2}/g) ?? []).map((g, i, all) => (i < 2 || i === all.length - 1 ? g : '••'));
+  return `+${cc} ${groups.join(' ')}`.trim();
+}
 
 const PAGE = 25;
 const PLANS = ['free', 'plus', 'family'] as const;
@@ -38,9 +46,12 @@ async function assertNotStaff(c: StaffCtx, uid: string, action: string) {
 function summary(uid: string, profile: DocumentSnapshot | null, status: DocumentSnapshot | null, auth?: UserRecord) {
   const p = profile?.exists ? profile.data()! : {};
   const sub = (p.subscription ?? {}) as { plan?: string; status?: string; provider?: string; expiresAt?: number | null };
+  const phone = (auth?.phoneNumber ?? null) as string | null;
   return {
     uid,
-    email: (auth?.email ?? p.email ?? null) as string | null,
+    email: (auth?.email || p.email || null) as string | null,
+    // Compte créé par numéro (audit 23/10, C1) : numéro MASQUÉ, jamais entier dans une liste.
+    phone: phone ? maskPhone(phone) : null,
     firstName: (p.firstName ?? '') as string,
     lastName: (p.lastName ?? '') as string,
     country: (p.country ?? null) as string | null,
@@ -61,8 +72,16 @@ export async function searchUsers(req: CallableRequest) {
   await requireStaff(req, 'users.view', 'user.search');
   const q = typeof req.data?.q === 'string' ? req.data.q.trim() : '';
   if (!q || q.length > 254) bad('bo/query');
-  // Recherche EXACTE uniquement : e-mail complet ou identifiant complet.
-  const auth = q.includes('@') ? await getAuth().getUserByEmail(q.toLowerCase()).catch(() => null) : /^[A-Za-z0-9_-]{6,128}$/.test(q) ? await getAuth().getUser(q).catch(() => null) : null;
+  // Recherche EXACTE uniquement : e-mail complet, numéro complet (audit 23/10, C1 : +225 proposé,
+  // espaces et « 00 » acceptés) ou identifiant complet.
+  const phone = /^[+\d][\d\s.()-]{7,}$/.test(q) ? normalizePhone(q) : null;
+  const auth = q.includes('@')
+    ? await getAuth().getUserByEmail(q.toLowerCase()).catch(() => null)
+    : phone
+      ? await getAuth().getUserByPhoneNumber(phone).catch(() => null)
+      : /^[A-Za-z0-9_-]{6,128}$/.test(q)
+        ? await getAuth().getUser(q).catch(() => null)
+        : null;
   if (!auth) return { users: [] };
   const [profile, status] = await Promise.all([db().doc(`users/${auth.uid}`).get(), db().doc(`${COL.accountStatus}/${auth.uid}`).get()]);
   return { users: [summary(auth.uid, profile, status, auth)] };
@@ -286,9 +305,11 @@ export async function deleteUser(req: CallableRequest) {
   if (!reason.ok) bad('bo/reason');
   await assertNotStaff(c, uid, 'user.delete');
   const auth = await authUser(uid);
-  // Deuxième confirmation, vérifiée ici aussi : l'adresse retapée doit être exacte.
-  if (!auth.email || str(req.data?.confirmEmail, 254)?.toLowerCase() !== auth.email.toLowerCase()) bad('bo/confirm');
-  const email = auth.email.toLowerCase();
+  // Deuxième confirmation, vérifiée ici aussi : l'adresse retapée doit être exacte ; un compte SANS
+  // e-mail (créé par numéro, audit 23/10 C1) se confirme par son identifiant retapé.
+  const confirmed = auth.email ? str(req.data?.confirmEmail, 254)?.toLowerCase() === auth.email.toLowerCase() : str(req.data?.confirmUid, 128) === uid;
+  if (!confirmed) bad('bo/confirm');
+  const email = auth.email ? auth.email.toLowerCase() : null;
   try {
     await deleteUserData(uid, email);
     await db().doc(`${COL.accountStatus}/${uid}`).delete().catch(() => undefined);

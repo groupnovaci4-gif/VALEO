@@ -96,17 +96,23 @@ export function DeleteUserDialog({ user, onClose }: { user: UserSummary; onClose
   const [confirm, setConfirm] = useState('');
   const [reason, setReason] = useState<Reason>({ code: '', note: '' });
   const a = useAction(() => { toast('Compte supprimé définitivement. Action enregistrée au journal.'); nav('/utilisateurs'); });
-  const match = !!user.email && confirm.trim().toLowerCase() === user.email.toLowerCase();
+  // Compte créé par numéro (sans e-mail) : la confirmation se fait avec l'identifiant retapé.
+  const match = user.email ? confirm.trim().toLowerCase() === user.email.toLowerCase() : confirm.trim() === user.uid;
+  const confirmation = user.email ? { confirmEmail: confirm.trim() } : { confirmUid: confirm.trim() };
   return (
     <Dialog title="Supprimer définitivement ce compte ?" intro={<>Cette action est <b>irréversible</b>. Les mêmes effets que « Supprimer mon compte » dans l’app s’appliquent.</>} icon="warning" tone="danger" onClose={onClose}
-      footer={<><button className="btn outline" onClick={onClose}>Annuler</button><button className="btn danger" disabled={a.busy || !match || !reasonOk(reason)} onClick={() => void a.run(() => call('boDeleteUser', { uid: user.uid, confirmEmail: confirm.trim(), reasonCode: reason.code, reasonNote: reason.note }))}><Icon name="trash-outline" />Supprimer définitivement</button></>}>
+      footer={<><button className="btn outline" onClick={onClose}>Annuler</button><button className="btn danger" disabled={a.busy || !match || !reasonOk(reason)} onClick={() => void a.run(() => call('boDeleteUser', { uid: user.uid, ...confirmation, reasonCode: reason.code, reasonNote: reason.note }))}><Icon name="trash-outline" />Supprimer définitivement</button></>}>
       <ul className="effects">
         <li><Icon name="remove-circle-outline" />Espace personnel, profil, usage et invitations supprimés</li>
         <li><Icon name="remove-circle-outline" />Familles dont la personne est la seule administratrice : supprimées pour tous leurs membres</li>
-        <li><Icon name="remove-circle-outline" />Compte de connexion supprimé</li>
+        <li><Icon name="remove-circle-outline" />Compte de connexion supprimé (e-mail et numéro, code secret compris)</li>
       </ul>
       <ReasonFields value={reason} onChange={setReason} variant="select" />
-      <div className="field"><label htmlFor="de">Pour confirmer, retapez l’e-mail : <b>{user.email}</b></label><input id="de" className="input" type="email" autoComplete="off" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></div>
+      {user.email ? (
+        <div className="field"><label htmlFor="de">Pour confirmer, retapez l’e-mail : <b>{user.email}</b></label><input id="de" className="input" type="email" autoComplete="off" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></div>
+      ) : (
+        <div className="field"><label htmlFor="de">Compte sans e-mail : pour confirmer, retapez l’identifiant : <b className="mono">{user.uid}</b></label><input id="de" className="input" type="text" autoComplete="off" spellCheck={false} value={confirm} onChange={(e) => setConfirm(e.target.value)} /></div>
+      )}
       {a.error && <Msg tone="danger" icon="alert-circle">{a.error}</Msg>}
     </Dialog>
   );

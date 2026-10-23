@@ -14,7 +14,8 @@ import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { shadowB, useTheme } from '@/theme';
-import { finalPalette, type FinalPalette } from '@/theme/finalPalette';
+import { finalPalette } from '@/theme/finalPalette';
+import { look } from './look';
 import { Icon, SectionHeader, Text } from '@/components/ui';
 import { ListenButton } from '@/features/coach/ListenButton';
 import { AdviceAi } from '@/features/coach/AdviceOfDay';
@@ -79,15 +80,6 @@ export function ToReadCard({ item: x, testID, onRead }: { item: ToReadItem & { r
 }
 
 /** Pastille : fond, couleur (icône et étiquette), icône — selon le ton et la sorte du message. */
-function look(x: ToReadItem, p: FinalPalette): { bg: string; fg: string; icon: string } {
-  // J4 : « Votre analyse » = graphique bleu de la maquette, quel que soit le ton.
-  if (x.kind === 'analysis') return { bg: p.blueBg, fg: p.blueFg, icon: 'analytics' };
-  if (x.tone === 'danger') return { bg: p.alertBg, fg: p.alertFg, icon: 'alert-circle' };
-  if (x.tone === 'warning') return { bg: p.goldBg, fg: p.goldFg, icon: 'warning' };
-  if (x.kind === 'advice' || x.tone === 'advice') return { bg: p.violetBg, fg: p.violetFg, icon: 'bulb' };
-  return { bg: p.blueBg, fg: p.blueFg, icon: 'calendar' };
-}
-
 export function ToReadList({ budgetOnly }: { budgetOnly?: boolean }) {
   const { t } = useI18n();
   const { colors, dark } = useTheme();

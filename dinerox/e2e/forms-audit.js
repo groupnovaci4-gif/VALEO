@@ -231,7 +231,7 @@ const ok = (c, m) => { total++; if (!c) fails++; console.log((c ? '✓ ' : '✗ 
   await p.close(); p = await ctx.newPage(); watch(p);
   await step('réouverture', () => verifyAll('réouverture'));
   await step('reconnexion', async () => {
-    await go('/settings'); await p.getByText('Se déconnecter').last().click(); await p.getByText('S’inscrire avec mon numéro').first().waitFor({ timeout: 10000 });
+    await go('/settings'); await p.getByText('Se déconnecter').last().click(); await p.getByText('Créer mon compte').first().waitFor({ timeout: 10000 });
     await go('/sign-in'); await fill('Adresse e-mail', email); await fill('Mot de passe', 'nouveaumdp456', true);
     await p.getByRole('button', { name: 'Se connecter' }).click(); await p.getByText('Bonjour Fatou').first().waitFor({ timeout: 12000 }); await p.waitForTimeout(3000);
     ok(true, 'reconnexion avec le nouveau mot de passe');

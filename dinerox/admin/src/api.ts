@@ -26,6 +26,8 @@ export interface Me {
 export interface UserSummary {
   uid: string;
   email: string | null;
+  /** Numéro masqué (« +225 07 08 •• •• 11 ») d'un compte créé par numéro ; null sinon. */
+  phone?: string | null;
   firstName: string;
   lastName: string;
   country: string | null;

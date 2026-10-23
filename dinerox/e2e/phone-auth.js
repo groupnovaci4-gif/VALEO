@@ -13,8 +13,15 @@
  *     nouveau code secret → session.
  *  6. Compte e-mail → « Ajouter mon numéro » → même compte (même uid), connexion e-mail intacte ;
  *     puis code secret oublié sur ce numéro → alerte à l'e-mail du compte, SANS le code (§5bis.5b).
+ * Audit du 23/10 (partie 2) :
+ *  - C5 : interrupteur publié désactivé (par défaut) → bienvenue d'origine ; activé → boutons « numéro ».
+ *  - C4 : inscription par numéro avec liens CGU / confidentialité, code d'invitation, événement `sign_up`.
+ *  - S7 : déconnexion → le numéro n'est plus retenu sur le téléphone (personne suivante).
+ *  - S9 : « S'inscrire » avec un numéro déjà inscrit → « Ce numéro a déjà un compte ».
+ *  - C2 : compte sans e-mail : pas de mot de passe ; « Changer mon code secret » (parcours « code oublié »).
+ *  - S1 : le compte a déjà un numéro → code secret actuel demandé ; alerte « numéro ajouté ».
  */
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, setPhoneAuthSwitch } = require('./env.js');
 const S = process.argv[2] || '.';
 let fails = 0;
 const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); };
@@ -25,6 +32,7 @@ const OWNER = { 'content-type': 'application/json', authorization: 'Bearer owner
 const stamp = Date.now();
 const local1 = `07${String(stamp % 1e8).padStart(8, '0')}`;
 const local2 = `05${String((stamp + 7) % 1e8).padStart(8, '0')}`;
+const local3 = `01${String((stamp + 13) % 1e8).padStart(8, '0')}`;
 const e164 = (l) => `+225${l}`;
 const SECRET = '483915';
 const SECRET2 = '615204';
@@ -57,6 +65,13 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
     const p = await ctx.newPage();
     p.on('pageerror', (e) => errs.push(e.message));
     p.on('dialog', (d) => d.accept());
+    // Événements analytiques (export de développement : écrits dans la console « [analytics] nom propriétés »).
+    const events = [];
+    p.on('console', async (m) => {
+      if (!m.text().startsWith('[analytics]')) return;
+      const [, name, props] = m.args();
+      events.push({ name: await name?.jsonValue().catch(() => null), props: await props?.jsonValue().catch(() => null) });
+    });
     // Espaces insécables (160) et fines insécables (8239) ramenés à des espaces ordinaires.
     const text = async () => (await p.evaluate(() => document.body.innerText)).replace(new RegExp(`[${String.fromCharCode(160, 8239)}]`, 'g'), ' ');
     const go = async (path, w = 3500) => { await p.goto(BASE + path, { waitUntil: 'load' }); await p.waitForTimeout(w); };
@@ -66,7 +81,13 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
     const see = (t, timeout = 15000) => p.getByText(t, { exact: false }).filter({ visible: true }).first().waitFor({ timeout });
     const shot = (n) => p.screenshot({ path: `${S}/phone-${n}.png` });
     const signOut = async () => { await go('/settings'); await p.getByText('Se déconnecter').last().click(); await see('S’inscrire avec mon numéro'); };
-    return { ctx, p, text, go, btn, keypad, see, shot, signOut };
+    /** Connexion par numéro depuis l'accueil (le numéro n'est plus retenu après une déconnexion, S7). */
+    const toSecret = async (local) => {
+      await btn('Se connecter').first().click(); await see('Numéro de téléphone');
+      await p.getByLabel('Numéro de téléphone', { exact: true }).fill(local);
+      await btn('Continuer').click(); await see('Votre code secret');
+    };
+    return { ctx, p, text, go, btn, keypad, see, shot, signOut, toSecret, events };
   };
   /** Après la session : onboarding éventuel (« Plus tard »), puis l'application. */
   const landed = async (A) => {
@@ -74,6 +95,21 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
     if ((await A.text()).includes('Dans quel pays vivez-vous')) { await A.p.getByText('Plus tard', { exact: true }).click(); await A.p.waitForTimeout(2500); }
     await A.see('Accueil');
   };
+
+  // ── 0. C5 : interrupteur publié, DÉSACTIVÉ par défaut ──
+  await setPhoneAuthSwitch(null);
+  const Z = await open();
+  await Z.go('/');
+  const off = await Z.text();
+  ok(off.includes('Créer mon compte') && off.includes("J'ai déjà un compte") && !off.includes('S’inscrire avec mon numéro') && !off.includes('S’inscrire avec mon e-mail'), 'interrupteur absent (par défaut) : bienvenue d’origine « Créer mon compte » / « J’ai déjà un compte », aucun bouton « numéro »');
+  await Z.shot('00-accueil-sans-numero');
+  await Z.btn('Créer mon compte').first().click(); await Z.see('Confirmer le mot de passe');
+  ok(Z.p.url().includes('/sign-up'), 'interrupteur désactivé : « Créer mon compte » ouvre l’inscription e-mail');
+  await setPhoneAuthSwitch(false);
+  await Z.go('/');
+  ok(!(await Z.text()).includes('S’inscrire avec mon numéro'), 'interrupteur à « false » : toujours la bienvenue d’origine');
+  await Z.ctx.close();
+  await setPhoneAuthSwitch(true);
 
   // ── 1. Inscription par téléphone ──
   await clearGuards();
@@ -99,7 +135,15 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   await A.btn('Recevoir le code').click(); await A.p.waitForTimeout(800);
   ok((await A.text()).includes('Ce numéro ne semble pas complet'), 'numéro incomplet : refusé avant tout envoi');
   ok((await outbox(e164('0708'))).length === 0, 'numéro incomplet : aucun envoi');
+  // C4 : mêmes textes que l'inscription e-mail (code d'invitation, transparence, CGU, confidentialité).
+  const signupText = await A.text();
+  ok(signupText.includes('Vous avez un code d\'invitation ?') && signupText.includes('Facultatif · 6 lettres ou chiffres') && signupText.includes('Votre parrain verra seulement'), 'inscription par numéro : champ « code d’invitation » et sa transparence (C4)');
+  ok(!!(await A.btn("Conditions générales d'utilisation").first().boundingBox()) && !!(await A.btn('Politique de confidentialité').first().boundingBox()) && signupText.includes('En continuant, vous acceptez'), 'inscription par numéro : liens CGU et confidentialité (C4)');
   await A.p.getByLabel('Numéro de téléphone', { exact: true }).fill(local1);
+  await A.p.getByLabel("Vous avez un code d'invitation ?", { exact: true }).fill('AB');
+  await A.btn('Recevoir le code').click(); await A.p.waitForTimeout(800);
+  ok((await A.text()).includes("Un code d'invitation compte 6 lettres ou chiffres.") && (await outbox(e164(local1))).length === 0, 'code d’invitation mal formé : refusé avant tout envoi (C4)');
+  await A.p.getByLabel("Vous avez un code d'invitation ?", { exact: true }).fill('');
   await A.shot('02-numero');
   await A.btn('Recevoir le code').click(); await A.see('Entrez le code reçu');
   ok((await A.text()).includes('Code envoyé sur WhatsApp'), 'code envoyé sur WhatsApp (fournisseur simulé)');
@@ -126,11 +170,21 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   ok(!stored.includes(SECRET) && !stored.includes(code1), 'téléphone : ni le code secret ni le code reçu gardés (§5bis.3)');
   const server = JSON.stringify([await docs('phoneSecrets'), await docs('phoneIndex'), await docs('phoneAuth')]);
   ok(!server.includes(`"${SECRET}"`) && !server.includes(`"${code1}"`), 'serveur : empreintes seulement, jamais en clair');
+  const signUpEvents = A.events.filter((e) => e.name === 'sign_up');
+  ok(signUpEvents.length === 1 && JSON.stringify(signUpEvents[0].props) === JSON.stringify({ method: 'phone' }), `événement d’inscription : sign_up { method } comme l’e-mail (C4) — ${JSON.stringify(signUpEvents)}`);
 
-  // ── 2. Connexion « Bon retour ! » ──
+  // ── 2. Connexion après déconnexion : numéro OUBLIÉ par le téléphone (S7) ──
   await A.signOut();
-  await A.btn('Se connecter').click(); await A.see('Bon retour !');
-  ok((await A.text()).includes(`+225 ${local1.slice(0, 2)} ${local1.slice(2, 4)} •• •• ${local1.slice(8)}`), 'numéro retenu, affiché masqué');
+  // Le « dernier numéro » (prérempli pour la personne suivante) est oublié. Les données rangées PAR COMPTE
+  // (règle 14, clés avec l'uid) ne sont montrées qu'à ce compte : elles ne sont pas concernées.
+  const kept = await A.p.evaluate(() => Object.entries(localStorage));
+  const last = kept.find(([k]) => k.endsWith('dinerox:v1:phone:last'));
+  ok(!!last && !String(last[1]).includes(local1), `déconnexion : le dernier numéro n’est plus gardé sur le téléphone (S7) — ${last ? last[1] : 'clé absente'} ; autres clés avec le numéro : ${kept.filter(([k, v]) => v.includes(local1) && k !== (last && last[0])).map(([k]) => k).join(', ') || 'aucune'}`);
+  await A.btn('Se connecter').click(); await A.see('Numéro de téléphone');
+  ok(!(await A.text()).includes('Bon retour') && !(await A.text()).includes(local1.slice(8)), 'déconnexion : la personne suivante ne voit pas le numéro précédent (S7)');
+  await A.p.getByLabel('Numéro de téléphone', { exact: true }).fill(local1);
+  await A.btn('Continuer').click(); await A.see('Votre code secret');
+  ok((await A.text()).includes(`+225 ${local1.slice(0, 2)} ${local1.slice(2, 4)} •• •• ${local1.slice(8)}`), 'numéro tapé, affiché masqué');
   // Retouche (22/10) : numéro masqué sur UNE ligne.
   const masked = await A.p.getByText(`+225 ${local1.slice(0, 2)}`, { exact: false }).filter({ visible: true }).first().boundingBox();
   ok(!!masked && masked.height <= 26, `numéro masqué sur une ligne (${masked ? Math.round(masked.height) : '?'} px)`);
@@ -148,7 +202,7 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
 
   // ── 3. Blocage après 5 essais ──
   await A.signOut();
-  await A.btn('Se connecter').click(); await A.see('Bon retour !');
+  await A.toSecret(local1);
   for (let i = 0; i < 5; i++) await A.keypad('000000');
   ok((await A.text()).includes('Trop d’essais. Réessayez dans 15 minutes'), '5 codes secrets faux : bloqué 15 minutes');
   ok((await A.btn('1').last().getAttribute('aria-disabled')) === 'true', 'pavé désactivé pendant le blocage');
@@ -177,8 +231,8 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   // ── 5. Pas de réseau, code secret oublié, code expiré ──
   await B.signOut();
   await clearGuards();
-  await B.btn('Se connecter').click(); await B.see('Bon retour !');
-  ok(true, 'numéro retenu après une connexion sur ce téléphone : « Bon retour ! »');
+  await B.toSecret(local1);
+  ok(!(await B.text()).includes('Bon retour'), 'après une déconnexion, numéro retapé : titre « Se connecter » (S7)');
   await B.btn('Code secret oublié ?').click(); await B.see('Vos opérations, vos comptes et votre abonnement ne changent pas.');
   await B.shot('06-oublie');
   const before = (await outbox(e164(local1))).length;
@@ -202,6 +256,37 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   await landed(B);
   const again = await lookup({ phoneNumber: [e164(local1)] });
   ok(again && again.localId === user1.localId, 'code secret changé : même compte');
+
+  // ── 5b. C2 : Réglages › Sécurité d'un compte SANS e-mail ──
+  await B.go('/settings/security');
+  const sec = await B.text();
+  ok(!sec.includes('Changer le mot de passe') && !sec.includes('Mot de passe actuel'), 'compte sans e-mail : pas de « Changer le mot de passe » (C2)');
+  await B.shot('13-securite');
+  await B.btn('Changer mon code secret').first().click(); await B.see('Vos opérations, vos comptes et votre abonnement ne changent pas.');
+  ok((await B.text()).includes(`•• •• ${local1.slice(8)}`), '« Changer mon code secret » : parcours « code oublié » sur le numéro du compte (D2)');
+  await clearGuards();
+  await B.btn('Recevoir le code').first().click(); await B.see('Entrez le code reçu');
+  await B.keypad(await lastCode(e164(local1))); await B.see('Créez votre code secret');
+  await B.keypad(SECRET); await B.see('Confirmez votre code secret'); await B.keypad(SECRET);
+  await B.see('Sécurité');
+  ok(B.p.url().includes('/settings/security'), 'code secret changé : retour à Réglages › Sécurité, toujours connecté');
+
+  // ── 5c. S9 : « S'inscrire » avec un numéro déjà inscrit ──
+  await clearGuards();
+  const E = await open();
+  await E.go('/');
+  await E.btn('S’inscrire avec mon numéro').click(); await E.see('Votre numéro de téléphone');
+  await E.p.getByLabel('Numéro de téléphone', { exact: true }).fill(local1);
+  await E.btn('Recevoir le code').click(); await E.see('Entrez le code reçu');
+  await E.keypad(await lastCode(e164(local1))); await E.see('Ce numéro a déjà un compte');
+  ok(!!(await E.btn('Se connecter').first().boundingBox()) && !!(await E.btn('Code secret oublié ?').first().boundingBox()) && !(await E.text()).includes('Créez votre code secret'), 'numéro déjà inscrit : « Ce numéro a déjà un compte », « Se connecter » / « Code secret oublié ? », aucun nouveau code secret (S9)');
+  await E.shot('14-deja-inscrit');
+  await E.btn('Se connecter').first().click(); await E.see('Votre code secret');
+  ok((await E.text()).includes(`•• •• ${local1.slice(8)}`), '« Se connecter » : code secret du numéro tapé');
+  await E.btn('Retour').first().click(); await E.see('Ce numéro a déjà un compte');
+  await E.btn('Code secret oublié ?').first().click(); await E.see('Vos opérations, vos comptes et votre abonnement ne changent pas.');
+  ok(true, '« Code secret oublié ? » ouvre le parcours « code oublié »');
+  await E.ctx.close();
 
   // ── 6. Compte e-mail → « Ajouter mon numéro » ──
   await clearGuards();
@@ -227,6 +312,17 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   await C.p.waitForTimeout(1500);
   const linked = await lookup({ email: [email] });
   ok(linked.localId === uidMail && linked.phoneNumber === e164(local2), 'numéro ajouté au MÊME compte (même uid)');
+  const linkedAlert = (await docs('phoneOutbox')).filter((m) => m.uid === uidMail && m.reason === 'linked');
+  ok(linkedAlert.some((m) => m.kind === 'alert-email' && m.to === email && /numéro/.test(m.body)), 'alerte « numéro ajouté » envoyée à l’e-mail du compte (S1)');
+  // S1 : le compte a maintenant un numéro → en changer exige le code secret ACTUEL (vérifié par le serveur).
+  await clearGuards();
+  await C.go('/settings');
+  await C.p.getByText('Ajouter mon numéro', { exact: true }).first().click(); await C.see('Votre code secret');
+  await C.shot('08b-code-actuel');
+  await C.keypad('905238'); await C.see('Votre compte reste le même');
+  await C.p.getByLabel('Numéro de téléphone', { exact: true }).fill(local3);
+  await C.btn('Recevoir le code').click(); await C.p.waitForTimeout(2500);
+  ok((await C.text()).includes('Code secret incorrect.') && (await outbox(e164(local3))).length === 0, 'code secret actuel faux : refusé, aucun code envoyé au nouveau numéro (S1)');
   await C.signOut();
   await C.go('/sign-in'); await fill('Adresse e-mail', email); await fill('Mot de passe', 'motdepasse123', true);
   await C.p.getByRole('button', { name: 'Se connecter' }).click(); await C.see('Bonjour Awa');
@@ -251,10 +347,12 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
 
   ok(errs.length === 0, 'aucune erreur JS ' + errs.slice(0, 3).join(' | '));
   console.log(fails ? `TÉLÉPHONE : ${fails} ÉCHEC(S)` : 'TÉLÉPHONE : TOUT EST OK');
+  await setPhoneAuthSwitch(null);
   await b.close();
   process.exit(fails ? 1 : 0);
 })().catch(async (e) => {
   console.log('ARRÊT', e.message.slice(0, 400));
+  await setPhoneAuthSwitch(null).catch(() => undefined);
   if (b) await b.close().catch(() => undefined);
   process.exit(1);
 });

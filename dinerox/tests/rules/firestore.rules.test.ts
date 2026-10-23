@@ -498,6 +498,22 @@ describe('connexion par téléphone : aucune donnée accessible à un client', (
   });
 });
 
+describe('interrupteur « connexion par numéro » (audit 23/10, C5)', () => {
+  it('lisible SANS compte (écran de bienvenue) ; écrit par un administrateur seulement ; les autres réglages restent fermés sans compte', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const fs = ctx.firestore() as unknown as Firestore;
+      await setDoc(doc(fs, 'config/app/items/phoneAuth'), { enabled: false });
+      await setDoc(doc(fs, 'config/app/items/links'), { whatsappChannelUrl: null });
+    });
+    await assertSucceeds(getDoc(doc(db(null), 'config/app/items/phoneAuth')));
+    await assertSucceeds(getDoc(doc(db('u1'), 'config/app/items/phoneAuth')));
+    await assertFails(setDoc(doc(db(null), 'config/app/items/phoneAuth'), { enabled: true }));
+    await assertFails(setDoc(doc(db('u1'), 'config/app/items/phoneAuth'), { enabled: true }));
+    await assertSucceeds(setDoc(doc(db('boss', { admin: true }), 'config/app/items/phoneAuth'), { enabled: true }));
+    await assertFails(getDoc(doc(db(null), 'config/app/items/links')));
+  });
+});
+
 describe('opération supprimée par le back-office (adminDeleted)', () => {
   async function seed() {
     await env.withSecurityRulesDisabled(async (ctx) => {

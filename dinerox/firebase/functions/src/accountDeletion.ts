@@ -13,6 +13,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { forgetReferralData } from './referralApi';
 import { forgetTontineGroups } from './tontineGroupApi';
+import { forgetPhoneData } from './phoneData';
 
 interface SpaceMembers {
   members: Record<string, string>;
@@ -42,6 +43,8 @@ export async function deleteUserData(uid: string, email: string | null): Promise
   await forgetReferralData(uid);
   // Tontines partagées : places libérées (« Ancien membre »), historique intact pour les autres.
   await forgetTontineGroups(uid);
+  // Connexion par téléphone (audit 23/10, S2) : l'ancien code secret ne doit rien rouvrir.
+  await forgetPhoneData(uid);
   await db.recursiveDelete(db.doc(`spaces/${uid}`));
   await db.recursiveDelete(db.doc(`users/${uid}`));
   await db.doc(`subscriptions/${uid}`).delete().catch(() => undefined);

@@ -51,9 +51,9 @@ export default function Users() {
     <div className="card">
       <form className="toolbar" role="search" onSubmit={(e) => { e.preventDefault(); const p = new URLSearchParams(); if (input.trim()) p.set('q', input.trim()); setParams(p); }}>
         <div className="field search-field">
-          <label htmlFor="us-q">Rechercher (e-mail ou identifiant exact)</label>
+          <label htmlFor="us-q">Rechercher (e-mail, numéro ou identifiant exact)</label>
           <Icon name="search-outline" />
-          <input id="us-q" className="input" type="search" placeholder="prenom.nom@exemple.ci ou identifiant" value={input} onChange={(e) => setInput(e.target.value)} />
+          <input id="us-q" className="input" type="search" placeholder="prenom.nom@exemple.ci, 07 08 09 10 11 ou identifiant" value={input} onChange={(e) => setInput(e.target.value)} />
         </div>
         <div className="field"><label htmlFor="us-p">Formule</label>
           <select id="us-p" className="select" value={plan} onChange={(e) => setFilter('formule', e.target.value)}><option value="">Toutes</option><option value="free">Gratuit</option><option value="plus">Plus</option><option value="family">Famille</option></select></div>
@@ -64,7 +64,7 @@ export default function Users() {
         {can('users.create') && <button type="button" className="btn primary" onClick={() => setCreate(true)}><Icon name="person-add-outline" />Créer un utilisateur</button>}
       </form>
       {error ? <ErrorState text={errorText(error)} onRetry={() => setN((x) => x + 1)} /> : !rows ? <Loading /> : !rows.length ? (
-        <Empty title="Aucun utilisateur trouvé" text={q ? 'La recherche est exacte : vérifiez l’e-mail ou l’identifiant complet.' : 'Aucun compte ne correspond à ces filtres.'}
+        <Empty title="Aucun utilisateur trouvé" text={q ? 'La recherche est exacte : vérifiez l’e-mail, le numéro ou l’identifiant complet.' : 'Aucun compte ne correspond à ces filtres.'}
           action={q || plan || status || country ? <button className="btn primary sm" onClick={() => setParams(new URLSearchParams())}><Icon name="close-outline" />Effacer la recherche</button> : undefined} />
       ) : (
         <>
@@ -73,7 +73,7 @@ export default function Users() {
             <thead><tr><th scope="col">Utilisateur</th><th scope="col">Identifiant</th><th scope="col">Pays</th><th scope="col">Formule</th><th scope="col">Statut</th><th scope="col" aria-sort="descending">Inscription <Icon name="arrow-down" /></th><th scope="col">Dernière activité</th><th scope="col"><span className="sr">Ouvrir</span></th></tr></thead>
             <tbody>{rows.map((u) => (
               <tr key={u.uid} className="clickable" tabIndex={0} aria-label={`Ouvrir la fiche de ${u.firstName} ${u.lastName}`} onClick={() => nav(`/utilisateurs/${u.uid}`)} onKeyDown={(e) => e.key === 'Enter' && nav(`/utilisateurs/${u.uid}`)}>
-                <td className="nolabel"><div className="ucell"><span className="avatar" aria-hidden="true">{initials(u.firstName, u.lastName, u.email)}</span><div><b>{`${u.firstName} ${u.lastName}`.trim() || '—'}</b><span>{u.email}</span></div></div></td>
+                <td className="nolabel"><div className="ucell"><span className="avatar" aria-hidden="true">{initials(u.firstName, u.lastName, u.email)}</span><div><b>{`${u.firstName} ${u.lastName}`.trim() || '—'}</b><span>{u.email ?? u.phone}</span></div></div></td>
                 <td data-label="Identifiant"><span className="mono">{u.uid}</span></td>
                 <td data-label="Pays">{countryName(u.country)}</td>
                 <td data-label="Formule"><Badge def={PLAN_BADGE[u.plan] ?? PLAN_BADGE.free} /></td>

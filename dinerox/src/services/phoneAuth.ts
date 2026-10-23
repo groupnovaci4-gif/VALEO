@@ -36,8 +36,12 @@ export const lastPhone = () => readJSON<{ e164: string; dial: string }>(LAST_PHO
 export const rememberPhone = (e164: string, dial: string) => writeJSON(LAST_PHONE_KEY, { e164, dial });
 export const forgetPhone = () => writeJSON(LAST_PHONE_KEY, null);
 
-async function call<T>(name: string, data: Record<string, unknown>): Promise<T> {
-  const fn = httpsCallable<Record<string, unknown>, T>(firebase().functions, name);
+/** Numéro relié au compte CONNECTÉ (Firebase Auth), ou null (compte sans numéro, aucune session). */
+export const currentPhoneNumber = (): string | null => firebase().auth.currentUser?.phoneNumber ?? null;
+
+async function call<T>(name: string, data: Record<string, unknown>, opts: { limitedUse?: boolean } = {}): Promise<T> {
+  // Envoi d'un code (audit 23/10, S4) : jeton App Check à usage UNIQUE, consommé par le serveur.
+  const fn = httpsCallable<Record<string, unknown>, T>(firebase().functions, name, opts.limitedUse ? { limitedUseAppCheckTokens: true } : undefined);
   return (await fn({ ...data, deviceId: await phoneDeviceId() })).data;
 }
 
@@ -48,9 +52,10 @@ export interface StartResult {
   resendAt: number;
 }
 
-export const phoneStart = (p: { phone: string; dial: string; purpose: PhonePurpose; channel: PhoneChannel; lang: 'fr' | 'en' }) => call<StartResult>('phoneStart', p);
+/** `currentSecret` : « Ajouter mon numéro » sur un compte qui en a déjà un (audit 23/10, S1), vérifié par le serveur. */
+export const phoneStart = (p: { phone: string; dial: string; purpose: PhonePurpose; channel: PhoneChannel; lang: 'fr' | 'en'; currentSecret?: string }) => call<StartResult>('phoneStart', p, { limitedUse: true });
 export const phoneVerify = (p: { requestId: string; code: string }) => call<{ ticket: string; existing: boolean }>('phoneVerify', p);
-export const phoneSetSecret = (p: { ticket: string; secret: string; lang: 'fr' | 'en' }) => call<{ token?: string; linked?: boolean; existing?: boolean }>('phoneSetSecret', p);
+export const phoneSetSecret = (p: { ticket: string; secret: string; lang: 'fr' | 'en'; currentSecret?: string }) => call<{ token?: string; linked?: boolean; existing?: boolean }>('phoneSetSecret', p);
 export const phoneSignIn = (p: { phone: string; dial: string; secret: string; ticket?: string }) => call<{ token?: string; needsDevice?: boolean }>('phoneSignIn', p);
 
 /** Ouvre la session Firebase avec le jeton rendu par le serveur. */
@@ -105,6 +110,19 @@ export function phoneErrorOf(e: unknown, now = Date.now()): PhoneError {
       return { key: 'phone.secret.tooSimple', code };
     case 'phone/taken':
       return { key: 'phone.link.taken', code };
+    // Audit du 23/10 (partie 2).
+    case 'phone/country':
+      return { key: 'phone.err.country', code };
+    case 'phone/recent-login':
+      return { key: 'auth.err.requires-recent-login', code };
+    case 'phone/current-secret':
+      return { key: 'phone.signin.secret', code };
+    case 'phone/disabled':
+      return { key: 'auth.err.user-disabled', code };
+    case 'phone/exists':
+      return { key: 'phone.exists.title', code };
+    case 'phone/app-check':
+      return { key: 'phone.err.unavailable', code };
     default:
       return { key: 'error.generic', code: code || 'unknown' };
   }

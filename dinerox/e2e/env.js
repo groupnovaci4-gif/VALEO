@@ -91,3 +91,15 @@ module.exports.takeComplement = async (page) => {
   await page.waitForTimeout(1500);
   return label;
 };
+
+/**
+ * Interrupteur publié « connexion par numéro » (`config/app/items/phoneAuth`, audit 23/10 C5),
+ * écrit comme le ferait un administrateur (droits de l'émulateur). `null` : document retiré
+ * (valeur par défaut : DÉSACTIVÉ). Chaque parcours qui l'active le retire en partant.
+ */
+module.exports.setPhoneAuthSwitch = async (enabled) => {
+  const url = `http://127.0.0.1:8080/v1/projects/${process.env.E2E_PROJECT || 'demo-dinerox'}/databases/(default)/documents/config/app/items/phoneAuth`;
+  const headers = { 'content-type': 'application/json', authorization: 'Bearer owner' };
+  const r = enabled === null ? await fetch(url, { method: 'DELETE', headers }) : await fetch(url, { method: 'PATCH', headers, body: JSON.stringify({ fields: { enabled: { booleanValue: enabled } } }) });
+  if (!r.ok) throw new Error(`interrupteur phoneAuth : ${r.status}`);
+};

@@ -6,7 +6,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { BASE, launch } = require('./env.js');
+const { BASE, launch, setPhoneAuthSwitch } = require('./env.js');
 const PROJECT = 'demo-dinerox';
 const FS = `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents`;
 const OWNER = { 'content-type': 'application/json', authorization: 'Bearer owner' };
@@ -82,6 +82,10 @@ async function run(theme) {
 
   // 5, erreur 10, 6, erreur 11.
   await A.go('/settings'); await A.p.getByText('Se déconnecter').last().click(); await A.see('S’inscrire avec mon numéro');
+  // Depuis l'audit du 23/10 (S7), « Se déconnecter » OUBLIE le numéro. « Bon retour ! » ne se voit plus que
+  // si la session a pris fin sans déconnexion (expirée, compte réactivé…) : ce cas est SIMULÉ ici.
+  await A.p.evaluate((v) => localStorage.setItem('dinerox:v1:phone:last', v), JSON.stringify({ e164, dial: '225' }));
+  await A.go('/');
   await A.btn('Se connecter').click(); await A.see('Bon retour !');
   await A.keys('00', 400); await A.shot('05-connexion');
   await A.btn('⌫').last().click(); await A.btn('⌫').last().click();
@@ -140,14 +144,18 @@ async function run(theme) {
 }
 
 (async () => {
+  // Écrans « numéro » : l'interrupteur publié doit être activé (désactivé par défaut, audit 23/10 C5).
+  await setPhoneAuthSwitch(true);
   b = await launch();
   fs.mkdirSync(OUT, { recursive: true });
   for (const theme of ['light', 'dark']) await run(theme);
   fs.rmSync(path.join(OUT, '.app'), { recursive: true, force: true });
+  await setPhoneAuthSwitch(null);
   await b.close();
   process.exit(0);
 })().catch(async (e) => {
   console.log('ARRÊT', e.message.slice(0, 400));
+  await setPhoneAuthSwitch(null).catch(() => undefined);
   if (b) await b.close().catch(() => undefined);
   process.exit(1);
 });

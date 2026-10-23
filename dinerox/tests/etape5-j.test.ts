@@ -113,8 +113,8 @@ describe('J4 — barre du bas et icône de « Votre analyse »', () => {
     expect(mic).toMatch(/minWidth: 48, minHeight: 48/);
   });
   it('« Votre analyse » : graphique bleu, quel que soit le ton', () => {
-    const l = read('src/features/notifications/ToReadList.tsx');
-    const look = l.slice(l.indexOf('function look'), l.indexOf('export function ToReadList'));
+    // `look` vit dans son module pur depuis l'audit du 23/10 (partie 2) ; comportement testé dans audit-2026-10-23-p2.
+    const look = read('src/features/notifications/look.ts');
     expect(look.indexOf("x.kind === 'analysis'")).toBeLessThan(look.indexOf("x.tone === 'danger'"));
     expect(look).toMatch(/kind === 'analysis'\) return \{ bg: p\.blueBg, fg: p\.blueFg, icon: 'analytics' \}/);
   });

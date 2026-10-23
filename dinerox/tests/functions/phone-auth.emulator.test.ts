@@ -221,7 +221,8 @@ describe('connexion : numéro + code secret, blocage par numéro tenté', () => 
     expect(wrong).toBeLessThanOrEqual(4);
     expect(wrong + locked).toBe(20);
     // Un seul blocage (15 min), pas quatre (24 h) : seuls 5 essais ont été comptés.
-    const guards = await admin(async (fs) => (await getDocs(collection(fs, 'phoneGuard'))).docs.filter((d) => !d.id.startsWith('global-') && !d.id.startsWith('dev-')).map((d) => d.data()));
+    // Compteurs d'erreurs posés (l'appareil de l'inscription est connu : compteur à part, audit 23/10 S3).
+    const guards = await admin(async (fs) => (await getDocs(collection(fs, 'phoneGuard'))).docs.map((d) => d.data()).filter((g) => Number(g.lockLevel ?? 0) > 0));
     expect(guards.map((g) => g.lockLevel)).toEqual([1]);
     expect(await call('phoneSignIn', { phone: local, dial: '225', secret: '720461', deviceId: DEVICE })).toMatchObject({ ok: false, code: 'phone/locked' });
   });
@@ -309,7 +310,8 @@ describe('code secret oublié + 5bis.5 : alerte aux appareils et à l’e-mail, 
     const s = must(await call<{ token: string }>('phoneSetSecret', { ticket: v.ticket, secret: '905238', deviceId: DEVICE }));
     expect((await sessionFrom(s.token)).uid).toBe(a.uid);
     expect(await call('phoneSignIn', { phone: local, dial: '225', secret: '720461', deviceId: DEVICE })).toMatchObject({ ok: false, code: 'phone/wrong-secret' });
-    const alerts = await admin(async (fs) => (await getDocs(collection(fs, 'phoneOutbox'))).docs.map((d) => d.data()).filter((m) => m.uid === a.uid && String(m.kind).startsWith('alert')));
+    // Alertes « code secret changé » (l'ajout du numéro a sa propre alerte, audit 23/10 S1 : motif « linked »).
+    const alerts = await admin(async (fs) => (await getDocs(collection(fs, 'phoneOutbox'))).docs.map((d) => d.data()).filter((m) => m.uid === a.uid && String(m.kind).startsWith('alert') && m.reason === 'secret'));
     expect(alerts.map((x) => x.kind).sort()).toEqual(['alert-email', 'alert-push']);
     expect(alerts.find((x) => x.kind === 'alert-push')?.to).toBe('ExponentPushToken[appareil-de-awa]');
     expect(alerts.find((x) => x.kind === 'alert-email')?.to).toBe(`${a.uid}@ex.com`);
@@ -358,13 +360,18 @@ describe('compte e-mail : « Ajouter mon numéro » (même uid, rien de perdu, e
 });
 
 describe('inscription avec un numéro déjà inscrit : rien n’est révélé avant le code', () => {
-  it('phoneStart répond pareil ; après le code, « existing » : on choisit un nouveau code secret (même compte)', async () => {
+  // Audit 23/10, S9 : après le code, « existing » ; le code secret n'est JAMAIS remplacé par une
+  // inscription (écran « Ce numéro a déjà un compte », puis « Code secret oublié ? »).
+  it('phoneStart répond pareil ; après le code, « existing » : le code secret n’est pas remplacé', async () => {
     await clearGuards();
     const local = newPhone();
     const first = await signUp(local, '720461');
     await clearGuards();
-    const again = await signUp(local, '905238');
-    expect(again.existing).toBe(true);
-    expect(again.uid).toBe(first.uid);
+    const start = must(await call<{ requestId: string }>('phoneStart', { phone: local, dial: '225', purpose: 'signup', channel: 'whatsapp', deviceId: DEVICE, lang: 'fr' }));
+    const v = must(await call<{ ticket: string; existing: boolean }>('phoneVerify', { requestId: start.requestId, code: await lastCode(e164(local)) }));
+    expect(v.existing).toBe(true);
+    expect(await call('phoneSetSecret', { ticket: v.ticket, secret: '905238', deviceId: DEVICE })).toMatchObject({ ok: false, code: 'phone/exists' });
+    const r = must(await call<{ token: string }>('phoneSignIn', { phone: local, dial: '225', secret: '720461', deviceId: DEVICE }));
+    expect((await sessionFrom(r.token)).uid).toBe(first.uid);
   });
 });

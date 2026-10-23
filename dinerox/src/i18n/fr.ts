@@ -2414,6 +2414,10 @@ export const fr = {
   'phone.err.tooSoon': 'Patientez une minute avant de demander un nouveau code.',
   'phone.err.unavailable': 'L’envoi des codes n’est pas disponible pour le moment. Réessayez plus tard.',
   'phone.err.codeTooMany': 'Trop d’essais pour ce code. Demandez-en un nouveau.',
+  // Audit du 23/10 (partie 2) : S4 (WhatsApp aussi limité aux pays proposés), S9, C2 (décision D2).
+  'phone.err.country': 'Ce pays n’est pas encore proposé. Vérifiez l’indicatif.',
+  'phone.exists.title': 'Ce numéro a déjà un compte',
+  'phone.secret.change': 'Changer mon code secret',
   'goal.perWeekChip': '{amount} / sem.',
   'goal.distribute.short': 'Répartir chaque mois',
   'goal.distribute.edit': 'Modifier le montant',

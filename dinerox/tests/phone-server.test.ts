@@ -3,6 +3,8 @@
  * parité avec l'application (src/core/phone.ts) et empreintes (code reçu, code secret, numéro,
  * appareil) : jamais rien en clair.
  */
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import * as app from '../src/core/phone';
 import * as server from '../firebase/functions/src/phone';
@@ -57,5 +59,36 @@ describe('empreintes : jamais rien en clair', () => {
     expect(await server.checkSecret('483915', a, PEPPER)).toBe(true);
     expect(await server.checkSecret('483916', a, PEPPER)).toBe(false);
     expect(await server.checkSecret('483915', a, 'autre-poivre')).toBe(false);
+  });
+});
+
+describe('audit du 23/10 — règles propres au serveur', () => {
+  const now = Date.parse('2026-10-23T10:00:00Z');
+  it('S1 : connexion récente = moins de 5 minutes (auth_time en secondes)', () => {
+    expect(server.recentLogin(now / 1000 - 60, now)).toBe(true);
+    expect(server.recentLogin(now / 1000 - 5 * 60, now)).toBe(true);
+    expect(server.recentLogin(now / 1000 - 5 * 60 - 1, now)).toBe(false);
+    expect(server.recentLogin(undefined, now)).toBe(false);
+    expect(server.recentLogin('x', now)).toBe(false);
+  });
+  it('S4 : WhatsApp suit la liste des pays des SMS', () => {
+    expect(server.codeCountryAllowed('+2250708091011')).toBe(true);
+    expect(server.codeCountryAllowed('+33612345678')).toBe(true);
+    expect(server.codeCountryAllowed('+12025550123')).toBe(false);
+  });
+  it('S4 : préfixe = indicatif + 2 chiffres, jamais le numéro entier', () => {
+    expect(server.prefixOf('+2250708091011')).toBe('22507');
+    expect(server.prefixOf('+33612345678')).toBe('3361');
+    expect(server.prefixOf('+2250508091011')).not.toBe(server.prefixOf('+2250708091011'));
+  });
+  it('S4 : jeton App Check déjà consommé → rejeu refusé ; sinon accepté', () => {
+    expect(server.appCheckReplayed({ alreadyConsumed: true })).toBe(true);
+    expect(server.appCheckReplayed({ alreadyConsumed: false })).toBe(false);
+    expect(server.appCheckReplayed(undefined)).toBe(false);
+  });
+  it('S4 : phoneStart consomme son jeton App Check (l’émulateur ne sait pas simuler la consommation)', () => {
+    const api = fs.readFileSync(path.join(__dirname, '..', 'firebase/functions/src/phoneAuthApi.ts'), 'utf8');
+    expect(api).toMatch(/export const phoneStart = onCall\(\{ \.\.\.OPTS, consumeAppCheckToken: true \}/);
+    expect(api).toMatch(/if \(P\.appCheckReplayed\(req\.app\)\) fail\(/);
   });
 });

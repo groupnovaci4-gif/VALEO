@@ -2373,6 +2373,10 @@ export const en: Record<TKey, string> = {
   'phone.err.tooSoon': 'Please wait a minute before asking for a new code.',
   'phone.err.unavailable': 'Sending codes isn’t available right now. Please try again later.',
   'phone.err.codeTooMany': 'Too many tries for this code. Ask for a new one.',
+  // 23/10 audit (part 2): S4 (WhatsApp also limited to the offered countries), S9, C2 (decision D2).
+  'phone.err.country': 'This country is not offered yet. Check the country code.',
+  'phone.exists.title': 'This number already has an account',
+  'phone.secret.change': 'Change my secret code',
   'goal.perWeekChip': '{amount} / wk',
   'goal.distribute.short': 'Split each month',
   'goal.distribute.edit': 'Change the amount',

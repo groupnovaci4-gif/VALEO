@@ -30,10 +30,13 @@ export interface CodeSender {
   send(to: string, code: string, lang: Lang): Promise<void>;
 }
 
+/** Motif d'une alerte : code secret changé (5bis.5) ou numéro ajouté au compte (audit 23/10, S1). */
+export type AlertReason = 'secret' | 'linked';
+
 /** Alertes de sécurité (jamais de code dedans). */
 export interface AlertSender {
-  push(uid: string, tokens: string[], lang: Lang): Promise<void>;
-  email(uid: string, to: string, lang: Lang): Promise<void>;
+  push(uid: string, tokens: string[], lang: Lang, reason: AlertReason): Promise<void>;
+  email(uid: string, to: string, lang: Lang, reason: AlertReason): Promise<void>;
 }
 
 export interface PhoneProviders {
@@ -51,7 +54,12 @@ export function codeMessage(code: string, lang: Lang): string {
 }
 
 /** Alerte « code secret changé » (5bis.5, numéro recyclé) : AUCUN code, aucun chiffre du compte. */
-export function alertMessage(lang: Lang): { title: string; body: string } {
+export function alertMessage(lang: Lang, reason: AlertReason = 'secret'): { title: string; body: string } {
+  // S1 : un numéro ajouté au compte est TOUJOURS signalé (aucun numéro ni code dans le message).
+  if (reason === 'linked')
+    return lang === 'en'
+      ? { title: `${LINK_BRAND.name}: phone number added`, body: 'A phone number has just been added to your account. If it wasn’t you, contact us right away.' }
+      : { title: `${LINK_BRAND.name} : numéro ajouté`, body: 'Un numéro de téléphone vient d’être ajouté à votre compte. Si ce n’est pas vous, contactez-nous tout de suite.' };
   return lang === 'en'
     ? { title: `${LINK_BRAND.name}: secret code changed`, body: 'The secret code of your account has just been changed. If it wasn’t you, contact us right away.' }
     : { title: `${LINK_BRAND.name} : code secret changé`, body: 'Le code secret de votre compte vient d’être changé. Si ce n’est pas vous, contactez-nous tout de suite.' };
@@ -70,10 +78,10 @@ function simulated(): PhoneProviders {
     available: true,
     codes: { whatsapp: sender('whatsapp'), sms: sender('sms') },
     alerts: {
-      push: async (uid, tokens, lang) => {
-        for (const to of tokens) await outbox({ kind: 'alert-push', uid, to, ...alertMessage(lang) });
+      push: async (uid, tokens, lang, reason) => {
+        for (const to of tokens) await outbox({ kind: 'alert-push', reason, uid, to, ...alertMessage(lang, reason) });
       },
-      email: (uid, to, lang) => outbox({ kind: 'alert-email', uid, to, ...alertMessage(lang) }),
+      email: (uid, to, lang, reason) => outbox({ kind: 'alert-email', reason, uid, to, ...alertMessage(lang, reason) }),
     },
   };
 }
@@ -90,8 +98,8 @@ function unconfigured(): PhoneProviders {
     codes: { whatsapp: refuse, sms: refuse },
     alerts: {
       // Notification : le canal existant de l'application (Expo), sans aucun code.
-      push: async (_uid, tokens, lang) => {
-        const m = alertMessage(lang);
+      push: async (_uid, tokens, lang, reason) => {
+        const m = alertMessage(lang, reason);
         await sendExpoPush(tokens.map((to) => ({ to, title: m.title, body: m.body, data: { url: '/settings/security' } })));
       },
       // E-mail : aucun fournisseur choisi à ce jour — journalisé, jamais inventé.

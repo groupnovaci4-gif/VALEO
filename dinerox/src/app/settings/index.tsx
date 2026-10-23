@@ -10,6 +10,7 @@ import type { ThemePreference } from '@/core/types';
 import { env } from '@/config/env';
 import { brand } from '@/config/brand';
 import { signOut } from '@/services/auth';
+import { usePhoneAuthEnabled } from '@/services/phoneAuthSwitch';
 import { useTheme } from '@/theme';
 import { can } from '@/core/permissions';
 import { canEnterCode } from '@/core/referral';
@@ -21,6 +22,7 @@ export default function Settings() {
   // Date figée à l'ouverture (rendu pur) ; la session donne la date d'inscription.
   const [now] = useState(() => Date.now());
   const codeOpen = mode === 'firebase' && canEnterCode(user?.signupAt, !!profile?.referredBy, now);
+  const phoneOn = usePhoneAuthEnabled();
   if (!profile) return null;
   const prefs = profile.preferences;
   const ini = initials(profile.firstName, profile.lastName);
@@ -105,7 +107,8 @@ export default function Settings() {
         {mode === 'firebase' ? row('ref.title', 'more.sub.invite', 'gift', colors.primary, '/invite') : null}
         {codeOpen ? row('ref.code.title', 'ref.code.sub', 'key', colors.secondary, '/invite-code') : null}
         {/* Connexion par téléphone : un compte e-mail ajoute son numéro (même compte, maquette 8). */}
-        {mode === 'firebase' && user?.email ? row('phone.link.title', 'phone.link.how', 'call', colors.primary, '/settings/add-phone') : null}
+        {/* Seulement si l'interrupteur publié est activé (audit 23/10, C5) : sinon l'envoi du code échouerait. */}
+        {mode === 'firebase' && user?.email && phoneOn ? row('phone.link.title', 'phone.link.how', 'call', colors.primary, '/settings/add-phone') : null}
         {row('set.security', 'set.sub.security', 'lock-closed', colors.primary, '/settings/security')}
         {row('set.notifications', 'set.sub.notifications', 'notifications', colors.secondary, '/settings/notifications')}
         {/* Mêmes droits que l'onglet « Plus » (miroir des règles Firestore). */}
