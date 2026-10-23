@@ -29,8 +29,12 @@ describe('E1 — un message disparaît au × ou à la fin de « Écouter »', ()
     expect(btn).toMatch(/onEnd\?: \(\) => void/);
     expect(btn).toMatch(/if \(r\.spoken\) onEnd\?\.\(\)/);
     const list = read('src/features/notifications/ToReadList.tsx');
-    expect(list).toMatch(/<ListenButton text=\{x\.text\} onEnd=\{\(\) => dismiss\(x\)\} \/>/);
-    expect(list).toMatch(/onPress=\{\(\) => dismiss\(x\)\}/);
+    // Carte partagée (`ToReadCard`) : la fin de « Écouter » et le × appellent le même `onRead`,
+    // qui est `dismiss(x)` sur l'Accueil.
+    expect(list).toMatch(/<ListenButton text=\{x\.text\} onEnd=\{onRead\} \/>/);
+    expect(list).toMatch(/accessibilityLabel=\{t\('toRead\.dismiss'\)\} onPress=\{onRead\}/);
+    expect(list).toMatch(/<ToReadCard [^>]*onRead=\{\(\) => dismiss\(x\)\} \/>/);
+    expect(list).toMatch(/onPress=\{\(\) => \{\s*dismiss\(x\);/);
   });
 });
 

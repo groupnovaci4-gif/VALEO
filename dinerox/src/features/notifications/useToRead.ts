@@ -71,19 +71,25 @@ function useToReadState() {
   const topRec = recommendations[0] ?? null;
   const advice = useMemo(() => adviceOfDay(recommendations.filter((r) => r.id !== topRec?.id), now), [recommendations, now, topRec?.id]);
 
+  // Tous les constats, un par un (l'écran Notifications les montre tous, même ceux fusionnés ci-dessous).
+  const alerts = useMemo<ToReadItem[]>(
+    () =>
+      insights.map((i) => ({
+        id: i.id,
+        kind: BUDGET_INSIGHTS.has(i.kind) ? 'budget' : 'coach',
+        tone: insightTone(i.severity),
+        text: renderInsight(i),
+        link: refPath(i.ref),
+        dueDate: typeof i.params?.date === 'string' && DAY_RE.test(i.params.date) ? i.params.date : null,
+        // Seuil d'une enveloppe : le même fait que l'alerte d'enveloppe du coach.
+        keys: i.kind === 'envelope_threshold' && i.ref ? [`envelope:${i.ref.id}`] : [],
+        origin: 'insight',
+        insightKind: i.kind,
+      })),
+    [insights, renderInsight],
+  );
+
   const all = useMemo(() => {
-    const alerts: ToReadItem[] = insights.map((i) => ({
-      id: i.id,
-      kind: BUDGET_INSIGHTS.has(i.kind) ? 'budget' : 'coach',
-      tone: insightTone(i.severity),
-      text: renderInsight(i),
-      link: refPath(i.ref),
-      dueDate: typeof i.params?.date === 'string' && DAY_RE.test(i.params.date) ? i.params.date : null,
-      // Seuil d'une enveloppe : le même fait que l'alerte d'enveloppe du coach.
-      keys: i.kind === 'envelope_threshold' && i.ref ? [`envelope:${i.ref.id}`] : [],
-      origin: 'insight',
-      insightKind: i.kind,
-    }));
     const adviceItems: ToReadItem[] = advice ? [{ id: advice.id, kind: 'advice', tone: 'advice', text: renderRec(advice), link: advice.link ?? null, keys: [`rec:${advice.kind}`], origin: 'advice' }] : [];
     const coachItems: ToReadItem[] = summary
       .map((e) => ({
@@ -103,7 +109,7 @@ function useToReadState() {
     const merged = mergeToRead([alerts.filter((x) => x.kind === 'budget'), adviceItems, alerts.filter((x) => x.kind !== 'budget'), coachItems, analysisItems]);
     // R2 et R3 : « lu » vaut pour CE texte, dans CET espace.
     return merged.map((x) => ({ ...x, readKey: readKeyOf(spaceId, x.id, x.text) }));
-  }, [insights, renderInsight, advice, renderRec, summary, coachText, topRec, spaceId]);
+  }, [alerts, advice, renderRec, summary, coachText, topRec, spaceId]);
 
   const ready = snap.loaded && snap.uid === uid;
   const visible = useMemo(() => (ready ? visibleToRead(all, snap.store, snap.checkedAt, snap.checkedDay) : []), [ready, all, snap.store, snap.checkedAt, snap.checkedDay]);
@@ -131,7 +137,8 @@ function useToReadState() {
   );
   // `all` : TOUS les messages, lus ou non (écran Notifications, B5bis) ; `unread` : le même nombre
   // que « À lire · N » (décision du fondateur, 22/10 : un message regroupé compte pour 1).
-  return { items, all, unread: items.length, dismiss, dismissAll, advice, topRec };
+  // `alerts` : chaque constat, sans fusion (écran Notifications : mêmes messages qu'avant la refonte).
+  return { items, all, alerts, unread: items.length, dismiss, dismissAll, advice, topRec };
 }
 
 /** Cloche : le même nombre que « À lire · N » (messages non lus, après regroupement), même calcul (R6). */

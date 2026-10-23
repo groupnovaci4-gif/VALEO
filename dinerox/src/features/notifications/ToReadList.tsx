@@ -24,6 +24,60 @@ import { homeToRead, type ToReadItem } from './toRead';
 
 type Shown = ToReadItem & { reminder: boolean };
 
+/**
+ * Carte d'un message (Accueil et écran Notifications) : pastille, étiquette en couleur, texte (toucher =
+ * ouvrir l'écran lié), provenance du conseil et de l'analyse, « Écouter » À CÔTÉ de la zone touchable.
+ * `onRead` : le message est lu (× et fin de « Écouter ») ; absent (écran Notifications, qui garde tout),
+ * ni × ni marquage.
+ */
+export function ToReadCard({ item: x, testID, onRead }: { item: ToReadItem & { reminder?: boolean }; testID: string; onRead?: () => void }) {
+  const { t } = useI18n();
+  const { colors, dark } = useTheme();
+  const p = finalPalette(dark);
+  const { advice, topRec } = useToRead();
+  const l = look(x, p);
+  const go = x.link ? () => router.push(x.link as never) : undefined;
+  const label = t(`toRead.label.${x.kind}` as TKey);
+  return (
+    <View testID={testID} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingTop: 12, paddingBottom: 8, paddingLeft: 14, paddingRight: onRead ? 8 : 14, borderRadius: 16, backgroundColor: colors.surface, marginBottom: 8, ...(dark ? null : shadowB) }}>
+      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: l.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name={l.icon} size={18} color={l.fg} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Pressable accessibilityRole={go ? 'button' : 'text'} accessibilityLabel={`${label}${x.reminder ? `, ${t('toRead.reminder')}` : ''}, ${x.text}`} onPress={go} style={({ pressed }) => ({ borderRadius: 8, backgroundColor: pressed && go ? colors.surfaceAlt : 'transparent' })}>
+          <Text variant="caption" weight="600" style={{ fontSize: 11, lineHeight: 14, letterSpacing: 0.4, textTransform: 'uppercase', color: l.fg, marginBottom: 2 }}>
+            {x.reminder ? `${label} · ${t('toRead.reminder')}` : label}
+          </Text>
+          <Text variant="small" weight="500" style={{ fontSize: 14, lineHeight: 20 }}>
+            {x.text}
+          </Text>
+        </Pressable>
+        {x.kind === 'advice' && advice ? (
+          <View style={{ marginTop: 6 }}>
+            <SourceTag source={advice.source} />
+            <AdviceAi adviceId={advice.id} text={x.text} />
+          </View>
+        ) : null}
+        {/* Audit du 23/10, R5 (règle 11) : « Votre analyse » garde sa provenance (« Vos données » / « Estimation »). */}
+        {x.kind === 'analysis' && topRec ? (
+          <View style={{ marginTop: 6 }}>
+            <SourceTag source={topRec.source} />
+          </View>
+        ) : null}
+        {/* À la taille du bouton : une View étirée avec une marge négative dépasserait la carte. */}
+        <View style={{ alignSelf: 'flex-start', marginLeft: -8 }}>
+          <ListenButton text={x.text} onEnd={onRead} />
+        </View>
+      </View>
+      {onRead ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={t('toRead.dismiss')} onPress={onRead} style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginTop: -10, marginRight: -4, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}>
+          <Icon name="close" size={18} color={colors.textSubtle} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 /** Pastille : fond, couleur (icône et étiquette), icône — selon le ton et la sorte du message. */
 function look(x: ToReadItem, p: FinalPalette): { bg: string; fg: string; icon: string } {
   // J4 : « Votre analyse » = graphique bleu de la maquette, quel que soit le ton.
@@ -38,7 +92,7 @@ export function ToReadList({ budgetOnly }: { budgetOnly?: boolean }) {
   const { t } = useI18n();
   const { colors, dark } = useTheme();
   const p = finalPalette(dark);
-  const { items: all, dismiss, dismissAll, advice, topRec } = useToRead();
+  const { items: all, dismiss, dismissAll } = useToRead();
   const items = budgetOnly ? all.filter((x) => x.kind === 'budget') : all;
   if (!items.length) return null;
   const open = (x: Shown) => (x.link ? () => router.push(x.link as never) : undefined);
@@ -86,47 +140,9 @@ export function ToReadList({ budgetOnly }: { budgetOnly?: boolean }) {
   return (
     <View>
       <SectionHeader title={t('toRead.title', { count: total })} action={t('toRead.hint')} />
-      {shown.map((x) => {
-        const l = look(x, p);
-        const go = open(x);
-        const label = t(`toRead.label.${x.kind}` as TKey);
-        return (
-          <View key={x.id} testID={`toread-${x.origin ?? x.kind}`} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingTop: 12, paddingBottom: 8, paddingLeft: 14, paddingRight: 8, borderRadius: 16, backgroundColor: colors.surface, marginBottom: 8, ...(dark ? null : shadowB) }}>
-            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: l.bg, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name={l.icon} size={18} color={l.fg} />
-            </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Pressable accessibilityRole={go ? 'button' : 'text'} accessibilityLabel={`${label}${x.reminder ? `, ${t('toRead.reminder')}` : ''}, ${x.text}`} onPress={go} style={({ pressed }) => ({ borderRadius: 8, backgroundColor: pressed && go ? colors.surfaceAlt : 'transparent' })}>
-                <Text variant="caption" weight="600" style={{ fontSize: 11, lineHeight: 14, letterSpacing: 0.4, textTransform: 'uppercase', color: l.fg, marginBottom: 2 }}>
-                  {x.reminder ? `${label} · ${t('toRead.reminder')}` : label}
-                </Text>
-                <Text variant="small" weight="500" style={{ fontSize: 14, lineHeight: 20 }}>
-                  {x.text}
-                </Text>
-              </Pressable>
-              {x.kind === 'advice' && advice ? (
-                <View style={{ marginTop: 6 }}>
-                  <SourceTag source={advice.source} />
-                  <AdviceAi adviceId={advice.id} text={x.text} />
-                </View>
-              ) : null}
-              {/* Audit du 23/10, R5 (règle 11) : « Votre analyse » garde sa provenance (« Vos données » / « Estimation »). */}
-              {x.kind === 'analysis' && topRec ? (
-                <View style={{ marginTop: 6 }}>
-                  <SourceTag source={topRec.source} />
-                </View>
-              ) : null}
-              {/* À la taille du bouton : une View étirée avec une marge négative dépasserait la carte. */}
-              <View style={{ alignSelf: 'flex-start', marginLeft: -8 }}>
-                <ListenButton text={x.text} onEnd={() => dismiss(x)} />
-              </View>
-            </View>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('toRead.dismiss')} onPress={() => dismiss(x)} style={({ pressed }) => ({ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginTop: -10, marginRight: -4, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}>
-              <Icon name="close" size={18} color={colors.textSubtle} />
-            </Pressable>
-          </View>
-        );
-      })}
+      {shown.map((x) => (
+        <ToReadCard key={x.id} item={x} testID={`toread-${x.origin ?? x.kind}`} onRead={() => dismiss(x)} />
+      ))}
       {/* Tous les messages restent consultables dans l'écran Notifications (B5bis). */}
       {total > shown.length ? (
         <Pressable accessibilityRole="link" accessibilityLabel={t('toRead.seeAll', { count: total })} onPress={() => router.push('/notifications')} style={({ pressed }) => ({ alignSelf: 'flex-end', minHeight: 48, justifyContent: 'center', paddingHorizontal: 8, borderRadius: 12, backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}>

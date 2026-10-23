@@ -193,9 +193,15 @@ describe('R7 — l’objectif en retard est signalé sur sa vignette', () => {
 describe('R4 — « M’expliquer ce conseil (IA) » reste sur le conseil, même lu (écran Notifications)', () => {
   // L'appel réel demande un compte en ligne, une formule payante et le consentement : vérifié dans le code.
   it('l’écran Notifications (tous les messages, lus ou non) porte l’explication et la provenance du conseil', () => {
+    // Direction B (23/10) : l'écran montre chaque message dans la carte de « À lire » (`ToReadCard`), qui
+    // porte la provenance et l'explication du conseil ; le × n'y est pas (pas de `onRead`).
     const n = read('src/app/notifications.tsx');
-    expect(n).toMatch(/x\.kind === 'advice' && advice \? \([\s\S]{0,200}<SourceTag source=\{advice\.source\} \/>\s*<AdviceAi adviceId=\{advice\.id\} text=\{x\.text\} \/>/);
-    expect(n).toMatch(/const \{ all, advice, topRec \} = useToRead\(\)/);
+    expect(n).toMatch(/<ToReadCard key=[^>]*item=\{x\}[^>]*\/>/);
+    expect(n).not.toMatch(/onRead=/);
+    const card = read('src/features/notifications/ToReadList.tsx');
+    const body = card.slice(card.indexOf('export function ToReadCard'));
+    expect(body).toMatch(/x\.kind === 'advice' && advice \? \([\s\S]{0,200}<SourceTag source=\{advice\.source\} \/>\s*<AdviceAi adviceId=\{advice\.id\} text=\{x\.text\} \/>/);
+    expect(body).toMatch(/const \{ advice, topRec \} = useToRead\(\)/);
   });
 });
 

@@ -88,8 +88,10 @@ describe('B5bis — 3 messages à l’Accueil, alertes et échéances d’abord,
   });
   it('l’écran Notifications garde TOUS les messages : constats + conseil, coach, analyse', () => {
     const n = read('src/app/notifications.tsx');
-    expect(n).toMatch(/insights\.map/);
-    expect(n).toMatch(/useToRead\(\)/);
+    // Chaque constat (`alerts` : un par insight, sans fusion), puis les autres messages.
+    expect(n).toMatch(/const \{ all, alerts \} = useToRead\(\)/);
+    expect(n).toMatch(/\[\.\.\.alerts, \.\.\.all\.filter/);
+    expect(read('src/features/notifications/useToRead.ts')).toMatch(/const alerts = useMemo<ToReadItem\[\]>\(\s*\(\) =>\s*insights\.map/);
     expect(n).toMatch(/origin !== 'insight'/);
   });
 });

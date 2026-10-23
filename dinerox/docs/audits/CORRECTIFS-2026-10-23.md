@@ -69,3 +69,28 @@ Preuves « avant | après » : `docs/audits/preuves-2026-10-23/`. Elles sont pro
 - `budget.png` : onglets ;
 - `notifications.png` : provenance de « Votre analyse » ;
 - `cloche.png` : sombre, chiffre foncé sur le rose.
+
+### Écran Notifications en direction B (demande du fondateur, après validation de la partie 1)
+
+| Demande | Test (rouge d'abord) | Correctif |
+|---|---|---|
+| Fond sable, clair et sombre | e2e `notifications-screen.js` : fond `#F4F1EA` / `#13120F` | `app/notifications.tsx` dans `DesignV2` |
+| Chaque message dans la carte de « À lire », sans × | même parcours : une carte par « Écouter », une étiquette, une pastille de 36 dp, « Écouter » hors de la zone touchable, aucun « Marquer comme lu » | carte extraite en `ToReadCard` (`notifications/ToReadList.tsx`), partagée par l'Accueil et Notifications ; × seulement avec `onRead` |
+| Conseil du jour (« Vos données », « M'expliquer ce conseil (IA) ») et provenance de « Votre analyse » | même parcours ; `coach-advice.js` (« Votre analyse » exigée, avec provenance) | dans `ToReadCard`, inchangé |
+| Les constats gardent leur action d'ouverture | même parcours : toucher un constat ouvre `/envelopes/…` | lien du message (`refPath`, identique à l'ancienne carte) |
+| Titre jamais coupé ; réglages = bouton icône de 48 dp, même libellé lu | même parcours : titre entier, bouton « Réglages des notifications » de 48×48, libellé non écrit | `IconButton` |
+| Rien ne disparaît : mêmes messages, même ordre | même parcours avec `NOTIF_REF` (export d'avant) : 5 messages identiques, même ordre | `useToRead().alerts` : chaque constat sans fusion, puis les autres messages, comme avant |
+
+Sur l'export d'avant, `notifications-screen.js` donne 7 échecs ; sur le nouveau, tout est vert.
+Trois tests qui lisent le texte du code (`audit-2026-10-23`, `etape5-j`, `etape5-notifications`)
+suivent le déplacement de la carte, sans changer ce qu'ils vérifient. Aucun texte nouveau, rien
+dans `src/core`.
+
+À savoir : dans la démonstration, « Vos objectifs demandent… » s'affiche en « Votre coach » quand
+le résumé d'ouverture du coach l'a déjà dit, sinon en « Votre analyse » avec sa provenance. C'est la
+fusion de « À lire » (E3), inchangée : les images d'avant et d'après le montrent de la même façon.
+
+Vérifications : `npm run check` vert (1781). Parcours verts : `coach-advice`, `coach-open`,
+`coach-budget`, `lot-a-home`, `notifications-screen` (ajouté à `run-all.sh`) et `layout-audit`.
+Images : `notifications-clair.png` et `notifications-sombre.png`, produites par
+`e2e/captures-notifications.js`.
