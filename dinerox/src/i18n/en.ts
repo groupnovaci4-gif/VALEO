@@ -2312,6 +2312,10 @@ export const en: Record<TKey, string> = {
   'phone.welcome.signin': 'Sign in',
   'phone.welcome.signupEmail': 'Sign up with my email',
   'phone.signin.withEmail': 'Sign in with my email',
+  // Number screen in sign-in mode (founder, 23/10): no WhatsApp.
+  'phone.number.signinTitle': 'Sign in',
+  'phone.number.signinBody': 'Enter your account number, then your secret code.',
+  'phone.number.signinCta': 'Continue',
   'phone.number.title': 'Your phone number',
   'phone.number.body': 'We’ll send you a code on WhatsApp to check this number is yours.',
   'phone.number.label': 'Phone number',

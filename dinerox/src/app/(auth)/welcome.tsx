@@ -76,7 +76,8 @@ export default function Welcome() {
               {/* Libellés clairs (fondateur, 23/10, DECISIONS.md §5ter) : s'inscrire OU se connecter, par numéro ; l'e-mail reste possible. */}
               <Button full label={t('phone.welcome.signupNumber')} onPress={() => router.push('/phone')} />
               <Button full variant="secondary" label={t('phone.welcome.signin')} onPress={() => router.push('/phone?start=signin')} />
-              <Button small variant="ghost" label={t('phone.welcome.signupEmail')} onPress={() => router.push('/sign-up')} style={{ alignSelf: 'center', maxWidth: '100%' }} />
+              {/* Lien VERT (fondateur, 23/10) : on voit qu'il se touche. */}
+              <Button variant="link" label={t('phone.welcome.signupEmail')} onPress={() => router.push('/sign-up')} style={{ alignSelf: 'center', maxWidth: '100%' }} />
             </>
           ) : (
             <Button full label={t('fp.localOnly')} loading={busy === 'local'} onPress={() => start('local')} />

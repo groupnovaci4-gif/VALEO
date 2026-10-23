@@ -102,7 +102,7 @@ async function run(theme) {
   const B = await open();
   await B.go('/phone?start=signin');
   await B.p.getByLabel('Numéro de téléphone', { exact: true }).fill(local);
-  await B.btn('Continuer avec mon numéro').click(); await B.see('Votre code secret');
+  await B.btn('Continuer').click(); await B.see('Votre code secret');
   await B.keys(SECRET); await B.see('Nouveau téléphone'); await B.shot('07-nouveau-telephone');
   await B.ctx.close();
   }

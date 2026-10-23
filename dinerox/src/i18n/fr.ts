@@ -2352,6 +2352,10 @@ export const fr = {
   'phone.welcome.signin': 'Se connecter',
   'phone.welcome.signupEmail': 'S’inscrire avec mon e-mail',
   'phone.signin.withEmail': 'Se connecter avec mon e-mail',
+  // Écran du numéro en mode connexion (fondateur, 23/10) : sans WhatsApp.
+  'phone.number.signinTitle': 'Se connecter',
+  'phone.number.signinBody': 'Entrez le numéro de votre compte, puis votre code secret.',
+  'phone.number.signinCta': 'Continuer',
   'phone.number.title': 'Votre numéro de téléphone',
   'phone.number.body': 'Nous vous envoyons un code sur WhatsApp pour vérifier que ce numéro est bien à vous.',
   'phone.number.label': 'Numéro de téléphone',

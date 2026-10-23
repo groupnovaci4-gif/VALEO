@@ -125,11 +125,21 @@ fondateur, même empreinte git). Preuve : `preuves/01-bienvenue-v2-clair.png` (r
 Parcours e2e adaptés aux nouveaux libellés : `phone-auth.js`, `multi-users.js`, `suspended.js`,
 `install-origin.js`, `forms-audit.js`, `captures-phone.js`.
 
-Écarts restants avec la maquette, signalés sans les corriger (hors périmètre de la décision) :
-les liens discrets du panneau (e-mail, démonstration, « sur ce téléphone ») gardent le texte foncé
-de design-pro, la maquette les montre en vert ; sur « Bon retour ! », « Se connecter avec mon
-e-mail », plus long, passe sur deux lignes ; en mode connexion, l'écran du numéro garde le texte
-« Nous vous envoyons un code sur WhatsApp… » (inchangé, peu exact pour une connexion).
+Trois écarts restaient avec la maquette ; le fondateur les a tranchés (§7 ter).
+
+## 7 ter. Les trois écarts tranchés (fondateur, 23/10)
+
+| Décision | Où | Preuve (rouge d'abord, puis vert) |
+|---|---|---|
+| 1. « S’inscrire avec mon e-mail » en lien VERT (couleur de la marque), 48 dp ; « Tester sans données » et « Utiliser sur ce téléphone uniquement » gardent le style d'origine | nouvelle variante `link` du bouton (`components/ui/Button.tsx`, les deux rendus) ; `welcome.tsx` (bloc des boutons seulement, le reste toujours identique à design-pro) | `tests/phone-screens.test.ts` « écarts tranchés › 1 » ; e2e « lien vert (couleur = fond du bouton principal), démonstration inchangée, 48 px » ; `preuves/01-bienvenue-v2-clair.png` |
+| 2. « Code secret oublié ? » et « Se connecter avec mon e-mail » l'un SOUS l'autre, centrés, chacun sur une ligne, 48 dp | `PhoneFlow.tsx` › `SignInStep` (« Bon retour ! » et « Se connecter ») | test « › 2 » ; e2e « l’un sous l’autre, centrés », « chaque lien sur une ligne, 48 dp (48 et 48 px) » ; `preuves/05-connexion-clair.png`, `preuves/10-erreur-trop-essais-clair.png` |
+| 3. Écran du numéro en mode CONNEXION seulement : titre « Se connecter », texte « Entrez le numéro de votre compte, puis votre code secret. », bouton « Continuer » ; aucune mention de WhatsApp ; l'inscription ne change pas | `PhoneFlow.tsx` › `NumberStep` ; clés `phone.number.signinTitle`, `phone.number.signinBody`, `phone.number.signinCta` (FR + EN), aucune supprimée | test « › 3 » ; e2e « connexion, écran du numéro : … bouton Continuer, aucune mention de WhatsApp » |
+
+Vérifications : `npm run check` vert (lint à zéro, 120 fichiers, 1 862 tests) ; `phone-auth`
+39 / 39 ; `forms-audit` 140 / 140 ; `multi-users`, `suspended`, `install-origin`, `layout-audit`
+verts ; preuves refaites par `e2e/captures-phone.js` (toutes régénérées : seules 01, 05 et 10
+changent sur le fond, les autres ne diffèrent que par le numéro tiré au hasard). Parcours e2e
+adaptés : `phone-auth.js`, `captures-phone.js` (« Continuer avec mon numéro » → « Continuer »).
 
 ## 7. Branche design-pro (fusionnée ici)
 

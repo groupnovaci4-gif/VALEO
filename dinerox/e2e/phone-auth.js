@@ -86,6 +86,12 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   const order = await Promise.all(['S’inscrire avec mon numéro', 'Se connecter', 'S’inscrire avec mon e-mail', 'Tester sans données (démonstration)'].map((n) => A.btn(n).first().boundingBox()));
   ok(order.every(Boolean) && order.every((b, i) => i === 0 || b.y > order[i - 1].y), 'panneau : « S’inscrire avec mon numéro », « Se connecter », « S’inscrire avec mon e-mail », puis démonstration');
   ok(!welcome.includes('Continuer avec mon numéro') && !welcome.includes('J’ai un compte e-mail'), 'anciens libellés absents de l’accueil');
+  // Écart 1 (fondateur, 23/10) : le lien e-mail est VERT (couleur de la marque), la démonstration garde son style d'origine.
+  const colorOf = (loc) => loc.evaluate((el) => getComputedStyle(el.querySelector('div[dir]') || el).color);
+  const bgOf = (loc) => loc.evaluate((el) => getComputedStyle(el).backgroundColor);
+  const [mailColor, demoColor, brand] = await Promise.all([colorOf(A.btn('S’inscrire avec mon e-mail').first()), colorOf(A.btn('Tester sans données (démonstration)').first()), bgOf(A.btn('S’inscrire avec mon numéro').first())]);
+  const mailH = (await A.btn('S’inscrire avec mon e-mail').first().boundingBox()).height;
+  ok(mailColor === brand && demoColor !== brand && mailH >= 48, `lien « S’inscrire avec mon e-mail » vert (${mailColor} = ${brand}), démonstration inchangée (${demoColor}), ${Math.round(mailH)} px`);
   await A.shot('01-accueil');
   await A.btn('S’inscrire avec mon numéro').click(); await A.see('Votre numéro de téléphone');
   ok(!!(await A.btn('Se connecter').first().boundingBox()) && !(await A.text()).includes('J’ai déjà un compte'), 'inscription : « J’ai déjà un compte » devient « Se connecter »');
@@ -125,11 +131,14 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   await A.signOut();
   await A.btn('Se connecter').click(); await A.see('Bon retour !');
   ok((await A.text()).includes(`+225 ${local1.slice(0, 2)} ${local1.slice(2, 4)} •• •• ${local1.slice(8)}`), 'numéro retenu, affiché masqué');
-  // Retouches (22/10) : numéro masqué sur UNE ligne ; « Code secret oublié ? » et « Se connecter avec mon e-mail » (§5ter) côte à côte.
+  // Retouche (22/10) : numéro masqué sur UNE ligne.
   const masked = await A.p.getByText(`+225 ${local1.slice(0, 2)}`, { exact: false }).filter({ visible: true }).first().boundingBox();
   ok(!!masked && masked.height <= 26, `numéro masqué sur une ligne (${masked ? Math.round(masked.height) : '?'} px)`);
+  // Écart 2 (fondateur, 23/10) : les deux liens l'un SOUS l'autre, centrés, chacun sur une ligne, 48 dp.
   const [forgotBox, mailBox] = await Promise.all([A.btn('Code secret oublié ?').first().boundingBox(), A.btn('Se connecter avec mon e-mail').first().boundingBox()]);
-  ok(!!forgotBox && !!mailBox && Math.abs(forgotBox.y - mailBox.y) < 4 && forgotBox.x < mailBox.x, 'liens « Code secret oublié ? » et « Se connecter avec mon e-mail » côte à côte');
+  const cx = (b) => b.x + b.width / 2;
+  ok(!!forgotBox && !!mailBox && mailBox.y >= forgotBox.y + forgotBox.height - 1 && Math.abs(cx(forgotBox) - cx(mailBox)) < 3 && Math.abs(cx(mailBox) - A.p.viewportSize().width / 2) < 3, 'liens « Code secret oublié ? » puis « Se connecter avec mon e-mail » l’un sous l’autre, centrés');
+  ok(!!forgotBox && !!mailBox && [forgotBox, mailBox].every((b) => b.height >= 48 && b.height < 56), `chaque lien sur une ligne, 48 dp (${forgotBox && Math.round(forgotBox.height)} et ${mailBox && Math.round(mailBox.height)} px)`);
   await A.shot('05-connexion');
   await A.keypad('000000');
   ok((await A.text()).includes('Code secret incorrect.'), 'mauvais code secret : refusé');
@@ -152,9 +161,12 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   await B.btn('Se connecter').click(); await B.see('Numéro de téléphone');
   // Numéro pas encore connu sur ce téléphone : titre « Se connecter », lien vers la connexion e-mail (§5ter).
   ok(!(await B.text()).includes('Bon retour') && !!(await B.p.getByRole('heading', { name: 'Se connecter', exact: true }).filter({ visible: true }).first().boundingBox()) && !!(await B.btn('Se connecter avec mon e-mail').first().boundingBox()), 'numéro inconnu sur ce téléphone : titre « Se connecter », lien « Se connecter avec mon e-mail »');
+  // Écart 3 (fondateur, 23/10) : écran du numéro en mode connexion — texte et bouton dédiés, sans WhatsApp.
+  const signinText = await B.text();
+  ok(signinText.includes('Entrez le numéro de votre compte, puis votre code secret.') && !signinText.includes('WhatsApp') && !!(await B.btn('Continuer').first().boundingBox()) && !signinText.includes('Continuer avec mon numéro'), 'connexion, écran du numéro : « Entrez le numéro de votre compte… », bouton « Continuer », aucune mention de WhatsApp');
   await B.shot('05b-connexion-numero');
   await B.p.getByLabel('Numéro de téléphone', { exact: true }).fill(local1);
-  await B.btn('Continuer avec mon numéro').click(); await B.see('Votre code secret');
+  await B.btn('Continuer').click(); await B.see('Votre code secret');
   ok(!(await B.text()).includes('Bon retour') && !!(await B.p.getByRole('heading', { name: 'Se connecter', exact: true }).filter({ visible: true }).first().boundingBox()), 'code secret, numéro inconnu sur ce téléphone : titre « Se connecter »');
   await B.keypad(SECRET); await B.see('Nouveau téléphone');
   await B.shot('07-nouveau-telephone');
@@ -225,7 +237,7 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   const D = await open();
   await D.go('/phone?start=signin');
   await D.p.getByLabel('Numéro de téléphone', { exact: true }).fill(local2);
-  await D.btn('Continuer avec mon numéro').click(); await D.see('Votre code secret');
+  await D.btn('Continuer').click(); await D.see('Votre code secret');
   await D.btn('Code secret oublié ?').click(); await D.see('Code secret oublié ?');
   await D.btn('Recevoir le code').first().click(); await D.see('Entrez le code reçu');
   const resetCode = await lastCode(e164(local2));

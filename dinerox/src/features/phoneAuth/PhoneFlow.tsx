@@ -379,7 +379,9 @@ function NumberStep({ t, back, error, busy, mode, dial, setDial, local, setLocal
   const { lang } = useI18n();
   const [choose, setChoose] = useState(false);
   const flag = COUNTRY_PROFILES.find((p) => DIAL_CODES[p.code] === dial)?.flag ?? '🌍';
-  const label = mode === 'signin' ? t('phone.welcome.continue') : t('phone.number.send');
+  // Connexion (fondateur, 23/10) : titre, texte et bouton propres, sans WhatsApp ; l'inscription ne change pas.
+  const signin = mode === 'signin';
+  const label = signin ? t('phone.number.signinCta') : t('phone.number.send');
   return (
     <Screen syncBanner={false} footer={<Button full label={label} loading={busy} disabled={!local.trim()} onPress={onSubmit} />}>
       <Top back={back} t={t} title={mode === 'link' ? t('phone.link.title') : undefined} />
@@ -392,9 +394,9 @@ function NumberStep({ t, back, error, busy, mode, dial, setDial, local, setLocal
         </Card>
       ) : (
         <>
-          <Title text={mode === 'signin' ? t('phone.welcome.signin') : t('phone.number.title')} />
+          <Title text={signin ? t('phone.number.signinTitle') : t('phone.number.title')} />
           <Text tone="muted" style={{ marginBottom: 14 }}>
-            {t('phone.number.body')}
+            {signin ? t('phone.number.signinBody') : t('phone.number.body')}
           </Text>
         </>
       )}
@@ -564,8 +566,8 @@ function SignInStep({ t, back, error, busy, e164, known, digits, onDigits, onCha
       </Text>
       <Dots n={digits.length} />
       <ErrorNotice error={error} t={t} />
-      {/* Maquette 5 : les deux liens CÔTE À CÔTE. */}
-      <View style={{ flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'center', gap: 8 }}>
+      {/* Les deux liens l'un SOUS l'autre, centrés, chacun sur une ligne (fondateur, 23/10). */}
+      <View style={{ alignItems: 'center' }}>
         <TextLink label={t('phone.signin.forgot')} onPress={onForgot} />
         <TextLink label={t('phone.signin.withEmail')} onPress={() => router.push('/sign-in')} />
       </View>
