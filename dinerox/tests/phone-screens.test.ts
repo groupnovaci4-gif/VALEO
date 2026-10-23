@@ -97,20 +97,7 @@ describe('écrans et parcours', () => {
     expect(read('src/app/(auth)/phone.tsx')).toMatch(/<PhoneFlow /);
     expect(read('src/app/settings/add-phone.tsx')).toMatch(/<PhoneFlow start="link"/);
   });
-  it('bienvenue (maquette 1) : « Continuer avec mon numéro », « J’ai un compte e-mail », démonstration, sans compte', () => {
-    const w = read('src/app/(auth)/welcome.tsx');
-    for (const k of ['phone.welcome.title', 'phone.welcome.pitch', 'phone.welcome.continue', 'phone.welcome.email', 'phone.welcome.disclaimer', 'fp.demo', 'fp.localOnly']) expect(w, k).toContain(`'${k}'`);
-    expect(w).toMatch(/router\.push\('\/sign-in'\)/);
-    expect(w).not.toMatch(/LinearGradient/);
-  });
-  it('retouche (22/10) : « J’ai un compte e-mail » = bouton BLANC avec contour (variante outline : surface, bordure, texte)', () => {
-    const w = read('src/app/(auth)/welcome.tsx');
-    expect(w).toMatch(/variant="outline" icon="mail-outline" label=\{t\('phone\.welcome\.email'\)\}/);
-    const b = read('src/components/ui/Button.tsx');
-    expect(b).toMatch(/outline: \{ bg: colors\.surface, pressed: colors\.surfaceAlt, fg: colors\.text \}/);
-    expect(b).toMatch(/borderWidth: kind === 'outline' \? 1\.5 : 0/);
-  });
-  it('retouche (22/10) : « Bon retour ! » — numéro masqué sur UNE ligne, « Code secret oublié ? » et « J’ai un compte e-mail » côte à côte', () => {
+  it('retouche (22/10) : « Bon retour ! » — numéro masqué sur UNE ligne, « Code secret oublié ? » et le lien e-mail côte à côte', () => {
     const f = read('src/features/phoneAuth/PhoneFlow.tsx');
     const s = f.slice(f.indexOf('function SignInStep'), f.indexOf('// ─── 6 · 7'));
     // Espaces insécables : le numéro ne se coupe jamais entre deux groupes.
@@ -123,6 +110,55 @@ describe('écrans et parcours', () => {
     const audit = read('e2e/forms-audit.js');
     expect(audit).toMatch(/\/phone/);
     expect(audit).toMatch(/\/settings\/add-phone/);
+  });
+});
+
+describe('bienvenue d’origine rétablie, libellés clairs (fondateur, 23/10, DECISIONS.md §5ter)', () => {
+  const OPEN = '{isFirebaseConfigured ? (';
+  const CLOSE = ') : (';
+  const cut = (s: string) => [s.slice(0, s.indexOf(OPEN)), s.slice(s.indexOf(CLOSE))];
+  it('écran de design-pro À L’IDENTIQUE (photo, fondu FADE, logo, titre, slogan, accroche, panneau, mention, version) : seuls les boutons du panneau changent', () => {
+    const origin = execFileSync('git', ['show', 'origin/design-pro:./src/app/(auth)/welcome.tsx'], { encoding: 'utf8' });
+    const w = read('src/app/(auth)/welcome.tsx');
+    expect(w.indexOf(OPEN)).toBeGreaterThan(0);
+    expect(cut(w)).toEqual(cut(origin));
+    expect(w).not.toMatch(/heroFloat|DesignV2/);
+  });
+  it('panneau : « S’inscrire avec mon numéro » → /phone ; « Se connecter » → /phone?start=signin ; « S’inscrire avec mon e-mail » → /sign-up', () => {
+    const w = read('src/app/(auth)/welcome.tsx');
+    const panel = w.slice(w.indexOf(OPEN), w.indexOf(CLOSE));
+    expect(panel).toMatch(/<Button full label=\{t\('phone\.welcome\.signupNumber'\)\} onPress=\{\(\) => router\.push\('\/phone'\)\} \/>/);
+    expect(panel).toMatch(/<Button full variant="secondary" label=\{t\('phone\.welcome\.signin'\)\} onPress=\{\(\) => router\.push\('\/phone\?start=signin'\)\} \/>/);
+    expect(panel).toMatch(/label=\{t\('phone\.welcome\.signupEmail'\)\} onPress=\{\(\) => router\.push\('\/sign-up'\)\}/);
+    expect(panel.indexOf('signupNumber')).toBeLessThan(panel.indexOf("'phone.welcome.signin'"));
+    expect(panel.indexOf("'phone.welcome.signin'")).toBeLessThan(panel.indexOf('signupEmail'));
+  });
+  it('nouvelles clés FR + EN ; aucune clé supprimée', () => {
+    const NEW: Record<string, [string, string]> = {
+      'phone.welcome.signupNumber': ['S’inscrire avec mon numéro', 'Sign up with my number'],
+      'phone.welcome.signin': ['Se connecter', 'Sign in'],
+      'phone.welcome.signupEmail': ['S’inscrire avec mon e-mail', 'Sign up with my email'],
+      'phone.signin.withEmail': ['Se connecter avec mon e-mail', 'Sign in with my email'],
+    };
+    for (const [k, [f, e]] of Object.entries(NEW)) {
+      expect(F[k], k).toBe(f);
+      expect(E[k], k).toBe(e);
+    }
+    for (const k of ['phone.welcome.continue', 'phone.welcome.email', 'phone.number.haveAccount', 'auth.welcome.signup', 'auth.welcome.signin']) expect(F[k], k).toBeTruthy();
+  });
+  it('parcours : « J’ai déjà un compte » → « Se connecter » ; « J’ai un compte e-mail » → « Se connecter avec mon e-mail » ; titre « Se connecter » si le numéro n’est pas connu sur ce téléphone', () => {
+    const f = read('src/features/phoneAuth/PhoneFlow.tsx');
+    expect(f).not.toMatch(/'phone\.number\.haveAccount'|'phone\.welcome\.email'/);
+    const num = f.slice(f.indexOf('function NumberStep'), f.indexOf('// ─── 3 · 9'));
+    expect(num).toMatch(/label=\{t\('phone\.welcome\.signin'\)\} onPress=\{onSignIn\}/);
+    // Connexion sans numéro connu : titre « Se connecter » et lien vers la connexion e-mail.
+    expect(num).toMatch(/mode === 'signin' \? t\('phone\.welcome\.signin'\) : t\('phone\.number\.title'\)/);
+    expect(num).toMatch(/label=\{t\('phone\.signin\.withEmail'\)\} onPress=\{\(\) => router\.push\('\/sign-in'\)\}/);
+    const s = f.slice(f.indexOf('function SignInStep'), f.indexOf('// ─── 6 · 7'));
+    expect(s).toMatch(/known \? t\('phone\.signin\.title'\) : t\('phone\.welcome\.signin'\)/);
+    expect(s).toMatch(/label=\{t\('phone\.signin\.withEmail'\)\} onPress=\{\(\) => router\.push\('\/sign-in'\)\}/);
+    // « connu » = le numéro affiché est celui retenu sur CE téléphone.
+    expect(f).toMatch(/known=\{!!remembered && remembered === e164\}/);
   });
 });
 

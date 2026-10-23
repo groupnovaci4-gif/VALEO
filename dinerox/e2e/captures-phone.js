@@ -61,7 +61,7 @@ async function run(theme) {
   await clearGuards();
   const A = await open();
   await A.go('/'); await A.shot('01-bienvenue');
-  await A.btn('Continuer avec mon numéro').click(); await A.see('Votre numéro de téléphone');
+  await A.btn('S’inscrire avec mon numéro').click(); await A.see('Votre numéro de téléphone');
   await A.p.getByLabel('Numéro de téléphone', { exact: true }).fill(local);
   await A.p.getByLabel('Numéro de téléphone', { exact: true }).blur();
   await A.shot('02-numero');
@@ -81,14 +81,14 @@ async function run(theme) {
   await A.keys(SECRET.slice(5), 6000);
 
   // 5, erreur 10, 6, erreur 11.
-  await A.go('/settings'); await A.p.getByText('Se déconnecter').last().click(); await A.see('Continuer avec mon numéro');
-  await A.btn('Continuer avec mon numéro').click(); await A.see('Bon retour !');
+  await A.go('/settings'); await A.p.getByText('Se déconnecter').last().click(); await A.see('S’inscrire avec mon numéro');
+  await A.btn('Se connecter').click(); await A.see('Bon retour !');
   await A.keys('00', 400); await A.shot('05-connexion');
   await A.btn('⌫').last().click(); await A.btn('⌫').last().click();
   for (let i = 0; i < 5; i++) await A.keys('000000');
   await A.see('Trop d’essais'); await A.shot('10-erreur-trop-essais');
   await clearGuards();
-  await A.go('/'); await A.btn('Continuer avec mon numéro').click(); await A.see('Bon retour !');
+  await A.go('/'); await A.btn('Se connecter').click(); await A.see('Bon retour !');
   await A.btn('Code secret oublié ?').click(); await A.see('Vos opérations, vos comptes');
   await A.shot('06-code-oublie');
   await A.btn('Recevoir le code').first().click(); await A.see('Entrez le code reçu');
@@ -102,7 +102,7 @@ async function run(theme) {
   const B = await open();
   await B.go('/phone?start=signin');
   await B.p.getByLabel('Numéro de téléphone', { exact: true }).fill(local);
-  await B.btn('Continuer avec mon numéro').click(); await B.see('Bon retour !');
+  await B.btn('Continuer avec mon numéro').click(); await B.see('Votre code secret');
   await B.keys(SECRET); await B.see('Nouveau téléphone'); await B.shot('07-nouveau-telephone');
   await B.ctx.close();
   }
@@ -125,7 +125,13 @@ async function run(theme) {
   await C.shot('08-ajouter-numero');
   await C.ctx.close();
 
-  for (const f of fs.readdirSync(MAQ).filter((n) => n.endsWith(`-${suffix}.png`) && !n.startsWith('planche'))) {
+  // Bienvenue : maquette v2 du fondateur (23/10, DECISIONS.md §5ter) ; l'ancienne preuve est retirée.
+  if (shots['01-bienvenue']) {
+    fs.rmSync(path.join(OUT, `01-bienvenue-${suffix}.png`), { force: true });
+    await sideBySide(path.join(MAQ, '..', `01-bienvenue-v2-${suffix}.png`), shots['01-bienvenue'], path.join(OUT, `01-bienvenue-v2-${suffix}.png`));
+    console.log('✓', `01-bienvenue-v2-${suffix}.png`);
+  }
+  for (const f of fs.readdirSync(MAQ).filter((n) => n.endsWith(`-${suffix}.png`) && !n.startsWith('planche') && !n.startsWith('01-bienvenue'))) {
     const key = Object.keys(shots).find((k) => f.startsWith(k));
     if (!key) { fs.rmSync(path.join(OUT, f), { force: true }); console.log('— pas de capture (avant connexion : thème clair seulement) :', f); continue; }
     await sideBySide(path.join(MAQ, f), shots[key], path.join(OUT, f));

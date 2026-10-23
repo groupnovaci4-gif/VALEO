@@ -2307,6 +2307,11 @@ export const en: Record<TKey, string> = {
   'phone.welcome.continue': 'Continue with my number',
   'phone.welcome.email': 'I have an email account',
   'phone.welcome.disclaimer': '{app} never holds your money: the app helps you keep track of it.',
+  // Clear labels (founder, 23/10, DECISIONS.md §5ter).
+  'phone.welcome.signupNumber': 'Sign up with my number',
+  'phone.welcome.signin': 'Sign in',
+  'phone.welcome.signupEmail': 'Sign up with my email',
+  'phone.signin.withEmail': 'Sign in with my email',
   'phone.number.title': 'Your phone number',
   'phone.number.body': 'We’ll send you a code on WhatsApp to check this number is yours.',
   'phone.number.label': 'Phone number',

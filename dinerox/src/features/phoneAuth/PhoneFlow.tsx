@@ -88,18 +88,22 @@ function Flow({ start }: { start: PhoneStart }) {
   const [dial, setDial] = useState(DEFAULT_DIAL);
   const [local, setLocal] = useState('');
   const [e164, setE164] = useState<string | null>(null);
+  // Numéro retenu sur CE téléphone : « Bon retour ! » seulement pour lui, sinon « Se connecter » (§5ter).
+  const [remembered, setRemembered] = useState<string | null>(null);
   const [error, setError] = useState<PhoneError | null>(null);
   const [busy, setBusy] = useState(false);
   const [digits, setDigits] = useState('');
   // Code secret saisi pour « nouveau téléphone » : en mémoire, le temps de vérifier le code reçu.
   const pendingSecret = useRef<string | null>(null);
 
-  // Dernier numéro utilisé sur ce téléphone : « Bon retour ! » le montre masqué.
+  // Dernier numéro utilisé sur ce téléphone : « Bon retour ! » le montre masqué (connexion, oubli) ;
+  // depuis l'inscription, il sert seulement à reconnaître ce numéro s'il est retapé.
   useEffect(() => {
-    if (start !== 'signin' && start !== 'forgot') return;
     let alive = true;
     void lastPhone().then((p) => {
       if (!alive) return;
+      if (p?.e164) setRemembered(p.e164);
+      if (start !== 'signin' && start !== 'forgot') return;
       if (p?.e164) {
         setE164(p.e164);
         setDial(p.dial || DEFAULT_DIAL);
@@ -232,7 +236,7 @@ function Flow({ start }: { start: PhoneStart }) {
     case 'confirm':
       return <SecretStep {...shared} confirm={step.name === 'confirm'} digits={digits} onDigits={onDigits} />;
     case 'signin':
-      return <SignInStep {...shared} e164={e164 ?? ''} digits={digits} onDigits={onDigits} onChange={() => go({ name: 'number', mode: 'signin' })} onForgot={() => go({ name: 'forgot' })} />;
+      return <SignInStep {...shared} e164={e164 ?? ''} known={!!remembered && remembered === e164} digits={digits} onDigits={onDigits} onChange={() => go({ name: 'number', mode: 'signin' })} onForgot={() => go({ name: 'forgot' })} />;
     case 'forgot':
       return <InfoStep {...shared} kind="forgot" e164={e164 ?? ''} onSend={() => void send('reset', 'whatsapp')} />;
     case 'device':
@@ -388,7 +392,7 @@ function NumberStep({ t, back, error, busy, mode, dial, setDial, local, setLocal
         </Card>
       ) : (
         <>
-          <Title text={t('phone.number.title')} />
+          <Title text={mode === 'signin' ? t('phone.welcome.signin') : t('phone.number.title')} />
           <Text tone="muted" style={{ marginBottom: 14 }}>
             {t('phone.number.body')}
           </Text>
@@ -428,12 +432,14 @@ function NumberStep({ t, back, error, busy, mode, dial, setDial, local, setLocal
       ) : null}
       {mode === 'signup' ? (
         <>
-          <Button variant="ghost" full label={t('phone.number.haveAccount')} onPress={onSignIn} style={{ marginTop: 8 }} />
+          <Button variant="ghost" full label={t('phone.welcome.signin')} onPress={onSignIn} style={{ marginTop: 8 }} />
           <Text variant="caption" tone="subtle" align="center" style={{ marginTop: 8 }}>
             {t('phone.number.terms')}
           </Text>
         </>
       ) : null}
+      {/* Connexion (numéro pas encore connu sur ce téléphone) : la connexion e-mail reste à un toucher (§5ter). */}
+      {mode === 'signin' ? <TextLink label={t('phone.signin.withEmail')} onPress={() => router.push('/sign-in')} /> : null}
       <Sheet visible={choose} onClose={() => setChoose(false)} title={t('phone.number.choose')} inline>
         {COUNTRY_PROFILES.map((p) => (
           <Row
@@ -535,11 +541,11 @@ function SecretStep({ t, back, error, busy, confirm, digits, onDigits }: Shared 
 
 // ─── 5 · 10 — Connexion ──────────────────────────────────────────────
 
-function SignInStep({ t, back, error, busy, e164, digits, onDigits, onChange, onForgot }: Shared & { e164: string; digits: string; onDigits: (v: string) => void; onChange: () => void; onForgot: () => void }) {
+function SignInStep({ t, back, error, busy, e164, known, digits, onDigits, onChange, onForgot }: Shared & { e164: string; known: boolean; digits: string; onDigits: (v: string) => void; onChange: () => void; onForgot: () => void }) {
   return (
     <Screen syncBanner={false}>
       <Top back={back} t={t} />
-      <Title text={t('phone.signin.title')} />
+      <Title text={known ? t('phone.signin.title') : t('phone.welcome.signin')} />
       <Card>
         <Round icon="phone-portrait-outline" tone="brand" />
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -561,7 +567,7 @@ function SignInStep({ t, back, error, busy, e164, digits, onDigits, onChange, on
       {/* Maquette 5 : les deux liens CÔTE À CÔTE. */}
       <View style={{ flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'center', gap: 8 }}>
         <TextLink label={t('phone.signin.forgot')} onPress={onForgot} />
-        <TextLink label={t('phone.welcome.email')} onPress={() => router.push('/sign-in')} />
+        <TextLink label={t('phone.signin.withEmail')} onPress={() => router.push('/sign-in')} />
       </View>
       <Keypad value={digits} onChange={onDigits} disabled={busy || error?.code === 'phone/locked'} />
     </Screen>

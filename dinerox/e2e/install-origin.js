@@ -77,7 +77,7 @@ const n = (c, k, sub) => (sub ? (c?.[k]?.[sub] ?? 0) : (c?.[k] ?? 0));
 
   // ── 2. Second compte sur le même téléphone : « Origine inconnue » ──
   await a.go('/settings'); await a.p.getByText('Se déconnecter').last().click(); await a.p.waitForTimeout(2500);
-  await a.p.getByText('Continuer avec mon numéro').first().waitFor({ timeout: 10000 });
+  await a.p.getByText('S’inscrire avec mon numéro').first().waitFor({ timeout: 10000 });
   const mid = await readDoc(`originStats/${today}`);
   await a.go('/a?src=tiktok', 3000);
   ok((await a.ls('dinerox:v1:device:pendingOrigin')) === null, 'même téléphone : un nouveau lien ne remplace rien');

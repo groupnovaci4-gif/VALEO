@@ -2347,6 +2347,11 @@ export const fr = {
   'phone.welcome.continue': 'Continuer avec mon numéro',
   'phone.welcome.email': 'J’ai un compte e-mail',
   'phone.welcome.disclaimer': '{app} ne détient pas votre argent : l’application vous aide à le suivre.',
+  // Libellés clairs (fondateur, 23/10, DECISIONS.md §5ter).
+  'phone.welcome.signupNumber': 'S’inscrire avec mon numéro',
+  'phone.welcome.signin': 'Se connecter',
+  'phone.welcome.signupEmail': 'S’inscrire avec mon e-mail',
+  'phone.signin.withEmail': 'Se connecter avec mon e-mail',
   'phone.number.title': 'Votre numéro de téléphone',
   'phone.number.body': 'Nous vous envoyons un code sur WhatsApp pour vérifier que ce numéro est bien à vous.',
   'phone.number.label': 'Numéro de téléphone',

@@ -65,7 +65,7 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
     const keypad = async (code) => { for (const c of code) { await btn(c).last().click(); await p.waitForTimeout(60); } await p.waitForTimeout(2500); };
     const see = (t, timeout = 15000) => p.getByText(t, { exact: false }).filter({ visible: true }).first().waitFor({ timeout });
     const shot = (n) => p.screenshot({ path: `${S}/phone-${n}.png` });
-    const signOut = async () => { await go('/settings'); await p.getByText('Se déconnecter').last().click(); await see('Continuer avec mon numéro'); };
+    const signOut = async () => { await go('/settings'); await p.getByText('Se déconnecter').last().click(); await see('S’inscrire avec mon numéro'); };
     return { ctx, p, text, go, btn, keypad, see, shot, signOut };
   };
   /** Après la session : onboarding éventuel (« Plus tard »), puis l'application. */
@@ -79,12 +79,16 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   await clearGuards();
   const A = await open();
   await A.go('/');
-  ok((await A.text()).includes('Mieux gérer, mieux prévoir, mieux vivre'), 'accueil : slogan validé');
+  // Bienvenue d'origine rétablie (fondateur, 23/10, §5ter) : photo plein écran + fondu vert, slogan, accroche, mention.
+  const welcome = await A.text();
+  ok(welcome.includes('Mieux gérer. Mieux prévoir. Mieux vivre.') && welcome.includes('Votre intelligence financière personnelle') && welcome.includes('ni une banque ni un service de paiement'), 'accueil d’origine : slogan, accroche, mention');
+  ok(await A.p.evaluate(() => !!document.querySelector('linearGradient#welcomeFade') && !!document.querySelector('img')), 'accueil d’origine : photo sous le fondu vert');
+  const order = await Promise.all(['S’inscrire avec mon numéro', 'Se connecter', 'S’inscrire avec mon e-mail', 'Tester sans données (démonstration)'].map((n) => A.btn(n).first().boundingBox()));
+  ok(order.every(Boolean) && order.every((b, i) => i === 0 || b.y > order[i - 1].y), 'panneau : « S’inscrire avec mon numéro », « Se connecter », « S’inscrire avec mon e-mail », puis démonstration');
+  ok(!welcome.includes('Continuer avec mon numéro') && !welcome.includes('J’ai un compte e-mail'), 'anciens libellés absents de l’accueil');
   await A.shot('01-accueil');
-  // Retouche (22/10) : « J’ai un compte e-mail » = bouton blanc (surface) avec contour.
-  const mailStyle = await A.btn('J’ai un compte e-mail').first().evaluate((e) => { const s = getComputedStyle(e); return { bg: s.backgroundColor, bw: s.borderTopWidth }; });
-  ok(mailStyle.bg === 'rgb(255, 252, 247)' && parseFloat(mailStyle.bw) >= 1, `bouton e-mail blanc avec contour (${mailStyle.bg}, bordure ${mailStyle.bw})`);
-  await A.btn('Continuer avec mon numéro').click(); await A.see('Votre numéro de téléphone');
+  await A.btn('S’inscrire avec mon numéro').click(); await A.see('Votre numéro de téléphone');
+  ok(!!(await A.btn('Se connecter').first().boundingBox()) && !(await A.text()).includes('J’ai déjà un compte'), 'inscription : « J’ai déjà un compte » devient « Se connecter »');
   await A.p.getByLabel('Numéro de téléphone', { exact: true }).fill('0708');
   await A.btn('Recevoir le code').click(); await A.p.waitForTimeout(800);
   ok((await A.text()).includes('Ce numéro ne semble pas complet'), 'numéro incomplet : refusé avant tout envoi');
@@ -119,13 +123,13 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
 
   // ── 2. Connexion « Bon retour ! » ──
   await A.signOut();
-  await A.btn('Continuer avec mon numéro').click(); await A.see('Bon retour !');
+  await A.btn('Se connecter').click(); await A.see('Bon retour !');
   ok((await A.text()).includes(`+225 ${local1.slice(0, 2)} ${local1.slice(2, 4)} •• •• ${local1.slice(8)}`), 'numéro retenu, affiché masqué');
-  // Retouches (22/10) : numéro masqué sur UNE ligne ; « Code secret oublié ? » et « J’ai un compte e-mail » côte à côte.
+  // Retouches (22/10) : numéro masqué sur UNE ligne ; « Code secret oublié ? » et « Se connecter avec mon e-mail » (§5ter) côte à côte.
   const masked = await A.p.getByText(`+225 ${local1.slice(0, 2)}`, { exact: false }).filter({ visible: true }).first().boundingBox();
   ok(!!masked && masked.height <= 26, `numéro masqué sur une ligne (${masked ? Math.round(masked.height) : '?'} px)`);
-  const [forgotBox, mailBox] = await Promise.all([A.btn('Code secret oublié ?').first().boundingBox(), A.btn('J’ai un compte e-mail').first().boundingBox()]);
-  ok(!!forgotBox && !!mailBox && Math.abs(forgotBox.y - mailBox.y) < 4 && forgotBox.x < mailBox.x, 'liens « Code secret oublié ? » et « J’ai un compte e-mail » côte à côte');
+  const [forgotBox, mailBox] = await Promise.all([A.btn('Code secret oublié ?').first().boundingBox(), A.btn('Se connecter avec mon e-mail').first().boundingBox()]);
+  ok(!!forgotBox && !!mailBox && Math.abs(forgotBox.y - mailBox.y) < 4 && forgotBox.x < mailBox.x, 'liens « Code secret oublié ? » et « Se connecter avec mon e-mail » côte à côte');
   await A.shot('05-connexion');
   await A.keypad('000000');
   ok((await A.text()).includes('Code secret incorrect.'), 'mauvais code secret : refusé');
@@ -135,7 +139,7 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
 
   // ── 3. Blocage après 5 essais ──
   await A.signOut();
-  await A.btn('Continuer avec mon numéro').click(); await A.see('Bon retour !');
+  await A.btn('Se connecter').click(); await A.see('Bon retour !');
   for (let i = 0; i < 5; i++) await A.keypad('000000');
   ok((await A.text()).includes('Trop d’essais. Réessayez dans 15 minutes'), '5 codes secrets faux : bloqué 15 minutes');
   ok((await A.btn('1').last().getAttribute('aria-disabled')) === 'true', 'pavé désactivé pendant le blocage');
@@ -144,10 +148,14 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
 
   // ── 4. Nouveau téléphone ──
   const B = await open();
-  await B.go('/phone?start=signin');
-  await B.see('Votre numéro de téléphone');
+  await B.go('/');
+  await B.btn('Se connecter').click(); await B.see('Numéro de téléphone');
+  // Numéro pas encore connu sur ce téléphone : titre « Se connecter », lien vers la connexion e-mail (§5ter).
+  ok(!(await B.text()).includes('Bon retour') && !!(await B.p.getByRole('heading', { name: 'Se connecter', exact: true }).filter({ visible: true }).first().boundingBox()) && !!(await B.btn('Se connecter avec mon e-mail').first().boundingBox()), 'numéro inconnu sur ce téléphone : titre « Se connecter », lien « Se connecter avec mon e-mail »');
+  await B.shot('05b-connexion-numero');
   await B.p.getByLabel('Numéro de téléphone', { exact: true }).fill(local1);
-  await B.btn('Continuer avec mon numéro').click(); await B.see('Bon retour !');
+  await B.btn('Continuer avec mon numéro').click(); await B.see('Votre code secret');
+  ok(!(await B.text()).includes('Bon retour') && !!(await B.p.getByRole('heading', { name: 'Se connecter', exact: true }).filter({ visible: true }).first().boundingBox()), 'code secret, numéro inconnu sur ce téléphone : titre « Se connecter »');
   await B.keypad(SECRET); await B.see('Nouveau téléphone');
   await B.shot('07-nouveau-telephone');
   await B.btn('Recevoir le code').click(); await B.see('Entrez le code reçu');
@@ -157,7 +165,8 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   // ── 5. Pas de réseau, code secret oublié, code expiré ──
   await B.signOut();
   await clearGuards();
-  await B.btn('Continuer avec mon numéro').click(); await B.see('Bon retour !');
+  await B.btn('Se connecter').click(); await B.see('Bon retour !');
+  ok(true, 'numéro retenu après une connexion sur ce téléphone : « Bon retour ! »');
   await B.btn('Code secret oublié ?').click(); await B.see('Vos opérations, vos comptes et votre abonnement ne changent pas.');
   await B.shot('06-oublie');
   const before = (await outbox(e164(local1))).length;
@@ -186,7 +195,9 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   await clearGuards();
   const C = await open();
   const email = `phone${stamp}@ex.com`;
-  await C.go('/sign-up');
+  await C.go('/');
+  await C.btn('S’inscrire avec mon e-mail').click(); await C.see('Confirmer le mot de passe');
+  ok(C.p.url().includes('/sign-up'), 'accueil : « S’inscrire avec mon e-mail » ouvre l’inscription e-mail');
   const fill = (label, v, exact = false) => C.p.getByLabel(label, { exact }).first().fill(v);
   await fill('Nom', 'Koné', true); await fill('Prénom', 'Awa'); await fill('Adresse e-mail', email);
   await fill('Mot de passe', 'motdepasse123', true); await fill('Confirmer le mot de passe', 'motdepasse123');
@@ -214,7 +225,7 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   const D = await open();
   await D.go('/phone?start=signin');
   await D.p.getByLabel('Numéro de téléphone', { exact: true }).fill(local2);
-  await D.btn('Continuer avec mon numéro').click(); await D.see('Bon retour !');
+  await D.btn('Continuer avec mon numéro').click(); await D.see('Votre code secret');
   await D.btn('Code secret oublié ?').click(); await D.see('Code secret oublié ?');
   await D.btn('Recevoir le code').first().click(); await D.see('Entrez le code reçu');
   const resetCode = await lastCode(e164(local2));

@@ -43,9 +43,17 @@ l'écran 8 en sombre (voir écart 7). Export web 360 × 800, émulateurs, fourni
 
 ## 3. Vérifications finales
 
+Mise à jour du 23/10, après la bienvenue d'origine et les libellés clairs (§7 bis) :
+
 | Vérification | Résultat |
 |---|---|
-Mise à jour du 23/10 (après la fusion de design-pro, le correctif de sécurité et les retouches) :
+| `npm run check` (types, lint, tests) | vert — lint à zéro, 120 fichiers, 1 859 tests |
+| e2e complet (`e2e/run-all.sh`, 34 parcours) | 34 / 34 verts (code de sortie 0, aucun « ✗ ») ; `phone-auth` 36 / 36 ; `forms-audit` 140 / 140 |
+| Preuves « maquette \| application » (`e2e/captures-phone.js`) | refaites ; `preuves/01-bienvenue-v2-clair.png` |
+
+Règles et Functions non modifiées depuis la mise à jour précédente (ci-dessous).
+
+Mise à jour précédente du 23/10 (après la fusion de design-pro, le correctif de sécurité et les retouches) :
 
 | Vérification | Résultat |
 |---|---|
@@ -99,6 +107,29 @@ complète des Functions est passée deux fois de suite.
 |---|---|
 | Bienvenue : « J’ai un compte e-mail » en bouton BLANC avec contour (nouvelle variante `outline` du bouton : surface, bordure, texte foncé) | `tests/phone-screens.test.ts` (rouge puis vert) ; e2e « bouton e-mail blanc avec contour » ; `preuves/01-bienvenue-clair.png` |
 | « Bon retour ! » : numéro masqué sur UNE ligne (espaces insécables), « Code secret oublié ? » et « J’ai un compte e-mail » côte à côte | `tests/phone-screens.test.ts` (rouge puis vert) ; e2e « numéro masqué sur une ligne », « côte à côte » ; `preuves/05-connexion-clair.png`, `preuves/10-erreur-trop-essais-clair.png` |
+
+## 7 bis. Écran de bienvenue d'origine et libellés clairs (fondateur, 23/10, DECISIONS.md §5ter)
+
+Maquette : `maquettes/01-bienvenue-v2-clair.png` (copiée à l'identique depuis la branche du
+fondateur, même empreinte git). Preuve : `preuves/01-bienvenue-v2-clair.png` (remplace
+`01-bienvenue-clair.png`, l'ancienne carte verte flottante).
+
+| Décision | Où | Preuve (rouge d'abord, puis vert) |
+|---|---|---|
+| Bienvenue de design-pro rétablie : photo plein écran, fondu `FADE`, logo, « DineroX », slogan, accroche, panneau clair, mention, version ; aucune carte flottante | `src/app/(auth)/welcome.tsx` | `tests/phone-screens.test.ts` : le fichier est IDENTIQUE à `origin/design-pro` hors du bloc des boutons ; `tests/photos.test.ts` vert ; e2e « accueil d’origine : slogan, accroche, mention », « photo sous le fondu vert » |
+| Panneau : « S’inscrire avec mon numéro » → `/phone`, « Se connecter » → `/phone?start=signin`, « S’inscrire avec mon e-mail » → `/sign-up` ; démonstration et « sur ce téléphone » inchangés | idem | test (libellés, routes, ordre) ; e2e « panneau : … dans cet ordre », « S’inscrire avec mon e-mail ouvre l’inscription e-mail » |
+| « J’ai déjà un compte » → « Se connecter » ; « J’ai un compte e-mail » → « Se connecter avec mon e-mail » | `PhoneFlow.tsx` | test ; e2e « inscription : … devient Se connecter », « côte à côte » |
+| Titre « Se connecter » quand le numéro n'est pas connu sur ce téléphone ; « Bon retour ! » sinon (le lien e-mail est aussi sur l'écran du numéro) | `PhoneFlow.tsx` (`remembered`, `known`) | test ; e2e « numéro inconnu sur ce téléphone : titre Se connecter », « numéro retenu : Bon retour ! » |
+| Nouvelles clés FR + EN, aucune supprimée | `phone.welcome.signupNumber`, `phone.welcome.signin`, `phone.welcome.signupEmail`, `phone.signin.withEmail` | test « nouvelles clés FR + EN ; aucune clé supprimée » |
+
+Parcours e2e adaptés aux nouveaux libellés : `phone-auth.js`, `multi-users.js`, `suspended.js`,
+`install-origin.js`, `forms-audit.js`, `captures-phone.js`.
+
+Écarts restants avec la maquette, signalés sans les corriger (hors périmètre de la décision) :
+les liens discrets du panneau (e-mail, démonstration, « sur ce téléphone ») gardent le texte foncé
+de design-pro, la maquette les montre en vert ; sur « Bon retour ! », « Se connecter avec mon
+e-mail », plus long, passe sur deux lignes ; en mode connexion, l'écran du numéro garde le texte
+« Nous vous envoyons un code sur WhatsApp… » (inchangé, peu exact pour une connexion).
 
 ## 7. Branche design-pro (fusionnée ici)
 

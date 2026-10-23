@@ -32,9 +32,11 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   const signIn = async (p, u) => {
     const h = H(p);
     await h.go('/');
-    await p.getByText('J’ai un compte e-mail').first().click(); await p.waitForTimeout(600);
+    // Accueil → « Se connecter » → « Se connecter avec mon e-mail » (§5ter).
+    await p.getByRole('button', { name: 'Se connecter', exact: true }).filter({ visible: true }).first().click(); await p.waitForTimeout(600);
+    await p.getByRole('button', { name: 'Se connecter avec mon e-mail', exact: true }).filter({ visible: true }).first().click(); await p.waitForTimeout(600);
     await p.getByLabel('Adresse e-mail').fill(u.email); await p.getByLabel('Mot de passe', { exact: true }).fill('motdepasse123');
-    await p.getByRole('button', { name: 'Se connecter' }).click();
+    await p.getByRole('button', { name: 'Se connecter', exact: true }).filter({ visible: true }).last().click();
     await p.getByText(`Bonjour ${u.first}`).first().waitFor({ timeout: 12000 });
     await p.waitForTimeout(3000);
   };
@@ -42,7 +44,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
     const h = H(p);
     await h.go('/settings');
     await p.getByText('Se déconnecter').last().click(); await p.waitForTimeout(2500);
-    await p.getByText('Continuer avec mon numéro').first().waitFor({ timeout: 10000 });
+    await p.getByText('S’inscrire avec mon numéro').first().waitFor({ timeout: 10000 });
   };
   const addData = async (p, u) => {
     const h = H(p);
