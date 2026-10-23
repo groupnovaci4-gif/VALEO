@@ -102,6 +102,8 @@ let b;
   const seasonTile = ((await p.locator('[role=button][aria-label^="Moments forts de l"]').first().getAttribute('aria-label')) || '').replace(/[  ]/g, ' ');
   ok(/Rentrée scolaire dans 8 semaines : 120 000 FCFA prévus, soit 15 000 FCFA par semaine\./.test(seasonTile) && /15 000 FCFA \/ sem\./.test(t), 'Objectifs : « Rentrée scolaire dans 8 semaines : 120 000 prévus, soit 15 000 par semaine »');
   ok(!/Vos projets en marche[\s\S]*Rentrée scolaire/.test(t), 'le moment fort n’est pas dans la liste des projets');
+  // Audit du 23/10, R7 : la DATE du moment fort est écrite sur sa vignette (comme l'ancienne section).
+  ok(/Rentrée scolaire · \d{1,2} \S+/.test(t), `vignette du moment fort : date visible (« ${(t.match(/Rentrée scolaire · [^\n]+/) || ['—'])[0]} »)`);
   await go('/seasons');
   await btn('🐑 Tabaski').click(); await p.waitForTimeout(2500);
   t = await text();

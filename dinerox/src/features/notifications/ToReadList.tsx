@@ -38,7 +38,7 @@ export function ToReadList({ budgetOnly }: { budgetOnly?: boolean }) {
   const { t } = useI18n();
   const { colors, dark } = useTheme();
   const p = finalPalette(dark);
-  const { items: all, dismiss, dismissAll, advice } = useToRead();
+  const { items: all, dismiss, dismissAll, advice, topRec } = useToRead();
   const items = budgetOnly ? all.filter((x) => x.kind === 'budget') : all;
   if (!items.length) return null;
   const open = (x: Shown) => (x.link ? () => router.push(x.link as never) : undefined);
@@ -108,6 +108,12 @@ export function ToReadList({ budgetOnly }: { budgetOnly?: boolean }) {
                 <View style={{ marginTop: 6 }}>
                   <SourceTag source={advice.source} />
                   <AdviceAi adviceId={advice.id} text={x.text} />
+                </View>
+              ) : null}
+              {/* Audit du 23/10, R5 (règle 11) : « Votre analyse » garde sa provenance (« Vos données » / « Estimation »). */}
+              {x.kind === 'analysis' && topRec ? (
+                <View style={{ marginTop: 6 }}>
+                  <SourceTag source={topRec.source} />
                 </View>
               ) : null}
               {/* À la taille du bouton : une View étirée avec une marge négative dépasserait la carte. */}

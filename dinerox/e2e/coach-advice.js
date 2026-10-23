@@ -76,19 +76,17 @@ let b;
   // Conseil du jour : présent, lu tel qu'affiché, sans proposition d'IA sans compte en ligne ni consentement.
   [card, spoken] = await listenAnywhere('Conseil du jour');
   ok(reads(card, spoken), `conseil du jour lu tel qu'affiché (« ${spoken.slice(0, 80)}… »)`);
+  // Règle 11 : le conseil porte sa provenance.
+  const SOURCE = /Vos données|Déclaré|Estimation DINEROX/;
+  ok(SOURCE.test(card), 'conseil du jour : provenance affichée (« Vos données » / « Estimation DINEROX »)');
   ok(!(await p.getByText("M'expliquer ce conseil (IA)").count()), 'sans compte en ligne ni consentement : aucun appel à l’IA proposé');
-  // Recommandation de l'accueil (carte cliquable) : « Écouter » ne navigue pas.
+  // Recommandation (« Votre analyse », carte cliquable) : « Écouter » ne navigue pas. Audit du 23/10 (T1) :
+  // plus de repli sur une autre carte — c'est bien « Votre analyse », avec sa provenance (R5).
   const url = p.url();
-  [card, spoken] = await listenNear('Estimation', 1);
-  if (!card) [card, spoken] = await listenNear('Selon vos opérations');
-  // v2 (§11.6) : recommandations tirées de vos opérations, marquées « Vos données ».
-  if (!card) [card, spoken] = await listenNear('Vos données');
-  // Refonte finale E : la recommandation de l'accueil est le message « Votre analyse » de « À lire » (ouvre l'analyse).
-  if (!card) [card, spoken] = await listenNear('Votre analyse');
-  // B5bis : les 3 messages de l'accueil sont souvent des alertes budget — elles aussi touchables (enveloppe).
-  if (!card) [card, spoken] = await listenNear('Alerte budget');
+  [card, spoken] = await listenAnywhere('Votre analyse');
   ok(p.url() === url, 'appui sur « Écouter » dans une carte cliquable : aucune navigation, aucune action');
-  ok(reads(card, spoken), `recommandation lue (« ${spoken.slice(0, 70)}… »)`);
+  ok(!!card && reads(card, spoken), `« Votre analyse » lue (« ${spoken.slice(0, 70)}… »)`);
+  ok(!!card && SOURCE.test(card), `« Votre analyse » : provenance affichée (audit R5) — « ${String(card).slice(0, 90)}… »`);
 
   // Notifications (constats).
   await go('/notifications'); await closeCelebration();

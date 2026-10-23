@@ -7,7 +7,8 @@
  *  - E2 : s'il est toujours d'actualité, il revient UNE fois en rappel après 3 jours (ou la veille
  *    de son échéance), jamais en permanence ; une situation nouvelle a un nouvel identifiant ;
  *  - E3 : sans doublon dans une même liste (même identifiant, même enveloppe, même conseil) ;
- *  - E4 : mémorisation locale par identifiant (`services/readState`).
+ *  - E4 : mémorisation locale (`services/readState`) par espace + identifiant + empreinte du
+ *    texte (audit du 23/10, R2 et R3 : `readKeyOf`).
  */
 export type ToReadKind = 'budget' | 'advice' | 'coach' | 'analysis';
 export type ToReadTone = 'danger' | 'warning' | 'advice' | 'info';
@@ -31,7 +32,30 @@ export interface ToReadItem {
   insightKind?: string;
   /** Message regroupé (E5) : les messages qu'il représente (lus ensemble). */
   members?: { id: string; reminder: boolean }[];
+  /**
+   * Clé de la mémoire « lu » (audit du 23/10, R2 et R3) : espace actif + identifiant + empreinte du
+   * texte affiché (`readKeyOf`). Un message dont le texte change, ou vu dans un autre espace, est à
+   * lire de nouveau. Absente : l'identifiant.
+   */
+  readKey?: string;
 }
+
+/** Empreinte stable d'un texte (FNV-1a 32 bits, hex). */
+function fingerprint(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+/** R2 et R3 : clé de lecture = espace actif + identifiant + empreinte du texte affiché. */
+export function readKeyOf(spaceId: string | null, id: string, text: string): string {
+  return `${spaceId ?? '-'}|${id}|${fingerprint(text)}`;
+}
+
+const keyOf = (x: { id: string; readKey?: string }) => x.readKey ?? x.id;
 
 /**
  * E5 (fondateur, 22/10) : sortes de messages d'INFORMATION regroupées quand elles se répètent.
@@ -61,14 +85,15 @@ export function groupToRead<T extends ToReadItem & { reminder?: boolean }>(items
     }
     if (done.has(k)) continue;
     done.add(k);
-    out.push({ ...x, id: `grp_${k}`, text: groupText(k, group.length), link: '/notifications', dueDate: null, keys: [], reminder: group.every((g) => g.reminder), members: group.map((g) => ({ id: g.id, reminder: !!g.reminder })) });
+    // Le groupe n'a pas de clé de lecture propre : lu = chacun de SES messages (jamais un message à venir).
+    out.push({ ...x, id: `grp_${k}`, readKey: undefined, text: groupText(k, group.length), link: '/notifications', dueDate: null, keys: [], reminder: group.every((g) => g.reminder), members: group.map((g) => ({ id: keyOf(g), reminder: !!g.reminder })) });
   }
   return out;
 }
 
-/** Ce que « lu » marque : chaque message d'un groupe, sinon le message lui-même (E1). */
-export function readTargets(x: { id: string; reminder: boolean; members?: { id: string; reminder: boolean }[] }): { id: string; reminder: boolean }[] {
-  return x.members?.length ? x.members : [{ id: x.id, reminder: x.reminder }];
+/** Ce que « lu » marque (clés de lecture) : chaque message d'un groupe, sinon le message lui-même (E1). */
+export function readTargets(x: { id: string; readKey?: string; reminder: boolean; members?: { id: string; reminder: boolean }[] }): { id: string; reminder: boolean }[] {
+  return x.members?.length ? x.members : [{ id: keyOf(x), reminder: x.reminder }];
 }
 
 /** Importance pour l'Accueil (B5bis) : alertes (danger, puis attention), puis échéances, puis le reste. */
@@ -122,7 +147,7 @@ function eveOf(day: string): string {
 export function visibleToRead(items: ToReadItem[], store: ReadStore, now: number, today: string): (ToReadItem & { reminder: boolean })[] {
   const out: (ToReadItem & { reminder: boolean })[] = [];
   for (const x of items) {
-    const rec = store[x.id];
+    const rec = store[keyOf(x)];
     if (!rec) {
       out.push({ ...x, reminder: false });
       continue;
@@ -140,7 +165,7 @@ export function visibleToRead(items: ToReadItem[], store: ReadStore, now: number
   return out;
 }
 
-/** Marque un message comme lu ; lu pendant son rappel : il ne revient plus jamais. */
+/** Marque un message comme lu (`x.id` : sa clé de lecture, cf. `readTargets`) ; lu pendant son rappel : il ne revient plus jamais. */
 export function markRead(store: ReadStore, x: { id: string; reminder: boolean }, now: number, today: string): ReadStore {
   return { ...store, [x.id]: { readAt: now, readDay: today, ...(x.reminder ? { reminded: true } : null) } };
 }

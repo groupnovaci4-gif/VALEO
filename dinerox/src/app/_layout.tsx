@@ -17,6 +17,7 @@ import { Bootstrap } from '@/components/Bootstrap';
 import { ReferralBootstrap } from '@/features/referral/ReferralBootstrap';
 import { OriginBootstrap } from '@/features/origin/OriginBootstrap';
 import { CoachProvider } from '@/features/coach/CoachProvider';
+import { ToReadProvider } from '@/features/notifications/useToRead';
 import { QuickAddProvider } from '@/features/QuickAdd';
 import { EntryProvider } from '@/features/entry/EntryProvider';
 import { MoneyGuardProvider } from '@/features/money/MoneyGuard';
@@ -105,6 +106,8 @@ function Navigator() {
         <ReferralBootstrap />
         <OriginBootstrap />
         <CoachProvider>
+          {/* Audit du 23/10, R6 : « À lire » calculé une fois (cloche, Accueil, Budget, Notifications). */}
+          <ToReadProvider>
           {/* Saisie (micro, clavier, phrase) : disponible depuis la barre, l'accueil, l'Historique, une notification. */}
           <QuickAddProvider>
             {/* Argent disponible v2 (§6.3) : feuille de complément de toute sortie d'argent. */}
@@ -120,6 +123,7 @@ function Navigator() {
             </EntryProvider>
             </MoneyGuardProvider>
           </QuickAddProvider>
+          </ToReadProvider>
         </CoachProvider>
       </LockGate>
     </View>

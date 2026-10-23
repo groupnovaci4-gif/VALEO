@@ -11,7 +11,7 @@ import { Text } from '@/components/ui/Text';
 import { Logo } from './Logo';
 import { Sheet } from '@/components/ui/Sheet';
 import { Row } from '@/components/ui/Row';
-import { finalPalette } from '@/theme/finalPalette';
+import { bellBadge } from '@/theme/finalPalette';
 import { useToReadCount } from '@/features/notifications/useToRead';
 
 /**
@@ -111,8 +111,8 @@ export function AppHeader({ section }: { section: string }) {
           <Icon name="notifications-outline" size={24} color={colors.text} />
           {/* Pastille rouge du nombre de messages « À lire » (maquette `.dot`). */}
           {toRead ? (
-            <View style={{ position: 'absolute', top: 9, right: 10, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: finalPalette(dark).alertFg, alignItems: 'center', justifyContent: 'center' }}>
-              <Text variant="caption" weight="700" maxFontSizeMultiplier={1} style={{ fontSize: 10, lineHeight: 16, color: '#FFFFFF' }}>
+            <View style={{ position: 'absolute', top: 9, right: 10, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: bellBadge(dark).bg, alignItems: 'center', justifyContent: 'center' }}>
+              <Text variant="caption" weight="700" maxFontSizeMultiplier={1} style={{ fontSize: 10, lineHeight: 16, color: bellBadge(dark).fg }}>
                 {toRead > 9 ? '9+' : String(toRead)}
               </Text>
             </View>

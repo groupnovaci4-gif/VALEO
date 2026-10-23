@@ -3,6 +3,8 @@
  * `ecrans/*.html` qui ne sont pas des jetons de la direction B — tuiles pastel, pastilles des
  * messages « À lire », anneaux de progression. Une valeur par thème, relevée dans le HTML.
  */
+import { glyphOn } from './contrast';
+
 export interface FinalPalette {
   /** Tuiles de l'accueil (B4) et icônes pastel : fond, icône. */
   blueBg: string;
@@ -70,3 +72,12 @@ export const finalDark: FinalPalette = {
 };
 
 export const finalPalette = (dark: boolean): FinalPalette => (dark ? finalDark : finalLight);
+
+/**
+ * Pastille du nombre de messages sur la cloche : rouge de la maquette, chiffre du contraste le plus
+ * fort (audit du 23/10, R11 : en sombre, le blanc sur rose était sous 4,5:1).
+ */
+export function bellBadge(dark: boolean): { bg: string; fg: string } {
+  const bg = finalPalette(dark).alertFg;
+  return { bg, fg: glyphOn(bg) };
+}

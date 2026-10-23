@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { BIG_TEXT, useTheme } from '@/theme';
 import { finalPalette } from '@/theme/finalPalette';
-import { Icon, Text } from '@/components/ui';
+import { Button, Icon, Text } from '@/components/ui';
 import { useApp } from '@/store/app';
 import { entryPrefs } from '@/core/entry/prefs';
 import { micOffered } from '@/core/entry/voicePrivacy';
@@ -36,6 +36,8 @@ export function QuickTiles() {
   // I1 : après « Non, je tape », la tuile ouvre le clavier (aucun micro proposé).
   const voiceRoute = useVoiceRoute(ePrefs.voiceLanguage ?? (lang === 'en' ? 'en' : 'fr'));
   const voice = !voiceRoute.route || micOffered(voiceRoute.route);
+  // Même règle que le bouton central (`(tabs)/_layout.tsx`).
+  const keyboardFirst = ePrefs.defaultMethod === 'quick_manual';
   const tiles = [
     { key: 'history', icon: 'time-outline', label: t('history.title'), sub: t('home.tile.history.sub'), bg: p.blueBg, fg: p.blueFg, onPress: () => router.push('/transactions?from=home') },
     { key: 'income', icon: 'arrow-down', label: t('tx.income'), sub: t('home.tile.income.sub'), bg: p.greenBg, fg: p.greenFg, onPress: () => router.push('/transaction/new?type=income') },
@@ -51,29 +53,34 @@ export function QuickTiles() {
     },
   ];
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
-      {tiles.map((x) => {
-        const onBrand = x.key === 'speak';
-        return (
-          <Pressable
-            key={x.key}
-            accessibilityRole="button"
-            accessibilityLabel={`${x.label}, ${x.sub}`}
-            onPress={x.onPress}
-            style={({ pressed }) => ({ flexBasis: narrow ? '100%' : '45%', flexGrow: 1, minHeight: 96, borderRadius: 18, padding: 14, gap: 18, backgroundColor: x.bg, opacity: pressed ? 0.85 : 1 })}
-          >
-            <Icon name={x.icon} size={26} color={x.fg} />
-            <View>
-              <Text variant="label" style={{ fontSize: 15, color: onBrand ? '#FFFFFF' : colors.text }}>
-                {x.label}
-              </Text>
-              <Text variant="caption" weight="400" style={{ fontSize: 12, lineHeight: 16, opacity: 0.8, color: onBrand ? '#FFFFFF' : colors.textMuted }}>
-                {x.sub}
-              </Text>
-            </View>
-          </Pressable>
-        );
-      })}
+    <View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+        {tiles.map((x) => {
+          const onBrand = x.key === 'speak';
+          return (
+            <Pressable
+              key={x.key}
+              accessibilityRole="button"
+              accessibilityLabel={`${x.label}, ${x.sub}`}
+              onPress={x.onPress}
+              style={({ pressed }) => ({ flexBasis: narrow ? '100%' : '45%', flexGrow: 1, minHeight: 96, borderRadius: 18, padding: 14, gap: 18, backgroundColor: x.bg, opacity: pressed ? 0.85 : 1 })}
+            >
+              <Icon name={x.icon} size={26} color={x.fg} />
+              <View>
+                <Text variant="label" style={{ fontSize: 15, color: onBrand ? '#FFFFFF' : colors.text }}>
+                  {x.label}
+                </Text>
+                <Text variant="caption" weight="400" style={{ fontSize: 12, lineHeight: 16, opacity: 0.8, color: onBrand ? '#FFFFFF' : colors.textMuted }}>
+                  {x.sub}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+      {/* Décision D1 du fondateur (audit du 23/10, R8) : la saisie au CLAVIER reste visible, sans appui long.
+          Seulement quand la voix est la méthode : sinon le bouton central (ou la tuile) ouvre déjà le clavier. */}
+      {voice && !keyboardFirst && <Button small variant="tertiary" icon="keypad-outline" label={t('entry.mic.labelKeyboard')} onPress={() => entry.open('keyboard')} style={{ alignSelf: 'center', marginTop: 4 }} />}
     </View>
   );
 }

@@ -4,6 +4,19 @@
  * la zone pastel (piste de l'anneau, fond de l'étiquette), valeurs exactes du HTML.
  */
 import type { FinalPalette } from '@/theme/finalPalette';
+import type { GoalPlan } from '@/core/goals';
+
+/**
+ * Ligne de rythme d'une vignette d'objectif (audit du 23/10, R7 : comme l'ancienne vignette, un
+ * objectif dont la date est dépassée est signalé AVANT tout rythme ; atteint : rien).
+ */
+export function goalPaceKind(plan: Pick<GoalPlan, 'reached' | 'overdue' | 'requiredMonthly' | 'estimatedDate'>): 'overdue' | 'monthly' | 'atPace' | null {
+  if (plan.reached) return null;
+  if (plan.overdue) return 'overdue';
+  if (plan.requiredMonthly) return 'monthly';
+  if (plan.estimatedDate) return 'atPace';
+  return null;
+}
 
 export type GoalTileKind = 'goal' | 'season' | 'reserve';
 export type GoalTileFamily = 'green' | 'blue' | 'gold';

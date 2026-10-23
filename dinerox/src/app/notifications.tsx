@@ -1,10 +1,13 @@
 import React from 'react';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useI18n, type TKey } from '@/i18n';
 import { useFinance } from '@/hooks/useFinance';
 import { Button, Card, EmptyState, Screen, Text } from '@/components/ui';
 import { InsightCard } from '@/features/rows';
 import { ListenButton } from '@/features/coach/ListenButton';
+import { AdviceAi } from '@/features/coach/AdviceOfDay';
+import { SourceTag } from '@/features/Recommendation';
 import { useToRead } from '@/features/notifications/useToRead';
 
 /**
@@ -16,7 +19,7 @@ import { useToRead } from '@/features/notifications/useToRead';
 export default function Notifications() {
   const { t } = useI18n();
   const { insights } = useFinance();
-  const { all } = useToRead();
+  const { all, advice, topRec } = useToRead();
   const others = all.filter((x) => x.origin !== 'insight');
   return (
     <Screen back title={t('notif.title')} right={<Button small variant="ghost" icon="options-outline" label={t('notif.settings')} onPress={() => router.push('/settings/notifications')} />}>
@@ -33,6 +36,18 @@ export default function Notifications() {
               <Text variant="body" style={{ marginTop: 2 }}>
                 {x.text}
               </Text>
+              {/* Audit du 23/10 : provenance (R5, règle 11) et, pour le conseil, « M'expliquer ce conseil (IA) » même lu (R4). */}
+              {x.kind === 'advice' && advice ? (
+                <View style={{ marginTop: 6 }}>
+                  <SourceTag source={advice.source} />
+                  <AdviceAi adviceId={advice.id} text={x.text} />
+                </View>
+              ) : null}
+              {x.kind === 'analysis' && topRec ? (
+                <View style={{ marginTop: 6 }}>
+                  <SourceTag source={topRec.source} />
+                </View>
+              ) : null}
               <ListenButton text={x.text} />
             </Card>
           ))}
