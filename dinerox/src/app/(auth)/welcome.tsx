@@ -71,7 +71,7 @@ function WelcomeScreen() {
         {isFirebaseConfigured ? (
           <>
             <Button full icon="phone-portrait-outline" label={t('phone.welcome.continue')} onPress={() => router.push(known ? '/phone?start=signin' : '/phone')} />
-            <Button full variant="secondary" icon="mail-outline" label={t('phone.welcome.email')} onPress={() => router.push('/sign-in')} />
+            <Button full variant="outline" icon="mail-outline" label={t('phone.welcome.email')} onPress={() => router.push('/sign-in')} />
           </>
         ) : (
           <Button full label={t('fp.localOnly')} loading={busy === 'local'} onPress={() => start('local')} />

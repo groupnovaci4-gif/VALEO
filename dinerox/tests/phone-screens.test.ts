@@ -103,6 +103,22 @@ describe('écrans et parcours', () => {
     expect(w).toMatch(/router\.push\('\/sign-in'\)/);
     expect(w).not.toMatch(/LinearGradient/);
   });
+  it('retouche (22/10) : « J’ai un compte e-mail » = bouton BLANC avec contour (variante outline : surface, bordure, texte)', () => {
+    const w = read('src/app/(auth)/welcome.tsx');
+    expect(w).toMatch(/variant="outline" icon="mail-outline" label=\{t\('phone\.welcome\.email'\)\}/);
+    const b = read('src/components/ui/Button.tsx');
+    expect(b).toMatch(/outline: \{ bg: colors\.surface, pressed: colors\.surfaceAlt, fg: colors\.text \}/);
+    expect(b).toMatch(/borderWidth: kind === 'outline' \? 1\.5 : 0/);
+  });
+  it('retouche (22/10) : « Bon retour ! » — numéro masqué sur UNE ligne, « Code secret oublié ? » et « J’ai un compte e-mail » côte à côte', () => {
+    const f = read('src/features/phoneAuth/PhoneFlow.tsx');
+    const s = f.slice(f.indexOf('function SignInStep'), f.indexOf('// ─── 6 · 7'));
+    // Espaces insécables : le numéro ne se coupe jamais entre deux groupes.
+    expect(s).toMatch(/oneLine\(maskPhone\(e164\)\)/);
+    expect(f).toMatch(/const NBSP = String\.fromCharCode\(160\);\s*const oneLine = \(s: string\) => s\.replace\(\/ \/g, NBSP\)/);
+    expect(s).toMatch(/flexWrap: 'nowrap'/);
+    expect(s).not.toMatch(/flexWrap: 'wrap'/);
+  });
   it('les écrans de saisie sont dans le contrôle des formulaires (règle 15)', () => {
     const audit = read('e2e/forms-audit.js');
     expect(audit).toMatch(/\/phone/);

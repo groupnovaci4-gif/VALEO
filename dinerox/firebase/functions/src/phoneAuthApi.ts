@@ -15,7 +15,7 @@
  */
 import './options';
 import { getAuth } from 'firebase-admin/auth';
-import { FieldValue, getFirestore, type DocumentReference, type Firestore } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { HttpsError, onCall, type CallableRequest, type FunctionsErrorCode } from 'firebase-functions/v2/https';
 import { defineInt, defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions/v2';
@@ -160,13 +160,22 @@ export const phoneVerify = onCall(OPTS, async (req: CallableRequest) => {
 
 // ─── Tickets ─────────────────────────────────────────────────────────
 
-/** Demande vérifiée correspondant à un ticket encore valable (10 min, usage unique). */
-async function ticketRequest(pepper: string, ticket: unknown, purposes: Purpose[]): Promise<{ ref: DocumentReference; data: FirebaseFirestore.DocumentData }> {
+/**
+ * Ticket encore valable (10 min, bon usage, bon numéro) RÉSERVÉ : marqué « utilisé » dans la même
+ * transaction que sa lecture. Deux appels simultanés avec le même ticket : un seul passe, l'autre
+ * reçoit « expiré ». Un ticket réservé n'est jamais rendu (en cas de refus ensuite, nouveau code).
+ */
+async function claimTicket(pepper: string, ticket: unknown, purposes: Purpose[], phoneKey?: string): Promise<FirebaseFirestore.DocumentData> {
   const t = str(ticket, 64) ?? fail('failed-precondition', 'phone/expired');
-  const snap = await db().collection('phoneAuth').where('ticketHash', '==', P.ticketHash(pepper, t as string)).limit(1).get();
-  const d = snap.docs[0];
-  if (!d || d.get('ticketUsed') === true || Number(d.get('ticketExp')) <= Date.now() || !purposes.includes(d.get('purpose'))) fail('failed-precondition', 'phone/expired');
-  return { ref: d.ref, data: d.data() };
+  const query = db().collection('phoneAuth').where('ticketHash', '==', P.ticketHash(pepper, t as string)).limit(1);
+  const claimed = await db().runTransaction(async (tx) => {
+    const d = (await tx.get(query)).docs[0];
+    if (!d || d.get('ticketUsed') === true || Number(d.get('ticketExp')) <= Date.now() || !purposes.includes(d.get('purpose'))) return null;
+    if (phoneKey !== undefined && d.get('phoneKey') !== phoneKey) return null;
+    tx.update(d.ref, { ticketUsed: true });
+    return d.data() ?? null;
+  });
+  return claimed ?? fail('failed-precondition', 'phone/expired');
 }
 
 // ─── Alerte « code secret changé » (5bis.5) ──────────────────────────
@@ -184,11 +193,12 @@ async function alertSecretChanged(uid: string, l: Lang): Promise<void> {
 export const phoneSetSecret = onCall(OPTS, async (req: CallableRequest) => {
   const data = (req.data ?? {}) as Record<string, unknown>;
   const pepper = PHONE_CODE_PEPPER.value();
-  const { ref, data: a } = await ticketRequest(pepper, data.ticket, ['signup', 'reset', 'link']);
+  // Code secret contrôlé AVANT de réserver le ticket : un code trop simple ne le consomme pas.
   const secret = typeof data.secret === 'string' ? data.secret : '';
   const problem = P.secretProblem(secret);
   if (problem) fail('invalid-argument', problem === 'weak' ? 'phone/weak-secret' : 'phone/invalid-secret');
   const deviceId = deviceOf(data.deviceId);
+  const a = await claimTicket(pepper, data.ticket, ['signup', 'reset', 'link']);
   const e164 = String(a.e164);
   const pk = String(a.phoneKey);
   const purpose = a.purpose as Purpose;
@@ -221,7 +231,6 @@ export const phoneSetSecret = onCall(OPTS, async (req: CallableRequest) => {
   batch.set(indexRef, { uid, updatedAt: now });
   batch.set(secretsRef, { ...hashed, phoneKey: pk, updatedAt: now });
   batch.set(db().doc(`phoneDevices/${uid}`), { keys: FieldValue.arrayUnion(P.deviceKey(pepper, deviceId)), updatedAt: now }, { merge: true });
-  batch.update(ref, { ticketUsed: true });
   batch.set(guardRef(pk), { fails: 0, lockLevel: 0, lockedUntil: 0 }, { merge: true });
   await batch.commit();
 
@@ -243,8 +252,16 @@ export const phoneSignIn = onCall(OPTS, async (req: CallableRequest) => {
   const day = P.dayOf(now);
   const pk = P.phoneKey(pepper, e164);
 
-  const guard = guardOf(await guardRef(pk).get(), day);
-  if (P.isLocked(guard, now)) fail('resource-exhausted', 'phone/locked', { retryAt: guard.lockedUntil });
+  // L'essai est RÉSERVÉ (compté comme un échec) dans une transaction AVANT toute vérification :
+  // des essais envoyés en parallèle ne peuvent pas tous passer le contrôle du blocage.
+  const reserved = await db().runTransaction(async (tx) => {
+    const g = guardOf(await tx.get(guardRef(pk)), day);
+    if (P.isLocked(g, now)) return { locked: true as const, retryAt: g.lockedUntil };
+    const next = P.failureAfter(g, now);
+    tx.set(guardRef(pk), next, { merge: true });
+    return { locked: false as const, next };
+  });
+  if (reserved.locked) fail('resource-exhausted', 'phone/locked', { retryAt: reserved.retryAt });
 
   // Numéro inconnu : le calcul est fait QUAND MÊME (même temps qu'un mauvais code).
   const index = await db().doc(`phoneIndex/${pk}`).get();
@@ -253,15 +270,12 @@ export const phoneSignIn = onCall(OPTS, async (req: CallableRequest) => {
   const matches = await P.checkSecret(secret, stored ?? P.DUMMY_SECRET, pepper);
 
   if (!uid || !stored || !matches) {
-    const after = await db().runTransaction(async (tx) => {
-      const g = guardOf(await tx.get(guardRef(pk)), day);
-      const next = P.failureAfter(g, now);
-      tx.set(guardRef(pk), next, { merge: true });
-      return next;
-    });
-    if (P.isLocked(after, now)) fail('resource-exhausted', 'phone/locked', { retryAt: after.lockedUntil });
+    // L'échec est déjà compté ; s'il a posé le blocage, on le dit.
+    const after = reserved.locked ? null : reserved.next;
+    if (after && P.isLocked(after, now)) fail('resource-exhausted', 'phone/locked', { retryAt: after.lockedUntil });
     fail('permission-denied', 'phone/wrong-secret');
   }
+  // Bon code secret : l'essai réservé est annulé, les compteurs repartent de zéro.
   await guardRef(pk).set({ fails: 0, lockLevel: 0, lockedUntil: 0 }, { merge: true });
 
   const dk = P.deviceKey(pepper, deviceId);
@@ -270,12 +284,9 @@ export const phoneSignIn = onCall(OPTS, async (req: CallableRequest) => {
   if (!known) {
     // Nouveau téléphone : le code secret seul ne suffit pas, un code reçu est exigé (DECISIONS.md §2).
     if (!data.ticket) return { needsDevice: true };
-    const { ref, data: a } = await ticketRequest(pepper, data.ticket, ['device']);
-    if (a.phoneKey !== pk) fail('failed-precondition', 'phone/expired');
-    const batch = db().batch();
-    batch.update(ref, { ticketUsed: true });
-    batch.set(db().doc(`phoneDevices/${uid}`), { keys: FieldValue.arrayUnion(dk), updatedAt: now }, { merge: true });
-    await batch.commit();
+    // Ticket du MÊME numéro, réservé en transaction : il n'enregistre qu'un seul appareil.
+    await claimTicket(pepper, data.ticket, ['device'], pk);
+    await db().doc(`phoneDevices/${uid}`).set({ keys: FieldValue.arrayUnion(dk), updatedAt: now }, { merge: true });
   }
   return { token: await getAuth().createCustomToken(uid as string) };
 });

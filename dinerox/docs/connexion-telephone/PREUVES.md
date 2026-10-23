@@ -45,13 +45,19 @@ l'écran 8 en sombre (voir écart 7). Export web 360 × 800, émulateurs, fourni
 
 | Vérification | Résultat |
 |---|---|
-| `npm run check` (types, lint, tests) | vert — lint à zéro, 118 fichiers, 1 848 tests |
+Mise à jour du 23/10 (après la fusion de design-pro, le correctif de sécurité et les retouches) :
+
+| Vérification | Résultat |
+|---|---|
+| `npm run check` (types, lint, tests) | vert — lint à zéro, 120 fichiers, 1 857 tests |
 | `npm run test:rules` (JDK 21) | 73 / 73 |
 | `npm --prefix firebase/functions run typecheck` | zéro erreur |
-| `npm run test:functions` (vraies fonctions sur émulateurs) | 5 fichiers, 52 / 52 (dont 18 pour le téléphone) |
-| e2e complet (`e2e/run-all.sh`, 35 parcours, dont `phone-auth.js`) | 35 / 35 verts ; `forms-audit` 140 / 140 (dont `/phone` et `/settings/add-phone`) ; `phone-auth` 26 / 26 |
+| `npm run test:functions` (vraies fonctions sur émulateurs) | 5 fichiers, 55 / 55, deux fois de suite (dont 21 pour le téléphone) |
+| e2e complet (`e2e/run-all.sh`, 34 parcours, dont `phone-auth.js`) | 34 / 34 verts (code de sortie 0, aucun « ✗ ») ; `forms-audit` 140 / 140 ; `phone-auth` 29 / 29 ; `coach-open` : « cloche = À lire · N » |
 
-Deux causes trouvées pendant le e2e (corrigées, pas « instable ») :
+Correction : le premier compte rendu annonçait 35 parcours ; le lanceur en contient 34.
+
+Deux causes trouvées pendant le premier e2e (corrigées, pas « instable ») :
 
 1. **Messages d'erreur génériques sur les écrans** : le SDK web ajoute le statut HTTP au message
    (`phone/wrong-secret [403]`), et `phoneErrorOf` ne reconnaissait pas le refus. Le test
@@ -59,34 +65,43 @@ Deux causes trouvées pendant le e2e (corrigées, pas « instable ») :
 2. **`multi-users.js` et `suspended.js`** cherchaient l'ancien lien « J'ai déjà un compte » de la
    bienvenue. Ils utilisent maintenant « J’ai un compte e-mail » ; `multi-users.js` relancé, vert.
 
-## 4. Écarts à valider
+## 4. Décisions du fondateur sur les écarts (22/10)
 
-1. **App Check en production** : le serveur l'exige déjà. L'application ne fournit un jeton qu'en
-   mode émulateur (jeton de test). En production, il faudra le fournisseur natif Play Integrity
-   (nouvelle APK) **avant** d'activer ces fonctions — sinon tout appel serait refusé.
-2. **Alerte par e-mail** : aucun fournisseur d'e-mail en production pour l'instant. Le fournisseur
-   simulé l'écrit dans `phoneOutbox` ; hors émulateur, l'alerte e-mail est seulement journalisée
-   (sans adresse ni code). Le push passe par le canal Expo existant.
-3. **Bienvenue (maquette 1)** : la photo est gardée sous un voile vert plein, car
-   `tests/photos.test.ts` l'exige. « Créer mon compte » (e-mail) n'est plus sur la bienvenue
-   (maquette) : l'inscription e-mail reste accessible par « J’ai un compte e-mail » →
-   « Pas encore de compte ? ».
-4. **Code reçu (maquette 3)** : pavé de l'application au lieu du clavier du système, car la règle
-   15 n'autorise que `Field` comme champ de saisie (même pavé que le code secret).
-5. **Textes ajoutés, à valider** (absents de TEXTES.md) : `phone.number.haveAccount`
-   (« J’ai déjà un compte »), `phone.number.choose`, `phone.err.smsCountry`, `phone.err.tooSoon`,
-   `phone.err.unavailable`, `phone.err.codeTooMany`.
-6. **Numéro déjà inscrit à l'inscription** : rien n'est révélé avant le code ; après le code, la
-   personne choisit un nouveau code secret (même compte) et l'alerte 5b part.
-7. **Thème sombre avant connexion** : l'application suit la préférence du PROFIL ; sans session,
-   elle est toujours claire (`_layout.tsx`, comportement existant, inchangé ici). Les maquettes
-   sombres 1 à 7 et 9 à 12 ne peuvent donc pas être reproduites ; seul l'écran 8 (connecté) a sa
-   preuve sombre. Pour suivre le thème du téléphone avant connexion, il faudrait modifier ce
-   comportement : décision à prendre.
-8. **Écarts visuels mineurs** (images `preuves/`) : le champ du numéro est en deux blocs
-   (indicatif + `Field`, règle 15) au lieu d'un seul cadre, et le numéro n'est pas regroupé par
-   paires pendant la saisie ; les mots en gras des bandeaux (« mêmes données, même abonnement »)
-   sont en texte normal ; l'étiquette « Numéro de téléphone » est au-dessus du seul champ ;
-   la bienvenue affiche le vrai logo et le numéro de version.
-9. **Parcours e2e existants** : la bienvenue ne propose plus « Créer mon compte » ; ils vont
-   directement sur `/sign-up` (inscription e-mail inchangée).
+| Point | Décision |
+|---|---|
+| Thème avant connexion | Comportement actuel gardé : clair. Seul l'écran 8 (connecté) a une preuve sombre. |
+| App Check en production | Branché le jour de l'activation (Play Integrity, nouvelle APK) ; rien à faire maintenant. Le serveur l'exige déjà. |
+| Alerte « code secret changé » | Notification sur les téléphones dès maintenant (canal Expo existant) ; l'e-mail reste derrière son interface (fournisseur simulé), branché à l'activation. |
+| Écarts visuels (numéro en deux blocs, pavé de l'application, photo sous le voile vert) | Acceptés. |
+| 6 textes ajoutés (`phone.number.haveAccount`, `phone.number.choose`, `phone.err.smsCountry`, `phone.err.tooSoon`, `phone.err.unavailable`, `phone.err.codeTooMany`) | Validés tels quels. |
+
+Rappels sans décision à prendre : un numéro déjà inscrit ne révèle rien avant le code (après le
+code, nouveau code secret, même compte, alerte 5b) ; les parcours e2e d'inscription e-mail vont
+directement sur `/sign-up`.
+
+## 5. Sécurité : essais et tickets en parallèle (relecture de l'assistant)
+
+| Défaut | Correctif | Preuve (rouge d'abord, puis vert) |
+|---|---|---|
+| `phoneSignIn` : des essais envoyés EN PARALLÈLE passaient tous le contrôle du blocage avant qu'un échec soit compté (plus de 5 essais possibles) | L'essai est RÉSERVÉ dans une transaction AVANT de vérifier le code secret (refus si bloqué, échec compté d'avance) ; remis à zéro en cas de succès | émulateur « 20 essais EN PARALLÈLE : au plus 5 vérifiés, puis bloqué » : avant, blocage de niveau 4 (24 h) après une seule rafale ; après, niveau 1, ≤ 4 « incorrect », le reste « bloqué » |
+| Ticket de `phoneSetSecret` lu puis marqué « utilisé » plus tard : deux appels simultanés pouvaient s'en servir | `claimTicket` : lu ET marqué « utilisé » dans la même transaction ; le code secret est contrôlé AVANT (un code trop simple ne consomme pas le ticket) | émulateur « 6 phoneSetSecret simultanés avec le même ticket : un seul réussit » : avant, 4 réussites sur 6 |
+| Ticket de nouveau téléphone (`phoneSignIn`) : même défaut | `claimTicket(…, ['device'], numéro)` : réservé en transaction, pour le MÊME numéro | émulateur « 6 appels simultanés : 1 réussit, 5 expirés, un seul appareil ajouté » : avant, 3 réussites sur 6 |
+
+Pour être honnête sur le « rouge d'abord » : ces courses dépendent du minutage. Le défaut du
+ticket de nouveau téléphone est apparu à une exécution, puis n'est pas apparu à la suivante, avant
+le correctif. Pour `phoneSetSecret`, il a fallu préchauffer l'émulateur (6 appels refusés) :
+sinon il traite les appels d'une même fonction l'un après l'autre. Après le correctif, la suite
+complète des Functions est passée deux fois de suite.
+
+## 6. Retouches visuelles (22/10)
+
+| Retouche | Preuve |
+|---|---|
+| Bienvenue : « J’ai un compte e-mail » en bouton BLANC avec contour (nouvelle variante `outline` du bouton : surface, bordure, texte foncé) | `tests/phone-screens.test.ts` (rouge puis vert) ; e2e « bouton e-mail blanc avec contour » ; `preuves/01-bienvenue-clair.png` |
+| « Bon retour ! » : numéro masqué sur UNE ligne (espaces insécables), « Code secret oublié ? » et « J’ai un compte e-mail » côte à côte | `tests/phone-screens.test.ts` (rouge puis vert) ; e2e « numéro masqué sur une ligne », « côte à côte » ; `preuves/05-connexion-clair.png`, `preuves/10-erreur-trop-essais-clair.png` |
+
+## 7. Branche design-pro (fusionnée ici)
+
+Barre du bas comme la maquette et cloche = « À lire · N » : voir
+`docs/design-pro/barre-du-bas/README.md` (commit 720c3d9 sur design-pro, poussé, puis fusionné
+dans connexion-telephone par un merge).

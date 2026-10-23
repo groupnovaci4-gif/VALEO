@@ -209,6 +209,22 @@ describe('connexion : numéro + code secret, blocage par numéro tenté', () => 
     expect(retryAt - Date.now()).toBeGreaterThan(14 * 60_000);
     expect(await call('phoneSignIn', { phone: local, dial: '225', secret: '720461', deviceId: DEVICE })).toMatchObject({ ok: false, code: 'phone/locked' });
   });
+  it('20 essais EN PARALLÈLE : au plus 5 vérifiés, puis « bloqué » (l’essai est réservé avant la vérification)', async () => {
+    await clearGuards();
+    const local = newPhone();
+    await signUp(local, '720461');
+    const all = await Promise.all(Array.from({ length: 20 }, () => call('phoneSignIn', { phone: local, dial: '225', secret: '905238', deviceId: DEVICE })));
+    const wrong = all.filter((r) => !r.ok && r.code === 'phone/wrong-secret').length;
+    const locked = all.filter((r) => !r.ok && r.code === 'phone/locked').length;
+    expect(all.every((r) => !r.ok)).toBe(true);
+    // 4 « incorrect » au plus, le 5e essai pose le blocage ; les 15 autres sont refusés sans vérification.
+    expect(wrong).toBeLessThanOrEqual(4);
+    expect(wrong + locked).toBe(20);
+    // Un seul blocage (15 min), pas quatre (24 h) : seuls 5 essais ont été comptés.
+    const guards = await admin(async (fs) => (await getDocs(collection(fs, 'phoneGuard'))).docs.filter((d) => !d.id.startsWith('global-') && !d.id.startsWith('dev-')).map((d) => d.data()));
+    expect(guards.map((g) => g.lockLevel)).toEqual([1]);
+    expect(await call('phoneSignIn', { phone: local, dial: '225', secret: '720461', deviceId: DEVICE })).toMatchObject({ ok: false, code: 'phone/locked' });
+  });
   it('numéro inconnu : même réponse et même temps de calcul qu’un mauvais code', async () => {
     await clearGuards();
     const local = newPhone();
@@ -241,6 +257,36 @@ describe('nouveau téléphone : le code secret seul ne suffit pas', () => {
     expect((await sessionFrom(r.token)).uid).toBe(s.uid);
     const again = must(await call<{ token?: string }>('phoneSignIn', { phone: local, dial: '225', secret: '720461', deviceId: other }));
     expect(typeof again.token).toBe('string');
+  });
+  it('ticket de nouveau téléphone : utilisé UNE fois, même avec deux appels simultanés', async () => {
+    await clearGuards();
+    const local = newPhone();
+    const s = await signUp(local, '720461');
+    await clearGuards();
+    const start = must(await call<{ requestId: string }>('phoneStart', { phone: local, dial: '225', purpose: 'device', deviceId: 'nouveau-telephone-0004' }));
+    const v = must(await call<{ ticket: string }>('phoneVerify', { requestId: start.requestId, code: await lastCode(e164(local)) }));
+    const devices = Array.from({ length: 6 }, (_, i) => `nouveau-telephone-01${i}`);
+    const all = await Promise.all(devices.map((d) => call('phoneSignIn', { phone: local, dial: '225', secret: '720461', deviceId: d, ticket: v.ticket })));
+    expect(all.filter((r) => r.ok)).toHaveLength(1);
+    expect(all.filter((r) => !r.ok && r.code === 'phone/expired')).toHaveLength(5);
+    // Un seul nouvel appareil enregistré (en plus de celui de l'inscription).
+    const keys = await admin(async (fs) => (await getDocs(collection(fs, 'phoneDevices'))).docs.find((d) => d.id === s.uid)?.data().keys as string[]);
+    expect(keys).toHaveLength(2);
+  });
+});
+
+describe('ticket du code secret : utilisé UNE fois, même avec deux appels simultanés', () => {
+  it('deux phoneSetSecret simultanés avec le même ticket : un seul réussit', async () => {
+    await clearGuards();
+    const local = newPhone();
+    const start = must(await call<{ requestId: string }>('phoneStart', { phone: local, dial: '225', purpose: 'signup', channel: 'whatsapp', deviceId: DEVICE, lang: 'fr' }));
+    const v = must(await call<{ ticket: string }>('phoneVerify', { requestId: start.requestId, code: await lastCode(e164(local)) }));
+    const secrets = ['483915', '615204', '720461', '905238', '372819', '846153'];
+    // Préchauffage : l'émulateur ouvre un processus par appel simultané (sinon il les enchaîne).
+    await Promise.all(secrets.map((secret) => call('phoneSetSecret', { ticket: 'ticket-inconnu', secret, deviceId: DEVICE })));
+    const all = await Promise.all(secrets.map((secret) => call('phoneSetSecret', { ticket: v.ticket, secret, deviceId: DEVICE })));
+    expect(all.filter((r) => r.ok)).toHaveLength(1);
+    expect(all.filter((r) => !r.ok && r.code === 'phone/expired')).toHaveLength(5);
   });
 });
 

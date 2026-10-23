@@ -57,7 +57,8 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
     const p = await ctx.newPage();
     p.on('pageerror', (e) => errs.push(e.message));
     p.on('dialog', (d) => d.accept());
-    const text = async () => (await p.evaluate(() => document.body.innerText)).replace(/[  ]/g, ' ');
+    // Espaces insécables (160) et fines insécables (8239) ramenés à des espaces ordinaires.
+    const text = async () => (await p.evaluate(() => document.body.innerText)).replace(new RegExp(`[${String.fromCharCode(160, 8239)}]`, 'g'), ' ');
     const go = async (path, w = 3500) => { await p.goto(BASE + path, { waitUntil: 'load' }); await p.waitForTimeout(w); };
     const btn = (name) => p.getByRole('button', { name, exact: true }).filter({ visible: true });
     /** Tape 6 chiffres sur le pavé de l'écran. */
@@ -80,6 +81,9 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   await A.go('/');
   ok((await A.text()).includes('Mieux gérer, mieux prévoir, mieux vivre'), 'accueil : slogan validé');
   await A.shot('01-accueil');
+  // Retouche (22/10) : « J’ai un compte e-mail » = bouton blanc (surface) avec contour.
+  const mailStyle = await A.btn('J’ai un compte e-mail').first().evaluate((e) => { const s = getComputedStyle(e); return { bg: s.backgroundColor, bw: s.borderTopWidth }; });
+  ok(mailStyle.bg === 'rgb(255, 252, 247)' && parseFloat(mailStyle.bw) >= 1, `bouton e-mail blanc avec contour (${mailStyle.bg}, bordure ${mailStyle.bw})`);
   await A.btn('Continuer avec mon numéro').click(); await A.see('Votre numéro de téléphone');
   await A.p.getByLabel('Numéro de téléphone', { exact: true }).fill('0708');
   await A.btn('Recevoir le code').click(); await A.p.waitForTimeout(800);
@@ -117,6 +121,11 @@ const lookup = async (body) => (await (await fetch(`${AUTH}/accounts:lookup`, { 
   await A.signOut();
   await A.btn('Continuer avec mon numéro').click(); await A.see('Bon retour !');
   ok((await A.text()).includes(`+225 ${local1.slice(0, 2)} ${local1.slice(2, 4)} •• •• ${local1.slice(8)}`), 'numéro retenu, affiché masqué');
+  // Retouches (22/10) : numéro masqué sur UNE ligne ; « Code secret oublié ? » et « J’ai un compte e-mail » côte à côte.
+  const masked = await A.p.getByText(`+225 ${local1.slice(0, 2)}`, { exact: false }).filter({ visible: true }).first().boundingBox();
+  ok(!!masked && masked.height <= 26, `numéro masqué sur une ligne (${masked ? Math.round(masked.height) : '?'} px)`);
+  const [forgotBox, mailBox] = await Promise.all([A.btn('Code secret oublié ?').first().boundingBox(), A.btn('J’ai un compte e-mail').first().boundingBox()]);
+  ok(!!forgotBox && !!mailBox && Math.abs(forgotBox.y - mailBox.y) < 4 && forgotBox.x < mailBox.x, 'liens « Code secret oublié ? » et « J’ai un compte e-mail » côte à côte');
   await A.shot('05-connexion');
   await A.keypad('000000');
   ok((await A.text()).includes('Code secret incorrect.'), 'mauvais code secret : refusé');

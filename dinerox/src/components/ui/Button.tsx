@@ -6,10 +6,11 @@ import { Text } from './Text';
 import { Icon } from './Icon';
 
 /**
- * `tertiary` / `destructive` : variantes v2. Écrans non migrés : `ghost`, `danger`, `success`.
+ * `tertiary` / `destructive` / `outline` : variantes v2. Écrans non migrés : `ghost`, `danger`, `success`.
  * En v2, `ghost` = `tertiary`, `danger` = `destructive` et `success` = `primary`.
+ * `outline` : bouton blanc (surface) avec contour, texte foncé (bienvenue, « J'ai un compte e-mail »).
  */
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'tertiary' | 'destructive';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'tertiary' | 'destructive' | 'outline';
 
 export interface ButtonProps {
   label: string;
@@ -54,6 +55,7 @@ function ButtonV2({ label, onPress, variant = 'primary', icon, loading, disabled
     secondary: { bg: colors.primaryContainer, pressed: colors.surfaceAlt, fg: colors.onPrimaryContainer },
     tertiary: { bg: 'transparent', pressed: colors.surfaceAlt, fg: colors.primary },
     destructive: { bg: colors.dangerBg, pressed: colors.surfaceAlt, fg: colors.danger },
+    outline: { bg: colors.surface, pressed: colors.surfaceAlt, fg: colors.text },
   }[kind];
   const fg = disabled ? colors.onDisabled : look.fg;
   return (
@@ -75,6 +77,8 @@ function ButtonV2({ label, onPress, variant = 'primary', icon, loading, disabled
           paddingHorizontal: small || kind === 'tertiary' ? 12 : 18,
           paddingVertical: 8,
           borderRadius: 12,
+          borderWidth: kind === 'outline' ? 1.5 : 0,
+          borderColor: colors.borderStrong,
           backgroundColor: disabled ? colors.disabledBg : pressed ? look.pressed : look.bg,
           alignSelf: full ? 'stretch' : 'auto',
           justifyContent: 'center',
@@ -102,6 +106,7 @@ function LegacyButton({ label, onPress, variant = 'primary', icon, loading, disa
     danger: colors.danger,
     destructive: colors.danger,
     success: colors.success,
+    outline: colors.surface,
   };
   const fg: Record<ButtonVariant, string> = {
     primary: colors.onPrimary,
@@ -111,6 +116,7 @@ function LegacyButton({ label, onPress, variant = 'primary', icon, loading, disa
     danger: colors.onInverse,
     destructive: colors.onInverse,
     success: colors.onInverse,
+    outline: colors.text,
   };
   const inactive = disabled || loading;
   return (
@@ -133,8 +139,8 @@ function LegacyButton({ label, onPress, variant = 'primary', icon, loading, disa
           paddingHorizontal: small ? 12 : 18,
           borderRadius: radius.pill,
           backgroundColor: bg[variant],
-          borderWidth: variant === 'secondary' ? 1 : 0,
-          borderColor: colors.primaryBorder,
+          borderWidth: variant === 'secondary' || variant === 'outline' ? 1 : 0,
+          borderColor: variant === 'outline' ? colors.border : colors.primaryBorder,
           ...(variant === 'primary' && dark && !inactive ? shadow.glowGreen : null),
           transform: [{ scale: pressed ? 0.98 : 1 }],
           opacity: inactive ? 0.5 : pressed ? 0.85 : 1,

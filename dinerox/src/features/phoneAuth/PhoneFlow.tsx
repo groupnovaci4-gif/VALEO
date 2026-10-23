@@ -57,6 +57,10 @@ function useNow(active: boolean): number {
   return now;
 }
 
+/** Espaces insécables : un numéro affiché ne se coupe jamais entre deux groupes de chiffres. */
+const NBSP = String.fromCharCode(160);
+const oneLine = (s: string) => s.replace(/ /g, NBSP);
+
 const mmss = (ms: number) => {
   const s = Math.max(0, Math.ceil(ms / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -309,6 +313,24 @@ function Round({ icon, tone }: { icon: string; tone: 'brand' | 'wa' }) {
   );
 }
 
+/** Lien texte (maquettes : « Changer », « Code secret oublié ? ») : 48 dp de haut, jamais coupé (passe à la ligne si le texte est agrandi). */
+function TextLink({ label, onPress }: { label: string; onPress: () => void }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={4}
+      style={({ pressed }) => ({ minHeight: 48, flexShrink: 1, paddingHorizontal: 6, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? colors.surfaceAlt : 'transparent' })}
+    >
+      <Text variant="label" tone="primary" align="center" style={{ fontSize: 14, lineHeight: 20 }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 /** Pavé à 6 chiffres (codes) : grandes touches de 56 dp, comme la maquette. */
 function Keypad({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
   const { colors } = useTheme();
@@ -520,24 +542,26 @@ function SignInStep({ t, back, error, busy, e164, digits, onDigits, onChange, on
       <Title text={t('phone.signin.title')} />
       <Card>
         <Round icon="phone-portrait-outline" tone="brand" />
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Text variant="caption" tone="subtle">
             {t('phone.signin.yourNumber')}
           </Text>
-          <Text variant="label" style={{ fontSize: 16 }}>
-            {e164 ? maskPhone(e164) : ''}
+          {/* Maquette 5 : le numéro masqué tient sur UNE ligne (« +225 07 06 •• •• 41 »). */}
+          <Text variant="label" style={{ fontSize: 15 }}>
+            {e164 ? oneLine(maskPhone(e164)) : ''}
           </Text>
         </View>
-        <Button variant="ghost" small label={t('phone.signin.change')} onPress={onChange} />
+        <TextLink label={t('phone.signin.change')} onPress={onChange} />
       </Card>
       <Text tone="muted" align="center" style={{ marginTop: 10 }}>
         {t('phone.signin.secret')}
       </Text>
       <Dots n={digits.length} />
       <ErrorNotice error={error} t={t} />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 4 }}>
-        <Button variant="ghost" small label={t('phone.signin.forgot')} onPress={onForgot} />
-        <Button variant="ghost" small label={t('phone.welcome.email')} onPress={() => router.push('/sign-in')} />
+      {/* Maquette 5 : les deux liens CÔTE À CÔTE. */}
+      <View style={{ flexDirection: 'row', flexWrap: 'nowrap', justifyContent: 'center', gap: 8 }}>
+        <TextLink label={t('phone.signin.forgot')} onPress={onForgot} />
+        <TextLink label={t('phone.welcome.email')} onPress={() => router.push('/sign-in')} />
       </View>
       <Keypad value={digits} onChange={onDigits} disabled={busy || error?.code === 'phone/locked'} />
     </Screen>
@@ -560,12 +584,12 @@ function InfoStep({ t, back, error, busy, kind, e164, onSend }: Shared & { kind:
       <Text tone="muted">{kind === 'forgot' ? t('phone.forgot.body') : t('phone.device.body')}</Text>
       <Card>
         <Round icon={kind === 'forgot' ? 'phone-portrait-outline' : 'logo-whatsapp'} tone={kind === 'forgot' ? 'brand' : 'wa'} />
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Text variant="caption" tone="subtle">
             {t('phone.forgot.sentTo')}
           </Text>
           <Text variant="label" style={{ fontSize: 16 }}>
-            {e164 ? maskPhone(e164) : ''}
+            {e164 ? oneLine(maskPhone(e164)) : ''}
           </Text>
         </View>
       </Card>
