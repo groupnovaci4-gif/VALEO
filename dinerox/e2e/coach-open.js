@@ -46,16 +46,36 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   await d.p.screenshot({ path: `${S}/coach-open-1.png` });
   await readAll(d.p);
   ok((await card(d.p)) === null, '× (marquer comme lu) : les points du résumé disparaissent');
-  const seen = new Set(first ?? []);
+  // Audit du 23/10 (T1) : vérifications STRICTES sur TOUS les messages de « À lire », pas seulement le résumé.
+  const shown = async (p) => (await p.locator('[data-testid^="toread-"]').filter({ visible: true }).allInnerTexts()).map((s) => s.split('\n').filter((l) => l.trim() && !LISTEN.includes(l.trim())).slice(1).join(' '));
+  const count = async (p) => Number(((await p.locator('body').innerText()).match(/À lire · (\d+)/) || [])[1] || 0);
+  const bellOf = async (p) => p.locator('[role=button][aria-label^="Notifications"]').first().getAttribute('aria-label').catch(() => null);
+  const n0 = await count(d.p);
+  const home0 = await shown(d.p);
+  ok(home0.length === Math.min(3, n0), `accueil : exactement min(3, ${n0}) messages affichés (${home0.length})`);
+  // Fermer (×) les messages affichés : le nombre baisse d'autant, la cloche suit.
+  const closed = [];
+  for (let k = 0; k < home0.length; k++) {
+    const first = d.p.locator('[data-testid^="toread-"]').filter({ visible: true }).first();
+    closed.push((await shown(d.p))[0]);
+    await first.getByRole('button', { name: 'Marquer comme lu', exact: true }).click({ timeout: 10000 }); await d.p.waitForTimeout(400);
+  }
+  const n1 = await count(d.p);
+  ok(n1 === n0 - closed.length, `× sur ${closed.length} message(s) : « À lire » ${n0} → ${n1}`);
+  ok((await bellOf(d.p)) === (n1 ? `Notifications, À lire · ${n1}` : 'Notifications'), `cloche = « À lire · ${n1} » après lecture`);
+  // Réouvertures : aucun message fermé ne revient (mémoire « lu » chargée une seule fois, R12), même nombre.
   let repeated = 0;
   for (let k = 0; k < 2; k++) {
     await d.p.close(); d.p = await d.ctx.newPage(); d.p.on('pageerror', (e) => errs.push(e.message));
     await go(d.p, '/', 6500);
     await closeCelebration(d.p);
-    const again = (await card(d.p)) ?? [];
-    for (const l of again) { if (seen.has(l)) repeated++; seen.add(l); }
+    const again = await shown(d.p);
+    repeated += again.filter((l) => closed.includes(l)).length;
+    // Le résumé d'ouverture peut apporter un point NOUVEAU (un résumé par ouverture) : jamais moins, et la cloche suit.
+    const nk = await count(d.p);
+    ok(nk >= n1 && (await bellOf(d.p)) === `Notifications, À lire · ${nk}`, `réouverture ${k + 1} : « À lire » ${nk} (≥ ${n1}), cloche identique`);
   }
-  ok(repeated === 0, `réouvertures : aucun point déjà présenté n'est répété (${repeated} répétition)`);
+  ok(repeated === 0 && closed.length > 0, `réouvertures : aucun message fermé n'est répété (${repeated} répétition sur ${closed.length} fermé(s))`);
 
   // ── 2. Deux appareils, même compte : pas de répétition entre appareils ──
   const email = `open${Date.now()}@ex.com`;

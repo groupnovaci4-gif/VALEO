@@ -121,8 +121,16 @@ let b;
   const r1 = await perDay();
   ok(r1 === r0, `mettre de côté ce qui était prévu ne change pas le reste par jour (${r0} → ${r1})`);
 
-  // Création : aide au plafond (démo : 2 mois complets seulement → question, aucun chiffre inventé).
-  await go('/reserve/new');
+  // Création d'une 2ᵉ réserve DEPUIS l'onglet Objectifs (audit du 23/10, R1 : « Ajouter » avait disparu).
+  await go('/goals');
+  const addReserve = p.getByRole('button', { name: 'Ajouter, Réserves', exact: true }).filter({ visible: true });
+  ok((await addReserve.count()) === 1, 'Objectifs : « Ajouter » une réserve quand une réserve existe (formule Famille de la démo)');
+  // Audit R10 : « Nouveau » (objectif) à 48 dp.
+  const newGoal = await p.getByRole('button', { name: 'Nouvel objectif', exact: true }).filter({ visible: true }).first().boundingBox();
+  ok(!!newGoal && newGoal.height >= 48, `« Nouveau » : zone de toucher ${newGoal ? Math.round(newGoal.height) : '?'} dp (≥ 48)`);
+  await addReserve.first().click(); await p.waitForTimeout(2500);
+  ok(p.url().includes('/reserve/new'), '« Ajouter » ouvre la création d’une réserve');
+  // Aide au plafond (démo : 2 mois complets seulement → question, aucun chiffre inventé).
   t = await text();
   ok(t.includes("À peu près combien avez-vous donné pour des cérémonies et la famille l'an dernier ?") && !t.includes("D'après vos"), 'aide au plafond : moins de 3 mois d’historique → question posée');
   await checkAllInputs(p, 'Réserve › création', ok, { expectInputs: true });
@@ -134,6 +142,10 @@ let b;
   t = await text();
   ok(p.url().includes('/reserve/') && t.includes('Réserve rentrée') && t.includes('sur un plafond de 240 000 FCFA'), 'réserve créée avec les chiffres choisis');
   await p.screenshot({ path: `${S}/reserve-detail.png` });
+  await go('/goals');
+  const reserveTiles = await p.getByRole('button', { name: /^Réserve (famille et cérémonies|rentrée),/ }).filter({ visible: true }).count();
+  ok(reserveTiles === 2, `2ᵉ réserve : les DEUX vignettes sont dans « Vos projets » (${reserveTiles})`);
+  await p.screenshot({ path: `${S}/reserve-deux.png` });
   ok(errs.length === 0, 'démo : aucune erreur JS ' + errs.slice(0, 2).join(' | '));
   await ctx.close();
 
@@ -169,6 +181,7 @@ let b;
   t = await text();
   // Refonte finale D2 : la vignette écrit « solde / plafond » (maquette : « 80 000 FCFA / 300 000 FCFA »).
   ok(t.includes('Réserve famille et cérémonies') && /\/ 372 000 FCFA/.test(t), 'compte réel : réserve créée par le démarrage rapide (plafond 372 000)');
+  ok((await p.getByRole('button', { name: 'Ajouter, Réserves', exact: true }).count()) === 0, 'formule gratuite, une réserve : pas de « Ajouter » (limite de la formule)');
   await go('/reserve/new');
   ok((await text()).includes('Plusieurs réserves sont incluses dans la formule Plus.'), 'formule gratuite : une seule réserve (offre Plus pour en ajouter)');
   ok(errs2.length === 0, 'compte réel : aucune erreur JS ' + errs2.slice(0, 2).join(' | '));

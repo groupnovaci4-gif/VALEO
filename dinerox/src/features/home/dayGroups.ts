@@ -4,6 +4,17 @@
  */
 import type { Language } from '@/core/types';
 
+/**
+ * Sens d'un montant dans une liste d'opérations (audit du 23/10, R9) : `out` = « − », `in` = « + »
+ * (revenu, ajustement à la hausse), `none` = sans signe (transfert…). Le même pour l'Accueil et
+ * l'historique.
+ */
+export function amountDirection(tx: { type: string; direction?: 'in' | 'out' | null }): 'in' | 'out' | 'none' {
+  if (tx.type === 'expense' || (tx.type === 'adjustment' && tx.direction === 'out')) return 'out';
+  if (tx.type === 'income' || tx.type === 'adjustment') return 'in';
+  return 'none';
+}
+
 /** Un groupe par jour, dans l'ordre des opérations reçues (déjà triées, la plus récente d'abord). */
 export function groupByDay<T extends { id: string; date: string }>(txs: T[]): { date: string; items: T[] }[] {
   const out: { date: string; items: T[] }[] = [];

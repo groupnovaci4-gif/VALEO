@@ -18,6 +18,8 @@ export interface GoalTileProps {
   name: string;
   amounts: string;
   pace?: string | null;
+  /** Audit du 23/10, R7 : le rythme est une alerte (objectif en retard) — écrit en rouge. */
+  paceAlert?: boolean;
   percent: number;
   icon: { emoji?: string | null; ids: (string | null | undefined)[] };
   a11y: string;
@@ -26,7 +28,7 @@ export interface GoalTileProps {
   addLabel: string;
 }
 
-export function GoalTileCard({ kind, label, name, amounts, pace, percent, icon, a11y, onPress, onAdd, addLabel }: GoalTileProps) {
+export function GoalTileCard({ kind, label, name, amounts, pace, paceAlert, percent, icon, a11y, onPress, onAdd, addLabel }: GoalTileProps) {
   const { colors, dark } = useTheme();
   const c = goalTileColors(goalTileFamily(kind), finalPalette(dark));
   const veil = GOAL_TILE[dark ? 'dark' : 'light'];
@@ -51,7 +53,7 @@ export function GoalTileCard({ kind, label, name, amounts, pace, percent, icon, 
             {amounts}
           </Text>
           {pace ? (
-            <Text variant="caption" weight="400" tone="subtle" style={{ fontSize: 11, lineHeight: 15, marginTop: 2 }}>
+            <Text variant="caption" weight={paceAlert ? '600' : '400'} tone={paceAlert ? 'danger' : 'subtle'} style={{ fontSize: 11, lineHeight: 15, marginTop: 2 }}>
               {pace}
             </Text>
           ) : null}

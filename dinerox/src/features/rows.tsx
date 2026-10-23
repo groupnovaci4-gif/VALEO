@@ -19,6 +19,7 @@ import { minimumPlanFor, type Feature } from '@/core/subscription';
 import { findGoalCategory } from '@/core/goalCategories';
 import { financingNature } from '@/core/nature';
 import { ListenButton } from '@/features/coach/ListenButton';
+import { amountDirection } from '@/features/home/dayGroups';
 
 export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx: Transaction; onPress?: () => void; onLongPress?: () => void; longPressHint?: string }) {
   const { colors, v2 } = useTheme();
@@ -40,12 +41,8 @@ export function TransactionRow({ tx, onPress, onLongPress, longPressHint }: { tx
           : cats.meta(tx.categoryId);
   const title = tx.payee || meta.name;
   const sub = tx.type === 'transfer' ? `${accountLabel(tx.accountId)} → ${accountLabel(tx.toAccountId)}` : tx.type === 'adjustment' ? accountLabel(tx.accountId) : `${meta.name} · ${accountLabel(tx.accountId)}`;
-  const amount =
-    tx.type === 'expense' || (tx.type === 'adjustment' && tx.direction === 'out')
-      ? `-${money(tx.amount, { currency: tx.currency })}`
-      : tx.type === 'income' || tx.type === 'adjustment'
-        ? money(tx.amount, { currency: tx.currency, signed: true })
-        : money(tx.amount, { currency: tx.currency });
+  const dir = amountDirection(tx);
+  const amount = dir === 'out' ? `-${money(tx.amount, { currency: tx.currency })}` : dir === 'in' ? money(tx.amount, { currency: tx.currency, signed: true }) : money(tx.amount, { currency: tx.currency });
   const tone = tx.type === 'expense' ? 'expense' : tx.type === 'income' ? 'income' : 'muted';
   if (v2) {
     // v2 : icône de contenu 3D (design-pro) — celle de la SOUS-catégorie quand l'opération en a

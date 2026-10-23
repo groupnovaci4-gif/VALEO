@@ -14,8 +14,12 @@ export interface SpeakOptions {
 export interface VoiceProvider {
   readonly id: string;
   isAvailable(): Promise<boolean>;
-  /** Résout quand la lecture est terminée ; rejette en cas d'échec. */
-  speak(text: string, opts: SpeakOptions): Promise<void>;
+  /**
+   * Résout quand la lecture est terminée ; rejette en cas d'échec. Audit du 23/10, R13 : résout
+   * `false` quand la fin n'a pas été signalée (garde-fou de durée) et rejette `InterruptedError`
+   * quand la lecture a été coupée (appel, système) : dans les deux cas, le message n'est pas « lu ».
+   */
+  speak(text: string, opts: SpeakOptions): Promise<void | false>;
   stop(): Promise<void>;
 }
 
@@ -24,6 +28,13 @@ export type VoiceOutcome = { spoken: true; by: string } | { spoken: false; reaso
 export class TimeoutError extends Error {
   constructor() {
     super('voice/timeout');
+  }
+}
+
+/** Lecture coupée en cours de route (appel, autre application, arrêt du système). */
+export class InterruptedError extends Error {
+  constructor() {
+    super('voice/interrupted');
   }
 }
 
@@ -71,11 +82,13 @@ export class VoiceQueue {
           if (p.prepare) await withTimeout(p.prepare(clean, opts), this.timeoutMs);
           if (gen !== this.generation || this.blocked()) return { spoken: false, reason: 'stopped' };
           this.current = p;
-          await p.speak(clean, opts);
+          const ended = await p.speak(clean, opts);
           this.current = null;
-          return gen !== this.generation ? { spoken: false, reason: 'stopped' } : { spoken: true, by: p.id };
-        } catch {
+          // R13 : fin non confirmée = pas lu (ni voix suivante : le texte a pu être entendu en partie).
+          return gen !== this.generation || ended === false ? { spoken: false, reason: 'stopped' } : { spoken: true, by: p.id };
+        } catch (e) {
           this.current = null;
+          if (e instanceof InterruptedError) return { spoken: false, reason: 'stopped' };
           // Erreur réseau, délai dépassé, quota : fournisseur suivant.
         }
       }

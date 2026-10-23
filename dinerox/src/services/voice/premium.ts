@@ -43,8 +43,9 @@ export function premiumVoice(enabled: () => boolean): PreparedProvider {
       player?.remove();
       const p = createAudioPlayer(uri);
       player = p;
-      await new Promise<void>((resolve) => {
-        const guard = setTimeout(resolve, 30_000);
+      // Audit du 23/10, R13 : sans « fin de lecture » au bout de 30 s (coupure, appel), pas lue (`false`).
+      const ended = await new Promise<void | false>((resolve) => {
+        const guard = setTimeout(() => resolve(false), 30_000);
         const sub = p.addListener('playbackStatusUpdate', (s) => {
           if (s.didJustFinish) {
             clearTimeout(guard);
@@ -56,6 +57,7 @@ export function premiumVoice(enabled: () => boolean): PreparedProvider {
       });
       p.remove();
       if (player === p) player = null;
+      return ended;
     },
     async stop() {
       player?.pause();

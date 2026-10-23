@@ -5,7 +5,7 @@
  * (`recommendations[0]`) — sans doublon, puis applique la mémoire locale des messages lus.
  * Aucun calcul : chaque texte vient de son moteur (insights, coach, recommandations).
  */
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 import { useApp } from '@/store/app';
 import { useFinance } from '@/hooks/useFinance';
 import { useInsightText } from '@/hooks/useInsightText';
@@ -17,7 +17,7 @@ import type { Insight } from '@/core/insights';
 import type { Recommendation } from '@/core/intelligence';
 import type { CoachEvent } from '@/core/coach/events';
 import { loadReadState, readNow, readStateSnapshot, setReadState, subscribeReadState } from '@/services/readState';
-import { groupToRead, markRead, mergeToRead, readTargets, visibleToRead, type ToReadItem, type ToReadTone } from './toRead';
+import { groupToRead, markRead, mergeToRead, readKeyOf, readTargets, visibleToRead, type ToReadItem, type ToReadTone } from './toRead';
 import { useI18n, type TKey } from '@/i18n';
 
 /** Alertes du BUDGET (onglet Budget et étiquette « Alerte budget »). */
@@ -34,8 +34,28 @@ const insightTone = (s: Insight['severity']): ToReadTone => (s === 'danger' ? 'd
 const coachTone = (s: CoachEvent['severity']): ToReadTone => (s === 'critical' ? 'danger' : s === 'warning' ? 'warning' : s === 'advice' ? 'advice' : 'info');
 const recTone = (s: Recommendation['severity']): ToReadTone => (s === 'danger' ? 'danger' : s === 'warning' ? 'warning' : 'info');
 
-export function useToRead() {
-  const { user } = useApp();
+type ToReadState = ReturnType<typeof useToReadState>;
+const ToReadContext = createContext<ToReadState | null>(null);
+
+/**
+ * Audit du 23/10, R6 : « À lire » est calculé UNE fois pour toute l'application (cloche, Accueil,
+ * Budget, Notifications lisent le même résultat) ; avant, chaque écran refaisait les calculs du coach.
+ */
+export function ToReadProvider({ children }: { children: ReactNode }) {
+  const state = useToReadState();
+  return createElement(ToReadContext.Provider, { value: state }, children);
+}
+
+/** Messages « À lire » (calculés par `ToReadProvider`). */
+export function useToRead(): ToReadState {
+  const state = useContext(ToReadContext);
+  if (!state) throw new Error('useToRead : ToReadProvider manquant');
+  return state;
+}
+
+function useToReadState() {
+  const { user, activeSpace } = useApp();
+  const spaceId = activeSpace?.id ?? null;
   const { t } = useI18n();
   const uid = user?.uid ?? null;
   const { insights, now } = useFinance();
@@ -51,19 +71,25 @@ export function useToRead() {
   const topRec = recommendations[0] ?? null;
   const advice = useMemo(() => adviceOfDay(recommendations.filter((r) => r.id !== topRec?.id), now), [recommendations, now, topRec?.id]);
 
+  // Tous les constats, un par un (l'écran Notifications les montre tous, même ceux fusionnés ci-dessous).
+  const alerts = useMemo<ToReadItem[]>(
+    () =>
+      insights.map((i) => ({
+        id: i.id,
+        kind: BUDGET_INSIGHTS.has(i.kind) ? 'budget' : 'coach',
+        tone: insightTone(i.severity),
+        text: renderInsight(i),
+        link: refPath(i.ref),
+        dueDate: typeof i.params?.date === 'string' && DAY_RE.test(i.params.date) ? i.params.date : null,
+        // Seuil d'une enveloppe : le même fait que l'alerte d'enveloppe du coach.
+        keys: i.kind === 'envelope_threshold' && i.ref ? [`envelope:${i.ref.id}`] : [],
+        origin: 'insight',
+        insightKind: i.kind,
+      })),
+    [insights, renderInsight],
+  );
+
   const all = useMemo(() => {
-    const alerts: ToReadItem[] = insights.map((i) => ({
-      id: i.id,
-      kind: BUDGET_INSIGHTS.has(i.kind) ? 'budget' : 'coach',
-      tone: insightTone(i.severity),
-      text: renderInsight(i),
-      link: refPath(i.ref),
-      dueDate: typeof i.params?.date === 'string' && DAY_RE.test(i.params.date) ? i.params.date : null,
-      // Seuil d'une enveloppe : le même fait que l'alerte d'enveloppe du coach.
-      keys: i.kind === 'envelope_threshold' && i.ref ? [`envelope:${i.ref.id}`] : [],
-      origin: 'insight',
-      insightKind: i.kind,
-    }));
     const adviceItems: ToReadItem[] = advice ? [{ id: advice.id, kind: 'advice', tone: 'advice', text: renderRec(advice), link: advice.link ?? null, keys: [`rec:${advice.kind}`], origin: 'advice' }] : [];
     const coachItems: ToReadItem[] = summary
       .map((e) => ({
@@ -80,8 +106,10 @@ export function useToRead() {
       .filter((x) => x.text);
     const analysisItems: ToReadItem[] = topRec ? [{ id: topRec.id, kind: 'analysis', tone: recTone(topRec.severity), text: renderRec(topRec), link: topRec.link ?? '/analysis', keys: [`rec:${topRec.kind}`], origin: 'analysis' }] : [];
     // Ordre de la maquette : alertes, conseil du jour, votre coach, votre analyse.
-    return mergeToRead([alerts.filter((x) => x.kind === 'budget'), adviceItems, alerts.filter((x) => x.kind !== 'budget'), coachItems, analysisItems]);
-  }, [insights, renderInsight, advice, renderRec, summary, coachText, topRec]);
+    const merged = mergeToRead([alerts.filter((x) => x.kind === 'budget'), adviceItems, alerts.filter((x) => x.kind !== 'budget'), coachItems, analysisItems]);
+    // R2 et R3 : « lu » vaut pour CE texte, dans CET espace.
+    return merged.map((x) => ({ ...x, readKey: readKeyOf(spaceId, x.id, x.text) }));
+  }, [alerts, advice, renderRec, summary, coachText, topRec, spaceId]);
 
   const ready = snap.loaded && snap.uid === uid;
   const visible = useMemo(() => (ready ? visibleToRead(all, snap.store, snap.checkedAt, snap.checkedDay) : []), [ready, all, snap.store, snap.checkedAt, snap.checkedDay]);
@@ -90,7 +118,7 @@ export function useToRead() {
 
   // Lire un message regroupé = lire chacun de ses messages (E1).
   const dismiss = useCallback(
-    (x: { id: string; reminder: boolean; members?: { id: string; reminder: boolean }[] }) => {
+    (x: { id: string; readKey?: string; reminder: boolean; members?: { id: string; reminder: boolean }[] }) => {
       const { now: at, day } = readNow();
       let store = readStateSnapshot().store;
       for (const target of readTargets(x)) store = markRead(store, target, at, day);
@@ -99,7 +127,7 @@ export function useToRead() {
     [uid],
   );
   const dismissAll = useCallback(
-    (xs: { id: string; reminder: boolean; members?: { id: string; reminder: boolean }[] }[]) => {
+    (xs: { id: string; readKey?: string; reminder: boolean; members?: { id: string; reminder: boolean }[] }[]) => {
       const { now: at, day } = readNow();
       let store = readStateSnapshot().store;
       for (const x of xs) for (const target of readTargets(x)) store = markRead(store, target, at, day);
@@ -109,10 +137,11 @@ export function useToRead() {
   );
   // `all` : TOUS les messages, lus ou non (écran Notifications, B5bis) ; `unread` : le même nombre
   // que « À lire · N » (décision du fondateur, 22/10 : un message regroupé compte pour 1).
-  return { items, all, unread: items.length, dismiss, dismissAll, advice, topRec };
+  // `alerts` : chaque constat, sans fusion (écran Notifications : mêmes messages qu'avant la refonte).
+  return { items, all, alerts, unread: items.length, dismiss, dismissAll, advice, topRec };
 }
 
-/** Cloche : le même nombre que « À lire · N » (messages non lus, après regroupement). */
+/** Cloche : le même nombre que « À lire · N » (messages non lus, après regroupement), même calcul (R6). */
 export function useToReadCount(): number {
   return useToRead().unread;
 }

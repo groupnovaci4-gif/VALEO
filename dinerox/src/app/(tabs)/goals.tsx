@@ -22,6 +22,8 @@ import { AmountField, Button, Card, EmptyState, GradientCard, Icon, IconButton, 
 import { BIG_TEXT, DesignV2, shadowB, useTheme } from '@/theme';
 import { finalPalette } from '@/theme/finalPalette';
 import { GoalTileCard, type GoalTileProps } from '@/features/goals/GoalTileCard';
+import { goalPaceKind } from '@/features/goals/goalTile';
+import { hasFeature, withinLimit } from '@/core/subscription';
 import { allocateCapacity, goalPlanFor, sortGoals } from '@/core/goals';
 import { observedCapacity } from '@/core/intelligence';
 import { can } from '@/core/permissions';
@@ -42,9 +44,9 @@ const GLOBAL_BAR = '#E8B85A';
 const ON_HERO_MUTED = '#C9DED6';
 
 function GoalsScreen() {
-  const { t, monthYear } = useI18n();
+  const { t, monthYear, date } = useI18n();
   const { colors, dark } = useTheme();
-  const { role } = useApp();
+  const { role, plan: subscription, activeSpace } = useApp();
   const money = useMoney();
   const actions = useActions();
   const run = useRunAction();
@@ -64,6 +66,9 @@ function GoalsScreen() {
   const allocation = useMemo(() => (cap ? allocateCapacity(cap, goalsOnly, data.goalContributions, now, 1000, currency) : []), [cap, goalsOnly, data.goalContributions, now, currency]);
   const canCreate = can(role, 'create', 'goals');
   const canEdit = can(role, 'update', 'goals');
+  // R1 : même contrôle que l'écran de création (formule, réserve d'un espace famille).
+  const openReserves = data.goals.filter((g) => !g.deleted && isReserve(g) && (g.status === 'active' || g.status === 'paused')).length;
+  const canAddReserve = canCreate && withinLimit(subscription, 'reserves', openReserves) && !(activeSpace?.kind === 'family' && !hasFeature(subscription, 'family_reserve'));
   // Même droit que sur la fiche : un enfant peut verser, pas modifier.
   const canContribute = can(role, 'create', 'goalContributions');
   // Ordre de priorité des seuls objectifs actifs (ceux en pause sont hors classement).
@@ -94,7 +99,16 @@ function GoalsScreen() {
   const tiles: (GoalTileProps & { key: string })[] = [
     ...plans.map(({ g, plan }) => {
       const rank = g.status === 'active' ? rankedIds.indexOf(g.id) + 1 : 0;
-      const pace = plan.reached ? null : plan.requiredMonthly ? t('goal.perMonthChip', { amount: money(plan.requiredMonthly) }) : plan.estimatedDate ? t('goal.atPaceChip', { date: monthYear(plan.estimatedDate) }) : null;
+      // Audit du 23/10, R7 : l'objectif en retard est signalé sur sa vignette (en rouge).
+      const paceKind = goalPaceKind(plan);
+      const pace =
+        paceKind === 'overdue'
+          ? t('goal.calc.overdue', { amount: money(plan.remaining) })
+          : paceKind === 'monthly'
+            ? t('goal.perMonthChip', { amount: money(plan.requiredMonthly ?? 0) })
+            : paceKind === 'atPace' && plan.estimatedDate
+              ? t('goal.atPaceChip', { date: monthYear(plan.estimatedDate) })
+              : null;
       const amounts = g.targetAmount > 0 ? `${money(plan.saved)} / ${money(plan.target)}` : t('goal.setAmount');
       return {
         key: g.id,
@@ -103,6 +117,7 @@ function GoalsScreen() {
         name: g.name,
         amounts,
         pace,
+        paceAlert: paceKind === 'overdue',
         percent: plan.percent,
         icon: { emoji: g.icon, ids: [g.templateId, `goal.${g.categoryId}`] },
         a11y: [g.name, amounts, pace, `${plan.percent} %`].filter(Boolean).join(', '),
@@ -121,7 +136,8 @@ function GoalsScreen() {
               key: season.id,
               kind: 'season' as const,
               label: t('goal.tile.season'),
-              name: season.name,
+              // Audit du 23/10, R7 : la date du moment fort reste visible (comme l'ancienne section).
+              name: season.targetDate ? `${season.name} · ${date(season.targetDate)}` : season.name,
               amounts,
               pace,
               percent: p.plan.percent,
@@ -178,7 +194,8 @@ function GoalsScreen() {
             accessibilityRole="button"
             accessibilityLabel={t('goal.new')}
             onPress={() => router.push('/goals/new')}
-            style={({ pressed }) => ({ minHeight: 44, borderRadius: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: pressed ? colors.primaryPressed : colors.primary })}
+            // Audit du 23/10, R10 : 48 dp.
+            style={({ pressed }) => ({ minHeight: 48, borderRadius: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: pressed ? colors.primaryPressed : colors.primary })}
           >
             <Icon name="add" size={18} color={colors.onPrimary} />
             <Text variant="label" style={{ fontSize: 14, color: colors.onPrimary }}>
@@ -244,6 +261,10 @@ function GoalsScreen() {
         <Text variant="small" tone="subtle" style={{ fontSize: 13, lineHeight: 18, marginTop: 10, marginHorizontal: 2 }}>
           {t('reserve.tile.hint')}
         </Text>
+      ) : null}
+      {/* Audit du 23/10, R1 : une 2ᵉ réserve reste possible (« Ajouter », comme l'ancienne section), si la formule le permet. */}
+      {reserves.length && canAddReserve ? (
+        <Button variant="tertiary" icon="add-circle-outline" label={t('common.add')} accessibilityLabel={`${t('common.add')}, ${t('reserve.section')}`} onPress={() => router.push('/reserve/new')} style={{ alignSelf: 'flex-start', marginTop: 4 }} />
       ) : null}
       {/* Rien de perdu : préparer un moment fort, créer la réserve famille (quand ils n'existent pas). */}
       {!season ? (

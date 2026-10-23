@@ -45,6 +45,9 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '✓ ' : '✗ ') + m); 
   ok(t.includes('Attention Awa, vous avez dépassé votre budget Alimentation & boissons de 20 000 FCFA.'), `120 000 : « ${t} »`);
   await go('/budget'); const bt = await text();
   ok(bt.includes('Dépassé de 20 000 FCFA') && bt.includes('Budget Alimentation & boissons dépassé de 20 000 FCFA'), 'écran Budget : « Dépassé de 20 000 FCFA » + constat');
+  // Audit du 23/10, R10 : les onglets Enveloppes / Notifications ont 48 dp de zone de toucher.
+  const tabs = await p.getByRole('tab', { name: /^(Enveloppes|Notifications)/ }).filter({ visible: true }).evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+  ok(tabs.length === 2 && tabs.every((h) => h >= 48), `onglets du Budget : ${tabs.join(' et ')} dp (≥ 48)`);
   // Refonte finale B7 : l'enveloppe de l'accueil est une bulle dont l'état est écrit « Dépassé de … » (maquette).
   await go('/'); ok((await text()).includes('Dépassé de 20 000 FCFA'), 'accueil : bulle d’enveloppe « Dépassé de 20 000 FCFA »');
   await p.screenshot({ path: `${S}/coach-budget.png` });

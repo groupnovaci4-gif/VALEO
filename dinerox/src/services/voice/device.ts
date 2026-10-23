@@ -3,7 +3,7 @@
  * Meilleure voix disponible pour la langue (qualité « Enhanced » d'abord).
  */
 import * as Speech from 'expo-speech';
-import type { PreparedProvider, SpeakOptions } from './queue';
+import { InterruptedError, type PreparedProvider, type SpeakOptions } from './queue';
 
 const LOCALE: Record<SpeakOptions['language'], string> = { fr: 'fr-FR', en: 'en-US' };
 const chosen = new Map<string, Promise<string | undefined>>();
@@ -40,16 +40,17 @@ export const deviceVoice: PreparedProvider = {
   },
   async speak(text, opts) {
     const voice = await bestVoice(opts.language);
-    await new Promise<void>((resolve, reject) => {
-      // Garde-fou : certaines plateformes ne signalent jamais la fin de lecture.
-      const guard = setTimeout(resolve, 3000 + text.length * 120);
-      const done = () => (clearTimeout(guard), resolve());
+    return new Promise<void | false>((resolve, reject) => {
+      // Garde-fou : certaines plateformes ne signalent jamais la fin de lecture. Audit du 23/10, R13 :
+      // la file avance, mais une fin non signalée n'est pas une lecture complète (`false`).
+      const guard = setTimeout(() => resolve(false), 3000 + text.length * 120);
       Speech.speak(text, {
         language: LOCALE[opts.language],
         voice,
         rate: 0.98,
-        onDone: done,
-        onStopped: done,
+        onDone: () => (clearTimeout(guard), resolve()),
+        // Arrêtée avant la fin (bouton, appel, système) : jamais « lue ».
+        onStopped: () => (clearTimeout(guard), reject(new InterruptedError())),
         onError: (e) => (clearTimeout(guard), reject(e)),
       });
     });

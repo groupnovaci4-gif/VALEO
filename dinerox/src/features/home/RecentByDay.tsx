@@ -16,7 +16,7 @@ import { useData } from '@/store/app';
 import { useOperators } from '@/services/operatorsConfig';
 import { financingNature } from '@/core/nature';
 import type { Transaction } from '@/core/types';
-import { dayLabel, groupByDay } from './dayGroups';
+import { amountDirection, dayLabel, groupByDay } from './dayGroups';
 
 export function RecentByDay({ txs }: { txs: Transaction[] }) {
   const { lang } = useI18n();
@@ -63,8 +63,10 @@ function DayRow({ tx }: { tx: Transaction }) {
   const account = data.accounts.find((a) => a.id === tx.accountId);
   const mark = account ? accountMark(account, operators) : null;
   const badge = account && (mark?.kind === 'logo' || mark?.kind === 'pill') ? account : null;
-  const out = tx.type === 'expense' || (tx.type === 'adjustment' && tx.direction === 'out');
-  const amount = out ? `-${money(tx.amount, { currency: tx.currency })}` : tx.type === 'income' ? money(tx.amount, { currency: tx.currency, signed: true }) : money(tx.amount, { currency: tx.currency });
+  // Audit du 23/10, R9 : un ajustement à la hausse garde son « + » (même sens que l'historique).
+  const dir = amountDirection(tx);
+  const out = dir === 'out';
+  const amount = out ? `-${money(tx.amount, { currency: tx.currency })}` : dir === 'in' ? money(tx.amount, { currency: tx.currency, signed: true }) : money(tx.amount, { currency: tx.currency });
   // Maquette : une sortie à l'encre, une entrée ou un virement en vert.
   const amountColor = out ? colors.text : finalPalette(dark).positive;
   return (

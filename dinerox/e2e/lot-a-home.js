@@ -1,5 +1,5 @@
 /* Lot A, phase 1 — « reste par jour », accueil réordonné, démarrage rapide (compte réel sur émulateurs). */
-const { BASE, launch, dayOfMonth, PER_DAY } = require('./env.js');
+const { BASE, launch, dayOfMonth, PER_DAY, phraseField } = require('./env.js');
 const { checkAllInputs } = require('./fieldcheck.js');
 const S = process.argv[2] || '.';
 let fails = 0;
@@ -40,6 +40,17 @@ let b;
   }
   // B4 : la tuile « Parler » remplace la bulle (même action, exemple gardé) ; le clavier reste au centre (« Saisir »).
   ok((await p.getByRole('button', { name: /^Parler, « .+ »$/ }).count()) > 0 && (await p.getByText('Saisir', { exact: true }).count()) > 0, 'tuile « Parler » avec exemple + « Saisir »');
+  // Décision D1 (audit du 23/10, R8) : « Saisir une opération » SOUS les tuiles, visible, 48 dp, ouvre la saisie au clavier.
+  const kb = p.getByRole('button', { name: 'Saisir une opération', exact: true }).filter({ visible: true });
+  const [kbBox, talkBox] = [await kb.first().boundingBox(), await p.getByRole('button', { name: /^Parler, « .+ »$/ }).first().boundingBox()];
+  ok((await kb.count()) === 1 && !!kbBox && !!talkBox && kbBox.y >= talkBox.y + talkBox.height && kbBox.height >= 48, `« Saisir une opération » sous les tuiles (${kbBox ? Math.round(kbBox.height) : '?'} dp)`);
+  await kb.first().click(); await p.waitForTimeout(800);
+  ok(await (await phraseField(p)).isVisible(), '« Saisir une opération » ouvre la saisie au clavier (sans appui long)');
+  await p.keyboard.press('Escape'); await p.goto(BASE + '/', { waitUntil: 'load' }); await p.waitForTimeout(3000); await closeCelebration();
+  await p.getByRole('button', { name: "Comment c'est calculé ?", exact: true }).first().click(); await p.waitForTimeout(300);
+  // Audit R10 : « Mis de côté » (dépliable) à 48 dp de zone de toucher.
+  const aside = await p.getByRole('button', { name: /^Mis de côté, / }).filter({ visible: true }).first().boundingBox();
+  ok(!!aside && aside.height >= 48, `« Mis de côté » : zone de toucher ${aside ? Math.round(aside.height) : '?'} dp (≥ 48)`);
   // Recent : 5 dernières opérations au plus (B6 : groupées par jour), entre leur titre et « Enveloppes ».
   const yFrom = (await p.getByText('Dernières opérations', { exact: true }).first().boundingBox()).y;
   const yTo = (await p.getByText('Enveloppes', { exact: true }).first().boundingBox()).y;

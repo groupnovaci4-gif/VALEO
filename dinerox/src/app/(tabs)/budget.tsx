@@ -52,11 +52,14 @@ function BudgetScreen() {
         accessibilityRole="tab"
         accessibilityState={{ selected: on }}
         onPress={() => setTab(key)}
-        style={{ flex: 1, minHeight: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, backgroundColor: on ? colors.surface : 'transparent', ...(on && !dark ? shadowB : null) }}
+        // Audit du 23/10, R10 : zone de toucher de 48 dp ; la pastille visible garde ses 36 dp (maquette).
+        style={{ flex: 1, minHeight: 48, marginVertical: -6, justifyContent: 'center' }}
       >
-        <Text variant="caption" weight="600" align="center" style={{ fontSize: 13, lineHeight: 18, color: on ? colors.text : colors.textMuted }}>
-          {label}
-        </Text>
+        <View style={{ minHeight: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6, backgroundColor: on ? colors.surface : 'transparent', ...(on && !dark ? shadowB : null) }}>
+          <Text variant="caption" weight="600" align="center" style={{ fontSize: 13, lineHeight: 18, color: on ? colors.text : colors.textMuted }}>
+            {label}
+          </Text>
+        </View>
       </Pressable>
     );
   };
@@ -202,6 +205,12 @@ function SummaryCard() {
       {/* Dépassement et reste à répartir négatif : ÉCRITS, avec une icône (jamais la couleur seule). */}
       {over ? note(t('env.over', { amount: money(-budget.remaining) })) : null}
       {!child && toAllocate.amount < 0 ? note(t('budget.toAllocateOver', { amount: money(-toAllocate.amount) })) : null}
+      {/* Audit du 23/10, R7 : chez l'enfant, la raison reste ÉCRITE (pas seulement lue par le lecteur d'écran). */}
+      {child ? (
+        <Text variant="caption" weight="400" style={{ marginTop: 6, fontSize: 13, lineHeight: 18, color: ON_HERO_MUTED }}>
+          {t('child.askParent.why')}
+        </Text>
+      ) : null}
       {/* §9 (E44b) : le capital remboursé n'est pas une dépense — ligne à part, hors enveloppes. */}
       {budget.debtRepayments > 0 ? (
         <Text variant="caption" weight="400" style={{ marginTop: 6, fontSize: 13, lineHeight: 18, color: ON_HERO_MUTED }}>

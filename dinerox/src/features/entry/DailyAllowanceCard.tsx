@@ -93,8 +93,9 @@ export function DailyAllowanceCard({ hidden, onToggleHidden, position }: { hidde
         accessibilityState={{ expanded: setAsideOpen }}
         aria-expanded={setAsideOpen}
         onPress={() => setSetAsideOpen((o) => !o)}
-        hitSlop={{ top: 10, bottom: 10 }}
-        style={({ pressed }) => ({ flexDirection: big ? 'column' : 'row', alignItems: big ? 'flex-start' : 'center', justifyContent: 'space-between', gap: big ? 0 : 8, flexWrap: 'wrap', minHeight: 28, borderRadius: 8, backgroundColor: pressed ? (onHero ? colors.heroTrack : colors.surfaceAlt) : 'transparent' })}
+        // Audit du 23/10, R10 : 48 dp de zone de toucher (hitSlop ne compte pas sur le web) ; les marges
+        // négatives gardent la hauteur visible de la carte.
+        style={({ pressed }) => ({ flexDirection: big ? 'column' : 'row', alignItems: big ? 'flex-start' : 'center', justifyContent: 'space-between', gap: big ? 0 : 8, flexWrap: 'wrap', alignContent: big ? 'flex-start' : 'center', minHeight: 48, marginVertical: -10, borderRadius: 8, backgroundColor: pressed ? (onHero ? colors.heroTrack : colors.surfaceAlt) : 'transparent' })}
       >
         <Text variant="small" tone={onHero ? 'heroMuted' : 'muted'}>
           {t('home.setAside')}

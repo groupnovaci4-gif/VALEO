@@ -70,7 +70,8 @@ let b;
   await p.getByRole('tab', { name: 'Clavier', exact: true }).first().click(); await p.waitForTimeout(500);
   await p.getByRole('switch', { name: 'Afficher des exemples de phrases' }).click(); await p.waitForTimeout(600);
   await go('/'); await closeCelebration();
-  ok((await btn('Saisir une opération').count()) === 1, 'méthode par défaut « Clavier » : le bouton central s’appelle « Saisir une opération »');
+  // Audit du 23/10 (D1) : le lien clavier sous les tuiles ne double pas le bouton central → UN seul bouton.
+  ok((await btn('Saisir une opération').count()) === 1, 'méthode par défaut « Clavier » : le bouton central s’appelle « Saisir une opération » (pas de lien en double)');
   await btn('Saisir une opération').click(); await p.waitForTimeout(800);
   ok((await text()).includes('Touchez une catégorie pour enregistrer'), 'un appui ouvre le pavé numérique');
   await p.keyboard.press('Escape'); await go('/'); await closeCelebration();
