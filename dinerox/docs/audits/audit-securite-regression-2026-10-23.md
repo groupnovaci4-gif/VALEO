@@ -74,3 +74,17 @@ déployées ni dans une APK. Aucune donnée réelle n'a été exposée.
 - **D1** : remettre un petit lien « Saisir une opération » (clavier) sous les tuiles de l'Accueil — *recommandé*.
 - **D2** : « Changer mon code secret » dans Réglages › Sécurité, en réutilisant le parcours « code oublié » — *recommandé*.
 - **D3** : invitations familiales pour les comptes par numéro — *à trancher avant l'activation*.
+
+## Suivi (23/10, soir)
+
+- **Partie 1** (design-pro, `1d324fd` puis `dcc558e`) : R1 à R13, T1 et D1 corrigés (tests rouges
+  d'abord, 1 781 tests, e2e complet vert) ; écran Notifications passé en direction B. APK de test
+  `build-1792766773062.apk` (v1.6.0 · dcc558e) fabriquée pour le téléphone du fondateur.
+- **Partie 2** (connexion-telephone, `6a34a33`) : S1 à S11, C1, C2 (= D2), C4, C5 corrigés ;
+  1 896 tests, règles 74/74, Functions 74/74 (deux fois), back-office 188/188, e2e 35/35.
+  Vérifié par l'assistant : connexion récente exigée pour « Ajouter mon numéro », purge à la
+  suppression du compte, jeton App Check à usage unique (côté client aussi), plafonds par canal
+  et par préfixe, refus des comptes suspendus et administrateurs, interrupteur désactivé par défaut.
+- Restent à faire au moment de l'activation : créer `config/app/items/phoneAuth`, activer la
+  règle TTL sur `phoneAuth.deleteAt`, vérifier les types de l'interface du back-office
+  (dépendances non installées lors de la partie 2), D3 (invitations familiales par numéro).
